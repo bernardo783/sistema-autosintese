@@ -154,7 +154,7 @@
       <div class="err" id="loginErr"></div>
       <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">Não tem conta? <a href="#" id="goSignup" class="link">Criar conta</a></p>
       <p class="hint" style="text-align:center"><a href="#" id="forgotLink" class="link">Esqueci a senha</a></p>
-      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.0 · autosintese.app.br</p>
+      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.1 · autosintese.app.br</p>
     </div>
 
     <div id="signupView" class="hidden">
@@ -182,6 +182,7 @@
     <nav class="nav">
       <button data-view="dash" class="active"><span class="ic">📊</span> Painel</button>
       <button data-view="financeiro"><span class="ic">💰</span> Financeiro</button>
+      <button data-view="clientes"><span class="ic">🤝</span> Clientes</button>
       <button data-view="folha"><span class="ic">🧾</span> Folha de Pagamento</button>
       <button data-view="senhas"><span class="ic">🔑</span> Senhas</button>
       <button data-view="links"><span class="ic">🔗</span> Links</button>
@@ -233,16 +234,16 @@ const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 let cryptoKey=null, DB=null, USERS=null, VAULT_RAW=null, currentUser=null, SESSION=null;
 const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
-function normalizeDB(d){ return {financeiro:d.financeiro||[], senhas:d.senhas||[], links:d.links||[], projetos:d.projetos||[], folhaFixos:d.folhaFixos||[], folha:d.folha||[]}; }
+function normalizeDB(d){ return {financeiro:d.financeiro||[], senhas:d.senhas||[], links:d.links||[], projetos:d.projetos||[], folhaFixos:d.folhaFixos||[], folha:d.folha||[], clientes:d.clientes||[]}; }
 function blankDB(){ return normalizeDB({}); }
 
 /* Dados da empresa: uma linha por módulo na tabela `itens` (jsonb) */
-const MODMAP=[['financeiro','financeiro'],['senhas','senhas'],['links','links'],['projetos','projetos'],['folha_fixos','folhaFixos'],['folha','folha']];
+const MODMAP=[['financeiro','financeiro'],['senhas','senhas'],['links','links'],['projetos','projetos'],['folha_fixos','folhaFixos'],['folha','folha'],['clientes','clientes']];
 async function loadDB(){
   const {data,error}=await sb.from('itens').select('modulo,dados');
   if(error) throw error;
   const map={}; (data||[]).forEach(r=>map[r.modulo]=r.dados);
-  DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha});
+  DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha,clientes:map.clientes});
 }
 async function saveDB(){
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
@@ -427,6 +428,7 @@ function render(view){
   const c=$('#content');
   if(view==='dash') return renderDash(c);
   if(view==='financeiro') return renderFinanceiro(c);
+  if(view==='clientes') return renderClientes(c);
   if(view==='folha') return renderFolha(c);
   if(view==='senhas') return renderSenhas(c);
   if(view==='links') return renderLinks(c);
@@ -650,6 +652,89 @@ window.openProjModal=(id)=>{
       if(id){Object.assign(it,v);} else {DB.projetos.push({id:uid(),...v});}
       await saveDB(); render('projetos'); toast('Salvo.'); return true;
     });
+};
+
+/* ---------- CLIENTES ---------- */
+let cliComp = compNow();
+function renderClientes(c){
+  const comp=cliComp;
+  const list=[...DB.clientes];
+  const totalMensal=list.reduce((s,x)=>s+(Number(x.valor)||0),0);
+  const idsGeradas=new Set(DB.financeiro.filter(f=>typeof f.id==='string'&&f.id.startsWith('cl_')&&f.id.endsWith('_'+comp)).map(f=>f.id));
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Clientes</h2><div class="desc">Carteira de mensalidades da Autosíntese</div></div>
+     <div class="toolbar">
+       <input class="search" id="cSearch" placeholder="Buscar...">
+       <input type="month" class="search" id="cliCompInp" value="${comp}" style="min-width:150px">
+       <button class="btn secondary small" onclick="gerarReceitasMes()">⚡ Gerar receitas do mês</button>
+       <button class="btn small" onclick="openCliModal()">+ Cliente</button>
+     </div>
+   </div>
+   <div class="cards">
+     <div class="card"><div class="k">Clientes ativos</div><div class="v">${list.length}</div></div>
+     <div class="card"><div class="k">Mensalidade total</div><div class="v pos">${brl(totalMensal)}</div></div>
+     <div class="card"><div class="k">Receitas geradas em ${fmtComp(comp)}</div><div class="v">${idsGeradas.size}/${list.length}</div></div>
+   </div>
+   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Responsável</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+   <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
+   <p class="hint" style="margin-top:12px">"Gerar receitas do mês" lança no <strong>Financeiro</strong> uma receita por cliente, na data de vencimento do mês escolhido (categoria "Mensalidade Clientes"), sem duplicar. Clientes com vencimento "a definir" ficam de fora até você definir o dia.</p>`;
+  const draw=()=>{
+    const t=searchTerm.toLowerCase();
+    const rows=list.sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t));
+    $('#cBody').innerHTML=rows.map(r=>`<tr>
+      <td><strong>${esc(r.nome)}</strong></td>
+      <td><span class="tag st">${esc(r.nicho)||'—'}</span></td>
+      <td>${esc(r.servico)||'—'}</td>
+      <td>${r.diaVenc?('dia '+r.diaVenc):'<span class="tag pausado">a definir</span>'}</td>
+      <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
+      <td class="money" style="text-align:right">${brl(r.valor)}</td>
+      <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('clientes','${r.id}')">Excluir</button></div></td>
+    </tr>`).join('');
+    $('#cEmpty').innerHTML=rows.length?'':'<div class="empty">Nenhum cliente. Clique em "+ Cliente".</div>';
+  };
+  $('#cSearch').oninput=e=>{searchTerm=e.target.value;draw();};
+  $('#cliCompInp').onchange=e=>{ cliComp=e.target.value||compNow(); render('clientes'); };
+  draw();
+}
+window.openCliModal=(id)=>{
+  const it=id?DB.clientes.find(x=>x.id===id):{};
+  modal(id?'Editar cliente':'Novo cliente',`
+    <div class="field"><label>Nome do cliente</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Loja X Veículos"></div>
+    <div class="row2">
+      <div class="field"><label>Nicho</label><input id="m_nicho" value="${esc(it.nicho)}" placeholder="Ex: Loja de Carro"></div>
+      <div class="field"><label>Serviço entregue</label><input id="m_serv" value="${esc(it.servico)}" placeholder="Ex: Tráfego Pago + Agent IA"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Dia do vencimento (1–31, vazio = a definir)</label><input type="number" min="1" max="31" id="m_dia" value="${it.diaVenc??''}"></div>
+      <div class="field"><label>Valor mensal (R$)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Responsável financeiro</label><input id="m_resp" value="${esc(it.resp)}" placeholder="Nome"></div>
+      <div class="field"><label>Telefone</label><input id="m_tel" value="${esc(it.tel)}" placeholder="(11) 90000-0000"></div>
+    </div>`,
+    async ()=>{
+      const dia=parseInt($('#m_dia').value);
+      const v={nome:$('#m_nome').value.trim(),nicho:$('#m_nicho').value.trim(),servico:$('#m_serv').value.trim(),
+        diaVenc:(dia>=1&&dia<=31)?dia:null,valor:parseFloat($('#m_valor').value)||0,
+        resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim()};
+      if(!v.nome){toast('Informe o nome.');return false;}
+      if(id){Object.assign(it,v);} else {DB.clientes.push({id:uid(),...v});}
+      await saveDB(); render('clientes'); toast('Salvo.'); return true;
+    });
+};
+window.gerarReceitasMes=async ()=>{
+  const comp=cliComp;
+  const comDia=DB.clientes.filter(x=>x.diaVenc>=1&&x.diaVenc<=31);
+  if(!comDia.length){ toast('Nenhum cliente com dia de vencimento definido.'); return; }
+  const have=new Set(DB.financeiro.map(f=>f.id));
+  const novos=comDia.filter(x=>!have.has('cl_'+x.id+'_'+comp));
+  if(!novos.length){ toast('As receitas de '+fmtComp(comp)+' já estão geradas.'); return; }
+  novos.forEach(x=>DB.financeiro.push({id:'cl_'+x.id+'_'+comp,data:vencOf(comp,x.diaVenc),tipo:'receita',
+    descricao:'Mensalidade: '+x.nome,categoria:'Mensalidade Clientes',valor:Number(x.valor)||0}));
+  await saveDB(); render('clientes');
+  const semDia=DB.clientes.length-comDia.length;
+  toast(novos.length+' receita(s) gerada(s) para '+fmtComp(comp)+(semDia?(' — '+semDia+' cliente(s) "a definir" ficaram de fora.'):'.'));
 };
 
 /* ---------- FOLHA DE PAGAMENTO ---------- */
