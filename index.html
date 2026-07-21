@@ -879,6 +879,9 @@ function renderFolha(c){
   const pago=pays.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
   const pend=pays.filter(p=>!p.pago);
   const totPend=Math.max(0,tot-pago);
+  const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
+  const semGrupos={}; pays.forEach(p=>{ const f=fixoById[p.fixoId]; if(f&&f.freq==='semanal'){ (semGrupos[p.fixoId]=semGrupos[p.fixoId]||[]).push(p); } });
+  const paysMain=pays.filter(p=>{ const f=fixoById[p.fixoId]; return !(f&&f.freq==='semanal'); });
   const hoje=new Date().toISOString().slice(0,10);
   c.innerHTML=`
    <div class="page-head">
@@ -896,7 +899,7 @@ function renderFolha(c){
      <div class="card"><div class="k">Pagamentos</div><div class="v">${pays.length-pend.length}/${pays.length}</div></div>
    </div>
    <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
-   <tbody>${pays.map(p=>{
+   <tbody>${paysMain.map(p=>{
      const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
      return `<tr>
       <td><strong>${esc(p.nome)}</strong></td><td>${esc(p.descricao)||'—'}</td><td>${fmtDate(p.venc)||'—'}</td>
@@ -908,10 +911,22 @@ function renderFolha(c){
       </div></td></tr>`;}).join('')}</tbody></table>
    ${pays.length?'':'<div class="empty">Nenhum pagamento em '+fmtComp(comp)+'. Use “⚡ Gerar folha do mês” (cria a partir dos pré-definidos) ou “+ Pagamento”.</div>'}</div>
 
+   ${Object.keys(semGrupos).length?`
+   <h2 style="font-size:16px;margin:26px 0 10px">Pagamentos semanais — ${fmtComp(comp)}</h2>
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Chave Pix</th><th style="text-align:right">Valor/semana</th><th>Semanas do mês</th><th style="text-align:right">Pago no mês</th></tr></thead>
+   <tbody>${Object.entries(semGrupos).map(([fid,ps])=>{ const f=fixoById[fid]; ps.sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+     const pagoSem=ps.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
+     return `<tr>
+      <td><strong>${esc(f.nome)}</strong>${f.dp?`<div style="font-size:11px;color:var(--muted)">${esc(f.dp)}</div>`:''}</td>
+      <td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}</td>
+      <td class="money" style="text-align:right">${brl(f.valor)}</td>
+      <td>${ps.map(p=>`<label style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;cursor:pointer;font-size:12.5px;color:${p.pago?'var(--ok)':'var(--muted)'}"><input type="checkbox" ${p.pago?'checked':''} onclick="fpToggle('${p.id}')" style="accent-color:#7c3aed;width:15px;height:15px;cursor:pointer">${fmtDate(p.venc).slice(0,5)}</label>`).join('')}</td>
+      <td class="money" style="text-align:right">${brl(pagoSem)} <span style="color:var(--muted);font-size:11px">${ps.filter(p=>p.pago).length}/${ps.length}</span></td>
+     </tr>`;}).join('')}</tbody></table></div>`:''}
    <h2 style="font-size:16px;margin:26px 0 10px">Pré-definidos — fixos de todo mês</h2>
    <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
    <tbody>${DB.folhaFixos.map(f=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—'}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}</td>
+     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—'}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}</td>
      <td class="money" style="text-align:right">${brl(f.valor)}</td>
      <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
      <td><div class="rowact">
@@ -932,25 +947,28 @@ window.gerarFolha=async ()=>{
   const temData=new Set(doComp.map(p=>p.fixoId+'|'+p.venc));
   const [y,m]=comp.split('-').map(Number);
   const last=new Date(y,m,0).getDate();
+  const dAnt=new Date(y,m-2,1); const mesAnt=dAnt.getFullYear()+'-'+String(dAnt.getMonth()+1).padStart(2,'0');
   let n=0;
   ativos.forEach(f=>{
+    if(f.inicioComp && comp<f.inicioComp) return; /* só gera a partir do mês configurado */
     if(f.freq==='semanal'){
       for(let d=1;d<=last;d++){
         if(new Date(y,m-1,d).getDay()!==(Number(f.diaSemana)||0)) continue;
         const venc=comp+'-'+String(d).padStart(2,'0');
         if(temData.has(f.id+'|'+venc)) continue;
-        DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao?f.descricao+' — ':'')+'semanal ('+DSEM[Number(f.diaSemana)||0]+')',valor:Number(f.valor)||0,venc,pago:false,pagoEm:null});
+        DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao?f.descricao+' — ':'')+'semanal ('+DSEM[Number(f.diaSemana)||0]+')'+(f.posPago?(' · ref. '+fmtComp(mesAnt)):''),valor:Number(f.valor)||0,venc,pago:false,pagoEm:null});
         n++;
       }
     } else {
       if(temMensal.has(f.id)) return;
-      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:f.descricao,valor:Number(f.valor)||0,venc:vencOf(comp,f.dia),pago:false,pagoEm:null});
+      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):''),valor:Number(f.valor)||0,venc:vencOf(comp,f.dia),pago:false,pagoEm:null});
       n++;
     }
   });
   if(!n){ toast('A folha de '+fmtComp(comp)+' já está gerada.'); return; }
   await saveDB(); render('folha'); toast(n+' pagamento(s) gerado(s) para '+fmtComp(comp)+'.');
 };
+window.fpToggle=(id)=>{ const p=DB.folha.find(x=>x.id===id); if(!p)return; if(p.pago) fpDesfazer(id); else fpPagar(id); };
 window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
   p.pago=true; p.pagoEm=new Date().toISOString().slice(0,10);
@@ -1010,9 +1028,13 @@ window.openFixoModal=(id)=>{
       <div class="field" id="wrapDia" style="${it.freq==='semanal'?'display:none':''}"><label>Dia do pagamento (1–31)</label><input type="number" min="1" max="31" id="m_dia" value="${it.dia||5}"></div>
       <div class="field" id="wrapDsem" style="${it.freq==='semanal'?'':'display:none'}"><label>Dia da semana</label><select id="m_dsem">${DSEM.map((d,i)=>`<option value="${i}"${(it.diaSemana??5)===i?' selected':''}>${d.charAt(0).toUpperCase()+d.slice(1)}</option>`).join('')}</select></div>
     </div>
+    <div class="row2">
+      <div class="field"><label>Modelo</label><select id="m_pos"><option value="0"${!it.posPago?' selected':''}>Pré-pago — mês vigente</option><option value="1"${it.posPago?' selected':''}>Pós-pago — ref. mês anterior</option></select></div>
+      <div class="field"><label>Gerar a partir de (opcional)</label><input type="month" id="m_inicioComp" value="${it.inicioComp||''}"></div>
+    </div>
     <div class="field"><label>Ativo (entra na geração do mês)</label><select id="m_ativo"><option value="1"${it.ativo?' selected':''}>Sim</option><option value="0"${!it.ativo?' selected':''}>Não</option></select></div>`,
     async ()=>{
-      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),banco:$('#m_banco').value.trim(),dp:$('#m_dp').value.trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1'};
+      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),banco:$('#m_banco').value.trim(),dp:$('#m_dp').value.trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,posPago:$('#m_pos').value==='1',inicioComp:$('#m_inicioComp').value||null,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1'};
       if(!v.nome){ toast('Informe o nome.'); return false; }
       if(id){ Object.assign(it,v); } else { DB.folhaFixos.push({id:uid(),...v}); }
       await saveDB(); render('folha'); toast('Salvo.'); return true;
