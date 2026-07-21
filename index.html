@@ -206,6 +206,7 @@
   .calgrid .dia.sel{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
   .calgrid .dia.faixa{background:rgba(124,58,237,.35);color:#fff;border-radius:0}
   .calfoot{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
+  .modal.big{max-width:760px}
 </style>
 </head>
 <body>
@@ -800,12 +801,81 @@ function renderProjetos(c){
       <td>${esc(r.responsavel)||'—'}</td>
       <td><span class="tag ${r.status}">${ST_LABEL[r.status]||r.status}</span></td>
       <td>${fmtDate(r.prazo)||'—'}</td>
-      <td><div class="rowact"><button class="iconbtn" onclick="openProjModal('${r.id}')">${currentUser&&currentUser.role==='master'?'Abrir':'Editar'}</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
+      <td><div class="rowact"><button class="iconbtn" onclick="openProjCard('${r.id}')">Abrir</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
     </tr>`).join('');
     $('#pEmpty').innerHTML=list.length?'':'<div class="empty">Nenhum projeto cadastrado.</div>';
   };
   $('#pSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
 }
+window.openProjCard=(id)=>{
+  const it=DB.projetos.find(x=>x.id===id); if(!it) return;
+  it.checklist=it.checklist||[];
+  const o=document.createElement('div'); o.className='overlay';
+  const cli=it.clienteId?DB.clientes.find(c=>c.id===it.clienteId):null;
+  const recTot=it.clienteId?DB.recebimentos.filter(x=>x.clienteId===it.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0):0;
+  const master=currentUser&&currentUser.role==='master';
+  const optsSt=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${it.status===k?' selected':''}>${v}</option>`).join('');
+  const drawCheck=()=>{
+    const done=it.checklist.filter(x=>x.feito).length, tot=it.checklist.length;
+    const pct=tot?Math.round(done/tot*100):0;
+    return `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="flex:1;height:8px;background:var(--panel2);border-radius:99px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));transition:width .3s"></div></div>
+      <span style="font-size:12px;color:var(--muted);font-weight:700">${done}/${tot}</span>
+    </div>
+    ${it.checklist.map(ck=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--panel2);border-radius:8px;margin-bottom:5px">
+        <input type="checkbox" ${ck.feito?'checked':''} onclick="prjCkToggle('${it.id}','${ck.id}')" style="accent-color:#7c3aed;width:16px;height:16px;cursor:pointer">
+        <span style="flex:1;font-size:13.5px;${ck.feito?'text-decoration:line-through;color:var(--muted)':''}">${esc(ck.txt)}</span>
+        <button class="iconbtn del" onclick="prjCkDel('${it.id}','${ck.id}')">✕</button>
+      </div>`).join('')}
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input class="search" id="pcNovo" placeholder="Novo item do checklist..." style="flex:1" onkeydown="if(event.key==='Enter')prjCkAdd('${it.id}')">
+      <button class="btn small" onclick="prjCkAdd('${it.id}')">+ Adicionar</button>
+    </div>`;
+  };
+  o.innerHTML=`<div class="modal big">
+    <div class="mhead">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px">${it.clienteId?'PROJETO · CLIENTE':'PROJETO'}</div>
+        <h3 style="font-size:20px;margin-top:3px">${esc(it.nome)}</h3>
+      </div>
+      <button class="x">&times;</button>
+    </div>
+    <div class="mbody">
+      <div class="row2" style="margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Status</label><select id="pc_status">${optsSt}</select></div>
+        <div class="field" style="margin:0"><label>Prazo</label><input type="date" id="pc_prazo" value="${it.prazo||''}"></div>
+      </div>
+      <div class="field"><label>Responsável</label><input id="pc_resp" value="${esc(it.responsavel)}"></div>
+      <div class="field"><label>📝 Descrição</label><textarea id="pc_notas" rows="3">${esc(it.notas)}</textarea></div>
+      <div style="margin:14px 0 8px;font-size:13px;font-weight:800">✅ Checklist</div>
+      <div id="pcCheck">${drawCheck()}</div>
+      ${master&&it.clienteId?`
+      <div style="background:var(--panel2);border:1px solid rgba(168,85,247,.35);border-radius:12px;padding:14px;margin-top:14px">
+        <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:1px;margin-bottom:8px">💰 FINANCEIRO · VISÍVEL SÓ PARA MASTERS</div>
+        <div style="display:flex;gap:22px;font-size:14px;flex-wrap:wrap">
+          <span>Honorário mensal: <strong>${cli?brl(cli.valor):'—'}</strong></span>
+          <span>Recebido (total): <strong style="color:var(--ok)">${brl(recTot)}</strong></span>
+        </div>
+        <button class="btn ghost small" style="margin-top:10px" onclick="document.querySelector('.overlay').remove();projFin('${it.clienteId}')">Ver lançamentos deste cliente →</button>
+      </div>`:''}
+    </div>
+    <div class="mfoot"><button class="btn secondary small mcancel">Fechar</button><button class="btn small msave">Salvar</button></div>
+  </div>`;
+  document.body.appendChild(o);
+  const close=()=>o.remove();
+  o.querySelector('.x').onclick=close; o.querySelector('.mcancel').onclick=close;
+  o.onclick=e=>{ if(e.target===o) close(); };
+  o.querySelector('.msave').onclick=async ()=>{
+    it.status=$('#pc_status').value; it.prazo=$('#pc_prazo').value; it.responsavel=$('#pc_resp').value.trim(); it.notas=$('#pc_notas').value.trim();
+    await saveDB(); close(); render('projetos'); toast('Projeto salvo.');
+  };
+  window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
+};
+window.prjCkToggle=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const ck=(p.checklist||[]).find(x=>x.id===cid); if(!ck)return; ck.feito=!ck.feito; await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
+window.prjCkDel=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; p.checklist=(p.checklist||[]).filter(x=>x.id!==cid); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
+window.prjCkAdd=async (pid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const inp=document.getElementById('pcNovo'); const t=(inp&&inp.value.trim())||''; if(!t){toast('Escreva o item.');return;} p.checklist=p.checklist||[]; p.checklist.push({id:uid(),txt:t,feito:false}); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
 window.openProjModal=(id)=>{
   const it=id?DB.projetos.find(x=>x.id===id):{status:'planejado'};
   const opts=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${it.status===k?' selected':''}>${v}</option>`).join('');
