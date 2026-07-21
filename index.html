@@ -482,7 +482,7 @@ function renderDash(c){
      <div class="card"><div class="k">🟢 Recebido</div><div class="v pos">${brl(RC.soma(RC.g.recebido)+RC.sinaisPagos)}</div></div>
      <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${RC.g.inadimplente.length?'neg':''}">${RC.g.inadimplente.length} · ${brl(RC.soma(RC.g.inadimplente))}</div></div>
      <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(RC.soma(RC.g.areceber)+RC.sinaisRestante)}</div></div>
-     <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
+     <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.filter(x=>(!x.inicio||compNow()>=x.inicio)&&(!x.fim||compNow()<=x.fim)).reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
    </div>`;
 }
 
@@ -681,6 +681,7 @@ function calcRecebimentos(comp){
     if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
     if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
     if(c.inicio && comp<c.inicio) return null; /* cliente só conta a partir do mês de início */
+    if(c.fim && comp>c.fim) return null; /* churn: depois do último mês o cliente zera */
     if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
     if(comp>compNow()) return 'areceber';
     return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
@@ -695,7 +696,8 @@ function calcRecebimentos(comp){
 function renderClientes(c){
   const comp=cliComp;
   const R=calcRecebimentos(comp);
-  const totalMensal=DB.clientes.reduce((s,x)=>s+(Number(x.valor)||0),0);
+  const ativos=DB.clientes.filter(x=>(!x.inicio||comp>=x.inicio)&&(!x.fim||comp<=x.fim));
+  const totalMensal=ativos.reduce((s,x)=>s+(Number(x.valor)||0),0);
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Clientes</h2><div class="desc">Carteira e recebimentos — planilha única</div></div>
@@ -718,7 +720,7 @@ function renderClientes(c){
      <div class="card"><div class="k">🔵 Sinais</div><div class="v">${R.g.sinal.length} · ${brl(R.sinaisPagos)}<div style="font-size:12px;color:var(--muted);font-weight:600">resta ${brl(R.sinaisRestante)}</div></div></div>
      <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${R.g.inadimplente.length?'neg':''}">${R.g.inadimplente.length} · ${brl(R.soma(R.g.inadimplente))}</div></div>
      <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(R.soma(R.g.areceber)+R.sinaisRestante)}</div></div>
-     <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)} · ${DB.clientes.length} cli.</div></div>
+     <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)} · ${ativos.length} cli.</div></div>
    </div>
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Responsável</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
@@ -771,12 +773,15 @@ window.openCliModal=(id)=>{
       <div class="field"><label>Responsável financeiro</label><input id="m_resp" value="${esc(it.resp)}" placeholder="Nome"></div>
       <div class="field"><label>Telefone</label><input id="m_tel" value="${esc(it.tel)}" placeholder="(11) 90000-0000"></div>
     </div>
-    <div class="field"><label>Primeiro pagamento (opcional — antes desse mês o cliente fica zerado)</label><input type="month" id="m_inicio" value="${it.inicio||''}"></div>`,
+    <div class="row2">
+      <div class="field"><label>Primeiro pagamento (opcional)</label><input type="month" id="m_inicio" value="${it.inicio||''}"></div>
+      <div class="field"><label>Último mês — churn (opcional)</label><input type="month" id="m_fim" value="${it.fim||''}"></div>
+    </div>`,
     async ()=>{
       const dia=parseInt($('#m_dia').value);
       const v={nome:$('#m_nome').value.trim(),nicho:$('#m_nicho').value.trim(),servico:$('#m_serv').value.trim(),
         diaVenc:(dia>=1&&dia<=31)?dia:null,valor:parseFloat($('#m_valor').value)||0,
-        resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null};
+        resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null,fim:$('#m_fim').value||null};
       if(!v.nome){toast('Informe o nome.');return false;}
       if(id){Object.assign(it,v);} else {DB.clientes.push({id:uid(),...v});}
       await saveDB(); render('clientes'); toast('Salvo.'); return true;
