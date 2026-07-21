@@ -1191,7 +1191,8 @@ window.fpToggle=(id)=>{ const p=DB.folha.find(x=>x.id===id); if(!p)return; if(p.
 window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
   p.pago=true; p.pagoEm=new Date().toISOString().slice(0,10);
-  DB.financeiro.push({id:'fp_'+p.id,data:p.pagoEm,tipo:'despesa',descricao:'Folha: '+p.nome+(p.descricao?' — '+p.descricao:''),categoria:'Folha de Pagamento',valor:Number(p.valor)||0});
+  const fxp=DB.folhaFixos.find(f=>f.id===p.fixoId);
+  DB.financeiro.push({id:'fp_'+p.id,data:p.pagoEm,tipo:'despesa',descricao:'Folha: '+p.nome+(p.descricao?' — '+p.descricao:''),categoria:(fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento',valor:Number(p.valor)||0});
   await saveDB(); render('folha'); toast('Pagamento de '+p.nome+' registrado no Financeiro.');
 };
 window.fpDesfazer=async (id)=>{
