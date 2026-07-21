@@ -777,6 +777,7 @@ window.rcExcluir=async (id)=>{
 };
 
 /* ---------- FOLHA DE PAGAMENTO ---------- */
+const DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 function renderFolha(c){
   const comp=folhaComp;
   const pays=DB.folha.filter(p=>p.comp===comp).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
@@ -815,7 +816,7 @@ function renderFolha(c){
    <h2 style="font-size:16px;margin:26px 0 10px">Pré-definidos — fixos de todo mês</h2>
    <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
    <tbody>${DB.folhaFixos.map(f=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—'}</td><td>dia ${f.dia}</td>
+     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—'}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}</td>
      <td class="money" style="text-align:right">${brl(f.valor)}</td>
      <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
      <td><div class="rowact">
@@ -831,11 +832,29 @@ window.gerarFolha=async ()=>{
   const comp=folhaComp;
   const ativos=DB.folhaFixos.filter(f=>f.ativo);
   if(!ativos.length){ toast('Cadastre os fixos mensais primeiro.'); return; }
-  const jaTem=new Set(DB.folha.filter(p=>p.comp===comp&&p.fixoId).map(p=>p.fixoId));
-  const novos=ativos.filter(f=>!jaTem.has(f.id));
-  if(!novos.length){ toast('A folha de '+fmtComp(comp)+' já está gerada.'); return; }
-  novos.forEach(f=>DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:f.descricao,valor:Number(f.valor)||0,venc:vencOf(comp,f.dia),pago:false,pagoEm:null}));
-  await saveDB(); render('folha'); toast(novos.length+' pagamento(s) gerado(s) para '+fmtComp(comp)+'.');
+  const doComp=DB.folha.filter(p=>p.comp===comp&&p.fixoId);
+  const temMensal=new Set(doComp.map(p=>p.fixoId));
+  const temData=new Set(doComp.map(p=>p.fixoId+'|'+p.venc));
+  const [y,m]=comp.split('-').map(Number);
+  const last=new Date(y,m,0).getDate();
+  let n=0;
+  ativos.forEach(f=>{
+    if(f.freq==='semanal'){
+      for(let d=1;d<=last;d++){
+        if(new Date(y,m-1,d).getDay()!==(Number(f.diaSemana)||0)) continue;
+        const venc=comp+'-'+String(d).padStart(2,'0');
+        if(temData.has(f.id+'|'+venc)) continue;
+        DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao?f.descricao+' — ':'')+'semanal ('+DSEM[Number(f.diaSemana)||0]+')',valor:Number(f.valor)||0,venc,pago:false,pagoEm:null});
+        n++;
+      }
+    } else {
+      if(temMensal.has(f.id)) return;
+      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:f.descricao,valor:Number(f.valor)||0,venc:vencOf(comp,f.dia),pago:false,pagoEm:null});
+      n++;
+    }
+  });
+  if(!n){ toast('A folha de '+fmtComp(comp)+' já está gerada.'); return; }
+  await saveDB(); render('folha'); toast(n+' pagamento(s) gerado(s) para '+fmtComp(comp)+'.');
 };
 window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
@@ -889,16 +908,21 @@ window.openFixoModal=(id)=>{
     </div>
     <div class="field"><label>Departamento (DP)</label><input id="m_dp" value="${esc(it.dp)}" placeholder="Ex: Marketing, Tecnologia..."></div>
     <div class="row2">
-      <div class="field"><label>Dia do pagamento (1–31)</label><input type="number" min="1" max="31" id="m_dia" value="${it.dia||5}"></div>
-      <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
+      <div class="field"><label>Frequência</label><select id="m_freq"><option value="mensal"${it.freq!=='semanal'?' selected':''}>Mensal — uma vez por mês</option><option value="semanal"${it.freq==='semanal'?' selected':''}>Semanal — toda semana</option></select></div>
+      <div class="field"><label>Valor (R$ por pagamento)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
+    </div>
+    <div class="row2">
+      <div class="field" id="wrapDia" style="${it.freq==='semanal'?'display:none':''}"><label>Dia do pagamento (1–31)</label><input type="number" min="1" max="31" id="m_dia" value="${it.dia||5}"></div>
+      <div class="field" id="wrapDsem" style="${it.freq==='semanal'?'':'display:none'}"><label>Dia da semana</label><select id="m_dsem">${DSEM.map((d,i)=>`<option value="${i}"${(it.diaSemana??5)===i?' selected':''}>${d.charAt(0).toUpperCase()+d.slice(1)}</option>`).join('')}</select></div>
     </div>
     <div class="field"><label>Ativo (entra na geração do mês)</label><select id="m_ativo"><option value="1"${it.ativo?' selected':''}>Sim</option><option value="0"${!it.ativo?' selected':''}>Não</option></select></div>`,
     async ()=>{
-      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),banco:$('#m_banco').value.trim(),dp:$('#m_dp').value.trim(),dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1'};
+      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),banco:$('#m_banco').value.trim(),dp:$('#m_dp').value.trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1'};
       if(!v.nome){ toast('Informe o nome.'); return false; }
       if(id){ Object.assign(it,v); } else { DB.folhaFixos.push({id:uid(),...v}); }
       await saveDB(); render('folha'); toast('Salvo.'); return true;
     });
+  $('#m_freq').onchange=()=>{ const s=$('#m_freq').value==='semanal'; $('#wrapDia').style.display=s?'none':''; $('#wrapDsem').style.display=s?'':'none'; };
 };
 window.fixoExcluir=async (id)=>{
   if(!confirm('Excluir este fixo mensal? (Os pagamentos já gerados permanecem.)'))return;
