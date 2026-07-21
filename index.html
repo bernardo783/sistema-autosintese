@@ -672,6 +672,7 @@ window.openProjModal=(id)=>{
 
 /* ---------- CLIENTES ---------- */
 let cliComp = compNow();
+let diaFiltro='';
 function calcRecebimentos(comp){
   const hoje=new Date().toISOString().slice(0,10);
   const byCli={}; DB.recebimentos.filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
@@ -700,6 +701,7 @@ function renderClientes(c){
      <div class="toolbar">
        <input class="search" id="cSearch" placeholder="Buscar cliente...">
        <input type="month" class="search" id="cliCompInp" value="${comp}" style="min-width:150px">
+       <input type="date" class="search" id="cDiaInp" value="${diaFiltro}" style="min-width:150px" title="Filtrar por dia de vencimento">
        <button class="btn small" onclick="openCliModal()">+ Cliente</button>
      </div>
    </div>
@@ -715,7 +717,8 @@ function renderClientes(c){
    <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: 🟡 A receber, 🔴 Inadimplente, 🟢 Recebido — escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t));
+    const vencDe=(r)=>{ const rc=R.byCli[r.id]; if(rc&&rc.venc) return rc.venc; return (r.diaVenc>=1&&r.diaVenc<=31)?vencOf(comp,r.diaVenc):null; };
+    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro));
     $('#cBody').innerHTML=rows.map(r=>{
       const s=R.st(r); const rec=R.byCli[r.id];
       const podeMarcar=s||(r.diaVenc>=1&&r.diaVenc<=31);
@@ -739,7 +742,8 @@ function renderClientes(c){
     $('#cEmpty').innerHTML=rows.length?'':'<div class="empty">Nenhum cliente. Clique em "+ Cliente".</div>';
   };
   $('#cSearch').oninput=e=>{searchTerm=e.target.value;draw();};
-  $('#cliCompInp').onchange=e=>{ cliComp=e.target.value||compNow(); render('clientes'); };
+  $('#cliCompInp').onchange=e=>{ cliComp=e.target.value||compNow(); if(diaFiltro&&diaFiltro.slice(0,7)!==cliComp) diaFiltro=''; render('clientes'); };
+  $('#cDiaInp').onchange=e=>{ diaFiltro=e.target.value||''; if(diaFiltro){ const m=diaFiltro.slice(0,7); if(m!==cliComp){ cliComp=m; render('clientes'); return; } } draw(); };
   draw();
 }
 window.openCliModal=(id)=>{
