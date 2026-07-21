@@ -522,8 +522,10 @@ function renderDash(c){
    <div class="page-head"><div><h2>Painel</h2><div class="desc">${range?('Período: '+fmtDate(dashDe)+' até '+fmtDate(dashAte)):('Visão geral de '+fmtComp(dashComp))}</div></div>
      <div class="toolbar">
        <input type="month" class="search" id="dashCompInp" value="${dashComp}" style="min-width:150px" title="Mês">
-       <input type="date" class="search" id="dashDeInp" value="${dashDe}" style="min-width:140px" title="Período personalizado — de">
-       <input type="date" class="search" id="dashAteInp" value="${dashAte}" style="min-width:140px" title="Período personalizado — até">
+       <span style="color:var(--muted);font-size:12.5px;font-weight:600;align-self:center">ou período: de</span>
+       <input type="date" class="search" id="dashDeInp" value="${dashDe}" style="min-width:140px" title="Início do período">
+       <span style="color:var(--muted);font-size:12.5px;font-weight:600;align-self:center">até</span>
+       <input type="date" class="search" id="dashAteInp" value="${dashAte}" style="min-width:140px" title="Fim do período">
      </div></div>
    <div class="cards">
      <div class="card"><div class="k">Saldo</div><div class="v ${saldo>=0?'pos':'neg'}">${brl(saldo)}</div></div>
