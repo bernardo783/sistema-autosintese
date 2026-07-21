@@ -870,9 +870,15 @@ const DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 function renderFolha(c){
   const comp=folhaComp;
   const pays=DB.folha.filter(p=>p.comp===comp).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
-  const tot=pays.reduce((s,p)=>s+Number(p.valor),0);
+  const [fy,fm]=comp.split('-').map(Number);
+  const fLast=new Date(fy,fm,0).getDate();
+  const ocorrencias=(f)=>{ if(f.freq!=='semanal') return 1; let n=0; for(let d=1;d<=fLast;d++){ if(new Date(fy,fm-1,d).getDay()===(Number(f.diaSemana)||0)) n++; } return n; };
+  const previstoFixos=DB.folhaFixos.filter(f=>f.ativo).reduce((s,f)=>s+(Number(f.valor)||0)*ocorrencias(f),0);
+  const avulsos=pays.filter(p=>!p.fixoId).reduce((s,p)=>s+Number(p.valor),0);
+  const tot=previstoFixos+avulsos;
+  const pago=pays.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
   const pend=pays.filter(p=>!p.pago);
-  const totPend=pend.reduce((s,p)=>s+Number(p.valor),0);
+  const totPend=Math.max(0,tot-pago);
   const hoje=new Date().toISOString().slice(0,10);
   c.innerHTML=`
    <div class="page-head">
@@ -884,8 +890,8 @@ function renderFolha(c){
      </div>
    </div>
    <div class="cards">
-     <div class="card"><div class="k">Total do mês</div><div class="v">${brl(tot)}</div></div>
-     <div class="card"><div class="k">Pago</div><div class="v pos">${brl(tot-totPend)}</div></div>
+     <div class="card"><div class="k">Total do mês (previsto)</div><div class="v">${brl(tot)}</div></div>
+     <div class="card"><div class="k">Pago</div><div class="v pos">${brl(pago)}</div></div>
      <div class="card"><div class="k">Pendente</div><div class="v ${totPend?'neg':''}">${brl(totPend)}</div></div>
      <div class="card"><div class="k">Pagamentos</div><div class="v">${pays.length-pend.length}/${pays.length}</div></div>
    </div>
