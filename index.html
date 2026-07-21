@@ -193,6 +193,19 @@
   .ftab{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:700;transition:all .15s ease}
   .ftab:hover{color:var(--txt);border-color:var(--brand)}
   .ftab.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(124,58,237,.35)}
+  .calpop{position:absolute;top:calc(100% + 8px);right:0;z-index:60;background:var(--panel);border:1px solid rgba(168,85,247,.4);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.55);padding:14px;width:272px}
+  .calpop .chead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .calpop .chead b{font-size:13.5px}
+  .calpop .cnav{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;width:28px;height:28px;cursor:pointer}
+  .calpop .cnav:hover{border-color:var(--brand)}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .calgrid .dow{font-size:10px;color:var(--muted);text-align:center;padding:4px 0;font-weight:700}
+  .calgrid .dia{border:none;background:transparent;color:var(--txt);font-size:12.5px;padding:7px 0;border-radius:8px;cursor:pointer;font-weight:600}
+  .calgrid .dia:hover{background:rgba(168,85,247,.28)}
+  .calgrid .dia.off{opacity:0;pointer-events:none}
+  .calgrid .dia.sel{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+  .calgrid .dia.faixa{background:rgba(124,58,237,.35);color:#fff;border-radius:0}
+  .calfoot{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
 </style>
 </head>
 <body>
@@ -522,10 +535,11 @@ function renderDash(c){
    <div class="page-head"><div><h2>Painel</h2><div class="desc">${range?('Período: '+fmtDate(dashDe)+' até '+fmtDate(dashAte)):('Visão geral de '+fmtComp(dashComp))}</div></div>
      <div class="toolbar">
        <input type="month" class="search" id="dashCompInp" value="${dashComp}" style="min-width:150px" title="Mês">
-       <span style="color:var(--muted);font-size:12.5px;font-weight:600;align-self:center">ou período: de</span>
-       <input type="date" class="search" id="dashDeInp" value="${dashDe}" style="min-width:140px" title="Início do período">
-       <span style="color:var(--muted);font-size:12.5px;font-weight:600;align-self:center">até</span>
-       <input type="date" class="search" id="dashAteInp" value="${dashAte}" style="min-width:140px" title="Fim do período">
+       <div style="position:relative;display:inline-flex;align-items:center;gap:4px">
+         <button class="btn secondary small" onclick="calAbrir()">${range?('📅 '+fmtDate(dashDe).slice(0,5)+' – '+fmtDate(dashAte).slice(0,5)):'📅 Período'}</button>
+         ${range?'<button class="iconbtn" onclick="calLimpar()" title="Limpar período">✕</button>':''}
+         <div id="calPop" class="calpop hidden"></div>
+       </div>
      </div></div>
    <div class="cards">
      <div class="card"><div class="k">Saldo</div><div class="v ${saldo>=0?'pos':'neg'}">${brl(saldo)}</div></div>
@@ -546,9 +560,39 @@ function renderDash(c){
      <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.filter(x=>(!x.inicio||compRef>=x.inicio)&&(!x.fim||compRef<=x.fim)).reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
    </div>`;
   $('#dashCompInp').onchange=e=>{ dashComp=e.target.value||compNow(); dashDe=''; dashAte=''; render('dash'); };
-  $('#dashDeInp').onchange=e=>{ dashDe=e.target.value||''; if(dashDe&&dashAte) render('dash'); };
-  $('#dashAteInp').onchange=e=>{ dashAte=e.target.value||''; if(dashDe&&dashAte) render('dash'); };
 }
+/* ---- calendário de período (roxo) ---- */
+let calMes=compNow(); let calSel1='';
+window.calAbrir=()=>{ const p=$('#calPop'); if(!p) return;
+  if(p.classList.contains('hidden')){ calMes=(dashDe||'').slice(0,7)||compNow(); calSel1=''; calRender(); p.classList.remove('hidden'); }
+  else p.classList.add('hidden'); };
+window.calLimpar=()=>{ dashDe=''; dashAte=''; calSel1=''; render('dash'); };
+window.calNav=(d)=>{ const [y,m]=calMes.split('-').map(Number); const nd=new Date(y,m-1+d,1);
+  calMes=nd.getFullYear()+'-'+String(nd.getMonth()+1).padStart(2,'0'); calRender(); };
+window.calClique=(iso)=>{
+  if(!calSel1){ calSel1=iso; dashDe=''; dashAte=''; calRender(); return; }
+  let a=calSel1,b=iso; if(b<a){ const t=a;a=b;b=t; }
+  dashDe=a; dashAte=b; calSel1=''; render('dash');
+};
+window.calRender=()=>{
+  const p=$('#calPop'); if(!p) return;
+  const [y,m]=calMes.split('-').map(Number);
+  const off=new Date(y,m-1,1).getDay(); const last=new Date(y,m,0).getDate();
+  const nomes=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let dias='';
+  for(let i=0;i<off;i++) dias+='<span class="dia off"></span>';
+  for(let d=1;d<=last;d++){
+    const iso=calMes+'-'+String(d).padStart(2,'0');
+    let cls='dia';
+    if(calSel1&&iso===calSel1) cls+=' sel';
+    else if(!calSel1&&dashDe&&dashAte){ if(iso===dashDe||iso===dashAte) cls+=' sel'; else if(iso>dashDe&&iso<dashAte) cls+=' faixa'; }
+    dias+=`<button class="${cls}" onclick="calClique('${iso}')">${d}</button>`;
+  }
+  p.innerHTML=`
+   <div class="chead"><button class="cnav" onclick="calNav(-1)">‹</button><b>${nomes[m-1]} ${y}</b><button class="cnav" onclick="calNav(1)">›</button></div>
+   <div class="calgrid"><span class="dow">D</span><span class="dow">S</span><span class="dow">T</span><span class="dow">Q</span><span class="dow">Q</span><span class="dow">S</span><span class="dow">S</span>${dias}</div>
+   <div class="calfoot"><button class="iconbtn" onclick="calLimpar()">Limpar</button><span style="font-size:11px;color:var(--muted);align-self:center">${calSel1?('início '+fmtDate(calSel1)+' — clique no fim'):'clique no início e no fim'}</span></div>`;
+};
 
 /* ---------- FINANCEIRO (central) ---------- */
 let finTab='lanc';
