@@ -317,6 +317,8 @@ async function loadDB(){
   if(error) throw error;
   const map={}; (data||[]).forEach(r=>map[r.modulo]=r.dados);
   DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha,clientes:map.clientes,recebimentos:map.recebimentos});
+  /* autocura: todo cliente sempre tem um projeto */
+  DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:c.nome,responsavel:c.resp||'',status:'andamento',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
 }
 async function saveDB(){
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
