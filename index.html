@@ -96,6 +96,11 @@
   .tag.concluido{background:rgba(62,196,109,.15);color:var(--ok)}
   .tag.pausado{background:rgba(224,166,59,.15);color:var(--warn)}
   .tag.planejado{background:rgba(139,152,172,.15);color:var(--muted)}
+  .stSel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12.5px;font-weight:700;cursor:pointer;outline:none}
+  .stSel.recebido{background:rgba(62,196,109,.15);color:var(--ok);border-color:rgba(62,196,109,.4)}
+  .stSel.inadimplente{background:rgba(229,72,77,.15);color:var(--danger);border-color:rgba(229,72,77,.4)}
+  .stSel.areceber{background:rgba(224,166,59,.15);color:var(--warn);border-color:rgba(224,166,59,.4)}
+  .stSel option{background:var(--panel2);color:var(--txt)}
   .rowact{display:flex;gap:6px}
   .iconbtn{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;
     padding:5px 9px;font-size:12.5px}
@@ -663,10 +668,10 @@ function renderClientes(c){
   const list=[...DB.clientes];
   const totalMensal=list.reduce((s,x)=>s+(Number(x.valor)||0),0);
   const recs=DB.recebimentos.filter(r=>r.comp===comp).sort((a,b)=>(a.venc||'9999').localeCompare(b.venc||'9999'));
-  const recebidos=recs.filter(r=>r.recebido);
-  const inad=recs.filter(r=>!r.recebido && r.venc && r.venc<hoje);
-  const aReceber=recs.filter(r=>!r.recebido && (!r.venc || r.venc>=hoje));
-  const stTag=(r)=> r.recebido?`<span class="tag concluido">Recebido ${fmtDate(r.recebidoEm)}</span>`:(r.venc&&r.venc<hoje?`<span class="tag despesa">Inadimplente</span>`:`<span class="tag pausado">A receber</span>`);
+  const stOf=(r)=> r.status || (r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
+  const recebidos=recs.filter(r=>stOf(r)==='recebido');
+  const inad=recs.filter(r=>stOf(r)==='inadimplente');
+  const aReceber=recs.filter(r=>stOf(r)==='areceber');
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Clientes</h2><div class="desc">Carteira e recebimentos mensais da Autosíntese</div></div>
@@ -689,9 +694,12 @@ function renderClientes(c){
      <td>${esc(r.nome)}</td>
      <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
      <td class="money" style="text-align:right">${brl(r.valor)}</td>
-     <td>${stTag(r)}</td>
+     <td><select class="stSel ${stOf(r)}" onchange="rcStatus('${r.id}',this.value)">
+       <option value="areceber"${stOf(r)==='areceber'?' selected':''}>🟡 A receber</option>
+       <option value="inadimplente"${stOf(r)==='inadimplente'?' selected':''}>🔴 Inadimplente</option>
+       <option value="recebido"${stOf(r)==='recebido'?' selected':''}>🟢 Recebido</option>
+     </select>${stOf(r)==='recebido'&&r.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(r.recebidoEm)}</div>`:''}</td>
      <td><div class="rowact">
-       ${r.recebido?`<button class="iconbtn" onclick="rcDesfazer('${r.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="rcReceber('${r.id}')">✓ Recebido</button>`}
        <button class="iconbtn del" onclick="rcExcluir('${r.id}')">Excluir</button>
      </div></td></tr>`).join('')}</tbody></table>
    ${recs.length?'':'<div class="empty">Nenhuma cobrança em '+fmtComp(comp)+'. Clique em "⚡ Gerar cobranças do mês".</div>'}</div>
@@ -699,7 +707,7 @@ function renderClientes(c){
    <div style="margin-bottom:10px"><input class="search" id="cSearch" placeholder="Buscar cliente..."></div>
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Responsável</th><th style="text-align:right">Valor</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">"Gerar cobranças" cria a lista do mês a partir da carteira, ordenada por vencimento, sem duplicar. Ao marcar <strong>✓ Recebido</strong>, a receita entra no Financeiro na data do recebimento; "Desfazer" remove. <strong>Inadimplente</strong> = venceu e não foi recebido; <strong>A receber</strong> = ainda vai vencer.</p>`;
+   <p class="hint" style="margin-top:12px">A coluna <strong>Status</strong> funciona como planilha: clique na célula e escolha 🟡 A receber, 🔴 Inadimplente ou 🟢 Recebido. Ao escolher <strong>Recebido</strong>, a receita entra automaticamente no Financeiro na data; mudar de volta remove. "Gerar cobranças" cria a lista do mês sem duplicar (novas entram como 🔴 se já venceram, 🟡 se não).</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const rows=list.sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t));
@@ -751,22 +759,24 @@ window.gerarCobrancas=async ()=>{
   const have=new Set(DB.recebimentos.filter(r=>r.comp===comp).map(r=>r.clienteId));
   const novos=comDia.filter(x=>!have.has(x.id));
   if(!novos.length){ toast('As cobranças de '+fmtComp(comp)+' já estão geradas.'); return; }
-  novos.forEach(x=>DB.recebimentos.push({id:uid(),comp,clienteId:x.id,nome:x.nome,resp:x.resp||'',tel:x.tel||'',valor:Number(x.valor)||0,venc:vencOf(comp,x.diaVenc),recebido:false,recebidoEm:null}));
+  const hoje2=new Date().toISOString().slice(0,10);
+  novos.forEach(x=>{ const venc=vencOf(comp,x.diaVenc);
+    DB.recebimentos.push({id:uid(),comp,clienteId:x.id,nome:x.nome,resp:x.resp||'',tel:x.tel||'',valor:Number(x.valor)||0,venc,recebido:false,recebidoEm:null,status:(venc<hoje2?'inadimplente':'areceber')}); });
   await saveDB(); render('clientes');
   const semDia=DB.clientes.length-comDia.length;
   toast(novos.length+' cobrança(s) gerada(s) para '+fmtComp(comp)+(semDia?(' — '+semDia+' cliente(s) "a definir" ficaram de fora.'):'.'));
 };
-window.rcReceber=async (id)=>{
-  const r=DB.recebimentos.find(x=>x.id===id); if(!r||r.recebido)return;
-  r.recebido=true; r.recebidoEm=new Date().toISOString().slice(0,10);
-  DB.financeiro.push({id:'rc_'+r.id,data:r.recebidoEm,tipo:'receita',descricao:'Mensalidade: '+r.nome,categoria:'Mensalidade Clientes',valor:Number(r.valor)||0});
-  await saveDB(); render('clientes'); toast('Recebimento de '+r.nome+' lançado no Financeiro.');
-};
-window.rcDesfazer=async (id)=>{
-  const r=DB.recebimentos.find(x=>x.id===id); if(!r||!r.recebido)return;
-  r.recebido=false; r.recebidoEm=null;
-  DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+id);
-  await saveDB(); render('clientes'); toast('Desfeito (receita removida do Financeiro).');
+window.rcStatus=async (id,novo)=>{
+  const r=DB.recebimentos.find(x=>x.id===id); if(!r)return;
+  r.status=novo;
+  if(novo==='recebido'){
+    if(!r.recebido){ r.recebido=true; r.recebidoEm=new Date().toISOString().slice(0,10);
+      DB.financeiro.push({id:'rc_'+r.id,data:r.recebidoEm,tipo:'receita',descricao:'Mensalidade: '+r.nome,categoria:'Mensalidade Clientes',valor:Number(r.valor)||0}); }
+  } else {
+    r.recebido=false; r.recebidoEm=null;
+    DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+id);
+  }
+  await saveDB(); render('clientes'); toast('Status atualizado: '+(novo==='recebido'?'🟢 Recebido':novo==='inadimplente'?'🔴 Inadimplente':'🟡 A receber'));
 };
 window.rcExcluir=async (id)=>{
   const r=DB.recebimentos.find(x=>x.id===id); if(!r)return;
