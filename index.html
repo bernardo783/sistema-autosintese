@@ -188,6 +188,10 @@
   .page-head h2{letter-spacing:-.4px;background:linear-gradient(90deg,#fff,#cbb4f7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
   .modal{border:1px solid rgba(168,85,247,.35);box-shadow:0 30px 80px rgba(0,0,0,.6)}
   #toast{background:linear-gradient(135deg,#2f1a5f,#241150);border:1px solid rgba(168,85,247,.45)}
+  .fin-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .ftab{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:700;transition:all .15s ease}
+  .ftab:hover{color:var(--txt);border-color:var(--brand)}
+  .ftab.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(124,58,237,.35)}
 </style>
 </head>
 <body>
@@ -238,8 +242,6 @@
     <nav class="nav">
       <button data-view="dash" class="active"><span class="ic">📊</span> Painel</button>
       <button data-view="financeiro"><span class="ic">💰</span> Financeiro</button>
-      <button data-view="clientes"><span class="ic">🤝</span> Clientes</button>
-      <button data-view="folha"><span class="ic">🧾</span> Folha de Pagamento</button>
       <button data-view="senhas"><span class="ic">🔑</span> Senhas</button>
       <button data-view="links"><span class="ic">🔗</span> Links</button>
       <button data-view="projetos"><span class="ic">📁</span> Projetos</button>
@@ -484,8 +486,8 @@ function render(view){
   const c=$('#content');
   if(view==='dash') return renderDash(c);
   if(view==='financeiro') return renderFinanceiro(c);
-  if(view==='clientes') return renderClientes(c);
-  if(view==='folha') return renderFolha(c);
+  if(view==='clientes'){ finTab='clientes'; return renderFinanceiro(c); }
+  if(view==='folha'){ finTab='folha'; return renderFinanceiro(c); }
   if(view==='senhas') return renderSenhas(c);
   if(view==='links') return renderLinks(c);
   if(view==='projetos') return renderProjetos(c);
@@ -534,8 +536,23 @@ function renderDash(c){
    </div>`;
 }
 
-/* ---------- FINANCEIRO ---------- */
+/* ---------- FINANCEIRO (central) ---------- */
+let finTab='lanc';
+window.finGo=async (t)=>{ finTab=t; if(SESSION&&currentUser&&currentUser.aprovado){ try{ await loadDB(); }catch(e){} } render('financeiro'); };
 function renderFinanceiro(c){
+  c.innerHTML=`
+   <div class="fin-tabs">
+     <button class="ftab ${finTab==='lanc'?'active':''}" onclick="finGo('lanc')">💰 Lançamentos</button>
+     <button class="ftab ${finTab==='clientes'?'active':''}" onclick="finGo('clientes')">🤝 Recebimentos — Clientes</button>
+     <button class="ftab ${finTab==='folha'?'active':''}" onclick="finGo('folha')">🧾 Folha de Pagamento</button>
+   </div>
+   <div id="finSub"></div>`;
+  const sub=$('#finSub');
+  if(finTab==='clientes') return renderClientes(sub);
+  if(finTab==='folha') return renderFolha(sub);
+  return renderLanc(sub);
+}
+function renderLanc(c){
   const rows=[...DB.financeiro].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   const rec=DB.financeiro.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor),0);
   const desp=DB.financeiro.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor),0);
