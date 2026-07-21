@@ -508,16 +508,23 @@ function renderProcessos(c){
 
 /* ---------- PAINEL ---------- */
 let dashComp=compNow();
+let dashDe=''; let dashAte='';
 function renderDash(c){
-  const RC=calcRecebimentos(dashComp);
-  const fin=DB.financeiro.filter(x=>(x.data||'').slice(0,7)===dashComp);
+  const range=!!(dashDe&&dashAte);
+  const compRef=range?dashDe.slice(0,7):dashComp;
+  const RC=calcRecebimentos(compRef);
+  const fin=DB.financeiro.filter(x=>{const d=x.data||''; return range?(d>=dashDe&&d<=dashAte):(d.slice(0,7)===dashComp);});
   const rec=fin.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor),0);
   const desp=fin.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor),0);
   const saldo=rec-desp;
   const projAtivos=DB.projetos.filter(p=>p.status==='andamento').length;
   c.innerHTML=`
-   <div class="page-head"><div><h2>Painel</h2><div class="desc">Visão geral de ${fmtComp(dashComp)}</div></div>
-     <div class="toolbar"><input type="month" class="search" id="dashCompInp" value="${dashComp}" style="min-width:150px"></div></div>
+   <div class="page-head"><div><h2>Painel</h2><div class="desc">${range?('Período: '+fmtDate(dashDe)+' até '+fmtDate(dashAte)):('Visão geral de '+fmtComp(dashComp))}</div></div>
+     <div class="toolbar">
+       <input type="month" class="search" id="dashCompInp" value="${dashComp}" style="min-width:150px" title="Mês">
+       <input type="date" class="search" id="dashDeInp" value="${dashDe}" style="min-width:140px" title="Período personalizado — de">
+       <input type="date" class="search" id="dashAteInp" value="${dashAte}" style="min-width:140px" title="Período personalizado — até">
+     </div></div>
    <div class="cards">
      <div class="card"><div class="k">Saldo</div><div class="v ${saldo>=0?'pos':'neg'}">${brl(saldo)}</div></div>
      <div class="card"><div class="k">Receitas</div><div class="v pos">${brl(rec)}</div></div>
@@ -525,20 +532,20 @@ function renderDash(c){
      <div class="card"><div class="k">Projetos ativos</div><div class="v">${projAtivos}</div></div>
    </div>
    <div class="cards">
-     <div class="card"><div class="k">Folha pendente (mês)</div><div class="v ${DB.folha.filter(p=>p.comp===dashComp&&!p.pago).length?'neg':''}">${brl(DB.folha.filter(p=>p.comp===dashComp&&!p.pago).reduce((s,p)=>s+Number(p.valor),0))}</div></div>
-     <div class="card"><div class="k">Senhas guardadas</div><div class="v">${DB.senhas.length}</div></div>
-     <div class="card"><div class="k">Links</div><div class="v">${DB.links.length}</div></div>
+     <div class="card"><div class="k">Folha pendente</div><div class="v ${DB.folha.filter(p=>range?((p.venc||'')>=dashDe&&(p.venc||'')<=dashAte&&!p.pago):(p.comp===dashComp&&!p.pago)).length?'neg':''}">${brl(DB.folha.filter(p=>range?((p.venc||'')>=dashDe&&(p.venc||'')<=dashAte&&!p.pago):(p.comp===dashComp&&!p.pago)).reduce((s,p)=>s+Number(p.valor),0))}</div></div>
      <div class="card"><div class="k">Total de projetos</div><div class="v">${DB.projetos.length}</div></div>
      <div class="card"><div class="k">Lançamentos</div><div class="v">${fin.length}</div></div>
    </div>
-   <h2 style="font-size:16px;margin:4px 0 10px">Clientes — ${fmtComp(dashComp)}</h2>
+   <h2 style="font-size:16px;margin:4px 0 10px">Clientes — ${fmtComp(compRef)}</h2>
    <div class="cards">
      <div class="card"><div class="k">🟢 Recebido</div><div class="v pos">${brl(RC.soma(RC.g.recebido)+RC.sinaisPagos)}</div><div class="sub">${RC.g.recebido.length} cliente${RC.g.recebido.length===1?'':'s'}</div></div>
      <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${RC.g.inadimplente.length?'neg':''}">${brl(RC.soma(RC.g.inadimplente))}</div><div class="sub">${RC.g.inadimplente.length} cliente${RC.g.inadimplente.length===1?'':'s'} em atraso</div></div>
      <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(RC.soma(RC.g.areceber)+RC.sinaisRestante)}</div><div class="sub">${RC.g.areceber.length} cliente${RC.g.areceber.length===1?'':'s'} no prazo</div></div>
-     <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.filter(x=>(!x.inicio||dashComp>=x.inicio)&&(!x.fim||dashComp<=x.fim)).reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
+     <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.filter(x=>(!x.inicio||compRef>=x.inicio)&&(!x.fim||compRef<=x.fim)).reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
    </div>`;
-  $('#dashCompInp').onchange=e=>{ dashComp=e.target.value||compNow(); render('dash'); };
+  $('#dashCompInp').onchange=e=>{ dashComp=e.target.value||compNow(); dashDe=''; dashAte=''; render('dash'); };
+  $('#dashDeInp').onchange=e=>{ dashDe=e.target.value||''; if(dashDe&&dashAte) render('dash'); };
+  $('#dashAteInp').onchange=e=>{ dashAte=e.target.value||''; if(dashDe&&dashAte) render('dash'); };
 }
 
 /* ---------- FINANCEIRO (central) ---------- */
