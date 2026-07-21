@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema Autosíntese</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#7c3aed">
 <style>
   :root{
@@ -142,6 +144,50 @@
   .barwrap .lbl{font-size:12px;color:var(--muted)}
   @media(max-width:720px){#app{grid-template-columns:1fr}.sidebar{flex-direction:row;flex-wrap:wrap;position:sticky;top:0;z-index:10}
     .nav{flex-direction:row;flex-wrap:wrap}.sidebar .foot{margin:0}.main{padding:18px}}
+
+  /* ===== Polimento visual ===== */
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px;border:2px solid var(--bg)}
+  ::-webkit-scrollbar-thumb:hover{background:var(--brand)}
+  #login{position:relative;overflow:hidden}
+  #login::before{content:'';position:absolute;width:520px;height:520px;border-radius:50%;
+    background:radial-gradient(circle,rgba(168,85,247,.28),transparent 65%);top:-140px;right:-120px;pointer-events:none}
+  #login::after{content:'';position:absolute;width:420px;height:420px;border-radius:50%;
+    background:radial-gradient(circle,rgba(129,12,210,.25),transparent 65%);bottom:-120px;left:-100px;pointer-events:none}
+  .login-card{position:relative;z-index:1;background:rgba(36,17,80,.72);backdrop-filter:blur(18px);
+    border:1px solid rgba(168,85,247,.35);box-shadow:0 24px 70px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03) inset}
+  .sidebar{background:linear-gradient(180deg,#241150 0%,#1d0c45 100%);box-shadow:inset -1px 0 0 rgba(168,85,247,.15)}
+  .sidebar .logo{padding:2px 6px 14px;margin-bottom:18px;border-bottom:1px solid rgba(168,85,247,.18)}
+  .sidebar .logo .mark{filter:drop-shadow(0 0 10px rgba(168,85,247,.55))}
+  .nav button{position:relative;transition:all .18s ease;border-radius:11px}
+  .nav button:hover{transform:translateX(3px)}
+  .nav button.active{background:linear-gradient(135deg,rgba(129,12,210,.35),rgba(168,85,247,.18));
+    box-shadow:inset 0 0 0 1px rgba(168,85,247,.35),0 4px 14px rgba(0,0,0,.25);color:#fff}
+  .nav button.active::before{content:'';position:absolute;left:-14px;top:20%;height:60%;width:4px;border-radius:0 4px 4px 0;
+    background:linear-gradient(180deg,var(--brand),var(--brand2))}
+  .card{position:relative;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;border-radius:16px}
+  .card::before{content:'';position:absolute;inset:0 0 auto 0;height:3px;
+    background:linear-gradient(90deg,var(--brand),var(--brand2),transparent);opacity:.75}
+  .card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(0,0,0,.4);border-color:rgba(168,85,247,.4)}
+  .card .v{letter-spacing:-.5px}
+  .tablewrap{border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  th{background:linear-gradient(180deg,#2f1a5f,#2a165a)}
+  tbody tr{transition:background .15s ease}
+  tbody tr:hover{background:rgba(168,85,247,.08)}
+  .btn{transition:all .18s ease;box-shadow:0 6px 18px rgba(124,58,237,.35)}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(124,58,237,.5);filter:brightness(1.08)}
+  .btn.ghost,.btn.secondary{box-shadow:none}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--txt);transform:none;filter:none}
+  .iconbtn{transition:all .15s ease}
+  .search,.field input,.field select,.field textarea{transition:border-color .15s ease,box-shadow .15s ease}
+  .search:focus,.field input:focus,.field select:focus,.field textarea:focus{box-shadow:0 0 0 3px rgba(124,58,237,.22)}
+  .stSel{transition:all .15s ease}
+  .stSel:hover{transform:scale(1.03)}
+  .page-head h2{letter-spacing:-.4px;background:linear-gradient(90deg,#fff,#cbb4f7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .modal{border:1px solid rgba(168,85,247,.35);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  #toast{background:linear-gradient(135deg,#2f1a5f,#241150);border:1px solid rgba(168,85,247,.45)}
 </style>
 </head>
 <body>
@@ -149,8 +195,8 @@
 <!-- ============ LOGIN ============ -->
 <div id="login">
   <div class="login-card">
-    <div class="logo">
-      <div class="mark"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></div>
+    <div class="logo" style="flex-direction:column;align-items:center;text-align:center;gap:12px;margin-bottom:16px">
+      <div class="mark" style="width:58px;height:58px;filter:drop-shadow(0 0 16px rgba(168,85,247,.65))"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></div>
       <div class="wordmark"><span class="wm">AUTO<span class="thin">SÍNTESE</span></span><span class="slogan">Inteligênc<b>ia</b> Unida a Resultados</span></div>
     </div>
 
