@@ -156,7 +156,7 @@
       <div class="err" id="loginErr"></div>
       <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">Não tem conta? <a href="#" id="goSignup" class="link">Criar conta</a></p>
       <p class="hint" style="text-align:center"><a href="#" id="forgotLink" class="link">Esqueci a senha</a></p>
-      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.1 · autosintese.app.br</p>
+      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.2 · autosintese.app.br</p>
     </div>
 
     <div id="signupView" class="hidden">
@@ -236,16 +236,16 @@ const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 let cryptoKey=null, DB=null, USERS=null, VAULT_RAW=null, currentUser=null, SESSION=null;
 const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
-function normalizeDB(d){ return {financeiro:d.financeiro||[], senhas:d.senhas||[], links:d.links||[], projetos:d.projetos||[], folhaFixos:d.folhaFixos||[], folha:d.folha||[], clientes:d.clientes||[]}; }
+function normalizeDB(d){ return {financeiro:d.financeiro||[], senhas:d.senhas||[], links:d.links||[], projetos:d.projetos||[], folhaFixos:d.folhaFixos||[], folha:d.folha||[], clientes:d.clientes||[], recebimentos:d.recebimentos||[]}; }
 function blankDB(){ return normalizeDB({}); }
 
 /* Dados da empresa: uma linha por módulo na tabela `itens` (jsonb) */
-const MODMAP=[['financeiro','financeiro'],['senhas','senhas'],['links','links'],['projetos','projetos'],['folha_fixos','folhaFixos'],['folha','folha'],['clientes','clientes']];
+const MODMAP=[['financeiro','financeiro'],['senhas','senhas'],['links','links'],['projetos','projetos'],['folha_fixos','folhaFixos'],['folha','folha'],['clientes','clientes'],['recebimentos','recebimentos']];
 async function loadDB(){
   const {data,error}=await sb.from('itens').select('modulo,dados');
   if(error) throw error;
   const map={}; (data||[]).forEach(r=>map[r.modulo]=r.dados);
-  DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha,clientes:map.clientes});
+  DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha,clientes:map.clientes,recebimentos:map.recebimentos});
 }
 async function saveDB(){
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
@@ -659,28 +659,47 @@ window.openProjModal=(id)=>{
 /* ---------- CLIENTES ---------- */
 let cliComp = compNow();
 function renderClientes(c){
-  const comp=cliComp;
+  const comp=cliComp, hoje=new Date().toISOString().slice(0,10);
   const list=[...DB.clientes];
   const totalMensal=list.reduce((s,x)=>s+(Number(x.valor)||0),0);
-  const idsGeradas=new Set(DB.financeiro.filter(f=>typeof f.id==='string'&&f.id.startsWith('cl_')&&f.id.endsWith('_'+comp)).map(f=>f.id));
+  const recs=DB.recebimentos.filter(r=>r.comp===comp).sort((a,b)=>(a.venc||'9999').localeCompare(b.venc||'9999'));
+  const recebidos=recs.filter(r=>r.recebido);
+  const inad=recs.filter(r=>!r.recebido && r.venc && r.venc<hoje);
+  const aReceber=recs.filter(r=>!r.recebido && (!r.venc || r.venc>=hoje));
+  const stTag=(r)=> r.recebido?`<span class="tag concluido">Recebido ${fmtDate(r.recebidoEm)}</span>`:(r.venc&&r.venc<hoje?`<span class="tag despesa">Inadimplente</span>`:`<span class="tag pausado">A receber</span>`);
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Clientes</h2><div class="desc">Carteira de mensalidades da Autosíntese</div></div>
+     <div><h2>Clientes</h2><div class="desc">Carteira e recebimentos mensais da Autosíntese</div></div>
      <div class="toolbar">
-       <input class="search" id="cSearch" placeholder="Buscar...">
        <input type="month" class="search" id="cliCompInp" value="${comp}" style="min-width:150px">
-       <button class="btn secondary small" onclick="gerarReceitasMes()">⚡ Gerar receitas do mês</button>
+       <button class="btn secondary small" onclick="gerarCobrancas()">⚡ Gerar cobranças do mês</button>
        <button class="btn small" onclick="openCliModal()">+ Cliente</button>
      </div>
    </div>
    <div class="cards">
-     <div class="card"><div class="k">Clientes ativos</div><div class="v">${list.length}</div></div>
-     <div class="card"><div class="k">Mensalidade total</div><div class="v pos">${brl(totalMensal)}</div></div>
-     <div class="card"><div class="k">Receitas geradas em ${fmtComp(comp)}</div><div class="v">${idsGeradas.size}/${list.length}</div></div>
+     <div class="card"><div class="k">Recebido em ${fmtComp(comp)}</div><div class="v pos">${brl(recebidos.reduce((s,r)=>s+Number(r.valor),0))}</div></div>
+     <div class="card"><div class="k">Inadimplentes</div><div class="v ${inad.length?'neg':''}">${inad.length} · ${brl(inad.reduce((s,r)=>s+Number(r.valor),0))}</div></div>
+     <div class="card"><div class="k">A receber</div><div class="v">${brl(aReceber.reduce((s,r)=>s+Number(r.valor),0))}</div></div>
+     <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)}</div></div>
    </div>
+   <h2 style="font-size:16px;margin:0 0 10px">Recebimentos de ${fmtComp(comp)} — do mais próximo ao mais distante</h2>
+   <div class="tablewrap"><table><thead><tr><th>Vencimento</th><th>Cliente</th><th>Responsável</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
+   <tbody>${recs.map(r=>`<tr>
+     <td><strong>${fmtDate(r.venc)||'—'}</strong></td>
+     <td>${esc(r.nome)}</td>
+     <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
+     <td class="money" style="text-align:right">${brl(r.valor)}</td>
+     <td>${stTag(r)}</td>
+     <td><div class="rowact">
+       ${r.recebido?`<button class="iconbtn" onclick="rcDesfazer('${r.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="rcReceber('${r.id}')">✓ Recebido</button>`}
+       <button class="iconbtn del" onclick="rcExcluir('${r.id}')">Excluir</button>
+     </div></td></tr>`).join('')}</tbody></table>
+   ${recs.length?'':'<div class="empty">Nenhuma cobrança em '+fmtComp(comp)+'. Clique em "⚡ Gerar cobranças do mês".</div>'}</div>
+   <h2 style="font-size:16px;margin:26px 0 10px">Carteira de clientes</h2>
+   <div style="margin-bottom:10px"><input class="search" id="cSearch" placeholder="Buscar cliente..."></div>
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Responsável</th><th style="text-align:right">Valor</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">"Gerar receitas do mês" lança no <strong>Financeiro</strong> uma receita por cliente, na data de vencimento do mês escolhido (categoria "Mensalidade Clientes"), sem duplicar. Clientes com vencimento "a definir" ficam de fora até você definir o dia.</p>`;
+   <p class="hint" style="margin-top:12px">"Gerar cobranças" cria a lista do mês a partir da carteira, ordenada por vencimento, sem duplicar. Ao marcar <strong>✓ Recebido</strong>, a receita entra no Financeiro na data do recebimento; "Desfazer" remove. <strong>Inadimplente</strong> = venceu e não foi recebido; <strong>A receber</strong> = ainda vai vencer.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const rows=list.sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t));
@@ -725,18 +744,36 @@ window.openCliModal=(id)=>{
       await saveDB(); render('clientes'); toast('Salvo.'); return true;
     });
 };
-window.gerarReceitasMes=async ()=>{
+window.gerarCobrancas=async ()=>{
   const comp=cliComp;
   const comDia=DB.clientes.filter(x=>x.diaVenc>=1&&x.diaVenc<=31);
   if(!comDia.length){ toast('Nenhum cliente com dia de vencimento definido.'); return; }
-  const have=new Set(DB.financeiro.map(f=>f.id));
-  const novos=comDia.filter(x=>!have.has('cl_'+x.id+'_'+comp));
-  if(!novos.length){ toast('As receitas de '+fmtComp(comp)+' já estão geradas.'); return; }
-  novos.forEach(x=>DB.financeiro.push({id:'cl_'+x.id+'_'+comp,data:vencOf(comp,x.diaVenc),tipo:'receita',
-    descricao:'Mensalidade: '+x.nome,categoria:'Mensalidade Clientes',valor:Number(x.valor)||0}));
+  const have=new Set(DB.recebimentos.filter(r=>r.comp===comp).map(r=>r.clienteId));
+  const novos=comDia.filter(x=>!have.has(x.id));
+  if(!novos.length){ toast('As cobranças de '+fmtComp(comp)+' já estão geradas.'); return; }
+  novos.forEach(x=>DB.recebimentos.push({id:uid(),comp,clienteId:x.id,nome:x.nome,resp:x.resp||'',tel:x.tel||'',valor:Number(x.valor)||0,venc:vencOf(comp,x.diaVenc),recebido:false,recebidoEm:null}));
   await saveDB(); render('clientes');
   const semDia=DB.clientes.length-comDia.length;
-  toast(novos.length+' receita(s) gerada(s) para '+fmtComp(comp)+(semDia?(' — '+semDia+' cliente(s) "a definir" ficaram de fora.'):'.'));
+  toast(novos.length+' cobrança(s) gerada(s) para '+fmtComp(comp)+(semDia?(' — '+semDia+' cliente(s) "a definir" ficaram de fora.'):'.'));
+};
+window.rcReceber=async (id)=>{
+  const r=DB.recebimentos.find(x=>x.id===id); if(!r||r.recebido)return;
+  r.recebido=true; r.recebidoEm=new Date().toISOString().slice(0,10);
+  DB.financeiro.push({id:'rc_'+r.id,data:r.recebidoEm,tipo:'receita',descricao:'Mensalidade: '+r.nome,categoria:'Mensalidade Clientes',valor:Number(r.valor)||0});
+  await saveDB(); render('clientes'); toast('Recebimento de '+r.nome+' lançado no Financeiro.');
+};
+window.rcDesfazer=async (id)=>{
+  const r=DB.recebimentos.find(x=>x.id===id); if(!r||!r.recebido)return;
+  r.recebido=false; r.recebidoEm=null;
+  DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+id);
+  await saveDB(); render('clientes'); toast('Desfeito (receita removida do Financeiro).');
+};
+window.rcExcluir=async (id)=>{
+  const r=DB.recebimentos.find(x=>x.id===id); if(!r)return;
+  if(!confirm('Excluir esta cobrança'+(r.recebido?' (a receita vinculada no Financeiro também será removida)':'')+'?'))return;
+  DB.recebimentos=DB.recebimentos.filter(x=>x.id!==id);
+  DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+id);
+  await saveDB(); render('clientes'); toast('Excluído.');
 };
 
 /* ---------- FOLHA DE PAGAMENTO ---------- */
@@ -776,9 +813,9 @@ function renderFolha(c){
    ${pays.length?'':'<div class="empty">Nenhum pagamento em '+fmtComp(comp)+'. Use “⚡ Gerar folha do mês” (cria a partir dos pré-definidos) ou “+ Pagamento”.</div>'}</div>
 
    <h2 style="font-size:16px;margin:26px 0 10px">Pré-definidos — fixos de todo mês</h2>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Dia do pagamento</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
    <tbody>${DB.folhaFixos.map(f=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>dia ${f.dia}</td>
+     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—'}</td><td>dia ${f.dia}</td>
      <td class="money" style="text-align:right">${brl(f.valor)}</td>
      <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
      <td><div class="rowact">
@@ -847,12 +884,17 @@ window.openFixoModal=(id)=>{
     <div class="field"><label>Nome (quem recebe)</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Maria Silva"></div>
     <div class="field"><label>Descrição / função</label><input id="m_desc" value="${esc(it.descricao)}" placeholder="Ex: Social media"></div>
     <div class="row2">
+      <div class="field"><label>Chave Pix</label><input id="m_pix" value="${esc(it.pix)}" placeholder="CPF, telefone, email ou CNPJ"></div>
+      <div class="field"><label>Banco / Instituição</label><input id="m_banco" value="${esc(it.banco)}" placeholder="Ex: NuBank"></div>
+    </div>
+    <div class="field"><label>Departamento (DP)</label><input id="m_dp" value="${esc(it.dp)}" placeholder="Ex: Marketing, Tecnologia..."></div>
+    <div class="row2">
       <div class="field"><label>Dia do pagamento (1–31)</label><input type="number" min="1" max="31" id="m_dia" value="${it.dia||5}"></div>
       <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
     </div>
     <div class="field"><label>Ativo (entra na geração do mês)</label><select id="m_ativo"><option value="1"${it.ativo?' selected':''}>Sim</option><option value="0"${!it.ativo?' selected':''}>Não</option></select></div>`,
     async ()=>{
-      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1'};
+      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),banco:$('#m_banco').value.trim(),dp:$('#m_dp').value.trim(),dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1'};
       if(!v.nome){ toast('Informe o nome.'); return false; }
       if(id){ Object.assign(it,v); } else { DB.folhaFixos.push({id:uid(),...v}); }
       await saveDB(); render('folha'); toast('Salvo.'); return true;
