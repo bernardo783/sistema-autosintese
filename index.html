@@ -702,7 +702,7 @@ function renderClientes(c){
    <p class="hint" style="margin-top:12px">"Gerar cobranças" cria a lista do mês a partir da carteira, ordenada por vencimento, sem duplicar. Ao marcar <strong>✓ Recebido</strong>, a receita entra no Financeiro na data do recebimento; "Desfazer" remove. <strong>Inadimplente</strong> = venceu e não foi recebido; <strong>A receber</strong> = ainda vai vencer.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const rows=list.sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t));
+    const rows=list.sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t));
     $('#cBody').innerHTML=rows.map(r=>`<tr>
       <td><strong>${esc(r.nome)}</strong></td>
       <td><span class="tag st">${esc(r.nicho)||'—'}</span></td>
