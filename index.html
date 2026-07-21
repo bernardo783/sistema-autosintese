@@ -255,7 +255,7 @@
     </div>
     <nav class="nav">
       <button data-view="dash" class="active"><span class="ic">📊</span> Painel</button>
-      <button data-view="financeiro"><span class="ic">💰</span> Financeiro</button>
+      <button data-view="financeiro" id="navFin" class="hidden"><span class="ic">💰</span> Financeiro</button>
       <button data-view="senhas"><span class="ic">🔑</span> Senhas</button>
       <button data-view="links"><span class="ic">🔗</span> Links</button>
       <button data-view="projetos"><span class="ic">📁</span> Projetos</button>
@@ -319,7 +319,9 @@ async function loadDB(){
 }
 async function saveDB(){
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
-  const rows=MODMAP.map(([m,k])=>({modulo:m,dados:DB[k]||[],criado_por:SESSION.user.id}));
+  const livres=['projetos','senhas','links'];
+  const mods=(currentUser&&currentUser.role==='master')?MODMAP:MODMAP.filter(([m])=>livres.includes(m));
+  const rows=mods.map(([m,k])=>({modulo:m,dados:DB[k]||[],criado_por:SESSION.user.id}));
   const {error}=await sb.from('itens').upsert(rows,{onConflict:'modulo'});
   if(error){ toast('Erro ao salvar: '+error.message); throw error; }
 }
@@ -460,7 +462,7 @@ async function enterApp(){
   catch(e){ $('#loginErr').textContent='Erro ao carregar dados: '+(e.message||e); show($('#loginView')); return; }
   hide($('#login')); show($('#app'));
   $('#whoami').textContent='👤 '+currentUser.nome+(currentUser.role==='master'?' · master':'')+(user.email?(' · '+user.email):'');
-  if(currentUser.role==='master') show($('#navUsuarios')); else hide($('#navUsuarios'));
+  if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); } else { hide($('#navUsuarios')); hide($('#navFin')); }
   render('dash');
   if(currentUser.role==='master'){
     const {count}=await sb.from('perfis').select('id',{count:'exact',head:true}).eq('aprovado',false);
@@ -499,6 +501,9 @@ function render(view){
   currentView=view; searchTerm='';
   const c=$('#content');
   if(view==='dash') return renderDash(c);
+  if(view==='financeiro'||view==='clientes'||view==='folha'){
+    if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+  }
   if(view==='financeiro') return renderFinanceiro(c);
   if(view==='clientes'){ finTab='clientes'; return renderFinanceiro(c); }
   if(view==='folha'){ finTab='folha'; return renderFinanceiro(c); }
@@ -523,6 +528,18 @@ function renderProcessos(c){
 let dashComp=compNow();
 let dashDe=''; let dashAte='';
 function renderDash(c){
+  if(!currentUser||currentUser.role!=='master'){
+    c.innerHTML=`
+   <div class="page-head"><div><h2>Painel</h2><div class="desc">Visão geral</div></div></div>
+   <div class="cards">
+     <div class="card"><div class="k">Projetos ativos</div><div class="v">${DB.projetos.filter(p=>p.status==='andamento').length}</div></div>
+     <div class="card"><div class="k">Total de projetos</div><div class="v">${DB.projetos.length}</div></div>
+     <div class="card"><div class="k">Senhas guardadas</div><div class="v">${DB.senhas.length}</div></div>
+     <div class="card"><div class="k">Links</div><div class="v">${DB.links.length}</div></div>
+   </div>
+   <p class="hint" style="margin-top:12px">Informações financeiras são visíveis apenas para usuários master.</p>`;
+    return;
+  }
   const range=!!(dashDe&&dashAte);
   const compRef=range?dashDe.slice(0,7):dashComp;
   const RC=calcRecebimentos(compRef);
@@ -772,24 +789,19 @@ function renderProjetos(c){
      <div><h2>Projetos</h2><div class="desc">Acompanhamento de projetos da empresa</div></div>
      <div class="toolbar"><input class="search" id="pSearch" placeholder="Buscar..."><button class="btn small" onclick="openProjModal()">+ Projeto</button></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Projeto</th><th>Responsável</th><th>Status</th><th>Prazo</th><th style="text-align:right">Mensalidade</th><th style="text-align:right">Recebido (total)</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Projeto</th><th>Responsável</th><th>Status</th><th>Prazo</th><th></th></tr></thead>
    <tbody id="pBody"></tbody></table><div id="pEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">Projetos com 💰 estão vinculados a um cliente: a coluna Recebido soma tudo que já entrou dele (mensalidades e sinais, todos os meses). O botão 💰 abre o Financeiro filtrado pelo cliente. Cadastrar um cliente novo cria o projeto automaticamente.</p>`;
+   <p class="hint" style="margin-top:12px">Cadastrar um cliente novo cria o projeto automaticamente. As informações financeiras de cada projeto ficam dentro dele (Editar) — visíveis apenas para usuários master.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const list=[...DB.projetos].sort((a,b)=>(a.prazo||'9999').localeCompare(b.prazo||'9999')).filter(r=>!t||(r.nome+r.responsavel).toLowerCase().includes(t));
-    $('#pBody').innerHTML=list.map(r=>{
-      const cli=r.clienteId?DB.clientes.find(c=>c.id===r.clienteId):null;
-      const recTot=r.clienteId?DB.recebimentos.filter(x=>x.clienteId===r.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0):0;
-      return `<tr>
+    $('#pBody').innerHTML=list.map(r=>`<tr>
       <td><strong>${esc(r.nome)}</strong>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
       <td>${esc(r.responsavel)||'—'}</td>
       <td><span class="tag ${r.status}">${ST_LABEL[r.status]||r.status}</span></td>
       <td>${fmtDate(r.prazo)||'—'}</td>
-      <td class="money" style="text-align:right">${cli?brl(cli.valor):'—'}</td>
-      <td class="money" style="text-align:right;color:${recTot?'var(--ok)':'var(--muted)'}">${r.clienteId?brl(recTot):'—'}</td>
-      <td><div class="rowact">${r.clienteId?`<button class="iconbtn" onclick="projFin('${r.clienteId}')" title="Ver no Financeiro">💰</button>`:''}<button class="iconbtn" onclick="openProjModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
-    </tr>`;}).join('');
+      <td><div class="rowact"><button class="iconbtn" onclick="openProjModal('${r.id}')">${currentUser&&currentUser.role==='master'?'Abrir':'Editar'}</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
+    </tr>`).join('');
     $('#pEmpty').innerHTML=list.length?'':'<div class="empty">Nenhum projeto cadastrado.</div>';
   };
   $('#pSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
@@ -804,7 +816,16 @@ window.openProjModal=(id)=>{
       <div class="field"><label>Status</label><select id="m_status">${opts}</select></div>
     </div>
     <div class="field"><label>Prazo</label><input type="date" id="m_prazo" value="${it.prazo||''}"></div>
-    <div class="field"><label>Observações</label><textarea id="m_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></div>`,
+    <div class="field"><label>Observações</label><textarea id="m_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></div>
+    ${(currentUser&&currentUser.role==='master'&&it.clienteId)?(()=>{ const cli=DB.clientes.find(c=>c.id===it.clienteId); const recTot=DB.recebimentos.filter(x=>x.clienteId===it.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0); return `
+    <div style="background:var(--panel2);border:1px solid rgba(168,85,247,.35);border-radius:12px;padding:14px;margin-top:6px">
+      <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:1px;margin-bottom:8px">💰 FINANCEIRO · VISÍVEL SÓ PARA MASTERS</div>
+      <div style="display:flex;gap:22px;font-size:14px;flex-wrap:wrap">
+        <span>Honorário mensal: <strong>${cli?brl(cli.valor):'—'}</strong></span>
+        <span>Recebido (total): <strong style="color:var(--ok)">${brl(recTot)}</strong></span>
+      </div>
+      <button class="btn ghost small" style="margin-top:10px" onclick="document.querySelector('.overlay').remove();projFin('${it.clienteId}')">Ver lançamentos deste cliente →</button>
+    </div>`;})():''}`,
     async ()=>{
       const v={nome:$('#m_nome').value.trim(),responsavel:$('#m_resp').value.trim(),status:$('#m_status').value,
         prazo:$('#m_prazo').value,notas:$('#m_notas').value.trim()};
