@@ -683,8 +683,9 @@ function calcRecebimentos(comp){
     return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
   const g={recebido:[],inadimplente:[],areceber:[],semdia:[]};
   DB.clientes.forEach(c=>{ const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
-  const soma=a=>a.reduce((s,x)=>s+(Number(x.valor)||0),0);
-  return {byCli, st, g, soma};
+  const val=(c)=>{ const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; }; /* valor congelado do mês, se houver registro */
+  const soma=a=>a.reduce((s,x)=>s+val(x),0);
+  return {byCli, st, g, soma, val};
 }
 function renderClientes(c){
   const comp=cliComp;
@@ -726,7 +727,7 @@ function renderClientes(c){
       <td>${esc(r.servico)||'—'}</td>
       <td>${r.diaVenc?('dia '+r.diaVenc):'<span class="tag pausado">a definir</span>'}</td>
       <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
-      <td class="money" style="text-align:right">${brl(r.valor)}</td>
+      <td class="money" style="text-align:right">${brl(R.val(r))}${R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:''}</td>
       <td>${selHtml}</td>
       <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('clientes','${r.id}')">Excluir</button></div></td>
     </tr>`;}).join('');
