@@ -973,7 +973,7 @@ window.gerarFolha=async ()=>{
         if(new Date(y,m-1,d).getDay()!==(Number(f.diaSemana)||0)) continue;
         const venc=comp+'-'+String(d).padStart(2,'0');
         if(temData.has(f.id+'|'+venc)) continue;
-        DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao?f.descricao+' — ':'')+'semanal ('+DSEM[Number(f.diaSemana)||0]+')'+(f.posPago?(' · ref. '+fmtComp(mesAnt)):''),valor:Number(f.valor)||0,venc,pago:false,pagoEm:null});
+        DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao?f.descricao+' — ':'')+'semanal ('+DSEM[Number(f.diaSemana)||0]+')'+(f.posPago?' · pós-pago':''),valor:Number(f.valor)||0,venc,pago:false,pagoEm:null});
         n++;
       }
     } else {
