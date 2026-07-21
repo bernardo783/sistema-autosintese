@@ -677,6 +677,7 @@ function calcRecebimentos(comp){
   const st=(c)=>{ const r=byCli[c.id];
     if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
     if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
+    if(c.inicio && comp<c.inicio) return null; /* cliente só conta a partir do mês de início */
     if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
     if(comp>compNow()) return 'areceber';
     return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
@@ -750,12 +751,13 @@ window.openCliModal=(id)=>{
     <div class="row2">
       <div class="field"><label>Responsável financeiro</label><input id="m_resp" value="${esc(it.resp)}" placeholder="Nome"></div>
       <div class="field"><label>Telefone</label><input id="m_tel" value="${esc(it.tel)}" placeholder="(11) 90000-0000"></div>
-    </div>`,
+    </div>
+    <div class="field"><label>Primeiro pagamento (opcional — antes desse mês o cliente fica zerado)</label><input type="month" id="m_inicio" value="${it.inicio||''}"></div>`,
     async ()=>{
       const dia=parseInt($('#m_dia').value);
       const v={nome:$('#m_nome').value.trim(),nicho:$('#m_nicho').value.trim(),servico:$('#m_serv').value.trim(),
         diaVenc:(dia>=1&&dia<=31)?dia:null,valor:parseFloat($('#m_valor').value)||0,
-        resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim()};
+        resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null};
       if(!v.nome){toast('Informe o nome.');return false;}
       if(id){Object.assign(it,v);} else {DB.clientes.push({id:uid(),...v});}
       await saveDB(); render('clientes'); toast('Salvo.'); return true;
