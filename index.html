@@ -772,18 +772,24 @@ function renderProjetos(c){
      <div><h2>Projetos</h2><div class="desc">Acompanhamento de projetos da empresa</div></div>
      <div class="toolbar"><input class="search" id="pSearch" placeholder="Buscar..."><button class="btn small" onclick="openProjModal()">+ Projeto</button></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Projeto</th><th>Responsável</th><th>Status</th><th>Prazo</th><th></th></tr></thead>
-   <tbody id="pBody"></tbody></table><div id="pEmpty"></div></div>`;
+   <div class="tablewrap"><table><thead><tr><th>Projeto</th><th>Responsável</th><th>Status</th><th>Prazo</th><th style="text-align:right">Mensalidade</th><th style="text-align:right">Recebido (total)</th><th></th></tr></thead>
+   <tbody id="pBody"></tbody></table><div id="pEmpty"></div></div>
+   <p class="hint" style="margin-top:12px">Projetos com 💰 estão vinculados a um cliente: a coluna Recebido soma tudo que já entrou dele (mensalidades e sinais, todos os meses). O botão 💰 abre o Financeiro filtrado pelo cliente. Cadastrar um cliente novo cria o projeto automaticamente.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const list=[...DB.projetos].sort((a,b)=>(a.prazo||'9999').localeCompare(b.prazo||'9999')).filter(r=>!t||(r.nome+r.responsavel).toLowerCase().includes(t));
-    $('#pBody').innerHTML=list.map(r=>`<tr>
+    $('#pBody').innerHTML=list.map(r=>{
+      const cli=r.clienteId?DB.clientes.find(c=>c.id===r.clienteId):null;
+      const recTot=r.clienteId?DB.recebimentos.filter(x=>x.clienteId===r.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0):0;
+      return `<tr>
       <td><strong>${esc(r.nome)}</strong>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
       <td>${esc(r.responsavel)||'—'}</td>
       <td><span class="tag ${r.status}">${ST_LABEL[r.status]||r.status}</span></td>
       <td>${fmtDate(r.prazo)||'—'}</td>
-      <td><div class="rowact"><button class="iconbtn" onclick="openProjModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
-    </tr>`).join('');
+      <td class="money" style="text-align:right">${cli?brl(cli.valor):'—'}</td>
+      <td class="money" style="text-align:right;color:${recTot?'var(--ok)':'var(--muted)'}">${r.clienteId?brl(recTot):'—'}</td>
+      <td><div class="rowact">${r.clienteId?`<button class="iconbtn" onclick="projFin('${r.clienteId}')" title="Ver no Financeiro">💰</button>`:''}<button class="iconbtn" onclick="openProjModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
+    </tr>`;}).join('');
     $('#pEmpty').innerHTML=list.length?'':'<div class="empty">Nenhum projeto cadastrado.</div>';
   };
   $('#pSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
@@ -895,6 +901,17 @@ function renderClientes(c){
   $('#cStatusInp').onchange=e=>{ statusFiltro=e.target.value||''; draw(); };
   draw();
 }
+function syncProjetoCliente(cli){
+  let p=DB.projetos.find(x=>x.clienteId===cli.id);
+  if(!p){ DB.projetos.push({id:uid(),clienteId:cli.id,nome:cli.nome,responsavel:cli.resp||'',status:'andamento',prazo:'',notas:(cli.servico||'')+(cli.nicho?(' · '+cli.nicho):'')}); }
+  else { p.nome=cli.nome; p.responsavel=cli.resp||''; }
+}
+window.projFin=(cliId)=>{
+  const cli=DB.clientes.find(c=>c.id===cliId); if(!cli) return;
+  finTab='lanc'; lancComp=''; lancDe=''; lancAte='';
+  render('financeiro');
+  setTimeout(()=>{ const s=$('#fSearch'); if(s){ s.value=cli.nome; searchTerm=cli.nome; s.dispatchEvent(new Event('input')); } },60);
+};
 window.openCliModal=(id)=>{
   const it=id?DB.clientes.find(x=>x.id===id):{};
   modal(id?'Editar cliente':'Novo cliente',`
@@ -921,7 +938,9 @@ window.openCliModal=(id)=>{
         diaVenc:(dia>=1&&dia<=31)?dia:null,valor:parseFloat($('#m_valor').value)||0,
         resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null,fim:$('#m_fim').value||null};
       if(!v.nome){toast('Informe o nome.');return false;}
-      if(id){Object.assign(it,v);} else {DB.clientes.push({id:uid(),...v});}
+      let alvo;
+      if(id){ Object.assign(it,v); alvo=it; } else { alvo={id:uid(),...v}; DB.clientes.push(alvo); }
+      syncProjetoCliente(alvo);
       await saveDB(); render('clientes'); toast('Salvo.'); return true;
     });
 };
