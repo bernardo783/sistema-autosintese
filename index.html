@@ -100,6 +100,7 @@
   .stSel.recebido{background:rgba(62,196,109,.15);color:var(--ok);border-color:rgba(62,196,109,.4)}
   .stSel.inadimplente{background:rgba(229,72,77,.15);color:var(--danger);border-color:rgba(229,72,77,.4)}
   .stSel.areceber{background:rgba(224,166,59,.15);color:var(--warn);border-color:rgba(224,166,59,.4)}
+  .stSel.sinal{background:rgba(47,124,246,.15);color:#7db0ff;border-color:rgba(47,124,246,.4)}
   .stSel option{background:var(--panel2);color:var(--txt)}
   .rowact{display:flex;gap:6px}
   .iconbtn{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;
@@ -478,9 +479,9 @@ function renderDash(c){
    </div>
    <h2 style="font-size:16px;margin:4px 0 10px">Clientes — ${fmtComp(compNow())}</h2>
    <div class="cards">
-     <div class="card"><div class="k">🟢 Recebido</div><div class="v pos">${brl(RC.soma(RC.g.recebido))}</div></div>
+     <div class="card"><div class="k">🟢 Recebido</div><div class="v pos">${brl(RC.soma(RC.g.recebido)+RC.sinaisPagos)}</div></div>
      <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${RC.g.inadimplente.length?'neg':''}">${RC.g.inadimplente.length} · ${brl(RC.soma(RC.g.inadimplente))}</div></div>
-     <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(RC.soma(RC.g.areceber))}</div></div>
+     <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(RC.soma(RC.g.areceber)+RC.sinaisRestante)}</div></div>
      <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
    </div>`;
 }
@@ -681,11 +682,13 @@ function calcRecebimentos(comp){
     if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
     if(comp>compNow()) return 'areceber';
     return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
-  const g={recebido:[],inadimplente:[],areceber:[],semdia:[]};
+  const g={recebido:[],sinal:[],inadimplente:[],areceber:[],semdia:[]};
   DB.clientes.forEach(c=>{ const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
   const val=(c)=>{ const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; }; /* valor congelado do mês, se houver registro */
   const soma=a=>a.reduce((s,x)=>s+val(x),0);
-  return {byCli, st, g, soma, val};
+  const sinaisPagos=g.sinal.reduce((s,c)=>s+(Number((byCli[c.id]||{}).sinal)||0),0);
+  const sinaisRestante=g.sinal.reduce((s,c)=>s+Math.max(0,val(c)-(Number((byCli[c.id]||{}).sinal)||0)),0);
+  return {byCli, st, g, soma, val, sinaisPagos, sinaisRestante};
 }
 function renderClientes(c){
   const comp=cliComp;
@@ -701,9 +704,10 @@ function renderClientes(c){
      </div>
    </div>
    <div class="cards">
-     <div class="card"><div class="k">🟢 Recebido em ${fmtComp(comp)}</div><div class="v pos">${brl(R.soma(R.g.recebido))}</div></div>
+     <div class="card"><div class="k">🟢 Recebido em ${fmtComp(comp)}</div><div class="v pos">${brl(R.soma(R.g.recebido)+R.sinaisPagos)}</div></div>
+     <div class="card"><div class="k">🔵 Sinais</div><div class="v">${R.g.sinal.length} · ${brl(R.sinaisPagos)}<div style="font-size:12px;color:var(--muted);font-weight:600">resta ${brl(R.sinaisRestante)}</div></div></div>
      <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${R.g.inadimplente.length?'neg':''}">${R.g.inadimplente.length} · ${brl(R.soma(R.g.inadimplente))}</div></div>
-     <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(R.soma(R.g.areceber))}</div></div>
+     <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(R.soma(R.g.areceber)+R.sinaisRestante)}</div></div>
      <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)} · ${DB.clientes.length} cli.</div></div>
    </div>
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Responsável</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
@@ -718,9 +722,10 @@ function renderClientes(c){
       const selHtml=podeMarcar?`<select class="stSel ${s||''}" onchange="rcStatusCli('${r.id}',this.value)">
         ${s?'':'<option value="" selected>—</option>'}
         <option value="areceber"${s==='areceber'?' selected':''}>🟡 A receber</option>
+        <option value="sinal"${s==='sinal'?' selected':''}>🔵 Sinal pago</option>
         <option value="inadimplente"${s==='inadimplente'?' selected':''}>🔴 Inadimplente</option>
         <option value="recebido"${s==='recebido'?' selected':''}>🟢 Recebido</option>
-      </select>${s==='recebido'&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}</div>`:''}`:'<span class="tag st">defina o dia</span>';
+      </select>${s==='recebido'&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${s==='sinal'&&rec?`<div style="color:var(--muted);font-size:11px;margin-top:3px">sinal ${brl(rec.sinal)} em ${fmtDate(rec.sinalEm)} · resta ${brl(Math.max(0,R.val(r)-(Number(rec.sinal)||0)))}</div>`:''}`:'<span class="tag st">defina o dia</span>';
       return `<tr>
       <td><strong>${esc(r.nome)}</strong></td>
       <td><span class="tag st">${esc(r.nicho)||'—'}</span></td>
@@ -773,15 +778,25 @@ window.rcStatusCli=async (cliId,novo)=>{
     r={id:uid(),comp,clienteId:c.id,nome:c.nome,resp:c.resp||'',tel:c.tel||'',valor:Number(c.valor)||0,venc:vencOf(comp,c.diaVenc),recebido:false,recebidoEm:null,status:null};
     DB.recebimentos.push(r);
   }
-  r.status=novo;
-  if(novo==='recebido'){
-    if(!r.recebido){ r.recebido=true; r.recebidoEm=new Date().toISOString().slice(0,10);
-      DB.financeiro.push({id:'rc_'+r.id,data:r.recebidoEm,tipo:'receita',descricao:'Mensalidade: '+r.nome,categoria:'Mensalidade Clientes',valor:Number(r.valor)||0}); }
-  } else {
+  if(novo==='sinal'){
+    const sv=parseFloat((prompt('Valor do sinal recebido (R$):','')||'').replace(',','.'));
+    if(!(sv>0)){ toast('Sinal cancelado — valor inválido.'); render('clientes'); return; }
+    if(sv>=(Number(r.valor)||0)){ toast('Sinal maior ou igual ao total — use 🟢 Recebido.'); render('clientes'); return; }
+    r.status='sinal'; r.sinal=sv; r.sinalEm=new Date().toISOString().slice(0,10);
     r.recebido=false; r.recebidoEm=null;
-    DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id);
+    DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
+    DB.financeiro.push({id:'rcs_'+r.id,data:r.sinalEm,tipo:'receita',descricao:'Sinal: '+r.nome,categoria:'Mensalidade Clientes',valor:sv});
+  } else if(novo==='recebido'){
+    r.status='recebido';
+    if(!r.recebido){ r.recebido=true; r.recebidoEm=new Date().toISOString().slice(0,10);
+      const restante=Math.max(0,(Number(r.valor)||0)-(Number(r.sinal)||0));
+      DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id);
+      DB.financeiro.push({id:'rc_'+r.id,data:r.recebidoEm,tipo:'receita',descricao:(r.sinal?'Restante: ':'Mensalidade: ')+r.nome,categoria:'Mensalidade Clientes',valor:(r.sinal?restante:(Number(r.valor)||0))}); }
+  } else {
+    r.status=novo; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null;
+    DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
   }
-  await saveDB(); render('clientes'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='inadimplente'?'🔴 Inadimplente':'🟡 A receber'));
+  await saveDB(); render('clientes'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='sinal'?'🔵 Sinal pago':novo==='inadimplente'?'🔴 Inadimplente':'🟡 A receber'));
 };
 
 /* ---------- FOLHA DE PAGAMENTO ---------- */
