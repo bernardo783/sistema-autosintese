@@ -948,6 +948,8 @@ function renderFolha(c){
      <td class="money" style="text-align:right">${brl(f.valor)}</td>
      <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
      <td><div class="rowact">
+       <button class="iconbtn" onclick="fixoMove('${f.id}',-1)" title="Subir">↑</button>
+       <button class="iconbtn" onclick="fixoMove('${f.id}',1)" title="Descer">↓</button>
        <button class="iconbtn" onclick="openFixoModal('${f.id}')">Editar</button>
        <button class="iconbtn del" onclick="fixoExcluir('${f.id}')">Excluir</button>
      </div></td></tr>`).join('')}</tbody></table>
@@ -1060,6 +1062,12 @@ window.openFixoModal=(id)=>{
   $('#m_freq').onchange=()=>{ const s=$('#m_freq').value==='semanal'; $('#wrapDia').style.display=s?'none':''; $('#wrapDsem').style.display=s?'':'none'; };
 };
 window.copyPixFixo=(id)=>{ const f=DB.folhaFixos.find(x=>x.id===id); if(f&&f.pix) copyTxt(f.pix); };
+window.fixoMove=async (id,dir)=>{
+  const i=DB.folhaFixos.findIndex(x=>x.id===id); if(i<0)return;
+  const j=i+dir; if(j<0||j>=DB.folhaFixos.length)return;
+  const t=DB.folhaFixos[i]; DB.folhaFixos[i]=DB.folhaFixos[j]; DB.folhaFixos[j]=t;
+  await saveDB(); render('folha');
+};
 window.fixoExcluir=async (id)=>{
   if(!confirm('Excluir este fixo mensal? (Os pagamentos já gerados permanecem.)'))return;
   DB.folhaFixos=DB.folhaFixos.filter(x=>x.id!==id);
