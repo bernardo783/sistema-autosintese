@@ -536,8 +536,8 @@ function renderDash(c){
      <div class="toolbar">
        <input type="month" class="search" id="dashCompInp" value="${dashComp}" style="min-width:150px" title="Mês">
        <div style="position:relative;display:inline-flex;align-items:center;gap:4px">
-         <button class="btn secondary small" onclick="calAbrir()">${range?('📅 '+fmtDate(dashDe).slice(0,5)+' – '+fmtDate(dashAte).slice(0,5)):'📅 Período'}</button>
-         ${range?'<button class="iconbtn" onclick="calLimpar()" title="Limpar período">✕</button>':''}
+         <button class="btn secondary small" onclick="calAbrir('dash')">${range?('📅 '+fmtDate(dashDe).slice(0,5)+' – '+fmtDate(dashAte).slice(0,5)):'📅 Período'}</button>
+         ${range?'<button class="iconbtn" onclick="calLimpar(\'dash\')" title="Limpar período">✕</button>':''}
          <div id="calPop" class="calpop hidden"></div>
        </div>
      </div></div>
@@ -562,17 +562,20 @@ function renderDash(c){
   $('#dashCompInp').onchange=e=>{ dashComp=e.target.value||compNow(); dashDe=''; dashAte=''; render('dash'); };
 }
 /* ---- calendário de período (roxo) ---- */
-let calMes=compNow(); let calSel1='';
-window.calAbrir=()=>{ const p=$('#calPop'); if(!p) return;
-  if(p.classList.contains('hidden')){ calMes=(dashDe||'').slice(0,7)||compNow(); calSel1=''; calRender(); p.classList.remove('hidden'); }
+let calMes=compNow(); let calSel1=''; let calAlvo='dash';
+const calGet=()=>calAlvo==='lanc'?{de:lancDe,ate:lancAte}:{de:dashDe,ate:dashAte};
+const calSet=(de,ate)=>{ if(calAlvo==='lanc'){ lancDe=de; lancAte=ate; } else { dashDe=de; dashAte=ate; } };
+const calVai=()=>render(calAlvo==='lanc'?'financeiro':'dash');
+window.calAbrir=(alvo)=>{ calAlvo=alvo||'dash'; const p=$('#calPop'); if(!p) return;
+  if(p.classList.contains('hidden')){ calMes=(calGet().de||'').slice(0,7)||compNow(); calSel1=''; calRender(); p.classList.remove('hidden'); }
   else p.classList.add('hidden'); };
-window.calLimpar=()=>{ dashDe=''; dashAte=''; calSel1=''; render('dash'); };
+window.calLimpar=(alvo)=>{ if(alvo) calAlvo=alvo; calSet('',''); calSel1=''; calVai(); };
 window.calNav=(d)=>{ const [y,m]=calMes.split('-').map(Number); const nd=new Date(y,m-1+d,1);
   calMes=nd.getFullYear()+'-'+String(nd.getMonth()+1).padStart(2,'0'); calRender(); };
 window.calClique=(iso)=>{
-  if(!calSel1){ calSel1=iso; dashDe=''; dashAte=''; calRender(); return; }
+  if(!calSel1){ calSel1=iso; calSet('',''); calRender(); return; }
   let a=calSel1,b=iso; if(b<a){ const t=a;a=b;b=t; }
-  dashDe=a; dashAte=b; calSel1=''; render('dash');
+  calSel1=''; calSet(a,b); calVai();
 };
 window.calRender=()=>{
   const p=$('#calPop'); if(!p) return;
@@ -584,8 +587,9 @@ window.calRender=()=>{
   for(let d=1;d<=last;d++){
     const iso=calMes+'-'+String(d).padStart(2,'0');
     let cls='dia';
+    const cg=calGet();
     if(calSel1&&iso===calSel1) cls+=' sel';
-    else if(!calSel1&&dashDe&&dashAte){ if(iso===dashDe||iso===dashAte) cls+=' sel'; else if(iso>dashDe&&iso<dashAte) cls+=' faixa'; }
+    else if(!calSel1&&cg.de&&cg.ate){ if(iso===cg.de||iso===cg.ate) cls+=' sel'; else if(iso>cg.de&&iso<cg.ate) cls+=' faixa'; }
     dias+=`<button class="${cls}" onclick="calClique('${iso}')">${d}</button>`;
   }
   p.innerHTML=`
@@ -597,6 +601,7 @@ window.calRender=()=>{
 /* ---------- FINANCEIRO (central) ---------- */
 let finTab='lanc';
 let lancComp=compNow();
+let lancDe=''; let lancAte='';
 window.finGo=async (t)=>{ finTab=t; if(SESSION&&currentUser&&currentUser.aprovado){ try{ await loadDB(); }catch(e){} } render('financeiro'); };
 function renderFinanceiro(c){
   c.innerHTML=`
@@ -612,15 +617,21 @@ function renderFinanceiro(c){
   return renderLanc(sub);
 }
 function renderLanc(c){
-  const base=lancComp?DB.financeiro.filter(x=>(x.data||'').slice(0,7)===lancComp):[...DB.financeiro];
+  const lrange=!!(lancDe&&lancAte);
+  const base=lrange?DB.financeiro.filter(x=>{const d=x.data||''; return d>=lancDe&&d<=lancAte;}):(lancComp?DB.financeiro.filter(x=>(x.data||'').slice(0,7)===lancComp):[...DB.financeiro]);
   const rows=[...base].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   const rec=base.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor),0);
   const desp=base.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor),0);
   const saldo=rec-desp; const mx=Math.max(rec,desp,1);
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Lançamentos</h2><div class="desc">${lancComp?('Receitas e despesas de '+fmtComp(lancComp)):'Todas as receitas e despesas'}</div></div>
-     <div class="toolbar"><input class="search" id="fSearch" placeholder="Buscar..."><input type="month" class="search" id="lancCompInp" value="${lancComp}" style="min-width:150px" title="Filtrar por mês — limpe para ver tudo"><button class="btn small" onclick="openFinModal()">+ Lançamento</button></div>
+     <div><h2>Lançamentos</h2><div class="desc">${lrange?('Período: '+fmtDate(lancDe)+' até '+fmtDate(lancAte)):(lancComp?('Receitas e despesas de '+fmtComp(lancComp)):'Todas as receitas e despesas')}</div></div>
+     <div class="toolbar"><input class="search" id="fSearch" placeholder="Buscar..."><input type="month" class="search" id="lancCompInp" value="${lancComp}" style="min-width:150px" title="Filtrar por mês — limpe para ver tudo">
+       <div style="position:relative;display:inline-flex;align-items:center;gap:4px">
+         <button class="btn secondary small" onclick="calAbrir('lanc')">${lrange?('📅 '+fmtDate(lancDe).slice(0,5)+' – '+fmtDate(lancAte).slice(0,5)):'📅 Período'}</button>
+         ${lrange?'<button class="iconbtn" onclick="calLimpar(\'lanc\')" title="Limpar período">✕</button>':''}
+         <div id="calPop" class="calpop hidden"></div>
+       </div><button class="btn small" onclick="openFinModal()">+ Lançamento</button></div>
    </div>
    <div class="cards">
      <div class="card"><div class="k">Saldo</div><div class="v ${saldo>=0?'pos':'neg'}">${brl(saldo)}</div></div>
@@ -645,7 +656,7 @@ function renderLanc(c){
     $('#fEmpty').innerHTML=list.length?'':'<div class="empty">Nenhum lançamento. Clique em “+ Lançamento”.</div>';
   };
   $('#fSearch').oninput=e=>{searchTerm=e.target.value;draw();};
-  $('#lancCompInp').onchange=e=>{ lancComp=e.target.value||''; render('financeiro'); };
+  $('#lancCompInp').onchange=e=>{ lancComp=e.target.value||''; lancDe=''; lancAte=''; render('financeiro'); };
   draw();
 }
 window.openFinModal=(id)=>{
