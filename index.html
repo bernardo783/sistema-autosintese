@@ -673,6 +673,7 @@ window.openProjModal=(id)=>{
 /* ---------- CLIENTES ---------- */
 let cliComp = compNow();
 let diaFiltro='';
+let statusFiltro='';
 function calcRecebimentos(comp){
   const hoje=new Date().toISOString().slice(0,10);
   const byCli={}; DB.recebimentos.filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
@@ -702,6 +703,13 @@ function renderClientes(c){
        <input class="search" id="cSearch" placeholder="Buscar cliente...">
        <input type="month" class="search" id="cliCompInp" value="${comp}" style="min-width:150px">
        <input type="date" class="search" id="cDiaInp" value="${diaFiltro}" style="min-width:150px" title="Filtrar por dia de vencimento">
+       <select class="search" id="cStatusInp" style="min-width:160px" title="Filtrar por status">
+         <option value=""${statusFiltro===''?' selected':''}>Todos os status</option>
+         <option value="recebido"${statusFiltro==='recebido'?' selected':''}>🟢 Recebido</option>
+         <option value="sinal"${statusFiltro==='sinal'?' selected':''}>🔵 Sinal pago</option>
+         <option value="inadimplente"${statusFiltro==='inadimplente'?' selected':''}>🔴 Inadimplente</option>
+         <option value="areceber"${statusFiltro==='areceber'?' selected':''}>🟡 A receber</option>
+       </select>
        <button class="btn small" onclick="openCliModal()">+ Cliente</button>
      </div>
    </div>
@@ -718,7 +726,7 @@ function renderClientes(c){
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const vencDe=(r)=>{ const rc=R.byCli[r.id]; if(rc&&rc.venc) return rc.venc; return (r.diaVenc>=1&&r.diaVenc<=31)?vencOf(comp,r.diaVenc):null; };
-    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro));
+    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro)&&(!statusFiltro||R.st(r)===statusFiltro));
     $('#cBody').innerHTML=rows.map(r=>{
       const s=R.st(r); const rec=R.byCli[r.id];
       const podeMarcar=s||(r.diaVenc>=1&&r.diaVenc<=31);
@@ -744,6 +752,7 @@ function renderClientes(c){
   $('#cSearch').oninput=e=>{searchTerm=e.target.value;draw();};
   $('#cliCompInp').onchange=e=>{ cliComp=e.target.value||compNow(); if(diaFiltro&&diaFiltro.slice(0,7)!==cliComp) diaFiltro=''; render('clientes'); };
   $('#cDiaInp').onchange=e=>{ diaFiltro=e.target.value||''; if(diaFiltro){ const m=diaFiltro.slice(0,7); if(m!==cliComp){ cliComp=m; render('clientes'); return; } } draw(); };
+  $('#cStatusInp').onchange=e=>{ statusFiltro=e.target.value||''; draw(); };
   draw();
 }
 window.openCliModal=(id)=>{
