@@ -456,6 +456,7 @@ function renderProcessos(c){
 
 /* ---------- PAINEL ---------- */
 function renderDash(c){
+  const RC=calcRecebimentos(compNow());
   const rec=DB.financeiro.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor),0);
   const desp=DB.financeiro.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor),0);
   const saldo=rec-desp;
@@ -474,6 +475,13 @@ function renderDash(c){
      <div class="card"><div class="k">Links</div><div class="v">${DB.links.length}</div></div>
      <div class="card"><div class="k">Total de projetos</div><div class="v">${DB.projetos.length}</div></div>
      <div class="card"><div class="k">Lançamentos</div><div class="v">${DB.financeiro.length}</div></div>
+   </div>
+   <h2 style="font-size:16px;margin:4px 0 10px">Clientes — ${fmtComp(compNow())}</h2>
+   <div class="cards">
+     <div class="card"><div class="k">🟢 Recebido</div><div class="v pos">${brl(RC.soma(RC.g.recebido))}</div></div>
+     <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${RC.g.inadimplente.length?'neg':''}">${RC.g.inadimplente.length} · ${brl(RC.soma(RC.g.inadimplente))}</div></div>
+     <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(RC.soma(RC.g.areceber))}</div></div>
+     <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
    </div>`;
 }
 
@@ -663,63 +671,60 @@ window.openProjModal=(id)=>{
 
 /* ---------- CLIENTES ---------- */
 let cliComp = compNow();
+function calcRecebimentos(comp){
+  const hoje=new Date().toISOString().slice(0,10);
+  const byCli={}; DB.recebimentos.filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
+  const st=(c)=>{ const r=byCli[c.id];
+    if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
+    if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
+    return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
+  const g={recebido:[],inadimplente:[],areceber:[],semdia:[]};
+  DB.clientes.forEach(c=>{ const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
+  const soma=a=>a.reduce((s,x)=>s+(Number(x.valor)||0),0);
+  return {byCli, st, g, soma};
+}
 function renderClientes(c){
-  const comp=cliComp, hoje=new Date().toISOString().slice(0,10);
-  const list=[...DB.clientes];
-  const totalMensal=list.reduce((s,x)=>s+(Number(x.valor)||0),0);
-  const recs=DB.recebimentos.filter(r=>r.comp===comp).sort((a,b)=>(a.venc||'9999').localeCompare(b.venc||'9999'));
-  const stOf=(r)=> r.status || (r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
-  const recebidos=recs.filter(r=>stOf(r)==='recebido');
-  const inad=recs.filter(r=>stOf(r)==='inadimplente');
-  const aReceber=recs.filter(r=>stOf(r)==='areceber');
+  const comp=cliComp;
+  const R=calcRecebimentos(comp);
+  const totalMensal=DB.clientes.reduce((s,x)=>s+(Number(x.valor)||0),0);
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Clientes</h2><div class="desc">Carteira e recebimentos mensais da Autosíntese</div></div>
+     <div><h2>Clientes</h2><div class="desc">Carteira e recebimentos — planilha única</div></div>
      <div class="toolbar">
+       <input class="search" id="cSearch" placeholder="Buscar cliente...">
        <input type="month" class="search" id="cliCompInp" value="${comp}" style="min-width:150px">
-       <button class="btn secondary small" onclick="gerarCobrancas()">⚡ Gerar cobranças do mês</button>
        <button class="btn small" onclick="openCliModal()">+ Cliente</button>
      </div>
    </div>
    <div class="cards">
-     <div class="card"><div class="k">Recebido em ${fmtComp(comp)}</div><div class="v pos">${brl(recebidos.reduce((s,r)=>s+Number(r.valor),0))}</div></div>
-     <div class="card"><div class="k">Inadimplentes</div><div class="v ${inad.length?'neg':''}">${inad.length} · ${brl(inad.reduce((s,r)=>s+Number(r.valor),0))}</div></div>
-     <div class="card"><div class="k">A receber</div><div class="v">${brl(aReceber.reduce((s,r)=>s+Number(r.valor),0))}</div></div>
-     <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)}</div></div>
+     <div class="card"><div class="k">🟢 Recebido em ${fmtComp(comp)}</div><div class="v pos">${brl(R.soma(R.g.recebido))}</div></div>
+     <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${R.g.inadimplente.length?'neg':''}">${R.g.inadimplente.length} · ${brl(R.soma(R.g.inadimplente))}</div></div>
+     <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(R.soma(R.g.areceber))}</div></div>
+     <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)} · ${DB.clientes.length} cli.</div></div>
    </div>
-   <h2 style="font-size:16px;margin:0 0 10px">Recebimentos de ${fmtComp(comp)} — do mais próximo ao mais distante</h2>
-   <div class="tablewrap"><table><thead><tr><th>Vencimento</th><th>Cliente</th><th>Responsável</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
-   <tbody>${recs.map(r=>`<tr>
-     <td><strong>${fmtDate(r.venc)||'—'}</strong></td>
-     <td>${esc(r.nome)}</td>
-     <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
-     <td class="money" style="text-align:right">${brl(r.valor)}</td>
-     <td><select class="stSel ${stOf(r)}" onchange="rcStatus('${r.id}',this.value)">
-       <option value="areceber"${stOf(r)==='areceber'?' selected':''}>🟡 A receber</option>
-       <option value="inadimplente"${stOf(r)==='inadimplente'?' selected':''}>🔴 Inadimplente</option>
-       <option value="recebido"${stOf(r)==='recebido'?' selected':''}>🟢 Recebido</option>
-     </select>${stOf(r)==='recebido'&&r.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(r.recebidoEm)}</div>`:''}</td>
-     <td><div class="rowact">
-       <button class="iconbtn del" onclick="rcExcluir('${r.id}')">Excluir</button>
-     </div></td></tr>`).join('')}</tbody></table>
-   ${recs.length?'':'<div class="empty">Nenhuma cobrança em '+fmtComp(comp)+'. Clique em "⚡ Gerar cobranças do mês".</div>'}</div>
-   <h2 style="font-size:16px;margin:26px 0 10px">Carteira de clientes</h2>
-   <div style="margin-bottom:10px"><input class="search" id="cSearch" placeholder="Buscar cliente..."></div>
-   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Responsável</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Responsável</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">A coluna <strong>Status</strong> funciona como planilha: clique na célula e escolha 🟡 A receber, 🔴 Inadimplente ou 🟢 Recebido. Ao escolher <strong>Recebido</strong>, a receita entra automaticamente no Financeiro na data; mudar de volta remove. "Gerar cobranças" cria a lista do mês sem duplicar (novas entram como 🔴 se já venceram, 🟡 se não).</p>`;
+   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: 🟡 A receber, 🔴 Inadimplente, 🟢 Recebido — escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const rows=list.sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t));
-    $('#cBody').innerHTML=rows.map(r=>`<tr>
+    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t));
+    $('#cBody').innerHTML=rows.map(r=>{
+      const s=R.st(r); const rec=R.byCli[r.id];
+      const selHtml=s?`<select class="stSel ${s}" onchange="rcStatusCli('${r.id}',this.value)">
+        <option value="areceber"${s==='areceber'?' selected':''}>🟡 A receber</option>
+        <option value="inadimplente"${s==='inadimplente'?' selected':''}>🔴 Inadimplente</option>
+        <option value="recebido"${s==='recebido'?' selected':''}>🟢 Recebido</option>
+      </select>${s==='recebido'&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}</div>`:''}`:'<span class="tag st">defina o dia</span>';
+      return `<tr>
       <td><strong>${esc(r.nome)}</strong></td>
       <td><span class="tag st">${esc(r.nicho)||'—'}</span></td>
       <td>${esc(r.servico)||'—'}</td>
       <td>${r.diaVenc?('dia '+r.diaVenc):'<span class="tag pausado">a definir</span>'}</td>
       <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
       <td class="money" style="text-align:right">${brl(r.valor)}</td>
+      <td>${selHtml}</td>
       <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('clientes','${r.id}')">Excluir</button></div></td>
-    </tr>`).join('');
+    </tr>`;}).join('');
     $('#cEmpty').innerHTML=rows.length?'':'<div class="empty">Nenhum cliente. Clique em "+ Cliente".</div>';
   };
   $('#cSearch').oninput=e=>{searchTerm=e.target.value;draw();};
@@ -752,38 +757,23 @@ window.openCliModal=(id)=>{
       await saveDB(); render('clientes'); toast('Salvo.'); return true;
     });
 };
-window.gerarCobrancas=async ()=>{
-  const comp=cliComp;
-  const comDia=DB.clientes.filter(x=>x.diaVenc>=1&&x.diaVenc<=31);
-  if(!comDia.length){ toast('Nenhum cliente com dia de vencimento definido.'); return; }
-  const have=new Set(DB.recebimentos.filter(r=>r.comp===comp).map(r=>r.clienteId));
-  const novos=comDia.filter(x=>!have.has(x.id));
-  if(!novos.length){ toast('As cobranças de '+fmtComp(comp)+' já estão geradas.'); return; }
-  const hoje2=new Date().toISOString().slice(0,10);
-  novos.forEach(x=>{ const venc=vencOf(comp,x.diaVenc);
-    DB.recebimentos.push({id:uid(),comp,clienteId:x.id,nome:x.nome,resp:x.resp||'',tel:x.tel||'',valor:Number(x.valor)||0,venc,recebido:false,recebidoEm:null,status:(venc<hoje2?'inadimplente':'areceber')}); });
-  await saveDB(); render('clientes');
-  const semDia=DB.clientes.length-comDia.length;
-  toast(novos.length+' cobrança(s) gerada(s) para '+fmtComp(comp)+(semDia?(' — '+semDia+' cliente(s) "a definir" ficaram de fora.'):'.'));
-};
-window.rcStatus=async (id,novo)=>{
-  const r=DB.recebimentos.find(x=>x.id===id); if(!r)return;
+window.rcStatusCli=async (cliId,novo)=>{
+  const comp=cliComp; const c=DB.clientes.find(x=>x.id===cliId); if(!c)return;
+  let r=DB.recebimentos.find(x=>x.comp===comp&&x.clienteId===cliId);
+  if(!r){
+    if(!(c.diaVenc>=1&&c.diaVenc<=31)){ toast('Defina o dia de vencimento primeiro (Editar).'); return; }
+    r={id:uid(),comp,clienteId:c.id,nome:c.nome,resp:c.resp||'',tel:c.tel||'',valor:Number(c.valor)||0,venc:vencOf(comp,c.diaVenc),recebido:false,recebidoEm:null,status:null};
+    DB.recebimentos.push(r);
+  }
   r.status=novo;
   if(novo==='recebido'){
     if(!r.recebido){ r.recebido=true; r.recebidoEm=new Date().toISOString().slice(0,10);
       DB.financeiro.push({id:'rc_'+r.id,data:r.recebidoEm,tipo:'receita',descricao:'Mensalidade: '+r.nome,categoria:'Mensalidade Clientes',valor:Number(r.valor)||0}); }
   } else {
     r.recebido=false; r.recebidoEm=null;
-    DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+id);
+    DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id);
   }
-  await saveDB(); render('clientes'); toast('Status atualizado: '+(novo==='recebido'?'🟢 Recebido':novo==='inadimplente'?'🔴 Inadimplente':'🟡 A receber'));
-};
-window.rcExcluir=async (id)=>{
-  const r=DB.recebimentos.find(x=>x.id===id); if(!r)return;
-  if(!confirm('Excluir esta cobrança'+(r.recebido?' (a receita vinculada no Financeiro também será removida)':'')+'?'))return;
-  DB.recebimentos=DB.recebimentos.filter(x=>x.id!==id);
-  DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+id);
-  await saveDB(); render('clientes'); toast('Excluído.');
+  await saveDB(); render('clientes'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='inadimplente'?'🔴 Inadimplente':'🟡 A receber'));
 };
 
 /* ---------- FOLHA DE PAGAMENTO ---------- */
