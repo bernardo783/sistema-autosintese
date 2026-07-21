@@ -641,6 +641,9 @@ function renderLanc(c){
   const rec=base.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor),0);
   const desp=base.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor),0);
   const saldo=rec-desp; const mx=Math.max(rec,desp,1);
+  const porCat={}; base.filter(x=>x.tipo==='despesa').forEach(x=>{ const k=(x.categoria||'Sem categoria'); porCat[k]=(porCat[k]||0)+Number(x.valor); });
+  const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  const mxc=Math.max(1,...cats.map(x=>x[1]));
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Lançamentos</h2><div class="desc">${lrange?('Período: '+fmtDate(lancDe)+' até '+fmtDate(lancAte)):(lancComp?('Receitas e despesas de '+fmtComp(lancComp)):'Todas as receitas e despesas')}</div></div>
@@ -660,6 +663,17 @@ function renderLanc(c){
        <div class="barwrap"><div class="bar d" style="height:${desp/mx*100}%"></div><div class="lbl">Despesas</div></div></div>
      </div>
    </div>
+   ${cats.length?`
+   <div class="card" style="margin-bottom:22px">
+     <div class="k" style="margin-bottom:12px">📊 KPI — Gastos por área</div>
+     ${cats.map(([k,v])=>`
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <span style="width:130px;font-size:12.5px;font-weight:700">${esc(k)}</span>
+        <div style="flex:1;height:10px;background:var(--panel2);border-radius:99px;overflow:hidden"><div style="width:${Math.max(2,Math.round(v/mxc*100))}%;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2))"></div></div>
+        <span class="money" style="font-size:12.5px;min-width:110px;text-align:right">${brl(v)}</span>
+        <span style="font-size:11px;color:var(--muted);min-width:44px;text-align:right">${desp?Math.round(v/desp*100):0}%</span>
+      </div>`).join('')}
+   </div>`:''}
    <div class="tablewrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th><th></th></tr></thead>
    <tbody id="fBody"></tbody></table><div id="fEmpty"></div></div>`;
   const draw=()=>{
