@@ -911,6 +911,14 @@ const avt=(n,papel)=>{ if(!n)return ''; const f=FOTOS[n.trim().toLowerCase()];
   if(f) return `<span class="avt" style="background-image:url(${f});background-size:cover;background-position:center" title="${papel}: ${esc(n)}"></span>`;
   return `<span class="avt" style="background:${avtCor(n)}" title="${papel}: ${esc(n)}">${esc(n.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase())}</span>`; };
 const eqAv=r=>{const a=avt(r.responsavel,'Gestor de tráfego'),b=avt(r.gerente,'Gerente');return (a||b)?`<span class="avts">${a}${b}</span>`:'<span style="color:var(--muted)">—</span>';};
+const NICHOS=['Loja de Carro','Loja de Moto','Odontologia','Diversos'];
+const nichoDe=(p,c)=>{ if(p.nicho&&NICHOS.includes(p.nicho)) return p.nicho;
+  const s=((p.nicho||'')+' '+((c&&c.nicho)||'')).toLowerCase();
+  if(/moto/.test(s)) return 'Loja de Moto';
+  if(/carro|ve[ií]culo|autom[óo]ve|seminovo|multimarca/.test(s)) return 'Loja de Carro';
+  if(/odonto|dent/.test(s)) return 'Odontologia';
+  if(s.trim()) return 'Diversos';
+  return ''; };
 const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
   const cli=p.clienteId?DB.clientes.find(c=>c.id===p.clienteId):null;
   const s=((cli&&cli.servico)||p.notas||'').toLowerCase();
@@ -1020,7 +1028,10 @@ window.openProjCard=(id)=>{
         <div class="field" id="pc_gw" style="margin:0${(catDe(it)==='ia'||catDe(it)==='outro')&&!it.responsavel?';display:none':''}"><label>Gestor de tráfego (Autosíntese)</label><input id="pc_resp" value="${esc(it.responsavel)}" placeholder="Ex.: Luan, Yghor, Vitor"></div>
         <div class="field" style="margin:0"><label>Gerente (Autosíntese)</label><input id="pc_ger" value="${esc(it.gerente||'')}" placeholder="Nome do gerente"></div>
       </div>
-      <div class="field"><label>Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' · '))}" disabled style="opacity:.75"></div>
+      <div class="row2" style="margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Nicho</label><select id="pc_nicho"><option value="">— escolher —</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select></div>
+        <div class="field" style="margin:0"><label>Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' · '))}" disabled style="opacity:.75"></div>
+      </div>
       <div class="field"><label>📝 Descrição</label><textarea id="pc_notas" rows="3">${esc(it.notas)}</textarea></div>
       <div style="margin:14px 0 8px;font-size:13px;font-weight:800">✅ Checklist</div>
       <div id="pcCheck">${drawCheck()}</div>
@@ -1041,7 +1052,8 @@ window.openProjCard=(id)=>{
   o.querySelector('.x').onclick=close; o.querySelector('.mcancel').onclick=close;
   o.onclick=e=>{ if(e.target===o) close(); };
   o.querySelector('.msave').onclick=async ()=>{
-    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=$('#pc_resp').value.trim(); it.gerente=$('#pc_ger').value.trim(); it.notas=$('#pc_notas').value.trim();
+    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=$('#pc_resp').value.trim(); it.gerente=$('#pc_ger').value.trim(); it.nicho=$('#pc_nicho').value; it.notas=$('#pc_notas').value.trim();
+    if(cli&&it.nicho&&currentUser&&currentUser.role==='master'){ cli.nicho=it.nicho; }
     await saveDB(); close(); render('projetos'); toast('Projeto salvo.');
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
