@@ -102,9 +102,9 @@
   .tag.onboarding{background:rgba(224,166,59,.15);color:var(--warn)}
   .tag.ativo{background:rgba(62,196,109,.15);color:var(--ok)}
   .tag.churn{background:rgba(229,72,77,.15);color:var(--danger)}
-  .tag.cat-trafego{background:rgba(47,124,246,.15);color:#7db0ff}
-  .tag.cat-ia{background:rgba(168,85,247,.18);color:#c9a4fb}
-  .tag.cat-full{background:linear-gradient(135deg,rgba(124,58,237,.35),rgba(168,85,247,.25));color:#fff;border:1px solid rgba(168,85,247,.45)}
+  .tag.cat-trafego{background:rgba(47,124,246,.18);color:#7db0ff}
+  .tag.cat-ia{background:rgba(45,212,191,.15);color:#2dd4bf}
+  .tag.cat-full{background:rgba(245,158,11,.18);color:#fbbf24}
   .tag.cat-outro{background:var(--panel2);color:var(--muted)}
   .stSel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12.5px;font-weight:700;cursor:pointer;outline:none}
   .stSel.recebido{background:rgba(62,196,109,.15);color:var(--ok);border-color:rgba(62,196,109,.4)}
@@ -862,7 +862,7 @@ window.openLinkModal=(id)=>{
 /* ---------- PROJETOS ---------- */
 const ST_LABEL={novo:'Cliente novo',onboarding:'Onboarding',ativo:'Cliente ativo',churn:'Aviso de churn'};
 const PRJ_NORM=s=>({andamento:'ativo',planejado:'novo',pausado:'churn',concluido:'ativo'}[s]||(ST_LABEL[s]?s:'ativo'));
-const CAT_LABEL={trafego:'Tráfego Pago',ia:'Agent IA',full:'Tráfego + IA',outro:'Outro'};
+const CAT_LABEL={trafego:'Tráfego Pago',ia:'Agent IA',full:'Tráfego + Agent IA',outro:'Outro'};
 const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
   const cli=p.clienteId?DB.clientes.find(c=>c.id===p.clienteId):null;
   const s=((cli&&cli.servico)||p.notas||'').toLowerCase();
