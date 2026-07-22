@@ -919,6 +919,8 @@ const nichoDe=(p,c)=>{ if(p.nicho&&NICHOS.includes(p.nicho)) return p.nicho;
   if(/odonto|dent/.test(s)) return 'Odontologia';
   if(s.trim()) return 'Diversos';
   return ''; };
+const NICHO_CSS={'Loja de Carro':'background:rgba(248,113,113,.16);color:#f87171','Loja de Moto':'background:rgba(163,230,53,.16);color:#a3e635','Odontologia':'background:rgba(103,232,249,.16);color:#67e8f9','Diversos':'background:rgba(156,163,175,.18);color:#c3c8d1'};
+const nichoTag=r=>{ const n=nichoDe(r,DB.clientes.find(c=>c.id===r.clienteId)); return n?`<span class="tag" style="margin-left:6px;${NICHO_CSS[n]}">${n}</span>`:''; };
 const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
   const cli=p.clienteId?DB.clientes.find(c=>c.id===p.clienteId):null;
   const s=((cli&&cli.servico)||p.notas||'').toLowerCase();
@@ -950,7 +952,7 @@ function renderProjetos(c){
       <h2 style="font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:10px"><span class="tag ${st}" style="font-size:12.5px;padding:5px 12px">${ST_LABEL[st]}</span><span style="color:var(--muted);font-size:12px;font-weight:800">${grupo.length}</span></h2>
       <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Equipe</th><th></th></tr></thead>
       <tbody>${grupo.map(r=>`<tr onclick="openProjCard('${r.id}')" style="cursor:pointer">
-        <td><strong class="prj-nome">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
+        <td><strong class="prj-nome">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${nichoTag(r)}</td>
         <td>${eqAv(r)}</td>
         <td><div class="rowact"><button class="iconbtn" onclick="prjMenu('${r.id}',event)" title="Mais opções" style="font-weight:900;letter-spacing:1px">⋯</button></div></td>
       </tr>`).join('')||`<tr><td colspan="3" style="color:var(--muted);font-size:13px;padding:16px">Nenhum projeto neste estágio.</td></tr>`}</tbody></table></div>`;
