@@ -862,7 +862,7 @@ window.openLinkModal=(id)=>{
 /* ---------- PROJETOS ---------- */
 const ST_LABEL={novo:'Cliente novo',onboarding:'Onboarding',ativo:'Cliente ativo',churn:'Aviso de churn'};
 const PRJ_NORM=s=>({andamento:'ativo',planejado:'novo',pausado:'churn',concluido:'ativo'}[s]||(ST_LABEL[s]?s:'ativo'));
-const CAT_LABEL={trafego:'Tráfego Pago',ia:'Agent IA',full:'Full — Tráfego + IA',outro:'Outro'};
+const CAT_LABEL={trafego:'Tráfego Pago',ia:'Agent IA',full:'Tráfego + IA',outro:'Outro'};
 const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
   const cli=p.clienteId?DB.clientes.find(c=>c.id===p.clienteId):null;
   const s=((cli&&cli.servico)||p.notas||'').toLowerCase();
