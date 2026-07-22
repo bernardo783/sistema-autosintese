@@ -869,10 +869,18 @@ const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
   const temT=/tr[aá]fego/.test(s), temA=/agent/.test(s);
   if(temT&&temA) return 'full'; if(temA) return 'ia'; if(temT) return 'trafego'; return 'outro'; };
 function renderProjetos(c){
+  const contCat={trafego:0,ia:0,full:0,outro:0};
+  DB.projetos.forEach(p=>{ const k=catDe(p); contCat[k]=(contCat[k]||0)+1; });
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Projetos</h2><div class="desc">Acompanhamento de projetos da empresa</div></div>
      <div class="toolbar"><input class="search" id="pSearch" placeholder="Buscar..."><button class="btn small" onclick="openProjModal()">+ Projeto</button></div>
+   </div>
+   <div class="cards">
+     <div class="card"><div class="k">Tráfego Pago</div><div class="v" style="color:#7db0ff">${contCat.trafego}</div><div class="sub">clientes só de tráfego</div></div>
+     <div class="card"><div class="k">Agent IA</div><div class="v" style="color:#2dd4bf">${contCat.ia}</div><div class="sub">clientes só de IA</div></div>
+     <div class="card"><div class="k">Tráfego + Agent IA</div><div class="v" style="color:#fbbf24">${contCat.full}</div><div class="sub">pacote completo</div></div>
+     ${contCat.outro?`<div class="card"><div class="k">Outros serviços</div><div class="v">${contCat.outro}</div><div class="sub">social media etc.</div></div>`:''}
    </div>
    <div id="prjLists"></div>
    <p class="hint" style="margin-top:12px">Cadastrar um cliente novo cria o projeto automaticamente (entra em "Cliente novo"). O estágio muda dentro do card (Abrir). As informações financeiras ficam dentro do card — visíveis apenas para usuários master.</p>`;
