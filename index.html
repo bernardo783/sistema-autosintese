@@ -105,6 +105,9 @@
   .tag.cat-trafego{background:rgba(47,124,246,.18);color:#7db0ff}
   .tag.cat-ia{background:rgba(45,212,191,.15);color:#2dd4bf}
   .tag.cat-full{background:rgba(245,158,11,.18);color:#fbbf24}
+  .avt{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;font-size:11px;font-weight:800;color:#fff;border:2px solid var(--panel);flex:none;letter-spacing:.5px}
+  .avts{display:inline-flex;align-items:center}
+  .avts .avt+.avt{margin-left:-9px}
   .tag.cat-outro{background:var(--panel2);color:var(--muted)}
   .stSel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12.5px;font-weight:700;cursor:pointer;outline:none}
   .stSel.recebido{background:rgba(62,196,109,.15);color:var(--ok);border-color:rgba(62,196,109,.4)}
@@ -881,6 +884,12 @@ window.openLinkModal=(id)=>{
 const ST_LABEL={novo:'Cliente novo',onboarding:'Onboarding',ativo:'Cliente ativo',churn:'Aviso de churn'};
 const PRJ_NORM=s=>({andamento:'ativo',planejado:'novo',pausado:'churn',concluido:'ativo'}[s]||(ST_LABEL[s]?s:'ativo'));
 const CAT_LABEL={trafego:'Tráfego Pago',ia:'Agent IA',full:'Tráfego + Agent IA',outro:'Outro'};
+const FOTOS={};
+const avtCor=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return ['#7c3aed','#2563eb','#0d9488','#d97706','#dc2626','#db2777','#059669','#4f46e5'][h%8]};
+const avt=(n,papel)=>{ if(!n)return ''; const f=FOTOS[n.trim().toLowerCase()];
+  if(f) return `<span class="avt" style="background-image:url(${f});background-size:cover;background-position:center" title="${papel}: ${esc(n)}"></span>`;
+  return `<span class="avt" style="background:${avtCor(n)}" title="${papel}: ${esc(n)}">${esc(n.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase())}</span>`; };
+const eqAv=r=>{const a=avt(r.responsavel,'Gestor de tráfego'),b=avt(r.gerente,'Gerente');return (a||b)?`<span class="avts">${a}${b}</span>`:'<span style="color:var(--muted)">—</span>';};
 const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
   const cli=p.clienteId?DB.clientes.find(c=>c.id===p.clienteId):null;
   const s=((cli&&cli.servico)||p.notas||'').toLowerCase();
@@ -904,16 +913,16 @@ function renderProjetos(c){
    <p class="hint" style="margin-top:12px">Cadastrar um cliente novo cria o projeto automaticamente (entra em "Cliente novo"). O estágio muda dentro do card (Abrir). As informações financeiras ficam dentro do card — visíveis apenas para usuários master.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const list=[...DB.projetos].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||(r.nome+r.responsavel).toLowerCase().includes(t));
+    const list=[...DB.projetos].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||(r.nome+(r.responsavel||'')+(r.gerente||'')).toLowerCase().includes(t));
     const ordem=['novo','onboarding','ativo','churn'];
     $('#prjLists').innerHTML=ordem.map(st=>{
       const grupo=list.filter(r=>PRJ_NORM(r.status)===st);
       return `
       <h2 style="font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:10px"><span class="tag ${st}" style="font-size:12.5px;padding:5px 12px">${ST_LABEL[st]}</span><span style="color:var(--muted);font-size:12px;font-weight:800">${grupo.length}</span></h2>
-      <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Gestor de tráfego</th><th></th></tr></thead>
+      <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Equipe</th><th></th></tr></thead>
       <tbody>${grupo.map(r=>`<tr onclick="openProjCard('${r.id}')" style="cursor:pointer">
         <td><strong class="prj-nome">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
-        <td>${esc(r.responsavel)||'—'}</td>
+        <td>${eqAv(r)}</td>
         <td><div class="rowact"><button class="iconbtn" onclick="prjMenu('${r.id}',event)" title="Mais opções" style="font-weight:900;letter-spacing:1px">⋯</button></div></td>
       </tr>`).join('')||`<tr><td colspan="3" style="color:var(--muted);font-size:13px;padding:16px">Nenhum projeto neste estágio.</td></tr>`}</tbody></table></div>`;
     }).join('');
@@ -984,12 +993,13 @@ window.openProjCard=(id)=>{
     <div class="mbody">
       <div class="row2" style="margin-bottom:12px">
         <div class="field" style="margin:0"><label>Status</label><select id="pc_status">${optsSt}</select></div>
-        <div class="field" style="margin:0"><label>Categoria</label><select id="pc_cat">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select></div>
+        <div class="field" style="margin:0"><label>Categoria</label><select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select></div>
       </div>
       <div class="row2" style="margin-bottom:12px">
-        <div class="field" style="margin:0"><label>Gestor de tráfego (Autosíntese)</label><input id="pc_resp" value="${esc(it.responsavel)}" placeholder="Ex.: Luan, Yghor, Vitor"></div>
-        <div class="field" style="margin:0"><label>Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' · '))}" disabled style="opacity:.75"></div>
+        <div class="field" id="pc_gw" style="margin:0${(catDe(it)==='ia'||catDe(it)==='outro')&&!it.responsavel?';display:none':''}"><label>Gestor de tráfego (Autosíntese)</label><input id="pc_resp" value="${esc(it.responsavel)}" placeholder="Ex.: Luan, Yghor, Vitor"></div>
+        <div class="field" style="margin:0"><label>Gerente (Autosíntese)</label><input id="pc_ger" value="${esc(it.gerente||'')}" placeholder="Nome do gerente"></div>
       </div>
+      <div class="field"><label>Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' · '))}" disabled style="opacity:.75"></div>
       <div class="field"><label>📝 Descrição</label><textarea id="pc_notas" rows="3">${esc(it.notas)}</textarea></div>
       <div style="margin:14px 0 8px;font-size:13px;font-weight:800">✅ Checklist</div>
       <div id="pcCheck">${drawCheck()}</div>
@@ -1010,7 +1020,7 @@ window.openProjCard=(id)=>{
   o.querySelector('.x').onclick=close; o.querySelector('.mcancel').onclick=close;
   o.onclick=e=>{ if(e.target===o) close(); };
   o.querySelector('.msave').onclick=async ()=>{
-    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=$('#pc_resp').value.trim(); it.notas=$('#pc_notas').value.trim();
+    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=$('#pc_resp').value.trim(); it.gerente=$('#pc_ger').value.trim(); it.notas=$('#pc_notas').value.trim();
     await saveDB(); close(); render('projetos'); toast('Projeto salvo.');
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
@@ -1025,8 +1035,9 @@ window.openProjModal=(id)=>{
     <div class="field"><label>Nome do projeto</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Novo site"></div>
     <div class="row2">
       <div class="field"><label>Gestor de tráfego</label><input id="m_resp" value="${esc(it.responsavel)}" placeholder="Ex.: Luan"></div>
-      <div class="field"><label>Status</label><select id="m_status">${opts}</select></div>
+      <div class="field"><label>Gerente</label><input id="m_ger" value="${esc(it.gerente||'')}" placeholder="Nome do gerente"></div>
     </div>
+    <div class="field"><label>Status</label><select id="m_status">${opts}</select></div>
     <div class="field"><label>Observações</label><textarea id="m_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></div>
     ${(currentUser&&currentUser.role==='master'&&it.clienteId)?(()=>{ const cli=DB.clientes.find(c=>c.id===it.clienteId); const recTot=DB.recebimentos.filter(x=>x.clienteId===it.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0); return `
     <div style="background:var(--panel2);border:1px solid rgba(168,85,247,.35);border-radius:12px;padding:14px;margin-top:6px">
@@ -1038,7 +1049,7 @@ window.openProjModal=(id)=>{
       <button class="btn ghost small" style="margin-top:10px" onclick="document.querySelector('.overlay').remove();projFin('${it.clienteId}')">Ver lançamentos deste cliente →</button>
     </div>`;})():''}`,
     async ()=>{
-      const v={nome:$('#m_nome').value.trim(),responsavel:$('#m_resp').value.trim(),status:$('#m_status').value,
+      const v={nome:$('#m_nome').value.trim(),responsavel:$('#m_resp').value.trim(),gerente:$('#m_ger').value.trim(),status:$('#m_status').value,
         notas:$('#m_notas').value.trim()};
       if(!v.nome){toast('Informe o nome.');return false;}
       if(id){Object.assign(it,v);} else {DB.projetos.push({id:uid(),...v});}
