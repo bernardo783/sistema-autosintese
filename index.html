@@ -102,6 +102,10 @@
   .tag.onboarding{background:rgba(224,166,59,.15);color:var(--warn)}
   .tag.ativo{background:rgba(62,196,109,.15);color:var(--ok)}
   .tag.churn{background:rgba(229,72,77,.15);color:var(--danger)}
+  .tag.cat-trafego{background:rgba(47,124,246,.15);color:#7db0ff}
+  .tag.cat-ia{background:rgba(168,85,247,.18);color:#c9a4fb}
+  .tag.cat-full{background:linear-gradient(135deg,rgba(124,58,237,.35),rgba(168,85,247,.25));color:#fff;border:1px solid rgba(168,85,247,.45)}
+  .tag.cat-outro{background:var(--panel2);color:var(--muted)}
   .stSel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12.5px;font-weight:700;cursor:pointer;outline:none}
   .stSel.recebido{background:rgba(62,196,109,.15);color:var(--ok);border-color:rgba(62,196,109,.4)}
   .stSel.inadimplente{background:rgba(229,72,77,.15);color:var(--danger);border-color:rgba(229,72,77,.4)}
@@ -858,6 +862,12 @@ window.openLinkModal=(id)=>{
 /* ---------- PROJETOS ---------- */
 const ST_LABEL={novo:'Cliente novo',onboarding:'Onboarding',ativo:'Cliente ativo',churn:'Aviso de churn'};
 const PRJ_NORM=s=>({andamento:'ativo',planejado:'novo',pausado:'churn',concluido:'ativo'}[s]||(ST_LABEL[s]?s:'ativo'));
+const CAT_LABEL={trafego:'Tráfego Pago',ia:'Agent IA',full:'Full — Tráfego + IA',outro:'Outro'};
+const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
+  const cli=p.clienteId?DB.clientes.find(c=>c.id===p.clienteId):null;
+  const s=((cli&&cli.servico)||p.notas||'').toLowerCase();
+  const temT=/tr[aá]fego/.test(s), temA=/agent/.test(s);
+  if(temT&&temA) return 'full'; if(temA) return 'ia'; if(temT) return 'trafego'; return 'outro'; };
 function renderProjetos(c){
   c.innerHTML=`
    <div class="page-head">
@@ -876,7 +886,7 @@ function renderProjetos(c){
       <h2 style="font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:10px"><span class="tag ${st}" style="font-size:12.5px;padding:5px 12px">${ST_LABEL[st]}</span><span style="color:var(--muted);font-size:12px;font-weight:800">${grupo.length}</span></h2>
       <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Responsável</th><th></th></tr></thead>
       <tbody>${grupo.map(r=>`<tr>
-        <td><strong>${esc(r.nome)}</strong>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
+        <td><strong>${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
         <td>${esc(r.responsavel)||'—'}</td>
         <td><div class="rowact"><button class="iconbtn" onclick="openProjCard('${r.id}')">Abrir</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
       </tr>`).join('')||`<tr><td colspan="3" style="color:var(--muted);font-size:13px;padding:16px">Nenhum projeto neste estágio.</td></tr>`}</tbody></table></div>`;
@@ -922,8 +932,9 @@ window.openProjCard=(id)=>{
     <div class="mbody">
       <div class="row2" style="margin-bottom:12px">
         <div class="field" style="margin:0"><label>Status</label><select id="pc_status">${optsSt}</select></div>
-        <div class="field" style="margin:0"><label>Responsável</label><input id="pc_resp" value="${esc(it.responsavel)}"></div>
+        <div class="field" style="margin:0"><label>Categoria</label><select id="pc_cat">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select></div>
       </div>
+      <div class="field"><label>Responsável</label><input id="pc_resp" value="${esc(it.responsavel)}"></div>
       <div class="field"><label>📝 Descrição</label><textarea id="pc_notas" rows="3">${esc(it.notas)}</textarea></div>
       <div style="margin:14px 0 8px;font-size:13px;font-weight:800">✅ Checklist</div>
       <div id="pcCheck">${drawCheck()}</div>
@@ -944,7 +955,7 @@ window.openProjCard=(id)=>{
   o.querySelector('.x').onclick=close; o.querySelector('.mcancel').onclick=close;
   o.onclick=e=>{ if(e.target===o) close(); };
   o.querySelector('.msave').onclick=async ()=>{
-    it.status=$('#pc_status').value; it.responsavel=$('#pc_resp').value.trim(); it.notas=$('#pc_notas').value.trim();
+    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=$('#pc_resp').value.trim(); it.notas=$('#pc_notas').value.trim();
     await saveDB(); close(); render('projetos'); toast('Projeto salvo.');
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
