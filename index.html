@@ -607,6 +607,13 @@ function renderDash(c){
   const range=!!(dashDe&&dashAte);
   const compRef=range?dashDe.slice(0,7):dashComp;
   const RC=calcRecebimentos(compRef);
+  const RS={trafego:0,ia:0,full:0,outro:0}, RSn={trafego:0,ia:0,full:0,outro:0};
+  DB.clientes.filter(x=>(!x.inicio||compRef>=x.inicio)&&(!x.fim||compRef<=x.fim)).forEach(x=>{
+    const pj=DB.projetos.find(p=>p.clienteId===x.id);
+    const s=(x.servico||'').toLowerCase(); const tT=/tr[aá]fego/.test(s), tA=/agent/.test(s);
+    const k=(pj&&pj.categoria&&CAT_LABEL[pj.categoria])?pj.categoria:(tT&&tA?'full':tA?'ia':tT?'trafego':'outro');
+    RS[k]+=(Number(x.valor)||0); RSn[k]++;
+  });
   const fin=DB.financeiro.filter(x=>{const d=x.data||''; return range?(d>=dashDe&&d<=dashAte):(d.slice(0,7)===dashComp);});
   const rec=fin.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor),0);
   const desp=fin.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor),0);
@@ -639,6 +646,13 @@ function renderDash(c){
      <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${RC.g.inadimplente.length?'neg':''}">${brl(RC.soma(RC.g.inadimplente))}</div><div class="sub">${RC.g.inadimplente.length} cliente${RC.g.inadimplente.length===1?'':'s'} em atraso</div></div>
      <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(RC.soma(RC.g.areceber)+RC.sinaisRestante)}</div><div class="sub">${RC.g.areceber.length} cliente${RC.g.areceber.length===1?'':'s'} no prazo</div></div>
      <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.filter(x=>(!x.inicio||compRef>=x.inicio)&&(!x.fim||compRef<=x.fim)).reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
+   </div>
+   <h2 style="font-size:16px;margin:4px 0 10px">Receita por serviço — ${fmtComp(compRef)}</h2>
+   <div class="cards">
+     <div class="card"><div class="k">Tráfego Pago</div><div class="v" style="color:#7db0ff">${brl(RS.trafego)}</div><div class="sub">${RSn.trafego} cliente${RSn.trafego===1?'':'s'}</div></div>
+     <div class="card"><div class="k">Agent IA</div><div class="v" style="color:#2dd4bf">${brl(RS.ia)}</div><div class="sub">${RSn.ia} cliente${RSn.ia===1?'':'s'}</div></div>
+     <div class="card"><div class="k">Tráfego + Agent IA</div><div class="v" style="color:#fbbf24">${brl(RS.full)}</div><div class="sub">${RSn.full} cliente${RSn.full===1?'':'s'}</div></div>
+     ${RSn.outro?`<div class="card"><div class="k">Outros serviços</div><div class="v">${brl(RS.outro)}</div><div class="sub">${RSn.outro} cliente${RSn.outro===1?'':'s'}</div></div>`:''}
    </div>`;
   $('#dashCompInp').onchange=e=>{ dashComp=e.target.value||compNow(); dashDe=''; dashAte=''; render('dash'); };
 }
