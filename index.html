@@ -98,6 +98,10 @@
   .tag.concluido{background:rgba(62,196,109,.15);color:var(--ok)}
   .tag.pausado{background:rgba(224,166,59,.15);color:var(--warn)}
   .tag.planejado{background:rgba(139,152,172,.15);color:var(--muted)}
+  .tag.novo{background:rgba(47,124,246,.15);color:#7db0ff}
+  .tag.onboarding{background:rgba(224,166,59,.15);color:var(--warn)}
+  .tag.ativo{background:rgba(62,196,109,.15);color:var(--ok)}
+  .tag.churn{background:rgba(229,72,77,.15);color:var(--danger)}
   .stSel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12.5px;font-weight:700;cursor:pointer;outline:none}
   .stSel.recebido{background:rgba(62,196,109,.15);color:var(--ok);border-color:rgba(62,196,109,.4)}
   .stSel.inadimplente{background:rgba(229,72,77,.15);color:var(--danger);border-color:rgba(229,72,77,.4)}
@@ -319,7 +323,7 @@ async function loadDB(){
   const map={}; (data||[]).forEach(r=>map[r.modulo]=r.dados);
   DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha,clientes:map.clientes,recebimentos:map.recebimentos,trafego:map.trafego});
   /* autocura: todo cliente sempre tem um projeto */
-  DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:c.nome,responsavel:c.resp||'',status:'andamento',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
+  DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:c.nome,responsavel:c.resp||'',status:'novo',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
 }
 async function saveDB(){
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
@@ -588,7 +592,7 @@ function renderDash(c){
     c.innerHTML=`
    <div class="page-head"><div><h2>Painel</h2><div class="desc">Visão geral</div></div></div>
    <div class="cards">
-     <div class="card"><div class="k">Projetos ativos</div><div class="v">${DB.projetos.filter(p=>p.status==='andamento').length}</div></div>
+     <div class="card"><div class="k">Projetos ativos</div><div class="v">${DB.projetos.filter(p=>PRJ_NORM(p.status)==='ativo').length}</div></div>
      <div class="card"><div class="k">Total de projetos</div><div class="v">${DB.projetos.length}</div></div>
      <div class="card"><div class="k">Senhas guardadas</div><div class="v">${DB.senhas.length}</div></div>
      <div class="card"><div class="k">Links</div><div class="v">${DB.links.length}</div></div>
@@ -603,7 +607,7 @@ function renderDash(c){
   const rec=fin.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor),0);
   const desp=fin.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor),0);
   const saldo=rec-desp;
-  const projAtivos=DB.projetos.filter(p=>p.status==='andamento').length;
+  const projAtivos=DB.projetos.filter(p=>PRJ_NORM(p.status)==='ativo').length;
   c.innerHTML=`
    <div class="page-head"><div><h2>Painel</h2><div class="desc">${range?('Período: '+fmtDate(dashDe)+' até '+fmtDate(dashAte)):('Visão geral de '+fmtComp(dashComp))}</div></div>
      <div class="toolbar">
@@ -852,26 +856,31 @@ window.openLinkModal=(id)=>{
 };
 
 /* ---------- PROJETOS ---------- */
-const ST_LABEL={planejado:'Planejado',andamento:'Em andamento',pausado:'Pausado',concluido:'Concluído'};
+const ST_LABEL={novo:'Cliente novo',onboarding:'Onboarding',ativo:'Cliente ativo',churn:'Aviso de churn'};
+const PRJ_NORM=s=>({andamento:'ativo',planejado:'novo',pausado:'churn',concluido:'ativo'}[s]||(ST_LABEL[s]?s:'ativo'));
 function renderProjetos(c){
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Projetos</h2><div class="desc">Acompanhamento de projetos da empresa</div></div>
      <div class="toolbar"><input class="search" id="pSearch" placeholder="Buscar..."><button class="btn small" onclick="openProjModal()">+ Projeto</button></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Responsável</th><th>Status</th><th></th></tr></thead>
-   <tbody id="pBody"></tbody></table><div id="pEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">Cadastrar um cliente novo cria o projeto automaticamente. As informações financeiras de cada projeto ficam dentro dele (Editar) — visíveis apenas para usuários master.</p>`;
+   <div id="prjLists"></div>
+   <p class="hint" style="margin-top:12px">Cadastrar um cliente novo cria o projeto automaticamente (entra em "Cliente novo"). O estágio muda dentro do card (Abrir). As informações financeiras ficam dentro do card — visíveis apenas para usuários master.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const list=[...DB.projetos].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||(r.nome+r.responsavel).toLowerCase().includes(t));
-    $('#pBody').innerHTML=list.map(r=>`<tr>
-      <td><strong>${esc(r.nome)}</strong>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
-      <td>${esc(r.responsavel)||'—'}</td>
-      <td><span class="tag ${r.status}">${ST_LABEL[r.status]||r.status}</span></td>
-      <td><div class="rowact"><button class="iconbtn" onclick="openProjCard('${r.id}')">Abrir</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
-    </tr>`).join('');
-    $('#pEmpty').innerHTML=list.length?'':'<div class="empty">Nenhum projeto cadastrado.</div>';
+    const ordem=['novo','onboarding','ativo','churn'];
+    $('#prjLists').innerHTML=ordem.map(st=>{
+      const grupo=list.filter(r=>PRJ_NORM(r.status)===st);
+      return `
+      <h2 style="font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:10px"><span class="tag ${st}" style="font-size:12.5px;padding:5px 12px">${ST_LABEL[st]}</span><span style="color:var(--muted);font-size:12px;font-weight:800">${grupo.length}</span></h2>
+      <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Responsável</th><th></th></tr></thead>
+      <tbody>${grupo.map(r=>`<tr>
+        <td><strong>${esc(r.nome)}</strong>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
+        <td>${esc(r.responsavel)||'—'}</td>
+        <td><div class="rowact"><button class="iconbtn" onclick="openProjCard('${r.id}')">Abrir</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
+      </tr>`).join('')||`<tr><td colspan="3" style="color:var(--muted);font-size:13px;padding:16px">Nenhum projeto neste estágio.</td></tr>`}</tbody></table></div>`;
+    }).join('');
   };
   $('#pSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
 }
@@ -882,7 +891,7 @@ window.openProjCard=(id)=>{
   const cli=it.clienteId?DB.clientes.find(c=>c.id===it.clienteId):null;
   const recTot=it.clienteId?DB.recebimentos.filter(x=>x.clienteId===it.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0):0;
   const master=currentUser&&currentUser.role==='master';
-  const optsSt=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${it.status===k?' selected':''}>${v}</option>`).join('');
+  const optsSt=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${PRJ_NORM(it.status)===k?' selected':''}>${v}</option>`).join('');
   const drawCheck=()=>{
     const done=it.checklist.filter(x=>x.feito).length, tot=it.checklist.length;
     const pct=tot?Math.round(done/tot*100):0;
@@ -944,8 +953,8 @@ window.prjCkToggle=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); i
 window.prjCkDel=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; p.checklist=(p.checklist||[]).filter(x=>x.id!==cid); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
 window.prjCkAdd=async (pid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const inp=document.getElementById('pcNovo'); const t=(inp&&inp.value.trim())||''; if(!t){toast('Escreva o item.');return;} p.checklist=p.checklist||[]; p.checklist.push({id:uid(),txt:t,feito:false}); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
 window.openProjModal=(id)=>{
-  const it=id?DB.projetos.find(x=>x.id===id):{status:'planejado'};
-  const opts=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${it.status===k?' selected':''}>${v}</option>`).join('');
+  const it=id?DB.projetos.find(x=>x.id===id):{status:'novo'};
+  const opts=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${PRJ_NORM(it.status)===k?' selected':''}>${v}</option>`).join('');
   modal(id?'Editar projeto':'Novo projeto',`
     <div class="field"><label>Nome do projeto</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Novo site"></div>
     <div class="row2">
@@ -1060,7 +1069,7 @@ function renderClientes(c){
 }
 function syncProjetoCliente(cli){
   let p=DB.projetos.find(x=>x.clienteId===cli.id);
-  if(!p){ DB.projetos.push({id:uid(),clienteId:cli.id,nome:cli.nome,responsavel:cli.resp||'',status:'andamento',prazo:'',notas:(cli.servico||'')+(cli.nicho?(' · '+cli.nicho):'')}); }
+  if(!p){ DB.projetos.push({id:uid(),clienteId:cli.id,nome:cli.nome,responsavel:cli.resp||'',status:'novo',prazo:'',notas:(cli.servico||'')+(cli.nicho?(' · '+cli.nicho):'')}); }
   else { p.nome=cli.nome; p.responsavel=cli.resp||''; }
 }
 window.projFin=(cliId)=>{
