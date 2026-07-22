@@ -911,8 +911,8 @@ function renderProjetos(c){
       return `
       <h2 style="font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:10px"><span class="tag ${st}" style="font-size:12.5px;padding:5px 12px">${ST_LABEL[st]}</span><span style="color:var(--muted);font-size:12px;font-weight:800">${grupo.length}</span></h2>
       <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Responsável</th><th></th></tr></thead>
-      <tbody>${grupo.map(r=>`<tr>
-        <td><strong class="prj-nome" onclick="openProjCard('${r.id}')">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
+      <tbody>${grupo.map(r=>`<tr onclick="openProjCard('${r.id}')" style="cursor:pointer">
+        <td><strong class="prj-nome">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
         <td>${esc(r.responsavel)||'—'}</td>
         <td><div class="rowact"><button class="iconbtn" onclick="prjMenu('${r.id}',event)" title="Mais opções" style="font-weight:900;letter-spacing:1px">⋯</button></div></td>
       </tr>`).join('')||`<tr><td colspan="3" style="color:var(--muted);font-size:13px;padding:16px">Nenhum projeto neste estágio.</td></tr>`}</tbody></table></div>`;
