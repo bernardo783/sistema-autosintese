@@ -330,7 +330,7 @@ async function loadDB(){
   const map={}; (data||[]).forEach(r=>map[r.modulo]=r.dados);
   DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha,clientes:map.clientes,recebimentos:map.recebimentos,trafego:map.trafego});
   /* autocura: todo cliente sempre tem um projeto */
-  DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:c.nome,responsavel:c.resp||'',status:'novo',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
+  DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:c.nome,responsavel:'',status:'novo',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
 }
 async function saveDB(){
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
@@ -910,7 +910,7 @@ function renderProjetos(c){
       const grupo=list.filter(r=>PRJ_NORM(r.status)===st);
       return `
       <h2 style="font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:10px"><span class="tag ${st}" style="font-size:12.5px;padding:5px 12px">${ST_LABEL[st]}</span><span style="color:var(--muted);font-size:12px;font-weight:800">${grupo.length}</span></h2>
-      <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Responsável</th><th></th></tr></thead>
+      <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Gestor de tráfego</th><th></th></tr></thead>
       <tbody>${grupo.map(r=>`<tr onclick="openProjCard('${r.id}')" style="cursor:pointer">
         <td><strong class="prj-nome">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
         <td>${esc(r.responsavel)||'—'}</td>
@@ -986,7 +986,10 @@ window.openProjCard=(id)=>{
         <div class="field" style="margin:0"><label>Status</label><select id="pc_status">${optsSt}</select></div>
         <div class="field" style="margin:0"><label>Categoria</label><select id="pc_cat">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select></div>
       </div>
-      <div class="field"><label>Responsável</label><input id="pc_resp" value="${esc(it.responsavel)}"></div>
+      <div class="row2" style="margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Gestor de tráfego (Autosíntese)</label><input id="pc_resp" value="${esc(it.responsavel)}" placeholder="Ex.: Luan, Yghor, Vitor"></div>
+        <div class="field" style="margin:0"><label>Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' · '))}" disabled style="opacity:.75"></div>
+      </div>
       <div class="field"><label>📝 Descrição</label><textarea id="pc_notas" rows="3">${esc(it.notas)}</textarea></div>
       <div style="margin:14px 0 8px;font-size:13px;font-weight:800">✅ Checklist</div>
       <div id="pcCheck">${drawCheck()}</div>
@@ -1021,7 +1024,7 @@ window.openProjModal=(id)=>{
   modal(id?'Editar projeto':'Novo projeto',`
     <div class="field"><label>Nome do projeto</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Novo site"></div>
     <div class="row2">
-      <div class="field"><label>Responsável</label><input id="m_resp" value="${esc(it.responsavel)}" placeholder="Nome"></div>
+      <div class="field"><label>Gestor de tráfego</label><input id="m_resp" value="${esc(it.responsavel)}" placeholder="Ex.: Luan"></div>
       <div class="field"><label>Status</label><select id="m_status">${opts}</select></div>
     </div>
     <div class="field"><label>Observações</label><textarea id="m_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></div>
@@ -1095,7 +1098,7 @@ function renderClientes(c){
      <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(R.soma(R.g.areceber)+R.sinaisRestante)}</div><div class="sub">${R.g.areceber.length} cliente${R.g.areceber.length===1?'':'s'} no prazo</div></div>
      <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)}</div><div class="sub">${ativos.length} clientes ativos</div></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Responsável</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
    <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: 🟡 A receber, 🔴 Inadimplente, 🟢 Recebido — escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente.</p>`;
   const draw=()=>{
@@ -1132,8 +1135,8 @@ function renderClientes(c){
 }
 function syncProjetoCliente(cli){
   let p=DB.projetos.find(x=>x.clienteId===cli.id);
-  if(!p){ DB.projetos.push({id:uid(),clienteId:cli.id,nome:cli.nome,responsavel:cli.resp||'',status:'novo',prazo:'',notas:(cli.servico||'')+(cli.nicho?(' · '+cli.nicho):'')}); }
-  else { p.nome=cli.nome; p.responsavel=cli.resp||''; }
+  if(!p){ DB.projetos.push({id:uid(),clienteId:cli.id,nome:cli.nome,responsavel:'',status:'novo',prazo:'',notas:(cli.servico||'')+(cli.nicho?(' · '+cli.nicho):'')}); }
+  else { p.nome=cli.nome; }
 }
 window.projFin=(cliId)=>{
   const cli=DB.clientes.find(c=>c.id===cliId); if(!cli) return;
