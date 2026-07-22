@@ -549,6 +549,26 @@ function renderTrafego(c){
      <div class="card"><div class="k">Orçamento diário (ativas)</div><div class="v pos">${brl(DB.trafego.filter(x=>x.status==='ativo').reduce((s,x)=>s+(Number(x.orcamento)||0),0))}</div></div>
      <div class="card"><div class="k">Total de campanhas</div><div class="v">${DB.trafego.length}</div></div>
    </div>
+   <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
+     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+       <div style="font-weight:800;font-size:15px">📡 Meta Ads — desempenho ao vivo</div>
+       <select id="mtPreset" class="search" style="max-width:170px">
+         <option value="today">Hoje</option>
+         <option value="yesterday">Ontem</option>
+         <option value="last_7d" selected>Últimos 7 dias</option>
+         <option value="last_14d">Últimos 14 dias</option>
+         <option value="last_30d">Últimos 30 dias</option>
+         <option value="this_month">Este mês</option>
+         <option value="last_month">Mês passado</option>
+       </select>
+       <input class="search" id="mtBusca" placeholder="Filtrar conta..." style="max-width:180px" oninput="metaDesenhar()">
+       <button class="btn small" onclick="metaCarregar()">Atualizar</button>
+       <span id="mtStatus" style="color:var(--muted);font-size:12px"></span>
+     </div>
+     <div id="mtTotais" style="color:var(--muted);font-size:13px;margin:6px 0 10px"></div>
+     <div class="tablewrap"><table><thead><tr><th>Conta de anúncio</th><th style="text-align:right">Gasto</th><th style="text-align:right">Impressões</th><th style="text-align:right">Cliques</th><th style="text-align:right">CPC</th><th style="text-align:right">CPM</th><th style="text-align:right">Leads/Conversas</th><th style="text-align:right">CPL</th></tr></thead>
+     <tbody id="mtBody"><tr><td colspan="8" style="color:var(--muted);padding:14px">Clique em "Atualizar" para puxar as métricas do Meta.</td></tr></tbody></table></div>
+   </div>
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Plataforma</th><th style="text-align:right">Orçamento/dia</th><th>Status</th><th>Responsável</th><th></th></tr></thead>
    <tbody id="tBody"></tbody></table><div id="tEmpty"></div></div>`;
   const draw=()=>{
@@ -565,7 +585,47 @@ function renderTrafego(c){
     $('#tEmpty').innerHTML=list.length?'':'<div class="empty">Nenhuma campanha. Clique em "+ Campanha".</div>';
   };
   $('#tSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
+  if(window.__mtDados) metaDesenhar();
 }
+const META_URL='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/meta/Mt7kXp4wQn9c';
+const MT_LEADS=['lead','leadgen_grouped','onsite_conversion.lead_grouped','offsite_conversion.fb_pixel_lead','onsite_conversion.messaging_conversation_started_7d'];
+window.metaCarregar=async ()=>{
+  const st=$('#mtStatus'); if(!SESSION){toast('Sessão expirada — entre de novo.');return;}
+  st.textContent='Carregando… (até ~15s)';
+  try{
+    const p=$('#mtPreset').value;
+    const r=await fetch(META_URL+'/resumo?preset='+encodeURIComponent(p)+'&v='+Date.now(),{headers:{authorization:'Bearer '+SESSION.access_token}});
+    const d=await r.json();
+    if(!d.ok){ st.textContent='Erro: '+(d.erro||'falha'); return; }
+    window.__mtDados=d.contas||[];
+    metaDesenhar();
+    st.textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){ st.textContent='Erro de rede — tente de novo.'; }
+};
+window.metaDesenhar=()=>{
+  const el=$('#mtBody'); if(!el) return;
+  const t=($('#mtBusca')?$('#mtBusca').value:'').trim().toLowerCase();
+  const rows=(window.__mtDados||[]).filter(c=>!t||(c.nome||'').toLowerCase().includes(t))
+    .sort((a,b)=>(+((b.ins||{}).spend)||0)-(+((a.ins||{}).spend)||0));
+  let G=0,I=0,C=0,L=0;
+  el.innerHTML=rows.map(c=>{
+    const i=c.ins||{};
+    const leads=(i.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
+    const gasto=+(i.spend||0); G+=gasto; I+=(+i.impressions||0); C+=(+i.clicks||0); L+=leads;
+    return `<tr>
+      <td><strong>${esc(c.nome)}</strong>${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}</td>
+      <td style="text-align:right">${gasto?brl(gasto):'—'}</td>
+      <td style="text-align:right">${(+i.impressions||0).toLocaleString('pt-BR')}</td>
+      <td style="text-align:right">${(+i.clicks||0).toLocaleString('pt-BR')}</td>
+      <td style="text-align:right">${i.cpc?brl(+i.cpc):'—'}</td>
+      <td style="text-align:right">${i.cpm?brl(+i.cpm):'—'}</td>
+      <td style="text-align:right"><strong>${leads||'—'}</strong></td>
+      <td style="text-align:right">${leads&&gasto?brl(gasto/leads):'—'}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="8" style="color:var(--muted);padding:14px">Nenhuma conta encontrada.</td></tr>';
+  const tot=$('#mtTotais');
+  if(tot) tot.innerHTML=rows.length?`Total do período: <strong style="color:var(--brand2)">${brl(G)}</strong> · ${I.toLocaleString('pt-BR')} impressões · ${C.toLocaleString('pt-BR')} cliques · <strong>${L} leads</strong>${L?' · CPL médio '+brl(G/L):''}`:'';
+};
 window.openTrafModal=(id)=>{
   const it=id?DB.trafego.find(x=>x.id===id):{status:'ativo',plataforma:'Meta Ads'};
   modal(id?'Editar campanha':'Nova campanha',`
