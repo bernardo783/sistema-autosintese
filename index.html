@@ -334,7 +334,9 @@ async function loadDB(){
   DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha,clientes:map.clientes,recebimentos:map.recebimentos,trafego:map.trafego});
   /* autocura: todo cliente sempre tem um projeto */
   DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:c.nome,responsavel:'',status:'novo',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
+  await loadSenhasPriv();
 }
+async function loadSenhasPriv(){ try{ const {data}=await sb.from('senhas_privadas').select('id,dados'); DB.senhasPriv=(data||[]).map(r=>({...(r.dados||{}),id:r.id,__priv:true})); }catch(_){ DB.senhasPriv=[]; } }
 async function saveDB(){
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
   const livres=['projetos','senhas','links','trafego'];
@@ -605,7 +607,7 @@ function renderDash(c){
    <div class="cards">
      <div class="card"><div class="k">Projetos ativos</div><div class="v">${DB.projetos.filter(p=>PRJ_NORM(p.status)==='ativo').length}</div></div>
      <div class="card"><div class="k">Total de projetos</div><div class="v">${DB.projetos.length}</div></div>
-     <div class="card"><div class="k">Senhas guardadas</div><div class="v">${DB.senhas.length}</div></div>
+     <div class="card"><div class="k">Senhas guardadas</div><div class="v">${DB.senhas.length+(DB.senhasPriv||[]).length}</div></div>
      <div class="card"><div class="k">Links</div><div class="v">${DB.links.length}</div></div>
    </div>
    <p class="hint" style="margin-top:12px">Informações financeiras são visíveis apenas para usuários master.</p>`;
@@ -800,32 +802,34 @@ window.openFinModal=(id)=>{
 function renderSenhas(c){
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Senhas</h2><div class="desc">Credenciais de serviços da empresa — visíveis só para usuários aprovados</div></div>
+     <div><h2>Senhas</h2><div class="desc">Credenciais da equipe — e as suas privadas (🔒 só você vê)</div></div>
      <div class="toolbar"><input class="search" id="sSearch" placeholder="Buscar..."><button class="btn small" onclick="openSenhaModal()">+ Senha</button></div>
    </div>
    <div class="tablewrap"><table><thead><tr><th>Serviço</th><th>Login</th><th>Senha</th><th>Link</th><th></th></tr></thead>
    <tbody id="sBody"></tbody></table><div id="sEmpty"></div></div>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const list=[...DB.senhas].sort((a,b)=>a.servico.localeCompare(b.servico)).filter(r=>!t||(r.servico+r.login).toLowerCase().includes(t));
+    const list=[...DB.senhas,...(DB.senhasPriv||[])].sort((a,b)=>(a.servico||'').localeCompare(b.servico||'')).filter(r=>!t||((r.servico||'')+(r.login||'')).toLowerCase().includes(t));
     $('#sBody').innerHTML=list.map(r=>`<tr>
-      <td><strong>${esc(r.servico)}</strong>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
+      <td><strong>${esc(r.servico)}</strong>${r.__priv?' <span class="tag" style="background:rgba(124,58,237,.18);color:#c4b5fd;font-size:11px">🔒 Só eu</span>':''}${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
       <td>${esc(r.login)||'—'} ${r.login?`<button class="iconbtn" onclick="copyLogin('${r.id}')">copiar</button>`:''}</td>
       <td><div class="pw-cell"><span class="pw-dots" id="pw_${r.id}">••••••••</span>
         <button class="iconbtn" onclick="togglePw('${r.id}')">👁</button>
         <button class="iconbtn" onclick="copyPw('${r.id}')">copiar</button></div></td>
       <td>${r.url?`<a class="link" href="${esc(r.url)}" target="_blank" rel="noopener">abrir ↗</a>`:'—'}</td>
-      <td><div class="rowact"><button class="iconbtn" onclick="openSenhaModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('senhas','${r.id}')">Excluir</button></div></td>
+      <td><div class="rowact"><button class="iconbtn" onclick="openSenhaModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delSenha('${r.id}')">Excluir</button></div></td>
     </tr>`).join('');
     $('#sEmpty').innerHTML=list.length?'':'<div class="empty">Nenhuma senha guardada.</div>';
   };
   $('#sSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
 }
 const pwShown={};
-window.togglePw=(id)=>{ const r=DB.senhas.find(x=>x.id===id); pwShown[id]=!pwShown[id];
+const findSenha=id=>DB.senhas.find(x=>x.id===id)||(DB.senhasPriv||[]).find(x=>x.id===id);
+window.togglePw=(id)=>{ const r=findSenha(id); pwShown[id]=!pwShown[id];
   $('#pw_'+id).textContent = pwShown[id]? (r.senha||'—') : '••••••••'; };
 window.openSenhaModal=(id)=>{
-  const it=id?DB.senhas.find(x=>x.id===id):{};
+  const it=id?(findSenha(id)||{}):{};
+  const era=!!it.__priv;
   modal(id?'Editar senha':'Nova senha',`
     <div class="field"><label>Serviço</label><input id="m_serv" value="${esc(it.servico)}" placeholder="Ex: Gmail, Banco, Hospedagem"></div>
     <div class="row2">
@@ -833,15 +837,32 @@ window.openSenhaModal=(id)=>{
       <div class="field"><label>Senha</label><input id="m_senha" value="${esc(it.senha)}" placeholder="senha"></div>
     </div>
     <div class="field"><label>Link (opcional)</label><input id="m_url" value="${esc(it.url)}" placeholder="https://..."></div>
+    <div class="field"><label>Visibilidade</label><select id="m_vis">
+      <option value="equipe"${!era?' selected':''}>Equipe — todos os aprovados veem</option>
+      <option value="priv"${era?' selected':''}>🔒 Só eu — mais ninguém vê</option>
+    </select></div>
     <div class="field"><label>Observações</label><textarea id="m_notas" rows="2" placeholder="notas...">${esc(it.notas)}</textarea></div>`,
     async ()=>{
       const v={servico:$('#m_serv').value.trim(),login:$('#m_login').value.trim(),senha:$('#m_senha').value,
         url:$('#m_url').value.trim(),notas:$('#m_notas').value.trim()};
       if(!v.servico){toast('Informe o serviço.');return false;}
-      if(id){Object.assign(it,v);} else {DB.senhas.push({id:uid(),...v});}
-      await saveDB(); render('senhas'); toast('Salvo.'); return true;
+      const priv=$('#m_vis').value==='priv';
+      try{
+        if(priv&&era){ const {error}=await sb.from('senhas_privadas').update({dados:v}).eq('id',id); if(error)throw error; }
+        else if(priv&&!era){
+          if(id){ DB.senhas=DB.senhas.filter(x=>x.id!==id); await saveDB(); }
+          const {error}=await sb.from('senhas_privadas').insert({dados:v}); if(error)throw error;
+        }
+        else if(!priv&&era){ const {error}=await sb.from('senhas_privadas').delete().eq('id',id); if(error)throw error; DB.senhas.push({id:uid(),...v}); await saveDB(); }
+        else { if(id){Object.assign(it,v);} else {DB.senhas.push({id:uid(),...v});} await saveDB(); }
+      }catch(err){ toast('Erro ao salvar: '+(err.message||err)); return false; }
+      await loadSenhasPriv(); render('senhas'); toast('Salvo.'); return true;
     });
 };
+window.delSenha=(id)=>{ if((DB.senhasPriv||[]).some(x=>x.id===id)){
+    if(!confirm('Excluir esta senha privada?'))return;
+    sb.from('senhas_privadas').delete().eq('id',id).then(({error})=>{ if(error){toast('Erro: '+error.message);return;} loadSenhasPriv().then(()=>{render('senhas');toast('Excluída.');}); });
+  } else delItem('senhas',id); };
 
 /* ---------- LINKS ---------- */
 function renderLinks(c){
@@ -1503,8 +1524,8 @@ function modal(title, bodyHTML, onSave){
 window.delItem=async (col,id)=>{ if(!confirm('Excluir este item?'))return;
   DB[col]=DB[col].filter(x=>x.id!==id); await saveDB(); render(currentView); toast('Excluído.'); };
 window.copyTxt=(t)=>{ navigator.clipboard.writeText(t).then(()=>toast('Copiado.')); };
-window.copyPw=(id)=>{ const r=DB.senhas.find(x=>x.id===id); if(r) copyTxt(r.senha||''); };
-window.copyLogin=(id)=>{ const r=DB.senhas.find(x=>x.id===id); if(r) copyTxt(r.login||''); };
+window.copyPw=(id)=>{ const r=findSenha(id); if(r) copyTxt(r.senha||''); };
+window.copyLogin=(id)=>{ const r=findSenha(id); if(r) copyTxt(r.login||''); };
 
 /* ======================= BACKUP / SENHA ======================= */
 $('#btnBackup').onclick=()=>{
