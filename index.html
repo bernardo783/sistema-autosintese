@@ -215,6 +215,7 @@
   .calgrid .dia.faixa{background:rgba(124,58,237,.35);color:#fff;border-radius:0}
   .calfoot{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
   .modal.big{max-width:760px}
+  .pm-it:hover:not([disabled]){background:rgba(168,85,247,.15)!important}
 </style>
 </head>
 <body>
@@ -911,12 +912,38 @@ function renderProjetos(c){
       <tbody>${grupo.map(r=>`<tr>
         <td><strong>${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
         <td>${esc(r.responsavel)||'—'}</td>
-        <td><div class="rowact"><button class="iconbtn" onclick="openProjCard('${r.id}')">Abrir</button><button class="iconbtn del" onclick="delItem('projetos','${r.id}')">Excluir</button></div></td>
+        <td><div class="rowact"><button class="iconbtn" onclick="openProjCard('${r.id}')">Abrir</button><button class="iconbtn" onclick="prjMenu('${r.id}',event)" title="Mais opções" style="font-weight:900;letter-spacing:1px">⋯</button></div></td>
       </tr>`).join('')||`<tr><td colspan="3" style="color:var(--muted);font-size:13px;padding:16px">Nenhum projeto neste estágio.</td></tr>`}</tbody></table></div>`;
     }).join('');
   };
   $('#pSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
 }
+window.prjMenu=(id,ev)=>{
+  ev.stopPropagation();
+  const old=document.getElementById('prjMenuPop');
+  if(old){ const mesmo=old.dataset.pid===id; old.remove(); if(mesmo) return; }
+  const p=DB.projetos.find(x=>x.id===id); if(!p) return;
+  const atual=PRJ_NORM(p.status);
+  const m=document.createElement('div'); m.id='prjMenuPop'; m.dataset.pid=id;
+  m.style.cssText='position:fixed;z-index:80;background:var(--panel);border:1px solid rgba(168,85,247,.4);border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.55);padding:6px;min-width:210px';
+  m.innerHTML=`
+    <div style="font-size:10.5px;color:var(--muted);font-weight:800;letter-spacing:1px;padding:6px 10px">MOVER PARA</div>
+    ${['novo','onboarding','ativo','churn'].map(st=>`<button class="pm-it" ${st===atual?'disabled':''} onclick="prjMove('${id}','${st}')" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:none;color:${st===atual?'var(--muted)':'var(--txt)'};padding:8px 10px;border-radius:8px;font-size:13px;cursor:${st===atual?'default':'pointer'}"><span class="tag ${st}" style="font-size:10.5px;padding:2px 8px">${ST_LABEL[st]}</span>${st===atual?'<span style="margin-left:auto;font-size:11px">atual</span>':''}</button>`).join('')}
+    <div style="height:1px;background:var(--line);margin:6px 4px"></div>
+    <button class="pm-it" onclick="document.getElementById('prjMenuPop').remove();delItem('projetos','${id}')" style="display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--danger);padding:8px 10px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:700">Excluir projeto</button>`;
+  document.body.appendChild(m);
+  const r=ev.currentTarget.getBoundingClientRect();
+  let x=Math.min(r.right-210, window.innerWidth-225); if(x<8)x=8;
+  let y=r.bottom+6; if(y+250>window.innerHeight) y=Math.max(8,r.top-256);
+  m.style.left=x+'px'; m.style.top=y+'px';
+  setTimeout(()=>{ const fecha=(e2)=>{ if(!m.contains(e2.target)){ m.remove(); document.removeEventListener('click',fecha); } }; document.addEventListener('click',fecha); },0);
+};
+window.prjMove=async (id,st)=>{
+  const p=DB.projetos.find(x=>x.id===id); if(!p) return;
+  p.status=st;
+  const mm=document.getElementById('prjMenuPop'); if(mm) mm.remove();
+  await saveDB(); render('projetos'); toast('Movido para '+ST_LABEL[st]+'.');
+};
 window.openProjCard=(id)=>{
   const it=DB.projetos.find(x=>x.id===id); if(!it) return;
   it.checklist=it.checklist||[];
