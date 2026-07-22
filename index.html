@@ -929,6 +929,8 @@ const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
 function renderProjetos(c){
   const contCat={trafego:0,ia:0,full:0,outro:0};
   DB.projetos.forEach(p=>{ const k=catDe(p); contCat[k]=(contCat[k]||0)+1; });
+  const contNi={};
+  DB.projetos.forEach(p=>{ const n=nichoDe(p,DB.clientes.find(x=>x.id===p.clienteId)); if(n) contNi[n]=(contNi[n]||0)+1; });
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Projetos</h2><div class="desc">Acompanhamento de projetos da empresa</div></div>
@@ -939,6 +941,12 @@ function renderProjetos(c){
      <div class="card"><div class="k">Agent IA</div><div class="v" style="color:#2dd4bf">${contCat.ia}</div><div class="sub">clientes só de IA</div></div>
      <div class="card"><div class="k">Tráfego + Agent IA</div><div class="v" style="color:#fbbf24">${contCat.full}</div><div class="sub">pacote completo</div></div>
      ${contCat.outro?`<div class="card"><div class="k">Outros serviços</div><div class="v">${contCat.outro}</div><div class="sub">social media etc.</div></div>`:''}
+   </div>
+   <div class="cards" style="margin-top:10px">
+     <div class="card"><div class="k">Loja de Carro</div><div class="v" style="color:#f87171">${contNi['Loja de Carro']||0}</div><div class="sub">clientes do nicho</div></div>
+     <div class="card"><div class="k">Loja de Moto</div><div class="v" style="color:#a3e635">${contNi['Loja de Moto']||0}</div><div class="sub">clientes do nicho</div></div>
+     <div class="card"><div class="k">Odontologia</div><div class="v" style="color:#67e8f9">${contNi['Odontologia']||0}</div><div class="sub">clientes do nicho</div></div>
+     <div class="card"><div class="k">Diversos</div><div class="v" style="color:#c3c8d1">${contNi['Diversos']||0}</div><div class="sub">outros nichos</div></div>
    </div>
    <div id="prjLists"></div>
    <p class="hint" style="margin-top:12px">Cadastrar um cliente novo cria o projeto automaticamente (entra em "Cliente novo"). O estágio muda dentro do card (Abrir). As informações financeiras ficam dentro do card — visíveis apenas para usuários master.</p>`;
