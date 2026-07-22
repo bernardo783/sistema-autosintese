@@ -498,6 +498,7 @@ const esc = s => (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;
 const fmtDate = d => d? d.split('-').reverse().join('/') : '';
 const compNow = ()=> new Date().toISOString().slice(0,7);
 const fmtComp = c => c? c.split('-').reverse().join('/') : '';
+const fmtCompExt = c => { if(!c) return ''; const [y,m]=c.split('-').map(Number); const N=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']; return N[m-1]+' de '+y; };
 function vencOf(comp,dia){
   const [y,m]=comp.split('-').map(Number);
   const last=new Date(y,m,0).getDate();
@@ -620,7 +621,7 @@ function renderDash(c){
   const saldo=rec-desp;
   const projAtivos=DB.projetos.filter(p=>PRJ_NORM(p.status)==='ativo').length;
   c.innerHTML=`
-   <div class="page-head"><div><h2>Painel</h2><div class="desc">${range?('Período: '+fmtDate(dashDe)+' até '+fmtDate(dashAte)):('Visão geral de '+fmtComp(dashComp))}</div></div>
+   <div class="page-head"><div><h2>Painel</h2><div class="desc">${range?('Período: '+fmtDate(dashDe)+' até '+fmtDate(dashAte)):('Visão geral de '+fmtCompExt(dashComp))}</div></div>
      <div class="toolbar">
        <input type="month" class="search" id="dashCompInp" value="${dashComp}" style="min-width:150px" title="Mês">
        <div style="position:relative;display:inline-flex;align-items:center;gap:4px">
@@ -640,14 +641,14 @@ function renderDash(c){
      <div class="card"><div class="k">Total de projetos</div><div class="v">${DB.projetos.length}</div></div>
      <div class="card"><div class="k">Lançamentos</div><div class="v">${fin.length}</div></div>
    </div>
-   <h2 style="font-size:16px;margin:4px 0 10px">Clientes — ${fmtComp(compRef)}</h2>
+   <h2 style="font-size:16px;margin:4px 0 10px">Clientes — ${fmtCompExt(compRef)}</h2>
    <div class="cards">
      <div class="card"><div class="k">🟢 Recebido</div><div class="v pos">${brl(RC.soma(RC.g.recebido)+RC.sinaisPagos)}</div><div class="sub">${RC.g.recebido.length} cliente${RC.g.recebido.length===1?'':'s'}</div></div>
      <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${RC.g.inadimplente.length?'neg':''}">${brl(RC.soma(RC.g.inadimplente))}</div><div class="sub">${RC.g.inadimplente.length} cliente${RC.g.inadimplente.length===1?'':'s'} em atraso</div></div>
      <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(RC.soma(RC.g.areceber)+RC.sinaisRestante)}</div><div class="sub">${RC.g.areceber.length} cliente${RC.g.areceber.length===1?'':'s'} no prazo</div></div>
      <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.filter(x=>(!x.inicio||compRef>=x.inicio)&&(!x.fim||compRef<=x.fim)).reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
    </div>
-   <h2 style="font-size:16px;margin:4px 0 10px">Receita por serviço — ${fmtComp(compRef)}</h2>
+   <h2 style="font-size:16px;margin:4px 0 10px">Receita por serviço — ${fmtCompExt(compRef)}</h2>
    <div class="cards">
      <div class="card"><div class="k">Tráfego Pago</div><div class="v" style="color:#7db0ff">${brl(RS.trafego)}</div><div class="sub">${RSn.trafego} cliente${RSn.trafego===1?'':'s'}</div></div>
      <div class="card"><div class="k">Agent IA</div><div class="v" style="color:#2dd4bf">${brl(RS.ia)}</div><div class="sub">${RSn.ia} cliente${RSn.ia===1?'':'s'}</div></div>
