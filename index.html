@@ -143,7 +143,7 @@
   /* toast */
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
     background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:12px 20px;border-radius:10px;
-    font-size:13.5px;box-shadow:var(--shadow);transition:.25s;z-index:100;pointer-events:none}
+    font-size:13.5px;box-shadow:var(--shadow);transition:.25s;z-index:3000;pointer-events:none}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* bar chart */
@@ -242,7 +242,7 @@
       <div class="err" id="loginErr"></div>
       <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">Não tem conta? <a href="#" id="goSignup" class="link">Criar conta</a></p>
       <p class="hint" style="text-align:center"><a href="#" id="forgotLink" class="link">Esqueci a senha</a></p>
-      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.3 · autosintese.app.br</p>
+      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.4 · autosintese.app.br</p>
     </div>
 
     <div id="signupView" class="hidden">
@@ -753,33 +753,24 @@ window.openRelatorioModal=(accId)=>{
     </div>
     <div class="row2">
       <div class="field"><label>Documento Nº</label><input id="rl_doc" value="${mm}.${hoje.getFullYear()}"></div>
-      <div class="field"><label>Imposto sobre recarga (%)</label><input type="number" step="0.1" id="rl_imp" value="${ult.impostoPct||''}" placeholder="Ex.: 12,5 — opcional"></div>
+      <div class="field"><label>Imposto do Meta (%)</label><input type="number" step="0.1" id="rl_imp" value="${ult.impostoPct!=null?ult.impostoPct:12.5}"></div>
     </div>
-    <div class="row2">
-      <div class="field"><label>Última recarga (R$) — opcional</label><input type="number" step="0.01" id="rl_rec" placeholder="Ex.: 350,00"></div>
-      <div class="field"><label>Data da recarga — opcional</label><input type="date" id="rl_recdt"></div>
-    </div>
-    <p class="hint" style="margin:4px 0 0">O relatório puxa do Meta as métricas da conta, as campanhas do período e <strong>todos os anúncios em veiculação</strong>. Recarga + imposto preenchem o bloco “Resumo financeiro”. Na janela do relatório, use <strong>Imprimir → Salvar como PDF</strong>.</p>`,
+    <p class="hint" style="margin:4px 0 0">O imposto é aplicado <strong>sobre todo o valor gasto</strong> no período (o Meta cobra em cima de tudo — padrão 12,5%). Depois de gerar, o relatório abre num <strong>editor</strong>: clique nos textos para editá-los e use a lateral para <strong>ocultar/exibir anúncios</strong> antes de salvar o PDF.</p>`,
     async ()=>{
       const pde=$('#rl_de').value, pate=$('#rl_ate').value;
       if(!pde||!pate||pde>pate){ toast('Confira o período.'); return false; }
       const cfg={de:pde,ate:pate,doc:$('#rl_doc').value.trim()||(mm+'.'+hoje.getFullYear()),
-        impostoPct:parseFloat(String($('#rl_imp').value).replace(',','.'))||0,
-        recarga:parseFloat(String($('#rl_rec').value).replace(',','.'))||0,
-        recargaData:$('#rl_recdt').value};
+        impostoPct:parseFloat(String($('#rl_imp').value).replace(',','.'))};
+      if(isNaN(cfg.impostoPct)) cfg.impostoPct=12.5;
       const b=document.querySelector('.overlay .msave'); if(b){b.disabled=true;b.textContent='Gerando… (~10s)';}
-      const w=window.open('','_blank');
-      if(!w){ toast('Habilite pop-ups para gerar o relatório.'); if(b){b.disabled=false;b.textContent='Gerar relatório';} return false; }
-      w.document.write('<title>Gerando…</title><body style="font-family:system-ui;background:#f5f0e8;display:flex;align-items:center;justify-content:center;height:96vh;color:#6b6257">Gerando relatório — puxando dados do Meta…</body>');
-      w.document.close();
       try{
-        await gerarRelatorio(accId,cfg,w);
+        const rel=await montarRelatorio(accId,cfg);
         const ex=contaMarca(accId)||(()=>{const nv={id:accId,nome:acc.nome,logo:'',cor1:'#14100b',cor2:'#b08d3e',fundo:'#f5f0e8'};DB.contasMeta.push(nv);return nv;})();
-        ex.ultRel={impostoPct:cfg.impostoPct||null,recarga:cfg.recarga||null,recargaData:cfg.recargaData||null};
+        ex.ultRel={impostoPct:cfg.impostoPct};
         saveDB().catch(()=>{});
+        abrirEditorRelatorio(rel);
         return true;
       }catch(e){
-        try{ w.close(); }catch(_){}
         toast('Erro ao gerar: '+(e.message||e));
         if(b){b.disabled=false;b.textContent='Gerar relatório';}
         return false;
@@ -787,7 +778,7 @@ window.openRelatorioModal=(accId)=>{
     });
   setTimeout(()=>{ const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Gerar relatório'; },30);
 };
-async function gerarRelatorio(accId,cfg,w){
+async function montarRelatorio(accId,cfg){
   const H={headers:{authorization:'Bearer '+SESSION.access_token}};
   const qs=`?since=${cfg.de}&until=${cfg.ate}`;
   const [ri,rc,ra]=await Promise.all([
@@ -804,7 +795,7 @@ async function gerarRelatorio(accId,cfg,w){
   const ink=m.cor1||'#14100b', gold=m.cor2||'#b08d3e', paper=m.fundo||'#f5f0e8';
   const ins=(ri.dados&&ri.dados[0])||{};
   const G=+(ins.spend||0), IMP=+(ins.impressions||0), RCH=+(ins.reach||0), CLK=+(ins.clicks||0);
-  const Ltot=somaAct(ins,MT_LEADS), VIS=somaAct(ins,MT_VISITAS);
+  const Lconta=somaAct(ins,MT_LEADS), VIS=somaAct(ins,MT_VISITAS);
   /* campanhas do período */
   const camps=(rc.campanhas||[]).map(c=>{
     const i=(c.insights&&c.insights.data&&c.insights.data[0])||{};
@@ -819,6 +810,9 @@ async function gerarRelatorio(accId,cfg,w){
   const gAlc=camps.filter(c=>!gLeads.includes(c));
   const invLeads=gLeads.reduce((s,c)=>s+c.gasto,0), invAlc=gAlc.reduce((s,c)=>s+c.gasto,0);
   const visAlc=gAlc.reduce((s,c)=>s+c.vis,0)||VIS;
+  /* Leads do relatório: soma auditável das campanhas (bate com a tabela); cai p/ o total da conta se não houver campanhas */
+  const Lcamp=gLeads.reduce((s,c)=>s+c.leads,0);
+  const Ltot=Lcamp||Lconta;
   const custoLead=Ltot?(invLeads>0?invLeads:G)/Ltot:0;
   const melhorCPL=gLeads.length&&gLeads[0].leads?gLeads[0].gasto/gLeads[0].leads:0;
   /* anúncios em veiculação */
@@ -830,18 +824,18 @@ async function gerarRelatorio(accId,cfg,w){
       gasto:+(i.spend||0),imp:+(i.impressions||0),clk:+(i.clicks||0),leads:somaAct(i,MT_LEADS)};
   }).filter(a=>a.ativo||a.gasto>0).sort((a,b)=>(b.ativo-a.ativo)||(b.gasto-a.gasto)):[];
   const nAtivos=ads.filter(a=>a.ativo).length;
-  /* financeiro */
-  const temFin=cfg.recarga>0;
-  const impostoV=temFin?cfg.recarga*(cfg.impostoPct||0)/100:0;
-  const liquido=temFin?cfg.recarga-impostoV:0;
-  const difFin=temFin?G-liquido:0;
+  /* financeiro — o Meta cobra o imposto sobre todo o valor gasto */
+  const temImposto=(cfg.impostoPct||0)>0;
+  const impostoV=G*(cfg.impostoPct||0)/100;
+  const custoTotal=G+impostoV;
+  const pctTxt=String(cfg.impostoPct||0).replace('.',',');
   /* textos automáticos */
   const badge=(idx,c)=>{
-    if(!c.leads) return {t:'REVISAR',cor:'#c0492f',bg:'#f3ded8',com:'Sem leads registrados no período, apesar do investimento. Requer revisão de criativo, comunicação ou segmentação.'};
-    if(idx===0) return {t:'MELHOR DESEMPENHO',cor:'#2e7d5b',bg:'#dde9e0',com:'Maior eficiência do período — melhor custo por resultado entre todas as campanhas.'};
+    if(!c.leads) return {t:'SEM LEADS',cor:'#c0492f',bg:'#f3ded8'};
+    if(idx===0) return {t:'MELHOR',cor:'#2e7d5b',bg:'#dde9e0'};
     const cpl=c.gasto/c.leads;
-    if(melhorCPL&&cpl>melhorCPL*1.6) return {t:'REVISAR',cor:'#c0492f',bg:'#f3ded8',com:'Custo por lead mais elevado do período. Requer ajustes no criativo, na comunicação ou na segmentação para melhorar a eficiência.'};
-    return {t:'BOM DESEMPENHO',cor:'#a2801f',bg:'#ece2c8',com:'Desempenho positivo, com bom volume de oportunidades e custo por lead dentro de uma faixa eficiente.'};
+    if(melhorCPL&&cpl>melhorCPL*1.6) return {t:'REVISAR',cor:'#c0492f',bg:'#f3ded8'};
+    return {t:'BOM',cor:'#a2801f',bg:'#ece2c8'};
   };
   const chipNome=s=>{let x=String(s||'').replace(/^[\[\(【].*?[\]\)】]\s*/,'').split(/\s+[|—–-]\s+/)[0].trim();return x.length>24?x.slice(0,23)+'…':x||'Campanha';};
   const chips=[...new Set(camps.map(c=>chipNome(c.nome)))].slice(0,4);
@@ -914,17 +908,12 @@ async function gerarRelatorio(accId,cfg,w){
   .fin .fv{font-family:'Space Mono';font-weight:700}
   .obs{border:1.5px dashed var(--bd);padding:12px 15px;margin-top:14px;font-size:12px;color:var(--mut);line-height:1.6}
   .obs b{color:var(--ink)}
-  /* campanhas */
-  .camp{border-left:4px solid var(--cc,#2e7d5b);margin-bottom:14px;page-break-inside:avoid;background:#fff}
-  .camph{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--cbg,#f2ede1)}
-  .camph .cn{font-family:'Space Mono';font-weight:700;font-size:13.5px}
-  .bdg{font-size:10px;font-weight:700;letter-spacing:.6px;padding:5px 9px;border-radius:3px;background:var(--bbg,#dde9e0);color:var(--bcr,#2e7d5b)}
-  .cmets{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--bd)}
-  .cmets>div{padding:11px 14px;border-right:1px solid var(--bd);text-align:center}
-  .cmets>div:last-child{border-right:0}
-  .cmk{font-family:'Space Mono';font-size:9px;letter-spacing:1.2px;color:var(--mut);margin-bottom:5px}
-  .cmv{font-family:'Space Mono';font-weight:700;font-size:17px}
-  .ccom{padding:11px 14px;font-size:12.5px;color:#45402f;line-height:1.55;border-top:1px solid var(--bd)}
+  /* campanhas — ranking objetivo */
+  .rank .rn{font-family:'Space Mono';font-weight:700;font-size:12.5px}
+  .rank .rb{display:inline-block;font-size:8.5px;font-weight:700;letter-spacing:.7px;padding:3px 8px;border-radius:3px;margin-left:8px;vertical-align:1px}
+  .rank .trk{height:11px;background:#e8e1d0;border-radius:6px;overflow:hidden;min-width:90px}
+  .rank .fill{height:100%;border-radius:6px}
+  .rank td.big{font-family:'Space Mono';font-weight:700;font-size:14px;white-space:nowrap}
   table.cons{width:100%;border-collapse:collapse;font-size:12.5px;page-break-inside:avoid}
   table.cons th{background:var(--ink);color:#fff;font-family:'Space Mono';font-size:10.5px;letter-spacing:1px;text-align:left;padding:9px 12px}
   table.cons th.r,table.cons td.r{text-align:right}
@@ -955,18 +944,17 @@ async function gerarRelatorio(accId,cfg,w){
   .ad .tag.off{background:#eae5d8;color:#8a8272}
   /* rodapé */
   .foot{display:flex;justify-content:space-between;border-top:2px solid var(--ink);margin-top:30px;padding-top:10px;font-family:'Space Mono';font-size:9.5px;letter-spacing:1.2px;color:var(--mut);text-transform:uppercase}
-  .bar{position:fixed;top:14px;right:14px;display:flex;gap:8px;z-index:9}
-  .bar button{font-family:'Archivo';font-weight:700;font-size:13px;padding:10px 16px;border:0;border-radius:8px;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.25)}
-  .bar .pr{background:${ink};color:#fff}
-  .bar .sc{background:#fff}
-  @media print{ .bar{display:none} body{background:var(--paper)} .page{box-shadow:none;margin:0;width:auto;min-height:0} .pb{page-break-before:always} }
+  /* edição inline (editor do sistema) */
+  [contenteditable="true"]{cursor:text}
+  [contenteditable="true"]:hover{outline:1.5px dashed rgba(0,0,0,.28);outline-offset:3px}
+  [contenteditable="true"]:focus{outline:2px solid var(--gold);outline-offset:3px;background:rgba(255,255,255,.55)}
+  @media print{ [contenteditable="true"]:hover,[contenteditable="true"]:focus{outline:none;background:none} body{background:var(--paper)} .page{box-shadow:none;margin:0;width:auto;min-height:0} .pb{page-break-before:always} }
   @page{size:A4;margin:0}
 </style></head><body>
-<div class="bar"><button class="pr" onclick="print()">🖨 Imprimir / Salvar PDF</button><button class="sc" onclick="window.close()">Fechar</button></div>
 <div class="page">
   <div class="frame"><div class="cor tl"></div><div class="cor br"></div>
     <div class="chead">
-      <div class="clogo">${m.logo?`<img src="${m.logo}" alt="logo">`:`<div class="noimg">${esc(cliente.charAt(0).toUpperCase())}</div>`}</div>
+      <div class="clogo">${m.logo?`<img src="${esc(m.logo)}" alt="logo">`:`<div class="noimg">${esc(cliente.charAt(0).toUpperCase())}</div>`}</div>
       <div class="cmeta mono">DOCUMENTO <b>Nº ${esc(cfg.doc)}</b><br>CLIENTE: <b>${esc(cliente.toUpperCase())}</b><br>EMITIDO EM <b>${String(new Date().getDate()).padStart(2,'0')}/${eMes}/${eAno}</b></div>
     </div>
     <h1>RELATÓRIO DE<br>PERFORMANCE<span class="dot">.</span></h1>
@@ -979,21 +967,21 @@ async function gerarRelatorio(accId,cfg,w){
 <div class="page pb">
   <div class="sec">Resumo executivo</div>
   <div class="grid2">${card4.join('')}</div>
-  <p class="body">${resumoTxt}</p>
-  ${recomendTxt?`<p class="body">${recomendTxt}</p>`:''}
+  <p class="body" contenteditable="true">${resumoTxt}</p>
+  ${recomendTxt?`<p class="body" contenteditable="true">${recomendTxt}</p>`:''}
 </div>
-${temFin?`<div class="page pb">
-  ${shead('Resumo financeiro','Recarga, imposto e alocação do investimento')}
+<div class="page pb">
+  ${shead('Resumo financeiro','Investimento, imposto e custo total do período')}
   <div class="fin">
-    <div class="fr"><span>Última recarga${cfg.recargaData?` (${d2br(cfg.recargaData)})`:''}</span><span class="fv">${brl(cfg.recarga)}</span></div>
-    ${cfg.impostoPct?`<div class="fr"><span>Imposto (${String(cfg.impostoPct).replace('.',',')}%)</span><span class="fv">− ${brl(impostoV)}</span></div>`:''}
-    <div class="fr hl"><span>Valor líquido destinado às campanhas</span><span class="fv">${brl(liquido)}</span></div>
-    <div class="fr"><span>Investido em geração de leads</span><span class="fv">${brl(invLeads)}</span></div>
-    ${invAlc?`<div class="fr"><span>Investido em alcance</span><span class="fv">${brl(invAlc)}</span></div>`:''}
-    <div class="fr hl"><span>Investimento total registrado</span><span class="fv">${brl(G)}</span></div>
+    <div class="fr"><span>Investido em campanhas (${d2br(cfg.de)} – ${d2br(cfg.ate)})</span><span class="fv">${brl(G)}</span></div>
+    ${invLeads?`<div class="fr"><span style="color:var(--mut);padding-left:14px">— geração de leads</span><span class="fv" style="color:var(--mut)">${brl(invLeads)}</span></div>`:''}
+    ${invAlc?`<div class="fr"><span style="color:var(--mut);padding-left:14px">— alcance</span><span class="fv" style="color:var(--mut)">${brl(invAlc)}</span></div>`:''}
+    ${temImposto?`<div class="fr"><span>Imposto do Meta (${pctTxt}% sobre o valor gasto)</span><span class="fv">+ ${brl(impostoV)}</span></div>
+    <div class="fr hl"><span>Custo total com imposto</span><span class="fv">${brl(custoTotal)}</span></div>`:
+    `<div class="fr hl"><span>Custo total do período</span><span class="fv">${brl(G)}</span></div>`}
   </div>
-  ${Math.abs(difFin)>0.5?`<div class="obs"><b>Observação:</b> o investimento registrado foi <b>${brl(Math.abs(difFin))}</b> ${difFin>0?'superior':'inferior'} ao valor líquido da recarga após o imposto (${brl(G)} vs. ${brl(liquido)}), possivelmente devido a saldo anterior ou diferença de processamento da plataforma.</div>`:''}
-</div>`:''}
+  ${temImposto?`<div class="obs" contenteditable="true"><b>Observação:</b> o Meta cobra o imposto de ${pctTxt}% sobre todo o valor investido na plataforma. O investimento em campanhas no período foi de ${brl(G)}, o que representa um custo real de ${brl(custoTotal)} com o imposto incluído.</div>`:''}
+</div>
 <div class="page pb">
   ${shead('Geração de leads','Campanhas de captação · '+d2br(cfg.de)+' – '+d2br(cfg.ate))}
   <div class="grid2">
@@ -1003,21 +991,16 @@ ${temFin?`<div class="page pb">
     ${stat('CAMPANHAS ATIVAS',String(gLeads.filter(c=>c.ativa).length||gLeads.length))}
   </div>
   <div class="sec" style="font-size:17px;margin-top:22px">Campanhas por eficiência</div>
-  <div style="font-size:11.5px;color:var(--mut);font-style:italic;margin-bottom:12px">Ordenadas do menor para o maior custo por lead.</div>
-  ${gLeads.map((c,ix)=>{const b=badge(ix,c);return `<div class="camp" style="--cc:${b.cor};--cbg:${ix===0?'#eef3ec':'#f4efe3'}">
-    <div class="camph"><span class="cn">${esc(chipNome(c.nome))}</span><span class="bdg" style="--bbg:${b.bg};--bcr:${b.cor};background:${b.bg};color:${b.cor}">${b.t}</span></div>
-    <div class="cmets">
-      <div><div class="cmk">LEADS</div><div class="cmv">${c.leads}</div></div>
-      <div><div class="cmk">CUSTO / LEAD</div><div class="cmv" style="color:${b.cor}">${c.leads?brl(c.gasto/c.leads):'—'}</div></div>
-      <div><div class="cmk">INVESTIDO</div><div class="cmv">${brl(c.gasto)}</div></div>
-    </div>
-    <div class="ccom">${b.com}</div>
-  </div>`;}).join('')||'<p class="body" style="color:var(--mut)">Nenhuma campanha de captação com investimento no período.</p>'}
-  ${gLeads.length?`<div style="page-break-inside:avoid"><div class="sec" style="font-size:17px;margin-top:22px">Consolidado</div>
-  <table class="cons"><thead><tr><th>CAMPANHA</th><th class="r">LEADS</th><th class="r">CUSTO / LEAD</th><th class="r">INVESTIDO</th></tr></thead><tbody>
-    ${gLeads.map(c=>`<tr><td>${esc(chipNome(c.nome))}</td><td class="r">${c.leads}</td><td class="r">${c.leads?brl(c.gasto/c.leads):'—'}</td><td class="r">${brl(c.gasto)}</td></tr>`).join('')}
-    <tr class="tot"><td>Total</td><td class="r">${Ltot}</td><td class="r">${Ltot?brl(custoLead):'—'}</td><td class="r">${brl(invLeads)}</td></tr>
-  </tbody></table></div>`:''}
+  ${gLeads.length?`<table class="cons rank" style="margin-top:2px"><thead><tr><th>CAMPANHA</th><th class="r">LEADS</th><th class="r">CUSTO / LEAD</th><th style="width:24%">EFICIÊNCIA</th><th class="r">INVESTIDO</th></tr></thead><tbody>
+    ${gLeads.map((c,ix)=>{const b=badge(ix,c);const cpl=c.leads?c.gasto/c.leads:0;const wd=cpl&&melhorCPL?Math.max(8,Math.round(melhorCPL/cpl*100)):0;return `<tr>
+      <td><span class="rn">${esc(chipNome(c.nome))}</span><span class="rb" style="background:${b.bg};color:${b.cor}">${b.t}</span></td>
+      <td class="r big">${c.leads}</td>
+      <td class="r big" style="color:${b.cor}">${cpl?brl(cpl):'—'}</td>
+      <td><div class="trk"><div class="fill" style="width:${wd}%;background:${b.cor}"></div></div></td>
+      <td class="r big">${brl(c.gasto)}</td>
+    </tr>`;}).join('')}
+    <tr class="tot"><td>Total</td><td class="r">${Ltot}</td><td class="r">${Ltot?brl(custoLead):'—'}</td><td></td><td class="r">${brl(invLeads)}</td></tr>
+  </tbody></table>`:'<p class="body" style="color:var(--mut)">Nenhuma campanha de captação com investimento no período.</p>'}
 </div>
 ${gAlc.length?`<div class="page pb">
   ${shead('Alcance','Visibilidade e reconhecimento local · '+d2br(cfg.de)+' – '+d2br(cfg.ate))}
@@ -1028,14 +1011,14 @@ ${gAlc.length?`<div class="page pb">
     ${stat('CAMPANHAS',String(gAlc.length))}
   </div>
   ${gAlc.map(c=>`<div class="fmt"><div class="fl"><div class="ft">CAMPANHA: ${esc(chipNome(c.nome).toUpperCase())}</div>
-    <div class="fx">Campanha voltada a <strong>visibilidade e reconhecimento</strong>. ${c.vis?`Gerou <strong>${nbr(c.vis)} visitas ao perfil</strong> com excelente custo por visita, contribuindo`:'Contribuiu'} para aumentar a presença local da marca no período.</div></div>
+    <div class="fx" contenteditable="true">Campanha voltada a <strong>visibilidade e reconhecimento</strong>. ${c.vis?`Gerou <strong>${nbr(c.vis)} visitas ao perfil</strong> com excelente custo por visita, contribuindo`:'Contribuiu'} para aumentar a presença local da marca no período.</div></div>
     <div class="frv"><div class="n">${c.vis?brl(c.gasto/c.vis):nbr(c.imp)}</div><div class="l">${c.vis?'CUSTO POR VISITA':'IMPRESSÕES'}</div></div>
   </div>`).join('')}
 </div>`:''}
-${ads.length?`<div class="page pb">
-  ${shead('Anúncios em veiculação','Todos os anúncios do período · '+nAtivos+' ativo'+(nAtivos===1?'':'s'))}
-  ${ads.map(a=>`<div class="ad" style="--ac:${a.ativo?'#2e7d5b':'#b9b2a0'}">
-    ${a.thumb?`<img src="${a.thumb}" alt="">`:`<div class="ph">${esc((a.nome||'?').charAt(0).toUpperCase())}</div>`}
+${ads.length?`<div class="page pb" id="adsPage">
+  ${shead('Anúncios em veiculação','<span id="adsCount">Todos os anúncios do período · '+nAtivos+' ativo'+(nAtivos===1?'':'s')+'</span>')}
+  ${ads.map((a,ai)=>`<div class="ad" data-adix="${ai}" style="--ac:${a.ativo?'#2e7d5b':'#b9b2a0'}">
+    ${a.thumb?`<img src="${esc(a.thumb)}" alt="">`:`<div class="ph">${esc((a.nome||'?').charAt(0).toUpperCase())}</div>`}
     <div class="ai"><div class="an">${esc(a.nome)}</div><div class="ac">${esc(chipNome(a.camp))} · ${esc(a.conj)}</div></div>
     <div class="am">
       <div><div class="amk">GASTO</div><div class="amv">${a.gasto?brl(a.gasto):'—'}</div></div>
@@ -1049,8 +1032,8 @@ ${ads.length?`<div class="page pb">
 </div>`:''}
 <div class="page pb">
   <div class="sec">Considerações finais e próximos passos</div>
-  <p class="body">O período fechou com <strong>${brl(G)}</strong> investidos${Ltot?`, <strong>${Ltot} leads</strong> gerados a um custo médio de <strong>${brl(custoLead)}</strong>`:''}${visAlc?` e <strong>${nbr(visAlc)} visitas ao perfil</strong>`:''}.${gLeads.length&&gLeads[0].leads?` O destaque foi <strong>${esc(chipNome(gLeads[0].nome))}</strong> (${brl(gLeads[0].gasto/gLeads[0].leads)} por lead)${gLeads[1]&&gLeads[1].leads?`, seguido por <strong>${esc(chipNome(gLeads[1].nome))}</strong> (${brl(gLeads[1].gasto/gLeads[1].leads)})`:''}.`:''}${gAlc.length&&visAlc?` A campanha de alcance teve ótimo custo por visita (${brl(invAlc/visAlc)}), reforçando a visibilidade local da marca.`:''}</p>
-  <p class="body"><strong>Plano de ação para o próximo ciclo:</strong> ${[
+  <p class="body" contenteditable="true">O período fechou com <strong>${brl(G)}</strong> investidos${Ltot?`, <strong>${Ltot} leads</strong> gerados a um custo médio de <strong>${brl(custoLead)}</strong>`:''}${visAlc?` e <strong>${nbr(visAlc)} visitas ao perfil</strong>`:''}.${gLeads.length&&gLeads[0].leads?` O destaque foi <strong>${esc(chipNome(gLeads[0].nome))}</strong> (${brl(gLeads[0].gasto/gLeads[0].leads)} por lead)${gLeads[1]&&gLeads[1].leads?`, seguido por <strong>${esc(chipNome(gLeads[1].nome))}</strong> (${brl(gLeads[1].gasto/gLeads[1].leads)})`:''}.`:''}${gAlc.length&&visAlc?` A campanha de alcance teve ótimo custo por visita (${brl(invAlc/visAlc)}), reforçando a visibilidade local da marca.`:''}</p>
+  <p class="body" contenteditable="true"><strong>Plano de ação para o próximo ciclo:</strong> ${[
     gLeads.length?`(1) manter em produção os anúncios de ${gLeads.slice(0,2).map(c=>esc(chipNome(c.nome))).join(' e ')}, que apresentaram os melhores resultados`:'',
     piorRuim?`(2) revisar o criativo e a segmentação da campanha de ${esc(chipNome(pior.nome))} para reduzir o custo por lead`:'',
     gAlc.length?`(${piorRuim?3:2}) manter a campanha de alcance ativa, dado o ${visAlc?'baixo custo por visita e o ':''}ganho de reconhecimento local`:''
@@ -1058,7 +1041,81 @@ ${ads.length?`<div class="page pb">
   <div class="foot"><span>${esc(cliente.toUpperCase())} — RELATÓRIO DE MÍDIA PAGA</span><span>${MESES[new Date().getMonth()]}/${eAno} · CONFIDENCIAL</span></div>
 </div>
 </body></html>`;
-  w.document.open(); w.document.write(html); w.document.close();
+  return {titulo:cliente+' · '+d2br(cfg.de)+' → '+d2br(cfg.ate), html,
+    arquivo:'Relatorio_'+cliente.replace(/[^\wÀ-ÿ]+/g,'_').replace(/^_|_$/g,'')+'_'+cfg.de+'_a_'+cfg.ate,
+    adsErro:anunciosOk?'':((ra&&ra.erro)||'não foi possível carregar os anúncios'),
+    ads:ads.map(a=>({nome:a.nome,camp:chipNome(a.camp),ativo:a.ativo,gasto:a.gasto}))};
+}
+/* Editor do relatório (estilo Reportei): prévia ao vivo, textos editáveis, anúncios com liga/desliga */
+/* Tudo que vira editável no relatório ao abrir o editor */
+const ED_SEL='h1,.csub,.chip,.cmeta,.prow .pl,.prow .pv,.sec,.shl h2,.shs,.sk,.sv,.fin .fr span,'+
+  'table.cons th,table.cons td,.rank .rn,.ft,.fx,.frv .n,.frv .l,.ad .an,.ad .ac,.ad .amk,.ad .amv,'+
+  '.ad .tag,p.body,.obs,.foot span';
+function abrirEditorRelatorio(rel){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:2000;background:#0d0b14;display:flex;flex-direction:column';
+  ov.innerHTML=`
+   <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--panel)">
+     <div style="font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${esc(rel.titulo)}</div>
+     <span style="color:var(--muted);font-size:12px">✏️ clique em qualquer texto do relatório para editar</span>
+     <button class="btn small" id="edPdf">🖨 Baixar PDF</button>
+     <button class="btn secondary small" id="edClose">Fechar</button>
+   </div>
+   <div style="flex:1;display:flex;min-height:0">
+     <div style="width:290px;flex:none;overflow:auto;border-right:1px solid var(--border);background:var(--panel);padding:14px">
+       <div style="font-weight:800;font-size:13px;margin-bottom:4px">Anúncios no relatório</div>
+       <div class="hint" style="margin:0 0 10px">Desmarque para ocultar do relatório — atualiza na hora. Os totais das outras páginas continuam considerando todos os anúncios; ajuste os textos manualmente se precisar.</div>
+       ${rel.adsErro?`<div class="hint" style="margin:0 0 10px;color:#fbbf24">⚠️ Não foi possível carregar os anúncios do Meta (${esc(rel.adsErro)}). O relatório saiu sem a página de anúncios.</div>`:''}
+       <div id="edAds"></div>
+       <div style="margin-top:12px;display:flex;gap:8px">
+         <button class="iconbtn" id="edAll" style="flex:1">Marcar todos</button>
+         <button class="iconbtn" id="edNone" style="flex:1">Desmarcar</button>
+       </div>
+     </div>
+     <iframe id="edFrame" style="flex:1;border:0;background:#dcd5c6"></iframe>
+   </div>`;
+  document.body.appendChild(ov);
+  const ifr=ov.querySelector('#edFrame');
+  const lista=ov.querySelector('#edAds');
+  const legenda='Todos os anúncios do período · '+rel.ads.filter(a=>a.ativo).length+' ativo'+(rel.ads.filter(a=>a.ativo).length===1?'':'s');
+  lista.innerHTML=rel.ads.map((a,i)=>`
+    <label style="display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer">
+      <input type="checkbox" checked data-adix="${i}" style="margin-top:2px;accent-color:var(--brand2)">
+      <span style="font-size:12px;line-height:1.35"><strong>${esc(a.nome)}</strong><br><span style="color:var(--muted)">${esc(a.camp)} · ${a.ativo?'ativo':'pausado'}${a.gasto?' · '+brl(a.gasto):''}</span></span>
+    </label>`).join('')||'<div class="hint">Nenhum anúncio no período.</div>';
+  const aplicarAds=()=>{
+    const doc=ifr.contentDocument; if(!doc) return;
+    const cbs=[...lista.querySelectorAll('input[type=checkbox]')];
+    cbs.forEach(cb=>{ const el=doc.querySelector('[data-adix="'+cb.dataset.adix+'"]'); if(el) el.style.display=cb.checked?'':'none'; });
+    const vis=cbs.filter(x=>x.checked).length;
+    const c=doc.getElementById('adsCount'); if(c) c.textContent=vis===rel.ads.length?legenda:(vis+' de '+rel.ads.length+' anúncios exibidos');
+    const pg=doc.getElementById('adsPage'); if(pg) pg.style.display=vis?'':'none';
+  };
+  lista.querySelectorAll('input[type=checkbox]').forEach(cb=>{ cb.onchange=aplicarAds; });
+  ifr.onload=()=>{
+    const doc=ifr.contentDocument; if(!doc) return;
+    doc.querySelectorAll(ED_SEL).forEach(el=>el.setAttribute('contenteditable','true'));
+    aplicarAds();
+  };
+  ifr.srcdoc=rel.html;
+  ov.querySelector('#edAll').onclick=()=>{ lista.querySelectorAll('input').forEach(c=>c.checked=true); aplicarAds(); };
+  ov.querySelector('#edNone').onclick=()=>{ lista.querySelectorAll('input').forEach(c=>c.checked=false); aplicarAds(); };
+  ov.querySelector('#edClose').onclick=()=>{ if(confirm('Fechar o editor? As edições feitas no relatório serão perdidas.')) ov.remove(); };
+  ov.querySelector('#edPdf').onclick=()=>{
+    const doc=ifr.contentDocument;
+    if(!doc){ toast('O relatório ainda está carregando.'); return; }
+    /* imprime numa janela própria: preserva as edições e evita o bug de print() em iframe (Safari) */
+    const clone=doc.documentElement.cloneNode(true);
+    clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+    clone.querySelectorAll('[data-adix]').forEach(el=>{ if(el.style.display==='none') el.remove(); });
+    const t=clone.querySelector('title'); if(t) t.textContent=rel.arquivo||rel.titulo;
+    const w=window.open('','_blank');
+    if(!w){ try{ ifr.contentWindow.focus(); ifr.contentWindow.print(); }catch(e){ toast('Habilite pop-ups para baixar o PDF.'); } return; }
+    w.document.open(); w.document.write('<!DOCTYPE html><html>'+clone.innerHTML+'</html>'); w.document.close();
+    const go=()=>{ try{ w.focus(); w.print(); }catch(e){} };
+    if(w.document.readyState==='complete') setTimeout(go,350); else w.onload=()=>setTimeout(go,350);
+    toast('Na janela que abriu: escolha "Salvar como PDF".');
+  };
 }
 
 /* ---------- PROCESSOS (playbook embutido) ---------- */
