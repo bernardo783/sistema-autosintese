@@ -242,7 +242,7 @@
       <div class="err" id="loginErr"></div>
       <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">Não tem conta? <a href="#" id="goSignup" class="link">Criar conta</a></p>
       <p class="hint" style="text-align:center"><a href="#" id="forgotLink" class="link">Esqueci a senha</a></p>
-      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.4 · autosintese.app.br</p>
+      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.5 · autosintese.app.br</p>
     </div>
 
     <div id="signupView" class="hidden">
@@ -545,7 +545,8 @@ function renderTrafego(c){
      <div class="toolbar"><input class="search" id="tSearch" placeholder="Buscar..."><button class="btn small" onclick="openTrafModal()">+ Campanha</button></div>
    </div>
    <div class="cards">
-     <div class="card"><div class="k">Campanhas ativas</div><div class="v">${DB.trafego.filter(x=>x.status==='ativo').length}</div></div>
+     <div class="card"><div class="k">Clientes ativos</div><div class="v pos" id="mtAtivos">—</div><div class="sub" id="mtAtivosSub">contas habilitadas no Meta</div></div>
+     <div class="card"><div class="k">Clientes sem saldo</div><div class="v" id="mtSemSaldo">—</div><div class="sub" id="mtSemSaldoSub">pararam de gastar</div></div>
      <div class="card"><div class="k">Orçamento diário (ativas)</div><div class="v pos">${brl(DB.trafego.filter(x=>x.status==='ativo').reduce((s,x)=>s+(Number(x.orcamento)||0),0))}</div></div>
      <div class="card"><div class="k">Total de campanhas</div><div class="v">${DB.trafego.length}</div></div>
    </div>
@@ -602,25 +603,40 @@ window.metaCarregar=async ()=>{
   }catch(e){ st.textContent='Erro de rede — tente de novo.'; }
 };
 const contaMarca=(id)=>(DB.contasMeta||[]).find(x=>x.id===id)||null;
+/* Saldo: conta habilitada que estava rodando e zerou o gasto ontem/hoje = provavelmente sem saldo */
+const isoLocal=(d)=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10);};
+const isoMais=(n)=>{const d=new Date(); d.setDate(d.getDate()+n); return isoLocal(d);};
+function saldoConta(c){
+  const dias=c.dias;
+  if(!Array.isArray(dias)||!dias.length) return {ok:false};
+  const ontem=isoMais(-1);
+  let recente=0, antes=0, ult='';
+  dias.forEach(x=>{ const v=+x.s||0; if(x.d>=ontem) recente+=v; else antes+=v; if(v>0&&x.d>ult) ult=x.d; });
+  const parou=c.status===1 && antes>0 && recente===0;
+  let haDias=0;
+  if(ult){ haDias=Math.round((new Date(isoMais(0))-new Date(ult))/86400000); }
+  return {ok:true, parou, recente, antes, ult, haDias};
+}
 window.metaDesenhar=()=>{
   const el=$('#mtLista'); if(!el) return;
   const t=($('#mtBusca')?$('#mtBusca').value:'').trim().toLowerCase();
   const rows=(window.__mtDados||[]).filter(c=>!t||(c.nome||'').toLowerCase().includes(t))
-    .sort((a,b)=>(+((b.ins||{}).spend)||0)-(+((a.ins||{}).spend)||0));
+    .sort((a,b)=>(saldoConta(b).parou?1:0)-(saldoConta(a).parou?1:0)||(+((b.ins||{}).spend)||0)-(+((a.ins||{}).spend)||0));
   let G=0,I=0,C=0,L=0;
   el.innerHTML=rows.map(c=>{
     const i=c.ins||{};
     const leads=(i.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
     const gasto=+(i.spend||0); G+=gasto; I+=(+i.impressions||0); C+=(+i.clicks||0); L+=leads;
     const m=contaMarca(c.id);
+    const sd=saldoConta(c);
     const logo=m&&m.logo?`<img src="${m.logo}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--border);flex:none">`
       :`<div style="width:44px;height:44px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;background:${m&&m.cor2?m.cor2:'rgba(168,85,247,.18)'};color:#fff">${esc((c.nome||'?').trim().charAt(0).toUpperCase())}</div>`;
     const met=(k,v,hl)=>`<div style="min-width:74px"><div style="font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)">${k}</div><div style="font-weight:700;font-size:13.5px${hl?';color:var(--brand2)':''}">${v}</div></div>`;
     return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:rgba(255,255,255,.02)">
       ${logo}
       <div style="flex:1;min-width:170px">
-        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}</div>
-        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${m&&m.logo?'':' · <span style="color:#fbbf24">sem logo — configure a marca</span>'}</div>
+        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sd.parou?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}</div>
+        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:#fbbf24">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&m.logo?'':' · <span style="color:#fbbf24">sem logo — configure a marca</span>'}</div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap">
         ${met('Gasto',gasto?brl(gasto):'—',1)}
@@ -639,6 +655,18 @@ window.metaDesenhar=()=>{
   }).join('')||'<div style="color:var(--muted);padding:14px 2px;font-size:13px">Nenhuma conta encontrada.</div>';
   const tot=$('#mtTotais');
   if(tot) tot.innerHTML=rows.length?`Total do período: <strong style="color:var(--brand2)">${brl(G)}</strong> · ${I.toLocaleString('pt-BR')} impressões · ${C.toLocaleString('pt-BR')} cliques · <strong>${L} leads</strong>${L?' · CPL médio '+brl(G/L):''}`:'';
+  /* cards do topo — sempre sobre TODAS as contas, independente do filtro de busca */
+  const todas=window.__mtDados||[];
+  const ativos=todas.filter(c=>c.status===1);
+  const semSaldo=todas.filter(c=>saldoConta(c).parou);
+  const elA=$('#mtAtivos'); if(elA) elA.textContent=ativos.length||'—';
+  const elAs=$('#mtAtivosSub'); if(elAs) elAs.textContent=todas.length?`de ${todas.length} conta${todas.length===1?'':'s'} no gerenciador`:'contas habilitadas no Meta';
+  const elS=$('#mtSemSaldo');
+  if(elS){ elS.textContent=semSaldo.length||'0'; elS.style.color=semSaldo.length?'#f87171':''; }
+  const elSs=$('#mtSemSaldoSub');
+  if(elSs) elSs.innerHTML=semSaldo.length
+    ? esc(semSaldo.slice(0,3).map(c=>{const m=contaMarca(c.id);return (m&&m.nome)||c.nome;}).join(', '))+(semSaldo.length>3?` +${semSaldo.length-3}`:'')
+    : 'todas gastando normalmente';
 };
 window.openTrafModal=(id)=>{
   const it=id?DB.trafego.find(x=>x.id===id):{status:'ativo',plataforma:'Meta Ads'};
