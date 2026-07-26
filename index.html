@@ -242,7 +242,7 @@
       <div class="err" id="loginErr"></div>
       <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">Não tem conta? <a href="#" id="goSignup" class="link">Criar conta</a></p>
       <p class="hint" style="text-align:center"><a href="#" id="forgotLink" class="link">Esqueci a senha</a></p>
-      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.5 · autosintese.app.br</p>
+      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.6 · autosintese.app.br</p>
     </div>
 
     <div id="signupView" class="hidden">
@@ -520,6 +520,7 @@ let searchTerm='';
 /* ======================= RENDER ======================= */
 function render(view){
   currentView=view; searchTerm='';
+  if(view!=='trafego' && window.mtParar) mtParar();
   const c=$('#content');
   if(view==='dash') return renderDash(c);
   if(view==='financeiro'||view==='clientes'||view==='folha'){
@@ -563,7 +564,12 @@ function renderTrafego(c){
          <option value="last_month">Mês passado</option>
        </select>
        <input class="search" id="mtBusca" placeholder="Filtrar conta..." style="max-width:180px" oninput="metaDesenhar()">
-       <button class="btn small" onclick="metaCarregar()">Atualizar</button>
+       <button class="btn small" onclick="metaCarregar()">Atualizar agora</button>
+       <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;white-space:nowrap">
+         Ciclo de verificação
+         <input type="number" min="1" max="180" step="1" id="mtCiclo" class="search" style="max-width:64px;padding:6px 8px" title="Intervalo em minutos para atualizar sozinho">
+         min
+       </label>
        <span id="mtStatus" style="color:var(--muted);font-size:12px"></span>
      </div>
      <div id="mtTotais" style="color:var(--muted);font-size:13px;margin:6px 0 10px"></div>
@@ -585,22 +591,68 @@ function renderTrafego(c){
     $('#tEmpty').innerHTML=list.length?'':'<div class="empty">Nenhuma campanha. Clique em "+ Campanha".</div>';
   };
   $('#tSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
-  if(window.__mtDados) metaDesenhar(); else metaCarregar();
+  const ci=$('#mtCiclo');
+  if(ci){
+    ci.value=mtCicloMin();
+    ci.onchange=()=>{
+      let v=Math.round(Number(ci.value)||0);
+      v=Math.min(180,Math.max(1,v)); ci.value=v;
+      try{ localStorage.setItem('mtCiclo',String(v)); }catch(_){}
+      mtAgendar(); mtStatusTxt();
+      toast('Verificação automática a cada '+v+' min.');
+    };
+  }
+  const pr=$('#mtPreset');
+  if(pr) pr.onchange=()=>metaCarregar();   /* trocar o período já recarrega */
+  /* dados velhos (>1 ciclo) ou inexistentes: busca sozinho ao abrir a aba */
+  const idade=window.__mtQuando?(Date.now()-window.__mtQuando)/60000:Infinity;
+  if(!window.__mtDados || idade>=mtCicloMin()) metaCarregar(true);
+  else { metaDesenhar(); mtStatusTxt(); }
+  mtAgendar();
 }
+/* ---- ciclo de verificação automática ---- */
+const mtCicloMin=()=>{ let v=0; try{ v=parseInt(localStorage.getItem('mtCiclo'),10); }catch(_){}
+  return (v&&v>=1&&v<=180)?v:15; };
+window.mtParar=()=>{ if(window.__mtTimer){ clearInterval(window.__mtTimer); window.__mtTimer=null; } };
+window.mtAgendar=()=>{
+  mtParar();
+  window.__mtTimer=setInterval(()=>{
+    if(currentView!=='trafego'){ mtParar(); return; }
+    if(document.hidden) return;              /* aba do navegador em segundo plano: espera voltar */
+    if(document.querySelector('.overlay')) return;  /* modal/editor aberto: não mexe embaixo */
+    metaCarregar(true);
+  }, mtCicloMin()*60000);
+};
+function mtStatusTxt(){
+  const st=$('#mtStatus'); if(!st) return;
+  if(!window.__mtQuando){ st.textContent=''; return; }
+  const h=new Date(window.__mtQuando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  st.textContent='Atualizado às '+h+' · verificando a cada '+mtCicloMin()+' min';
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden || currentView!=='trafego' || !window.__mtDados) return;
+  const idade=window.__mtQuando?(Date.now()-window.__mtQuando)/60000:Infinity;
+  if(idade>=mtCicloMin()) metaCarregar(true);   /* voltou pra aba com dado vencido */
+});
 const META_URL='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/meta/Mt7kXp4wQn9c';
 const MT_LEADS=['lead','leadgen_grouped','onsite_conversion.lead_grouped','offsite_conversion.fb_pixel_lead','onsite_conversion.messaging_conversation_started_7d'];
-window.metaCarregar=async ()=>{
-  const st=$('#mtStatus'); if(!SESSION){toast('Sessão expirada — entre de novo.');return;}
-  st.textContent='Carregando… (até ~15s)';
+window.metaCarregar=async (auto)=>{
+  const st=$('#mtStatus');
+  if(!SESSION){ if(!auto) toast('Sessão expirada — entre de novo.'); return; }
+  if(window.__mtBuscando) return;            /* evita chamadas sobrepostas */
+  window.__mtBuscando=true;
+  const pEl=$('#mtPreset');
+  if(st) st.textContent=auto&&window.__mtDados?'Verificando…':'Carregando… (até ~15s)';
   try{
-    const p=$('#mtPreset').value;
+    const p=pEl?pEl.value:'last_7d';
     const r=await fetch(META_URL+'/resumo?preset='+encodeURIComponent(p)+'&v='+Date.now(),{headers:{authorization:'Bearer '+SESSION.access_token}});
     const d=await r.json();
-    if(!d.ok){ st.textContent='Erro: '+(d.erro||'falha'); return; }
+    if(!d.ok){ if(st) st.textContent='Erro: '+(d.erro||'falha'); return; }
     window.__mtDados=d.contas||[];
-    metaDesenhar();
-    st.textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  }catch(e){ st.textContent='Erro de rede — tente de novo.'; }
+    window.__mtQuando=Date.now();
+    if(currentView==='trafego'){ metaDesenhar(); mtStatusTxt(); }
+  }catch(e){ if(st) st.textContent=window.__mtDados?'Sem conexão — tentando de novo no próximo ciclo.':'Erro de rede — tente de novo.'; }
+  finally{ window.__mtBuscando=false; }
 };
 const contaMarca=(id)=>(DB.contasMeta||[]).find(x=>x.id===id)||null;
 /* Saldo: conta habilitada que estava rodando e zerou o gasto ontem/hoje = provavelmente sem saldo */
