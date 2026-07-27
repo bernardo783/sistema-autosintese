@@ -242,7 +242,7 @@
       <div class="err" id="loginErr"></div>
       <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">Não tem conta? <a href="#" id="goSignup" class="link">Criar conta</a></p>
       <p class="hint" style="text-align:center"><a href="#" id="forgotLink" class="link">Esqueci a senha</a></p>
-      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.6 · autosintese.app.br</p>
+      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.7 · autosintese.app.br</p>
     </div>
 
     <div id="signupView" class="hidden">
@@ -271,8 +271,7 @@
     <nav class="nav">
       <button data-view="dash" class="active"><span class="ic">📊</span> Painel</button>
       <button data-view="financeiro" id="navFin" class="hidden"><span class="ic">💰</span> Financeiro</button>
-      <button data-view="senhas"><span class="ic">🔑</span> Senhas</button>
-      <button data-view="links"><span class="ic">🔗</span> Links</button>
+      <button data-view="acessos"><span class="ic">🔑</span> Senhas e Links</button>
       <button data-view="projetos"><span class="ic">📁</span> Projetos</button>
       <button data-view="trafego"><span class="ic">📣</span> Tráfego Pago</button>
       <button data-view="processos"><span class="ic">📋</span> Processos</button>
@@ -519,6 +518,8 @@ let searchTerm='';
 
 /* ======================= RENDER ======================= */
 function render(view){
+  /* Senhas e Links são a mesma tela, separadas por filtro */
+  if(view==='senhas'||view==='links'){ acTab=view; view='acessos'; }
   currentView=view; searchTerm='';
   if(view!=='trafego' && window.mtParar) mtParar();
   const c=$('#content');
@@ -529,8 +530,7 @@ function render(view){
   if(view==='financeiro') return renderFinanceiro(c);
   if(view==='clientes'){ finTab='clientes'; return renderFinanceiro(c); }
   if(view==='folha'){ finTab='folha'; return renderFinanceiro(c); }
-  if(view==='senhas') return renderSenhas(c);
-  if(view==='links') return renderLinks(c);
+  if(view==='acessos') return renderAcessos(c);
   if(view==='projetos') return renderProjetos(c);
   if(view==='trafego') return renderTrafego(c);
   if(view==='processos') return renderProcessos(c);
@@ -1410,6 +1410,21 @@ window.openFinModal=(id)=>{
 };
 
 /* ---------- SENHAS ---------- */
+/* ---------- SENHAS E LINKS (mesma tela, alternada por filtro) ---------- */
+let acTab='senhas';
+window.acGo=(t)=>{ acTab=t; searchTerm=''; render('acessos'); };
+function renderAcessos(c){
+  const nS=(DB.senhas||[]).length+((DB.senhasPriv||[]).length);
+  const nL=(DB.links||[]).length;
+  c.innerHTML=`
+   <div class="fin-tabs">
+     <button class="ftab ${acTab==='links'?'':'active'}" onclick="acGo('senhas')">🔑 Senhas${nS?' ('+nS+')':''}</button>
+     <button class="ftab ${acTab==='links'?'active':''}" onclick="acGo('links')">🔗 Links${nL?' ('+nL+')':''}</button>
+   </div>
+   <div id="acSub"></div>`;
+  const sub=$('#acSub');
+  return acTab==='links'?renderLinks(sub):renderSenhas(sub);
+}
 function renderSenhas(c){
   c.innerHTML=`
    <div class="page-head">
