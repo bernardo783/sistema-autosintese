@@ -242,7 +242,7 @@
       <div class="err" id="loginErr"></div>
       <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">Não tem conta? <a href="#" id="goSignup" class="link">Criar conta</a></p>
       <p class="hint" style="text-align:center"><a href="#" id="forgotLink" class="link">Esqueci a senha</a></p>
-      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.8 · autosintese.app.br</p>
+      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.9 · autosintese.app.br</p>
     </div>
 
     <div id="signupView" class="hidden">
@@ -572,6 +572,7 @@ function renderTrafego(c){
        </label>
        <span id="mtStatus" style="color:var(--muted);font-size:12px"></span>
      </div>
+     <div id="mtAlerta"></div>
      <div id="mtTotais" style="color:var(--muted);font-size:13px;margin:6px 0 10px"></div>
      <div id="mtLista"><div style="color:var(--muted);padding:14px 2px;font-size:13px">Carregando contas do Meta…</div></div>
    </div>
@@ -650,11 +651,64 @@ window.metaCarregar=async (auto)=>{
     if(!d.ok){ if(st) st.textContent='Erro: '+(d.erro||'falha'); return; }
     window.__mtDados=d.contas||[];
     window.__mtQuando=Date.now();
+    aprenderLimites().catch(()=>{});
     if(currentView==='trafego'){ metaDesenhar(); mtStatusTxt(); }
   }catch(e){ if(st) st.textContent=window.__mtDados?'Sem conexão — tentando de novo no próximo ciclo.':'Erro de rede — tente de novo.'; }
   finally{ window.__mtBuscando=false; }
 };
 const contaMarca=(id)=>(DB.contasMeta||[]).find(x=>x.id===id)||null;
+/* ---- forma de pagamento, saldo e limite de cobrança (dados de /resumo → c.pag) ---- */
+const ST_META={1:'Ativa',2:'Desativada',3:'Pagamento pendente',7:'Em análise de risco',8:'Aguardando quitação',9:'Período de carência',100:'Em encerramento',101:'Encerrada'};
+const ST_RUIM=[2,3,8,9];                 /* estados que derrubam a veiculação */
+const MOTIVO={1:'política de anúncios',2:'revisão de IP',3:'problema no pagamento',4:'conta suspensa',5:'revisão de conteúdo',6:'integridade do negócio',7:'encerramento definitivo'};
+/* "Saldo disponível (R$ 12,34 BRL)" → 12.34 */
+function saldoDoTexto(s){
+  const m=String(s||'').match(/([\d.]+,\d{2}|\d+(?:\.\d{3})*(?:,\d{2})?)/);
+  if(!m) return null;
+  const n=parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+  return isNaN(n)?null:n;
+}
+function pagConta(c){
+  const p=c.pag; if(!p) return null;
+  const mc=contaMarca(c.id)||{};
+  const prob=ST_RUIM.includes(p.status)||p.motivo===3;
+  const o={prepago:!!p.prepago, display:p.display, status:p.status, motivo:p.motivo, problema:prob,
+    statusTxt:ST_META[p.status]||('status '+p.status),
+    motivoTxt:MOTIVO[p.motivo]||''};
+  if(o.prepago){
+    /* pré-pago: o Meta manda o saldo no texto; o cálculo teto−gasto serve de reserva */
+    const doTexto=saldoDoTexto(p.display);
+    const calc=(p.teto!=null&&p.gastoTotal!=null)?Math.max(0,p.teto-p.gastoTotal):null;
+    o.saldo=doTexto!=null?doTexto:calc;
+    o.cartao='';
+  }else{
+    /* cartão: `saldo` é o acumulado ainda não cobrado; o limite de cobrança não vem na API */
+    o.acumulado=p.saldo!=null?p.saldo:null;
+    /* só estima pelo histórico depois de ver uma cobrança acontecer (pico → queda);
+       antes disso o pico é só "o que já gastou", não o limite */
+    o.limite=(+mc.limiteCartao||0)||(+mc.limiteConfirmado||0)||null;
+    o.falta=(o.limite&&o.acumulado!=null)?Math.max(0,o.limite-o.acumulado):null;
+    o.limiteEstimado=!(+mc.limiteCartao>0)&&!!(+mc.limiteConfirmado>0);
+    o.cartao=String(p.display||'').replace(/\s*\*+\s*/,' ····');
+  }
+  return o;
+}
+/* Aprende o limite de cobrança do cartão: quando o acumulado CAI, o pico anterior era o limite */
+async function aprenderLimites(){
+  let mudou=false;
+  (window.__mtDados||[]).forEach(c=>{
+    const p=c.pag; if(!p||p.prepago||p.saldo==null) return;
+    let mc=contaMarca(c.id);
+    if(!mc){ mc={id:c.id,nome:c.nome,logo:'',cor1:'#14100b',cor2:'#b08d3e',fundo:'#f5f0e8'}; DB.contasMeta.push(mc); mudou=true; }
+    const at=+p.saldo.toFixed(2), ant=mc.ultBalance;
+    if(ant!=null && at < ant-0.01){          /* cobrança aconteceu: o pico anterior é o limite */
+      if(ant > (+mc.limiteConfirmado||0)){ mc.limiteConfirmado=ant; mudou=true; }
+    }
+    if(at > (+mc.limiteVisto||0)){ mc.limiteVisto=at; mudou=true; }   /* pico corrente (informativo) */
+    if(mc.ultBalance!==at){ mc.ultBalance=at; mudou=true; }
+  });
+  if(mudou){ try{ await saveDB(); }catch(_){} }
+}
 /* Saldo: conta habilitada que estava rodando e zerou o gasto ontem/hoje = provavelmente sem saldo */
 const isoLocal=(d)=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10);};
 const isoMais=(n)=>{const d=new Date(); d.setDate(d.getDate()+n); return isoLocal(d);};
@@ -684,13 +738,49 @@ window.metaDesenhar=()=>{
     const logo=m&&m.logo?`<img src="${m.logo}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--border);flex:none">`
       :`<div style="width:44px;height:44px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;background:${m&&m.cor2?m.cor2:'rgba(168,85,247,.18)'};color:#fff">${esc((c.nome||'?').trim().charAt(0).toUpperCase())}</div>`;
     const met=(k,v,hl)=>`<div style="min-width:74px"><div style="font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)">${k}</div><div style="font-weight:700;font-size:13.5px${hl?';color:var(--brand2)':''}">${v}</div></div>`;
-    return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:rgba(255,255,255,.02)">
+    /* 1ª coluna: saldo (Pix) ou quanto falta pro limite de cobrança (cartão) */
+    const pg=pagConta(c);
+    let col1='';
+    if(!pg) col1=`<div style="min-width:132px"><div style="font-size:10.5px;text-transform:uppercase;color:var(--muted)">Pagamento</div><div style="color:var(--muted);font-size:12.5px">—</div></div>`;
+    else if(pg.problema) col1=`<div style="min-width:132px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span class="tag" style="background:rgba(248,113,113,.18);color:#f87171;font-size:10px;font-weight:800;letter-spacing:.5px">${pg.prepago?'⚡ PIX':'💳 CARTÃO'}</span>
+        </div>
+        <div style="font-weight:800;font-size:14px;color:#f87171">${esc(pg.statusTxt)}</div>
+        <div style="font-size:10.5px;color:#f87171">${pg.motivoTxt?esc(pg.motivoTxt)+' · ':''}anúncios parados</div>
+      </div>`;
+    else if(pg.prepago){
+      const s=pg.saldo, zero=s!=null&&s<1, baixo=s!=null&&s>=1&&s<50;
+      col1=`<div style="min-width:132px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span class="tag" style="background:rgba(52,211,153,.16);color:#34d399;font-size:10px;font-weight:800;letter-spacing:.5px">⚡ PIX</span>
+          <span style="font-size:10px;color:var(--muted);text-transform:uppercase">saldo</span>
+        </div>
+        <div style="font-weight:800;font-size:16px;color:${zero?'#f87171':baixo?'#fbbf24':'#34d399'}">${s!=null?brl(s):'—'}</div>
+        ${zero?'<div style="font-size:10.5px;color:#f87171">precisa recarregar</div>':baixo?'<div style="font-size:10.5px;color:#fbbf24">saldo baixo</div>':''}
+      </div>`;
+    }else{
+      const f=pg.falta, perto=f!=null&&pg.limite&&f<pg.limite*0.15;
+      col1=`<div style="min-width:132px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span class="tag" style="background:rgba(96,165,250,.16);color:#60a5fa;font-size:10px;font-weight:800;letter-spacing:.5px">💳 CARTÃO</span>
+          <span style="font-size:10px;color:var(--muted)">${esc(pg.cartao||'')}</span>
+        </div>
+        ${f!=null
+          ? `<div style="font-weight:800;font-size:16px;color:${perto?'#fbbf24':'#60a5fa'}">${brl(f)}</div>
+             <div style="font-size:10.5px;color:var(--muted)">falta p/ cobrar${pg.limiteEstimado?' <span title="Limite estimado observando as cobranças. Informe o valor exato em 🎨 Marca." style="color:#fbbf24;cursor:help">~</span>':''} · limite ${brl(pg.limite)}</div>`
+          : `<div style="font-weight:800;font-size:16px;color:#60a5fa">${pg.acumulado!=null?brl(pg.acumulado):'—'}</div>
+             <div style="font-size:10.5px;color:var(--muted)">acumulado · <span style="color:#fbbf24">informe o limite</span></div>`}
+      </div>`;
+    }
+    return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid ${pg&&pg.problema?'#7f1d1d':'var(--border)'};border-radius:12px;padding:12px 14px;margin-bottom:10px;background:${pg&&pg.problema?'rgba(248,113,113,.07)':'rgba(255,255,255,.02)'}">
       ${logo}
       <div style="flex:1;min-width:170px">
-        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sd.parou?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}</div>
+        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sd.parou?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px">⚠ ${esc(pg.statusTxt)}</span>`:''}</div>
         <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:#fbbf24">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&m.logo?'':' · <span style="color:#fbbf24">sem logo — configure a marca</span>'}</div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap">
+        ${col1}
         ${met('Gasto',gasto?brl(gasto):'—',1)}
         ${met('Impressões',(+i.impressions||0).toLocaleString('pt-BR'))}
         ${met('Cliques',(+i.clicks||0).toLocaleString('pt-BR'))}
@@ -719,7 +809,36 @@ window.metaDesenhar=()=>{
   if(elSs) elSs.innerHTML=semSaldo.length
     ? esc(semSaldo.slice(0,3).map(c=>{const m=contaMarca(c.id);return (m&&m.nome)||c.nome;}).join(', '))+(semSaldo.length>3?` +${semSaldo.length-3}`:'')
     : 'todas gastando normalmente';
+  mtAlertas(todas);
 };
+/* ---- alerta urgente: pagamento recusado / conta travada ---- */
+const nomeConta=c=>{const m=contaMarca(c.id);return (m&&m.nome)||c.nome||c.id;};
+function mtAlertas(todas){
+  const el=$('#mtAlerta'); if(!el) return;
+  const crit=(todas||[]).map(c=>({c,pg:pagConta(c)})).filter(x=>x.pg&&x.pg.problema);
+  if(!crit.length){ el.innerHTML=''; window.__mtAvisados=new Set(); return; }
+  el.innerHTML=`<div style="border:1px solid #b91c1c;background:rgba(185,28,28,.16);border-radius:11px;padding:12px 14px;margin:10px 0">
+    <div style="font-weight:800;color:#fca5a5;margin-bottom:6px">🚨 ${crit.length===1?'1 conta parada por problema de pagamento':crit.length+' contas paradas por problema de pagamento'}</div>
+    ${crit.map(({c,pg})=>`<div style="font-size:13px;margin-bottom:3px">
+      <strong>${esc(nomeConta(c))}</strong> — ${esc(pg.statusTxt)}${pg.motivoTxt?' ('+esc(pg.motivoTxt)+')':''}${pg.cartao?' · '+esc(pg.cartao):''}
+      <a class="link" href="https://adsmanager.facebook.com/ads/manager/billing_history?act=${esc(String(c.id).replace('act_',''))}" target="_blank" rel="noopener">resolver no Meta ↗</a>
+    </div>`).join('')}
+    <div style="font-size:11.5px;color:var(--muted);margin-top:6px">A veiculação fica suspensa até o pagamento ser regularizado.</div>
+  </div>`;
+  /* notificação do sistema — uma por conta, não repete a cada ciclo */
+  if(!window.__mtAvisados) window.__mtAvisados=new Set();
+  const novas=crit.filter(({c})=>!window.__mtAvisados.has(c.id));
+  if(!novas.length) return;
+  novas.forEach(({c})=>window.__mtAvisados.add(c.id));
+  const txt=novas.map(({c,pg})=>nomeConta(c)+' — '+pg.statusTxt).join('\n');
+  toast('🚨 '+(novas.length===1?'Conta parada: '+nomeConta(novas[0].c):novas.length+' contas paradas por pagamento'));
+  try{
+    if(!('Notification' in window)) return;
+    const disparar=()=>{ try{ new Notification('🚨 AutoSíntese — anúncios parados',{body:txt,tag:'mt-pagamento',requireInteraction:true}); }catch(_){} };
+    if(Notification.permission==='granted') disparar();
+    else if(Notification.permission!=='denied') Notification.requestPermission().then(p=>{ if(p==='granted') disparar(); });
+  }catch(_){}
+}
 window.openTrafModal=(id)=>{
   const it=id?DB.trafego.find(x=>x.id===id):{status:'ativo',plataforma:'Meta Ads'};
   modal(id?'Editar campanha':'Nova campanha',`
@@ -781,9 +900,15 @@ window.openMarcaModal=(accId)=>{
       <div class="field"><label>Cor principal (blocos escuros)</label><input type="color" id="mk_cor1" value="${cur.cor1||'#14100b'}" style="height:42px;width:100%"></div>
       <div class="field"><label>Cor de destaque (números)</label><input type="color" id="mk_cor2" value="${cur.cor2||'#b08d3e'}" style="height:42px;width:100%"></div>
     </div>
-    <div class="field"><label>Cor de fundo do relatório</label><input type="color" id="mk_fundo" value="${cur.fundo||'#f5f0e8'}" style="height:42px;width:100%"></div>`,
+    <div class="field"><label>Cor de fundo do relatório</label><input type="color" id="mk_fundo" value="${cur.fundo||'#f5f0e8'}" style="height:42px;width:100%"></div>
+    ${(()=>{const pg=pagConta(acc); if(!pg||pg.prepago) return '';
+      return `<div class="field"><label>Limite de cobrança do cartão (R$)</label>
+        <input type="number" step="0.01" min="0" id="mk_lim" value="${cur.limiteCartao||''}" placeholder="${cur.limiteVisto?'Estimado: '+cur.limiteVisto:'Ex.: 250,00'}">
+        <p class="hint" style="margin:6px 0 0">O Meta não informa esse limite pela API. Veja em <em>Gerenciador → Cobrança → Configurações de pagamento</em> e informe aqui para o sistema mostrar quanto falta para a próxima cobrança.${cur.limiteVisto?` Enquanto isso, estimamos <strong>${brl(cur.limiteVisto)}</strong> observando as cobranças.`:''}</p></div>`;})()}`,
     async ()=>{
-      const v={id:accId,nome:$('#mk_nome').value.trim()||acc.nome,logo:window.__mkLogo!==undefined?window.__mkLogo:(cur.logo||''),cor1:$('#mk_cor1').value,cor2:$('#mk_cor2').value,fundo:$('#mk_fundo').value,ultRel:cur.ultRel||null};
+      const li=$('#mk_lim');
+      const v={id:accId,nome:$('#mk_nome').value.trim()||acc.nome,logo:window.__mkLogo!==undefined?window.__mkLogo:(cur.logo||''),cor1:$('#mk_cor1').value,cor2:$('#mk_cor2').value,fundo:$('#mk_fundo').value,ultRel:cur.ultRel||null,
+        limiteCartao:li?(parseFloat(String(li.value).replace(',','.'))||0):(cur.limiteCartao||0), limiteVisto:cur.limiteVisto||0};
       const ex=contaMarca(accId);
       if(ex) Object.assign(ex,v); else DB.contasMeta.push(v);
       await saveDB(); metaDesenhar(); toast('Marca salva.'); return true;
