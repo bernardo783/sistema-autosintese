@@ -242,7 +242,7 @@
       <div class="err" id="loginErr"></div>
       <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">Não tem conta? <a href="#" id="goSignup" class="link">Criar conta</a></p>
       <p class="hint" style="text-align:center"><a href="#" id="forgotLink" class="link">Esqueci a senha</a></p>
-      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 3.9 · autosintese.app.br</p>
+      <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 4.0 · autosintese.app.br</p>
     </div>
 
     <div id="signupView" class="hidden">
@@ -272,7 +272,7 @@
       <button data-view="dash" class="active"><span class="ic">📊</span> Painel</button>
       <button data-view="financeiro" id="navFin" class="hidden"><span class="ic">💰</span> Financeiro</button>
       <button data-view="acessos"><span class="ic">🔑</span> Acessos</button>
-      <button data-view="projetos"><span class="ic">📁</span> Projetos</button>
+      <button data-view="clientes"><span class="ic">🤝</span> Clientes</button>
       <button data-view="trafego"><span class="ic">📣</span> Tráfego Pago</button>
       <button data-view="processos"><span class="ic">📋</span> Processos</button>
       <button data-view="usuarios" id="navUsuarios" class="hidden"><span class="ic">👥</span> Usuários</button>
@@ -520,18 +520,20 @@ let searchTerm='';
 function render(view){
   /* Senhas e Links são a mesma tela, separadas por filtro */
   if(view==='senhas'||view==='links'){ acTab=view; view='acessos'; }
+  /* "Projetos" virou "Clientes" — o cliente é a entidade principal do sistema */
+  if(view==='projetos') view='clientes';
   currentView=view; searchTerm='';
   if(view!=='trafego' && window.mtParar) mtParar();
   const c=$('#content');
   if(view==='dash') return renderDash(c);
-  if(view==='financeiro'||view==='clientes'||view==='folha'){
+  if(view==='financeiro'||view==='recebimentos'||view==='folha'){
     if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
   }
   if(view==='financeiro') return renderFinanceiro(c);
-  if(view==='clientes'){ finTab='clientes'; return renderFinanceiro(c); }
+  if(view==='recebimentos'){ finTab='recebimentos'; return renderFinanceiro(c); }
   if(view==='folha'){ finTab='folha'; return renderFinanceiro(c); }
   if(view==='acessos') return renderAcessos(c);
-  if(view==='projetos') return renderProjetos(c);
+  if(view==='clientes') return renderProjetos(c);
   if(view==='trafego') return renderTrafego(c);
   if(view==='processos') return renderProcessos(c);
   if(view==='usuarios') return renderUsuarios(c);
@@ -565,6 +567,7 @@ function renderTrafego(c){
        </select>
        <input class="search" id="mtBusca" placeholder="Filtrar conta..." style="max-width:180px" oninput="metaDesenhar()">
        <button class="btn small" onclick="metaCarregar()">Atualizar agora</button>
+       <button class="btn secondary small" onclick="abrirVinculos()">🔗 Vincular a clientes</button>
        <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;white-space:nowrap">
          Ciclo de verificação
          <input type="number" min="1" max="180" step="1" id="mtCiclo" class="search" style="max-width:64px;padding:6px 8px" title="Intervalo em minutos para atualizar sozinho">
@@ -657,6 +660,50 @@ window.metaCarregar=async (auto)=>{
   finally{ window.__mtBuscando=false; }
 };
 const contaMarca=(id)=>(DB.contasMeta||[]).find(x=>x.id===id)||null;
+/* ---------- RELACIONAMENTO: conta de anúncio ↔ cliente ----------
+   O cliente é a entidade principal. A ficha do cliente vive em DB.projetos (visível a toda a
+   equipe); DB.clientes guarda só o complemento financeiro (restrito a master), ligado por
+   projeto.clienteId. Aqui, contasMeta[].fichaId aponta para a ficha do cliente (DB.projetos.id). */
+const fichaDe=(fid)=>(DB.projetos||[]).find(p=>p.id===fid)||null;
+const fichaDaConta=(accId)=>{ const m=contaMarca(accId); return m&&m.fichaId?fichaDe(m.fichaId):null; };
+const contasDoCliente=(fid)=>(DB.contasMeta||[]).filter(m=>m.fichaId===fid);
+const finDaFicha=(f)=>(f&&f.clienteId)?(DB.clientes||[]).find(c=>c.id===f.clienteId)||null:null;
+/* normaliza p/ comparar nomes: sem acento, sem pontuação, sem termos genéricos de conta */
+const chaveNome=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase().replace(/[^a-z0-9\s]/g,' ')
+  .replace(/\b(bm|business|manager|conta|ads|adaccount|account|acc|ltda|me|mei|eireli|oficial|principal|new|nova|novo|cliente|anuncios|anuncio)\b/g,' ')
+  .replace(/\s+/g,' ').trim();
+/* 0 a 1 — quanto o nome da conta parece com o do cliente */
+function semelhanca(a,b){
+  const A=chaveNome(a), B=chaveNome(b);
+  if(!A||!B) return 0;
+  if(A===B) return 1;
+  const ta=A.split(' ').filter(w=>w.length>2), tb=B.split(' ').filter(w=>w.length>2);
+  if(!ta.length||!tb.length) return 0;
+  if(A.includes(B)||B.includes(A)) return .9;
+  const comuns=ta.filter(w=>tb.includes(w)).length;
+  if(!comuns) return 0;
+  return comuns/Math.max(ta.length,tb.length)*.85;
+}
+/* melhor palpite de cliente para uma conta de anúncio ainda não vinculada */
+function palpiteCliente(accNome){
+  let melhor=null, sc=0;
+  (DB.projetos||[]).forEach(p=>{
+    const s=Math.max(semelhanca(accNome,p.nome), finDaFicha(p)?semelhanca(accNome,finDaFicha(p).nome):0);
+    if(s>sc){ sc=s; melhor=p; }
+  });
+  return sc>=.5?{ficha:melhor,score:sc}:null;
+}
+window.vincularConta=async (accId,fichaId)=>{
+  let m=contaMarca(accId);
+  const acc=(window.__mtDados||[]).find(x=>x.id===accId)||{};
+  if(!m){ m={id:accId,nome:acc.nome||accId,logo:'',cor1:'#14100b',cor2:'#b08d3e',fundo:'#f5f0e8'}; DB.contasMeta.push(m); }
+  if(fichaId){ m.fichaId=fichaId; const f=fichaDe(fichaId); if(f&&f.nome) m.nome=f.nome; }
+  else delete m.fichaId;
+  await saveDB();
+  if(currentView==='trafego') metaDesenhar(); else render(currentView);
+  toast(fichaId?'Conta vinculada a '+(fichaDe(fichaId)||{}).nome+'.':'Vínculo removido.');
+};
 /* ---- forma de pagamento, saldo e limite de cobrança (dados de /resumo → c.pag) ---- */
 const ST_META={1:'Ativa',2:'Desativada',3:'Pagamento pendente',7:'Em análise de risco',8:'Aguardando quitação',9:'Período de carência',100:'Em encerramento',101:'Encerrada'};
 const ST_RUIM=[2,3,8,9];                 /* estados que derrubam a veiculação */
@@ -777,7 +824,10 @@ window.metaDesenhar=()=>{
       ${logo}
       <div style="flex:1;min-width:170px">
         <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sd.parou?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px">⚠ ${esc(pg.statusTxt)}</span>`:''}</div>
-        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:#fbbf24">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&m.logo?'':' · <span style="color:#fbbf24">sem logo — configure a marca</span>'}</div>
+        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:#fbbf24">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&m.logo?'':' · <span style="color:#fbbf24">sem logo</span>'}</div>
+        <div style="font-size:12px;margin-top:3px">${(()=>{const f=fichaDaConta(c.id);
+          return f?`<a class="link" style="cursor:pointer" onclick="abrirCliente('${f.id}')">🤝 ${esc(f.nome)}</a>`
+                  :`<span style="color:#fbbf24;cursor:pointer" onclick="abrirVinculos('${esc(c.id)}')">🔗 vincular a um cliente</span>`;})()}</div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap">
         ${col1}
@@ -884,6 +934,45 @@ function paletaDoLogo(img){
     return {destaque:vivas[0]?hex(vivas[0]):null, escura:escuras[0]?hex(escuras[0]):null};
   }catch(_){ return {destaque:null,escura:null}; }
 }
+/* Assistente: liga cada conta de anúncio a um cliente, já sugerindo pelo nome */
+window.abrirVinculos=(soEsta)=>{
+  const contas=(window.__mtDados||[]).filter(c=>!soEsta||c.id===soEsta);
+  if(!contas.length){ toast('Carregue as contas do Meta primeiro.'); return; }
+  const fichas=[...(DB.projetos||[])].sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+  if(!fichas.length){ toast('Cadastre um cliente antes de vincular.'); return; }
+  const opcoes=(sel)=>`<option value="">— sem cliente —</option>`+fichas.map(f=>`<option value="${f.id}"${sel===f.id?' selected':''}>${esc(f.nome)}</option>`).join('');
+  const linhas=contas.map(c=>{
+    const m=contaMarca(c.id), atual=m&&m.fichaId?m.fichaId:'';
+    const pal=atual?null:palpiteCliente(c.nome);
+    return {c, atual, sug:pal?pal.ficha.id:'', sugNome:pal?pal.ficha.nome:'', score:pal?pal.score:0};
+  });
+  const nPal=linhas.filter(l=>!l.atual&&l.sug).length;
+  modal('🔗 Vincular contas de anúncio a clientes',`
+    <p class="hint" style="margin:0 0 12px">${nPal?`Encontrei <strong>${nPal}</strong> sugest${nPal===1?'ão':'ões'} pelo nome da conta. Confira e ajuste o que precisar.`:'Escolha o cliente de cada conta de anúncio.'}</p>
+    ${linhas.map(l=>`
+      <div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-weight:700;font-size:13.5px">${esc(l.c.nome)}</div>
+        <div style="color:var(--muted);font-size:11.5px;margin-bottom:7px">${esc(l.c.id)}</div>
+        <select class="search" data-acc="${esc(l.c.id)}" style="width:100%">${opcoes(l.atual||l.sug)}</select>
+        ${!l.atual&&l.sug?`<div style="font-size:11.5px;color:#34d399;margin-top:5px">✨ sugerido: ${esc(l.sugNome)}${l.score<0.8?' (confira)':''}</div>`:''}
+        ${l.atual?`<div style="font-size:11.5px;color:var(--muted);margin-top:5px">já vinculada</div>`:''}
+      </div>`).join('')}
+    ${nPal?`<p class="hint" style="margin:2px 0 0">As sugestões já vêm selecionadas — é só salvar.</p>`:''}`,
+    async ()=>{
+      let n=0;
+      document.querySelectorAll('.overlay select[data-acc]').forEach(s=>{
+        const accId=s.dataset.acc, fid=s.value;
+        let m=contaMarca(accId);
+        const acc=(window.__mtDados||[]).find(x=>x.id===accId)||{};
+        if(!m){ if(!fid) return; m={id:accId,nome:acc.nome||accId,logo:'',cor1:'#14100b',cor2:'#b08d3e',fundo:'#f5f0e8'}; DB.contasMeta.push(m); }
+        const antes=m.fichaId||'';
+        if(fid!==antes){ n++; if(fid){ m.fichaId=fid; const f=fichaDe(fid); if(f&&f.nome&&!m.logo) m.nome=f.nome; } else delete m.fichaId; }
+      });
+      if(n){ await saveDB(); toast(n===1?'1 conta vinculada.':n+' contas vinculadas.'); }
+      if(currentView==='trafego') metaDesenhar(); else render(currentView);
+      return true;
+    });
+};
 window.openMarcaModal=(accId)=>{
   const acc=(window.__mtDados||[]).find(x=>x.id===accId)||{nome:accId};
   const m=contaMarca(accId);
@@ -1447,12 +1536,12 @@ function renderFinanceiro(c){
   c.innerHTML=`
    <div class="fin-tabs">
      <button class="ftab ${finTab==='lanc'?'active':''}" onclick="finGo('lanc')">💰 Lançamentos</button>
-     <button class="ftab ${finTab==='clientes'?'active':''}" onclick="finGo('clientes')">🤝 Recebimentos (Clientes)</button>
+     <button class="ftab ${finTab==='recebimentos'?'active':''}" onclick="finGo('recebimentos')">🤝 Recebimentos</button>
      <button class="ftab ${finTab==='folha'?'active':''}" onclick="finGo('folha')">🧾 Folha de Pagamento</button>
    </div>
    <div id="finSub"></div>`;
   const sub=$('#finSub');
-  if(finTab==='clientes') return renderClientes(sub);
+  if(finTab==='recebimentos') return renderRecebimentos(sub);
   if(finTab==='folha') return renderFolha(sub);
   return renderLanc(sub);
 }
@@ -1678,14 +1767,15 @@ const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
   const temT=/tr[aá]fego/.test(s), temA=/agent/.test(s);
   if(temT&&temA) return 'full'; if(temA) return 'ia'; if(temT) return 'trafego'; return 'outro'; };
 function renderProjetos(c){
+  const master=currentUser&&currentUser.role==='master';
   const contCat={trafego:0,ia:0,full:0,outro:0};
   DB.projetos.forEach(p=>{ const k=catDe(p); contCat[k]=(contCat[k]||0)+1; });
   const contNi={};
   DB.projetos.forEach(p=>{ const n=nichoDe(p,DB.clientes.find(x=>x.id===p.clienteId)); if(n) contNi[n]=(contNi[n]||0)+1; });
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Projetos</h2><div class="desc">Acompanhamento de projetos da empresa</div></div>
-     <div class="toolbar"><input class="search" id="pSearch" placeholder="Buscar..."><button class="btn small" onclick="openProjModal()">+ Projeto</button></div>
+     <div><h2>Clientes</h2><div class="desc">Cada cliente e tudo que está ligado a ele — contas de anúncio, acessos e financeiro</div></div>
+     <div class="toolbar"><input class="search" id="pSearch" placeholder="Buscar..."><button class="btn small" onclick="openProjModal()">+ Cliente</button></div>
    </div>
    <div class="cards">
      <div class="card"><div class="k">Tráfego Pago</div><div class="v" style="color:#7db0ff">${contCat.trafego}</div><div class="sub">clientes só de tráfego</div></div>
@@ -1700,7 +1790,7 @@ function renderProjetos(c){
      <div class="card"><div class="k">Diversos</div><div class="v" style="color:#c3c8d1">${contNi['Diversos']||0}</div><div class="sub">outros nichos</div></div>
    </div>
    <div id="prjLists"></div>
-   <p class="hint" style="margin-top:12px">Cadastrar um cliente novo cria o projeto automaticamente (entra em "Cliente novo"). O estágio muda dentro do card (Abrir). As informações financeiras ficam dentro do card — visíveis apenas para usuários master.</p>`;
+   <p class="hint" style="margin-top:12px">Clique no cliente para abrir a ficha com tudo que está ligado a ele: contas de anúncio do Meta, acessos e — para usuários master — o financeiro. Contas de anúncio se ligam em <strong>Tráfego Pago → 🔗 Vincular a clientes</strong>.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const list=[...DB.projetos].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||(r.nome+(r.responsavel||'')+(r.gerente||'')).toLowerCase().includes(t));
@@ -1709,12 +1799,19 @@ function renderProjetos(c){
       const grupo=list.filter(r=>PRJ_NORM(r.status)===st);
       return `
       <h2 style="font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:10px"><span class="tag ${st}" style="font-size:12.5px;padding:5px 12px">${ST_LABEL[st]}</span><span style="color:var(--muted);font-size:12px;font-weight:800">${grupo.length}</span></h2>
-      <div class="tablewrap"><table><thead><tr><th>Cliente / Projeto</th><th>Equipe</th><th></th></tr></thead>
-      <tbody>${grupo.map(r=>`<tr onclick="openProjCard('${r.id}')" style="cursor:pointer">
+      <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Ligado a</th><th>Equipe</th><th></th></tr></thead>
+      <tbody>${grupo.map(r=>{
+        const nc=contasDoCliente(r.id).length;
+        const fin=finDaFicha(r);
+        const alerta=contasDoCliente(r.id).some(m=>{const v=(window.__mtDados||[]).find(x=>x.id===m.id);const p=v?pagConta(v):null;return p&&p.problema;});
+        return `<tr onclick="abrirCliente('${r.id}')" style="cursor:pointer">
         <td><strong class="prj-nome">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${nichoTag(r)}</td>
+        <td style="font-size:12px">${nc?`<span class="tag st" title="contas de anúncio vinculadas">📊 ${nc}</span>`:'<span style="color:var(--muted)">—</span>'}
+          ${alerta?' <span class="tag churn" style="font-size:10.5px">⚠ pagamento</span>':''}
+          ${master&&fin&&fin.valor?` <span style="color:var(--muted)">${brl(fin.valor)}/mês</span>`:''}</td>
         <td>${eqAv(r)}</td>
         <td><div class="rowact"><button class="iconbtn" onclick="prjMenu('${r.id}',event)" title="Mais opções" style="font-weight:900;letter-spacing:1px">⋯</button></div></td>
-      </tr>`).join('')||`<tr><td colspan="3" style="color:var(--muted);font-size:13px;padding:16px">Nenhum projeto neste estágio.</td></tr>`}</tbody></table></div>`;
+      </tr>`;}).join('')||`<tr><td colspan="4" style="color:var(--muted);font-size:13px;padding:16px">Nenhum cliente neste estágio.</td></tr>`}</tbody></table></div>`;
     }).join('');
   };
   $('#pSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
@@ -1743,8 +1840,87 @@ window.prjMove=async (id,st)=>{
   const p=DB.projetos.find(x=>x.id===id); if(!p) return;
   p.status=st;
   const mm=document.getElementById('prjMenuPop'); if(mm) mm.remove();
-  await saveDB(); render('projetos'); toast('Movido para '+ST_LABEL[st]+'.');
+  await saveDB(); render('clientes'); toast('Movido para '+ST_LABEL[st]+'.');
 };
+/* ======================= FICHA DO CLIENTE (entidade principal) =======================
+   Abre o cliente com suas relações: contas de anúncio, acessos, campanhas e financeiro. */
+let cliAba='geral';
+window.abrirCliente=(fid,aba)=>{ cliAba=aba||'geral'; const ov=document.querySelector('.overlay'); if(ov) ov.remove(); openProjCard(fid); };
+window.cliIrPara=(fid,aba)=>{ cliAba=aba; const ov=document.querySelector('.overlay'); if(ov) ov.remove(); openProjCard(fid); };
+function abaContasCliente(f){
+  const contas=contasDoCliente(f.id);
+  const dados=window.__mtDados||[];
+  return `
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+     <div style="font-size:13px;font-weight:800">📊 Contas de anúncio do Meta</div>
+     <button class="btn ghost small" onclick="document.querySelector('.overlay').remove();render('trafego');setTimeout(()=>abrirVinculos(),400)">🔗 Gerenciar vínculos</button>
+   </div>
+   ${contas.length?contas.map(m=>{
+     const viva=dados.find(x=>x.id===m.id);
+     const i=(viva&&viva.ins)||{};
+     const gasto=+(i.spend||0);
+     const leads=(i.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
+     const pg=viva?pagConta(viva):null;
+     return `<div style="border:1px solid ${pg&&pg.problema?'#7f1d1d':'var(--border)'};border-radius:10px;padding:11px 13px;margin-bottom:8px">
+       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+         ${m.logo?`<img src="${esc(m.logo)}" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;flex:none">`:''}
+         <div style="flex:1;min-width:140px">
+           <div style="font-weight:700;font-size:13px">${esc(m.nome||m.id)}</div>
+           <div style="color:var(--muted);font-size:11.5px">${esc(m.id)}${pg?' · '+(pg.prepago?'⚡ Pix':'💳 '+esc(pg.cartao||'cartão')):''}</div>
+         </div>
+         ${viva?`<div style="text-align:right"><div style="font-size:10px;color:var(--muted);text-transform:uppercase">gasto no período</div><div style="font-weight:800;color:var(--brand2)">${gasto?brl(gasto):'—'}</div></div>
+         <div style="text-align:right"><div style="font-size:10px;color:var(--muted);text-transform:uppercase">leads</div><div style="font-weight:800">${leads||'—'}</div></div>`
+         :'<div style="color:var(--muted);font-size:12px">abra Tráfego Pago p/ ver métricas</div>'}
+       </div>
+       ${pg&&pg.problema?`<div style="margin-top:7px;font-size:12px;color:#f87171">⚠ ${esc(pg.statusTxt)} — anúncios parados</div>`:''}
+       <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap">
+         ${viva?`<button class="btn small" onclick="document.querySelector('.overlay').remove();openRelatorioModal('${esc(m.id)}')">📄 Gerar relatório</button>`:''}
+         <button class="iconbtn" onclick="openMarcaModal('${esc(m.id)}')">🎨 Marca</button>
+         <button class="iconbtn del" onclick="vincularConta('${esc(m.id)}','')">Desvincular</button>
+       </div>
+     </div>`;}).join('')
+   :`<div class="empty" style="padding:18px">Nenhuma conta de anúncio vinculada a este cliente.<br><span style="font-size:12px;color:var(--muted)">Use “Gerenciar vínculos” para ligar as contas do Meta.</span></div>`}`;
+}
+function abaAcessosCliente(f){
+  const alvos=[f.nome,(finDaFicha(f)||{}).nome].filter(Boolean);
+  const bate=(x)=>{
+    if(x.fichaId) return x.fichaId===f.id;                    /* vínculo explícito ganha */
+    const txt=(x.servico||'')+' '+(x.titulo||'')+' '+(x.notas||'')+' '+(x.categoria||'');
+    return alvos.some(n=>semelhanca(n,txt)>=.5 || chaveNome(txt).includes(chaveNome(n)));
+  };
+  const sn=[...(DB.senhas||[]),...(DB.senhasPriv||[])].filter(bate);
+  const lk=(DB.links||[]).filter(bate);
+  return `
+   <div style="font-size:13px;font-weight:800;margin-bottom:8px">🔑 Senhas</div>
+   ${sn.length?sn.map(r=>`<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:9px;padding:8px 11px;margin-bottom:6px">
+      <div style="flex:1"><strong style="font-size:13px">${esc(r.servico)}</strong><div style="color:var(--muted);font-size:11.5px">${esc(r.login)||'—'}</div></div>
+      <button class="iconbtn" onclick="copyPw('${r.id}')">copiar senha</button>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:12.5px;margin-bottom:12px">Nenhuma senha ligada a este cliente.</div>'}
+   <div style="font-size:13px;font-weight:800;margin:14px 0 8px">🔗 Links</div>
+   ${lk.length?lk.map(r=>`<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:9px;padding:8px 11px;margin-bottom:6px">
+      <div style="flex:1"><strong style="font-size:13px">${esc(r.titulo)}</strong><div style="color:var(--muted);font-size:11.5px">${esc(r.categoria)||'—'}</div></div>
+      <a class="link" href="${esc(r.url)}" target="_blank" rel="noopener">abrir ↗</a>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:12.5px">Nenhum link ligado a este cliente.</div>'}
+   <p class="hint" style="margin-top:12px">Aparecem aqui os acessos cujo nome combina com o do cliente.</p>`;
+}
+function abaFinCliente(f){
+  const cli=finDaFicha(f);
+  if(!cli) return '<div class="empty" style="padding:18px">Este cliente ainda não tem cadastro financeiro.</div>';
+  const recs=(DB.recebimentos||[]).filter(x=>x.clienteId===cli.id).sort((a,b)=>(b.comp||'').localeCompare(a.comp||''));
+  const tot=recs.reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0);
+  return `
+   <div class="cards" style="margin-bottom:14px">
+     <div class="card"><div class="k">Honorário mensal</div><div class="v">${brl(cli.valor)}</div></div>
+     <div class="card"><div class="k">Recebido (total)</div><div class="v pos">${brl(tot)}</div></div>
+     <div class="card"><div class="k">Vencimento</div><div class="v">${cli.diaVenc?'dia '+cli.diaVenc:'—'}</div></div>
+   </div>
+   <div style="font-size:13px;font-weight:800;margin-bottom:8px">💰 Recebimentos</div>
+   ${recs.length?`<div class="tablewrap"><table><thead><tr><th>Competência</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th></tr></thead><tbody>
+     ${recs.slice(0,12).map(r=>`<tr><td>${esc(r.comp)}</td><td>${r.venc?d2br(r.venc):'—'}</td><td style="text-align:right">${brl(r.recebido?r.valor:(r.sinal||r.valor))}</td>
+       <td>${r.recebido?'<span class="tag concluido">🟢 Recebido</span>':r.sinal?'<span class="tag st">🔵 Sinal</span>':'<span class="tag pausado">🟡 A receber</span>'}</td></tr>`).join('')}
+   </tbody></table></div>`:'<div style="color:var(--muted);font-size:12.5px">Nenhum recebimento lançado.</div>'}
+   <button class="btn ghost small" style="margin-top:12px" onclick="document.querySelector('.overlay').remove();projFin('${cli.id}')">Ver lançamentos deste cliente →</button>`;
+}
 window.openProjCard=(id)=>{
   const it=DB.projetos.find(x=>x.id===id); if(!it) return;
   it.checklist=it.checklist||[];
@@ -1772,15 +1948,23 @@ window.openProjCard=(id)=>{
       <button class="btn small" onclick="prjCkAdd('${it.id}')">+ Adicionar</button>
     </div>`;
   };
+  const nContas=contasDoCliente(it.id).length;
   o.innerHTML=`<div class="modal big">
     <div class="mhead">
       <div style="flex:1">
-        <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px">${it.clienteId?'PROJETO · CLIENTE':'PROJETO'}</div>
-        <h3 style="font-size:20px;margin-top:3px">${esc(it.nome)}</h3>
+        <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px">CLIENTE</div>
+        <h3 style="font-size:20px;margin-top:3px">${esc(it.nome)} <span class="tag ${PRJ_NORM(it.status)}" style="font-size:11px;vertical-align:3px">${ST_LABEL[PRJ_NORM(it.status)]}</span></h3>
       </div>
       <button class="x">&times;</button>
     </div>
-    <div class="mbody">
+    <div class="fin-tabs" style="padding:0 18px;margin:12px 0 0">
+      <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">📋 Visão geral</button>
+      <button class="ftab ${cliAba==='contas'?'active':''}" onclick="cliIrPara('${it.id}','contas')">📊 Contas de anúncio${nContas?' ('+nContas+')':''}</button>
+      <button class="ftab ${cliAba==='acessos'?'active':''}" onclick="cliIrPara('${it.id}','acessos')">🔑 Acessos</button>
+      ${master?`<button class="ftab ${cliAba==='fin'?'active':''}" onclick="cliIrPara('${it.id}','fin')">💰 Financeiro</button>`:''}
+    </div>
+    <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
+     ${cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):(cliAba==='fin'&&master)?abaFinCliente(it):`
       <div class="row2" style="margin-bottom:12px">
         <div class="field" style="margin:0"><label>Status</label><select id="pc_status">${optsSt}</select></div>
         <div class="field" style="margin:0"><label>Categoria</label><select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select></div>
@@ -1803,19 +1987,20 @@ window.openProjCard=(id)=>{
           <span>Honorário mensal: <strong>${cli?brl(cli.valor):'—'}</strong></span>
           <span>Recebido (total): <strong style="color:var(--ok)">${brl(recTot)}</strong></span>
         </div>
-        <button class="btn ghost small" style="margin-top:10px" onclick="document.querySelector('.overlay').remove();projFin('${it.clienteId}')">Ver lançamentos deste cliente →</button>
-      </div>`:''}
+        <button class="btn ghost small" style="margin-top:10px" onclick="cliIrPara('${it.id}','fin')">Ver financeiro deste cliente →</button>
+      </div>`:''}`}
     </div>
-    <div class="mfoot"><button class="btn secondary small mcancel">Fechar</button><button class="btn small msave">Salvar</button></div>
+    <div class="mfoot"><button class="btn secondary small mcancel">Fechar</button>${cliAba==='geral'?'<button class="btn small msave">Salvar</button>':''}</div>
   </div>`;
   document.body.appendChild(o);
   const close=()=>o.remove();
   o.querySelector('.x').onclick=close; o.querySelector('.mcancel').onclick=close;
   o.onclick=e=>{ if(e.target===o) close(); };
-  o.querySelector('.msave').onclick=async ()=>{
+  const bsv=o.querySelector('.msave');   /* só existe na aba Visão geral */
+  if(bsv) bsv.onclick=async ()=>{
     it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=$('#pc_resp').value.trim(); it.gerente=$('#pc_ger').value.trim(); it.nicho=$('#pc_nicho').value; it.notas=$('#pc_notas').value.trim();
     if(cli&&it.nicho&&currentUser&&currentUser.role==='master'){ cli.nicho=it.nicho; }
-    await saveDB(); close(); render('projetos'); toast('Projeto salvo.');
+    await saveDB(); close(); render('clientes'); toast('Cliente salvo.');
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
 };
@@ -1847,7 +2032,7 @@ window.openProjModal=(id)=>{
         notas:$('#m_notas').value.trim()};
       if(!v.nome){toast('Informe o nome.');return false;}
       if(id){Object.assign(it,v);} else {DB.projetos.push({id:uid(),...v});}
-      await saveDB(); render('projetos'); toast('Salvo.'); return true;
+      await saveDB(); render('clientes'); toast('Salvo.'); return true;
     });
 };
 
@@ -1874,7 +2059,7 @@ function calcRecebimentos(comp){
   const sinaisRestante=g.sinal.reduce((s,c)=>s+Math.max(0,val(c)-(Number((byCli[c.id]||{}).sinal)||0)),0);
   return {byCli, st, g, soma, val, sinaisPagos, sinaisRestante};
 }
-function renderClientes(c){
+function renderRecebimentos(c){
   const comp=cliComp;
   const R=calcRecebimentos(comp);
   const ativos=DB.clientes.filter(x=>(!x.inicio||comp>=x.inicio)&&(!x.fim||comp<=x.fim));
@@ -1933,8 +2118,8 @@ function renderClientes(c){
     $('#cEmpty').innerHTML=rows.length?'':'<div class="empty">Nenhum cliente. Clique em "+ Cliente".</div>';
   };
   $('#cSearch').oninput=e=>{searchTerm=e.target.value;draw();};
-  $('#cliCompInp').onchange=e=>{ cliComp=e.target.value||compNow(); if(diaFiltro&&diaFiltro.slice(0,7)!==cliComp) diaFiltro=''; render('clientes'); };
-  $('#cDiaInp').onchange=e=>{ diaFiltro=e.target.value||''; if(diaFiltro){ const m=diaFiltro.slice(0,7); if(m!==cliComp){ cliComp=m; render('clientes'); return; } } draw(); };
+  $('#cliCompInp').onchange=e=>{ cliComp=e.target.value||compNow(); if(diaFiltro&&diaFiltro.slice(0,7)!==cliComp) diaFiltro=''; render('recebimentos'); };
+  $('#cDiaInp').onchange=e=>{ diaFiltro=e.target.value||''; if(diaFiltro){ const m=diaFiltro.slice(0,7); if(m!==cliComp){ cliComp=m; render('recebimentos'); return; } } draw(); };
   $('#cStatusInp').onchange=e=>{ statusFiltro=e.target.value||''; draw(); };
   draw();
 }
@@ -1978,7 +2163,7 @@ window.openCliModal=(id)=>{
       let alvo;
       if(id){ Object.assign(it,v); alvo=it; } else { alvo={id:uid(),...v}; DB.clientes.push(alvo); }
       syncProjetoCliente(alvo);
-      await saveDB(); render('clientes'); toast('Salvo.'); return true;
+      await saveDB(); render('recebimentos'); toast('Salvo.'); return true;
     });
 };
 window.rcStatusCli=async (cliId,novo)=>{
@@ -1992,8 +2177,8 @@ window.rcStatusCli=async (cliId,novo)=>{
   }
   if(novo==='sinal'){
     const sv=parseFloat((prompt('Valor do sinal recebido (R$):','')||'').replace(',','.'));
-    if(!(sv>0)){ toast('Sinal cancelado — valor inválido.'); render('clientes'); return; }
-    if(sv>=(Number(r.valor)||0)){ toast('Sinal maior ou igual ao total — use 🟢 Recebido.'); render('clientes'); return; }
+    if(!(sv>0)){ toast('Sinal cancelado — valor inválido.'); render('recebimentos'); return; }
+    if(sv>=(Number(r.valor)||0)){ toast('Sinal maior ou igual ao total — use 🟢 Recebido.'); render('recebimentos'); return; }
     r.status='sinal'; r.sinal=sv; r.sinalEm=new Date().toISOString().slice(0,10);
     r.recebido=false; r.recebidoEm=null;
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
@@ -2008,7 +2193,7 @@ window.rcStatusCli=async (cliId,novo)=>{
     r.status=novo; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null;
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
   }
-  await saveDB(); render('clientes'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='sinal'?'🔵 Sinal pago':novo==='inadimplente'?'🔴 Inadimplente':'🟡 A receber'));
+  await saveDB(); render('recebimentos'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='sinal'?'🔵 Sinal pago':novo==='inadimplente'?'🔴 Inadimplente':'🟡 A receber'));
 };
 
 /* ---------- FOLHA DE PAGAMENTO ---------- */
