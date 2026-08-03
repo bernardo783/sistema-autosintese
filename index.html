@@ -654,6 +654,18 @@ const contaMarca=(id)=>(DB.contasMeta||[]).find(x=>x.id===id)||null;
    equipe); DB.clientes guarda só o complemento financeiro (restrito a master), ligado por
    projeto.clienteId. Aqui, contasMeta[].fichaId aponta para a ficha do cliente (DB.projetos.id). */
 const fichaDe=(fid)=>(DB.projetos||[]).find(p=>p.id===fid)||null;
+/* ---------- SQUADS: recorte de visão por usuário ----------
+   perfil.squads vazio (ou master) = vê tudo. Com squads, só as fichas daquele squad. */
+const meusSquads=()=>((currentUser&&currentUser.squads)||[]);
+const vejoTudo=()=>!currentUser||currentUser.role==='master'||meusSquads().length===0;
+const fichaNoMeuSquad=(f)=>vejoTudo()||(!!f&&meusSquads().includes(String(f.squad||'')));
+const fichasVisiveis=()=>(DB.projetos||[]).filter(fichaNoMeuSquad);
+const fichaDaContaMeta=(c)=>{ const m=contaMarca(c&&c.id); if(m&&m.fichaId) return fichaDe(m.fichaId); const p=(typeof palpiteCliente==='function')?palpiteCliente((c&&c.nome)||''):null; return p?p.ficha:null; };
+const contaVisivel=(c)=>vejoTudo()||fichaNoMeuSquad(fichaDaContaMeta(c));
+const acessoVisivel=(r)=>vejoTudo()||!r.fichaId||fichaNoMeuSquad(fichaDe(r.fichaId));
+const SQUADS=()=>Array.from(new Set((DB.projetos||[]).map(p=>String(p.squad||'')).filter(Boolean))).sort();
+const selFicha=(idCampo,atual)=>`<select id="${idCampo}"><option value="">— geral (todo o time vê) —</option>`+
+  [...(DB.projetos||[])].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(f=>`<option value="${f.id}"${atual===f.id?' selected':''}>${esc(f.nome)}</option>`).join('')+`</select>`;
 const fichaDaConta=(accId)=>{ const m=contaMarca(accId); return m&&m.fichaId?fichaDe(m.fichaId):null; };
 const contasDoCliente=(fid)=>(DB.contasMeta||[]).filter(m=>m.fichaId===fid);
 const finDaFicha=(f)=>(f&&f.clienteId)?(DB.clientes||[]).find(c=>c.id===f.clienteId)||null:null;
@@ -762,7 +774,7 @@ function saldoConta(c){
 window.metaDesenhar=()=>{
   const el=$('#mtLista'); if(!el) return;
   const t=($('#mtBusca')?$('#mtBusca').value:'').trim().toLowerCase();
-  const rows=(window.__mtDados||[]).filter(c=>!t||(c.nome||'').toLowerCase().includes(t))
+  const rows=(window.__mtDados||[]).filter(contaVisivel).filter(c=>!t||(c.nome||'').toLowerCase().includes(t))
     .sort((a,b)=>(saldoConta(b).parou?1:0)-(saldoConta(a).parou?1:0)||(+((b.ins||{}).spend)||0)-(+((a.ins||{}).spend)||0));
   let G=0,I=0,C=0,L=0;
   el.innerHTML=rows.map(c=>{
@@ -1428,10 +1440,10 @@ function renderDash(c){
     c.innerHTML=`
    <div class="page-head"><div><h2>Painel</h2><div class="desc">Visão geral</div></div></div>
    <div class="cards">
-     <div class="card"><div class="k">Projetos ativos</div><div class="v">${DB.projetos.filter(p=>PRJ_NORM(p.status)==='ativo').length}</div></div>
-     <div class="card"><div class="k">Total de projetos</div><div class="v">${DB.projetos.length}</div></div>
-     <div class="card"><div class="k">Senhas guardadas</div><div class="v">${DB.senhas.length+(DB.senhasPriv||[]).length}</div></div>
-     <div class="card"><div class="k">Links</div><div class="v">${DB.links.length}</div></div>
+     <div class="card"><div class="k">Clientes ativos</div><div class="v">${fichasVisiveis().filter(p=>PRJ_NORM(p.status)==='ativo').length}</div></div>
+     <div class="card"><div class="k">Total de clientes</div><div class="v">${fichasVisiveis().length}</div></div>
+     <div class="card"><div class="k">Senhas guardadas</div><div class="v">${[...DB.senhas,...(DB.senhasPriv||[])].filter(acessoVisivel).length}</div></div>
+     <div class="card"><div class="k">Links</div><div class="v">${DB.links.filter(acessoVisivel).length}</div></div>
    </div>
    <p class="hint" style="margin-top:12px">Informações financeiras são visíveis apenas para usuários master.</p>`;
     return;
@@ -1647,7 +1659,7 @@ function renderSenhas(c){
    <tbody id="sBody"></tbody></table><div id="sEmpty"></div></div>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const list=[...DB.senhas,...(DB.senhasPriv||[])].sort((a,b)=>(a.servico||'').localeCompare(b.servico||'')).filter(r=>!t||((r.servico||'')+(r.login||'')).toLowerCase().includes(t));
+    const list=[...DB.senhas,...(DB.senhasPriv||[])].filter(acessoVisivel).sort((a,b)=>(a.servico||'').localeCompare(b.servico||'')).filter(r=>!t||((r.servico||'')+(r.login||'')).toLowerCase().includes(t));
     $('#sBody').innerHTML=list.map(r=>`<tr>
       <td><strong>${esc(r.servico)}</strong>${r.__priv?' <span class="tag" style="background:rgba(124,58,237,.18);color:#c4b5fd;font-size:11px">🔒 Só eu</span>':''}${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
       <td>${esc(r.login)||'—'} ${r.login?`<button class="iconbtn" onclick="copyLogin('${r.id}')">copiar</button>`:''}</td>
@@ -1675,6 +1687,7 @@ window.openSenhaModal=(id)=>{
       <div class="field"><label>Senha</label><input id="m_senha" value="${esc(it.senha)}" placeholder="senha"></div>
     </div>
     <div class="field"><label>Link (opcional)</label><input id="m_url" value="${esc(it.url)}" placeholder="https://..."></div>
+    <div class="field"><label>Cliente</label>${selFicha('m_ficha',it.fichaId||'')}</div>
     <div class="field"><label>Visibilidade</label><select id="m_vis">
       <option value="equipe"${!era?' selected':''}>Equipe — todos os aprovados veem</option>
       <option value="priv"${era?' selected':''}>🔒 Só eu — mais ninguém vê</option>
@@ -1682,7 +1695,7 @@ window.openSenhaModal=(id)=>{
     <div class="field"><label>Observações</label><textarea id="m_notas" rows="2" placeholder="notas...">${esc(it.notas)}</textarea></div>`,
     async ()=>{
       const v={servico:$('#m_serv').value.trim(),login:$('#m_login').value.trim(),senha:$('#m_senha').value,
-        url:$('#m_url').value.trim(),notas:$('#m_notas').value.trim()};
+        url:$('#m_url').value.trim(),fichaId:$('#m_ficha').value||'',notas:$('#m_notas').value.trim()};
       if(!v.servico){toast('Informe o serviço.');return false;}
       const priv=$('#m_vis').value==='priv';
       try{
@@ -1713,7 +1726,7 @@ function renderLinks(c){
    <tbody id="lBody"></tbody></table><div id="lEmpty"></div></div>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const list=[...DB.links].sort((a,b)=>(a.categoria||'').localeCompare(b.categoria||'')).filter(r=>!t||(r.titulo+r.categoria+r.url).toLowerCase().includes(t));
+    const list=[...DB.links].filter(acessoVisivel).sort((a,b)=>(a.categoria||'').localeCompare(b.categoria||'')).filter(r=>!t||(r.titulo+r.categoria+r.url).toLowerCase().includes(t));
     $('#lBody').innerHTML=list.map(r=>`<tr>
       <td><strong>${esc(r.titulo)}</strong>${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
       <td>${r.categoria?`<span class="tag st">${esc(r.categoria)}</span>`:'—'}</td>
@@ -1730,9 +1743,10 @@ window.openLinkModal=(id)=>{
     <div class="field"><label>Título</label><input id="m_tit" value="${esc(it.titulo)}" placeholder="Ex: Painel do banco"></div>
     <div class="field"><label>Endereço (URL)</label><input id="m_url" value="${esc(it.url)}" placeholder="https://..."></div>
     <div class="field"><label>Categoria</label><input id="m_cat" value="${esc(it.categoria)}" placeholder="Ex: Financeiro, RH, Marketing"></div>
+    <div class="field"><label>Cliente</label>${selFicha('m_ficha',it.fichaId||'')}</div>
     <div class="field"><label>Observações</label><textarea id="m_notas" rows="2" placeholder="notas...">${esc(it.notas)}</textarea></div>`,
     async ()=>{
-      const v={titulo:$('#m_tit').value.trim(),url:$('#m_url').value.trim(),categoria:$('#m_cat').value.trim(),notas:$('#m_notas').value.trim()};
+      const v={titulo:$('#m_tit').value.trim(),url:$('#m_url').value.trim(),categoria:$('#m_cat').value.trim(),fichaId:$('#m_ficha').value||'',notas:$('#m_notas').value.trim()};
       if(!v.titulo){toast('Informe o título.');return false;}
       if(id){Object.assign(it,v);} else {DB.links.push({id:uid(),...v});}
       await saveDB(); render('links'); toast('Salvo.'); return true;
@@ -1791,7 +1805,7 @@ function renderProjetos(c){
    <p class="hint" style="margin-top:12px">Clique no cliente para abrir a ficha com tudo que está ligado a ele: contas de anúncio do Meta, acessos e — para usuários master — o financeiro. Contas de anúncio se ligam em <strong>Tráfego Pago → 🔗 Vincular a clientes</strong>.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const list=[...DB.projetos].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||(r.nome+(r.responsavel||'')+(r.gerente||'')).toLowerCase().includes(t));
+    const list=fichasVisiveis().sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||(r.nome+(r.responsavel||'')+(r.gerente||'')).toLowerCase().includes(t));
     const ordem=['novo','onboarding','ativo','churn'];
     $('#prjLists').innerHTML=ordem.map(st=>{
       const grupo=list.filter(r=>PRJ_NORM(r.status)===st);
@@ -2014,7 +2028,10 @@ window.openProjModal=(id)=>{
       <div class="field"><label>Gestor de tráfego</label><input id="m_resp" value="${esc(it.responsavel)}" placeholder="Ex.: Luan"></div>
       <div class="field"><label>Gerente</label><input id="m_ger" value="${esc(it.gerente||'')}" placeholder="Nome do gerente"></div>
     </div>
-    <div class="field"><label>Status</label><select id="m_status">${opts}</select></div>
+    <div class="row2">
+      <div class="field"><label>Status</label><select id="m_status">${opts}</select></div>
+      <div class="field"><label>Squad</label><input id="m_squad" list="dlSquads" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquads">${SQUADS().map(s=>`<option value="${esc(s)}"></option>`).join('')}</datalist></div>
+    </div>
     <div class="field"><label>Observações</label><textarea id="m_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></div>
     ${(currentUser&&currentUser.role==='master'&&it.clienteId)?(()=>{ const cli=DB.clientes.find(c=>c.id===it.clienteId); const recTot=DB.recebimentos.filter(x=>x.clienteId===it.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0); return `
     <div style="background:var(--panel2);border:1px solid rgba(168,85,247,.35);border-radius:12px;padding:14px;margin-top:6px">
@@ -2027,7 +2044,7 @@ window.openProjModal=(id)=>{
     </div>`;})():''}`,
     async ()=>{
       const v={nome:$('#m_nome').value.trim(),responsavel:$('#m_resp').value.trim(),gerente:$('#m_ger').value.trim(),status:$('#m_status').value,
-        notas:$('#m_notas').value.trim()};
+        squad:$('#m_squad').value.trim(),notas:$('#m_notas').value.trim()};
       if(!v.nome){toast('Informe o nome.');return false;}
       if(id){Object.assign(it,v);} else {DB.projetos.push({id:uid(),...v});}
       await saveDB(); render('clientes'); toast('Salvo.'); return true;
@@ -2440,15 +2457,17 @@ function drawUsuarios(c){
      <div><h2>Usuários</h2><div class="desc">Contas de acesso — criadas e mantidas por um master</div></div>
      <div class="toolbar"><button class="btn small" onclick="openUserModal()">+ Provisionar usuário</button></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>E-mail (login)</th><th>Senha</th><th>Função</th><th>Criado em</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>E-mail (login)</th><th>Senha</th><th>Função</th><th>Squads</th><th>Criado em</th><th></th></tr></thead>
    <tbody>${PERFIS.map(u=>`<tr>
      <td><strong>${esc(u.nome)}</strong>${u.id===currentUser.id?' <span class="tag st">você</span>':''}</td>
      <td>${esc(u.email)||'<span style="color:var(--muted)">—</span>'}</td>
      <td><div class="pw-cell"><span class="pw-dots" id="up_${u.id}">${u.temSenha?'••••••••':'<span style="color:var(--muted)">não guardada</span>'}</span>
        ${u.temSenha?`<button class="iconbtn" onclick="toggleUserPw('${u.id}')">👁</button><button class="iconbtn" onclick="copyUserPw('${u.id}')">copiar</button>`:''}</div></td>
      <td><span class="tag ${u.role==='master'?'andamento':'st'}">${u.role==='master'?'Master':'Usuário'}</span></td>
+     <td>${(u.squads&&u.squads.length)?u.squads.map(s=>`<span class="tag st">${esc(s)}</span>`).join(' '):`<span style="color:var(--muted)">${u.role==='master'?'tudo':'tudo (sem recorte)'}</span>`}</td>
      <td>${fmtDate((u.criado_em||'').slice(0,10))||'—'}</td>
      <td><div class="rowact">
+       <button class="iconbtn" onclick="editSquads('${u.id}')">Squads</button>
        <button class="iconbtn" onclick="resetUserPw('${u.id}')">Redefinir senha</button>
        ${u.id!==currentUser.id?`<button class="iconbtn" onclick="toggleRole('${u.id}')">${u.role==='master'?'Tornar usuário':'Tornar master'}</button><button class="iconbtn del" onclick="removeUser('${u.id}')">Remover</button>`:''}
      </div></td>
@@ -2476,15 +2495,34 @@ window.openUserModal=()=>{
     <div class="field"><label>Senha inicial</label><div class="pw-cell"><input type="text" id="u_senha" value="${esc(geraSenha())}" style="flex:1"><button type="button" class="iconbtn" onclick="document.getElementById('u_senha').value=geraSenha()">gerar outra</button></div></div>
     <div class="field"><label>Função</label><select id="u_role">
       <option value="membro">Usuário — acessa o sistema</option>
-      <option value="master">Master — acessa e gerencia usuários</option></select></div>`,
+      <option value="master">Master — acessa e gerencia usuários</option></select></div>
+    <div class="field"><label>Squads que ele enxerga</label>${chkSquads('u_sq',[])}
+      <div class="hint" style="margin-top:6px">Nenhum marcado = vê todos os clientes. Master sempre vê tudo.</div></div>`,
     async ()=>{
-      const nome=$('#u_nome').value.trim(), email=$('#u_email').value.trim(), senha=$('#u_senha').value, role=$('#u_role').value;
+      const nome=$('#u_nome').value.trim(), email=$('#u_email').value.trim(), senha=$('#u_senha').value, role=$('#u_role').value, squads=lerSquads('u_sq');
       if(nome.length<2){ toast('Informe o nome completo.'); return false; }
       if(!/^\S+@\S+\.\S+$/.test(email)){ toast('E-mail inválido.'); return false; }
       if(senha.length<6){ toast('A senha precisa de pelo menos 6 caracteres.'); return false; }
-      const r=await eqCall('criar',{nome,email,senha,role});
+      const r=await eqCall('criar',{nome,email,senha,role,squads});
       if(!r.ok){ toast('Erro: '+r.erro); return false; }
       render('usuarios'); toast('Usuário "'+nome+'" provisionado.'); return true;
+    });
+};
+function chkSquads(pref,marcados){
+  const todos=SQUADS();
+  if(!todos.length) return '<div class="hint">Nenhum squad cadastrado ainda — defina o campo Squad na ficha do cliente.</div>';
+  return '<div style="display:flex;gap:14px;flex-wrap:wrap">'+todos.map(s=>`<label style="display:flex;align-items:center;gap:6px;font-weight:600"><input type="checkbox" class="${pref}" value="${esc(s)}"${(marcados||[]).includes(s)?' checked':''}> ${esc(s)}</label>`).join('')+'</div>';
+}
+function lerSquads(pref){ return Array.from(document.querySelectorAll('.'+pref)).filter(i=>i.checked).map(i=>i.value); }
+window.editSquads=(id)=>{
+  const u=PERFIS.find(x=>x.id===id); if(!u)return;
+  modal('Squads — '+esc(u.nome),`
+    <p class="hint" style="margin:0 0 14px">O que estiver marcado limita o que ${esc(u.nome)} vê em Clientes, Tráfego Pago, Acessos e Painel. Sem nada marcado, vê todos os clientes.</p>
+    ${chkSquads('u_sqE',u.squads||[])}`,
+    async ()=>{
+      const r=await eqCall('squads',{id,squads:lerSquads('u_sqE')});
+      if(!r.ok){ toast('Erro: '+r.erro); return false; }
+      render('usuarios'); toast('Squads de "'+u.nome+'" atualizados.'); return true;
     });
 };
 window.resetUserPw=(id)=>{
