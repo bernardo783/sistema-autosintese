@@ -128,6 +128,16 @@
   .tk-card:hover{border-color:var(--brand2)}
   .tk-card.feito .tk-tit{text-decoration:line-through;color:var(--muted)}
   .tk-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .mt-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:5px;vertical-align:middle}
+  .mt-live.buscando{background:var(--warn);animation:mtpulse 1s ease-in-out infinite}
+  @keyframes mtpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(.7)}}
+  .mt-sec{display:flex;align-items:center;gap:9px;margin:6px 0 10px;font-weight:800;font-size:12px;letter-spacing:.5px;color:var(--muted);text-transform:uppercase}
+  .mt-ok{color:var(--ok);font-size:13px;padding:12px 2px 6px;font-weight:700}
+  .mt-det{margin-top:10px;border-top:1px solid var(--line);padding-top:4px}
+  .mt-det>summary{cursor:pointer;color:var(--muted);font-size:12.5px;font-weight:800;padding:9px 2px;list-style:none;text-transform:uppercase;letter-spacing:.5px}
+  .mt-det>summary::-webkit-details-marker{display:none}
+  .mt-det>summary:before{content:'▸  '}
+  .mt-det[open]>summary:before{content:'▾  '}
   @media(max-width:900px){.tk-wrap{grid-template-columns:1fr}.tk-cols{grid-template-columns:1fr}}
   .stSel option{background:var(--panel2);color:var(--txt)}
   .rowact{display:flex;gap:6px}
@@ -571,7 +581,7 @@ function renderTrafego(c){
          <option value="last_month">Mês passado</option>
        </select>
        <input class="search" id="mtBusca" placeholder="Filtrar conta..." style="max-width:180px" oninput="metaDesenhar()">
-       <button class="btn small" onclick="metaCarregar()">Atualizar agora</button>
+       <button class="btn secondary small" onclick="metaCarregar()" title="A tela já se atualiza sozinha; use só se quiser adiantar">↻ Atualizar</button>
        <button class="btn secondary small" onclick="abrirVinculos()">🔗 Vincular a clientes</button>
        <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;white-space:nowrap">
          Ciclo de verificação
@@ -622,7 +632,10 @@ function renderTrafego(c){
 /* ---- ciclo de verificação automática ---- */
 const mtCicloMin=()=>{ let v=0; try{ v=parseInt(localStorage.getItem('mtCiclo'),10); }catch(_){}
   return (v&&v>=1&&v<=180)?v:15; };
-window.mtParar=()=>{ if(window.__mtTimer){ clearInterval(window.__mtTimer); window.__mtTimer=null; } };
+window.mtParar=()=>{
+  if(window.__mtTimer){ clearInterval(window.__mtTimer); window.__mtTimer=null; }
+  if(window.__mtTick){ clearInterval(window.__mtTick); window.__mtTick=null; }
+};
 window.mtAgendar=()=>{
   mtParar();
   window.__mtTimer=setInterval(()=>{
@@ -631,12 +644,21 @@ window.mtAgendar=()=>{
     if(document.querySelector('.overlay')) return;  /* modal/editor aberto: não mexe embaixo */
     metaCarregar(true);
   }, mtCicloMin()*60000);
+  /* relógio de 1s só para a contagem regressiva na tela — não chama a API */
+  if(window.__mtTick) clearInterval(window.__mtTick);
+  window.__mtTick=setInterval(()=>{
+    if(currentView!=='trafego'){ clearInterval(window.__mtTick); window.__mtTick=null; return; }
+    mtStatusTxt();
+  },1000);
 };
 function mtStatusTxt(){
   const st=$('#mtStatus'); if(!st) return;
+  if(window.__mtBuscando){ st.innerHTML='<span class="mt-live buscando"></span><strong>atualizando agora…</strong>'; return; }
   if(!window.__mtQuando){ st.textContent=''; return; }
   const h=new Date(window.__mtQuando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  st.textContent='Atualizado às '+h+' · verificando a cada '+mtCicloMin()+' min';
+  const falta=Math.max(0,mtCicloMin()*60000-(Date.now()-window.__mtQuando));
+  const mm=Math.floor(falta/60000), ss=Math.floor((falta%60000)/1000);
+  st.innerHTML='<span class="mt-live"></span>no ar · atualizado às '+h+' · próxima em <strong>'+mm+':'+String(ss).padStart(2,'0')+'</strong>';
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden || currentView!=='trafego' || !window.__mtDados) return;
@@ -787,13 +809,22 @@ function saldoConta(c){
   if(ult){ haDias=Math.round((new Date(isoMais(0))-new Date(ult))/86400000); }
   return {ok:true, parou, recente, antes, ult, haDias};
 }
+const mtProblema=(c)=>{
+  if(c.status!==1) return 'conta inativa';
+  const pg=(typeof pagConta==='function')?pagConta(c):null, sd=saldoConta(c);
+  if(pg&&pg.problema) return pg.statusTxt||'pagamento';
+  if(sd&&sd.parou) return 'sem gastar há '+sd.haDias+' dia'+(sd.haDias===1?'':'s');
+  if(pg&&pg.prepago&&pg.saldo!=null&&pg.saldo<50) return pg.saldo<1?'sem saldo':'saldo baixo';
+  if(pg&&!pg.prepago&&pg.falta!=null&&pg.limite&&pg.falta<pg.limite*0.15) return 'perto do limite de cobrança';
+  return '';
+};
 window.metaDesenhar=()=>{
   const el=$('#mtLista'); if(!el) return;
   const t=($('#mtBusca')?$('#mtBusca').value:'').trim().toLowerCase();
   const rows=(window.__mtDados||[]).filter(contaVisivel).filter(c=>!t||(c.nome||'').toLowerCase().includes(t))
     .sort((a,b)=>(saldoConta(b).parou?1:0)-(saldoConta(a).parou?1:0)||(+((b.ins||{}).spend)||0)-(+((a.ins||{}).spend)||0));
   let G=0,I=0,C=0,L=0;
-  el.innerHTML=rows.map(c=>{
+  const cards=rows.map(c=>{
     const i=c.ins||{};
     const leads=(i.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
     const gasto=+(i.spend||0); G+=gasto; I+=(+i.impressions||0); C+=(+i.clicks||0); L+=leads;
@@ -861,9 +892,25 @@ window.metaDesenhar=()=>{
         <button class="btn small" onclick="openRelatorioModal('${esc(c.id)}')">📄 Gerar relatório</button>
       </div>
     </div>`;
-  }).join('')||'<div style="color:var(--muted);padding:14px 2px;font-size:13px">Nenhuma conta encontrada.</div>';
+  });
+  /* problema primeiro: quem precisa de ação fica aberto em cima; o resto vai para o recolhível */
+  const itens=rows.map((c,i)=>({c,html:cards[i],p:mtProblema(c)}));
+  const comProb=itens.filter(x=>x.p), okList=itens.filter(x=>!x.p);
+  el.innerHTML = !rows.length
+    ? '<div style="color:var(--muted);padding:14px 2px;font-size:13px">Nenhuma conta encontrada.</div>'
+    : (comProb.length
+        ? `<div class="mt-sec"><span class="tag churn" style="font-size:11px">⚠ Precisa de atenção</span><span class="tk-n">${comProb.length} de ${rows.length}</span></div>`+comProb.map(x=>x.html).join('')
+        : '<div class="mt-ok">✓ Nenhuma conta pedindo atenção agora.</div>')
+      + (okList.length
+        ? `<details class="mt-det"${comProb.length?'':' open'}><summary>Contas saudáveis (${okList.length})</summary>${okList.map(x=>x.html).join('')}</details>`
+        : '');
   const tot=$('#mtTotais');
-  if(tot) tot.innerHTML=rows.length?`Total do período: <strong style="color:var(--brand2)">${brl(G)}</strong> · ${I.toLocaleString('pt-BR')} impressões · ${C.toLocaleString('pt-BR')} cliques · <strong>${L} leads</strong>${L?' · CPL médio '+brl(G/L):''}`:'';
+  if(tot) tot.innerHTML=rows.length?`<div class="cards" style="margin:2px 0 6px">
+     <div class="card"><div class="k">Gasto no período</div><div class="v" style="color:var(--brand2)">${brl(G)}</div><div class="sub">${rows.length} conta${rows.length===1?'':'s'}${comProb.length?' · <span style="color:var(--danger)">'+comProb.length+' com problema</span>':''}</div></div>
+     <div class="card"><div class="k">Leads</div><div class="v">${L.toLocaleString('pt-BR')}</div><div class="sub">${(L&&G)?('CPL médio '+brl(G/L)):'sem leads no período'}</div></div>
+     <div class="card"><div class="k">Cliques</div><div class="v">${C.toLocaleString('pt-BR')}</div><div class="sub">${(C&&G)?('CPC médio '+brl(G/C)):'—'}</div></div>
+     <div class="card"><div class="k">Impressões</div><div class="v">${I.toLocaleString('pt-BR')}</div><div class="sub">${(I&&C)?((C/I*100).toFixed(2).replace('.',',')+'% de CTR'):'—'}</div></div>
+   </div>`:'';
   /* cards do topo — sempre sobre TODAS as contas, independente do filtro de busca */
   const todas=window.__mtDados||[];
   const ativos=todas.filter(c=>c.status===1);
