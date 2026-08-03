@@ -241,8 +241,7 @@
       <div class="field"><label>Senha</label><input type="password" id="loginPw" placeholder="senha" autocomplete="current-password"></div>
       <button class="btn" id="btnLogin">Entrar</button>
       <div class="err" id="loginErr"></div>
-      <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">Não tem conta? <a href="#" id="goSignup" class="link">Criar conta</a></p>
-      <p class="hint" style="text-align:center"><a href="#" id="forgotLink" class="link">Esqueci a senha</a></p>
+      <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">O acesso é criado por um usuário <strong>master</strong>, na aba Usuários.<br>Esqueceu a senha? Peça a um master para redefinir.</p>
       <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 4.0 · autosintese.app.br</p>
     </div>
 
@@ -346,13 +345,8 @@ async function saveDB(){
   if(error){ toast('Erro ao salvar: '+error.message); throw error; }
 }
 async function ensurePerfil(user){
-  let {data:p}=await sb.from('perfis').select('*').eq('id',user.id).maybeSingle();
-  if(!p){
-    const nome=(user.user_metadata&&user.user_metadata.nome)||String(user.email||'').split('@')[0];
-    const ins=await sb.from('perfis').insert({id:user.id,nome,role:'membro',aprovado:false}).select().maybeSingle();
-    p=ins.data||{id:user.id,nome,role:'membro',aprovado:false};
-  }
-  return p;
+  const {data:p}=await sb.from('perfis').select('*').eq('id',user.id).maybeSingle();
+  return p||{id:user.id,nome:(user.user_metadata&&user.user_metadata.nome)||String(user.email||'').split('@')[0],role:'membro',aprovado:false};
 }
 /* Importação pendente: lançamentos do cartão Nubank (jul/2026), criptografados com a chave do cofre.
    Entram no Financeiro no primeiro login e nunca duplicam (ids fixos nbk26_*). */
@@ -415,13 +409,7 @@ async function doLogin(){
   finally{ btn.disabled=false; btn.textContent='Entrar'; }
 }
 
-/* ---- recuperar senha ---- */
-$('#forgotLink').onclick=async (ev)=>{ev.preventDefault();
-  const email=$('#loginUser').value.trim(), e=$('#loginErr'); e.textContent='';
-  if(!email){ e.textContent='Digite seu email no campo acima e clique de novo em "Esqueci a senha".'; return; }
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
-  e.textContent=error?('Não deu: '+error.message):'Enviei um link de redefinição para '+email+'.';
-};
+/* recuperação por e-mail desativada — quem esquece a senha pede a um master para redefinir */
 sb.auth.onAuthStateChange((event,session)=>{
   if(event==='PASSWORD_RECOVERY'){
     SESSION=session;
@@ -442,7 +430,7 @@ sb.auth.onAuthStateChange((event,session)=>{
 });
 
 /* ---- criar conta (aprovada por um master) ---- */
-$('#goSignup').onclick=(e)=>{e.preventDefault(); hide($('#loginView')); show($('#signupView')); $('#suErr').textContent=''; $('#suNome').focus();};
+/* autocadastro desativado — contas são provisionadas por um master na aba Usuários */
 $('#goLogin').onclick=(e)=>{e.preventDefault(); hide($('#signupView')); show($('#loginView')); $('#loginUser').focus();};
 $('#btnSignup').onclick=doSignup;
 $('#suPw2').addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});
@@ -475,7 +463,7 @@ async function enterApp(){
   currentUser=await ensurePerfil(user);
   if(!currentUser.aprovado){
     hide($('#app')); show($('#login')); hide($('#signupView')); show($('#loginView'));
-    $('#loginErr').textContent='Sua conta ('+(user.email||'')+') aguarda aprovação de um usuário master. Tente de novo mais tarde.';
+    $('#loginErr').textContent='Esta conta ('+(user.email||'')+') não tem acesso liberado. Peça a um usuário master para provisionar o seu acesso.';
     await sb.auth.signOut(); SESSION=null; return;
   }
   try{ await loadDB(); }
@@ -2427,67 +2415,106 @@ let PERFIS=[];
 function renderUsuarios(c){
   if(!currentUser || currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
   c.innerHTML='<div class="empty">Carregando usuários...</div>';
-  sb.from('perfis').select('*').order('criado_em').then(({data,error})=>{
-    if(error){ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(error.message)+'</div>'; return; }
-    PERFIS=data||[]; drawUsuarios(c);
+  eqCall('listar').then(r=>{
+    if(!r.ok){ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(r.erro)+'</div>'; return; }
+    PERFIS=r.usuarios||[]; drawUsuarios(c);
   });
 }
+async function eqCall(acao,extra){
+  try{
+    const {data,error}=await sb.functions.invoke('equipe',{body:Object.assign({acao},extra||{})});
+    if(error){
+      let msg=error.message||'falha na chamada';
+      try{ const j=await error.context.json(); if(j&&j.erro) msg=j.erro; }catch(_){}
+      return {ok:false,erro:msg};
+    }
+    return data||{ok:false,erro:'resposta vazia'};
+  }catch(e){ return {ok:false,erro:String((e&&e.message)||e)}; }
+}
+const eqPw={};
+window.geraSenha=()=>{ const a='abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<12;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; };
 function drawUsuarios(c){
-  const ativos=PERFIS.filter(u=>u.aprovado), pend=PERFIS.filter(u=>!u.aprovado);
+  const masters=PERFIS.filter(u=>u.role==='master').length;
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Usuários</h2><div class="desc">Contas de acesso ao sistema</div></div>
+     <div><h2>Usuários</h2><div class="desc">Contas de acesso — criadas e mantidas por um master</div></div>
+     <div class="toolbar"><button class="btn small" onclick="openUserModal()">+ Provisionar usuário</button></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Função</th><th>Criado em</th><th></th></tr></thead>
-   <tbody>${ativos.map(u=>`<tr>
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>E-mail (login)</th><th>Senha</th><th>Função</th><th>Criado em</th><th></th></tr></thead>
+   <tbody>${PERFIS.map(u=>`<tr>
      <td><strong>${esc(u.nome)}</strong>${u.id===currentUser.id?' <span class="tag st">você</span>':''}</td>
+     <td>${esc(u.email)||'<span style="color:var(--muted)">—</span>'}</td>
+     <td><div class="pw-cell"><span class="pw-dots" id="up_${u.id}">${u.temSenha?'••••••••':'<span style="color:var(--muted)">não guardada</span>'}</span>
+       ${u.temSenha?`<button class="iconbtn" onclick="toggleUserPw('${u.id}')">👁</button><button class="iconbtn" onclick="copyUserPw('${u.id}')">copiar</button>`:''}</div></td>
      <td><span class="tag ${u.role==='master'?'andamento':'st'}">${u.role==='master'?'Master':'Usuário'}</span></td>
      <td>${fmtDate((u.criado_em||'').slice(0,10))||'—'}</td>
      <td><div class="rowact">
-       ${u.id!==currentUser.id?`<button class="iconbtn" onclick="toggleRole('${u.id}')">${u.role==='master'?'Tornar usuário':'Tornar master'}</button>
-       <button class="iconbtn del" onclick="removeUser('${u.id}')">Revogar acesso</button>`:''}
+       <button class="iconbtn" onclick="resetUserPw('${u.id}')">Redefinir senha</button>
+       ${u.id!==currentUser.id?`<button class="iconbtn" onclick="toggleRole('${u.id}')">${u.role==='master'?'Tornar usuário':'Tornar master'}</button><button class="iconbtn del" onclick="removeUser('${u.id}')">Remover</button>`:''}
      </div></td>
    </tr>`).join('')}</tbody></table></div>
-   ${pend.length?`
-   <h2 style="font-size:16px;margin:24px 0 10px">Solicitações de conta pendentes</h2>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Solicitado em</th><th></th></tr></thead>
-   <tbody>${pend.map(p=>`<tr>
-     <td><strong>${esc(p.nome)}</strong></td>
-     <td>${fmtDate((p.criado_em||'').slice(0,10))||'—'}</td>
-     <td><div class="rowact">
-       <button class="iconbtn" onclick="approveReq('${p.id}')">Aprovar</button>
-       <button class="iconbtn del" onclick="removeUser('${p.id}')">Recusar</button>
-     </div></td>
-   </tr>`).join('')}</tbody></table></div>`:''}
-   <p class="hint" style="margin-top:14px">Cada pessoa cria a própria conta na tela de login ("Criar conta") e um <strong>master</strong> aprova aqui. Todos os aprovados acessam os mesmos dados, de qualquer dispositivo, em autosintese.app.br. Quem esquecer a senha usa "Esqueci a senha" no login. "Revogar acesso" tira a pessoa do sistema na hora.</p>`;
+   <p class="hint" style="margin-top:14px">O acesso só existe se um <strong>master</strong> criar aqui — não há autocadastro na tela de login. A senha fica <strong>cifrada no servidor</strong>: o 👁 pede a senha a uma função protegida que só responde a masters. Quem esquecer a senha pede a um master para <strong>Redefinir</strong>.${masters<=1?' <br><strong>Atenção:</strong> só existe um master hoje — promova alguém para não ficar sem acesso.':''}</p>`;
 }
-window.toggleRole=async (id)=>{
-  const u=PERFIS.find(x=>x.id===id); if(!u)return;
-  const novo=u.role==='master'?'membro':'master';
-  const {error}=await sb.from('perfis').update({role:novo}).eq('id',id);
-  if(error){ toast('Erro: '+error.message); return; }
-  toast('"'+u.nome+'" agora é '+(novo==='master'?'master':'usuário')+'.'); render('usuarios');
+window.toggleUserPw=async (id)=>{
+  const el=$('#up_'+id); if(!el) return;
+  if(eqPw[id]){ el.textContent='••••••••'; eqPw[id]=null; return; }
+  el.textContent='...';
+  const r=await eqCall('revelar',{id});
+  if(!r.ok){ el.textContent='••••••••'; toast('Erro: '+r.erro); return; }
+  eqPw[id]=r.senha; el.textContent=r.senha;
 };
-window.approveReq=(id)=>{
-  const p=PERFIS.find(x=>x.id===id); if(!p)return;
-  modal('Aprovar conta — '+esc(p.nome),`
-    <p class="hint" style="margin:0 0 14px">A pessoa entra com o email e a senha que ela mesma escolheu.</p>
-    <div class="field"><label>Função</label><select id="ap_role">
+window.copyUserPw=async (id)=>{
+  let s=eqPw[id];
+  if(!s){ const r=await eqCall('revelar',{id}); if(!r.ok){ toast('Erro: '+r.erro); return; } s=r.senha; }
+  navigator.clipboard.writeText(s).then(()=>toast('Senha copiada.'),()=>toast('Não deu para copiar.'));
+};
+window.openUserModal=()=>{
+  modal('Provisionar usuário',`
+    <p class="hint" style="margin:0 0 14px">A conta nasce ativa e com e-mail já confirmado. Passe o e-mail e a senha para a pessoa — ela entra direto em autosintese.app.br.</p>
+    <div class="field"><label>Nome completo</label><input id="u_nome" placeholder="ex: Maria Silva"></div>
+    <div class="field"><label>E-mail (login)</label><input type="email" id="u_email" placeholder="maria@autosintese.com.br"></div>
+    <div class="field"><label>Senha inicial</label><div class="pw-cell"><input type="text" id="u_senha" value="${esc(geraSenha())}" style="flex:1"><button type="button" class="iconbtn" onclick="document.getElementById('u_senha').value=geraSenha()">gerar outra</button></div></div>
+    <div class="field"><label>Função</label><select id="u_role">
       <option value="membro">Usuário — acessa o sistema</option>
       <option value="master">Master — acessa e gerencia usuários</option></select></div>`,
     async ()=>{
-      const {error}=await sb.from('perfis').update({aprovado:true,role:$('#ap_role').value}).eq('id',id);
-      if(error){ toast('Erro: '+error.message); return false; }
-      render('usuarios'); toast('Conta de "'+p.nome+'" aprovada.'); return true;
+      const nome=$('#u_nome').value.trim(), email=$('#u_email').value.trim(), senha=$('#u_senha').value, role=$('#u_role').value;
+      if(nome.length<2){ toast('Informe o nome completo.'); return false; }
+      if(!/^\S+@\S+\.\S+$/.test(email)){ toast('E-mail inválido.'); return false; }
+      if(senha.length<6){ toast('A senha precisa de pelo menos 6 caracteres.'); return false; }
+      const r=await eqCall('criar',{nome,email,senha,role});
+      if(!r.ok){ toast('Erro: '+r.erro); return false; }
+      render('usuarios'); toast('Usuário "'+nome+'" provisionado.'); return true;
     });
+};
+window.resetUserPw=(id)=>{
+  const u=PERFIS.find(x=>x.id===id); if(!u)return;
+  modal('Redefinir senha — '+esc(u.nome),`
+    <p class="hint" style="margin:0 0 14px">A senha antiga para de valer na hora. Avise a pessoa.</p>
+    <div class="field"><label>Nova senha</label><div class="pw-cell"><input type="text" id="u_nova" value="${esc(geraSenha())}" style="flex:1"><button type="button" class="iconbtn" onclick="document.getElementById('u_nova').value=geraSenha()">gerar outra</button></div></div>`,
+    async ()=>{
+      const senha=$('#u_nova').value;
+      if(senha.length<6){ toast('A senha precisa de pelo menos 6 caracteres.'); return false; }
+      const r=await eqCall('senha',{id,senha});
+      if(!r.ok){ toast('Erro: '+r.erro); return false; }
+      eqPw[id]=null; render('usuarios'); toast('Senha de "'+u.nome+'" redefinida.'); return true;
+    });
+};
+window.toggleRole=async (id)=>{
+  const u=PERFIS.find(x=>x.id===id); if(!u)return;
+  const novo=u.role==='master'?'membro':'master';
+  if(novo==='membro' && PERFIS.filter(x=>x.role==='master').length<=1){ toast('Não dá para rebaixar o único master.'); return; }
+  const r=await eqCall('papel',{id,role:novo});
+  if(!r.ok){ toast('Erro: '+r.erro); return; }
+  render('usuarios'); toast('"'+u.nome+'" agora é '+(novo==='master'?'master':'usuário')+'.');
 };
 window.removeUser=async (id)=>{
   const u=PERFIS.find(x=>x.id===id); if(!u)return;
-  if(u.aprovado && u.role==='master' && PERFIS.filter(x=>x.aprovado&&x.role==='master').length<=1){ toast('Não dá para remover o único master.'); return; }
-  if(!confirm((u.aprovado?'Revogar o acesso de "':'Recusar a solicitação de "')+u.nome+'"?'))return;
-  const {error}=await sb.from('perfis').delete().eq('id',id);
-  if(error){ toast('Erro: '+error.message); return; }
-  render('usuarios'); toast(u.aprovado?'Acesso revogado.':'Solicitação recusada.');
+  if(u.role==='master' && PERFIS.filter(x=>x.role==='master').length<=1){ toast('Não dá para remover o único master.'); return; }
+  if(!confirm('Remover "'+u.nome+'"? O login é apagado e a pessoa perde o acesso na hora.'))return;
+  const r=await eqCall('remover',{id});
+  if(!r.ok){ toast('Erro: '+r.erro); return; }
+  eqPw[id]=null; render('usuarios'); toast('Acesso removido.');
 };
 
 /* ======================= MODAL / AÇÕES ======================= */
