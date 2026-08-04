@@ -625,6 +625,7 @@ function render(view){
   if(view==='tarefas') view='lista';
   currentView=view; searchTerm='';
   if(view==='fechamento'&&TK.listas.some(l=>l.id===LF_ID)) TK.listaSel=LF_ID;
+  if(FIN_LISTA[view]&&TK.listas.some(l=>l.id===FIN_LISTA[view])) TK.listaSel=FIN_LISTA[view];
   spMarcarAtalho(view); spDesenhar();
   /* o ciclo do Meta continua rodando fora da aba — os dados nunca ficam frios */
   const c=$('#content');
@@ -1646,6 +1647,11 @@ const LC_NAOATIVO='0bf15583-b686-4287-896f-36ff97fa8f80';
 const ehLC=(lid)=>lid===LC_ID;
 /* "Novos Contratos" e uma lista com UX propria: em vez de board, abre o formulario de Fechamento. */
 const LF_ID='f1e2d3c4-0000-4a00-8b00-000000000001';
+/* Financeiro mora na arvore: Administrativo > Financeiro > tres listas que abrem as telas do modulo. */
+const PASTA_FIN='f1e2d3c4-0000-4a00-8b00-00000000f000';
+const LFIN={'f1e2d3c4-0000-4a00-8b00-00000000f001':'financeiro','f1e2d3c4-0000-4a00-8b00-00000000f002':'recebimentos','f1e2d3c4-0000-4a00-8b00-00000000f003':'folha'};
+const FIN_LISTA={financeiro:'f1e2d3c4-0000-4a00-8b00-00000000f001',recebimentos:'f1e2d3c4-0000-4a00-8b00-00000000f002',folha:'f1e2d3c4-0000-4a00-8b00-00000000f003'};
+const ehFin=(lid)=>!!LFIN[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
 try{ SP_MINI=localStorage.getItem('sp_mini')==='1'; }catch(_){}
@@ -1869,8 +1875,8 @@ function spDesenhar(){
     const m=String(l.nome||'').match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u);
     const ic=m?`<span class="tk-ic emo">${esc(m[1])}</span>`:'<span class="tk-ic">&#8803;</span>';
     const nm=m?m[2]:l.nome;
-    const cont=(l.id===LF_ID)?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
-    const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'))?' on':'';
+    const cont=(l.id===LF_ID||ehFin(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
+    const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)))?' on':'';
     return `<button class="tk-lista${on}" onclick="spSelLista('${l.id}')">${ic}<span class="tk-nome">${esc(nm)}</span>${cont}</button>`; };
   if(!TK.espacos.length){ el.innerHTML='<div class="hint" style="margin:0;padding:8px 6px">Nenhum espaço ainda.</div>'; return; }
   if(SP_MINI){
@@ -1879,7 +1885,7 @@ function spDesenhar(){
     return; }
   el.innerHTML='<div class="tk-tree">'+TK.espacos.map(e=>{
     const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id);
-    const pas=TK.pastas.filter(p=>p.espaco_id===e.id);
+    const pas=TK.pastas.filter(p=>p.espaco_id===e.id&&(p.id!==PASTA_FIN||(currentUser&&currentUser.role==='master')));
     const abE=!TK.fechadas['e'+e.id];
     return `<div class="tk-esp">
       <div class="tk-esph" onclick="tkToggle('e','${e.id}')">
@@ -1902,6 +1908,7 @@ function spDesenhar(){
 }
 window.spSelLista=(id)=>{
   TK.listaSel=id; TK.escopo='lista'; searchTerm=''; spMarcarAtalho(''); spAbrirCaminho(id);
+  if(LFIN[id]){ render(LFIN[id]); return; }
   if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
   currentView='lista'; tkDesenhar($('#content')); spDesenhar(); };
 window.spAbrirClientes=()=>{
@@ -2265,7 +2272,7 @@ window.calRender=()=>{
 let finTab='lanc';
 let lancComp=compNow();
 let lancDe=''; let lancAte='';
-window.finGo=async (t)=>{ finTab=t; if(SESSION&&currentUser&&currentUser.aprovado){ try{ await loadDB(); }catch(e){} } render('financeiro'); };
+window.finGo=async (t)=>{ finTab=t; if(SESSION&&currentUser&&currentUser.aprovado){ try{ await loadDB(); }catch(e){} } render(t==='lanc'?'financeiro':t); };
 function renderFinanceiro(c){
   c.innerHTML=`
    <div class="fin-tabs">
