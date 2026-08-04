@@ -383,7 +383,7 @@
     <div class="foot">
       <div class="sp-ats" id="spAtalhos">
         <button class="navlink" data-view="dash" title="Painel">📊</button>
-        <button class="navlink" data-view="trafego" title="Tráfego Pago">📣</button>
+        
         <button class="navlink" data-view="acessos" title="Acessos e senhas">🔑</button>
         <button class="navlink" data-view="processos" title="Processos">📋</button>
         <button class="navlink hidden" data-view="financeiro" id="navFin" title="Financeiro">💰</button>
@@ -1918,6 +1918,7 @@ window.spAbrirClientes=()=>{
   spSelLista(LC_ID);
 };
 function tkDesenhar(c){
+  if(TK.listaSel==='7381fb45-8d78-458d-b432-77dd88972338'&&TK.escopo!=='todas'){ return renderTrafego(c); }
   const lista=TK.listas.find(x=>x.id===TK.listaSel);
   const cli=ehLC(TK.listaSel)&&TK.escopo!=='todas';
   const abas=`<div class="tk-seg">${[['lista','☰ Lista'],['board','▦ Board'],['cal','🗓 Calendário']].map(v=>`<button class="${TK.visao===v[0]?'on':''}" onclick="tkVisao('${v[0]}')">${v[1]}</button>`).join('')}</div>`;
