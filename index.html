@@ -3199,14 +3199,10 @@ window.rcStatusCli=async (cliId,novo)=>{
    e rezipa. Nada de servidor pra gerar arquivo. */
 const CT_MODELOS={marketing:'Marketing / Tráfego Pago',ia_crm:'Agente de IA e CRM',full:'Marketing + Agente de IA e CRM'};
 const CT_ICONE={marketing:'📣',ia_crm:'🤖',full:'🔀'};
-/* As duas empresas do grupo e os dois responsaveis legais que assinam. */
-const CT_EMPRESAS={
-  tec:{razao:'SÍNTESE SOLUÇÕES TECNOLÓGICAS LTDA',cnpj:'53.862.558/0001-42',
-       sede:'Avenida Sumaré, 179, Perdizes, São Paulo - SP, CEP 05016-090',
-       foro:'São Paulo - SP',cidade:'São Paulo'},
-  mkt:{razao:'SÍNTESE ASSESSORIA DE MARKETING LTDA',cnpj:'51.597.509/0001-02',
-       sede:'AL Otília Guidotti Bianchin Damhav - Pq. Residencial, São José do Rio Preto - SP, CEP 15.061-791',
-       foro:'São José do Rio Preto - SP',cidade:'São José do Rio Preto'}};
+/* Unica empresa contratada do grupo — todo contrato sai por ela. */
+const CT_CONTRATADA={razao:'SÍNTESE SOLUÇÕES TECNOLÓGICAS LTDA',cnpj:'53.862.558/0001-42',
+  sede:'Avenida Sumaré, 179, Perdizes, São Paulo - SP, CEP 05016-090',
+  foro:'São Paulo - SP',cidade:'São Paulo'};
 const CT_SIGNATARIOS={
   jose:{nome:'José Carlos Divino',rg:'MG 14827248',cpf:'066.535.896-25'},
   bernardo:{nome:'Bernardo Rocha Antunes',rg:'25.852.419-8',cpf:'202.851.937-16'}};
@@ -3267,7 +3263,7 @@ function ctDataExtenso(iso){ const d=(iso||hojeISO()).split('-').map(Number); re
 /* ---- monta o dicionario final, ja com os campos calculados ---- */
 function ctResolver(modelo,dados){
   const d=Object.assign({},dados);
-  const emp=CT_EMPRESAS[d._empresa]||CT_EMPRESAS.tec, sig=CT_SIGNATARIOS[d._signatario]||CT_SIGNATARIOS.jose;
+  const emp=CT_CONTRATADA, sig=CT_SIGNATARIOS[d._signatario]||CT_SIGNATARIOS.jose;
   d.contratada_razao=emp.razao; d.contratada_cnpj=emp.cnpj; d.contratada_sede=emp.sede;
   d.foro=emp.foro; d.cidade_assinatura=emp.cidade;
   d.contratada_rep_nome=sig.nome; d.contratada_rep_rg=sig.rg; d.contratada_rep_cpf=sig.cpf;
@@ -3328,7 +3324,7 @@ async function ctGerar(modelo,dados,nomeArquivo){
 
 /* ---- estado da tela ---- */
 let ctModelo='marketing'; let ctCliSel=''; let ctRasc={};
-let ctEmpresa='tec'; let ctSignatario='jose';
+let ctSignatario='jose';
 
 /* Puxa o que ja esta salvo na ficha do cliente pra nao redigitar nada. */
 function ctDoCliente(cliId){
@@ -3359,21 +3355,18 @@ function renderContratos(c){
        <option value="">— cliente novo, ainda não cadastrado —</option>
        ${cls.map(x=>`<option value="${x.id}"${ctCliSel===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}
      </select>
-     <div class="k" style="margin-bottom:8px">3. Quem contrata e quem assina?</div>
-     <div class="row2" style="margin-bottom:18px">
-       <div class="field"><label>Empresa contratada</label><select id="ctEmp">
-         ${Object.entries(CT_EMPRESAS).map(([k,e])=>`<option value="${k}"${ctEmpresa===k?' selected':''}>${esc(e.razao)} · foro ${esc(e.foro)}</option>`).join('')}
-       </select></div>
-       <div class="field"><label>Assinado por</label><select id="ctSig">
+     <div class="k" style="margin-bottom:8px">3. Quem assina pela contratada?</div>
+     <div class="field" style="max-width:460px;margin-bottom:18px">
+       <select id="ctSig">
          ${Object.entries(CT_SIGNATARIOS).map(([k,s])=>`<option value="${k}"${ctSignatario===k?' selected':''}>${esc(s.nome)}</option>`).join('')}
-       </select></div>
+       </select>
+       <div style="color:var(--muted);font-size:12px;margin-top:6px">${esc(CT_CONTRATADA.razao)} · CNPJ ${esc(CT_CONTRATADA.cnpj)} · foro ${esc(CT_CONTRATADA.foro)}</div>
      </div>
      <div><button class="btn" onclick="ctForm()">✍️ Preencher e gerar contrato</button></div>
      <div id="ctStatus" class="hint" style="margin-top:12px"></div>
    </div>
    <p class="hint">Os dados fixos do cliente (CNPJ, endereço, representante) ficam salvos na ficha dele — na segunda vez o formulário já vem pronto. Valor por extenso, valor da parcela e data do contrato são calculados sozinhos.</p>`;
   $('#ctCli').onchange=e=>{ ctCliSel=e.target.value; };
-  $('#ctEmp').onchange=e=>{ ctEmpresa=e.target.value; };
   $('#ctSig').onchange=e=>{ ctSignatario=e.target.value; };
 }
 window.ctSetModelo=(m)=>{ ctModelo=m; render('contratos'); };
@@ -3394,7 +3387,7 @@ window.ctForm=()=>{
     if(vazios.length&&!confirm('Estes campos ficaram em branco:\n\n• '+vazios.join('\n• ')+'\n\nGerar mesmo assim? Os marcadores vão aparecer no documento.')) return false;
     ctRasc=d;
     if(ctCliSel) await ctSalvarNaFicha(ctCliSel,d);
-    d._empresa=ctEmpresa; d._signatario=ctSignatario;
+    d._signatario=ctSignatario;
     try{
       const nome=(d.contratante_razao||'Contrato').replace(/[^\w\sÀ-ÿ-]/g,'').trim().slice(0,60);
       const rot={marketing:'Marketing',ia_crm:'IA-CRM',full:'Marketing-IA-CRM'}[ctModelo]||ctModelo;
