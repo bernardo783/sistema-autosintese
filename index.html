@@ -88,6 +88,22 @@
   .ck-t:hover{border-color:var(--line)}
   .ck-t:focus{border-color:var(--brand2);outline:none;background:var(--panel2)}
   .ck-t.ok{text-decoration:line-through;color:var(--muted)}
+  /* ---------- SIDEBAR ENCOLHIDA (rail de icones, igual ao ClickUp) ---------- */
+  #app.mini{grid-template-columns:64px 1fr}
+  #app.mini .sidebar{padding:16px 8px}
+  #app.mini .lbl{display:none}
+  #app.mini .sidebar .logo{justify-content:center;margin-bottom:16px}
+  #app.mini .sidebar .logo .wm{display:none}
+  #app.mini .sp-tit{justify-content:center;padding:0 0 8px}
+  #app.mini .sp-tit button{margin-left:0}
+  #app.mini .sp-ats{flex-direction:column;align-items:center;gap:6px}
+  #app.mini #whoami{display:none}
+  #app.mini .foot .btn.ghost{padding:8px 0;text-align:center}
+  .sp-rail{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:2px}
+  .sp-railb{background:transparent;border:1px solid transparent;border-radius:10px;padding:5px;cursor:pointer;line-height:0}
+  .sp-railb:hover{background:var(--panel2);border-color:var(--line)}
+  .sp-railb.on{border-color:var(--brand2);background:var(--panel2)}
+  .sp-railb .sp-ic{width:28px;height:28px;border-radius:8px;font-size:13px}
   .main{padding:28px 34px;overflow:auto;max-height:100vh}
   .page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
   .page-head h2{font-size:22px}
@@ -361,7 +377,7 @@
       <div class="mark" style="width:30px;height:30px"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></div>
       <span class="wm" style="font-size:15px;letter-spacing:1.2px">AUTO<span class="thin">SÍNTESE</span></span>
     </div>
-    <div class="sp-tit">ESPAÇOS<button title="Novo espaço" onclick="tkNovoEspaco()">+</button></div>
+    <div class="sp-tit"><span class="lbl">ESPAÇOS</span><button class="lbl" title="Novo espaço" onclick="tkNovoEspaco()">+</button><button id="spMiniBtn" title="Encolher / expandir a barra" onclick="spMini()">«</button></div>
     <div class="sp-tree" id="spTree"><div class="hint" style="margin:0;padding:8px 6px">carregando espaços…</div></div>
     <div class="foot">
       <div class="sp-ats" id="spAtalhos">
@@ -374,9 +390,9 @@
         <button class="navlink hidden" data-view="usuarios" id="navUsuarios" title="Usuários">👥</button>
       </div>
       <div id="whoami" style="color:var(--muted);font-size:12px;padding:0 6px 4px"></div>
-      <button class="btn ghost" id="btnBackup" style="width:100%">⬇ Backup / Restaurar</button>
-      <button class="btn ghost" id="btnChangePw" style="width:100%">🔒 Mudar senha</button>
-      <button class="btn ghost" id="btnLogout" style="width:100%">↩ Sair</button>
+      <button class="btn ghost" id="btnBackup" style="width:100%" title="Backup / Restaurar">⬇<span class="lbl"> Backup / Restaurar</span></button>
+      <button class="btn ghost" id="btnChangePw" style="width:100%" title="Mudar senha">🔒<span class="lbl"> Mudar senha</span></button>
+      <button class="btn ghost" id="btnLogout" style="width:100%" title="Sair">↩<span class="lbl"> Sair</span></button>
     </div>
   </aside>
   <main class="main" id="content"></main>
@@ -1626,6 +1642,14 @@ const tkStatusDe=(lid)=>TK.status.filter(s=>s.lista_id===lid);
 const LC_ID='a0009b64-6847-4477-be46-3dade84d5409';
 const LC_NAOATIVO='0bf15583-b686-4287-896f-36ff97fa8f80';
 const ehLC=(lid)=>lid===LC_ID;
+/* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
+let SP_MINI=false;
+try{ SP_MINI=localStorage.getItem('sp_mini')==='1'; }catch(_){}
+try{ const s=localStorage.getItem('sp_arvore'); if(s){ TK.fechadas=JSON.parse(s)||{}; TK.temSalvo=true; } }catch(_){}
+function spSalvarArvore(){ try{ localStorage.setItem('sp_arvore', JSON.stringify(TK.fechadas)); }catch(_){} }
+function spAbrirCaminho(lid){ const l=TK.listas.find(x=>x.id===lid); if(!l) return; TK.fechadas['e'+l.espaco_id]=false; if(l.pasta_id) TK.fechadas['p'+l.pasta_id]=false; spSalvarArvore(); }
+window.spMini=(v)=>{ SP_MINI=(v===undefined)?!SP_MINI:!!v; try{ localStorage.setItem('sp_mini',SP_MINI?'1':'0'); }catch(_){} spDesenhar(); };
+window.spExpandir=(eid)=>{ SP_MINI=false; try{ localStorage.setItem('sp_mini','0'); }catch(_){} TK.fechadas['e'+eid]=false; spSalvarArvore(); spDesenhar(); };
 /* Checklist da tarefa (modelo ClickUp): mora em tarefas.checklist como [{t,ok}]. */
 let TK_CK=[];
 function ckLer(){ TK_CK.forEach((x,i)=>{ const e=document.getElementById('ck_t'+i), k=document.getElementById('ck_k'+i); if(e) x.t=e.value; if(k) x.ok=k.checked; }); }
@@ -1658,6 +1682,9 @@ async function tkCarregar(){
   TK.equipe=q.data||[]; TK.status=st.data||[]; TK.campos=cp.data||[];
   if(!TK.listaSel||!TK.listas.some(x=>x.id===TK.listaSel)) TK.listaSel=(TK.listas[0]||{}).id||'';
   if(!TK.ref) TK.ref=tkHoje().slice(0,7);
+  if(!TK.semeado){ TK.semeado=true;
+    if(!TK.temSalvo){ TK.espacos.forEach(e=>{ TK.fechadas['e'+e.id]=true; }); TK.pastas.forEach(p=>{ TK.fechadas['p'+p.id]=true; }); }
+    spAbrirCaminho(LC_ID); }
 }
 function renderTarefas(c){
   /* pinta na hora com o que ja esta em memoria e revalida contra o banco logo em seguida */
@@ -1832,8 +1859,14 @@ function tkViewCal(){
 /* A arvore de espacos mora na barra lateral: ela e a navegacao principal do sistema. */
 function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
+  const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
+  const bt=document.getElementById('spMiniBtn'); if(bt) bt.textContent=SP_MINI?'»':'«';
   const item=(l)=>`<button class="tk-lista${(l.id===TK.listaSel&&currentView==='lista')?' on':''}" onclick="spSelLista('${l.id}')"><span class="tk-ic">&#8803;</span><span class="tk-nome">${esc(l.nome)}</span><span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span></button>`;
   if(!TK.espacos.length){ el.innerHTML='<div class="hint" style="margin:0;padding:8px 6px">Nenhum espaço ainda.</div>'; return; }
+  if(SP_MINI){
+    const lsel=TK.listas.find(x=>x.id===TK.listaSel);
+    el.innerHTML='<div class="sp-rail">'+TK.espacos.map(e=>`<button class="sp-railb${(lsel&&lsel.espaco_id===e.id)?' on':''}" title="${esc(e.nome)}" onclick="spExpandir('${e.id}')"><span class="sp-ic" style="background:${esc(e.cor)}">${esc((e.nome||'?').trim().charAt(0).toUpperCase())}</span></button>`).join('')+'</div>';
+    return; }
   el.innerHTML='<div class="tk-tree">'+TK.espacos.map(e=>{
     const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id);
     const pas=TK.pastas.filter(p=>p.espaco_id===e.id);
@@ -1857,7 +1890,7 @@ function spDesenhar(){
         </div>`;}).join('')}${soltas.map(item).join('')}</div>`:''}
     </div>`;}).join('')+'</div>';
 }
-window.spSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; currentView='lista'; searchTerm=''; spMarcarAtalho(''); tkDesenhar($('#content')); spDesenhar(); };
+window.spSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; currentView='lista'; searchTerm=''; spMarcarAtalho(''); spAbrirCaminho(id); tkDesenhar($('#content')); spDesenhar(); };
 window.spAbrirClientes=()=>{
   const c=$('#content');
   if(!TK.listas.length){ c.innerHTML='<div class="empty">Carregando...</div>';
@@ -1916,7 +1949,8 @@ window.tkSoltarDia=async (ev,iso)=>{
 };
 window.tkStatus=(id,st)=>tkPatch(id,{status:st,concluida_em:st==='feito'?new Date().toISOString():null},TK_ST[st]);
 window.tkConcluir=(id,ok)=>tkPatch(id,{status:ok?'feito':'todo',concluida_em:ok?new Date().toISOString():null},ok?'Concluída.':'Reaberta.');
-window.tkToggle=(tp,id)=>{ const k=tp+id; TK.fechadas[k]=!TK.fechadas[k]; tkDesenhar($('#content')); };
+window.tkToggle=(tp,id)=>{ const k=tp+id; TK.fechadas[k]=!TK.fechadas[k];
+  if(tp==='g'){ tkDesenhar($('#content')); } else { spSalvarArvore(); spDesenhar(); } };
 window.tkSetVal=async (id,campoId,v)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
   const c=tkCampo1(campoId)||{};
