@@ -3220,13 +3220,13 @@ const CT_COMUNS=[
   ['rep_cpf','CPF do representante',''],['contratante_tel','Telefone',''],
   ['contratante_email','E-mail','']];
 const CT_NEGOCIO={
-  marketing:[['vigencia','Vigência','12 meses'],['valor_mensal','Mensalidade (R$)',''],
+  marketing:[['vigencia','Vigência','12 (doze) meses'],['valor_mensal','Mensalidade (R$)',''],
       ['dia_venc','Dia do vencimento',''],['data_primeira_parcela','Vencimento da 1ª parcela','']],
-  ia_crm:[['vigencia','Vigência','6 meses'],['valor_total','Valor total (R$)',''],
+  ia_crm:[['vigencia','Vigência','6 (seis) meses'],['valor_total','Valor total (R$)',''],
       ['parcelas','Nº de parcelas','6'],['dia_venc','Dia do vencimento',''],
       ['data_primeira_parcela','Vencimento da 1ª parcela',''],
       ['prazo_entrega','Prazo de entrega','07 (sete) dias úteis']],
-  full:[['vigencia','Vigência','12 meses'],['valor_mensal','Mensalidade única (R$)',''],
+  full:[['vigencia','Vigência','12 (doze) meses'],['valor_mensal','Mensalidade única (R$)',''],
       ['dia_venc','Dia do vencimento',''],['data_primeira_parcela','Vencimento da 1ª parcela',''],
       ['prazo_entrega','Prazo de entrega da IA','07 (sete) dias úteis']]};
 
@@ -3333,6 +3333,10 @@ function ctCPFValido(v){
   return dv(9)===Number(d[9])&&dv(10)===Number(d[10]);
 }
 const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_cep:'ctMascCEP',contratante_tel:'ctMascTel'};
+/* Vigencia e escolha, nao texto livre: 1 a 12 meses, ja no formato do contrato. */
+const CT_VIGENCIAS=(()=>{ const ext=['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze'];
+  return ext.map((e,i)=>(i+1)+' ('+e+') '+(i?'meses':'mês')); })();
+const CT_OPCOES={vigencia:CT_VIGENCIAS};
 function ctConfereDocs(cnpj,cpf,cep){
   if(cnpj&&ctSoDig(cnpj).length!==14) return 'O CNPJ precisa ter 14 dígitos — você digitou '+ctSoDig(cnpj).length+'.';
   if(cpf&&ctSoDig(cpf).length!==11) return 'O CPF precisa ter 11 dígitos — você digitou '+ctSoDig(cpf).length+'.';
@@ -3421,7 +3425,9 @@ window.ctSetModelo=(m)=>{ ctModelo=m; render('contratos'); };
 
 window.ctForm=()=>{
   const base=Object.assign(ctDoCliente(ctCliSel),ctRasc);
-  const campo=([k,rot,pad])=>{ const m=CT_MASC[k]; const v0=base[k]||pad||''; const v=m?window[m](v0):v0;
+  const campo=([k,rot,pad])=>{ const m=CT_MASC[k]; const v0=base[k]||pad||''; const ops=CT_OPCOES[k];
+    if(ops) return `<div class="field"><label>${esc(rot)}</label><select id="ct_${k}">${ops.map(o=>`<option value="${esc(o)}"${o===v0?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+    const v=m?window[m](v0):v0;
     return `<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(v)}"${m?` oninput="this.value=${m}(this.value)"`:''} ${k==='data_primeira_parcela'?'type="date"':''}></div>`; };
   const negocio=CT_NEGOCIO[ctModelo];
   modal('Contrato — '+CT_MODELOS[ctModelo],`
