@@ -631,12 +631,13 @@ function render(view){
   const c=$('#content');
   if(view==='dash') return renderDash(c);
   if(view==='fechamento') return renderFechamento(c);
-  if(view==='financeiro'||view==='recebimentos'||view==='folha'){
+  if(view==='financeiro'||view==='recebimentos'||view==='folha'||view==='contratos'){
     if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
   }
   if(view==='financeiro') return renderFinanceiro(c);
   if(view==='recebimentos'){ finTab='recebimentos'; return renderFinanceiro(c); }
   if(view==='folha'){ finTab='folha'; return renderFinanceiro(c); }
+  if(view==='contratos') return renderContratos(c);
   if(view==='acessos') return renderAcessos(c);
   if(view==='fichas') return renderProjetos(c);
   if(view==='trafego') return renderTrafego(c);
@@ -1649,8 +1650,9 @@ const ehLC=(lid)=>lid===LC_ID;
 const LF_ID='f1e2d3c4-0000-4a00-8b00-000000000001';
 /* Financeiro mora na arvore: Administrativo > Financeiro > tres listas que abrem as telas do modulo. */
 const PASTA_FIN='f1e2d3c4-0000-4a00-8b00-00000000f000';
-const LFIN={'f1e2d3c4-0000-4a00-8b00-00000000f001':'financeiro','f1e2d3c4-0000-4a00-8b00-00000000f002':'recebimentos','f1e2d3c4-0000-4a00-8b00-00000000f003':'folha'};
-const FIN_LISTA={financeiro:'f1e2d3c4-0000-4a00-8b00-00000000f001',recebimentos:'f1e2d3c4-0000-4a00-8b00-00000000f002',folha:'f1e2d3c4-0000-4a00-8b00-00000000f003'};
+const LCT_ID='acce64a7-7fca-4f9f-9cef-92961542ae3e';
+const LFIN={'f1e2d3c4-0000-4a00-8b00-00000000f001':'financeiro','f1e2d3c4-0000-4a00-8b00-00000000f002':'recebimentos','f1e2d3c4-0000-4a00-8b00-00000000f003':'folha',[LCT_ID]:'contratos'};
+const FIN_LISTA={financeiro:'f1e2d3c4-0000-4a00-8b00-00000000f001',recebimentos:'f1e2d3c4-0000-4a00-8b00-00000000f002',folha:'f1e2d3c4-0000-4a00-8b00-00000000f003',contratos:LCT_ID};
 const ehFin=(lid)=>!!LFIN[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
@@ -1895,7 +1897,7 @@ function spDesenhar(){
         <button class="iconbtn tk-add" title="Nova pasta ou lista" onclick="event.stopPropagation();tkNovoNo('${e.id}')">+</button>
       </div>
       ${abE?`<div class="tk-filhos">${pas.map(p=>{
-        const ls=TK.listas.filter(l=>l.pasta_id===p.id); const abP=!TK.fechadas['p'+p.id];
+        const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||(currentUser&&currentUser.role==='master'))); const abP=!TK.fechadas['p'+p.id];
         return `<div class="tk-pasta">
           <div class="tk-pastah" onclick="tkToggle('p','${p.id}')">
             <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic">&#128193;</span>
@@ -3056,12 +3058,34 @@ window.openCliModal=(id)=>{
     <div class="row2">
       <div class="field"><label>Primeiro pagamento (opcional)</label><input type="month" id="m_inicio" value="${it.inicio||''}"></div>
       <div class="field"><label>Último mês — churn (opcional)</label><input type="month" id="m_fim" value="${it.fim||''}"></div>
+    </div>
+    <div class="k" style="margin:18px 0 10px">📄 Dados para contrato</div>
+    <div class="row2">
+      <div class="field"><label>Razão social</label><input id="m_k_razao" value="${esc((it.contrato||{}).razao)}" placeholder="Vazio = usa o nome do cliente"></div>
+      <div class="field"><label>CNPJ</label><input id="m_k_cnpj" value="${esc((it.contrato||{}).cnpj)}" placeholder="00.000.000/0001-00"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Rua/Av. e número</label><input id="m_k_endereco" value="${esc((it.contrato||{}).endereco)}"></div>
+      <div class="field"><label>Bairro</label><input id="m_k_bairro" value="${esc((it.contrato||{}).bairro)}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Cidade - UF</label><input id="m_k_cidade_uf" value="${esc((it.contrato||{}).cidade_uf)}" placeholder="São Paulo - SP"></div>
+      <div class="field"><label>CEP</label><input id="m_k_cep" value="${esc((it.contrato||{}).cep)}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Representante legal</label><input id="m_k_rep_nome" value="${esc((it.contrato||{}).rep_nome)}"></div>
+      <div class="field"><label>E-mail</label><input id="m_k_email" value="${esc((it.contrato||{}).email)}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>RG do representante</label><input id="m_k_rep_rg" value="${esc((it.contrato||{}).rep_rg)}"></div>
+      <div class="field"><label>CPF do representante</label><input id="m_k_rep_cpf" value="${esc((it.contrato||{}).rep_cpf)}"></div>
     </div>`,
     async ()=>{
       const dia=parseInt($('#m_dia').value);
       const v={nome:$('#m_nome').value.trim(),nicho:$('#m_nicho').value.trim(),servico:$('#m_serv').value.trim(),produtos:$('#m_serv').value.trim(),grupoWpp:$('#m_grupo').value.trim(),instagram:$('#m_insta').value.trim(),drive:$('#m_drive').value.trim(),
         diaVenc:(dia>=1&&dia<=31)?dia:null,valor:parseFloat($('#m_valor').value)||0,
-        resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null,fim:$('#m_fim').value||null};
+        resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null,fim:$('#m_fim').value||null,
+        contrato:['razao','cnpj','endereco','bairro','cidade_uf','cep','rep_nome','rep_rg','rep_cpf','email'].reduce((o,k)=>{o[k]=(($('#m_k_'+k)||{}).value||'').trim();return o;},{})};
       if(!v.nome){toast('Informe o nome.');return false;}
       let alvo;
       if(id){ Object.assign(it,v); alvo=it; } else { alvo={id:uid(),...v}; DB.clientes.push(alvo); }
@@ -3104,6 +3128,226 @@ window.rcStatusCli=async (cliId,novo)=>{
   }
   if(novo!=='churn' && c.churnComp && comp>=c.churnComp){ c.churnComp=null; c.fim=''; }
   await saveDB(); render('recebimentos'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='sinal'?'🔵 Sinal pago':novo==='inadimplente'?'🔴 Inadimplente':novo==='churn'?'⚫ Churn — receita perdida':'🟡 A receber'));
+};
+
+/* ======================= CONTRATOS (minutas) ======================= */
+/* As minutas ficam em contrato_modelos (docx em base64). O preenchimento acontece
+   no navegador: o .docx e um zip, entao troca-se {{campo}} dentro de word/document.xml
+   e rezipa. Nada de servidor pra gerar arquivo. */
+const CT_MODELOS={ia:'Implementação de Agente de IA',marketing:'Marketing Digital'};
+const CT_COMUNS=[
+  ['contratante_razao','Razão social',''],['contratante_cnpj','CNPJ',''],
+  ['contratante_endereco','Rua/Av. e número',''],['contratante_bairro','Bairro',''],
+  ['contratante_cidade_uf','Cidade - UF',''],['contratante_cep','CEP',''],
+  ['rep_nome','Representante legal',''],['rep_rg','RG do representante',''],
+  ['rep_cpf','CPF do representante',''],['contratante_tel','Telefone',''],
+  ['contratante_email','E-mail','']];
+const CT_NEGOCIO={
+  ia:[['vigencia','Vigência','6 meses'],['valor_total','Valor total (R$)',''],
+      ['parcelas','Nº de parcelas','6'],['dia_venc','Dia do vencimento',''],
+      ['data_primeira_parcela','Vencimento da 1ª parcela',''],
+      ['prazo_entrega','Prazo de entrega','20 (vinte) dias úteis']],
+  marketing:[['vigencia','Vigência','12 meses'],['valor_mensal','Mensalidade (R$)',''],
+      ['dia_venc','Dia do vencimento',''],['data_primeira_parcela','Vencimento da 1ª parcela','']]};
+
+/* ---- numero por extenso (pt-BR), usado nas clausulas de remuneracao ---- */
+const CT_U=['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
+const CT_D=['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+const CT_C=['','cento','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
+function ctTrio(n){
+  if(n===0) return ''; if(n===100) return 'cem';
+  const c=Math.floor(n/100), d=Math.floor((n%100)/10), u=n%10, p=[];
+  if(c) p.push(CT_C[c]);
+  if(n%100<20){ if(n%100) p.push(CT_U[n%100]); }
+  else { p.push(CT_D[d]); if(u) p.push(CT_U[u]); }
+  return p.join(' e ');
+}
+function ctExtenso(v){
+  v=Math.round((Number(v)||0)*100)/100;
+  const i=Math.floor(v), cent=Math.round((v-i)*100), pt=[];
+  if(i===0) pt.push('zero reais');
+  else{
+    const mi=Math.floor(i/1000000), mil=Math.floor((i%1000000)/1000), un=i%1000;
+    const g=[];
+    if(mi) g.push([mi,ctTrio(mi)+(mi===1?' milhão':' milhões')]);
+    if(mil) g.push([mil,mil===1?'mil':ctTrio(mil)+' mil']);
+    if(un) g.push([un,ctTrio(un)]);
+    /* liga com "e" quando o grupo seguinte e menor que cem ou centena redonda; senao virgula */
+    let s=g[0][1];
+    for(let k=1;k<g.length;k++){ const n=g[k][0]; s+=((n<100||n%100===0)?' e ':', ')+g[k][1]; }
+    const redondo=(mi>0&&mil===0&&un===0)||(mi===0&&mil>0&&un===0&&mil%100===0&&mil>=100);
+    pt.push(s+(redondo?' de reais':(i===1?' real':' reais')));
+  }
+  if(cent) pt.push(ctTrio(cent)+(cent===1?' centavo':' centavos'));
+  return pt.join(' e ');
+}
+const ctNum=(s)=>Number(String(s==null?'':s).replace(/\./g,'').replace(',','.').replace(/[^\d.-]/g,''))||0;
+const ctMoeda=(n)=>Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const CT_MES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function ctDataExtenso(iso){ const d=(iso||hojeISO()).split('-').map(Number); return d[2]+' de '+CT_MES[d[1]-1]+' de '+d[0]; }
+
+/* ---- monta o dicionario final, ja com os campos calculados ---- */
+function ctResolver(modelo,dados){
+  const d=Object.assign({},dados);
+  d.data_contrato_extenso=ctDataExtenso(d.data_contrato||'');
+  if(d.data_primeira_parcela&&/^\d{4}-\d{2}-\d{2}$/.test(d.data_primeira_parcela))
+    d.data_primeira_parcela=d.data_primeira_parcela.split('-').reverse().join('/');
+  if(modelo==='ia'){
+    const tot=ctNum(d.valor_total), par=Math.max(1,parseInt(d.parcelas,10)||1);
+    d.valor_total=ctMoeda(tot); d.valor_total_extenso=ctExtenso(tot);
+    d.valor_parcela=ctMoeda(tot/par); d.parcelas=String(par);
+  }else{
+    const m=ctNum(d.valor_mensal);
+    d.valor_mensal=ctMoeda(m); d.valor_mensal_extenso=ctExtenso(m); d.valor_garantia=ctMoeda(m*3);
+  }
+  return d;
+}
+
+/* ---- carrega o JSZip sob demanda (so quando vai gerar um contrato) ---- */
+let CT_ZIPOK=null;
+function ctJSZip(){
+  if(CT_ZIPOK) return CT_ZIPOK;
+  CT_ZIPOK=new Promise((ok,err)=>{
+    if(window.JSZip) return ok(window.JSZip);
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload=()=>ok(window.JSZip); s.onerror=()=>err(new Error('não consegui carregar o JSZip'));
+    document.head.appendChild(s);
+  });
+  return CT_ZIPOK;
+}
+const ctB64Bytes=(b64)=>{ const bin=atob(b64), a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a; };
+const ctEsc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+async function ctModeloB64(slug){
+  const {data,error}=await sb.from('contrato_modelos').select('conteudo_b64,arquivo').eq('slug',slug).single();
+  if(error) throw new Error(error.message);
+  if(!data||!data.conteudo_b64) throw new Error('O modelo "'+CT_MODELOS[slug]+'" ainda não foi enviado. Use ⚙️ Modelos nesta tela.');
+  return data;
+}
+async function ctGerar(modelo,dados,nomeArquivo){
+  const JSZipC=await ctJSZip();
+  const mod=await ctModeloB64(modelo);
+  const zip=await JSZipC.loadAsync(ctB64Bytes(mod.conteudo_b64));
+  const d=ctResolver(modelo,dados);
+  const faltando=[];
+  for(const alvo of ['word/document.xml','word/header1.xml','word/header2.xml','word/header3.xml']){
+    const f=zip.file(alvo); if(!f) continue;
+    let xml=await f.async('string');
+    xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k]; if(v===undefined||v==='') { faltando.push(k); return todo; } return ctEsc(v); });
+    zip.file(alvo,xml);
+  }
+  const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=(nomeArquivo||('Contrato-'+modelo))+'.docx'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  return [...new Set(faltando)];
+}
+
+/* ---- estado da tela ---- */
+let ctModelo='marketing'; let ctCliSel=''; let ctRasc={};
+
+/* Puxa o que ja esta salvo na ficha do cliente pra nao redigitar nada. */
+function ctDoCliente(cliId){
+  const c=DB.clientes.find(x=>x.id===cliId); if(!c) return {};
+  const k=c.contrato||{};
+  return {contratante_razao:k.razao||c.nome||'',contratante_cnpj:k.cnpj||'',
+    contratante_endereco:k.endereco||'',contratante_bairro:k.bairro||'',
+    contratante_cidade_uf:k.cidade_uf||'',contratante_cep:k.cep||'',
+    rep_nome:k.rep_nome||c.resp||'',rep_rg:k.rep_rg||'',rep_cpf:k.rep_cpf||'',
+    contratante_tel:k.tel||c.tel||'',contratante_email:k.email||'',
+    dia_venc:c.diaVenc?String(c.diaVenc):'',valor_mensal:c.valor?ctMoeda(c.valor):''};
+}
+function renderContratos(c){
+  if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+  const cls=[...DB.clientes].sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Contratos</h2><div class="desc">Gera a minuta preenchida em .docx a partir do cadastro do cliente.</div></div>
+     <div class="toolbar"><button class="btn secondary small" onclick="ctModelosModal()">⚙️ Modelos</button></div>
+   </div>
+   <div class="card" style="margin-bottom:18px">
+     <div class="k" style="margin-bottom:10px">1. Qual contrato?</div>
+     <div class="fin-tabs" style="margin-bottom:18px">
+       ${Object.entries(CT_MODELOS).map(([k,v])=>`<button class="ftab ${ctModelo===k?'active':''}" onclick="ctSetModelo('${k}')">${k==='ia'?'🤖':'📣'} ${esc(v)}</button>`).join('')}
+     </div>
+     <div class="k" style="margin-bottom:8px">2. Para qual cliente?</div>
+     <select id="ctCli" style="width:100%;max-width:460px;margin-bottom:18px">
+       <option value="">— cliente novo, ainda não cadastrado —</option>
+       ${cls.map(x=>`<option value="${x.id}"${ctCliSel===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}
+     </select>
+     <div><button class="btn" onclick="ctForm()">✍️ Preencher e gerar contrato</button></div>
+     <div id="ctStatus" class="hint" style="margin-top:12px"></div>
+   </div>
+   <p class="hint">Os dados fixos do cliente (CNPJ, endereço, representante) ficam salvos na ficha dele — na segunda vez o formulário já vem pronto. Valor por extenso, valor da parcela e data do contrato são calculados sozinhos.</p>`;
+  $('#ctCli').onchange=e=>{ ctCliSel=e.target.value; };
+}
+window.ctSetModelo=(m)=>{ ctModelo=m; render('contratos'); };
+
+window.ctForm=()=>{
+  const base=Object.assign(ctDoCliente(ctCliSel),ctRasc);
+  const campo=([k,rot,pad])=>`<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(base[k]||pad||'')}" ${k==='data_primeira_parcela'?'type="date"':''}></div>`;
+  const negocio=CT_NEGOCIO[ctModelo];
+  modal('Contrato — '+CT_MODELOS[ctModelo],`
+    <div class="k" style="margin:4px 0 10px">Dados do contratante</div>
+    <div class="row2">${CT_COMUNS.map(campo).join('')}</div>
+    <div class="k" style="margin:18px 0 10px">Condições do negócio</div>
+    <div class="row2">${negocio.map(campo).join('')}</div>
+    <p class="hint">Ao salvar, o .docx é gerado e baixado. Os dados do contratante voltam pra ficha do cliente.</p>`,
+  async ()=>{
+    const d={}; [...CT_COMUNS,...negocio].forEach(([k])=>{ d[k]=(($('#ct_'+k)||{}).value||'').trim(); });
+    const vazios=[...CT_COMUNS,...negocio].filter(([k])=>!d[k]).map(([,rot])=>rot);
+    if(vazios.length&&!confirm('Estes campos ficaram em branco:\n\n• '+vazios.join('\n• ')+'\n\nGerar mesmo assim? Os marcadores vão aparecer no documento.')) return false;
+    ctRasc=d;
+    if(ctCliSel) await ctSalvarNaFicha(ctCliSel,d);
+    try{
+      const nome=(d.contratante_razao||'Contrato').replace(/[^\w\sÀ-ÿ-]/g,'').trim().slice(0,60);
+      await ctGerar(ctModelo,d,'Contrato-'+(ctModelo==='ia'?'IA':'Marketing')+'-'+nome);
+      ctRasc={}; toast('Contrato gerado. Confira o download.');
+    }catch(e){ toast(e.message); return false; }
+    return true;
+  });
+};
+/* O que foi digitado volta pra ficha do cliente: da proxima vez ja vem pronto. */
+async function ctSalvarNaFicha(cliId,d){
+  const c=DB.clientes.find(x=>x.id===cliId); if(!c) return;
+  c.contrato=Object.assign({},c.contrato,{razao:d.contratante_razao,cnpj:d.contratante_cnpj,
+    endereco:d.contratante_endereco,bairro:d.contratante_bairro,cidade_uf:d.contratante_cidade_uf,
+    cep:d.contratante_cep,rep_nome:d.rep_nome,rep_rg:d.rep_rg,rep_cpf:d.rep_cpf,
+    tel:d.contratante_tel,email:d.contratante_email});
+  try{ await saveDB(); }catch(e){}
+}
+
+/* ---- modelos: o master sobe os .docx com os marcadores {{campo}} ---- */
+function ctBlobB64(blob){
+  return new Promise((ok,err)=>{ const r=new FileReader();
+    r.onload=()=>ok(String(r.result).split(',')[1]); r.onerror=()=>err(new Error('não consegui ler o arquivo'));
+    r.readAsDataURL(blob); });
+}
+window.ctModelosModal=async ()=>{
+  const {data}=await sb.from('contrato_modelos').select('slug,nome,arquivo,bytes,atualizado');
+  const por={}; (data||[]).forEach(x=>{ por[x.slug]=x; });
+  modal('Modelos de contrato',`
+    <p class="hint" style="margin-top:0">Suba aqui os .docx com os marcadores <code>{{campo}}</code>. Trocar o modelo não mexe em nada que já foi gerado.</p>
+    ${Object.entries(CT_MODELOS).map(([k,v])=>{ const m=por[k]||{};
+      return `<div class="field">
+        <label>${k==='ia'?'🤖':'📣'} ${esc(v)}</label>
+        <div style="color:var(--muted);font-size:12px;margin-bottom:6px">${m.bytes?('carregado · '+Math.round(m.bytes/1024)+' KB · '+fmtDate(String(m.atualizado||'').slice(0,10))):'<span style="color:var(--danger)">nenhum arquivo enviado</span>'}</div>
+        <input type="file" id="ctf_${k}" accept=".docx">
+      </div>`; }).join('')}`,
+  async ()=>{
+    let n=0;
+    for(const k of Object.keys(CT_MODELOS)){
+      const inp=$('#ctf_'+k); const f=inp&&inp.files&&inp.files[0]; if(!f) continue;
+      if(!/\.docx$/i.test(f.name)){ toast('“'+f.name+'” não é .docx.'); return false; }
+      const b64=await ctBlobB64(f);
+      const {error}=await sb.from('contrato_modelos').update({conteudo_b64:b64,arquivo:f.name,bytes:f.size,atualizado:new Date().toISOString()}).eq('slug',k);
+      if(error){ toast('Erro ao salvar o modelo: '+error.message); return false; }
+      n++;
+    }
+    toast(n?(n+' modelo(s) atualizado(s).'):'Nenhum arquivo escolhido.');
+    return true;
+  });
 };
 
 /* ---------- FOLHA DE PAGAMENTO ---------- */
