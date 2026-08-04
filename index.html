@@ -1892,6 +1892,59 @@ function tkViewCal(){
     <div class="tk-grid">${cels}</div>`;
 }
 /* A arvore de espacos mora na barra lateral: ela e a navegacao principal do sistema. */
+/* ---------- ARRASTAR LISTAS: reordenar e mover entre pastas/espacos ---------- */
+let SP_ARR=null;
+const spLimpar=()=>{ document.querySelectorAll('#spTree .tk-lista, #spTree .tk-pastah, #spTree .tk-esph').forEach(x=>{ x.style.boxShadow=''; x.style.background=''; }); };
+window.spArrastar=(ev,id)=>{ SP_ARR=id; try{ ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',id); }catch(_){} };
+window.spSobre=(ev)=>{ if(!SP_ARR) return; ev.preventDefault(); try{ ev.dataTransfer.dropEffect='move'; }catch(_){}
+  const el=ev.currentTarget;
+  if(el.classList.contains('tk-lista')) el.style.boxShadow='inset 0 2px 0 0 #2f7cf6'; else el.style.background='rgba(47,124,246,.14)'; };
+window.spSaiu=(ev)=>{ ev.currentTarget.style.boxShadow=''; ev.currentTarget.style.background=''; };
+window.spFim=()=>{ SP_ARR=null; spLimpar(); };
+async function spGravarOrdem(grupo){
+  for(let i=0;i<grupo.length;i++){
+    if(grupo[i].ordem===i) continue;
+    grupo[i].ordem=i;
+    const {error}=await sb.from('listas').update({ordem:i}).eq('id',grupo[i].id);
+    if(error){ toast('Erro ao salvar ordem: '+error.message); return false; }
+  }
+  return true;
+}
+function spGrupo(espId,pastaId,exceto){
+  return TK.listas.filter(l=>l.espaco_id===espId&&(l.pasta_id||null)===(pastaId||null)&&l.id!==exceto).sort((x,y)=>(x.ordem||0)-(y.ordem||0));
+}
+async function spMover(origem,espId,pastaId,pos){
+  const a=TK.listas.find(x=>x.id===origem); if(!a) return;
+  if(a.espaco_id!==espId||(a.pasta_id||null)!==(pastaId||null)){
+    const {error}=await sb.from('listas').update({espaco_id:espId,pasta_id:pastaId||null}).eq('id',a.id);
+    if(error){ toast('Erro ao mover: '+error.message); return; }
+    a.espaco_id=espId; a.pasta_id=pastaId||null;
+  }
+  const grupo=spGrupo(espId,pastaId,origem);
+  grupo.splice(pos<0||pos>grupo.length?grupo.length:pos,0,a);
+  if(await spGravarOrdem(grupo)) toast('Ordem salva.');
+  spDesenhar(); tkDesenhar(document.getElementById('content'));
+}
+window.spSoltarLista=async (ev,alvoId)=>{
+  ev.preventDefault(); ev.stopPropagation();
+  const origem=SP_ARR; spFim();
+  if(!origem||origem===alvoId) return;
+  const b=TK.listas.find(x=>x.id===alvoId); if(!b) return;
+  const grupo=spGrupo(b.espaco_id,b.pasta_id,origem);
+  await spMover(origem,b.espaco_id,b.pasta_id,grupo.findIndex(l=>l.id===alvoId));
+};
+window.spSoltarPasta=async (ev,pastaId,espId)=>{
+  ev.preventDefault(); ev.stopPropagation();
+  const origem=SP_ARR; spFim();
+  if(!origem) return;
+  await spMover(origem,espId,pastaId,999);
+};
+window.spSoltarEspaco=async (ev,espId)=>{
+  ev.preventDefault(); ev.stopPropagation();
+  const origem=SP_ARR; spFim();
+  if(!origem) return;
+  await spMover(origem,espId,null,999);
+};
 function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
@@ -1902,7 +1955,7 @@ function spDesenhar(){
     const nm=m?m[2]:l.nome;
     const cont=(l.id===LF_ID||ehFin(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
     const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)))?' on':'';
-    return `<button class="tk-lista${on}" onclick="spSelLista('${l.id}')">${ic}<span class="tk-nome">${esc(nm)}</span>${cont}</button>`; };
+    return `<button class="tk-lista${on}" draggable="true" ondragstart="spArrastar(event,'${l.id}')" ondragover="spSobre(event)" ondragleave="spSaiu(event)" ondrop="spSoltarLista(event,'${l.id}')" ondragend="spFim()" onclick="spSelLista('${l.id}')">${ic}<span class="tk-nome">${esc(nm)}</span>${cont}</button>`; };
   if(!TK.espacos.length){ el.innerHTML='<div class="hint" style="margin:0;padding:8px 6px">Nenhum espaço ainda.</div>'; return; }
   if(SP_MINI){
     const lsel=TK.listas.find(x=>x.id===TK.listaSel);
@@ -1913,7 +1966,7 @@ function spDesenhar(){
     const pas=TK.pastas.filter(p=>p.espaco_id===e.id&&(p.id!==PASTA_FIN||(currentUser&&currentUser.role==='master')));
     const abE=!TK.fechadas['e'+e.id];
     return `<div class="tk-esp">
-      <div class="tk-esph" onclick="tkToggle('e','${e.id}')">
+      <div class="tk-esph" ondragover="spSobre(event)" ondragleave="spSaiu(event)" ondrop="spSoltarEspaco(event,'${e.id}')" onclick="tkToggle('e','${e.id}')">
         <span class="tk-cv${abE?' ab':''}">&#9656;</span>
         <span class="sp-ic" style="background:${esc(e.cor)}">${esc((e.nome||'?').trim().charAt(0).toUpperCase())}</span>
         <span class="tk-nome">${esc(e.nome)}</span>
@@ -1922,7 +1975,7 @@ function spDesenhar(){
       ${abE?`<div class="tk-filhos">${pas.map(p=>{
         const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||(currentUser&&currentUser.role==='master'))); const abP=!TK.fechadas['p'+p.id];
         return `<div class="tk-pasta">
-          <div class="tk-pastah" onclick="tkToggle('p','${p.id}')">
+          <div class="tk-pastah" ondragover="spSobre(event)" ondragleave="spSaiu(event)" ondrop="spSoltarPasta(event,'${p.id}','${e.id}')" onclick="tkToggle('p','${p.id}')">
             <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic">&#128193;</span>
             <span class="tk-nome">${esc(p.nome)}</span>
             <button class="iconbtn tk-add" title="Nova lista" onclick="event.stopPropagation();tkNovaLista('${e.id}','${p.id}')">+</button>
