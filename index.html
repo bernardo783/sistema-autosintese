@@ -2010,7 +2010,46 @@ window.tkSetStatus=async (id,sid)=>{
   const s=sid?tkStatus1(sid):null, st=s?TK_G2ST[s.grupo]:'todo';
   const ok=await tkPatch(id,{status_id:sid||null,status:st,concluida_em:st==='feito'?new Date().toISOString():null}, s?s.nome:'Sem status');
   if(ok) await lcSincronizarFicha(id,sid);
+  if(ok&&sid===LC_CHURN) chPerguntarChurn(id);
 };
+/* ---------- CHURN: marcou "8. CHURN" na Controle de Clientes -> pergunta e move ---------- */
+const CH_ID='c1000000-0000-4000-8000-000000000001';
+const CH_FIM='c1000000-0000-4000-8000-000000000014';
+const LC_CHURN='a5613240-68a7-40ec-a2a7-9bb46b135177';
+const CH_MOTIVO='c1000000-0000-4000-8000-000000000021';
+const CH_PERDA='c1000000-0000-4000-8000-000000000022';
+const CH_ULTPG='c1000000-0000-4000-8000-000000000023';
+const CH_SAIDA='c1000000-0000-4000-8000-000000000024';
+const CH_GESTOR='c1000000-0000-4000-8000-000000000026';
+const LC_MENS='7fb37164-cc32-494c-a93c-c336afe163ea';
+const LC_GEST='35cf51e0-c581-473d-8b16-065f4b0e3dc3';
+const CH_MOTIVOS=['Resultado','Financeiro','Atendimento','Fechou a empresa','Outro'];
+function chPerguntarChurn(id){
+  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  const v=t.valores||{}; const mens=Number(v[LC_MENS]||0);
+  const hoje=new Date().toISOString().slice(0,10);
+  modal('Churn — '+esc(t.titulo||'cliente'),`
+    <p class="hint" style="margin:0 0 12px">O card sai da Controle de Clientes e vai para <strong>Controle de Churns</strong>. A mensalidade entra como perda de receita.</p>
+    <div class="row2">
+      <div class="field"><label>Última data de pagamento</label><input type="date" id="ch_ult"></div>
+      <div class="field"><label>Data de saída do cliente</label><input type="date" id="ch_sai" value="${hoje}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Perda de receita (R$)</label><input type="number" id="ch_val" value="${mens||''}"></div>
+      <div class="field"><label>Motivo</label><select id="ch_mot"><option value="">—</option>${CH_MOTIVOS.map(o=>'<option>'+o+'</option>').join('')}</select></div>
+    </div>`,
+  async ()=>{
+    const sai=($('#ch_sai').value||''), ult=($('#ch_ult').value||'');
+    if(!sai){ toast('Informe a data de saída.'); return false; }
+    const val=Number($('#ch_val').value||0), mot=($('#ch_mot').value||'');
+    const nv={}; nv[CH_SAIDA]=sai;
+    if(val) nv[CH_PERDA]=val;
+    if(ult) nv[CH_ULTPG]=ult;
+    if(mot) nv[CH_MOTIVO]=mot;
+    if(v[LC_GEST]) nv[CH_GESTOR]=v[LC_GEST];
+    return await tkPatch(id,{lista_id:CH_ID,status_id:CH_FIM,status:'feito',valores:nv},'Movido para Controle de Churns');
+  });
+}
 /* Card da Base de Clientes e a ficha do cliente: mover o card move o estagio da ficha. */
 async function lcSincronizarFicha(id,sid){
   const t=TK.tarefas.find(x=>x.id===id);
