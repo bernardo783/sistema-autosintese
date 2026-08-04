@@ -497,10 +497,7 @@ async function enterApp(){
   $('#whoami').textContent='👤 '+currentUser.nome+(currentUser.role==='master'?' · master':'')+(user.email?(' · '+user.email):'');
   if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); } else { hide($('#navUsuarios')); hide($('#navFin')); }
   render('dash');
-  if(currentUser.role==='master'){
-    const {count}=await sb.from('perfis').select('id',{count:'exact',head:true}).eq('aprovado',false);
-    if(count) toast(count===1?'Há 1 conta aguardando aprovação (aba Usuários).':'Há '+count+' contas aguardando aprovação (aba Usuários).');
-  }
+  mtBoot();   /* Meta começa a carregar no login: quando você abrir Tráfego já está pronto */
 }
 
 /* ======================= NAVEGAÇÃO ======================= */
@@ -537,7 +534,7 @@ function render(view){
   /* "Projetos" virou "Clientes" — o cliente é a entidade principal do sistema */
   if(view==='projetos') view='clientes';
   currentView=view; searchTerm='';
-  if(view!=='trafego' && window.mtParar) mtParar();
+  /* o ciclo do Meta continua rodando fora da aba — os dados nunca ficam frios */
   const c=$('#content');
   if(view==='dash') return renderDash(c);
   if(view==='financeiro'||view==='recebimentos'||view==='folha'){
@@ -617,18 +614,39 @@ function renderTrafego(c){
       let v=Math.round(Number(ci.value)||0);
       v=Math.min(180,Math.max(1,v)); ci.value=v;
       try{ localStorage.setItem('mtCiclo',String(v)); }catch(_){}
-      mtAgendar(); mtStatusTxt();
+      mtParar(); mtAgendar(); mtStatusTxt();
       toast('Verificação automática a cada '+v+' min.');
     };
   }
   const pr=$('#mtPreset');
   if(pr) pr.onchange=()=>metaCarregar();   /* trocar o período já recarrega */
-  /* dados velhos (>1 ciclo) ou inexistentes: busca sozinho ao abrir a aba */
+  /* pinta na hora com o que já está em memória ou no cache local; nada de tela vazia */
+  const temDado=!!(window.__mtDados&&window.__mtDados.length);
+  if(temDado){ metaDesenhar(); mtStatusTxt(); }
   const idade=window.__mtQuando?(Date.now()-window.__mtQuando)/60000:Infinity;
-  if(!window.__mtDados || idade>=mtCicloMin()) metaCarregar(true);
-  else { metaDesenhar(); mtStatusTxt(); }
+  if(!temDado || idade>=mtCicloMin()) metaCarregar(true);
   mtAgendar();
 }
+/* ---- cache local: a aba pinta na hora com o último dado conhecido ---- */
+const MT_CACHE='mtCache';
+function mtSalvarCache(){
+  try{ localStorage.setItem(MT_CACHE, JSON.stringify({quando:window.__mtQuando, preset:window.__mtPreset||'last_7d', contas:window.__mtDados||[]})); }catch(_){}
+}
+function mtLerCache(){
+  try{
+    const r=JSON.parse(localStorage.getItem(MT_CACHE)||'null');
+    if(!r||!Array.isArray(r.contas)||!r.contas.length) return false;
+    window.__mtDados=r.contas; window.__mtQuando=r.quando||0; window.__mtPreset=r.preset||'last_7d';
+    return true;
+  }catch(_){ return false; }
+}
+/* liga o Meta no login: lê o cache, busca em segundo plano e mantém o ciclo vivo em qualquer aba */
+window.mtBoot=()=>{
+  mtLerCache();
+  mtAgendar();
+  const idade=window.__mtQuando?(Date.now()-window.__mtQuando)/60000:Infinity;
+  if(idade>=mtCicloMin()) metaCarregar(true);
+};
 /* ---- ciclo de verificação automática ---- */
 const mtCicloMin=()=>{ let v=0; try{ v=parseInt(localStorage.getItem('mtCiclo'),10); }catch(_){}
   return (v&&v>=1&&v<=180)?v:15; };
@@ -637,13 +655,15 @@ window.mtParar=()=>{
   if(window.__mtTick){ clearInterval(window.__mtTick); window.__mtTick=null; }
 };
 window.mtAgendar=()=>{
-  mtParar();
-  window.__mtTimer=setInterval(()=>{
-    if(currentView!=='trafego'){ mtParar(); return; }
-    if(document.hidden) return;              /* aba do navegador em segundo plano: espera voltar */
-    if(document.querySelector('.overlay')) return;  /* modal/editor aberto: não mexe embaixo */
-    metaCarregar(true);
-  }, mtCicloMin()*60000);
+  /* o ciclo roda em qualquer aba do sistema. Só é recriado se ainda não existir,
+     senão trocar de aba adiaria a próxima leitura para sempre. */
+  if(!window.__mtTimer){
+    window.__mtTimer=setInterval(()=>{
+      if(document.hidden) return;                   /* aba do navegador em segundo plano: espera voltar */
+      if(currentView==='trafego' && document.querySelector('.overlay')) return;  /* modal aberto: não mexe embaixo */
+      metaCarregar(true);
+    }, mtCicloMin()*60000);
+  }
   /* relógio de 1s só para a contagem regressiva na tela — não chama a API */
   if(window.__mtTick) clearInterval(window.__mtTick);
   window.__mtTick=setInterval(()=>{
@@ -661,7 +681,7 @@ function mtStatusTxt(){
   st.innerHTML='<span class="mt-live"></span>no ar · atualizado às '+h+' · próxima em <strong>'+mm+':'+String(ss).padStart(2,'0')+'</strong>';
 }
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden || currentView!=='trafego' || !window.__mtDados) return;
+  if(document.hidden || !window.__mtDados) return;
   const idade=window.__mtQuando?(Date.now()-window.__mtQuando)/60000:Infinity;
   if(idade>=mtCicloMin()) metaCarregar(true);   /* voltou pra aba com dado vencido */
 });
@@ -681,6 +701,7 @@ window.metaCarregar=async (auto)=>{
     if(!d.ok){ if(st) st.textContent='Erro: '+(d.erro||'falha'); return; }
     window.__mtDados=d.contas||[];
     window.__mtQuando=Date.now();
+    window.__mtPreset=p; mtSalvarCache();
     aprenderLimites().catch(()=>{});
     if(currentView==='trafego'){ metaDesenhar(); mtStatusTxt(); }
   }catch(e){ if(st) st.textContent=window.__mtDados?'Sem conexão — tentando de novo no próximo ciclo.':'Erro de rede — tente de novo.'; }
