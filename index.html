@@ -166,6 +166,7 @@
   .tk-card:hover{border-color:var(--brand2)}
   .tk-card.feito .tk-tit{text-decoration:line-through;color:var(--muted)}
   .tk-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .tk-sub{color:var(--muted);font-size:11.5px;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tk-wrap{display:grid;grid-template-columns:252px 1fr;gap:16px;align-items:start}
   .tk-tree{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 6px}
   .tk-ws{display:flex;align-items:center;gap:8px;font-weight:800;font-size:12.5px;padding:5px 8px 10px;border-bottom:1px solid var(--line);margin-bottom:8px}
@@ -1659,6 +1660,8 @@ let SP_MINI=false;
 try{ SP_MINI=localStorage.getItem('sp_mini')==='1'; }catch(_){}
 try{ const s=localStorage.getItem('sp_arvore'); if(s){ TK.fechadas=JSON.parse(s)||{}; TK.temSalvo=true; } }catch(_){}
 function spSalvarArvore(){ try{ localStorage.setItem('sp_arvore', JSON.stringify(TK.fechadas)); }catch(_){} }
+function spSalvarCols(){ try{ localStorage.setItem('sp_cols', JSON.stringify(TK.colsOff)); }catch(_){} }
+try{ const s2=localStorage.getItem('sp_cols'); if(s2){ TK.colsOff=JSON.parse(s2)||{}; TK.colsSalvo=true; } }catch(_){}
 function spAbrirCaminho(lid){ const l=TK.listas.find(x=>x.id===lid); if(!l) return; TK.fechadas['e'+l.espaco_id]=false; if(l.pasta_id) TK.fechadas['p'+l.pasta_id]=false; spSalvarArvore(); }
 window.spMini=(v)=>{ SP_MINI=(v===undefined)?!SP_MINI:!!v; try{ localStorage.setItem('sp_mini',SP_MINI?'1':'0'); }catch(_){} spDesenhar(); };
 window.spExpandir=(eid)=>{ SP_MINI=false; try{ localStorage.setItem('sp_mini','0'); }catch(_){} TK.fechadas['e'+eid]=false; spSalvarArvore(); spDesenhar(); };
@@ -1696,6 +1699,8 @@ async function tkCarregar(){
   if(!TK.ref) TK.ref=tkHoje().slice(0,7);
   if(!TK.semeado){ TK.semeado=true;
     if(!TK.temSalvo){ TK.espacos.forEach(e=>{ TK.fechadas['e'+e.id]=true; }); TK.pastas.forEach(p=>{ TK.fechadas['p'+p.id]=true; }); }
+    if(!TK.colsSalvo){ const esconder=['Remuneração por Contrato','Verba Semanal','Forma de Pagamento','Canal'];
+      TK.campos.forEach(k=>{ if(k.lista_id===LC_ID&&esconder.indexOf(k.nome)>=0) TK.colsOff[k.id]=true; }); }
     spAbrirCaminho(LC_ID); }
 }
 function renderTarefas(c){
@@ -1728,12 +1733,22 @@ function tkOrdenadas(arr){
 function tkCard(t){
   const hoje=tkHoje();
   const cli=ehLC(t.lista_id)&&t.ficha_id;
-  const f=cli?fichaDe(t.ficha_id):null;
   const atrasada=t.prazo&&t.prazo<hoje&&t.status!=='feito';
-  return `<div class="tk-card${(t.status==='feito'&&!cli)?' feito':''}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" onclick="${cli?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">
+  if(cli){
+    const f=fichaDe(t.ficha_id)||{};
+    const sub=[f.gerente,f.responsavel].filter(Boolean).map(esc).join(' · ');
+    return `<div class="tk-card" draggable="true" ondragstart="tkPegar(event,'${t.id}')" onclick="abrirCliente('${t.ficha_id}')">
+      <div class="tk-tit" style="font-weight:700;font-size:13.5px">${esc(t.titulo)}</div>
+      ${sub?`<div class="tk-sub">${sub}</div>`:''}
+    </div>`;
+  }
+  return `<div class="tk-card${t.status==='feito'?' feito':''}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" onclick="tkAbrir('${t.id}')">
     <div class="tk-tit" style="font-weight:700;font-size:13.5px">${esc(t.titulo)}</div>
     <div class="tk-meta">
-      ${cli?`${f&&f.responsavel?`<span class="tag st" style="font-size:10.5px">${esc(f.responsavel)}</span>`:''}${f&&f.gerente?`<span class="tag st" style="font-size:10.5px">${esc(f.gerente)}</span>`:''}`:`<span class="tag ${TK_PRIOC[t.prioridade]||'st'}" style="font-size:10.5px">${TK_PRIO[t.prioridade]||'—'}</span>${t.ficha_id?`<span class="tag st" style="font-size:10.5px">👤 ${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}${t.prazo?`<span class="tag ${atrasada?'churn':'st'}" style="font-size:10.5px">📅 ${fmtDate(t.prazo)}</span>`:''}${t.responsavel_id?`<span class="tag st" style="font-size:10.5px">${esc(tkNomeUser(t.responsavel_id))}</span>`:''}`}
+      <span class="tag ${TK_PRIOC[t.prioridade]||'st'}" style="font-size:10.5px">${TK_PRIO[t.prioridade]||'—'}</span>
+      ${t.ficha_id?`<span class="tag st" style="font-size:10.5px">👤 ${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
+      ${t.prazo?`<span class="tag ${atrasada?'churn':'st'}" style="font-size:10.5px">📅 ${fmtDate(t.prazo)}</span>`:''}
+      ${t.responsavel_id?`<span class="tag st" style="font-size:10.5px">${esc(tkNomeUser(t.responsavel_id))}</span>`:''}
       ${ckResumo(t)?`<span class="tag st" style="font-size:10.5px">${ckResumo(t)}</span>`:''}${TK.escopo==='todas'?`<span class="tag st" style="font-size:10.5px;opacity:.7">${esc(tkCaminho(t.lista_id))}</span>`:''}
     </div></div>`;
 }
@@ -1806,16 +1821,23 @@ const tkSelo=(t)=>{
   return `<select class="tk-stsel" style="color:${esc(cor)};border-color:${esc(cor)}66;background:${esc(cor)}1a" onchange="tkSetStatus('${t.id}',this.value)"><option value="">— sem status —</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
 };
 function tkViewLista(){
+  const lc=ehLC(TK.listaSel)&&TK.escopo!=='todas';
   const cps=TK.escopo==='todas'?[]:tkCamposDe(TK.listaSel);
-  const grupos=tkGrupos(), hoje=tkHoje();
+  let grupos=tkGrupos(); const hoje=tkHoje();
+  if(lc) grupos=grupos.filter(g=>g.its.length);
   const seta=(k)=>TK.ord===k?(TK.dir===1?' ▲':' ▼'):'';
   const th=(k,r)=>`<th class="tk-th" onclick="tkOrdenar('${k}')">${r}${seta(k)}</th>`;
-  const cab=`<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${cps.map(c=>`<th style="width:${c.largura}px">${esc(c.nome)}</th>`).join('')}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
+  const colsCps=cps.map(c=>`<th style="width:${c.largura}px">${esc(c.nome)}</th>`).join('');
+  const cab=lc
+    ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
+    : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
+  const nome=(t)=>`<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo==='todas'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
+    if(lc) return `<tr><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
     return `<tr>
-      <td>${ehLC(t.lista_id)?'':`<input type="checkbox" class="tk-chk" ${t.status==='feito'?'checked':''} onclick="tkConcluir('${t.id}',this.checked)">`}</td>
-      <td><span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo==='todas'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}</td>
+      <td><input type="checkbox" class="tk-chk" ${t.status==='feito'?'checked':''} onclick="tkConcluir('${t.id}',this.checked)"></td>
+      <td>${nome(t)}</td>
       <td>${tkSelo(t)}</td>
       ${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}
       <td><span class="tag ${TK_PRIOC[t.prioridade]||'st'}">${TK_PRIO[t.prioridade]||'—'}</span></td>
@@ -1823,6 +1845,7 @@ function tkViewLista(){
       <td>${esc(tkNomeUser(t.responsavel_id))||'<span class="hint" style="margin:0">—</span>'}</td>
       <td><button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button></td>
     </tr>`;};
+  const ncols=lc?(cps.length+2):(cps.length+7);
   const bloco=(g)=>{
     const fech=TK.fechadas['g'+g.k];
     return `<div class="tk-grupo">
@@ -1830,17 +1853,17 @@ function tkViewLista(){
         <span class="tk-cv${fech?'':' ab'}">&#9656;</span>
         <span class="tk-selo" style="color:${esc(g.cor)};border-color:${esc(g.cor)}66;background:${esc(g.cor)}1a">${esc(g.rot)}</span>
         <span class="tk-n">${g.its.length}</span>
-        <button class="iconbtn tk-add" title="Nova tarefa aqui" onclick="event.stopPropagation();tkAbrir(null,null,'${g.k}')">+</button>
+        ${lc?'':`<button class="iconbtn tk-add" title="Nova tarefa aqui" onclick="event.stopPropagation();tkAbrir(null,null,'${g.k}')">+</button>`}
       </div>
-      ${fech?'':`<div class="tablewrap"><table class="tk-tab"><thead>${cab}</thead><tbody>${g.its.map(linha).join('')||`<tr><td colspan="${cps.length+7}"><span class="hint" style="margin:0">nada aqui</span></td></tr>`}</tbody></table></div>`}
+      ${fech?'':`<div class="tablewrap"><table class="tk-tab"><thead>${cab}</thead><tbody>${g.its.map(linha).join('')||`<tr><td colspan="${ncols}"><span class="hint" style="margin:0">nada aqui</span></td></tr>`}</tbody></table></div>`}
     </div>`;};
   const total=grupos.reduce((a,g)=>a+g.its.length,0);
   return `<div class="tk-bar">
     <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
     <button class="btn ghost small" onclick="tkMenuCols()">&#9707; Colunas</button>
     ${TK.escopo!=='todas'?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>`:''}
-    <span class="hint" style="margin:0 0 0 auto">${total} tarefa${total===1?'':'s'}</span>
-  </div>${grupos.length?grupos.map(bloco).join(''):'<div class="empty">Nenhuma tarefa por aqui.</div>'}`;
+    <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
+  </div>${grupos.length?grupos.map(bloco).join(''):'<div class="empty">Nada por aqui.</div>'}`;
 }
 function tkViewCal(){
   const p=TK.ref.split('-'), ano=Number(p[0]), mes=Number(p[1]);
@@ -1912,6 +1935,7 @@ window.spSelLista=(id)=>{
   TK.listaSel=id; TK.escopo='lista'; searchTerm=''; spMarcarAtalho(''); spAbrirCaminho(id);
   if(LFIN[id]){ render(LFIN[id]); return; }
   if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
+  if(id===LC_ID&&!TK.visaoTocada) TK.visao='board';
   currentView='lista'; tkDesenhar($('#content')); spDesenhar(); };
 window.spAbrirClientes=()=>{
   const c=$('#content');
@@ -1937,7 +1961,7 @@ function tkDesenhar(c){
      </div>
    </div>
    ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}
-   <p class="hint" style="margin-top:14px">${cli?'Cada card é um cliente. Clique para abrir a ficha completa; arraste entre as colunas para mudar o estágio — o status da ficha acompanha. Cliente novo entra automaticamente em <strong>0. NÃO ATIVO</strong> quando o Fechamento é enviado.':'Espaço agrupa pastas; pasta agrupa listas; lista agrupa tarefas — cada lista tem seus próprios status e colunas. Tarefa com <strong>cliente</strong> só aparece para quem tem o squad daquele cliente.'}</p>`;
+   <p class="hint" style="margin-top:14px">${cli?'Cada card é um cliente — clique para abrir a ficha. Arrastar entre colunas muda o estágio.':'Espaço agrupa pastas; pasta agrupa listas; lista agrupa tarefas — cada lista tem seus próprios status e colunas. Tarefa com <strong>cliente</strong> só aparece para quem tem o squad daquele cliente.'}</p>`;
   if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
 }
 async function tkPatch(id,patch,msg){
@@ -1947,7 +1971,7 @@ async function tkPatch(id,patch,msg){
   tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); return true;
 }
 window.tkSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; tkDesenhar($('#content')); };
-window.tkVisao=(v)=>{ TK.visao=v; tkDesenhar($('#content')); };
+window.tkVisao=(v)=>{ TK.visao=v; TK.visaoTocada=true; tkDesenhar($('#content')); };
 window.tkEscopo=()=>{ TK.escopo=TK.escopo==='todas'?'lista':'todas'; tkDesenhar($('#content')); };
 window.tkBusca=(v)=>{ TK.busca=v; TK.focoBusca=true; tkDesenhar($('#content')); };
 window.tkOrdenar=(k)=>{ if(TK.ord===k){ TK.dir=-TK.dir; } else { TK.ord=k; TK.dir=1; } tkDesenhar($('#content')); };
@@ -2008,7 +2032,7 @@ window.tkMenuCols=()=>{
   const cps=TK.campos.filter(k=>k.lista_id===TK.listaSel);
   if(!cps.length){ toast('Esta lista ainda não tem colunas. Use "+ Coluna".'); return; }
   modal('Colunas visíveis', cps.map(c=>`<label class="tk-chkline"><input type="checkbox" data-col="${c.id}" ${TK.colsOff[c.id]?'':'checked'}> <span class="tk-nome">${esc(c.nome)}</span> <span class="hint" style="margin:0">${esc(c.tipo)}</span></label>`).join('')+`<p class="hint">Desmarcar só esconde a coluna na tela; os dados continuam salvos.</p>`,
-    async ()=>{ document.querySelectorAll('[data-col]').forEach(i=>{ TK.colsOff[i.getAttribute('data-col')]=!i.checked; }); tkDesenhar($('#content')); return true; });
+    async ()=>{ document.querySelectorAll('[data-col]').forEach(i=>{ TK.colsOff[i.getAttribute('data-col')]=!i.checked; }); spSalvarCols(); tkDesenhar($('#content')); return true; });
 };
 window.tkNovoCampo=()=>{
   if(!TK.listaSel){ toast('Selecione uma lista.'); return; }
