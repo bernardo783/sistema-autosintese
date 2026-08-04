@@ -602,7 +602,8 @@ $('#btnLogout').onclick=async ()=>{ if(confirm('Sair do sistema?')){ try{ await 
 const brl = n => (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const esc = s => (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtDate = d => d? d.split('-').reverse().join('/') : '';
-const compNow = ()=> new Date().toISOString().slice(0,7);
+const hojeISO = ()=>{ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const compNow = ()=> hojeISO().slice(0,7);
 const fmtComp = c => c? c.split('-').reverse().join('/') : '';
 const fmtCompExt = c => { if(!c) return ''; const [y,m]=c.split('-').map(Number); const N=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']; return N[m-1]+' de '+y; };
 function vencOf(comp,dia){
@@ -2312,7 +2313,7 @@ function renderLanc(c){
     const t=searchTerm.toLowerCase();
     const list=rows.filter(r=>!t||(r.descricao+r.categoria).toLowerCase().includes(t));
     $('#fBody').innerHTML=list.map(r=>`<tr>
-      <td>${fmtDate(r.data)}</td><td>${esc(r.descricao)}</td><td>${esc(r.categoria)||'—'}</td>
+      <td>${fmtDate(r.data)}${r.pagoEm&&r.pagoEm!==r.data?`<div style="color:var(--muted);font-size:11px">pago em ${fmtDate(r.pagoEm)}</div>`:''}</td><td>${esc(r.descricao)}</td><td>${esc(r.categoria)||'—'}</td>
       <td><span class="tag ${r.tipo}">${r.tipo==='receita'?'Receita':'Despesa'}</span></td>
       <td class="money" style="text-align:right;color:${r.tipo==='receita'?'var(--ok)':'var(--danger)'}">${r.tipo==='despesa'?'-':''}${brl(r.valor)}</td>
       <td><div class="rowact"><button class="iconbtn" onclick="openFinModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('financeiro','${r.id}')">Excluir</button></div></td>
@@ -2324,7 +2325,7 @@ function renderLanc(c){
   draw();
 }
 window.openFinModal=(id)=>{
-  const it=id?DB.financeiro.find(x=>x.id===id):{tipo:'receita',data:new Date().toISOString().slice(0,10)};
+  const it=id?DB.financeiro.find(x=>x.id===id):{tipo:'receita',data:hojeISO()};
   modal(id?'Editar lançamento':'Novo lançamento',`
     <div class="row2">
       <div class="field"><label>Data</label><input type="date" id="m_data" value="${it.data||''}"></div>
@@ -2912,7 +2913,7 @@ let cliComp = compNow();
 let diaFiltro='';
 let statusFiltro='';
 function calcRecebimentos(comp){
-  const hoje=new Date().toISOString().slice(0,10);
+  const hoje=hojeISO();
   const byCli={}; DB.recebimentos.filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
   const st=(c)=>{ const r=byCli[c.id];
     if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
@@ -3061,22 +3062,22 @@ window.rcStatusCli=async (cliId,novo)=>{
     const sv=parseFloat((prompt('Valor do sinal recebido (R$):','')||'').replace(',','.'));
     if(!(sv>0)){ toast('Sinal cancelado — valor inválido.'); render('recebimentos'); return; }
     if(sv>=(Number(r.valor)||0)){ toast('Sinal maior ou igual ao total — use 🟢 Recebido.'); render('recebimentos'); return; }
-    r.status='sinal'; r.sinal=sv; r.sinalEm=new Date().toISOString().slice(0,10);
+    r.status='sinal'; r.sinal=sv; r.sinalEm=hojeISO();
     r.recebido=false; r.recebidoEm=null;
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
-    DB.financeiro.push({id:'rcs_'+r.id,data:r.sinalEm,tipo:'receita',descricao:'Sinal: '+r.nome,categoria:'Mensalidade Clientes',valor:sv});
+    DB.financeiro.push({id:'rcs_'+r.id,data:(r.venc||vencOf(comp,c.diaVenc)),comp:comp,pagoEm:r.sinalEm,tipo:'receita',descricao:'Sinal: '+r.nome,categoria:'Mensalidade Clientes',valor:sv});
   } else if(novo==='churn'){
     if(!confirm('Marcar '+c.nome+' como CHURN em '+fmtComp(comp)+'?\n\nO valor deste mês entra como receita perdida e o cliente para de gerar cobrança a partir do mês seguinte.')){ render('recebimentos'); return; }
-    r.status='churn'; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.churnEm=new Date().toISOString().slice(0,10);
+    r.status='churn'; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.churnEm=hojeISO();
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
     c.churnComp=comp; c.fim=comp;
     const pj=DB.projetos.find(x=>x.clienteId===c.id); if(pj) pj.status='churn';
   } else if(novo==='recebido'){
     r.status='recebido';
-    if(!r.recebido){ r.recebido=true; r.recebidoEm=new Date().toISOString().slice(0,10);
+    if(!r.recebido){ r.recebido=true; r.recebidoEm=hojeISO();
       const restante=Math.max(0,(Number(r.valor)||0)-(Number(r.sinal)||0));
       DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id);
-      DB.financeiro.push({id:'rc_'+r.id,data:r.recebidoEm,tipo:'receita',descricao:(r.sinal?'Restante: ':'Mensalidade: ')+r.nome,categoria:'Mensalidade Clientes',valor:(r.sinal?restante:(Number(r.valor)||0))}); }
+      DB.financeiro.push({id:'rc_'+r.id,data:(r.venc||vencOf(comp,c.diaVenc)),comp:comp,pagoEm:r.recebidoEm,tipo:'receita',descricao:(r.sinal?'Restante: ':'Mensalidade: ')+r.nome,categoria:'Mensalidade Clientes',valor:(r.sinal?restante:(Number(r.valor)||0))}); }
   } else {
     r.status=novo; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null;
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
@@ -3102,7 +3103,7 @@ function renderFolha(c){
   const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
   const semGrupos={}; pays.forEach(p=>{ const f=fixoById[p.fixoId]; if(f&&f.freq==='semanal'){ (semGrupos[p.fixoId]=semGrupos[p.fixoId]||[]).push(p); } });
   const paysMain=pays.filter(p=>{ const f=fixoById[p.fixoId]; return !(f&&f.freq==='semanal'); });
-  const hoje=new Date().toISOString().slice(0,10);
+  const hoje=hojeISO();
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Folha de Pagamento</h2><div class="desc">Pagamentos mensais de equipe e prestadores</div></div>
@@ -3199,9 +3200,9 @@ window.gerarFolha=async ()=>{
 window.fpToggle=(id)=>{ const p=DB.folha.find(x=>x.id===id); if(!p)return; if(p.pago) fpDesfazer(id); else fpPagar(id); };
 window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
-  p.pago=true; p.pagoEm=new Date().toISOString().slice(0,10);
+  p.pago=true; p.pagoEm=hojeISO();
   const fxp=DB.folhaFixos.find(f=>f.id===p.fixoId);
-  DB.financeiro.push({id:'fp_'+p.id,data:p.pagoEm,tipo:'despesa',descricao:'Folha: '+p.nome+(p.descricao?' — '+p.descricao:''),categoria:(fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento',valor:Number(p.valor)||0});
+  DB.financeiro.push({id:'fp_'+p.id,data:(p.venc||((p.comp||compNow())+'-01')),comp:p.comp,pagoEm:p.pagoEm,tipo:'despesa',descricao:'Folha: '+p.nome+(p.descricao?' — '+p.descricao:''),categoria:(fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento',valor:Number(p.valor)||0});
   await saveDB(); render('folha'); toast('Pagamento de '+p.nome+' registrado no Financeiro.');
 };
 window.fpDesfazer=async (id)=>{
