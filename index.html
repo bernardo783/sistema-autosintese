@@ -1660,7 +1660,10 @@ async function tkCarregar(){
   if(!TK.ref) TK.ref=tkHoje().slice(0,7);
 }
 function renderTarefas(c){
-  if(TK.listas.length){ spDesenhar(); return tkDesenhar(c); }
+  /* pinta na hora com o que ja esta em memoria e revalida contra o banco logo em seguida */
+  if(TK.listas.length){ spDesenhar(); tkDesenhar(c);
+    tkCarregar().then(()=>{ spDesenhar(); tkDesenhar(c); }).catch(()=>{});
+    return; }
   c.innerHTML='<div class="empty">Carregando...</div>';
   tkCarregar().then(()=>{ spDesenhar(); tkDesenhar(c); }).catch(err=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(err.message)+'</div>'; });
 }
