@@ -1722,6 +1722,7 @@ function tkFiltradas(){
 }
 function tkOrdenadas(arr){
   const k=TK.ord,d=TK.dir;
+  if(!k) return arr.slice().sort((a,b)=>((a.ordem||0)-(b.ordem||0))||(String(a.criado_em||'')<String(b.criado_em||'')?-1:1));
   const val=(t)=>k==='titulo'?(t.titulo||'').toLowerCase()
     :k==='prioridade'?TK_PRIOO[t.prioridade]
     :k==='status'?['todo','fazendo','feito'].indexOf(t.status)
@@ -1834,8 +1835,8 @@ function tkViewLista(){
   const nome=(t)=>`<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo==='todas'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
-    if(lc) return `<tr><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
-    return `<tr>
+    if(lc) return `<tr draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
+    return `<tr draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()">
       <td><input type="checkbox" class="tk-chk" ${t.status==='feito'?'checked':''} onclick="tkConcluir('${t.id}',this.checked)"></td>
       <td>${nome(t)}</td>
       <td>${tkSelo(t)}</td>
@@ -1945,6 +1946,115 @@ window.spSoltarEspaco=async (ev,espId)=>{
   if(!origem) return;
   await spMover(origem,espId,null,999);
 };
+/* ---------- DND estilo ClickUp: espacos, pastas, listas e tarefas ---------- */
+let DND=null;
+const dndLimpar=()=>{ document.querySelectorAll('#spTree .tk-lista, #spTree .tk-pastah, #spTree .tk-esph').forEach(x=>{ x.style.boxShadow=''; x.style.background=''; }); };
+const dndSet=(ev,tipo,id)=>{ ev.stopPropagation(); DND={tipo,id}; try{ ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',tipo+':'+id); }catch(_){} };
+window.dndLista=(ev,id)=>dndSet(ev,'lista',id);
+window.dndPasta=(ev,id)=>dndSet(ev,'pasta',id);
+window.dndEspaco=(ev,id)=>dndSet(ev,'espaco',id);
+window.dndSobre=(ev)=>{ if(!DND) return; ev.preventDefault(); ev.stopPropagation(); try{ ev.dataTransfer.dropEffect='move'; }catch(_){}
+  const el=ev.currentTarget;
+  if(el.classList.contains('tk-lista')) el.style.boxShadow='inset 0 2px 0 0 #2f7cf6'; else el.style.background='rgba(47,124,246,.16)'; };
+window.dndSaiu=(ev)=>{ ev.currentTarget.style.boxShadow=''; ev.currentTarget.style.background=''; };
+window.dndFim=()=>{ DND=null; dndLimpar(); };
+const porOrdem=(x,y)=>(x.ordem||0)-(y.ordem||0);
+async function dndGravar(tab,arr){
+  for(let i=0;i<arr.length;i++){
+    if(arr[i].ordem===i) continue;
+    arr[i].ordem=i;
+    const {error}=await sb.from(tab).update({ordem:i}).eq('id',arr[i].id);
+    if(error){ toast('Erro ao salvar ordem: '+error.message); return false; }
+  }
+  return true;
+}
+function dndRedesenhar(){ spDesenhar(); tkDesenhar(document.getElementById('content')); }
+const dndListasDe=(espId,pastaId,exceto)=>TK.listas.filter(l=>l.espaco_id===espId&&(l.pasta_id||null)===(pastaId||null)&&l.id!==exceto).sort(porOrdem);
+const dndPastasDe=(espId,exceto)=>TK.pastas.filter(p=>p.espaco_id===espId&&p.id!==exceto).sort(porOrdem);
+async function dndMoverLista(id,espId,pastaId,pos){
+  const a=TK.listas.find(x=>x.id===id); if(!a) return;
+  if(a.espaco_id!==espId||(a.pasta_id||null)!==(pastaId||null)){
+    const r=await sb.from('listas').update({espaco_id:espId,pasta_id:pastaId||null}).eq('id',a.id);
+    if(r.error){ toast('Erro ao mover: '+r.error.message); return; }
+    a.espaco_id=espId; a.pasta_id=pastaId||null;
+  }
+  const g=dndListasDe(espId,pastaId,id);
+  g.splice(pos<0||pos>g.length?g.length:pos,0,a);
+  if(await dndGravar('listas',g)) toast('Ordem salva.');
+  TK.listas.sort(porOrdem); dndRedesenhar();
+}
+async function dndMoverPasta(id,espId,pos){
+  const a=TK.pastas.find(x=>x.id===id); if(!a) return;
+  if(a.espaco_id!==espId){
+    const r=await sb.from('pastas').update({espaco_id:espId}).eq('id',a.id);
+    if(r.error){ toast('Erro ao mover: '+r.error.message); return; }
+    a.espaco_id=espId;
+    for(const l of TK.listas.filter(x=>x.pasta_id===id)){
+      await sb.from('listas').update({espaco_id:espId}).eq('id',l.id); l.espaco_id=espId;
+    }
+  }
+  const g=dndPastasDe(espId,id);
+  g.splice(pos<0||pos>g.length?g.length:pos,0,a);
+  if(await dndGravar('pastas',g)) toast('Ordem salva.');
+  TK.pastas.sort(porOrdem); dndRedesenhar();
+}
+async function dndMoverEspaco(id,pos){
+  const a=TK.espacos.find(x=>x.id===id); if(!a) return;
+  const g=TK.espacos.filter(e=>e.id!==id).sort(porOrdem);
+  g.splice(pos<0||pos>g.length?g.length:pos,0,a);
+  if(await dndGravar('espacos',g)) toast('Ordem salva.');
+  TK.espacos=g; dndRedesenhar();
+}
+window.dndSoltarLista=async (ev,alvoId)=>{
+  ev.preventDefault(); ev.stopPropagation();
+  const d=DND; dndFim();
+  if(!d||d.tipo!=='lista'||d.id===alvoId) return;
+  const b=TK.listas.find(x=>x.id===alvoId); if(!b) return;
+  const g=dndListasDe(b.espaco_id,b.pasta_id,d.id);
+  await dndMoverLista(d.id,b.espaco_id,b.pasta_id,g.findIndex(l=>l.id===alvoId));
+};
+window.dndSoltarPasta=async (ev,pastaId,espId)=>{
+  ev.preventDefault(); ev.stopPropagation();
+  const d=DND; dndFim();
+  if(!d) return;
+  if(d.tipo==='lista') return await dndMoverLista(d.id,espId,pastaId,999);
+  if(d.tipo==='pasta'&&d.id!==pastaId){
+    const g=dndPastasDe(espId,d.id);
+    return await dndMoverPasta(d.id,espId,g.findIndex(p=>p.id===pastaId));
+  }
+};
+window.dndSoltarEspaco=async (ev,espId)=>{
+  ev.preventDefault(); ev.stopPropagation();
+  const d=DND; dndFim();
+  if(!d) return;
+  if(d.tipo==='lista') return await dndMoverLista(d.id,espId,null,999);
+  if(d.tipo==='pasta') return await dndMoverPasta(d.id,espId,999);
+  if(d.tipo==='espaco'&&d.id!==espId){
+    const g=TK.espacos.filter(e=>e.id!==d.id).sort(porOrdem);
+    return await dndMoverEspaco(d.id,g.findIndex(e=>e.id===espId));
+  }
+};
+window.dndSobreLinha=(ev)=>{ if(!TK.arrastando) return; ev.preventDefault(); ev.currentTarget.style.boxShadow='inset 0 2px 0 0 #2f7cf6'; };
+window.dndSaiLinha=(ev)=>{ ev.currentTarget.style.boxShadow=''; };
+window.dndFimLinha=()=>{ document.querySelectorAll('#content tr').forEach(x=>{ x.style.boxShadow=''; }); };
+window.dndSoltarLinha=async (ev,alvoId)=>{
+  ev.preventDefault(); ev.stopPropagation();
+  const id=TK.arrastando; TK.arrastando=null; dndFimLinha();
+  if(!id||id===alvoId) return;
+  const a=TK.tarefas.find(x=>x.id===id), b=TK.tarefas.find(x=>x.id===alvoId);
+  if(!a||!b) return;
+  if(a.lista_id!==b.lista_id){
+    const r=await sb.from('tarefas').update({lista_id:b.lista_id,status_id:null}).eq('id',a.id);
+    if(r.error){ toast('Erro ao mover: '+r.error.message); return; }
+    a.lista_id=b.lista_id; a.status_id=null;
+  }
+  const g=TK.tarefas.filter(t=>t.lista_id===b.lista_id&&t.id!==a.id).sort(porOrdem);
+  const i=g.findIndex(t=>t.id===b.id);
+  g.splice(i<0?g.length:i,0,a);
+  if(await dndGravar('tarefas',g)) toast('Ordem salva.');
+  TK.tarefas.sort(porOrdem);
+  dndRedesenhar();
+};
 function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
@@ -1955,7 +2065,7 @@ function spDesenhar(){
     const nm=m?m[2]:l.nome;
     const cont=(l.id===LF_ID||ehFin(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
     const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)))?' on':'';
-    return `<button class="tk-lista${on}" draggable="true" ondragstart="spArrastar(event,'${l.id}')" ondragover="spSobre(event)" ondragleave="spSaiu(event)" ondrop="spSoltarLista(event,'${l.id}')" ondragend="spFim()" onclick="spSelLista('${l.id}')">${ic}<span class="tk-nome">${esc(nm)}</span>${cont}</button>`; };
+    return `<button class="tk-lista${on}" draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()" onclick="spSelLista('${l.id}')">${ic}<span class="tk-nome">${esc(nm)}</span>${cont}</button>`; };
   if(!TK.espacos.length){ el.innerHTML='<div class="hint" style="margin:0;padding:8px 6px">Nenhum espaço ainda.</div>'; return; }
   if(SP_MINI){
     const lsel=TK.listas.find(x=>x.id===TK.listaSel);
@@ -1966,7 +2076,7 @@ function spDesenhar(){
     const pas=TK.pastas.filter(p=>p.espaco_id===e.id&&(p.id!==PASTA_FIN||(currentUser&&currentUser.role==='master')));
     const abE=!TK.fechadas['e'+e.id];
     return `<div class="tk-esp">
-      <div class="tk-esph" ondragover="spSobre(event)" ondragleave="spSaiu(event)" ondrop="spSoltarEspaco(event,'${e.id}')" onclick="tkToggle('e','${e.id}')">
+      <div class="tk-esph" draggable="true" ondragstart="dndEspaco(event,'${e.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarEspaco(event,'${e.id}')" ondragend="dndFim()" onclick="tkToggle('e','${e.id}')">
         <span class="tk-cv${abE?' ab':''}">&#9656;</span>
         <span class="sp-ic" style="background:${esc(e.cor)}">${esc((e.nome||'?').trim().charAt(0).toUpperCase())}</span>
         <span class="tk-nome">${esc(e.nome)}</span>
@@ -1975,7 +2085,7 @@ function spDesenhar(){
       ${abE?`<div class="tk-filhos">${pas.map(p=>{
         const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||(currentUser&&currentUser.role==='master'))); const abP=!TK.fechadas['p'+p.id];
         return `<div class="tk-pasta">
-          <div class="tk-pastah" ondragover="spSobre(event)" ondragleave="spSaiu(event)" ondrop="spSoltarPasta(event,'${p.id}','${e.id}')" onclick="tkToggle('p','${p.id}')">
+          <div class="tk-pastah" draggable="true" ondragstart="dndPasta(event,'${p.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarPasta(event,'${p.id}','${e.id}')" ondragend="dndFim()" onclick="tkToggle('p','${p.id}')">
             <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic">&#128193;</span>
             <span class="tk-nome">${esc(p.nome)}</span>
             <button class="iconbtn tk-add" title="Nova lista" onclick="event.stopPropagation();tkNovaLista('${e.id}','${p.id}')">+</button>
