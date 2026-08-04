@@ -1989,15 +1989,25 @@ const avt=(n,papel)=>{ if(!n)return ''; const f=FOTOS[n.trim().toLowerCase()];
   if(f) return `<span class="avt" style="background-image:url(${f});background-size:cover;background-position:center" title="${papel}: ${esc(n)}"></span>`;
   return `<span class="avt" style="background:${avtCor(n)}" title="${papel}: ${esc(n)}">${esc(n.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase())}</span>`; };
 const eqAv=r=>{const a=avt(r.responsavel,'Gestor de tráfego'),b=avt(r.gerente,'Gerente');return (a||b)?`<span class="avts">${a}${b}</span>`:'<span style="color:var(--muted)">—</span>';};
-const NICHOS=['Loja de Carro','Loja de Moto','Odontologia','Diversos'];
+const NICHOS=['Loja de Carro','Loja de Moto','Repasse','Clínica Odontológica','Diversos'];
 const nichoDe=(p,c)=>{ if(p.nicho&&NICHOS.includes(p.nicho)) return p.nicho;
   const s=((p.nicho||'')+' '+((c&&c.nicho)||'')).toLowerCase();
+  if(/repasse/.test(s)) return 'Repasse';
   if(/moto/.test(s)) return 'Loja de Moto';
   if(/carro|ve[ií]culo|autom[óo]ve|seminovo|multimarca/.test(s)) return 'Loja de Carro';
-  if(/odonto|dent/.test(s)) return 'Odontologia';
+  if(/odonto|dent/.test(s)) return 'Clínica Odontológica';
   if(s.trim()) return 'Diversos';
   return ''; };
-const NICHO_CSS={'Loja de Carro':'background:rgba(248,113,113,.16);color:#f87171','Loja de Moto':'background:rgba(163,230,53,.16);color:#a3e635','Odontologia':'background:rgba(103,232,249,.16);color:#67e8f9','Diversos':'background:rgba(156,163,175,.18);color:#c3c8d1'};
+const NICHO_CSS={'Loja de Carro':'background:rgba(248,113,113,.16);color:#f87171','Loja de Moto':'background:rgba(163,230,53,.16);color:#a3e635','Repasse':'background:rgba(251,191,36,.16);color:#fbbf24','Clínica Odontológica':'background:rgba(103,232,249,.16);color:#67e8f9','Diversos':'background:rgba(156,163,175,.18);color:#c3c8d1'};
+const FICHA_REQ=[['grupoWpp','Grupo WhatsApp'],['produtos','Produtos/serviços'],['instagram','Instagram'],['drive','Drive']];
+const fichaVal=(p,c,k)=>String((p&&p[k])||(c&&c[k])||'').trim();
+const fichaFalta=(p,c)=>{ const f=[];
+  if(!nichoDe(p,c)) f.push('Nicho');
+  FICHA_REQ.forEach(([k,l])=>{ let v=fichaVal(p,c,k); if(k==='produtos'&&!v) v=String((c&&c.servico)||'').trim(); if(!v) f.push(l); });
+  return f; };
+const fichaTag=r=>{ const f=fichaFalta(r,DB.clientes.find(c=>c.id===r.clienteId)); return f.length?`<span title="Ficha incompleta - falta: ${f.join(', ')}" style="margin-left:6px;opacity:.7;cursor:help">&#9888;</span>`:''; };
+const linkIg=v=>{ v=String(v||'').trim(); if(!v) return ''; return /^https?:\/\//i.test(v)?v:'https://instagram.com/'+v.replace(/^@/,''); };
+const linkUrl=v=>{ v=String(v||'').trim(); return /^https?:\/\//i.test(v)?v:''; };
 const nichoTag=r=>{ const n=nichoDe(r,DB.clientes.find(c=>c.id===r.clienteId)); return n?`<span class="tag" style="margin-left:6px;${NICHO_CSS[n]}">${n}</span>`:''; };
 const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
   const cli=p.clienteId?DB.clientes.find(c=>c.id===p.clienteId):null;
@@ -2024,8 +2034,10 @@ function renderProjetos(c){
    <div class="cards" style="margin-top:10px">
      <div class="card"><div class="k">Loja de Carro</div><div class="v" style="color:#f87171">${contNi['Loja de Carro']||0}</div><div class="sub">clientes do nicho</div></div>
      <div class="card"><div class="k">Loja de Moto</div><div class="v" style="color:#a3e635">${contNi['Loja de Moto']||0}</div><div class="sub">clientes do nicho</div></div>
-     <div class="card"><div class="k">Odontologia</div><div class="v" style="color:#67e8f9">${contNi['Odontologia']||0}</div><div class="sub">clientes do nicho</div></div>
+     <div class="card"><div class="k">Repasse</div><div class="v" style="color:#fbbf24">${contNi['Repasse']||0}</div><div class="sub">clientes do nicho</div></div>
+     <div class="card"><div class="k">Clínica Odontológica</div><div class="v" style="color:#67e8f9">${contNi['Clínica Odontológica']||0}</div><div class="sub">clientes do nicho</div></div>
      <div class="card"><div class="k">Diversos</div><div class="v" style="color:#c3c8d1">${contNi['Diversos']||0}</div><div class="sub">outros nichos</div></div>
+     <div class="card"><div class="k">Fichas incompletas</div><div class="v" style="color:#fbbf24">${DB.projetos.filter(p=>fichaFalta(p,DB.clientes.find(x=>x.id===p.clienteId)).length).length}</div><div class="sub">falta preencher dados</div></div>
    </div>
    <div id="prjLists"></div>
    <p class="hint" style="margin-top:12px">Clique no cliente para abrir a ficha com tudo que está ligado a ele: contas de anúncio do Meta, acessos e — para usuários master — o financeiro. Contas de anúncio se ligam em <strong>Tráfego Pago → 🔗 Vincular a clientes</strong>.</p>`;
@@ -2043,7 +2055,7 @@ function renderProjetos(c){
         const fin=finDaFicha(r);
         const alerta=contasDoCliente(r.id).some(m=>{const v=(window.__mtDados||[]).find(x=>x.id===m.id);const p=v?pagConta(v):null;return p&&p.problema;});
         return `<tr onclick="abrirCliente('${r.id}')" style="cursor:pointer">
-        <td><strong class="prj-nome">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${nichoTag(r)}</td>
+        <td><strong class="prj-nome">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${nichoTag(r)}${fichaTag(r)}</td>
         <td style="font-size:12px">${nc?`<span class="tag st" title="contas de anúncio vinculadas">📊 ${nc}</span>`:'<span style="color:var(--muted)">—</span>'}
           ${alerta?' <span class="tag churn" style="font-size:10.5px">⚠ pagamento</span>':''}
           ${master&&fin&&fin.valor?` <span style="color:var(--muted)">${brl(fin.valor)}/mês</span>`:''}</td>
@@ -2212,8 +2224,18 @@ window.openProjCard=(id)=>{
         <div class="field" style="margin:0"><label>Gerente (Autosíntese)</label><input id="pc_ger" value="${esc(it.gerente||'')}" placeholder="Nome do gerente"></div>
       </div>
       <div class="row2" style="margin-bottom:12px">
+        <div class="field" style="margin:0"><label>&#128100; Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' - '))}" disabled style="opacity:.75"></div>
+        <div class="field" style="margin:0"><label>&#128100; Grupo WhatsApp ${linkUrl(it.grupoWpp||(cli&&cli.grupoWpp))?`<a href="${linkUrl(it.grupoWpp||(cli&&cli.grupoWpp))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_grupo" value="${esc(it.grupoWpp||(cli&&cli.grupoWpp)||'')}" placeholder="Nome do grupo ou link do convite"></div>
+      </div>
+      <div style="margin:16px 0 8px;font-size:13px;font-weight:800">&#127970; Negócio</div>
+      <div class="row2" style="margin-bottom:12px">
         <div class="field" style="margin:0"><label>Nicho</label><select id="pc_nicho"><option value="">— escolher —</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select></div>
-        <div class="field" style="margin:0"><label>Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' · '))}" disabled style="opacity:.75"></div>
+        <div class="field" style="margin:0"><label>Produtos / serviços entregues</label><input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Social media, Agente de IA"></div>
+      </div>
+      <div style="margin:16px 0 8px;font-size:13px;font-weight:800">&#128279; Links</div>
+      <div class="row2" style="margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Instagram ${linkIg(it.instagram||(cli&&cli.instagram))?`<a href="${linkIg(it.instagram||(cli&&cli.instagram))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link"></div>
+        <div class="field" style="margin:0"><label>Drive ${linkUrl(it.drive||(cli&&cli.drive))?`<a href="${linkUrl(it.drive||(cli&&cli.drive))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive"></div>
       </div>
       <div class="field"><label>📝 Descrição</label><textarea id="pc_notas" rows="3">${esc(it.notas)}</textarea></div>
       <div style="margin:14px 0 8px;font-size:13px;font-weight:800">✅ Checklist</div>
@@ -2236,8 +2258,8 @@ window.openProjCard=(id)=>{
   o.onclick=e=>{ if(e.target===o) close(); };
   const bsv=o.querySelector('.msave');   /* só existe na aba Visão geral */
   if(bsv) bsv.onclick=async ()=>{
-    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=$('#pc_resp').value.trim(); it.gerente=$('#pc_ger').value.trim(); it.nicho=$('#pc_nicho').value; it.notas=$('#pc_notas').value.trim();
-    if(cli&&it.nicho&&currentUser&&currentUser.role==='master'){ cli.nicho=it.nicho; }
+    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=$('#pc_resp').value.trim(); it.gerente=$('#pc_ger').value.trim(); it.nicho=$('#pc_nicho').value; it.grupoWpp=$('#pc_grupo').value.trim(); it.produtos=$('#pc_produtos').value.trim(); it.instagram=$('#pc_insta').value.trim(); it.drive=$('#pc_drive').value.trim(); it.notas=$('#pc_notas').value.trim();
+    if(cli){ if(it.nicho&&currentUser&&currentUser.role==='master') cli.nicho=it.nicho; cli.grupoWpp=it.grupoWpp; cli.produtos=it.produtos; if(it.produtos) cli.servico=it.produtos; cli.instagram=it.instagram; cli.drive=it.drive; }
     await saveDB(); close(); render('clientes'); toast('Cliente salvo.');
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
@@ -2386,9 +2408,14 @@ window.openCliModal=(id)=>{
   modal(id?'Editar cliente':'Novo cliente',`
     <div class="field"><label>Nome do cliente</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Loja X Veículos"></div>
     <div class="row2">
-      <div class="field"><label>Nicho</label><input id="m_nicho" value="${esc(it.nicho)}" placeholder="Ex: Loja de Carro"></div>
+      <div class="field"><label>Nicho</label><select id="m_nicho"><option value="">— escolher —</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,it)===n?' selected':''}>${n}</option>`).join('')}</select></div>
       <div class="field"><label>Serviço entregue</label><input id="m_serv" value="${esc(it.servico)}" placeholder="Ex: Tráfego Pago + Agent IA"></div>
     </div>
+    <div class="row2">
+      <div class="field"><label>Grupo WhatsApp</label><input id="m_grupo" value="${esc(it.grupoWpp)}" placeholder="Nome do grupo ou link do convite"></div>
+      <div class="field"><label>Instagram</label><input id="m_insta" value="${esc(it.instagram)}" placeholder="@perfil ou link"></div>
+    </div>
+    <div class="field"><label>Drive</label><input id="m_drive" value="${esc(it.drive)}" placeholder="Link da pasta no Drive"></div>
     <div class="row2">
       <div class="field"><label>Dia do vencimento (1–31, vazio = a definir)</label><input type="number" min="1" max="31" id="m_dia" value="${it.diaVenc??''}"></div>
       <div class="field"><label>Valor mensal (R$)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
@@ -2403,7 +2430,7 @@ window.openCliModal=(id)=>{
     </div>`,
     async ()=>{
       const dia=parseInt($('#m_dia').value);
-      const v={nome:$('#m_nome').value.trim(),nicho:$('#m_nicho').value.trim(),servico:$('#m_serv').value.trim(),
+      const v={nome:$('#m_nome').value.trim(),nicho:$('#m_nicho').value.trim(),servico:$('#m_serv').value.trim(),produtos:$('#m_serv').value.trim(),grupoWpp:$('#m_grupo').value.trim(),instagram:$('#m_insta').value.trim(),drive:$('#m_drive').value.trim(),
         diaVenc:(dia>=1&&dia<=31)?dia:null,valor:parseFloat($('#m_valor').value)||0,
         resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null,fim:$('#m_fim').value||null};
       if(!v.nome){toast('Informe o nome.');return false;}
