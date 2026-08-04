@@ -2137,7 +2137,7 @@ window.tkSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; tkDesenhar($('#cont
 window.tkVisao=(v)=>{ TK.visao=v; TK.visaoTocada=true; tkDesenhar($('#content')); };
 window.tkEscopo=()=>{ TK.escopo=TK.escopo==='todas'?'lista':'todas'; tkDesenhar($('#content')); };
 window.tkBusca=(v)=>{ TK.busca=v; TK.focoBusca=true; tkDesenhar($('#content')); };
-window.tkOrdenar=(k)=>{ if(TK.ord===k){ TK.dir=-TK.dir; } else { TK.ord=k; TK.dir=1; } tkDesenhar($('#content')); };
+window.tkOrdenar=(k)=>{ if(TK.ord===k){ if(TK.dir===-1){ TK.ord=''; TK.dir=1; toast('Ordem manual (arraste as linhas).'); } else { TK.dir=-1; } } else { TK.ord=k; TK.dir=1; } tkDesenhar($('#content')); };
 window.tkMes=(d)=>{
   if(!d){ TK.ref=tkHoje().slice(0,7); }
   else { const p=TK.ref.split('-'), x=new Date(Number(p[0]),Number(p[1])-1+d,1); TK.ref=x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0'); }
