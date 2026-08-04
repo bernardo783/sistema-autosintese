@@ -56,7 +56,7 @@
   .hint{color:var(--muted);font-size:12px;margin-top:14px;line-height:1.5}
 
   /* ---------- APP LAYOUT ---------- */
-  #app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+  #app{display:grid;grid-template-columns:252px 1fr;min-height:100vh}
   .sidebar{background:var(--panel);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column}
   .sidebar .logo{margin-bottom:26px;padding:0 6px}
   .nav{display:flex;flex-direction:column;gap:4px}
@@ -67,6 +67,27 @@
   .nav button.active{background:linear-gradient(135deg,rgba(34,184,166,.18),rgba(47,124,246,.18));
     color:var(--txt);box-shadow:inset 0 0 0 1px var(--line)}
   .sidebar .foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:16px}
+  /* ---------- SIDEBAR = SPACES (modelo ClickUp) ---------- */
+  .sp-tit{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:1.2px;color:var(--muted);padding:0 8px 8px}
+  .sp-tit button{margin-left:auto;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:0 4px}
+  .sp-tit button:hover{color:var(--txt)}
+  .sp-tree{flex:1;overflow-y:auto;overflow-x:hidden;margin:0 -4px;padding:0 2px}
+  .sp-tree .tk-tree{background:transparent;border:none;border-radius:0;padding:0}
+  .sp-tree .tk-ws{display:none}
+  .sp-tree .tk-esph:hover,.sp-tree .tk-pastah:hover{background:var(--panel2)}
+  .sp-tree .tk-lista{font-size:13px;padding:6px 9px}
+  .sp-ats{display:flex;flex-wrap:wrap;gap:4px;padding:10px 0;border-top:1px solid var(--line)}
+  .sp-ats button{background:transparent;border:1px solid transparent;border-radius:9px;padding:6px 8px;font-size:15px;line-height:1;cursor:pointer}
+  .sp-ats button:hover{background:var(--panel2);border-color:var(--line)}
+  .sp-ats button.active{background:linear-gradient(135deg,rgba(124,58,237,.30),rgba(47,124,246,.22));border-color:var(--line)}
+  .sp-ic{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:900;color:#fff;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+  /* ---------- CHECKLIST DA TAREFA ---------- */
+  .ck-l{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .ck-l input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2);flex:none}
+  .ck-t{flex:1;background:transparent;border:1px solid transparent;border-radius:7px;padding:5px 7px;color:var(--txt);font-family:inherit;font-size:13px}
+  .ck-t:hover{border-color:var(--line)}
+  .ck-t:focus{border-color:var(--brand2);outline:none;background:var(--panel2)}
+  .ck-t.ok{text-decoration:line-through;color:var(--muted)}
   .main{padding:28px 34px;overflow:auto;max-height:100vh}
   .page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
   .page-head h2{font-size:22px}
@@ -128,7 +149,36 @@
   .tk-card:hover{border-color:var(--brand2)}
   .tk-card.feito .tk-tit{text-decoration:line-through;color:var(--muted)}
   .tk-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .tk-wrap{display:grid;grid-template-columns:212px 1fr;gap:16px;align-items:start}
+  .tk-wrap{display:grid;grid-template-columns:252px 1fr;gap:16px;align-items:start}
+  .tk-tree{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 6px}
+  .tk-ws{display:flex;align-items:center;gap:8px;font-weight:800;font-size:12.5px;padding:5px 8px 10px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .tk-wsi{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:grid;place-items:center;font-size:11px;font-weight:900}
+  .tk-esp{margin-bottom:2px}
+  .tk-esph,.tk-pastah{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--txt)}
+  .tk-esph:hover,.tk-pastah:hover{background:var(--panel)}
+  .tk-esph{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:800}
+  .tk-cv{display:inline-block;font-size:9px;color:var(--muted);transition:transform .12s;width:9px;flex:none}
+  .tk-cv.ab{transform:rotate(90deg)}
+  .tk-dot{width:9px;height:9px;border-radius:3px;flex:none}
+  .tk-ic{font-size:11px;opacity:.7;flex:none}
+  .tk-nome{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tk-add{margin-left:auto;padding:0 6px;opacity:0;line-height:1.6}
+  .tk-esph:hover .tk-add,.tk-pastah:hover .tk-add,.tk-grupoh:hover .tk-add{opacity:1}
+  .tk-filhos{padding-left:10px;border-left:1px solid var(--line);margin-left:13px}
+  .tk-grupo{margin-bottom:16px}
+  .tk-grupoh{display:flex;align-items:center;gap:9px;padding:5px 2px;cursor:pointer}
+  .tk-selo{font-size:11px;font-weight:800;padding:3px 9px;border-radius:6px;border:1px solid;letter-spacing:.3px;white-space:nowrap}
+  .tk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .tk-cel{width:100%;background:transparent;border:1px solid transparent;border-radius:6px;padding:4px 6px;color:var(--txt);font-family:inherit;font-size:12.5px}
+  .tk-cel:hover{border-color:var(--line);background:var(--panel2)}
+  .tk-cel:focus{border-color:var(--brand2);background:var(--panel2);outline:none}
+  .tk-cel.sel{cursor:pointer}
+  .tk-pre{color:var(--muted);font-size:11px;margin-right:1px}
+  .tk-stsel{border:1px solid;border-radius:6px;padding:4px 8px;font-size:11.5px;font-weight:800;font-family:inherit;cursor:pointer;max-width:100%}
+  .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
+  .tk-cpbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:var(--panel2)}
+  .tk-cptit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px}
+  .tk-cols{overflow-x:auto;padding-bottom:6px}
   .tk-seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
   .tk-seg button{background:transparent;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer}
   .tk-seg button.on{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
@@ -197,8 +247,8 @@
   .bar.r{background:linear-gradient(180deg,var(--ok),#2a8f50)}
   .bar.d{background:linear-gradient(180deg,var(--danger),#a5343a)}
   .barwrap .lbl{font-size:12px;color:var(--muted)}
-  @media(max-width:720px){#app{grid-template-columns:1fr}.sidebar{flex-direction:row;flex-wrap:wrap;position:sticky;top:0;z-index:10}
-    .nav{flex-direction:row;flex-wrap:wrap}.sidebar .foot{margin:0}.main{padding:18px}}
+  @media(max-width:720px){#app{grid-template-columns:1fr}
+    .sp-tree{max-height:260px}.sidebar .foot{margin:0}.main{padding:18px}}
 
   /* ===== Polimento visual ===== */
   body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -311,18 +361,18 @@
       <div class="mark" style="width:30px;height:30px"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></div>
       <span class="wm" style="font-size:15px;letter-spacing:1.2px">AUTO<span class="thin">SÍNTESE</span></span>
     </div>
-    <nav class="nav">
-      <button data-view="dash" class="active"><span class="ic">📊</span> Painel</button>
-      <button data-view="financeiro" id="navFin" class="hidden"><span class="ic">💰</span> Financeiro</button>
-      <button data-view="acessos"><span class="ic">🔑</span> Acessos</button>
-      <button data-view="clientes"><span class="ic">🤝</span> Clientes</button>
-      <button data-view="fechamento"><span class="ic">🖊️</span> Fechamento</button>
-      <button data-view="trafego"><span class="ic">📣</span> Tráfego Pago</button>
-      <button data-view="tarefas"><span class="ic">✅</span> Tarefas</button>
-      <button data-view="processos"><span class="ic">📋</span> Processos</button>
-      <button data-view="usuarios" id="navUsuarios" class="hidden"><span class="ic">👥</span> Usuários</button>
-    </nav>
+    <div class="sp-tit">ESPAÇOS<button title="Novo espaço" onclick="tkNovoEspaco()">+</button></div>
+    <div class="sp-tree" id="spTree"><div class="hint" style="margin:0;padding:8px 6px">carregando espaços…</div></div>
     <div class="foot">
+      <div class="sp-ats" id="spAtalhos">
+        <button class="navlink" data-view="dash" title="Painel">📊</button>
+        <button class="navlink" data-view="fechamento" title="Fechamento de contrato">🖊</button>
+        <button class="navlink" data-view="trafego" title="Tráfego Pago">📣</button>
+        <button class="navlink" data-view="acessos" title="Acessos e senhas">🔑</button>
+        <button class="navlink" data-view="processos" title="Processos">📋</button>
+        <button class="navlink hidden" data-view="financeiro" id="navFin" title="Financeiro">💰</button>
+        <button class="navlink hidden" data-view="usuarios" id="navUsuarios" title="Usuários">👥</button>
+      </div>
       <div id="whoami" style="color:var(--muted);font-size:12px;padding:0 6px 4px"></div>
       <button class="btn ghost" id="btnBackup" style="width:100%">⬇ Backup / Restaurar</button>
       <button class="btn ghost" id="btnChangePw" style="width:100%">🔒 Mudar senha</button>
@@ -516,18 +566,20 @@ async function enterApp(){
   hide($('#login')); show($('#app'));
   $('#whoami').textContent='👤 '+currentUser.nome+(currentUser.role==='master'?' · master':'')+(user.email?(' · '+user.email):'');
   if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); } else { hide($('#navUsuarios')); hide($('#navFin')); }
-  render('dash');
+  try{ await tkCarregar(); }catch(e){}
+  spDesenhar();
+  if(TK.listas.some(l=>l.id===LC_ID)) spSelLista(LC_ID); else render('dash');
   mtBoot();   /* Meta começa a carregar no login: quando você abrir Tráfego já está pronto */
 }
 
 /* ======================= NAVEGAÇÃO ======================= */
 let currentView='dash';
-document.querySelectorAll('.nav button').forEach(b=>{
-  b.onclick=async ()=>{ document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
+document.querySelectorAll('.navlink').forEach(b=>{
+  b.onclick=async ()=>{
     if(SESSION && currentUser && currentUser.aprovado && b.dataset.view!=='processos'){ try{ await loadDB(); }catch(e){} }
     render(b.dataset.view); };
 });
+function spMarcarAtalho(v){ document.querySelectorAll('.navlink').forEach(x=>x.classList.toggle('active', x.dataset.view===v)); }
 $('#btnLogout').onclick=async ()=>{ if(confirm('Sair do sistema?')){ try{ await sb.auth.signOut(); }catch(e){} location.reload(); } };
 
 /* ======================= HELPERS ======================= */
@@ -551,9 +603,11 @@ let searchTerm='';
 function render(view){
   /* Senhas e Links são a mesma tela, separadas por filtro */
   if(view==='senhas'||view==='links'){ acTab=view; view='acessos'; }
-  /* "Projetos" virou "Clientes" — o cliente é a entidade principal do sistema */
-  if(view==='projetos') view='clientes';
+  /* "Projetos" e "Clientes" viraram a lista Base de Clientes, dentro do espaço Projetos */
+  if(view==='projetos'||view==='clientes') return spAbrirClientes();
+  if(view==='tarefas') view='lista';
   currentView=view; searchTerm='';
+  spMarcarAtalho(view); spDesenhar();
   /* o ciclo do Meta continua rodando fora da aba — os dados nunca ficam frios */
   const c=$('#content');
   if(view==='dash') return renderDash(c);
@@ -565,9 +619,9 @@ function render(view){
   if(view==='recebimentos'){ finTab='recebimentos'; return renderFinanceiro(c); }
   if(view==='folha'){ finTab='folha'; return renderFinanceiro(c); }
   if(view==='acessos') return renderAcessos(c);
-  if(view==='clientes') return renderProjetos(c);
+  if(view==='fichas') return renderProjetos(c);
   if(view==='trafego') return renderTrafego(c);
-  if(view==='tarefas') return renderTarefas(c);
+  if(view==='lista') return renderTarefas(c);
   if(view==='processos') return renderProcessos(c);
   if(view==='usuarios') return renderUsuarios(c);
 }
@@ -582,7 +636,8 @@ function renderTrafego(c){
    </div>
    <div class="cards">
      <div class="card"><div class="k">Clientes ativos</div><div class="v pos" id="mtAtivos">—</div><div class="sub" id="mtAtivosSub">contas habilitadas no Meta</div></div>
-     <div class="card"><div class="k">Clientes sem saldo</div><div class="v" id="mtSemSaldo">—</div><div class="sub" id="mtSemSaldoSub">pararam de gastar</div></div>
+     <div class="card"><div class="k">Clientes sem saldo</div><div class="v" id="mtSemSaldo">—</div><div class="sub" id="mtSemSaldoSub">saldo confirmado na conta</div></div>
+     <div class="card"><div class="k">Pararam de gastar</div><div class="v" id="mtParou">—</div><div class="sub" id="mtParouSub">gasto zerado ontem/hoje</div></div>
      <div class="card"><div class="k">Orçamento diário (ativas)</div><div class="v pos">${brl(DB.trafego.filter(x=>x.status==='ativo').reduce((s,x)=>s+(Number(x.orcamento)||0),0))}</div></div>
      <div class="card"><div class="k">Total de campanhas</div><div class="v">${DB.trafego.length}</div></div>
    </div>
@@ -851,20 +906,38 @@ function saldoConta(c){
   if(ult){ haDias=Math.round((new Date(isoMais(0))-new Date(ult))/86400000); }
   return {ok:true, parou, recente, antes, ult, haDias};
 }
+/* Saldo REAL — vem da API de cobrança (balance/spend_cap), NÃO do gasto.
+   null = o Meta não devolveu dado suficiente para afirmar nada. */
+function saldoNivel(pg){
+  if(!pg) return null;
+  if(pg.prepago){
+    if(pg.saldo==null) return null;
+    if(pg.saldo<1)  return {nivel:'zero',  txt:'sem saldo'};
+    if(pg.saldo<50) return {nivel:'baixo', txt:'saldo baixo'};
+    return {nivel:'ok', txt:''};
+  }
+  if(pg.falta==null||!pg.limite) return null;
+  if(pg.falta<pg.limite*0.15) return {nivel:'baixo', txt:'perto do limite de cobrança'};
+  return {nivel:'ok', txt:''};
+}
+const semSaldoReal=(c)=>{
+  const s=saldoNivel((typeof pagConta==='function')?pagConta(c):null);
+  return !!(s&&s.nivel==='zero');
+};
 const mtProblema=(c)=>{
   if(c.status!==1) return 'conta inativa';
-  const pg=(typeof pagConta==='function')?pagConta(c):null, sd=saldoConta(c);
+  const pg=(typeof pagConta==='function')?pagConta(c):null, sd=saldoConta(c), sn=saldoNivel(pg);
   if(pg&&pg.problema) return pg.statusTxt||'pagamento';
-  if(sd&&sd.parou) return 'sem gastar há '+sd.haDias+' dia'+(sd.haDias===1?'':'s');
-  if(pg&&pg.prepago&&pg.saldo!=null&&pg.saldo<50) return pg.saldo<1?'sem saldo':'saldo baixo';
-  if(pg&&!pg.prepago&&pg.falta!=null&&pg.limite&&pg.falta<pg.limite*0.15) return 'perto do limite de cobrança';
+  if(sn&&sn.nivel==='zero') return sn.txt;
+  if(sd&&sd.parou) return 'parou de gastar há '+sd.haDias+' dia'+(sd.haDias===1?'':'s');
+  if(sn&&sn.nivel==='baixo') return sn.txt;
   return '';
 };
 window.metaDesenhar=()=>{
   const el=$('#mtLista'); if(!el) return;
   const t=($('#mtBusca')?$('#mtBusca').value:'').trim().toLowerCase();
   const rows=(window.__mtDados||[]).filter(contaVisivel).filter(c=>!t||(c.nome||'').toLowerCase().includes(t))
-    .sort((a,b)=>(saldoConta(b).parou?1:0)-(saldoConta(a).parou?1:0)||(+((b.ins||{}).spend)||0)-(+((a.ins||{}).spend)||0));
+    .sort((a,b)=>(semSaldoReal(b)?1:0)-(semSaldoReal(a)?1:0)||(saldoConta(b).parou?1:0)-(saldoConta(a).parou?1:0)||(+((b.ins||{}).spend)||0)-(+((a.ins||{}).spend)||0));
   let G=0,I=0,C=0,L=0;
   const cards=rows.map(c=>{
     const i=c.ins||{};
@@ -877,6 +950,7 @@ window.metaDesenhar=()=>{
     const met=(k,v,hl)=>`<div style="min-width:74px"><div style="font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)">${k}</div><div style="font-weight:700;font-size:13.5px${hl?';color:var(--brand2)':''}">${v}</div></div>`;
     /* 1ª coluna: saldo (Pix) ou quanto falta pro limite de cobrança (cartão) */
     const pg=pagConta(c);
+    const sn=saldoNivel(pg);
     let col1='';
     if(!pg) col1=`<div style="min-width:132px"><div style="font-size:10.5px;text-transform:uppercase;color:var(--muted)">Pagamento</div><div style="color:var(--muted);font-size:12.5px">—</div></div>`;
     else if(pg.problema) col1=`<div style="min-width:132px">
@@ -913,7 +987,7 @@ window.metaDesenhar=()=>{
     return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid ${pg&&pg.problema?'#7f1d1d':'var(--border)'};border-radius:12px;padding:12px 14px;margin-bottom:10px;background:${pg&&pg.problema?'rgba(248,113,113,.07)':'rgba(255,255,255,.02)'}">
       ${logo}
       <div style="flex:1;min-width:170px">
-        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sd.parou?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px">⚠ ${esc(pg.statusTxt)}</span>`:''}</div>
+        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sn&&sn.nivel==='zero'?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${sd.parou?' <span class="tag" style="font-size:11px;background:rgba(251,191,36,.18);color:#fbbf24">parou de gastar</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px">⚠ ${esc(pg.statusTxt)}</span>`:''}</div>
         <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:#fbbf24">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&m.logo?'':' · <span style="color:#fbbf24">sem logo</span>'}</div>
         <div style="font-size:12px;margin-top:3px">${(()=>{const f=fichaDaConta(c.id);
           return f?`<a class="link" style="cursor:pointer" onclick="abrirCliente('${f.id}')">🤝 ${esc(f.nome)}</a>`
@@ -956,15 +1030,19 @@ window.metaDesenhar=()=>{
   /* cards do topo — sempre sobre TODAS as contas, independente do filtro de busca */
   const todas=window.__mtDados||[];
   const ativos=todas.filter(c=>c.status===1);
-  const semSaldo=todas.filter(c=>saldoConta(c).parou);
+  const semSaldo=todas.filter(c=>c.status===1&&semSaldoReal(c));
+  const parados=todas.filter(c=>saldoConta(c).parou);
+  const nomesDe=(arr)=>esc(arr.slice(0,3).map(c=>{const m=contaMarca(c.id);return (m&&m.nome)||c.nome;}).join(', '))+(arr.length>3?` +${arr.length-3}`:'');
   const elA=$('#mtAtivos'); if(elA) elA.textContent=ativos.length||'—';
   const elAs=$('#mtAtivosSub'); if(elAs) elAs.textContent=todas.length?`de ${todas.length} conta${todas.length===1?'':'s'} no gerenciador`:'contas habilitadas no Meta';
   const elS=$('#mtSemSaldo');
   if(elS){ elS.textContent=semSaldo.length||'0'; elS.style.color=semSaldo.length?'#f87171':''; }
   const elSs=$('#mtSemSaldoSub');
-  if(elSs) elSs.innerHTML=semSaldo.length
-    ? esc(semSaldo.slice(0,3).map(c=>{const m=contaMarca(c.id);return (m&&m.nome)||c.nome;}).join(', '))+(semSaldo.length>3?` +${semSaldo.length-3}`:'')
-    : 'todas gastando normalmente';
+  if(elSs) elSs.innerHTML=semSaldo.length?nomesDe(semSaldo):'saldo ok em todas';
+  const elP=$('#mtParou');
+  if(elP){ elP.textContent=parados.length||'0'; elP.style.color=parados.length?'#fbbf24':''; }
+  const elPs=$('#mtParouSub');
+  if(elPs) elPs.innerHTML=parados.length?nomesDe(parados):'todas gastando normalmente';
   mtAlertas(todas);
 };
 /* ---- alerta urgente: pagamento recusado / conta travada ---- */
@@ -1539,29 +1617,56 @@ const TK_ST={todo:'A fazer',fazendo:'Em progresso',feito:'Concluído'};
 const TK_STC={todo:'st',fazendo:'onboarding',feito:'ativo'};
 const TK_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const TK_SEM=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-let TK={espacos:[],listas:[],tarefas:[],equipe:[],listaSel:'',arrastando:null,
-  visao:'board',escopo:'lista',ord:'prazo',dir:1,busca:'',focoBusca:false,ref:''};
+let TK={espacos:[],pastas:[],listas:[],tarefas:[],equipe:[],status:[],campos:[],listaSel:'',arrastando:null,
+  visao:'lista',escopo:'lista',ord:'',dir:1,busca:'',focoBusca:false,ref:'',grupo:'status',fechadas:{},colsOff:{}};
+const TK_GRUPOL={nao_iniciado:'Nao iniciado',ativo:'Ativo',feito:'Feito',fechado:'Fechado'};
+const TK_G2ST={nao_iniciado:'todo',ativo:'fazendo',feito:'feito',fechado:'feito'};
+const tkStatusDe=(lid)=>TK.status.filter(s=>s.lista_id===lid);
+/* Base de Clientes: a lista onde cada card e um cliente (ficha_id aponta para a ficha). */
+const LC_ID='a0009b64-6847-4477-be46-3dade84d5409';
+const LC_NAOATIVO='0bf15583-b686-4287-896f-36ff97fa8f80';
+const ehLC=(lid)=>lid===LC_ID;
+/* Checklist da tarefa (modelo ClickUp): mora em tarefas.checklist como [{t,ok}]. */
+let TK_CK=[];
+function ckLer(){ TK_CK.forEach((x,i)=>{ const e=document.getElementById('ck_t'+i), k=document.getElementById('ck_k'+i); if(e) x.t=e.value; if(k) x.ok=k.checked; }); }
+function ckPintar(){
+  const el=document.getElementById('ck_lista'); if(!el) return;
+  el.innerHTML=TK_CK.map((x,i)=>`<div class="ck-l"><input type="checkbox" id="ck_k${i}" ${x.ok?'checked':''} onchange="ckLer();ckPintar()"><input class="ck-t${x.ok?' ok':''}" id="ck_t${i}" value="${esc(x.t)}" placeholder="o que precisa ser feito"><button class="iconbtn del" title="Remover" onclick="ckDel(${i})">✕</button></div>`).join('')||'<div class="hint" style="margin:0">nenhum item ainda</div>';
+  const p=document.getElementById('ck_prog'); if(p){ const f=TK_CK.filter(x=>x.ok).length; p.textContent=TK_CK.length?(f+'/'+TK_CK.length):''; }
+}
+window.ckAdd=()=>{ ckLer(); TK_CK.push({t:'',ok:false}); ckPintar(); const e=document.getElementById('ck_t'+(TK_CK.length-1)); if(e) e.focus(); };
+window.ckDel=(i)=>{ ckLer(); TK_CK.splice(i,1); ckPintar(); };
+const ckResumo=(t)=>{ const c=Array.isArray(t.checklist)?t.checklist:[]; return c.length?('☑ '+c.filter(x=>x&&x.ok).length+'/'+c.length):''; };
+const LC_MAPA={'0bf15583-b686-4287-896f-36ff97fa8f80':'novo','4486322a-cb8f-4c01-bcac-8efcf87a5a9d':'novo','52b897a0-a225-4030-b886-c51344b2204c':'onboarding','3678558d-9582-43a4-8d81-951e9a8959cf':'onboarding','32a9a89c-92b7-494c-ba40-0a5671d80b78':'ativo','d3f281df-f769-4ab4-b37e-7d3f59523a57':'ativo','6f912d13-9479-4ee3-aaf0-d5f54d7d9b01':'ativo','a5613240-68a7-40ec-a2a7-9bb46b135177':'churn'};
+const tkCamposDe=(lid)=>TK.campos.filter(k=>k.lista_id===lid&&!TK.colsOff[k.id]);
+const tkCampo1=(id)=>TK.campos.find(k=>k.id===id)||null;
+const tkStatus1=(id)=>TK.status.find(s=>s.id===id)||null;
 const tkISO=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tkHoje=()=>tkISO(new Date());
 async function tkCarregar(){
-  const [e,l,t,q]=await Promise.all([
+  const [e,pa,l,t,q,st,cp]=await Promise.all([
     sb.from('espacos').select('*').order('ordem'),
+    sb.from('pastas').select('*').order('ordem'),
     sb.from('listas').select('*').order('ordem'),
     sb.from('tarefas').select('*').order('criado_em'),
-    sb.from('equipe_nomes').select('id,nome')]);
-  const err=e.error||l.error||t.error;
+    sb.from('equipe_nomes').select('id,nome'),
+    sb.from('status_lista').select('*').order('ordem'),
+    sb.from('campos_lista').select('*').order('ordem')]);
+  const err=e.error||pa.error||l.error||t.error||st.error||cp.error;
   if(err) throw new Error(err.message);
-  TK.espacos=e.data||[]; TK.listas=l.data||[]; TK.tarefas=t.data||[]; TK.equipe=q.data||[];
+  TK.espacos=e.data||[]; TK.pastas=pa.data||[]; TK.listas=l.data||[]; TK.tarefas=t.data||[];
+  TK.equipe=q.data||[]; TK.status=st.data||[]; TK.campos=cp.data||[];
   if(!TK.listaSel||!TK.listas.some(x=>x.id===TK.listaSel)) TK.listaSel=(TK.listas[0]||{}).id||'';
   if(!TK.ref) TK.ref=tkHoje().slice(0,7);
 }
 function renderTarefas(c){
-  c.innerHTML='<div class="empty">Carregando tarefas...</div>';
-  tkCarregar().then(()=>tkDesenhar(c)).catch(err=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(err.message)+'</div>'; });
+  if(TK.listas.length){ spDesenhar(); return tkDesenhar(c); }
+  c.innerHTML='<div class="empty">Carregando...</div>';
+  tkCarregar().then(()=>{ spDesenhar(); tkDesenhar(c); }).catch(err=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(err.message)+'</div>'; });
 }
 const tkNomeUser=(id)=>{ const u=TK.equipe.find(x=>x.id===id); return u?u.nome:''; };
 const tkNomeFicha=(fid)=>{ const f=fichaDe(fid); return f?f.nome:''; };
-const tkCaminho=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); if(!l) return ''; const e=TK.espacos.find(x=>x.id===l.espaco_id)||{}; return (e.nome||'')+' · '+l.nome; };
+const tkCaminho=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); if(!l) return ''; const e=TK.espacos.find(x=>x.id===l.espaco_id)||{}; const p=TK.pastas.find(x=>x.id===l.pasta_id); return (e.nome||'')+(p?' / '+p.nome:'')+' / '+l.nome; };
 function tkFiltradas(){
   const q=TK.busca.trim().toLowerCase();
   let arr=TK.tarefas.filter(t=>TK.escopo==='todas'||t.lista_id===TK.listaSel);
@@ -1580,46 +1685,120 @@ function tkOrdenadas(arr){
 }
 function tkCard(t){
   const hoje=tkHoje();
+  const cli=ehLC(t.lista_id)&&t.ficha_id;
+  const f=cli?fichaDe(t.ficha_id):null;
   const atrasada=t.prazo&&t.prazo<hoje&&t.status!=='feito';
-  return `<div class="tk-card${t.status==='feito'?' feito':''}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" onclick="tkAbrir('${t.id}')">
+  return `<div class="tk-card${(t.status==='feito'&&!cli)?' feito':''}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" onclick="${cli?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">
     <div class="tk-tit" style="font-weight:700;font-size:13.5px">${esc(t.titulo)}</div>
     <div class="tk-meta">
-      <span class="tag ${TK_PRIOC[t.prioridade]||'st'}" style="font-size:10.5px">${TK_PRIO[t.prioridade]||'—'}</span>
-      ${t.ficha_id?`<span class="tag st" style="font-size:10.5px">👤 ${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
-      ${t.prazo?`<span class="tag ${atrasada?'churn':'st'}" style="font-size:10.5px">📅 ${fmtDate(t.prazo)}</span>`:''}
-      ${t.responsavel_id?`<span class="tag st" style="font-size:10.5px">${esc(tkNomeUser(t.responsavel_id))}</span>`:''}
-      ${TK.escopo==='todas'?`<span class="tag st" style="font-size:10.5px;opacity:.7">${esc(tkCaminho(t.lista_id))}</span>`:''}
+      ${cli?`${f&&f.responsavel?`<span class="tag st" style="font-size:10.5px">${esc(f.responsavel)}</span>`:''}${f&&f.gerente?`<span class="tag st" style="font-size:10.5px">${esc(f.gerente)}</span>`:''}`:`<span class="tag ${TK_PRIOC[t.prioridade]||'st'}" style="font-size:10.5px">${TK_PRIO[t.prioridade]||'—'}</span>${t.ficha_id?`<span class="tag st" style="font-size:10.5px">👤 ${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}${t.prazo?`<span class="tag ${atrasada?'churn':'st'}" style="font-size:10.5px">📅 ${fmtDate(t.prazo)}</span>`:''}${t.responsavel_id?`<span class="tag st" style="font-size:10.5px">${esc(tkNomeUser(t.responsavel_id))}</span>`:''}`}
+      ${ckResumo(t)?`<span class="tag st" style="font-size:10.5px">${ckResumo(t)}</span>`:''}${TK.escopo==='todas'?`<span class="tag st" style="font-size:10.5px;opacity:.7">${esc(tkCaminho(t.lista_id))}</span>`:''}
     </div></div>`;
 }
 function tkViewBoard(){
   const arr=tkOrdenadas(tkFiltradas());
-  const coluna=(st)=>{ const its=arr.filter(t=>t.status===st);
-    return `<div class="tk-col" ondragover="event.preventDefault();this.classList.add('hover')" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');tkSoltar(event,'${st}')">
-      <div class="tk-colh"><span class="tag ${TK_STC[st]}">${TK_ST[st]}</span><span class="tk-n">${its.length}</span></div>
-      ${its.map(tkCard).join('')||'<div class="hint" style="padding:8px 4px">arraste uma tarefa para cá</div>'}
-    </div>`;};
-  return `<div class="tk-cols">${['todo','fazendo','feito'].map(coluna).join('')}</div>`;
+  const sts=TK.escopo!=='todas'?tkStatusDe(TK.listaSel):[];
+  let cols;
+  if(sts.length){
+    cols=sts.map(s=>({rot:s.nome,cor:s.cor,drop:"tkSoltarSt(event,'"+s.id+"')",its:arr.filter(t=>t.status_id===s.id)}));
+    const sem=arr.filter(t=>!sts.some(s=>s.id===t.status_id));
+    if(sem.length) cols.unshift({rot:'Sem status',cor:'#64748b',drop:"tkSoltarSt(event,'')",its:sem});
+  } else {
+    cols=['todo','fazendo','feito'].map(k=>({rot:TK_ST[k],cor:k==='feito'?'#3ec46d':k==='fazendo'?'#2f7cf6':'#8b95a5',drop:"tkSoltar(event,'"+k+"')",its:arr.filter(t=>t.status===k)}));
+  }
+  return `<div class="tk-cols" style="grid-template-columns:repeat(${cols.length},minmax(215px,1fr))">${cols.map(c=>`
+    <div class="tk-col" ondragover="event.preventDefault();this.classList.add('hover')" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');${c.drop}">
+      <div class="tk-colh"><span class="tk-selo" style="color:${esc(c.cor)};border-color:${esc(c.cor)}66;background:${esc(c.cor)}1a">${esc(c.rot)}</span><span class="tk-n">${c.its.length}</span></div>
+      ${c.its.map(tkCard).join('')||'<div class="hint" style="padding:8px 4px">arraste uma tarefa para cá</div>'}
+    </div>`).join('')}</div>`;
 }
+const tkGrupoNome=()=>{ const g=TK.grupo;
+  return g==='nenhum'?'nenhum':g==='status'?'Status':g==='prioridade'?'Prioridade':g==='responsavel'?'Responsável':g==='cliente'?'Cliente':((tkCampo1(g)||{}).nome||'Status'); };
+function tkGrupos(){
+  const lid=TK.listaSel, arr=tkOrdenadas(tkFiltradas()), g=TK.grupo;
+  const pack=(k,rot,cor,f)=>({k:k,rot:rot,cor:cor,its:arr.filter(f)});
+  if(g==='nenhum') return [{k:'all',rot:'Todas as tarefas',cor:'#8b95a5',its:arr}];
+  if(g==='status'){
+    const sts=tkStatusDe(lid);
+    if(sts.length&&TK.escopo!=='todas'){
+      const gs=sts.map(s=>pack(s.id,s.nome,s.cor,t=>t.status_id===s.id));
+      const sem=arr.filter(t=>!sts.some(s=>s.id===t.status_id));
+      if(sem.length) gs.push({k:'nost',rot:'Sem status',cor:'#64748b',its:sem});
+      return gs;
+    }
+    return ['todo','fazendo','feito'].map(k=>pack(k,TK_ST[k],k==='feito'?'#3ec46d':k==='fazendo'?'#2f7cf6':'#8b95a5',t=>t.status===k));
+  }
+  if(g==='prioridade') return Object.keys(TK_PRIO).map(k=>pack(k,TK_PRIO[k],k==='alta'?'#ef4444':k==='med'?'#f59e0b':'#8b95a5',t=>t.prioridade===k));
+  if(g==='responsavel'){
+    const gs=TK.equipe.map(u=>pack(u.id,u.nome,'#7c3aed',t=>t.responsavel_id===u.id)).filter(x=>x.its.length);
+    const sem=arr.filter(t=>!t.responsavel_id); if(sem.length) gs.push({k:'noresp',rot:'Sem responsável',cor:'#64748b',its:sem});
+    return gs;
+  }
+  if(g==='cliente'){
+    const ids=[]; arr.forEach(t=>{ if(t.ficha_id&&ids.indexOf(t.ficha_id)<0) ids.push(t.ficha_id); });
+    const gs=ids.map(id=>pack(id,tkNomeFicha(id)||'Cliente',ementarCor(id),t=>t.ficha_id===id));
+    const sem=arr.filter(t=>!t.ficha_id); if(sem.length) gs.push({k:'nocli',rot:'Interna',cor:'#64748b',its:sem});
+    return gs;
+  }
+  const c=tkCampo1(g); if(!c) return [{k:'all',rot:'Todas',cor:'#8b95a5',its:arr}];
+  const vals=c.tipo==='pessoa'?TK.equipe.map(u=>[u.id,u.nome]):(c.opcoes||[]).map(o=>[o,o]);
+  const gs=vals.map(v=>pack(v[0],v[1],'#2f7cf6',t=>((t.valores||{})[c.id])===v[0])).filter(x=>x.its.length);
+  const sem=arr.filter(t=>{ const v=(t.valores||{})[c.id]; return v===undefined||v===null||v===''; });
+  if(sem.length) gs.push({k:'novazio',rot:'Vazio',cor:'#64748b',its:sem});
+  return gs;
+}
+const ementarCor=(s)=>{ let h=0; for(let i=0;i<String(s).length;i++) h=(h*31+String(s).charCodeAt(i))%360; return 'hsl('+h+',55%,55%)'; };
+const tkCelula=(t,c)=>{
+  const v=(t.valores||{})[c.id];
+  if(c.tipo==='select') return `<select class="tk-cel sel" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  if(c.tipo==='pessoa') return `<select class="tk-cel sel" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${TK.equipe.map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
+  if(c.tipo==='checkbox') return `<input type="checkbox" ${v?'checked':''} onchange="tkSetVal('${t.id}','${c.id}',this.checked)">`;
+  const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
+  const pre=c.tipo==='moeda'?'<span class="tk-pre">R$</span>':'';
+  return `${pre}<input class="tk-cel${c.tipo==='moeda'?' moeda':''}" type="${tp}" value="${esc(v==null?'':String(v))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)" placeholder="—">`;
+};
+const tkSelo=(t)=>{
+  const sts=tkStatusDe(t.lista_id);
+  if(!sts.length) return `<select class="stSel" onchange="tkStatus('${t.id}',this.value)">${Object.keys(TK_ST).map(k=>`<option value="${k}"${t.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`;
+  const s=tkStatus1(t.status_id), cor=s?s.cor:'#64748b';
+  return `<select class="tk-stsel" style="color:${esc(cor)};border-color:${esc(cor)}66;background:${esc(cor)}1a" onchange="tkSetStatus('${t.id}',this.value)"><option value="">— sem status —</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
+};
 function tkViewLista(){
-  const arr=tkOrdenadas(tkFiltradas());
-  if(!arr.length) return '<div class="empty">Nenhuma tarefa por aqui.</div>';
-  const hoje=tkHoje();
+  const cps=TK.escopo==='todas'?[]:tkCamposDe(TK.listaSel);
+  const grupos=tkGrupos(), hoje=tkHoje();
   const seta=(k)=>TK.ord===k?(TK.dir===1?' ▲':' ▼'):'';
   const th=(k,r)=>`<th class="tk-th" onclick="tkOrdenar('${k}')">${r}${seta(k)}</th>`;
-  return `<div class="tablewrap"><table>
-    <thead><tr><th style="width:38px"></th>${th('titulo','Tarefa')}${th('status','Status')}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}${th('cliente','Cliente')}<th style="width:46px"></th></tr></thead>
-    <tbody>${arr.map(t=>{
-      const atras=t.prazo&&t.prazo<hoje&&t.status!=='feito';
-      return `<tr>
-      <td><input type="checkbox" class="tk-chk" ${t.status==='feito'?'checked':''} onclick="tkConcluir('${t.id}',this.checked)"></td>
-      <td><span class="tk-titcel${t.status==='feito'?' feito':''}" onclick="tkAbrir('${t.id}')">${esc(t.titulo)}</span>${TK.escopo==='todas'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}</td>
-      <td><select class="stSel" onchange="tkStatus('${t.id}',this.value)">${Object.keys(TK_ST).map(k=>`<option value="${k}"${t.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select></td>
+  const cab=`<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${cps.map(c=>`<th style="width:${c.largura}px">${esc(c.nome)}</th>`).join('')}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
+  const linha=(t)=>{
+    const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
+    return `<tr>
+      <td>${ehLC(t.lista_id)?'':`<input type="checkbox" class="tk-chk" ${t.status==='feito'?'checked':''} onclick="tkConcluir('${t.id}',this.checked)">`}</td>
+      <td><span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo==='todas'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}</td>
+      <td>${tkSelo(t)}</td>
+      ${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}
       <td><span class="tag ${TK_PRIOC[t.prioridade]||'st'}">${TK_PRIO[t.prioridade]||'—'}</span></td>
-      <td>${t.prazo?`<span class="tag ${atras?'churn':'st'}">${fmtDate(t.prazo)}</span>`:'<span class="hint" style="margin:0">—</span>'}</td>
+      <td>${t.prazo?`<span class="tag ${atr?'churn':'st'}">${fmtDate(t.prazo)}</span>`:'<span class="hint" style="margin:0">—</span>'}</td>
       <td>${esc(tkNomeUser(t.responsavel_id))||'<span class="hint" style="margin:0">—</span>'}</td>
-      <td>${esc(tkNomeFicha(t.ficha_id))||'<span class="hint" style="margin:0">—</span>'}</td>
       <td><button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button></td>
-    </tr>`;}).join('')}</tbody></table></div>`;
+    </tr>`;};
+  const bloco=(g)=>{
+    const fech=TK.fechadas['g'+g.k];
+    return `<div class="tk-grupo">
+      <div class="tk-grupoh" onclick="tkToggle('g','${g.k}')">
+        <span class="tk-cv${fech?'':' ab'}">&#9656;</span>
+        <span class="tk-selo" style="color:${esc(g.cor)};border-color:${esc(g.cor)}66;background:${esc(g.cor)}1a">${esc(g.rot)}</span>
+        <span class="tk-n">${g.its.length}</span>
+        <button class="iconbtn tk-add" title="Nova tarefa aqui" onclick="event.stopPropagation();tkAbrir(null,null,'${g.k}')">+</button>
+      </div>
+      ${fech?'':`<div class="tablewrap"><table class="tk-tab"><thead>${cab}</thead><tbody>${g.its.map(linha).join('')||`<tr><td colspan="${cps.length+7}"><span class="hint" style="margin:0">nada aqui</span></td></tr>`}</tbody></table></div>`}
+    </div>`;};
+  const total=grupos.reduce((a,g)=>a+g.its.length,0);
+  return `<div class="tk-bar">
+    <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
+    <button class="btn ghost small" onclick="tkMenuCols()">&#9707; Colunas</button>
+    ${TK.escopo!=='todas'?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>`:''}
+    <span class="hint" style="margin:0 0 0 auto">${total} tarefa${total===1?'':'s'}</span>
+  </div>${grupos.length?grupos.map(bloco).join(''):'<div class="empty">Nenhuma tarefa por aqui.</div>'}`;
 }
 function tkViewCal(){
   const p=TK.ref.split('-'), ano=Number(p[0]), mes=Number(p[1]);
@@ -1647,43 +1826,66 @@ function tkViewCal(){
     <div class="tk-grid" style="margin-bottom:6px">${TK_SEM.map(x=>`<div class="hint" style="margin:0;text-align:center;font-weight:800">${x}</div>`).join('')}</div>
     <div class="tk-grid">${cels}</div>`;
 }
+/* A arvore de espacos mora na barra lateral: ela e a navegacao principal do sistema. */
+function spDesenhar(){
+  const el=document.getElementById('spTree'); if(!el) return;
+  const item=(l)=>`<button class="tk-lista${(l.id===TK.listaSel&&currentView==='lista')?' on':''}" onclick="spSelLista('${l.id}')"><span class="tk-ic">&#8803;</span><span class="tk-nome">${esc(l.nome)}</span><span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span></button>`;
+  if(!TK.espacos.length){ el.innerHTML='<div class="hint" style="margin:0;padding:8px 6px">Nenhum espaço ainda.</div>'; return; }
+  el.innerHTML='<div class="tk-tree">'+TK.espacos.map(e=>{
+    const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id);
+    const pas=TK.pastas.filter(p=>p.espaco_id===e.id);
+    const abE=!TK.fechadas['e'+e.id];
+    return `<div class="tk-esp">
+      <div class="tk-esph" onclick="tkToggle('e','${e.id}')">
+        <span class="tk-cv${abE?' ab':''}">&#9656;</span>
+        <span class="sp-ic" style="background:${esc(e.cor)}">${esc((e.nome||'?').trim().charAt(0).toUpperCase())}</span>
+        <span class="tk-nome">${esc(e.nome)}</span>
+        <button class="iconbtn tk-add" title="Nova pasta ou lista" onclick="event.stopPropagation();tkNovoNo('${e.id}')">+</button>
+      </div>
+      ${abE?`<div class="tk-filhos">${pas.map(p=>{
+        const ls=TK.listas.filter(l=>l.pasta_id===p.id); const abP=!TK.fechadas['p'+p.id];
+        return `<div class="tk-pasta">
+          <div class="tk-pastah" onclick="tkToggle('p','${p.id}')">
+            <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic">&#128193;</span>
+            <span class="tk-nome">${esc(p.nome)}</span>
+            <button class="iconbtn tk-add" title="Nova lista" onclick="event.stopPropagation();tkNovaLista('${e.id}','${p.id}')">+</button>
+          </div>
+          ${abP?`<div class="tk-filhos">${ls.map(item).join('')||'<div class="hint" style="margin:0;padding:2px 10px">sem listas</div>'}</div>`:''}
+        </div>`;}).join('')}${soltas.map(item).join('')}</div>`:''}
+    </div>`;}).join('')+'</div>';
+}
+window.spSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; currentView='lista'; searchTerm=''; spMarcarAtalho(''); tkDesenhar($('#content')); spDesenhar(); };
+window.spAbrirClientes=()=>{
+  const c=$('#content');
+  if(!TK.listas.length){ c.innerHTML='<div class="empty">Carregando...</div>';
+    return tkCarregar().then(()=>{ spDesenhar(); spSelLista(LC_ID); }).catch(err=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(err.message)+'</div>'; }); }
+  spSelLista(LC_ID);
+};
 function tkDesenhar(c){
   const lista=TK.listas.find(x=>x.id===TK.listaSel);
-  const lateral=TK.espacos.map(e=>{
-    const ls=TK.listas.filter(l=>l.espaco_id===e.id);
-    return `<div style="margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:8px;font-weight:800;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;padding:0 9px 6px">
-        <span style="width:9px;height:9px;border-radius:3px;background:${esc(e.cor)}"></span>${esc(e.nome)}
-        <button class="iconbtn" style="margin-left:auto;padding:2px 7px" title="Nova lista" onclick="tkNovaLista('${e.id}')">+</button>
-      </div>
-      ${ls.map(l=>`<button class="tk-lista${(l.id===TK.listaSel&&TK.escopo!=='todas')?' on':''}" onclick="tkSelLista('${l.id}')">${esc(l.nome)}<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&t.status!=='feito').length}</span></button>`).join('')||'<div class="hint" style="padding:2px 9px">sem listas</div>'}
-    </div>`;}).join('');
+  const cli=ehLC(TK.listaSel)&&TK.escopo!=='todas';
   const abas=`<div class="tk-seg">${[['lista','☰ Lista'],['board','▦ Board'],['cal','🗓 Calendário']].map(v=>`<button class="${TK.visao===v[0]?'on':''}" onclick="tkVisao('${v[0]}')">${v[1]}</button>`).join('')}</div>`;
   const corpo=TK.visao==='lista'?tkViewLista():TK.visao==='cal'?tkViewCal():tkViewBoard();
-  const dica=TK.visao==='board'?'arraste os cartões entre as colunas':TK.visao==='cal'?'arraste uma tarefa para outro dia para mudar o prazo':'clique no título para editar, no cabeçalho para ordenar';
+  const dica=TK.visao==='board'?'arraste os cartões entre as colunas':TK.visao==='cal'?'arraste para outro dia para mudar o prazo':'clique no nome para abrir, no cabeçalho para ordenar';
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Tarefas</h2><div class="desc">${TK.escopo==='todas'?'Todas as listas':(lista?esc(lista.nome):'—')} · ${dica}</div></div>
+     <div><h2>${TK.escopo==='todas'?'Todas as tarefas':(lista?esc(lista.nome):'Listas')}</h2><div class="desc">${TK.escopo==='todas'?'Autosíntese — todas as listas':esc(tkCaminho(TK.listaSel))} · ${dica}</div></div>
      <div class="toolbar">
        ${abas}
-       <input class="search" id="tk_busca" placeholder="Buscar tarefa..." value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
+       <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
        <button class="btn ghost small" onclick="tkEscopo()">${TK.escopo==='todas'?'Só esta lista':'Ver todas'}</button>
-       <button class="btn ghost small" onclick="tkNovoEspaco()">+ Espaço</button>
-       <button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>
+       ${cli?`<button class="btn small" onclick="render('fechamento')">+ Cliente</button>`:`<button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>`}
      </div>
    </div>
-   ${TK.listas.length?`<div class="tk-wrap">
-     <div>${lateral}</div>
-     <div>${corpo}</div>
-   </div>`:'<div class="empty">Nenhum espaço ainda. Clique em "+ Espaço" para começar.</div>'}
-   <p class="hint" style="margin-top:14px">Espaço agrupa listas; lista agrupa tarefas. Tarefa com <strong>cliente</strong> só aparece para quem tem o squad daquele cliente — isso é aplicado no banco, não só na tela. Tarefa sem cliente é interna e todo mundo vê.</p>`;
+   ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}
+   <p class="hint" style="margin-top:14px">${cli?'Cada card é um cliente. Clique para abrir a ficha completa; arraste entre as colunas para mudar o estágio — o status da ficha acompanha. Cliente novo entra automaticamente em <strong>0. NÃO ATIVO</strong> quando o Fechamento é enviado.':'Espaço agrupa pastas; pasta agrupa listas; lista agrupa tarefas — cada lista tem seus próprios status e colunas. Tarefa com <strong>cliente</strong> só aparece para quem tem o squad daquele cliente.'}</p>`;
   if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
 }
 async function tkPatch(id,patch,msg){
   const {error}=await sb.from('tarefas').update(patch).eq('id',id);
   if(error){ toast('Erro: '+error.message); return false; }
   const t=TK.tarefas.find(x=>x.id===id); if(t) Object.assign(t,patch);
-  tkDesenhar($('#content')); if(msg) toast(msg); return true;
+  tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); return true;
 }
 window.tkSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; tkDesenhar($('#content')); };
 window.tkVisao=(v)=>{ TK.visao=v; tkDesenhar($('#content')); };
@@ -1711,58 +1913,181 @@ window.tkSoltarDia=async (ev,iso)=>{
 };
 window.tkStatus=(id,st)=>tkPatch(id,{status:st,concluida_em:st==='feito'?new Date().toISOString():null},TK_ST[st]);
 window.tkConcluir=(id,ok)=>tkPatch(id,{status:ok?'feito':'todo',concluida_em:ok?new Date().toISOString():null},ok?'Concluída.':'Reaberta.');
+window.tkToggle=(tp,id)=>{ const k=tp+id; TK.fechadas[k]=!TK.fechadas[k]; tkDesenhar($('#content')); };
+window.tkSetVal=async (id,campoId,v)=>{
+  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  const c=tkCampo1(campoId)||{};
+  if(v===''||v===undefined) v=null; else if(c.tipo==='numero'||c.tipo==='moeda') v=Number(v);
+  const val=Object.assign({},t.valores||{});
+  if(v===null||v===false) delete val[campoId]; else val[campoId]=v;
+  await tkPatch(id,{valores:val});
+};
+window.tkSetStatus=async (id,sid)=>{
+  const s=sid?tkStatus1(sid):null, st=s?TK_G2ST[s.grupo]:'todo';
+  const ok=await tkPatch(id,{status_id:sid||null,status:st,concluida_em:st==='feito'?new Date().toISOString():null}, s?s.nome:'Sem status');
+  if(ok) await lcSincronizarFicha(id,sid);
+};
+/* Card da Base de Clientes e a ficha do cliente: mover o card move o estagio da ficha. */
+async function lcSincronizarFicha(id,sid){
+  const t=TK.tarefas.find(x=>x.id===id);
+  if(!t||!ehLC(t.lista_id)||!t.ficha_id) return;
+  const novo=LC_MAPA[sid]; if(!novo) return;
+  const p=(DB.projetos||[]).find(x=>String(x.id)===String(t.ficha_id));
+  if(!p||p.status===novo) return;
+  p.status=novo;
+  try{ await saveDB(); }catch(e){}
+}
+window.tkSoltarSt=async (ev,sid)=>{ ev.preventDefault(); const id=tkAlvo(ev); if(!id) return; await tkSetStatus(id,sid); };
+window.tkMenuGrupo=()=>{
+  const cps=TK.campos.filter(k=>k.lista_id===TK.listaSel&&(k.tipo==='select'||k.tipo==='pessoa'));
+  const ops=[['status','Status'],['prioridade','Prioridade'],['responsavel','Responsável'],['cliente','Cliente'],['nenhum','Nenhum']].concat(cps.map(c=>[c.id,c.nome]));
+  modal('Agrupar por',`<div class="field"><label>Campo</label><select id="tk_g">${ops.map(o=>`<option value="${o[0]}"${TK.grupo===o[0]?' selected':''}>${esc(o[1])}</option>`).join('')}</select></div><p class="hint">Igual ao "Grupo:" do ClickUp — cada valor vira um bloco com sua própria tabela.</p>`,
+    async ()=>{ TK.grupo=$('#tk_g').value; tkDesenhar($('#content')); return true; });
+};
+window.tkMenuCols=()=>{
+  const cps=TK.campos.filter(k=>k.lista_id===TK.listaSel);
+  if(!cps.length){ toast('Esta lista ainda não tem colunas. Use "+ Coluna".'); return; }
+  modal('Colunas visíveis', cps.map(c=>`<label class="tk-chkline"><input type="checkbox" data-col="${c.id}" ${TK.colsOff[c.id]?'':'checked'}> <span class="tk-nome">${esc(c.nome)}</span> <span class="hint" style="margin:0">${esc(c.tipo)}</span></label>`).join('')+`<p class="hint">Desmarcar só esconde a coluna na tela; os dados continuam salvos.</p>`,
+    async ()=>{ document.querySelectorAll('[data-col]').forEach(i=>{ TK.colsOff[i.getAttribute('data-col')]=!i.checked; }); tkDesenhar($('#content')); return true; });
+};
+window.tkNovoCampo=()=>{
+  if(!TK.listaSel){ toast('Selecione uma lista.'); return; }
+  const tipos=[['texto','Texto'],['numero','Número'],['moeda','Moeda (R$)'],['select','Lista de opções'],['pessoa','Pessoa'],['data','Data'],['checkbox','Caixa de seleção'],['link','Link']];
+  modal('Nova coluna',`
+    <div class="field"><label>Nome</label><input id="tk_cn" placeholder="Ex: Mensalidade"></div>
+    <div class="row2">
+      <div class="field"><label>Tipo</label><select id="tk_ct">${tipos.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('')}</select></div>
+      <div class="field"><label>Largura (px)</label><input type="number" id="tk_cw" value="140"></div>
+    </div>
+    <div class="field"><label>Opções — uma por linha (só para "Lista de opções")</label><textarea id="tk_co" rows="3" placeholder="Pix"></textarea></div>`,
+    async ()=>{
+      const nome=$('#tk_cn').value.trim(); if(!nome){ toast('Informe o nome.'); return false; }
+      const ops=$('#tk_co').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const {error}=await sb.from('campos_lista').insert({lista_id:TK.listaSel,nome:nome,tipo:$('#tk_ct').value,opcoes:ops,largura:Number($('#tk_cw').value)||140,ordem:TK.campos.filter(k=>k.lista_id===TK.listaSel).length});
+      if(error){ toast('Erro: '+error.message); return false; }
+      render('tarefas'); toast('Coluna criada.'); return true;
+    });
+};
+window.tkEditarStatus=()=>{
+  if(!TK.listaSel){ toast('Selecione uma lista.'); return; }
+  const sts=tkStatusDe(TK.listaSel);
+  modal('Status desta lista',
+    `<p class="hint" style="margin-top:0">Um por linha: <strong>nome | cor | grupo</strong>. Grupos aceitos: nao_iniciado, ativo, feito, fechado. A ordem das linhas é a ordem das colunas no Board.</p>
+     <div class="field"><textarea id="tk_stx" rows="9" placeholder="1. BRIEFING | #7c3aed | nao_iniciado">${esc(sts.map(s=>s.nome+' | '+s.cor+' | '+s.grupo).join('\n'))}</textarea></div>`,
+    async ()=>{
+      const ln=$('#tk_stx').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const gs=['nao_iniciado','ativo','feito','fechado'];
+      const novos=ln.map((l,i)=>{ const p=l.split('|').map(x=>x.trim());
+        return {lista_id:TK.listaSel,nome:p[0],cor:(p[1]&&p[1].charAt(0)==='#')?p[1]:'#8b95a5',grupo:gs.indexOf(p[2])>=0?p[2]:'ativo',ordem:i}; });
+      for(let i=0;i<Math.max(novos.length,sts.length);i++){
+        if(i<novos.length&&i<sts.length){ const {error}=await sb.from('status_lista').update(novos[i]).eq('id',sts[i].id); if(error){ toast('Erro: '+error.message); return false; } }
+        else if(i<novos.length){ const {error}=await sb.from('status_lista').insert(novos[i]); if(error){ toast('Erro: '+error.message); return false; } }
+        else { await sb.from('status_lista').delete().eq('id',sts[i].id); }
+      }
+      render('tarefas'); toast('Status atualizados.'); return true;
+    });
+};
 window.tkNovoEspaco=()=>{
-  modal('Novo espaço',`
-    <div class="field"><label>Nome</label><input id="tk_esp" placeholder="Ex: Operação"></div>
+  modal('Novo espaço (setor)',`
+    <div class="field"><label>Nome</label><input id="tk_esp" placeholder="Ex: Comercial"></div>
     <div class="field"><label>Cor</label><input type="color" id="tk_cor" value="#7c3aed" style="height:42px;padding:4px"></div>
     <p class="hint">Crio junto uma lista "Geral" para você já começar.</p>`,
     async ()=>{
       const nome=$('#tk_esp').value.trim(); if(!nome){ toast('Informe o nome.'); return false; }
-      const {data,error}=await sb.from('espacos').insert({nome,cor:$('#tk_cor').value,ordem:TK.espacos.length}).select().maybeSingle();
+      const {data,error}=await sb.from('espacos').insert({nome:nome,cor:$('#tk_cor').value,ordem:TK.espacos.length}).select().maybeSingle();
       if(error){ toast('Erro: '+error.message); return false; }
       await sb.from('listas').insert({espaco_id:data.id,nome:'Geral',ordem:0});
       render('tarefas'); toast('Espaço criado.'); return true;
     });
 };
-window.tkNovaLista=(espacoId)=>{
-  modal('Nova lista',`<div class="field"><label>Nome da lista</label><input id="tk_lst" placeholder="Ex: Rotina semanal"></div>`,
+window.tkNovoNo=(espacoId)=>{
+  modal('Novo item neste espaço',`
+    <div class="field"><label>O que criar?</label><select id="tk_tipo"><option value="pasta">Pasta</option><option value="lista">Lista (solta no espaço)</option></select></div>
+    <div class="field"><label>Nome</label><input id="tk_nn" placeholder="Ex: Base de Clientes"></div>
+    <p class="hint">Pasta agrupa listas — é o nível do meio, igual ao ClickUp.</p>`,
+    async ()=>{
+      const nome=$('#tk_nn').value.trim(); if(!nome){ toast('Informe o nome.'); return false; }
+      if($('#tk_tipo').value==='pasta'){
+        const {error}=await sb.from('pastas').insert({espaco_id:espacoId,nome:nome,ordem:TK.pastas.filter(p=>p.espaco_id===espacoId).length});
+        if(error){ toast('Erro: '+error.message); return false; }
+      } else {
+        const {error}=await sb.from('listas').insert({espaco_id:espacoId,pasta_id:null,nome:nome,ordem:TK.listas.filter(l=>l.espaco_id===espacoId).length});
+        if(error){ toast('Erro: '+error.message); return false; }
+      }
+      render('tarefas'); toast('Criado.'); return true;
+    });
+};
+window.tkNovaLista=(espacoId,pastaId)=>{
+  modal('Nova lista',`<div class="field"><label>Nome da lista</label><input id="tk_lst" placeholder="Ex: Controle de Clientes"></div>`,
     async ()=>{
       const nome=$('#tk_lst').value.trim(); if(!nome){ toast('Informe o nome.'); return false; }
-      const {error}=await sb.from('listas').insert({espaco_id:espacoId,nome,ordem:TK.listas.filter(l=>l.espaco_id===espacoId).length});
+      const {error}=await sb.from('listas').insert({espaco_id:espacoId,pasta_id:pastaId||null,nome:nome,ordem:TK.listas.filter(l=>pastaId?l.pasta_id===pastaId:l.espaco_id===espacoId).length});
       if(error){ toast('Erro: '+error.message); return false; }
       render('tarefas'); toast('Lista criada.'); return true;
     });
 };
-window.tkAbrir=(id,prazoPre)=>{
+window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const t=id?TK.tarefas.find(x=>x.id===id):null;
-  const it=t||{prioridade:'med',status:'todo',lista_id:TK.listaSel,prazo:prazoPre||''};
+  TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok)})):[];
+  const it=t||{prioridade:'med',status:'todo',status_id:'',lista_id:TK.listaSel,prazo:prazoPre||'',valores:{}};
+  if(!t&&grupoPre&&grupoPre.indexOf('no')!==0){
+    if(TK.grupo==='status'){ if(tkStatus1(grupoPre)) it.status_id=grupoPre; else it.status=grupoPre; }
+    else if(TK.grupo==='prioridade') it.prioridade=grupoPre;
+    else if(TK.grupo==='responsavel') it.responsavel_id=grupoPre;
+    else if(TK.grupo==='cliente') it.ficha_id=grupoPre;
+    else if(tkCampo1(TK.grupo)){ const o={}; o[TK.grupo]=grupoPre; it.valores=Object.assign({},it.valores,o); }
+  }
+  const lid=it.lista_id, sts=tkStatusDe(lid), cps=TK.campos.filter(k=>k.lista_id===lid);
+  const campoHtml=(c)=>{ const v=(it.valores||{})[c.id];
+    if(c.tipo==='select') return `<select id="cp_${c.id}"><option value="">—</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+    if(c.tipo==='pessoa') return `<select id="cp_${c.id}"><option value="">—</option>${TK.equipe.map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
+    if(c.tipo==='checkbox') return `<input type="checkbox" id="cp_${c.id}" ${v?'checked':''} style="width:auto">`;
+    const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
+    return `<input type="${tp}" id="cp_${c.id}" value="${esc(v==null?'':String(v))}" placeholder="${c.tipo==='moeda'?'R$':''}">`; };
   modal(t?'Editar tarefa':'Nova tarefa',`
     <div class="field"><label>Título</label><input id="tk_tit" value="${esc(it.titulo)}" placeholder="Ex: Subir criativos da semana"></div>
     <div class="row2">
-      <div class="field"><label>Lista</label><select id="tk_lista">${TK.listas.map(l=>{const e=TK.espacos.find(x=>x.id===l.espaco_id)||{};return `<option value="${l.id}"${it.lista_id===l.id?' selected':''}>${esc(e.nome)} · ${esc(l.nome)}</option>`;}).join('')}</select></div>
+      <div class="field"><label>Lista</label><select id="tk_lista">${TK.listas.map(l=>`<option value="${l.id}"${it.lista_id===l.id?' selected':''}>${esc(tkCaminho(l.id))}</option>`).join('')}</select></div>
       <div class="field"><label>Cliente</label>${selFicha('tk_ficha',it.ficha_id||'')}</div>
     </div>
     <div class="row2">
       <div class="field"><label>Prioridade</label><select id="tk_prio">${Object.keys(TK_PRIO).map(k=>`<option value="${k}"${it.prioridade===k?' selected':''}>${TK_PRIO[k]}</option>`).join('')}</select></div>
-      <div class="field"><label>Status</label><select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select></div>
+      <div class="field"><label>Status</label>${sts.length?`<select id="tk_stid"><option value="">— sem status —</option>${sts.map(s=>`<option value="${s.id}"${it.status_id===s.id?' selected':''}>${esc(s.nome)}</option>`).join('')}</select>`:`<select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`}</div>
     </div>
     <div class="row2">
       <div class="field"><label>Prazo</label><input type="date" id="tk_prazo" value="${esc(it.prazo||'')}"></div>
       <div class="field"><label>Responsável</label><select id="tk_resp"><option value="">— ninguém —</option>${TK.equipe.map(u=>`<option value="${u.id}"${it.responsavel_id===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select></div>
     </div>
+    ${cps.length?`<div class="tk-cpbox"><div class="tk-cptit">Campos desta lista</div><div class="row2">${cps.map(c=>`<div class="field"><label>${esc(c.nome)}</label>${campoHtml(c)}</div>`).join('')}</div></div>`:''}
+    <div class="tk-cpbox"><div class="tk-cptit">Checklist <span id="ck_prog"></span></div>
+      <div id="ck_lista"></div>
+      <button class="btn ghost small" onclick="ckAdd()" style="margin-top:6px">+ item</button></div>
     <div class="field"><label>Descrição</label><textarea id="tk_desc" rows="3" placeholder="detalhes...">${esc(it.descricao)}</textarea></div>
     ${t?`<button class="btn ghost small" onclick="tkExcluir('${t.id}')">Excluir tarefa</button>`:''}`,
     async ()=>{
       const v={titulo:$('#tk_tit').value.trim(), lista_id:$('#tk_lista').value, ficha_id:$('#tk_ficha').value||null,
-        prioridade:$('#tk_prio').value, status:$('#tk_st').value, prazo:$('#tk_prazo').value||null,
+        prioridade:$('#tk_prio').value, prazo:$('#tk_prazo').value||null,
         responsavel_id:$('#tk_resp').value||null, descricao:$('#tk_desc').value.trim()};
       if(!v.titulo){ toast('Informe o título.'); return false; }
+      ckLer(); v.checklist=TK_CK.filter(x=>(x.t||'').trim()).map(x=>({t:x.t.trim(),ok:!!x.ok}));
+      const el=$('#tk_stid');
+      if(el){ const s=el.value?tkStatus1(el.value):null; v.status_id=el.value||null; v.status=s?TK_G2ST[s.grupo]:'todo'; }
+      else { v.status=$('#tk_st').value; v.status_id=null; }
+      if(v.lista_id!==lid) v.status_id=null;
+      const val={};
+      cps.forEach(c=>{ const e2=$('#cp_'+c.id); if(!e2) return;
+        let x=c.tipo==='checkbox'?e2.checked:e2.value;
+        if(x===''||x===false||x===null) return;
+        if(c.tipo==='numero'||c.tipo==='moeda') x=Number(x);
+        val[c.id]=x; });
+      v.valores=(v.lista_id!==lid)?{}:val;
       v.concluida_em = v.status==='feito' ? ((t&&t.concluida_em)||new Date().toISOString()) : null;
       const {error} = t ? await sb.from('tarefas').update(v).eq('id',t.id)
                         : await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length}));
       if(error){ toast('Erro: '+error.message); return false; }
       render('tarefas'); toast('Salvo.'); return true;
     });
+  ckPintar();
 };
 window.tkExcluir=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
@@ -2196,11 +2521,20 @@ function renderFechamento(c){
       <div class="field"><label>Resumo operacional da venda *</label><textarea id="fc_resumo" rows="4" placeholder="O que foi vendido, expectativas do cliente, o que ele quer melhorar, informações cruciais..."></textarea></div>
     </div>
     <button class="btn" id="fc_enviar" style="width:100%;padding:14px;font-size:15px" onclick="fechEnviar()">Enviar fechamento →</button>
-    <p class="hint" style="text-align:center;margin-top:10px">Ao enviar, o cliente é criado em Clientes, a ficha do projeto entra como “novo” e a 1ª cobrança já aparece no financeiro.</p>
+    <p class="hint" style="text-align:center;margin-top:10px">Ao enviar, o cliente vira um card na coluna <strong>0. NÃO ATIVO</strong> da lista Base de Clientes e a 1ª cobrança já aparece no financeiro.</p>
     </div>
     <div id="fcOk" style="display:none"></div>
   </div>`;
   fcPlanoMuda();
+}
+/* Todo fechamento nasce como card em "0. NAO ATIVO" na lista Base de Clientes. */
+async function lcCriarCard(fichaId,nome){
+  if(!fichaId) return;
+  const q=await sb.from('tarefas').select('id').eq('lista_id',LC_ID).eq('ficha_id',String(fichaId)).limit(1);
+  if(q.data&&q.data.length) return;
+  const {error}=await sb.from('tarefas').insert({lista_id:LC_ID,ficha_id:String(fichaId),titulo:nome||'Novo cliente',status:'todo',status_id:LC_NAOATIVO,prioridade:'med'});
+  if(error){ toast('Cliente criado, mas o card falhou: '+error.message); return; }
+  try{ await tkCarregar(); spDesenhar(); }catch(_){}
 }
 window.fechEnviar=async ()=>{
   const V=id=>(($('#'+id)||{}).value||'').trim();
@@ -2225,15 +2559,16 @@ window.fechEnviar=async ()=>{
     if(error){ let msg=error.message||'falha'; try{ const j=await error.context.json(); if(j&&j.erro) msg=j.erro; }catch(_){}
       toast('Erro: '+msg); b.disabled=false; b.textContent='Enviar fechamento →'; return; }
     if(!data||!data.ok){ toast('Erro: '+((data&&data.erro)||'falha ao gravar')); b.disabled=false; b.textContent='Enviar fechamento →'; return; }
+    try{ await lcCriarCard(data.projetoId, body.nome); }catch(_){}
     try{ await loadDB(); }catch(_){}
     $('#fcForm').style.display='none';
     const okEl=$('#fcOk'); okEl.style.display='';
     okEl.innerHTML=`<div class="card" style="text-align:center;padding:40px 24px">
       <div style="font-size:44px">🎉</div>
       <h2 style="margin:12px 0 6px">Fechamento registrado!</h2>
-      <p class="hint" style="margin-bottom:18px">${esc(body.nome)} já está em Clientes, com ficha de projeto “novo” e a 1ª cobrança lançada${body.statusPagamento==='pago'?' como recebida':''}.</p>
+      <p class="hint" style="margin-bottom:18px">${esc(body.nome)} já entrou na Base de Clientes, na coluna 0. NÃO ATIVO, com ficha de projeto “novo” e a 1ª cobrança lançada${body.statusPagamento==='pago'?' como recebida':''}.</p>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button class="btn" onclick="render('clientes');setTimeout(()=>abrirCliente('${data.projetoId}'),80)">Ver o cliente →</button>
+        <button class="btn" onclick="render('clientes');setTimeout(()=>abrirCliente('${data.projetoId}'),500)">Ver o cliente →</button>
         <button class="btn ghost" onclick="render('fechamento')">+ Novo fechamento</button>
       </div></div>`;
     toast('Cliente criado com sucesso.');
