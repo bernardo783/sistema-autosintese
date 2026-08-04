@@ -2985,6 +2985,9 @@ window.openProjModal=(id)=>{
       const v={nome:$('#m_nome').value.trim(),responsavel:$('#m_resp').value.trim(),gerente:$('#m_ger').value.trim(),status:$('#m_status').value,
         squad:$('#m_squad').value.trim(),notas:$('#m_notas').value.trim()};
       if(!v.nome){toast('Informe o nome.');return false;}
+      const probDoc=ctConfereDocs(v.contrato.cnpj,v.contrato.rep_cpf,v.contrato.cep);
+      if(probDoc){ toast(probDoc); return false; }
+      if(!ctConfereDV(v.contrato.cnpj,v.contrato.rep_cpf)) return false;
       if(!v.responsavel&&!soIA(Object.assign({},it,v))){toast('Ficha incompleta: informe o gestor de tráfego.');return false;}
       if(!v.gerente){toast('Ficha incompleta: informe o gerente.');return false;}
       if(!v.squad){toast('Ficha incompleta: informe o squad.');return false;}
@@ -3116,7 +3119,7 @@ window.openCliModal=(id)=>{
     </div>
     <div class="row2">
       <div class="field"><label>Responsável financeiro</label><input id="m_resp" value="${esc(it.resp)}" placeholder="Nome"></div>
-      <div class="field"><label>Telefone</label><input id="m_tel" value="${esc(it.tel)}" placeholder="(11) 90000-0000"></div>
+      <div class="field"><label>Telefone</label><input id="m_tel" value="${esc(ctMascTel(it.tel))}" oninput="this.value=ctMascTel(this.value)" placeholder="(11) 90000-0000"></div>
     </div>
     <div class="row2">
       <div class="field"><label>Primeiro pagamento (opcional)</label><input type="month" id="m_inicio" value="${it.inicio||''}"></div>
@@ -3125,7 +3128,7 @@ window.openCliModal=(id)=>{
     <div class="k" style="margin:18px 0 10px">📄 Dados para contrato</div>
     <div class="row2">
       <div class="field"><label>Razão social</label><input id="m_k_razao" value="${esc((it.contrato||{}).razao)}" placeholder="Vazio = usa o nome do cliente"></div>
-      <div class="field"><label>CNPJ</label><input id="m_k_cnpj" value="${esc((it.contrato||{}).cnpj)}" placeholder="00.000.000/0001-00"></div>
+      <div class="field"><label>CNPJ</label><input id="m_k_cnpj" value="${esc(ctMascCNPJ((it.contrato||{}).cnpj))}" oninput="this.value=ctMascCNPJ(this.value)" placeholder="00.000.000/0001-00"></div>
     </div>
     <div class="row2">
       <div class="field"><label>Rua/Av. e número</label><input id="m_k_endereco" value="${esc((it.contrato||{}).endereco)}"></div>
@@ -3133,7 +3136,7 @@ window.openCliModal=(id)=>{
     </div>
     <div class="row2">
       <div class="field"><label>Cidade - UF</label><input id="m_k_cidade_uf" value="${esc((it.contrato||{}).cidade_uf)}" placeholder="São Paulo - SP"></div>
-      <div class="field"><label>CEP</label><input id="m_k_cep" value="${esc((it.contrato||{}).cep)}"></div>
+      <div class="field"><label>CEP</label><input id="m_k_cep" value="${esc(ctMascCEP((it.contrato||{}).cep))}" oninput="this.value=ctMascCEP(this.value)" placeholder="00000-000"></div>
     </div>
     <div class="row2">
       <div class="field"><label>Representante legal</label><input id="m_k_rep_nome" value="${esc((it.contrato||{}).rep_nome)}"></div>
@@ -3141,7 +3144,7 @@ window.openCliModal=(id)=>{
     </div>
     <div class="row2">
       <div class="field"><label>RG do representante</label><input id="m_k_rep_rg" value="${esc((it.contrato||{}).rep_rg)}"></div>
-      <div class="field"><label>CPF do representante</label><input id="m_k_rep_cpf" value="${esc((it.contrato||{}).rep_cpf)}"></div>
+      <div class="field"><label>CPF do representante</label><input id="m_k_rep_cpf" value="${esc(ctMascCPF((it.contrato||{}).rep_cpf))}" oninput="this.value=ctMascCPF(this.value)" placeholder="000.000.000-00"></div>
     </div>`,
     async ()=>{
       const dia=parseInt($('#m_dia').value);
@@ -3150,6 +3153,9 @@ window.openCliModal=(id)=>{
         resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null,fim:$('#m_fim').value||null,
         contrato:['razao','cnpj','endereco','bairro','cidade_uf','cep','rep_nome','rep_rg','rep_cpf','email'].reduce((o,k)=>{o[k]=(($('#m_k_'+k)||{}).value||'').trim();return o;},{})};
       if(!v.nome){toast('Informe o nome.');return false;}
+      const probDoc=ctConfereDocs(v.contrato.cnpj,v.contrato.rep_cpf,v.contrato.cep);
+      if(probDoc){ toast(probDoc); return false; }
+      if(!ctConfereDV(v.contrato.cnpj,v.contrato.rep_cpf)) return false;
       let alvo;
       if(id){ Object.assign(it,v); alvo=it; } else { alvo={id:uid(),...v}; DB.clientes.push(alvo); }
       syncProjetoCliente(alvo);
@@ -3297,6 +3303,48 @@ function ctJSZip(){
 const ctB64Bytes=(b64)=>{ const bin=atob(b64), a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a; };
 const ctEsc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
+/* ---- mascaras e conferencia de documento ---- */
+const ctSoDig=(s)=>String(s==null?'':s).replace(/\D/g,'');
+window.ctMascCNPJ=(v)=>{ const d=ctSoDig(v).slice(0,14); let s='';
+  for(let i=0;i<d.length;i++){ if(i===2||i===5) s+='.'; else if(i===8) s+='/'; else if(i===12) s+='-'; s+=d[i]; }
+  return s; };
+window.ctMascCPF=(v)=>{ const d=ctSoDig(v).slice(0,11); let s='';
+  for(let i=0;i<d.length;i++){ if(i===3||i===6) s+='.'; else if(i===9) s+='-'; s+=d[i]; }
+  return s; };
+window.ctMascCEP=(v)=>{ const d=ctSoDig(v).slice(0,8); return d.length>5?d.slice(0,5)+'-'+d.slice(5):d; };
+window.ctMascTel=(v)=>{ const d=ctSoDig(v).slice(0,11);
+  if(!d) return '';
+  if(d.length<=2) return '('+d;
+  if(d.length<=6) return '('+d.slice(0,2)+') '+d.slice(2);
+  if(d.length<=10) return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
+  return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7); };
+/* digito verificador — pega o erro de digitacao que a mascara sozinha nao pega */
+function ctCNPJValido(v){
+  const d=ctSoDig(v); if(d.length!==14||/^(\d)\1{13}$/.test(d)) return false;
+  const dv=(len)=>{ let s=0,p=len-7;
+    for(let i=len;i>=1;i--){ s+=Number(d[len-i])*p--; if(p<2) p=9; }
+    const r=s%11; return r<2?0:11-r; };
+  return dv(12)===Number(d[12])&&dv(13)===Number(d[13]);
+}
+function ctCPFValido(v){
+  const d=ctSoDig(v); if(d.length!==11||/^(\d)\1{10}$/.test(d)) return false;
+  const dv=(n)=>{ let s=0; for(let i=0;i<n;i++) s+=Number(d[i])*(n+1-i);
+    const r=(s*10)%11; return r===10?0:r; };
+  return dv(9)===Number(d[9])&&dv(10)===Number(d[10]);
+}
+const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_cep:'ctMascCEP',contratante_tel:'ctMascTel'};
+function ctConfereDocs(cnpj,cpf,cep){
+  if(cnpj&&ctSoDig(cnpj).length!==14) return 'O CNPJ precisa ter 14 dígitos — você digitou '+ctSoDig(cnpj).length+'.';
+  if(cpf&&ctSoDig(cpf).length!==11) return 'O CPF precisa ter 11 dígitos — você digitou '+ctSoDig(cpf).length+'.';
+  if(cep&&ctSoDig(cep).length!==8) return 'O CEP precisa ter 8 dígitos — você digitou '+ctSoDig(cep).length+'.';
+  return '';
+}
+function ctConfereDV(cnpj,cpf){
+  if(cnpj&&!ctCNPJValido(cnpj)&&!confirm('O CNPJ '+cnpj+' não fecha na conta do dígito verificador — quase sempre isso é erro de digitação.\n\nConferiu e quer seguir assim mesmo?')) return false;
+  if(cpf&&!ctCPFValido(cpf)&&!confirm('O CPF '+cpf+' não fecha na conta do dígito verificador.\n\nConferiu e quer seguir assim mesmo?')) return false;
+  return true;
+}
+
 async function ctModeloB64(slug){
   const {data,error}=await sb.from('contrato_modelos').select('conteudo_b64,arquivo').eq('slug',slug).single();
   if(error) throw new Error(error.message);
@@ -3373,7 +3421,8 @@ window.ctSetModelo=(m)=>{ ctModelo=m; render('contratos'); };
 
 window.ctForm=()=>{
   const base=Object.assign(ctDoCliente(ctCliSel),ctRasc);
-  const campo=([k,rot,pad])=>`<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(base[k]||pad||'')}" ${k==='data_primeira_parcela'?'type="date"':''}></div>`;
+  const campo=([k,rot,pad])=>{ const m=CT_MASC[k]; const v0=base[k]||pad||''; const v=m?window[m](v0):v0;
+    return `<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(v)}"${m?` oninput="this.value=${m}(this.value)"`:''} ${k==='data_primeira_parcela'?'type="date"':''}></div>`; };
   const negocio=CT_NEGOCIO[ctModelo];
   modal('Contrato — '+CT_MODELOS[ctModelo],`
     <div class="k" style="margin:4px 0 10px">Dados do contratante</div>
@@ -3383,6 +3432,9 @@ window.ctForm=()=>{
     <p class="hint">Ao salvar, o .docx é gerado e baixado. Os dados do contratante voltam pra ficha do cliente.</p>`,
   async ()=>{
     const d={}; [...CT_COMUNS,...negocio].forEach(([k])=>{ d[k]=(($('#ct_'+k)||{}).value||'').trim(); });
+    const problema=ctConfereDocs(d.contratante_cnpj,d.rep_cpf,d.contratante_cep);
+    if(problema){ toast(problema); return false; }
+    if(!ctConfereDV(d.contratante_cnpj,d.rep_cpf)) return false;
     const vazios=[...CT_COMUNS,...negocio].filter(([k])=>!d[k]).map(([,rot])=>rot);
     if(vazios.length&&!confirm('Estes campos ficaram em branco:\n\n• '+vazios.join('\n• ')+'\n\nGerar mesmo assim? Os marcadores vão aparecer no documento.')) return false;
     ctRasc=d;
