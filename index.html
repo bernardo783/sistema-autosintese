@@ -2779,6 +2779,8 @@ const fichaFalta=(p,c)=>{ const f=[];
 const fichaTag=r=>{ const f=fichaFalta(r,DB.clientes.find(c=>c.id===r.clienteId)); return f.length?`<span title="Ficha incompleta - falta: ${f.join(', ')}" style="margin-left:6px;opacity:.7;cursor:help">&#9888;</span>`:''; };
 const linkIg=v=>{ v=String(v||'').trim(); if(!v) return ''; return /^https?:\/\//i.test(v)?v:'https://instagram.com/'+v.replace(/^@/,''); };
 const linkUrl=v=>{ v=String(v||'').trim(); return /^https?:\/\//i.test(v)?v:''; };
+/* telefone que roda nos anuncios: link direto pro WhatsApp quando preenchido */
+const linkZap=v=>{ const d=String(v||'').replace(/\D/g,''); if(d.length<10) return ''; return 'https://wa.me/'+(d.length<=11?'55'+d:d); };
 /* Drive vale pra todo cliente (pedido do Gabriel em ago/2026): o ícone aparece em todos os cards */
 const driveDe=(p)=>{ if(!p) return ''; return linkUrl(fichaVal(p,DB.clientes.find(c=>c.id===p.clienteId),'drive')); };
 const igDe=(p)=>{ if(!p) return ''; return linkIg(fichaVal(p,DB.clientes.find(c=>c.id===p.clienteId),'instagram')); };
@@ -3074,25 +3076,6 @@ window.openProjCard=(id)=>{
   const recTot=it.clienteId?DB.recebimentos.filter(x=>x.clienteId===it.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0):0;
   const master=currentUser&&currentUser.role==='master';
   const optsSt=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${PRJ_NORM(it.status)===k?' selected':''}>${v}</option>`).join('');
-  const drawCheck=()=>{
-    const done=it.checklist.filter(x=>x.feito).length, tot=it.checklist.length;
-    const pct=tot?Math.round(done/tot*100):0;
-    return `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <div style="flex:1;height:8px;background:var(--panel2);border-radius:99px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));transition:width .3s"></div></div>
-      <span style="font-size:12px;color:var(--muted);font-weight:700">${done}/${tot}</span>
-    </div>
-    ${it.checklist.map(ck=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--panel2);border-radius:8px;margin-bottom:5px">
-        <input type="checkbox" ${ck.feito?'checked':''} onclick="prjCkToggle('${it.id}','${ck.id}')" style="accent-color:#7c3aed;width:16px;height:16px;cursor:pointer">
-        <span style="flex:1;font-size:13.5px;${ck.feito?'text-decoration:line-through;color:var(--muted)':''}">${esc(ck.txt)}</span>
-        <button class="iconbtn del" onclick="prjCkDel('${it.id}','${ck.id}')">✕</button>
-      </div>`).join('')}
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <input class="search" id="pcNovo" placeholder="Novo item do checklist..." style="flex:1" onkeydown="if(event.key==='Enter')prjCkAdd('${it.id}')">
-      <button class="btn small" onclick="prjCkAdd('${it.id}')">+ Adicionar</button>
-    </div>`;
-  };
   const nContas=contasDoCliente(it.id).length;
   o.innerHTML=`<div class="modal big">
     <div class="mhead">
@@ -3126,6 +3109,10 @@ window.openProjCard=(id)=>{
         <div class="field" style="margin:0"><label>&#128100; Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' - '))}" disabled style="opacity:.75"></div>
         <div class="field" style="margin:0"><label>&#128100; Grupo WhatsApp ${linkUrl(it.grupoWpp||(cli&&cli.grupoWpp))?`<a href="${linkUrl(it.grupoWpp||(cli&&cli.grupoWpp))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_grupo" value="${esc(it.grupoWpp||(cli&&cli.grupoWpp)||'')}" placeholder="Nome do grupo ou link do convite"></div>
       </div>
+      <div class="row2" style="margin-bottom:12px">
+        <div class="field" style="margin:0"><label>&#128222; Número de telefone (anúncios) ${linkZap(it.telAnuncios||(cli&&cli.telAnuncios))?`<a href="${linkZap(it.telAnuncios||(cli&&cli.telAnuncios))}" target="_blank" rel="noopener" style="font-weight:700">WhatsApp</a>`:''}</label><input id="pc_tel_anun" value="${esc(it.telAnuncios||(cli&&cli.telAnuncios)||'')}" oninput="this.value=ctMascTel(this.value)" placeholder="(24) 99999-9999 — o número usado nos anúncios"></div>
+        <div class="field" style="margin:0"></div>
+      </div>
       <div style="margin:16px 0 8px;font-size:13px;font-weight:800">&#127970; Negócio</div>
       <div class="row2" style="margin-bottom:12px">
         <div class="field" style="margin:0"><label>Nicho</label><select id="pc_nicho"><option value="">— escolher —</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select></div>
@@ -3137,8 +3124,6 @@ window.openProjCard=(id)=>{
         <div class="field" id="pc_dw" style="margin:0"><label>Drive ${linkUrl(it.drive||(cli&&cli.drive))?`<a href="${linkUrl(it.drive||(cli&&cli.drive))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive"></div>
       </div>
       <div class="field"><label>📝 Descrição</label><textarea id="pc_notas" rows="3">${esc(it.notas)}</textarea></div>
-      <div style="margin:14px 0 8px;font-size:13px;font-weight:800">✅ Checklist</div>
-      <div id="pcCheck">${drawCheck()}</div>
       ${master&&it.clienteId?`
       <div style="background:var(--panel2);border:1px solid rgba(168,85,247,.35);border-radius:12px;padding:14px;margin-top:14px">
         <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:1px;margin-bottom:8px">💰 FINANCEIRO · VISÍVEL SÓ PARA MASTERS</div>
@@ -3161,19 +3146,15 @@ window.openProjCard=(id)=>{
     if(!_r && !($('#pc_cat').value==='ia'||$('#pc_cat').value==='outro')){ toast('Ficha incompleta: informe o gestor de tráfego.'); return; }
     if(!_g){ toast('Ficha incompleta: informe o gerente.'); return; }
     if(!_sq){ toast('Ficha incompleta: informe o squad.'); return; }
-    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=_r; it.gerente=_g; it.squad=_sq; it.nicho=$('#pc_nicho').value; it.grupoWpp=$('#pc_grupo').value.trim(); it.produtos=$('#pc_produtos').value.trim(); it.instagram=$('#pc_insta').value.trim(); it.drive=$('#pc_drive').value.trim(); it.notas=$('#pc_notas').value.trim();
-    if(cli){ if(it.nicho&&currentUser&&currentUser.role==='master') cli.nicho=it.nicho; cli.grupoWpp=it.grupoWpp; cli.produtos=it.produtos; if(it.produtos) cli.servico=it.produtos; cli.instagram=it.instagram; cli.drive=it.drive; }
+    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=_r; it.gerente=_g; it.squad=_sq; it.nicho=$('#pc_nicho').value; it.grupoWpp=$('#pc_grupo').value.trim(); it.produtos=$('#pc_produtos').value.trim(); it.instagram=$('#pc_insta').value.trim(); it.drive=$('#pc_drive').value.trim(); it.telAnuncios=$('#pc_tel_anun').value.trim(); it.notas=$('#pc_notas').value.trim();
+    if(cli){ if(it.nicho&&currentUser&&currentUser.role==='master') cli.nicho=it.nicho; cli.grupoWpp=it.grupoWpp; cli.produtos=it.produtos; if(it.produtos) cli.servico=it.produtos; cli.instagram=it.instagram; cli.drive=it.drive; cli.telAnuncios=it.telAnuncios; }
     await saveDB(); close(); render('clientes'); toast('Cliente salvo.');
   };
-  window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
 };
 /* categoria dita o que a ficha mostra: gestor de tráfego só p/ quem tem tráfego na entrega
    (o Drive vale pra todo cliente e fica sempre visível) */
 window.pcCatMudou=()=>{ const cat=($('#pc_cat')||{}).value||'', trafego=(cat==='trafego'||cat==='full');
   const gw=$('#pc_gw'); if(gw) gw.style.display=(trafego||($('#pc_resp')&&$('#pc_resp').value.trim()))?'':'none'; };
-window.prjCkToggle=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const ck=(p.checklist||[]).find(x=>x.id===cid); if(!ck)return; ck.feito=!ck.feito; await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
-window.prjCkDel=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; p.checklist=(p.checklist||[]).filter(x=>x.id!==cid); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
-window.prjCkAdd=async (pid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const inp=document.getElementById('pcNovo'); const t=(inp&&inp.value.trim())||''; if(!t){toast('Escreva o item.');return;} p.checklist=p.checklist||[]; p.checklist.push({id:uid(),txt:t,feito:false}); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
 window.openProjModal=(id)=>{
   const it=id?DB.projetos.find(x=>x.id===id):{status:'novo'};
   const opts=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${PRJ_NORM(it.status)===k?' selected':''}>${v}</option>`).join('');
