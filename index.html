@@ -7,8 +7,8 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<meta name="theme-color" content="#F3F1EA">
-<script>document.documentElement.dataset.tema=(function(){try{return localStorage.getItem("asTema")||"claro"}catch(e){return "claro"}})()</script>
+<meta name="theme-color" content="#141311">
+<script>document.documentElement.dataset.tema=(function(){try{if(!localStorage.getItem("asTemaV2")){localStorage.setItem("asTemaV2","1");localStorage.setItem("asTema","escuro")}return localStorage.getItem("asTema")||"escuro"}catch(e){return "escuro"}})()</script>
 <style>
   /* ============================================================
      DESIGN SYSTEM AUTOSÍNTESE — "Editorial"
@@ -4190,7 +4190,7 @@ window.trocarTema=function(t){ t=(t==='escuro')?'escuro':'claro';
   const mt=document.querySelector('meta[name="theme-color"]'); if(mt) mt.content=(t==='escuro'?'#141311':'#F3F1EA');
   document.querySelectorAll('.tema-seg button').forEach(b=>b.classList.toggle('on',(b.dataset.tema||'')===t));
 };
-trocarTema(document.documentElement.dataset.tema||'claro');
+trocarTema(document.documentElement.dataset.tema||'escuro');
 
 /* ======================= COMBOBOX DE CLIENTE (selFicha / contratos) =======================
    O input visível filtra por datalist; o hidden guarda o ID e dispara 'change'
