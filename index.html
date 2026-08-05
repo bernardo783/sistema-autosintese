@@ -2618,7 +2618,26 @@ window.calRender=()=>{
 let finTab='lanc';
 let lancComp=compNow();
 let lancDe=''; let lancAte='';
-let lancTipo=''; /* '' = todos · 'receita' · 'despesa' */
+let lancTipo=''; /* '' = todos · 'receita' · 'despesa' · 'exreceita' (ex-clientes) */
+/* Receita de ex-cliente = dinheiro que entrou de quem não está mais na carteira:
+   ou o cliente sumiu do controle (apagado), ou está marcado como churn (fim/churnComp).
+   Liga pelo vínculo forte (rc_/rcs_ → recebimento → clienteId) e, pra lançamento manual
+   de mensalidade, pelo nome na descrição comparado com a carteira atual. */
+const lancNorm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+function exClienteInfo(r){
+  if(r.tipo!=='receita') return null;
+  let cid=null;
+  if(/^rcs?_/.test(r.id||'')){ const rec=DB.recebimentos.find(x=>'rc_'+x.id===r.id||'rcs_'+x.id===r.id); if(rec) cid=rec.clienteId; }
+  const temPrefixo=/^(mensalidade|entrada|restante|sinal)\s*:/i.test(r.descricao||'');
+  const nomeDesc=(r.descricao||'').replace(/^(mensalidade|entrada|restante|sinal)\s*:\s*/i,'').trim();
+  /* só considera lançamentos que têm cara de mensalidade de cliente */
+  if(!cid && !temPrefixo && (r.categoria||'')!=='Mensalidade Clientes') return null;
+  let c=cid?DB.clientes.find(x=>x.id===cid):null;
+  if(!c&&nomeDesc){ const alvo=lancNorm(nomeDesc);
+    c=DB.clientes.find(x=>{ const n=lancNorm(x.nome); return n&&(n===alvo||alvo.includes(n)||n.includes(alvo)); }); }
+  if(c && !c.churnComp && !c.fim) return null; /* cliente vivo na carteira: não é perda */
+  return {nome:c?c.nome:(nomeDesc||r.descricao||'—'), motivo:c?'churn':'fora do controle'};
+}
 window.finGo=async (t)=>{ finTab=t; if(SESSION&&currentUser&&currentUser.aprovado){ try{ await loadDB(); }catch(e){} } render(t==='lanc'?'financeiro':t); };
 function renderFinanceiro(c){
   c.innerHTML=`
@@ -2651,6 +2670,7 @@ function renderLanc(c){
          <option value=""${lancTipo===''?' selected':''}>Tudo</option>
          <option value="receita"${lancTipo==='receita'?' selected':''}>Só receitas</option>
          <option value="despesa"${lancTipo==='despesa'?' selected':''}>Só despesas</option>
+         <option value="exreceita"${lancTipo==='exreceita'?' selected':''}>Receitas de ex-clientes</option>
        </select>
        <input type="month" class="search" id="lancCompInp" value="${lancComp}" style="min-width:150px" title="Filtrar por mês — limpe para ver tudo">
        <div style="position:relative;display:inline-flex;align-items:center;gap:4px">
@@ -2684,7 +2704,7 @@ function renderLanc(c){
    <div class="hint" id="fTotais" style="margin-top:10px;font-weight:700"></div>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const list=rows.filter(r=>(!lancTipo||r.tipo===lancTipo)&&(!t||(r.descricao+r.categoria).toLowerCase().includes(t)));
+    const list=rows.filter(r=>(!lancTipo||(lancTipo==='exreceita'?!!exClienteInfo(r):r.tipo===lancTipo))&&(!t||(r.descricao+r.categoria).toLowerCase().includes(t)));
     $('#fBody').innerHTML=list.map(r=>`<tr>
       <td>${fmtDate(r.data)}${r.pagoEm&&r.pagoEm!==r.data?`<div style="color:var(--muted);font-size:11px">pago em ${fmtDate(r.pagoEm)}</div>`:''}</td><td>${esc(r.descricao)}</td><td>${esc(r.categoria)||'—'}</td>
       <td><span class="tag ${r.tipo}">${r.tipo==='receita'?'Receita':'Despesa'}</span></td>
@@ -2696,6 +2716,14 @@ function renderLanc(c){
     const sr=list.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor),0);
     const sd=list.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor),0);
     const n=list.length;
+    if(lancTipo==='exreceita'){
+      /* perda por cliente: agrupa e ordena do maior pro menor */
+      const por={}; list.forEach(r=>{ const i=exClienteInfo(r); if(i){ (por[i.nome]=por[i.nome]||{v:0,motivo:i.motivo}).v+=Number(r.valor)||0; } });
+      const grupos=Object.entries(por).sort((a,b)=>b[1].v-a[1].v);
+      $('#fTotais').innerHTML=!n?'Nenhuma receita de ex-cliente no período — carteira sem perdas aqui.':
+        `${n} receita${n===1?'':'s'} de <strong>${grupos.length} ex-cliente${grupos.length===1?'':'s'}</strong> na tela · total <span style="color:var(--danger)">${brl(sr)}</span>`+
+        `<div style="font-weight:400;margin-top:6px">${grupos.map(([nome,g])=>`${esc(nome)} <span class="money">${brl(g.v)}</span> <span style="color:var(--muted)">(${g.motivo})</span>`).join(' · ')}</div>`;
+    } else
     $('#fTotais').innerHTML=!n?'':(lancTipo==='receita'
       ?`${n} receita${n===1?'':'s'} na tela · total <span style="color:var(--ok)">${brl(sr)}</span>`
       :lancTipo==='despesa'
