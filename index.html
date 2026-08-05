@@ -3867,84 +3867,101 @@ window.ctModelosModal=async ()=>{
 const DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 function renderFolha(c){
   const comp=folhaComp;
-  const pays=DB.folha.filter(p=>p.comp===comp).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  const pays=DB.folha.filter(p=>p.comp===comp&&p.fixoId);
   const [fy,fm]=comp.split('-').map(Number);
   const fLast=new Date(fy,fm,0).getDate();
-  const ocorrencias=(f)=>{ if(f.freq!=='semanal') return 1; let n=0; for(let d=1;d<=fLast;d++){ if(new Date(fy,fm-1,d).getDay()===(Number(f.diaSemana)||0)) n++; } return n; };
-  const previstoFixos=DB.folhaFixos.filter(f=>f.ativo).reduce((s,f)=>s+(Number(f.valor)||0)*ocorrencias(f),0);
-  const avulsos=pays.filter(p=>!p.fixoId).reduce((s,p)=>s+Number(p.valor),0);
-  const tot=previstoFixos+avulsos;
+  const semanasDe=(f)=>{ const ds=[]; for(let d=1;d<=fLast;d++){ if(new Date(fy,fm-1,d).getDay()===(Number(f.diaSemana)||0)) ds.push(comp+'-'+String(d).padStart(2,'0')); } return ds; };
+  const ocorrencias=(f)=>f.freq==='semanal'?semanasDe(f).length:1;
+  /* o fixo conta neste mês? (ativo, já começou, e — se for único — é o mês dele) */
+  const conta=(f)=>{ if(!f.ativo) return false;
+    if(f.inicioComp&&comp<f.inicioComp) return false;
+    if(f.recorrente===false) return !!(f.proxData&&f.proxData.slice(0,7)===comp);
+    return true; };
+  const previsto=DB.folhaFixos.filter(conta).reduce((s,f)=>s+(Number(f.valor)||0)*ocorrencias(f),0);
   const pago=pays.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
-  const pend=pays.filter(p=>!p.pago);
-  const totPend=Math.max(0,tot-pago);
-  const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
-  const semGrupos={}; pays.forEach(p=>{ const f=fixoById[p.fixoId]; if(f&&f.freq==='semanal'){ (semGrupos[p.fixoId]=semGrupos[p.fixoId]||[]).push(p); } });
-  const paysMain=pays.filter(p=>{ const f=fixoById[p.fixoId]; return !(f&&f.freq==='semanal'); });
-  /* busca da folha: filtra as três tabelas por nome/descrição/pix */
+  const totPend=Math.max(0,previsto-pago);
+  const nPagos=pays.filter(p=>p.pago).length;
+  const nTot=DB.folhaFixos.filter(conta).reduce((s,f)=>s+ocorrencias(f),0);
+  const regDe=(f)=>pays.filter(p=>p.fixoId===f.id).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
   const fpB=(window.__fpBusca||'');
   const fpOk=(...ts)=>!fpB||ts.some(t=>String(t||'').toLowerCase().includes(fpB));
-  const paysVis=paysMain.filter(p=>fpOk(p.nome,p.descricao));
-  const semVis=Object.fromEntries(Object.entries(semGrupos).filter(([fid])=>{const f=fixoById[fid];return f?fpOk(f.nome,f.dp,f.pix):true;}));
   const fixosVis=DB.folhaFixos.filter(f=>fpOk(f.nome,f.descricao,f.pix,f.banco,f.dp));
   const hoje=hojeISO();
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Folha de Pagamento</h2><div class="desc">Pagamentos mensais de equipe e prestadores</div></div>
+     <div><h2>Folha de Pagamento</h2><div class="desc">Fixos do mês — marque "Recebeu" e a despesa cai no Financeiro na hora</div></div>
      <div class="toolbar">
        <input class="search" id="fpBusca" placeholder="Buscar nome, pix, descrição…" value="${esc(window.__fpBuscaRaw||'')}" oninput="__fpFiltrar(this.value)">
        <input type="month" class="search" id="fpComp" value="${comp}" style="min-width:150px">
-       <button class="btn secondary small" onclick="gerarFolha()"><svg class="icx"><use href="#i-zap"/></svg> Gerar folha do mês</button>
-       <button class="btn small" onclick="openFpModal()">+ Pagamento</button>
+       <button class="btn small" onclick="openFixoModal()">+ Fixo</button>
      </div>
    </div>
    <div class="cards">
-     <div class="card"><div class="k">Total do mês (previsto)</div><div class="v">${brl(tot)}</div></div>
+     <div class="card"><div class="k">Previsto no mês</div><div class="v">${brl(previsto)}</div></div>
      <div class="card"><div class="k">Pago</div><div class="v pos">${brl(pago)}</div></div>
      <div class="card"><div class="k">Pendente</div><div class="v ${totPend?'neg':''}">${brl(totPend)}</div></div>
-     <div class="card"><div class="k">Pagamentos</div><div class="v">${pays.length-pend.length}/${pays.length}</div></div>
+     <div class="card"><div class="k">Pagamentos</div><div class="v">${nPagos}/${nTot}</div></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
-   <tbody>${paysVis.map(p=>{
-     const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Chave Pix</th><th>Quando</th><th style="text-align:right">Valor</th><th>Recebeu? (${fmtComp(comp)})</th><th></th></tr></thead>
+   <tbody>${fixosVis.map(f=>{
+     const rs=regDe(f);
+     let recebeu='';
+     if(!f.ativo) recebeu='<span class="tag st">Inativo</span>';
+     else if(f.inicioComp&&comp<f.inicioComp) recebeu=`<span class="tag st">começa em ${fmtComp(f.inicioComp)}</span>`;
+     else if(f.recorrente===false&&!(f.proxData&&f.proxData.slice(0,7)===comp)) recebeu=`<span class="tag st">único${f.proxData?' · '+fmtDate(f.proxData):''}</span>`;
+     else if(f.freq==='semanal'){
+       const pagoSem=rs.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
+       recebeu=`<div style="display:flex;flex-wrap:wrap;gap:2px 12px">`+semanasDe(f).map(venc=>{ const p=rs.find(x=>x.venc===venc);
+         return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12.5px;color:${p&&p.pago?'var(--ok)':'var(--muted)'}"><input type="checkbox" ${p&&p.pago?'checked':''} onclick="fpMarcarSemana('${f.id}','${venc}')" style="accent-color:var(--ok);width:15px;height:15px;cursor:pointer">${fmtDate(venc).slice(0,5)}</label>`; }).join('')+
+         `</div><div style="font-size:11px;color:var(--muted);margin-top:3px">${rs.filter(p=>p.pago).length}/${semanasDe(f).length} semanas · ${brl(pagoSem)} no mês</div>`;
+     } else {
+       const p=rs[0];
+       const atrasado=!(p&&p.pago)&&comp<=compNow()&&vencOf(comp,f.dia)<hoje;
+       recebeu=`<label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">
+         <input type="checkbox" ${p&&p.pago?'checked':''} onclick="fpMarcarFixo('${f.id}')" style="accent-color:var(--ok);width:16px;height:16px;cursor:pointer">
+         ${p&&p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(atrasado?'<span class="tag despesa">Atrasado</span>':'<span class="tag pausado">Pendente</span>')}</label>`;
+     }
      return `<tr>
-      <td><strong>${esc(p.nome)}</strong></td><td>${esc(p.descricao)||'—'}</td><td>${fmtDate(p.venc)||'—'}</td>
-      <td class="money" style="text-align:right">${brl(p.valor)}</td><td>${st}</td>
+      <td><strong>${esc(f.nome)}</strong>${f.descricao?`<div style="font-size:11.5px;color:var(--muted)">${esc(f.descricao)}${f.posPago?' · pós-pago':''}</div>`:(f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':'')}${f.dp?`<div style="margin-top:3px"><span class="tag st">${esc(f.dp)}</span></div>`:''}</td>
+      <td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td>
+      <td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):(f.recorrente===false?(f.proxData?fmtDate(f.proxData):'—'):('dia '+f.dia))}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}</td>
+      <td class="money" style="text-align:right">${brl(f.valor)}${f.freq==='semanal'?`<div style="font-size:11px;color:var(--muted);font-weight:400">/semana · mês ${brl((Number(f.valor)||0)*ocorrencias(f))}</div>`:''}</td>
+      <td>${recebeu}</td>
       <td><div class="rowact">
-        ${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${p.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${p.id}')">✓ Pagar</button>`}
-        <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button>
-        <button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button>
-      </div></td></tr>`;}).join('')}</tbody></table>
-   ${pays.length?'':'<div class="empty">Nenhum pagamento em '+fmtComp(comp)+'. Use “Gerar folha do mês” (cria a partir dos pré-definidos) ou “+ Pagamento”.</div>'}</div>
-
-   ${Object.keys(semVis).length?`
-   <h2 style="font-size:16px;margin:26px 0 10px">Pagamentos semanais — ${fmtComp(comp)}</h2>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Chave Pix</th><th style="text-align:right">Valor/semana</th><th>Semanas do mês</th><th style="text-align:right">Pago no mês</th></tr></thead>
-   <tbody>${Object.entries(semVis).map(([fid,ps])=>{ const f=fixoById[fid]; ps.sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
-     const pagoSem=ps.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
-     return `<tr>
-      <td><strong>${esc(f.nome)}</strong>${f.dp?`<div style="font-size:11px;color:var(--muted)">${esc(f.dp)}</div>`:''}</td>
-      <td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}</td>
-      <td class="money" style="text-align:right">${brl(f.valor)}</td>
-      <td>${ps.map(p=>`<label style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;cursor:pointer;font-size:12.5px;color:${p.pago?'var(--ok)':'var(--muted)'}"><input type="checkbox" ${p.pago?'checked':''} onclick="fpToggle('${p.id}')" style="accent-color:var(--brand);width:15px;height:15px;cursor:pointer">${fmtDate(p.venc).slice(0,5)}</label>`).join('')}</td>
-      <td class="money" style="text-align:right">${brl(pagoSem)} <span style="color:var(--muted);font-size:11px">${ps.filter(p=>p.pago).length}/${ps.length}</span></td>
-     </tr>`;}).join('')}</tbody></table></div>`:''}
-   <h2 style="font-size:16px;margin:26px 0 10px">Pré-definidos — fixos de todo mês</h2>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
-   <tbody>${fixosVis.map(f=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—'}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:var(--info)"><svg class="icx"><use href="#i-cal"/></svg> próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
-     <td class="money" style="text-align:right">${brl(f.valor)}</td>
-     <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
-     <td><div class="rowact">
-       <button class="iconbtn" onclick="fixoMove('${f.id}',-1)" title="Subir">↑</button>
-       <button class="iconbtn" onclick="fixoMove('${f.id}',1)" title="Descer">↓</button>
-       <button class="iconbtn" onclick="openFixoModal('${f.id}')">Editar</button>
-       <button class="iconbtn del" onclick="fixoExcluir('${f.id}')">Excluir</button>
-     </div></td></tr>`).join('')}</tbody></table>
-   ${DB.folhaFixos.length?'':'<div class="empty">Nenhum fixo cadastrado. Cadastre aqui quem recebe todo mês (nome, valor e dia).</div>'}</div>
-   <div style="margin-top:10px"><button class="btn secondary small" onclick="openFixoModal()">+ Fixo mensal</button></div>
-   <p class="hint" style="margin-top:12px">“Gerar folha do mês” cria os pagamentos do mês selecionado a partir dos fixos ativos, sem duplicar. Ao marcar <strong>✓ Pagar</strong>, a despesa entra automaticamente no Financeiro (categoria Folha de Pagamento); “Desfazer” remove.</p>`;
+        <button class="iconbtn" onclick="fixoMove('${f.id}',-1)" title="Subir">↑</button>
+        <button class="iconbtn" onclick="fixoMove('${f.id}',1)" title="Descer">↓</button>
+        <button class="iconbtn" onclick="openFixoModal('${f.id}')">Editar</button>
+        <button class="iconbtn del" onclick="fixoExcluir('${f.id}')">Excluir</button>
+      </div></td></tr>`; }).join('')}</tbody></table>
+   ${DB.folhaFixos.length?(fixosVis.length?'':'<div class="empty">Nenhum fixo bate com a busca.</div>'):'<div class="empty">Nenhum fixo cadastrado. Cadastre aqui quem recebe todo mês (nome, valor, chave Pix e dia).</div>'}</div>
+   <p class="hint" style="margin-top:12px">Tudo num lugar só: cada linha é um pré-definido. Marque <strong>Recebeu</strong> (ou as semanas, nos semanais) e a despesa entra automaticamente no Financeiro na hora — desmarcar remove. O seletor de mês lá em cima controla o período; os meses anteriores continuam guardados como histórico.</p>`;
   $('#fpComp').onchange=e=>{ folhaComp=e.target.value||compNow(); render('folha'); };
 }
+/* ---- marca/desmarca o pagamento do mês de um fixo (cria o registro na hora se não existir) ---- */
+function fpCriarRegistro(f,comp,venc){
+  const [y,m]=comp.split('-').map(Number);
+  const dAnt=new Date(y,m-2,1); const mesAnt=dAnt.getFullYear()+'-'+String(dAnt.getMonth()+1).padStart(2,'0');
+  const desc=f.freq==='semanal'
+    ?(f.descricao?f.descricao+' — ':'')+'semanal ('+DSEM[Number(f.diaSemana)||0]+')'+(f.posPago?' · pós-pago':'')
+    :(f.recorrente===false
+      ?((f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):'')+' · único').trim()
+      :(f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):''));
+  const p={id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:desc,valor:Number(f.valor)||0,
+    venc:venc||(f.recorrente===false?f.proxData:vencOf(comp,f.dia)),pago:false,pagoEm:null};
+  DB.folha.push(p); return p;
+}
+window.fpMarcarFixo=(fid)=>{
+  const f=DB.folhaFixos.find(x=>x.id===fid); if(!f) return;
+  let p=DB.folha.find(x=>x.comp===folhaComp&&x.fixoId===fid);
+  if(!p) p=fpCriarRegistro(f,folhaComp);
+  if(p.pago) fpDesfazer(p.id); else fpPagar(p.id);
+};
+window.fpMarcarSemana=(fid,venc)=>{
+  const f=DB.folhaFixos.find(x=>x.id===fid); if(!f) return;
+  let p=DB.folha.find(x=>x.comp===folhaComp&&x.fixoId===fid&&x.venc===venc);
+  if(!p) p=fpCriarRegistro(f,folhaComp,venc);
+  if(p.pago) fpDesfazer(p.id); else fpPagar(p.id);
+};
 window.gerarFolha=async ()=>{
   const comp=folhaComp;
   const ativos=DB.folhaFixos.filter(f=>f.ativo);
