@@ -4003,8 +4003,16 @@ window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
   p.pago=true; p.pagoEm=hojeISO();
   const fxp=DB.folhaFixos.find(f=>f.id===p.fixoId);
-  DB.financeiro.push({id:'fp_'+p.id,data:(p.venc||((p.comp||compNow())+'-01')),comp:p.comp,pagoEm:p.pagoEm,tipo:'despesa',descricao:'Folha: '+p.nome+(p.descricao?' — '+p.descricao:''),categoria:(fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento',valor:Number(p.valor)||0});
-  await saveDB(); render('folha'); toast('Pagamento de '+p.nome+' registrado no Financeiro.');
+  /* pós-pago mensal: a despesa é custo do mês ANTERIOR ao da folha — data no último dia dele
+     (regra do Gabriel: editora/gerentes/sócios pagos em agosto referentes a julho aparecem em julho).
+     Semanal continua na data da própria semana. */
+  let dataLanc=(p.venc||((p.comp||compNow())+'-01'));
+  if(fxp&&fxp.posPago&&fxp.freq!=='semanal'&&p.comp){
+    const [y,m]=p.comp.split('-').map(Number); const ult=new Date(y,m-1,0);
+    dataLanc=ult.getFullYear()+'-'+String(ult.getMonth()+1).padStart(2,'0')+'-'+String(ult.getDate()).padStart(2,'0');
+  }
+  DB.financeiro.push({id:'fp_'+p.id,data:dataLanc,comp:p.comp,pagoEm:p.pagoEm,tipo:'despesa',descricao:'Folha: '+p.nome+(p.descricao?' — '+p.descricao:''),categoria:(fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento',valor:Number(p.valor)||0});
+  await saveDB(); render('folha'); toast('Pagamento de '+p.nome+' registrado no Financeiro'+((fxp&&fxp.posPago&&fxp.freq!=='semanal')?' (datado no mês de referência)':'')+'.');
 };
 window.fpDesfazer=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||!p.pago)return;
