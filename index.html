@@ -67,12 +67,13 @@
   .wordmark{line-height:1;display:inline-block;position:relative;padding-bottom:17px}
   .wordmark .wm{display:block;font-family:var(--fonte);font-size:30px;font-weight:900;letter-spacing:2px;color:var(--txt);margin-right:-2px}
   .wordmark .wm .thin{font-weight:400}
-  /* tagline presa às duas bordas do nome (camada absoluta + justificação): mesmo início, mesmo fim.
+  /* tagline centralizada sob o nome — Space Mono a 8.4px já mede ~o mesmo que o wordmark,
+     então nada de justificar (abria buracos entre as palavras). Sem quebra de linha.
      Classe própria (.slogan) para NUNCA herdar o padding das etiquetas .tag do sistema. */
   .wordmark .slogan{position:absolute;left:0;right:0;bottom:0;margin:0;padding:0;background:none;border:none;
-    text-align:justify;text-align-last:justify;-moz-text-align-last:justify;
+    text-align:center;white-space:nowrap;
     font-family:var(--mono);font-size:8.4px;font-weight:400;color:var(--muted);
-    letter-spacing:1.1px;text-transform:uppercase}
+    letter-spacing:0;text-transform:uppercase}
   .wordmark .slogan b{color:var(--txt);font-weight:700}
   .login-card h2{font-size:16px;margin:22px 0 4px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
   .login-card p.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
