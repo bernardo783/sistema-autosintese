@@ -3333,14 +3333,16 @@ function calcRecebimentos(comp){
   const st=(c)=>{ const r=byCli[c.id];
     if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
     if(c.inicio && comp<c.inicio) return null; /* cliente só conta a partir do mês de início */
-    if(c.churnComp && comp>c.churnComp) return 'churn'; /* churn confirmado: perdido dali em diante */
+    /* churn fica no Recebimentos SÓ no mês em que aconteceu (histórico);
+       do mês seguinte em diante o cliente some daqui — vive no Controle de Churns e na ficha */
+    if(c.churnComp && comp>c.churnComp) return 'oculto';
     if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
-    if(c.fim && comp>c.fim) return null; /* churn: depois do último mês o cliente zera */
+    if(c.fim && comp>c.fim) return 'oculto'; /* depois do último mês, sai da planilha */
     if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
     if(comp>compNow()) return 'areceber';
     return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
   const g={recebido:[],sinal:[],inadimplente:[],areceber:[],churn:[],semdia:[]};
-  DB.clientes.forEach(c=>{ const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
+  DB.clientes.forEach(c=>{ const s=st(c); if(s==='oculto') return; if(!s){g.semdia.push(c);} else {g[s].push(c);} });
   const val=(c)=>{ const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; }; /* valor congelado do mês, se houver registro */
   const soma=a=>a.reduce((s,x)=>s+val(x),0);
   const sinaisPagos=g.sinal.reduce((s,c)=>s+(Number((byCli[c.id]||{}).sinal)||0),0);
@@ -3382,11 +3384,11 @@ function renderRecebimentos(c){
    </div>
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido — escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. <strong>Entrada (pagou parte)</strong> registra pagamento parcial no mês (ex.: pagou R$ 500 de uma mensalidade de R$ 1.000): a entrada já vira receita e o restante fica em A receber até você marcar Recebido. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong>Churn</strong> marca perda definitiva: o valor do mês vira receita perdida e, a partir do mês seguinte, o cliente aparece zerado no grupo Churn e sai da carteira.</p>`;
+   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido — escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. <strong>Entrada (pagou parte)</strong> registra pagamento parcial no mês (ex.: pagou R$ 500 de uma mensalidade de R$ 1.000): a entrada já vira receita e o restante fica em A receber até você marcar Recebido. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong>Churn</strong> marca perda definitiva: o valor do mês vira receita perdida e o cliente fica visível aqui só no mês do churn (histórico) — do mês seguinte em diante ele sai desta planilha e segue apenas no Controle de Churns e na ficha.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const vencDe=(r)=>{ const rc=R.byCli[r.id]; if(rc&&rc.venc) return rc.venc; return (r.diaVenc>=1&&r.diaVenc<=31)?vencOf(comp,r.diaVenc):null; };
-    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro)&&(!statusFiltro||R.st(r)===statusFiltro));
+    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>R.st(r)!=='oculto'&&(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro)&&(!statusFiltro||R.st(r)===statusFiltro));
     $('#cBody').innerHTML=rows.map(r=>{
       const s=R.st(r); const rec=R.byCli[r.id];
       const podeMarcar=s||(r.diaVenc>=1&&r.diaVenc<=31);
