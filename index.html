@@ -2618,6 +2618,7 @@ window.calRender=()=>{
 let finTab='lanc';
 let lancComp=compNow();
 let lancDe=''; let lancAte='';
+let lancTipo=''; /* '' = todos · 'receita' · 'despesa' */
 window.finGo=async (t)=>{ finTab=t; if(SESSION&&currentUser&&currentUser.aprovado){ try{ await loadDB(); }catch(e){} } render(t==='lanc'?'financeiro':t); };
 function renderFinanceiro(c){
   c.innerHTML=`
@@ -2645,7 +2646,13 @@ function renderLanc(c){
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Lançamentos</h2><div class="desc">${lrange?('Período: '+fmtDate(lancDe)+' até '+fmtDate(lancAte)):(lancComp?('Receitas e despesas de '+fmtComp(lancComp)):'Todas as receitas e despesas')}</div></div>
-     <div class="toolbar"><input class="search" id="fSearch" placeholder="Buscar..."><input type="month" class="search" id="lancCompInp" value="${lancComp}" style="min-width:150px" title="Filtrar por mês — limpe para ver tudo">
+     <div class="toolbar"><input class="search" id="fSearch" placeholder="Buscar...">
+       <select class="search" id="fTipo" style="min-width:130px" title="Mostrar só receitas ou só despesas">
+         <option value=""${lancTipo===''?' selected':''}>Tudo</option>
+         <option value="receita"${lancTipo==='receita'?' selected':''}>Só receitas</option>
+         <option value="despesa"${lancTipo==='despesa'?' selected':''}>Só despesas</option>
+       </select>
+       <input type="month" class="search" id="lancCompInp" value="${lancComp}" style="min-width:150px" title="Filtrar por mês — limpe para ver tudo">
        <div style="position:relative;display:inline-flex;align-items:center;gap:4px">
          <button class="btn secondary small" onclick="calAbrir('lanc')">${lrange?('<svg class="icx"><use href="#i-cal"/></svg> '+fmtDate(lancDe).slice(0,5)+' – '+fmtDate(lancAte).slice(0,5)):'<svg class="icx"><use href="#i-cal"/></svg> Período'}</button>
          ${lrange?'<button class="iconbtn" onclick="calLimpar(\'lanc\')" title="Limpar período">✕</button>':''}
@@ -2673,10 +2680,11 @@ function renderLanc(c){
       </div>`).join('')}
    </div>`:''}
    <div class="tablewrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th><th></th></tr></thead>
-   <tbody id="fBody"></tbody></table><div id="fEmpty"></div></div>`;
+   <tbody id="fBody"></tbody></table><div id="fEmpty"></div></div>
+   <div class="hint" id="fTotais" style="margin-top:10px;font-weight:700"></div>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const list=rows.filter(r=>!t||(r.descricao+r.categoria).toLowerCase().includes(t));
+    const list=rows.filter(r=>(!lancTipo||r.tipo===lancTipo)&&(!t||(r.descricao+r.categoria).toLowerCase().includes(t)));
     $('#fBody').innerHTML=list.map(r=>`<tr>
       <td>${fmtDate(r.data)}${r.pagoEm&&r.pagoEm!==r.data?`<div style="color:var(--muted);font-size:11px">pago em ${fmtDate(r.pagoEm)}</div>`:''}</td><td>${esc(r.descricao)}</td><td>${esc(r.categoria)||'—'}</td>
       <td><span class="tag ${r.tipo}">${r.tipo==='receita'?'Receita':'Despesa'}</span></td>
@@ -2684,8 +2692,18 @@ function renderLanc(c){
       <td><div class="rowact"><button class="iconbtn" onclick="openFinModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('financeiro','${r.id}')">Excluir</button></div></td>
     </tr>`).join('');
     $('#fEmpty').innerHTML=list.length?'':'<div class="empty">Nenhum lançamento. Clique em “+ Lançamento”.</div>';
+    /* totalizador do que está na tela: filtros + busca somados na hora */
+    const sr=list.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor),0);
+    const sd=list.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor),0);
+    const n=list.length;
+    $('#fTotais').innerHTML=!n?'':(lancTipo==='receita'
+      ?`${n} receita${n===1?'':'s'} na tela · total <span style="color:var(--ok)">${brl(sr)}</span>`
+      :lancTipo==='despesa'
+      ?`${n} despesa${n===1?'':'s'} na tela · total <span style="color:var(--danger)">${brl(sd)}</span>`
+      :`${n} lançamento${n===1?'':'s'} na tela · receitas <span style="color:var(--ok)">${brl(sr)}</span> · despesas <span style="color:var(--danger)">${brl(sd)}</span> · saldo ${brl(sr-sd)}`);
   };
   $('#fSearch').oninput=e=>{searchTerm=e.target.value;draw();};
+  $('#fTipo').onchange=e=>{ lancTipo=e.target.value||''; draw(); };
   $('#lancCompInp').onchange=e=>{ lancComp=e.target.value||''; lancDe=''; lancAte=''; render('financeiro'); };
   draw();
 }
