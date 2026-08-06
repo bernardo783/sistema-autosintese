@@ -3877,15 +3877,23 @@ function renderFolha(c){
     if(f.inicioComp&&comp<f.inicioComp) return false;
     if(f.recorrente===false) return !!(f.proxData&&f.proxData.slice(0,7)===comp);
     return true; };
-  const previsto=DB.folhaFixos.filter(conta).reduce((s,f)=>s+(Number(f.valor)||0)*ocorrencias(f),0);
+  const regDe=(f)=>pays.filter(p=>p.fixoId===f.id).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  /* o mês é sempre COMPETÊNCIA (regra do Gabriel): pós-pago vence no mês seguinte, mas pertence a este.
+     Valor da linha = o registrado no mês (se houver); o cadastro é só o padrão pros próximos. */
+  const naTela=(f)=>conta(f)||regDe(f).length>0;
+  const valorMes=(f)=>{ const rs=regDe(f); return rs.length?rs.reduce((a,p)=>a+(Number(p.valor)||0),0):(Number(f.valor)||0)*ocorrencias(f); };
+  const vencFixo=(f)=>{ if(f.posPago&&f.freq!=='semanal'){ const ny=fm===12?fy+1:fy, nm=fm===12?1:fm+1;
+      const last=new Date(ny,nm,0).getDate(); const d=Math.min(Math.max(1,Number(f.dia)||1),last);
+      return ny+'-'+String(nm).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+    return vencOf(comp,f.dia); };
+  const previsto=DB.folhaFixos.filter(naTela).reduce((s,f)=>s+valorMes(f),0);
   const pago=pays.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
   const totPend=Math.max(0,previsto-pago);
   const nPagos=pays.filter(p=>p.pago).length;
-  const nTot=DB.folhaFixos.filter(conta).reduce((s,f)=>s+ocorrencias(f),0);
-  const regDe=(f)=>pays.filter(p=>p.fixoId===f.id).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  const nTot=DB.folhaFixos.filter(naTela).reduce((s,f)=>s+(regDe(f).length||ocorrencias(f)),0);
   const fpB=(window.__fpBusca||'');
   const fpOk=(...ts)=>!fpB||ts.some(t=>String(t||'').toLowerCase().includes(fpB));
-  const fixosVis=DB.folhaFixos.filter(f=>fpOk(f.nome,f.descricao,f.pix,f.banco,f.dp));
+  const fixosVis=DB.folhaFixos.filter(f=>naTela(f)&&fpOk(f.nome,f.descricao,f.pix,f.banco,f.dp));
   const hoje=hojeISO();
   c.innerHTML=`
    <div class="page-head">
@@ -3906,17 +3914,17 @@ function renderFolha(c){
    <tbody>${fixosVis.map(f=>{
      const rs=regDe(f);
      let recebeu='';
-     if(!f.ativo) recebeu='<span class="tag st">Inativo</span>';
-     else if(f.inicioComp&&comp<f.inicioComp) recebeu=`<span class="tag st">começa em ${fmtComp(f.inicioComp)}</span>`;
-     else if(f.recorrente===false&&!(f.proxData&&f.proxData.slice(0,7)===comp)) recebeu=`<span class="tag st">único${f.proxData?' · '+fmtDate(f.proxData):''}</span>`;
-     else if(f.freq==='semanal'){
+     if(!rs.length&&!f.ativo) recebeu='<span class="tag st">Inativo</span>';
+     else if(!rs.length&&f.inicioComp&&comp<f.inicioComp) recebeu=`<span class="tag st">começa em ${fmtComp(f.inicioComp)}</span>`;
+     else if(!rs.length&&f.recorrente===false&&!(f.proxData&&f.proxData.slice(0,7)===comp)) recebeu=`<span class="tag st">único${f.proxData?' · '+fmtDate(f.proxData):''}</span>`;
+     else if(f.freq==='semanal'&&conta(f)&&(!rs.length||rs.every(p=>semanasDe(f).includes(p.venc)))){
        const pagoSem=rs.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
        recebeu=`<div style="display:flex;flex-wrap:wrap;gap:2px 12px">`+semanasDe(f).map(venc=>{ const p=rs.find(x=>x.venc===venc);
          return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12.5px;color:${p&&p.pago?'var(--ok)':'var(--muted)'}"><input type="checkbox" ${p&&p.pago?'checked':''} onclick="fpMarcarSemana('${f.id}','${venc}')" style="accent-color:var(--ok);width:15px;height:15px;cursor:pointer">${fmtDate(venc).slice(0,5)}</label>`; }).join('')+
          `</div><div style="font-size:11px;color:var(--muted);margin-top:3px">${rs.filter(p=>p.pago).length}/${semanasDe(f).length} semanas · ${brl(pagoSem)} no mês</div>`;
      } else {
        const p=rs[0];
-       const atrasado=!(p&&p.pago)&&comp<=compNow()&&vencOf(comp,f.dia)<hoje;
+       const atrasado=!(p&&p.pago)&&comp<=compNow()&&((p&&p.venc)||vencFixo(f))<hoje;
        recebeu=`<label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">
          <input type="checkbox" ${p&&p.pago?'checked':''} onclick="fpMarcarFixo('${f.id}')" style="accent-color:var(--ok);width:16px;height:16px;cursor:pointer">
          ${p&&p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(atrasado?'<span class="tag despesa">Atrasado</span>':'<span class="tag pausado">Pendente</span>')}</label>`;
@@ -3924,8 +3932,8 @@ function renderFolha(c){
      return `<tr>
       <td><strong>${esc(f.nome)}</strong>${f.descricao?`<div style="font-size:11.5px;color:var(--muted)">${esc(f.descricao)}${f.posPago?' · pós-pago':''}</div>`:(f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':'')}${f.dp?`<div style="margin-top:3px"><span class="tag st">${esc(f.dp)}</span></div>`:''}</td>
       <td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td>
-      <td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):(f.recorrente===false?(f.proxData?fmtDate(f.proxData):'—'):('dia '+f.dia))}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}</td>
-      <td class="money" style="text-align:right">${brl(f.valor)}${f.freq==='semanal'?`<div style="font-size:11px;color:var(--muted);font-weight:400">/semana · mês ${brl((Number(f.valor)||0)*ocorrencias(f))}</div>`:''}</td>
+      <td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):(f.recorrente===false?(f.proxData?fmtDate(f.proxData):'—'):('dia '+f.dia+(f.posPago?' do mês seguinte':'')))}${rs.length&&rs[0].venc?`<div style="font-size:11px;color:var(--muted)">vence ${fmtDate(rs[0].venc)}</div>`:''}</td>
+      <td class="money" style="text-align:right">${brl(valorMes(f))}${f.freq==='semanal'&&!rs.length?`<div style="font-size:11px;color:var(--muted);font-weight:400">/semana · mês ${brl((Number(f.valor)||0)*ocorrencias(f))}</div>`:(rs.length&&f.freq!=='semanal'&&Math.abs(valorMes(f)-(Number(f.valor)||0))>0.005?`<div style="font-size:11px;color:var(--muted);font-weight:400">cadastro ${brl(f.valor)}</div>`:'')}</td>
       <td>${recebeu}</td>
       <td><div class="rowact">
         <button class="iconbtn" onclick="fixoMove('${f.id}',-1)" title="Subir">↑</button>
@@ -3938,16 +3946,22 @@ function renderFolha(c){
   $('#fpComp').onchange=e=>{ folhaComp=e.target.value||compNow(); render('folha'); };
 }
 /* ---- marca/desmarca o pagamento do mês de um fixo (cria o registro na hora se não existir) ---- */
+function fpVencDe(f,comp){ /* pós-pago mensal vence no mês SEGUINTE ao de competência */
+  if(f.posPago&&f.freq!=='semanal'){
+    const [y,m]=comp.split('-').map(Number); const ny=m===12?y+1:y, nm=m===12?1:m+1;
+    const last=new Date(ny,nm,0).getDate(); const d=Math.min(Math.max(1,Number(f.dia)||1),last);
+    return ny+'-'+String(nm).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  }
+  return vencOf(comp,f.dia);
+}
 function fpCriarRegistro(f,comp,venc){
-  const [y,m]=comp.split('-').map(Number);
-  const dAnt=new Date(y,m-2,1); const mesAnt=dAnt.getFullYear()+'-'+String(dAnt.getMonth()+1).padStart(2,'0');
   const desc=f.freq==='semanal'
     ?(f.descricao?f.descricao+' — ':'')+'semanal ('+DSEM[Number(f.diaSemana)||0]+')'+(f.posPago?' · pós-pago':'')
     :(f.recorrente===false
-      ?((f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):'')+' · único').trim()
-      :(f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):''));
+      ?((f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'pós-pago · competência '+fmtComp(comp)):'')+' · único').trim()
+      :(f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'pós-pago · competência '+fmtComp(comp)):''));
   const p={id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:desc,valor:Number(f.valor)||0,
-    venc:venc||(f.recorrente===false?f.proxData:vencOf(comp,f.dia)),pago:false,pagoEm:null};
+    venc:venc||(f.recorrente===false?f.proxData:fpVencDe(f,comp)),pago:false,pagoEm:null};
   DB.folha.push(p); return p;
 }
 window.fpMarcarFixo=(fid)=>{
@@ -3971,14 +3985,13 @@ window.gerarFolha=async ()=>{
   const temData=new Set(doComp.map(p=>p.fixoId+'|'+p.venc));
   const [y,m]=comp.split('-').map(Number);
   const last=new Date(y,m,0).getDate();
-  const dAnt=new Date(y,m-2,1); const mesAnt=dAnt.getFullYear()+'-'+String(dAnt.getMonth()+1).padStart(2,'0');
   let n=0;
   ativos.forEach(f=>{
     if(f.inicioComp && comp<f.inicioComp) return; /* só gera a partir do mês configurado */
     if(f.recorrente===false){ /* pagamento único na data marcada, sem recorrência */
       if(!f.proxData||f.proxData.slice(0,7)!==comp) return;
       if(temData.has(f.id+'|'+f.proxData)||temMensal.has(f.id)) return;
-      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:((f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):'')+' · único').trim(),valor:Number(f.valor)||0,venc:f.proxData,pago:false,pagoEm:null});
+      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:((f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'pós-pago · competência '+fmtComp(comp)):'')+' · único').trim(),valor:Number(f.valor)||0,venc:f.proxData,pago:false,pagoEm:null});
       n++; return;
     }
     if(f.freq==='semanal'){
@@ -3991,7 +4004,7 @@ window.gerarFolha=async ()=>{
       }
     } else {
       if(temMensal.has(f.id)) return;
-      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):''),valor:Number(f.valor)||0,venc:vencOf(comp,f.dia),pago:false,pagoEm:null});
+      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'pós-pago · competência '+fmtComp(comp)):''),valor:Number(f.valor)||0,venc:fpVencDe(f,comp),pago:false,pagoEm:null});
       n++;
     }
   });
@@ -4003,16 +4016,16 @@ window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
   p.pago=true; p.pagoEm=hojeISO();
   const fxp=DB.folhaFixos.find(f=>f.id===p.fixoId);
-  /* pós-pago mensal: a despesa é custo do mês ANTERIOR ao da folha — data no último dia dele
-     (regra do Gabriel: editora/gerentes/sócios pagos em agosto referentes a julho aparecem em julho).
+  /* o comp do registro JÁ É o mês de competência (regra do Gabriel): pós-pago paga no mês
+     seguinte, mas a despesa entra datada no último dia do próprio mês de competência.
      Semanal continua na data da própria semana. */
   let dataLanc=(p.venc||((p.comp||compNow())+'-01'));
   if(fxp&&fxp.posPago&&fxp.freq!=='semanal'&&p.comp){
-    const [y,m]=p.comp.split('-').map(Number); const ult=new Date(y,m-1,0);
+    const [y,m]=p.comp.split('-').map(Number); const ult=new Date(y,m,0);
     dataLanc=ult.getFullYear()+'-'+String(ult.getMonth()+1).padStart(2,'0')+'-'+String(ult.getDate()).padStart(2,'0');
   }
   DB.financeiro.push({id:'fp_'+p.id,data:dataLanc,comp:p.comp,pagoEm:p.pagoEm,tipo:'despesa',descricao:'Folha: '+p.nome+(p.descricao?' — '+p.descricao:''),categoria:(fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento',valor:Number(p.valor)||0});
-  await saveDB(); render('folha'); toast('Pagamento de '+p.nome+' registrado no Financeiro'+((fxp&&fxp.posPago&&fxp.freq!=='semanal')?' (datado no mês de referência)':'')+'.');
+  await saveDB(); render('folha'); toast('Pagamento de '+p.nome+' registrado no Financeiro'+((fxp&&fxp.posPago&&fxp.freq!=='semanal')?' (datado no mês de competência)':'')+'.');
 };
 window.fpDesfazer=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||!p.pago)return;
