@@ -172,9 +172,7 @@
   .railbar .rl .t{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .railbar .rl:hover{background:var(--panel2);color:var(--txt)}
   .railbar .rl.active{background:var(--panel2);color:#c4b5fd}
-  .railbar .rl-brand{width:38px;height:38px;padding:0;border-radius:11px;display:grid;place-items:center;
-    background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);margin-bottom:10px;border:none}
-  .railbar .rl-brand svg{width:19px;height:19px}
+  .railbar #rlInicio{margin-bottom:2px}
   .railbar .sep{width:28px;height:1px;background:var(--line);margin:7px 0;flex:none}
   .railbar .bot{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%}
   .railbar .bot .av{width:30px;height:30px;cursor:pointer}
@@ -510,7 +508,7 @@
     #app.mini{grid-template-columns:1fr}
     .railbar{flex-direction:row;justify-content:flex-start;overflow-x:auto;border-right:none;
       border-bottom:1px solid var(--line);padding:8px 10px;gap:4px}
-    .railbar .rl-brand{margin:0 6px 0 0}
+    .railbar #rlInicio{margin:0 4px 0 0}
     .railbar .sep{width:1px;height:26px;margin:0 4px}
     .railbar .bot{margin:0 0 0 auto;flex-direction:row}
     .sp-tree{max-height:260px}.sidebar .foot{margin:0}.main{padding:18px}}
@@ -622,9 +620,8 @@
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <nav class="railbar" id="railbar">
-    <button class="rl-brand" title="AutoSíntese — menu do workspace" onclick="wsMenu(event)">
-      <svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg>
-    </button>
+    <button class="rl" id="rlInicio" title="Início — Base de Clientes" onclick="spAbrirClientes()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="t">Início</span></button>
     <button class="rl" id="rlEspacos" title="Mostrar ou esconder a lista de espaços" onclick="spMini()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span class="t">Espaços</span></button>
     <button class="rl" id="rlInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()">
@@ -3066,6 +3063,8 @@ function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
   const be=document.getElementById('rlEspacos'); if(be) be.classList.toggle('active',!SP_MINI);
+  const bi=document.getElementById('rlInicio');
+  if(bi) bi.classList.toggle('active', currentView==='lista'&&TK.escopo==='lista'&&ehLC(TK.listaSel));
   const mst=!!(currentUser&&currentUser.role==='master');
   /* contador da caixa de entrada + estado do atalho */
   const bx=document.getElementById('rlInbox'), bn=document.getElementById('spInboxN');
