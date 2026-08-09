@@ -62,16 +62,9 @@
   .logo{display:flex;align-items:center;gap:13px;margin-bottom:6px}
   .logo .mark{width:46px;height:46px;flex:none}
   .logo .mark svg{width:100%;height:100%;display:block}
-  .wordmark{line-height:1;display:inline-block;position:relative;padding-bottom:17px}
+  .wordmark{line-height:1;display:inline-block;position:relative}
   .wordmark .wm{display:block;font-family:Arial,sans-serif;font-size:30px;font-weight:900;letter-spacing:2px;color:#fff;margin-right:-2px}
   .wordmark .wm .thin{font-weight:300}
-  /* tagline presa às duas bordas do nome (camada absoluta + justificação): mesmo início, mesmo fim.
-     Classe própria (.slogan) para NUNCA herdar o padding das etiquetas .tag do sistema. */
-  .wordmark .slogan{position:absolute;left:0;right:0;bottom:0;margin:0;padding:0;background:none;border:none;
-    text-align:justify;text-align-last:justify;-moz-text-align-last:justify;
-    font-family:Arial,sans-serif;font-size:9.7px;font-weight:400;color:rgba(255,255,255,.55);
-    letter-spacing:1.6px;text-transform:uppercase}
-  .wordmark .slogan b{color:#fff;font-weight:900}
   .login-card h2{font-size:16px;margin:22px 0 4px}
   .login-card p.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
   .field{margin-bottom:14px}
@@ -438,7 +431,7 @@
   <div class="login-card">
     <div class="logo" style="flex-direction:column;align-items:center;text-align:center;gap:12px;margin-bottom:16px">
       <div class="mark" style="width:58px;height:58px;filter:drop-shadow(0 0 16px rgba(168,85,247,.65))"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></div>
-      <div class="wordmark"><span class="wm">AUTO<span class="thin">SÍNTESE</span></span><span class="slogan">Inteligênc<b>ia</b> Unida a Resultados</span></div>
+      <div class="wordmark"><span class="wm">AUTO<span class="thin">SÍNTESE</span></span></div>
     </div>
 
     <div id="loginView" class="hidden">
@@ -2521,7 +2514,10 @@ function tkDesenhar(c){
   if(TK.listaSel===NC_LISTA&&TK.escopo==='lista'){ return ncFormulario(c); }
   const lista=TK.listas.find(x=>x.id===TK.listaSel);
   const cli=ehLC(TK.listaSel)&&TK.escopo==='lista';
-  const abas=`<div class="tk-seg">${[['lista','☰ Lista'],['board','▦ Board'],['cal','🗓 Calendário']].map(v=>`<button class="${TK.visao===v[0]?'on':''}" onclick="tkVisao('${v[0]}')">${v[1]}</button>`).join('')}</div>`;
+  if(cli&&TK.visao==='cal') TK.visao='board';
+  const visoes=[['lista','☰ Lista'],['board','▦ Board']];
+  if(!cli) visoes.push(['cal','🗓 Calendário']);
+  const abas=`<div class="tk-seg">${visoes.map(v=>`<button class="${TK.visao===v[0]?'on':''}" onclick="tkVisao('${v[0]}')">${v[1]}</button>`).join('')}</div>`;
   const corpo=TK.visao==='lista'?tkViewLista():TK.visao==='cal'?tkViewCal():tkViewBoard();
   const dica=TK.visao==='board'?'arraste os cartões entre as colunas':TK.visao==='cal'?'arraste para outro dia para mudar o prazo':'clique no nome para abrir, no cabeçalho para ordenar';
   const titulo=TK.escopo==='minhas'?'Minhas tarefas':TK.escopo==='todas'?'Todas as tarefas':(lista?esc(spNome(lista)):'Listas');
@@ -3189,7 +3185,7 @@ const FICHA_REQ=[['grupoWpp','Grupo WhatsApp'],['produtos','Produtos/serviços']
 const fichaVal=(p,c,k)=>String((p&&p[k])||(c&&c[k])||'').trim();
 const fichaFalta=(p,c)=>{ const f=[];
   if(!nichoDe(p,c)) f.push('Nicho');
-  FICHA_REQ.forEach(([k,l])=>{ let v=fichaVal(p,c,k); if(k==='produtos'&&!v) v=String((c&&c.servico)||'').trim(); if(!v) f.push(l); });
+  FICHA_REQ.forEach(([k,l])=>{ if(k==='drive'&&!precisaDrive(p)) return; let v=fichaVal(p,c,k); if(k==='produtos'&&!v) v=String((c&&c.servico)||'').trim(); if(!v) f.push(l); });
   return f; };
 const fichaTag=r=>{ const f=fichaFalta(r,DB.clientes.find(c=>c.id===r.clienteId)); return f.length?`<span title="Ficha incompleta - falta: ${f.join(', ')}" style="margin-left:6px;opacity:.7;cursor:help">&#9888;</span>`:''; };
 const linkIg=v=>{ v=String(v||'').trim(); if(!v) return ''; return /^https?:\/\//i.test(v)?v:'https://instagram.com/'+v.replace(/^@/,''); };
@@ -3200,6 +3196,8 @@ const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
   const s=((cli&&cli.servico)||p.notas||'').toLowerCase();
   const temT=/tr[aá]fego/.test(s), temA=/agent/.test(s);
   if(temT&&temA) return 'full'; if(temA) return 'ia'; if(temT) return 'trafego'; return 'outro'; };
+/* Drive é entrega de Marketing: cliente só de Agent IA/CRM não precisa (Gabriel, ago/2026) */
+const precisaDrive=(p)=>{ const k=catDe(p); return k==='trafego'||k==='full'; };
 /* ---------- FECHAMENTO: formulário de novo contrato ---------- */
 const FC_PLANOS=['Tráfego Pago + Agent IA','Tráfego Pago','Agent IA','Outro'];
 const FC_CONTRATOS=['Mensal','Trimestral','Semestral','Anual'];
