@@ -82,8 +82,14 @@
   .hint{color:var(--muted);font-size:12px;margin-top:14px;line-height:1.5}
 
   /* ---------- APP LAYOUT ---------- */
-  #app{display:grid;grid-template-columns:276px 1fr;min-height:100vh}
-  .sidebar{background:var(--panel);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column}
+  #app{display:grid;grid-template-columns:var(--sbw,276px) 1fr;min-height:100vh}
+  .sidebar{background:var(--panel);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;position:relative}
+  /* alça de arrasto: ajusta a largura da barra (igual ao ClickUp) */
+  .sb-grip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:30;background:transparent}
+  .sb-grip::after{content:'';position:absolute;left:2px;top:0;width:2px;height:100%;border-radius:2px;background:transparent;transition:background .15s}
+  .sb-grip:hover::after,.sb-grip.arr::after{background:var(--brand2)}
+  body.sb-arr,body.sb-arr *{cursor:col-resize!important;user-select:none}
+  #app.mini .sb-grip{display:none}
   .sidebar .logo{margin-bottom:26px;padding:0 6px}
   .nav{display:flex;flex-direction:column;gap:4px}
   .nav button{display:flex;align-items:center;gap:11px;background:transparent;border:none;color:var(--muted);
@@ -266,8 +272,9 @@
   .tk-esph{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:800}
   .tk-cv{display:inline-block;font-size:9px;color:var(--muted);transition:transform .12s;width:9px;flex:none}
   .tk-cv.ab{transform:rotate(90deg)}
-  .tk-dot{width:9px;height:9px;border-radius:3px;flex:none}
+  .tk-dot{width:9px;height:9px;border-radius:3px;flex:none;background:color-mix(in srgb,var(--muted) 45%,transparent)}
   .tk-ic{font-size:11px;opacity:.7;flex:none}
+  .tk-ic svg{display:block}
   .tk-nome{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tk-add{margin-left:auto;padding:0 6px;opacity:0;line-height:1.6}
   .tk-esph:hover .tk-add,.tk-pastah:hover .tk-add,.tk-grupoh:hover .tk-add{opacity:1}
@@ -490,6 +497,7 @@
         <button class="btn ghost" id="btnLogout">Sair</button>
       </div>
     </div>
+    <div class="sb-grip" id="sbGrip" title="Arraste para mudar a largura · 2 cliques volta ao padrão"></div>
   </aside>
   <main class="main" id="content"></main>
 </div>
@@ -1780,6 +1788,44 @@ function spSalvarCols(){ try{ localStorage.setItem('sp_cols', JSON.stringify(TK.
 try{ const s2=localStorage.getItem('sp_cols'); if(s2){ TK.colsOff=JSON.parse(s2)||{}; TK.colsSalvo=true; } }catch(_){}
 function spAbrirCaminho(lid){ const l=TK.listas.find(x=>x.id===lid); if(!l) return; TK.fechadas['e'+l.espaco_id]=false; if(l.pasta_id) TK.fechadas['p'+l.pasta_id]=false; spSalvarArvore(); }
 window.spMini=(v)=>{ SP_MINI=(v===undefined)?!SP_MINI:!!v; try{ localStorage.setItem('sp_mini',SP_MINI?'1':'0'); }catch(_){} spDesenhar(); };
+/* ---------- largura da barra lateral (arrastar a borda, igual ao ClickUp) ---------- */
+const SB_MIN=210, SB_MAX=460, SB_PAD=276, SB_COLAPSA=150;  /* soltar antes de 150px encolhe */
+function sbLarguraSalva(){ let v=0; try{ v=parseInt(localStorage.getItem('sp_larg'),10); }catch(_){}
+  return (v>=SB_MIN&&v<=SB_MAX)?v:SB_PAD; }
+function sbAplicar(px){ const a=document.getElementById('app'); if(a) a.style.setProperty('--sbw',px+'px'); }
+window.sbReset=()=>{ try{ localStorage.removeItem('sp_larg'); }catch(_){} sbAplicar(SB_PAD); toast('Largura padrão restaurada.'); };
+function sbIniciar(){
+  const grip=document.getElementById('sbGrip'); if(!grip||grip.dataset.on) return;
+  grip.dataset.on='1';
+  sbAplicar(sbLarguraSalva());
+  const pegarX=e=>e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX;
+  const comecar=e=>{
+    if(SP_MINI) return;
+    e.preventDefault();
+    document.body.classList.add('sb-arr'); grip.classList.add('arr');
+    let atual=sbLarguraSalva(), encolher=false;
+    const mover=ev=>{
+      const x=pegarX(ev);
+      encolher = x<SB_COLAPSA;
+      atual=Math.min(SB_MAX,Math.max(SB_MIN,x));
+      sbAplicar(encolher?SB_MIN:atual);
+    };
+    const soltar=()=>{
+      document.removeEventListener('mousemove',mover); document.removeEventListener('mouseup',soltar);
+      document.removeEventListener('touchmove',mover); document.removeEventListener('touchend',soltar);
+      document.body.classList.remove('sb-arr'); grip.classList.remove('arr');
+      if(encolher){ sbAplicar(sbLarguraSalva()); spMini(true); return; }   /* arrastou até o fim = encolhe */
+      try{ localStorage.setItem('sp_larg',String(atual)); }catch(_){}
+    };
+    document.addEventListener('mousemove',mover); document.addEventListener('mouseup',soltar);
+    document.addEventListener('touchmove',mover,{passive:false}); document.addEventListener('touchend',soltar);
+  };
+  grip.addEventListener('mousedown',comecar);
+  grip.addEventListener('touchstart',comecar,{passive:false});
+  grip.addEventListener('dblclick',()=>sbReset());
+}
+document.addEventListener('DOMContentLoaded',sbIniciar);
+sbIniciar();
 window.spExpandir=(eid)=>{ SP_MINI=false; try{ localStorage.setItem('sp_mini','0'); }catch(_){} TK.fechadas['e'+eid]=false; spSalvarArvore(); spDesenhar(); };
 /* ======= NAVEGACAO ESTILO CLICKUP: workspace > espaco > pasta > lista > tarefa ======= */
 const WS_NOME='AutoSíntese';
@@ -1792,6 +1838,8 @@ const spRotulo=(tipo)=>tipo==='espaco'?'espaço':tipo==='pasta'?'pasta':'lista';
 /* O icone vem da coluna nova; se nao houver, cai no emoji que ja estava no comeco do nome. */
 const spEmojiNome=(n)=>{ const m=String(n||'').match(/^(\p{Extended_Pictographic}️?)\s*/u); return m?m[1]:''; };
 const spIcone=(o)=>(o&&o.icone)||spEmojiNome(o&&o.nome)||'';
+/* visual limpo estilo ClickUp: emoji só quando escolhido de propósito no "Cor e ícone" */
+const SVG_PASTA='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 const spNome=(o)=>{ const n=String((o&&o.nome)||''); return (o&&o.icone)?n:(n.replace(/^(\p{Extended_Pictographic}️?)\s*/u,'')||n); };
 function spRepintar(){ spDesenhar(); if(currentView==='lista') tkDesenhar($('#content')); }
 
@@ -2456,9 +2504,9 @@ function spDesenhar(){
   if(bx) bx.classList.toggle('active',TK.escopo==='minhas'&&currentView==='lista');
   if(bn){ const n=spMinhas().length; bn.textContent=n||''; }
   const item=(l,fav)=>{
-    const ico=spIcone(l), cor=l.cor||'';
-    const ic=ico?`<span class="tk-ic emo"${cor?` style="color:${esc(cor)}"`:''}>${esc(ico)}</span>`
-                :`<span class="tk-ic"${cor?` style="color:${esc(cor)}"`:''}>&#8803;</span>`;
+    const cor=l.cor||'';
+    const ic=l.icone?`<span class="tk-ic emo">${esc(l.icone)}</span>`
+                    :`<span class="tk-dot"${cor?` style="background:${esc(cor)}"`:''}></span>`;
     const cont=(l.id===LF_ID||ehFin(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
     const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)))?' on':'';
     const dnd=fav?'':` draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()"`;
