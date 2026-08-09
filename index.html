@@ -34,6 +34,17 @@
   .page-head h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
   .hint,.desc{font-size:12.5px}
 
+  /* ---------- NOVAS CONTAS: regras do canal ---------- */
+  .nc-regras{max-width:920px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand2);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin-bottom:14px}
+  .nc-regras h4{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    font-weight:800;margin-bottom:8px}
+  .nc-regras ol{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.65}
+  .nc-regras ol li{margin-bottom:2px}
+  .nc-regras strong{color:var(--txt);font-weight:600}
+  .nc-dica{background:rgba(123,104,238,.12);border:1px solid rgba(123,104,238,.35);border-radius:9px;
+    padding:10px 13px;margin:0 0 14px;font-size:12.5px;line-height:1.55;color:var(--txt)}
+  .nc-dica strong{font-weight:700}
   /* ---------- DAILY DOS SQUADS ---------- */
   .dl-wrap{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
   @media(max-width:1150px){.dl-wrap{grid-template-columns:1fr}}
@@ -2959,18 +2970,41 @@ const NC_PAG=['Débito','Crédito','Dinheiro','Transferência/Pix','Boleto'];
 const NC_PARC=['À Vista','1x','2x','3x','4x','5x','6x','7x','8x','9x','10x','11x','12x'];
 const ncOpc=(a)=>'<option value="">—</option>'+a.map(o=>'<option>'+esc(o)+'</option>').join('');
 const ncV=(id)=>{ const e=document.getElementById(id); return e?String(e.value||'').trim():''; };
+/* Regras do canal — as mesmas que valiam no formulário antigo, agora dentro do sistema. */
+const NC_REGRAS=[
+  'Reembolso é pago em até <strong>dois dias úteis</strong> após o envio.',
+  'Toda nova conta precisa de <strong>NF, cupom fiscal e/ou comprovante</strong>.',
+  'Descreva o máximo possível sobre a origem, a necessidade e o motivo da conta.',
+  'Foto precisa estar clara e bem posicionada. Sempre que der, digitalize o anexo.',
+  'Solicitação sem as informações necessárias <strong>não será considerada</strong>.',
+  'Pedido feito só por WhatsApp, sem abrir a solicitação aqui, <strong>não será considerado</strong>.'];
+/* Cada natureza tem um aviso próprio: é o que muda de verdade de um pedido para outro. */
+const NC_DICA={
+  'Reembolso':'Você já pagou do próprio bolso. Anexe a <strong>NF, o cupom ou o comprovante</strong> da despesa — sem isso o reembolso não entra na fila. Cai em até dois dias úteis.',
+  'Pagamento':'Quem paga é a empresa. Anexe o <strong>boleto ou os dados de cobrança</strong> do fornecedor e confira o vencimento antes de enviar.',
+  'Retirada':'Retirada de sócio. Descreva o <strong>motivo e o período de referência</strong> no campo de observações.'};
+window.ncNat=()=>{
+  const el=document.getElementById('ncDica'); if(!el) return;
+  const t=NC_DICA[ncV('nc_nat')]||'';
+  el.innerHTML=t?`<div class="nc-dica">${t}</div>`:'';
+};
 function ncFormulario(c){
   const meu=(window.currentUser&&currentUser.nome)||'';
   const envs=TK.tarefas.filter(t=>t.lista_id===NC_LISTA).slice().sort((x,y)=>String(y.criado_em||'').localeCompare(String(x.criado_em||''))).slice(0,10);
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Novas Contas</h2><div class="desc">Solicitação de pagamento — qualquer pessoa do time pode enviar</div></div>
+     <div><h2>Novas Contas</h2><div class="desc">Canal oficial de solicitação — todo pedido fica rastreado, do envio ao pagamento</div></div>
+   </div>
+   <div class="nc-regras">
+     <h4>Antes de enviar</h4>
+     <ol>${NC_REGRAS.map(r=>`<li>${r}</li>`).join('')}</ol>
    </div>
    <div class="card" style="padding:18px;max-width:920px">
      <div class="row2">
-       <div class="field"><label>Nome do solicitante *</label><input id="nc_sol" value="${esc(meu)}"></div>
-       <div class="field"><label>Natureza da conta *</label><select id="nc_nat">${ncOpc(NC_NAT)}</select></div>
+       <div class="field"><label>Nome do solicitante *</label><input id="nc_sol" value="${esc(meu)}" placeholder="ex: Luiz Marcelo da Silveira Couto"></div>
+       <div class="field"><label>Natureza da conta *</label><select id="nc_nat" onchange="ncNat()">${ncOpc(NC_NAT)}</select></div>
      </div>
+     <div id="ncDica"></div>
      <div class="row2">
        <div class="field"><label>Departamento *</label><select id="nc_dep">${ncOpc(NC_DEP)}</select></div>
        <div class="field"><label>Nome do fornecedor *</label><input id="nc_forn" placeholder="Para quem vai o pagamento"></div>
@@ -2983,12 +3017,12 @@ function ncFormulario(c){
        <div class="field"><label>Forma de pagamento</label><select id="nc_pag">${ncOpc(NC_PAG)}</select></div>
        <div class="field"><label>Parcelamento</label><select id="nc_parc">${ncOpc(NC_PARC)}</select></div>
      </div>
-     <div class="field"><label>Motivo da solicitação *</label><input id="nc_mot" placeholder="Por que esse pagamento é necessário"></div>
+     <div class="field"><label>Motivo da solicitação *</label><input id="nc_mot" placeholder="Descreva o porquê essa nova conta é necessária"></div>
      <div class="row2">
        <div class="field"><label>Descrição</label><textarea id="nc_desc" rows="2"></textarea></div>
        <div class="field"><label>Observações</label><textarea id="nc_obs" rows="2"></textarea></div>
      </div>
-     <div class="field"><label>Anexo — link do boleto/comprovante</label><input id="nc_anexo" placeholder="https://..."></div>
+     <div class="field"><label>Anexo * — link do boleto, NF ou comprovante</label><input id="nc_anexo" placeholder="https://... (Drive, foto digitalizada ou boleto)"></div>
      <div style="display:flex;gap:10px;margin-top:8px">
        <button class="btn" onclick="ncEnviar()">Enviar solicitação</button>
        <button class="btn secondary" onclick="ncLimpar()">Limpar</button>
@@ -3008,6 +3042,9 @@ window.ncEnviar=async ()=>{
   const sol=ncV('nc_sol'), nat=ncV('nc_nat'), dep=ncV('nc_dep'), forn=ncV('nc_forn'), venc=ncV('nc_venc'), mot=ncV('nc_mot');
   const val=Number(ncV('nc_val')||0);
   if(!sol||!nat||!dep||!forn||!venc||!mot||!val){ toast('Preencha os campos com *.'); return; }
+  /* regra 2 e 5: sem comprovante o pedido não é considerado — barra aqui em vez de barrar depois */
+  if(!ncV('nc_anexo')){ toast('Anexe a NF, o cupom ou o comprovante — sem isso a solicitação não é considerada.');
+    const a=document.getElementById('nc_anexo'); if(a) a.focus(); return; }
   const v={};
   v[NC_C.sol]=sol; v[NC_C.nat]=nat; v[NC_C.dep]=dep; v[NC_C.forn]=forn; v[NC_C.val]=val; v[NC_C.venc]=venc; v[NC_C.mot]=mot;
   const pag=ncV('nc_pag'), parc=ncV('nc_parc'), des=ncV('nc_desc'), obs=ncV('nc_obs'), anx=ncV('nc_anexo');
@@ -3033,7 +3070,6 @@ function spDesenhar(){
   /* contador da caixa de entrada + estado do atalho */
   const bx=document.getElementById('rlInbox'), bn=document.getElementById('spInboxN');
   if(bx) bx.classList.toggle('active',TK.escopo==='minhas'&&currentView==='lista');
-  const bdl=document.getElementById('spDaily'); if(bdl) bdl.classList.toggle('active',currentView==='daily');
   if(bn){ const n=spMinhas().length; bn.textContent=n||''; }
   const item=(l,fav)=>{
     const cor=l.cor||'';
