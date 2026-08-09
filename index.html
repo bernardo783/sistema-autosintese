@@ -161,7 +161,8 @@
   /* seletor de icone + cor */
   .emo-g{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;max-height:148px;overflow-y:auto;
     background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px}
-  .emo-g button{background:transparent;border:1px solid transparent;border-radius:6px;font-size:16px;line-height:1;padding:4px 0}
+  .emo-g button{background:transparent;border:1px solid transparent;border-radius:6px;font-size:16px;line-height:1;padding:4px 0;color:var(--brand2)}
+  .emo-g button svg{display:block;margin:2px auto}
   .emo-g button:hover{background:rgba(255,255,255,.09)}
   .emo-g button.on{border-color:var(--brand2);background:rgba(167,139,250,.18)}
   .cor-g{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -774,12 +775,155 @@ function render(view){
 
 /* ---------- TRÁFEGO PAGO ---------- */
 const TR_ST={ativo:'Ativo',pausado:'Pausado',encerrado:'Encerrado'};
+/* ===================== RELATÓRIOS: sub-abas Conexão / Equipes / Central =====================
+   Reaproveita o que /resumo já traz: pagConta() (Pix×cartão, saldo) e c.dias (gasto dia a dia). */
+let trafAba='contas';
+window.trafGo=(t)=>{ trafAba=t; render('trafego'); };
+/* média de gasto por dia dos últimos dias com gasto — base da previsão de duração */
+function mediaDiaria(c){
+  const d=(c&&c.dias)||[]; const comGasto=d.filter(x=>(+x.s||0)>0);
+  if(!comGasto.length) return 0;
+  return comGasto.reduce((s,x)=>s+(+x.s||0),0)/comGasto.length;
+}
+/* Situação da conta: crítico / atenção / ok — usa o orçamento da ficha se houver, senão a média */
+function risco(c){
+  const pg=pagConta(c); const f=fichaDaConta(c.id);
+  const orc=f?(+f.orcamento||0):0, per=(f&&f.orcPer)||'semanal';
+  const orcSem = orc ? (per==='diario'?orc*7:orc) : 0;
+  const md=mediaDiaria(c);
+  const saldo = pg&&pg.prepago ? (pg.saldo!=null?pg.saldo:null) : null;   /* só pré-pago tem saldo */
+  const pctAviso = (f&&+f.avisoPct)||20;
+  let nivel='ok', motivo='', dias=null, pct=null;
+  if(pg&&pg.problema){ return {nivel:'critico',motivo:pg.statusTxt,pg,f,saldo,md,orcSem,dias:0,pct:0,pctAviso}; }
+  if(saldo!=null){
+    if(orcSem>0) pct=Math.max(0,Math.min(100,saldo/orcSem*100));
+    if(md>0) dias=saldo/md;
+    if(saldo<1){ nivel='critico'; motivo='sem saldo'; }
+    else if((pct!=null&&pct<pctAviso)||(dias!=null&&dias<2)){ nivel='atencao'; motivo=pct!=null?('restam '+pct.toFixed(0)+'% do orçamento'):'saldo para menos de 2 dias'; }
+  }else if(saldoConta(c).parou){ nivel='atencao'; motivo='parou de gastar'; }
+  return {nivel,motivo,pg,f,saldo,md,orcSem,dias,pct,pctAviso};
+}
+const RISCO_COR={critico:'#f87171',atencao:'#fbbf24',ok:'#34d399'};
+const RISCO_TXT={critico:'Crítico',atencao:'Em atenção',ok:'Saldo ok'};
+/* custo por conversa/lead da conta no período */
+function custoConversa(c){
+  const i=(c&&c.ins)||{}; const g=+(i.spend||0);
+  const n=(i.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
+  return n?g/n:null;
+}
+const squadDaConta=(c)=>{ const f=fichaDaConta(c.id); return (f&&f.squad)||''; };
+/* ---------- Conexão: o que está espelhado da BM e pronto pra receber relatório ---------- */
+function abaConexao(){
+  const dados=window.__mtDados||[];
+  if(!dados.length) return '<div class="empty">Carregando as contas do Meta…</div>';
+  const linhas=dados.map(c=>({c,f:fichaDaConta(c.id),m:contaMarca(c.id)}));
+  const ligadas=linhas.filter(x=>x.f), soltas=linhas.filter(x=>!x.f);
+  const prontas=ligadas.filter(x=>x.m&&x.m.logo);
+  const item=(x,solta)=>{
+    const pg=pagConta(x.c);
+    return `<div style="display:flex;align-items:center;gap:11px;border:1px solid ${solta?'#7a5c17':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:7px;background:${solta?'rgba(251,191,36,.06)':'transparent'}">
+      <span style="font-size:15px">${solta?'⚠️':(x.m&&x.m.logo?'🟢':'🟡')}</span>
+      <div style="flex:1;min-width:150px">
+        <div style="font-weight:700;font-size:13.5px">${esc(x.c.nome)}</div>
+        <div style="color:var(--muted);font-size:11.5px">${esc(x.c.id)}${pg?' · '+(pg.prepago?'⚡ Pix':'💳 cartão'):''}${x.c.status!==1?' · <span style="color:#f87171">conta inativa</span>':''}</div>
+      </div>
+      <div style="text-align:right;min-width:150px">
+        ${solta
+          ? `<button class="btn small" onclick="abrirVinculos('${esc(x.c.id)}')">🔗 Ligar a um cliente</button>`
+          : `<div style="font-size:12.5px"><a class="link" style="cursor:pointer" onclick="abrirCliente('${x.f.id}')">${esc(x.f.nome)}</a></div>
+             <div style="font-size:11px;color:${x.m&&x.m.logo?'var(--muted)':'#fbbf24'}">${x.m&&x.m.logo?'pronta para relatório':'falta a logo da marca'}</div>`}
+      </div>
+    </div>`;
+  };
+  return `
+    <div class="cards" style="margin-bottom:16px">
+      <div class="card"><div class="k">Contas na BM</div><div class="v">${dados.length}</div><div class="sub">espelhadas do Meta</div></div>
+      <div class="card"><div class="k">Ligadas a um cliente</div><div class="v pos">${ligadas.length}</div><div class="sub">${prontas.length} prontas p/ relatório</div></div>
+      <div class="card"><div class="k">Sem cliente</div><div class="v" style="${soltas.length?'color:#fbbf24':''}">${soltas.length}</div><div class="sub">${soltas.length?'precisam ser ligadas':'tudo ligado'}</div></div>
+    </div>
+    ${soltas.length?`<div style="font-size:13px;font-weight:800;margin:4px 0 8px">⚠️ Contas sem cliente</div>${soltas.map(x=>item(x,true)).join('')}`:''}
+    <div style="font-size:13px;font-weight:800;margin:16px 0 8px">Contas ligadas</div>
+    ${ligadas.length?ligadas.sort((a,b)=>(a.f.nome||'').localeCompare(b.f.nome||'')).map(x=>item(x,false)).join(''):'<div class="empty">Nenhuma conta ligada ainda.</div>'}
+    <p class="hint" style="margin-top:12px">🟢 ligada e com marca configurada · 🟡 ligada, mas falta a logo para o relatório sair com a identidade do cliente · ⚠️ conta da BM que ninguém reivindicou.</p>`;
+}
+/* ---------- Equipes: quantas contas cada squad cuida ---------- */
+function abaEquipes(){
+  const dados=window.__mtDados||[];
+  if(!dados.length) return '<div class="empty">Carregando as contas do Meta…</div>';
+  const grupos={};
+  dados.forEach(c=>{
+    const f=fichaDaConta(c.id); if(!f) return;
+    const sq=f.squad||'— sem squad —';
+    (grupos[sq]=grupos[sq]||{contas:[],gasto:0,critico:0,atencao:0,gestores:{}})
+    const g=grupos[sq]; const r=risco(c);
+    g.contas.push({c,f,r}); g.gasto+=+((c.ins||{}).spend||0);
+    if(r.nivel==='critico') g.critico++; else if(r.nivel==='atencao') g.atencao++;
+    const gest=f.responsavel||'—'; g.gestores[gest]=(g.gestores[gest]||0)+1;
+  });
+  const nomes=Object.keys(grupos).sort();
+  if(!nomes.length) return '<div class="empty">Nenhuma conta ligada a cliente ainda. Ligue em <strong>Conexão</strong> para ver a divisão por squad.</div>';
+  return nomes.map(sq=>{
+    const g=grupos[sq], n=g.contas.length;
+    const pctRisco=n?Math.round((g.critico+g.atencao)/n*100):0;
+    return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <div style="font-weight:800;font-size:14.5px">${esc(sq)}</div>
+        <span class="tag st">${n} conta${n===1?'':'s'}</span>
+        ${g.critico?`<span class="tag churn">${g.critico} crítica${g.critico===1?'':'s'}</span>`:''}
+        ${g.atencao?`<span class="tag pausado">${g.atencao} em atenção</span>`:''}
+        <div style="margin-left:auto;text-align:right"><div style="font-size:10px;color:var(--muted);text-transform:uppercase">investido no período</div>
+          <div style="font-weight:800;color:var(--brand2)">${brl(g.gasto)}</div></div>
+      </div>
+      <div style="height:7px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-bottom:8px">
+        <div style="width:${pctRisco}%;height:100%;background:${pctRisco>30?'#f87171':pctRisco>0?'#fbbf24':'#34d399'}"></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted)">${pctRisco}% das contas pedindo atenção · gestores: ${Object.entries(g.gestores).map(([k,v])=>esc(k)+' ('+v+')').join(' · ')}</div>
+    </div>`;
+  }).join('');
+}
+/* ---------- Central: o retrato do risco da carteira ---------- */
+function abaCentral(){
+  const dados=window.__mtDados||[];
+  if(!dados.length) return '<div class="empty">Carregando as contas do Meta…</div>';
+  const rs=dados.map(c=>({c,r:risco(c),cpc:custoConversa(c)}));
+  const crit=rs.filter(x=>x.r.nivel==='critico'), aten=rs.filter(x=>x.r.nivel==='atencao');
+  const custos=rs.map(x=>x.cpc).filter(v=>v!=null&&v>0).sort((a,b)=>a-b);
+  const mediana=custos.length?(custos.length%2?custos[(custos.length-1)/2]:(custos[custos.length/2-1]+custos[custos.length/2])/2):0;
+  const caros=rs.filter(x=>x.cpc!=null&&mediana>0&&x.cpc>mediana*1.5).sort((a,b)=>b.cpc-a.cpc).slice(0,8);
+  const gasto=rs.reduce((s,x)=>s+(+((x.c.ins||{}).spend)||0),0);
+  const linha=(x,extra)=>`<div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);padding:9px 2px">
+      <span style="width:8px;height:8px;border-radius:50%;background:${RISCO_COR[x.r.nivel]};flex:none"></span>
+      <div style="flex:1;min-width:130px"><div style="font-weight:700;font-size:13px">${esc((x.r.f&&x.r.f.nome)||x.c.nome)}</div>
+        <div style="color:var(--muted);font-size:11px">${esc(squadDaConta(x.c)||'sem squad')}${x.r.motivo?' · '+esc(x.r.motivo):''}</div></div>
+      <div style="text-align:right;font-size:12.5px">${extra}</div>
+    </div>`;
+  return `
+    <div class="cards" style="margin-bottom:18px">
+      <div class="card"><div class="k">Contas acompanhadas</div><div class="v">${dados.length}</div><div class="sub">${brl(gasto)} no período</div></div>
+      <div class="card"><div class="k">Críticas</div><div class="v" style="color:${crit.length?'#f87171':''}">${crit.length}</div><div class="sub">sem saldo ou travadas</div></div>
+      <div class="card"><div class="k">Em atenção</div><div class="v" style="color:${aten.length?'#fbbf24':''}">${aten.length}</div><div class="sub">saldo curto ou parado</div></div>
+      <div class="card"><div class="k">Custo por conversa</div><div class="v">${mediana?brl(mediana):'—'}</div><div class="sub">mediana da carteira</div></div>
+    </div>
+    ${crit.length||aten.length?`<div style="font-size:13px;font-weight:800;margin:4px 0 4px">🔴 Contas em risco</div>
+      ${[...crit,...aten].map(x=>linha(x, x.r.saldo!=null?`<strong>${brl(x.r.saldo)}</strong><div style="color:var(--muted);font-size:11px">${x.r.dias!=null?('dura ~'+x.r.dias.toFixed(1)+' dia'+(x.r.dias<2?'':'s')):'saldo'}</div>`:'<span style="color:var(--muted)">—</span>')).join('')}`
+      :'<div class="empty" style="padding:18px">Nenhuma conta em risco agora. 🎉</div>'}
+    ${caros.length?`<div style="font-size:13px;font-weight:800;margin:20px 0 4px">💸 Custo por conversa acima da média</div>
+      <div class="hint" style="margin:0 0 6px">Mais de 50% acima da mediana da carteira (${brl(mediana)}).</div>
+      ${caros.map(x=>linha(x,`<strong style="color:#fbbf24">${brl(x.cpc)}</strong><div style="color:var(--muted);font-size:11px">mediana ${brl(mediana)}</div>`)).join('')}`:''}`;
+}
 function renderTrafego(c){
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Tráfego Pago</h2><div class="desc">Campanhas e contas de anúncio por cliente</div></div>
      <div class="toolbar"><input class="search" id="tSearch" placeholder="Buscar..."><button class="btn small" onclick="openTrafModal()">+ Campanha</button></div>
    </div>
+   <div class="fin-tabs">
+     <button class="ftab ${trafAba==='contas'?'active':''}" onclick="trafGo('contas')">📡 Contas e relatórios</button>
+     <button class="ftab ${trafAba==='central'?'active':''}" onclick="trafGo('central')">🏢 Central da agência</button>
+     <button class="ftab ${trafAba==='conexao'?'active':''}" onclick="trafGo('conexao')">🔌 Conexão</button>
+     <button class="ftab ${trafAba==='equipes'?'active':''}" onclick="trafGo('equipes')">👥 Equipes</button>
+   </div>
+   ${trafAba!=='contas'?`<div id="trafSub">${trafAba==='conexao'?abaConexao():trafAba==='equipes'?abaEquipes():abaCentral()}</div>`:`
    <div class="cards">
      <div class="card"><div class="k">Clientes ativos</div><div class="v pos" id="mtAtivos">—</div><div class="sub" id="mtAtivosSub">contas habilitadas no Meta</div></div>
      <div class="card"><div class="k">Clientes sem saldo</div><div class="v" id="mtSemSaldo">—</div><div class="sub" id="mtSemSaldoSub">saldo confirmado na conta</div></div>
@@ -814,7 +958,15 @@ function renderTrafego(c){
      <div id="mtLista"><div style="color:var(--muted);padding:14px 2px;font-size:13px">Carregando contas do Meta…</div></div>
    </div>
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Plataforma</th><th style="text-align:right">Orçamento/dia</th><th>Status</th><th>Responsável</th><th></th></tr></thead>
-   <tbody id="tBody"></tbody></table><div id="tEmpty"></div></div>`;
+   <tbody id="tBody"></tbody></table><div id="tEmpty"></div></div>`}`;
+  /* as outras abas usam os mesmos dados do Meta, mas não têm os controles da aba Contas */
+  if(trafAba!=='contas'){
+    mtParar();
+    const idade0=window.__mtQuando?(Date.now()-window.__mtQuando)/60000:Infinity;
+    if(!(window.__mtDados&&window.__mtDados.length)||idade0>=mtCicloMin())
+      metaCarregar(true).then(()=>{ if(currentView==='trafego'&&trafAba!=='contas') render('trafego'); });
+    return;
+  }
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const list=[...DB.trafego].sort((a,b)=>(a.cliente||'').localeCompare(b.cliente||'')).filter(r=>!t||((r.cliente||'')+(r.plataforma||'')+(r.resp||'')).toLowerCase().includes(t));
@@ -983,7 +1135,7 @@ const avatarNome=(uid,nome)=>{ const n=nome||tkNomeUser(uid); if(!uid&&!n) retur
 /* Icone do espaco: foto ganha do emoji, que ganha da inicial colorida. */
 const espIcone=(e)=>e&&e.foto
   ? `<span class="sp-ic ft"><img src="${esc(e.foto)}" alt=""></span>`
-  : `<span class="sp-ic" style="background:${esc((e&&e.cor)||'#7c3aed')}">${(e&&e.icone)?esc(e.icone):esc(inicial(spNome(e)))}</span>`;
+  : `<span class="sp-ic" style="background:${esc((e&&e.cor)||'#7c3aed')}">${(e&&e.icone)?icHtml(e.icone,12):esc(inicial(spNome(e)))}</span>`;
 const selFicha=(idCampo,atual)=>`<select id="${idCampo}"><option value="">— geral (todo o time vê) —</option>`+
   [...(DB.projetos||[])].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(f=>`<option value="${f.id}"${atual===f.id?' selected':''}>${esc(f.nome)}</option>`).join('')+`</select>`;
 const fichaDaConta=(accId)=>{ const m=contaMarca(accId); return m&&m.fichaId?fichaDe(m.fichaId):null; };
@@ -1892,6 +2044,60 @@ const spIcone=(o)=>(o&&o.icone)||spEmojiNome(o&&o.nome)||'';
 /* visual limpo estilo ClickUp: emoji só quando escolhido de propósito no "Cor e ícone" */
 const SVG_PASTA='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>';
 const SVG_LISTA='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l1.5 1.5L7 5"/><line x1="11" y1="6" x2="21" y2="6"/><path d="M3 15l1.5 1.5L7 14"/><line x1="11" y1="15" x2="21" y2="15"/></svg>';
+/* Biblioteca própria de ícones (traço, tingível pela cor) — identidade AutoSíntese.
+   Regra do Gabriel: NUNCA emoji padrão de teclado na UI; ícone salvo como "svg:<chave>".
+   Emojis antigos gravados no banco continuam renderizando como texto (legado). */
+const ICO_LIB={
+ foguete:'<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2-.1-2.8-.7-.7-2-.7-2.9-.2z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.6 12.6 0 0 1 21 3c0 2.7-.9 7.5-5 10.1a22.4 22.4 0 0 1-4 1.9z"/><path d="M9 12H4s.5-3.9 2-5c1.7-1.2 5 0 5 0"/><path d="M12 15v5s3.9-.5 5-2c1.2-1.7 0-5 0-5"/>',
+ alvo:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+ raio:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+ coracao:'<path d="M19 14c1.5-1.4 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .9-4.5 2.5C10.5 3.9 9.3 3 7.5 3A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.1 3 5.5l7 7z"/>',
+ estrela:'<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3L5.8 21 7 14.2 2 9.3l6.9-1z"/>',
+ diamante:'<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M12 3l-4 6 4 12 4-12z"/>',
+ fogo:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+ ideia:'<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2z"/>',
+ grafico:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/>',
+ megafone:'<path d="M3 11l18-5v12L3 13z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+ cifrao:'<path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+ carteira:'<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
+ recibo:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/>',
+ calendario:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
+ relogio:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+ sino:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+ chave:'<circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/>',
+ cadeado:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+ usuario:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+ equipe:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>',
+ casa:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+ predio:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/>',
+ maleta:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+ ferramenta:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-8 8l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 8-8z"/>',
+ ajustes:'<path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/>',
+ filme:'<rect x="2" y="3" width="20" height="18" rx="2"/><path d="M7 3v18"/><path d="M17 3v18"/><path d="M2 8h5"/><path d="M2 16h5"/><path d="M17 8h5"/><path d="M17 16h5"/>',
+ camera:'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+ fone:'<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>',
+ telefone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/>',
+ email:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/>',
+ globo:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+ link:'<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+ carrinho:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>',
+ etiqueta:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/>',
+ prancheta:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/>',
+ check:'<path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="M22 4L12 14.6l-3-3"/>',
+ bandeira:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+ montanha:'<path d="M8 3l4 8 5-5 5 15H2L8 3z"/>',
+ cafe:'<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M6 2v2"/><path d="M10 2v2"/><path d="M14 2v2"/>',
+ coroa:'<path d="M3 6l5 4 4-7 4 7 5-4-2 12H5z"/><path d="M5 21h14"/>',
+ olho:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+ livro:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+ bussola:'<circle cx="12" cy="12" r="10"/><path d="M16.2 7.8l-2 6.3-6.3 2 2-6.3z"/>',
+ trofeu:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17a2 2 0 0 1-1 1.7l-1 .6V22h8v-2.7l-1-.6a2 2 0 0 1-1-1.7v-2.3"/><path d="M18 2H6v7a6 6 0 0 0 12 0z"/>',
+ pacote:'<path d="M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="M3.3 7l8.7 5 8.7-5"/><path d="M12 22V12"/>',
+ enviar:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',
+ brilho:'<path d="M12 3l1.9 5.8 5.8 2.2-5.8 1.9L12 18.7l-1.9-5.8-5.8-1.9 5.8-2.2z"/><path d="M19 3v4"/><path d="M17 5h4"/>',
+ banco:'<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2L2 8h20z"/>'};
+const svgIco=(k,s)=>ICO_LIB[k]?`<svg width="${s||13}" height="${s||13}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICO_LIB[k]}</svg>`:'';
+const icHtml=(ic,s)=>{ ic=String(ic||''); return ic.slice(0,4)==='svg:'?svgIco(ic.slice(4),s):esc(ic); };
 const spNome=(o)=>{ const n=String((o&&o.nome)||''); return (o&&o.icone)?n:(n.replace(/^(\p{Extended_Pictographic}️?)\s*/u,'')||n); };
 function spRepintar(){ spDesenhar(); if(currentView==='lista') tkDesenhar($('#content')); }
 
@@ -2057,7 +2263,7 @@ window.spCorIcone=(tipo,id)=>{
     ${blocoFoto}
     <input type="hidden" id="sp_ic" value="${esc(ic0)}"><input type="hidden" id="sp_cr" value="${esc(cor0)}">
     <div class="field"><label>Ícone</label>
-      <div class="emo-g" id="sp_eg">${SP_EMO.map(e=>`<button type="button" class="${e===ic0?'on':''}" onclick="spPickEmo(this,'${e}')">${e}</button>`).join('')}</div>
+      <div class="emo-g" id="sp_eg">${Object.keys(ICO_LIB).map(k=>`<button type="button" class="${('svg:'+k)===ic0?'on':''}" title="${k}" onclick="spPickEmo(this,'svg:${k}')">${svgIco(k,15)}</button>`).join('')}</div>
       <button class="btn ghost small" type="button" style="margin-top:8px" onclick="spPickEmo(null,'')">Sem ícone</button></div>
     <div class="field"><label>Cor</label>
       <div class="cor-g" id="sp_cg">${SP_COR.map(c=>`<button type="button" class="${c===cor0?'on':''}" style="background:${c}" onclick="spPickCor(this,'${c}')"></button>`).join('')}
@@ -2611,7 +2817,7 @@ function spDesenhar(){
   if(bn){ const n=spMinhas().length; bn.textContent=n||''; }
   const item=(l,fav)=>{
     const cor=l.cor||'';
-    const ic=l.icone?`<span class="tk-ic emo">${esc(l.icone)}</span>`
+    const ic=l.icone?`<span class="tk-ic${String(l.icone).slice(0,4)==='svg:'?'':' emo'}"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${icHtml(l.icone)}</span>`
                     :`<span class="tk-ic"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${SVG_LISTA}</span>`;
     const cont=(l.id===LF_ID||ehFin(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
     const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)))?' on':'';
@@ -2655,7 +2861,7 @@ function spDesenhar(){
         const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||mst)&&lVis(l)); const abP=aberto('p'+p.id);
         return `<div class="tk-pasta">
           <div class="tk-pastah" draggable="true" ondragstart="dndPasta(event,'${p.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarPasta(event,'${p.id}','${e.id}')" ondragend="dndFim()" onclick="tkToggle('p','${p.id}')" oncontextmenu="spNoMenu(event,'pasta','${p.id}')">
-            <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic"${p.cor?` style="color:${esc(p.cor)};opacity:1"`:''}>${p.icone?esc(p.icone):SVG_PASTA}</span>
+            <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic"${p.cor?` style="color:${esc(p.cor)};opacity:1"`:''}>${p.icone?icHtml(p.icone):SVG_PASTA}</span>
             <span class="tk-nome">${esc(spNome(p))}</span>
             <span class="tk-acts">
               <button title="Nova lista" onclick="event.stopPropagation();tkNovaLista('${e.id}','${p.id}')">+</button>
@@ -3722,6 +3928,21 @@ window.openProjCard=(id)=>{
         <div class="field" style="margin:0"><label>Instagram ${linkIg(it.instagram||(cli&&cli.instagram))?`<a href="${linkIg(it.instagram||(cli&&cli.instagram))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link"></div>
         <div class="field" style="margin:0"><label>Drive ${linkUrl(it.drive||(cli&&cli.drive))?`<a href="${linkUrl(it.drive||(cli&&cli.drive))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive"></div>
       </div>
+      ${contasDoCliente(it.id).length?`
+      <div style="margin:16px 0 8px;font-size:13px;font-weight:800">📡 Tráfego pago</div>
+      <div class="row2" style="margin-bottom:6px">
+        <div class="field" style="margin:0"><label>Orçamento combinado (R$)</label>
+          <div style="display:flex;gap:8px">
+            <input type="number" step="0.01" min="0" id="pc_orc" value="${it.orcamento||''}" placeholder="Ex.: 350,00" style="flex:1">
+            <select id="pc_orcper" class="search" style="max-width:112px">
+              <option value="semanal"${(it.orcPer||'semanal')==='semanal'?' selected':''}>por semana</option>
+              <option value="diario"${it.orcPer==='diario'?' selected':''}>por dia</option>
+            </select>
+          </div></div>
+        <div class="field" style="margin:0"><label>Avisar quando o saldo cair para</label>
+          <input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20"><span class="hint">% do orçamento</span></div>
+      </div>
+      <p class="hint" style="margin:0 0 4px">Usado na <strong>Central da agência</strong> para calcular quanto do saldo resta, quando avisar e de quanto em quanto tempo mandar o Pix.</p>`:''}
       <div class="field"><label>📝 Descrição</label><textarea id="pc_notas" rows="3">${esc(it.notas)}</textarea></div>
       <div style="margin:14px 0 8px;font-size:13px;font-weight:800">✅ Checklist</div>
       <div id="pcCheck">${drawCheck()}</div>
@@ -3748,6 +3969,9 @@ window.openProjCard=(id)=>{
     if(!_g){ toast('Ficha incompleta: informe o gerente.'); return; }
     if(!_sq){ toast('Ficha incompleta: informe o squad.'); return; }
     it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=_r; it.gerente=_g; it.squad=_sq; it.nicho=$('#pc_nicho').value; it.grupoWpp=$('#pc_grupo').value.trim(); it.produtos=$('#pc_produtos').value.trim(); it.instagram=$('#pc_insta').value.trim(); it.drive=$('#pc_drive').value.trim(); it.notas=$('#pc_notas').value.trim();
+    const _oc=$('#pc_orc'), _op=$('#pc_orcper'), _av=$('#pc_aviso');   /* só existem quando o cliente tem conta de anúncio */
+    if(_oc){ it.orcamento=parseFloat(String(_oc.value).replace(',','.'))||0; it.orcPer=_op?_op.value:'semanal';
+             it.avisoPct=Math.min(90,Math.max(1,parseInt(_av&&_av.value,10)||20)); }
     if(cli){ if(it.nicho&&currentUser&&currentUser.role==='master') cli.nicho=it.nicho; cli.grupoWpp=it.grupoWpp; cli.produtos=it.produtos; if(it.produtos) cli.servico=it.produtos; cli.instagram=it.instagram; cli.drive=it.drive; }
     await saveDB(); close(); render('clientes'); toast('Cliente salvo.');
   };
