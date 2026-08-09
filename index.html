@@ -89,7 +89,7 @@
   .hint{color:var(--muted);font-size:12px;margin-top:14px;line-height:1.5}
 
   /* ---------- APP LAYOUT ---------- */
-  #app{display:grid;grid-template-columns:252px 1fr;min-height:100vh}
+  #app{display:grid;grid-template-columns:276px 1fr;min-height:100vh}
   .sidebar{background:var(--panel);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column}
   .sidebar .logo{margin-bottom:26px;padding:0 6px}
   .nav{display:flex;flex-direction:column;gap:4px}
@@ -115,6 +115,69 @@
   .sp-ats button.active{background:linear-gradient(135deg,rgba(124,58,237,.30),rgba(47,124,246,.22));border-color:var(--line)}
   .sp-ic{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:900;color:#fff;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.35)}
   .tk-ic.emo{font-size:13.5px;opacity:1}
+  /* ---------- WORKSPACE + NAVEGACAO (modelo ClickUp) ---------- */
+  .ws-head{display:flex;align-items:center;gap:9px;width:100%;background:transparent;border:1px solid transparent;
+    border-radius:8px;padding:7px 8px;margin-bottom:10px;color:var(--txt);font-size:13.5px;font-weight:700;text-align:left}
+  .ws-head:hover{background:var(--panel2);border-color:var(--line)}
+  .ws-av{width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;
+    background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line)}
+  .ws-av svg{width:15px;height:15px}
+  .ws-head .ws-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ws-head .ws-cv{margin-left:auto;color:var(--muted);font-size:9px}
+  .sp-busca{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    color:var(--txt);font-size:12.5px;padding:7px 9px;margin-bottom:8px}
+  .sp-busca:focus{outline:none;border-color:var(--brand2)}
+  .sp-nav{display:flex;flex-direction:column;gap:1px;margin-bottom:4px}
+  .sp-nav button{display:flex;align-items:center;gap:9px;width:100%;background:transparent;border:none;
+    color:var(--txt);padding:7px 9px;border-radius:6px;font-size:13px;font-weight:600;text-align:left;font-family:inherit}
+  .sp-nav button:hover{background:rgba(255,255,255,.05)}
+  .sp-nav button.active{background:var(--panel2);color:#c4b5fd}
+  .sp-nav .ic{width:17px;text-align:center;font-size:13.5px;flex:none}
+  .sp-nav .tk-n{margin-left:auto}
+  .sp-sec{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:1.1px;
+    color:var(--muted);padding:12px 8px 4px}
+  .sp-sec button{margin-left:auto;background:transparent;border:none;color:var(--muted);font-size:15px;
+    line-height:1;padding:0 4px;font-family:inherit}
+  .sp-sec button:hover{color:var(--txt)}
+  /* acoes no hover (+ e ...), igual ao ClickUp */
+  .tk-acts{margin-left:auto;display:flex;align-items:center;gap:1px;opacity:0;flex:none}
+  .tk-esph:hover .tk-acts,.tk-pastah:hover .tk-acts,.tk-lista:hover .tk-acts{opacity:1}
+  .tk-acts button{background:transparent;border:none;color:var(--muted);font-size:13px;line-height:1;
+    padding:2px 5px;border-radius:5px;font-family:inherit}
+  .tk-acts button:hover{background:rgba(255,255,255,.12);color:var(--txt)}
+  .tk-lista .tk-n{margin-left:auto}
+  .tk-lista:hover .tk-n{display:none}
+  .tk-star{color:var(--warn);font-size:10px;flex:none}
+  /* menu de contexto */
+  .ctxm{position:fixed;z-index:3000;min-width:200px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:5px;box-shadow:0 16px 44px rgba(0,0,0,.55)}
+  .ctxm button{display:flex;align-items:center;gap:9px;width:100%;background:transparent;border:none;
+    color:var(--txt);font-size:13px;font-weight:600;text-align:left;padding:7px 9px;border-radius:6px;font-family:inherit}
+  .ctxm button:hover{background:var(--panel2)}
+  .ctxm button.dgr{color:var(--danger)}
+  .ctxm .sep{height:1px;background:var(--line);margin:4px 2px}
+  .ctxm .ic{width:16px;text-align:center;flex:none;font-size:13px}
+  .ctxm .cab{font-size:10px;letter-spacing:.9px;font-weight:800;color:var(--muted);padding:6px 9px 5px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase}
+  /* seletor de icone + cor */
+  .emo-g{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;max-height:148px;overflow-y:auto;
+    background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px}
+  .emo-g button{background:transparent;border:1px solid transparent;border-radius:6px;font-size:16px;line-height:1;padding:4px 0}
+  .emo-g button:hover{background:rgba(255,255,255,.09)}
+  .emo-g button.on{border-color:var(--brand2);background:rgba(167,139,250,.18)}
+  .cor-g{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .cor-g button{width:26px;height:26px;border-radius:7px;border:2px solid transparent}
+  .cor-g button.on{border-color:#fff}
+  /* breadcrumb */
+  .crumb{display:flex;align-items:center;gap:3px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .crumb button{background:transparent;border:none;color:var(--muted);font-size:12px;font-weight:600;
+    padding:2px 5px;border-radius:5px;font-family:inherit}
+  .crumb button:hover{background:var(--panel2);color:var(--txt)}
+  .crumb .sp{opacity:.45}
+  #app.mini .ws-head .ws-nm,#app.mini .ws-head .ws-cv,#app.mini .sp-busca,#app.mini .sp-sec,
+  #app.mini .sp-nav button span:not(.ic){display:none}
+  #app.mini .ws-head{justify-content:center;padding:6px 0;margin-bottom:6px}
+  #app.mini .sp-nav button{justify-content:center;padding:7px 0}
   /* ---------- CHECKLIST DA TAREFA ---------- */
   .ck-l{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .ck-l input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2);flex:none}
@@ -408,26 +471,32 @@
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <aside class="sidebar">
-    <div class="logo" style="align-items:center">
-      <div class="mark" style="width:30px;height:30px"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></div>
-      <span class="wm" style="font-size:15px;letter-spacing:1.2px">AUTO<span class="thin">SÍNTESE</span></span>
+    <button class="ws-head" id="wsHead" title="AutoSíntese — menu do workspace" onclick="wsMenu(event)" oncontextmenu="wsMenu(event)">
+      <span class="ws-av"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></span>
+      <span class="ws-nm">AutoSíntese</span>
+      <span class="ws-cv">▼</span>
+    </button>
+    <input class="sp-busca" id="spBusca" placeholder="Buscar espaço, pasta ou lista…" autocomplete="off" oninput="spFiltrar(this.value)">
+    <div class="sp-nav" id="spNav">
+      <button class="navlink" data-view="dash" title="Início"><span class="ic">🏠</span><span>Início</span></button>
+      <button id="spInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()"><span class="ic">📥</span><span>Minhas tarefas</span><span class="tk-n" id="spInboxN"></span></button>
     </div>
-    <div class="sp-tit"><span class="lbl">ESPAÇOS</span><button class="lbl" title="Novo espaço" onclick="tkNovoEspaco()">+</button><button id="spMiniBtn" title="Encolher / expandir a barra" onclick="spMini()">«</button></div>
     <div class="sp-tree" id="spTree"><div class="hint" style="margin:0;padding:8px 6px">carregando espaços…</div></div>
     <div class="foot">
       <div class="sp-ats" id="spAtalhos">
-        <button class="navlink" data-view="dash" title="Painel">📊</button>
-        
         <button class="navlink" data-view="acessos" title="Acessos e senhas">🔑</button>
         <button class="navlink" data-view="processos" title="Processos">📋</button>
         <button class="navlink" data-view="reembolsos" title="Solicitações e reembolsos">💸</button>
         <button class="navlink hidden" data-view="financeiro" id="navFin" title="Financeiro">💰</button>
         <button class="navlink hidden" data-view="usuarios" id="navUsuarios" title="Usuários">👥</button>
+        <button title="Encolher / expandir a barra" id="spMiniBtn" onclick="spMini()">«</button>
       </div>
       <div id="whoami" style="color:var(--muted);font-size:12px;padding:0 6px 4px"></div>
-      <button class="btn ghost" id="btnBackup" style="width:100%" title="Backup / Restaurar">⬇<span class="lbl"> Backup / Restaurar</span></button>
-      <button class="btn ghost" id="btnChangePw" style="width:100%" title="Mudar senha">🔒<span class="lbl"> Mudar senha</span></button>
-      <button class="btn ghost" id="btnLogout" style="width:100%" title="Sair">↩<span class="lbl"> Sair</span></button>
+      <div class="hidden">
+        <button class="btn ghost" id="btnBackup">Backup / Restaurar</button>
+        <button class="btn ghost" id="btnChangePw">Mudar senha</button>
+        <button class="btn ghost" id="btnLogout">Sair</button>
+      </div>
     </div>
   </aside>
   <main class="main" id="content"></main>
@@ -1700,6 +1769,202 @@ try{ const s2=localStorage.getItem('sp_cols'); if(s2){ TK.colsOff=JSON.parse(s2)
 function spAbrirCaminho(lid){ const l=TK.listas.find(x=>x.id===lid); if(!l) return; TK.fechadas['e'+l.espaco_id]=false; if(l.pasta_id) TK.fechadas['p'+l.pasta_id]=false; spSalvarArvore(); }
 window.spMini=(v)=>{ SP_MINI=(v===undefined)?!SP_MINI:!!v; try{ localStorage.setItem('sp_mini',SP_MINI?'1':'0'); }catch(_){} spDesenhar(); };
 window.spExpandir=(eid)=>{ SP_MINI=false; try{ localStorage.setItem('sp_mini','0'); }catch(_){} TK.fechadas['e'+eid]=false; spSalvarArvore(); spDesenhar(); };
+/* ======= NAVEGACAO ESTILO CLICKUP: workspace > espaco > pasta > lista > tarefa ======= */
+const WS_NOME='AutoSíntese';
+/* Listas que o sistema usa como tela propria: renomear ate pode, apagar nao (levaria as tarefas junto). */
+const spFixas=()=>[LC_ID,LF_ID,LCT_ID,NC_LISTA,'7381fb45-8d78-458d-b432-77dd88972338'].concat(Object.keys(LFIN));
+const spProtegido=(tipo,id)=>(tipo==='lista'&&spFixas().indexOf(id)>=0)||(tipo==='pasta'&&id===PASTA_FIN);
+const spTab=(tipo)=>tipo==='espaco'?'espacos':tipo==='pasta'?'pastas':'listas';
+const spNo=(tipo,id)=>(tipo==='espaco'?TK.espacos:tipo==='pasta'?TK.pastas:TK.listas).find(x=>x.id===id)||null;
+const spRotulo=(tipo)=>tipo==='espaco'?'espaço':tipo==='pasta'?'pasta':'lista';
+/* O icone vem da coluna nova; se nao houver, cai no emoji que ja estava no comeco do nome. */
+const spEmojiNome=(n)=>{ const m=String(n||'').match(/^(\p{Extended_Pictographic}️?)\s*/u); return m?m[1]:''; };
+const spIcone=(o)=>(o&&o.icone)||spEmojiNome(o&&o.nome)||'';
+const spNome=(o)=>{ const n=String((o&&o.nome)||''); return (o&&o.icone)?n:(n.replace(/^(\p{Extended_Pictographic}️?)\s*/u,'')||n); };
+function spRepintar(){ spDesenhar(); if(currentView==='lista') tkDesenhar($('#content')); }
+
+/* ---------- menu de contexto reaproveitavel (botao direito e o "..." ) ---------- */
+function ctxFechar(){ const e=document.getElementById('ctxm'); if(e) e.remove(); }
+function ctxAbrir(ev,itens){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  ctxFechar();
+  const vis=itens.filter(i=>i.so===undefined||i.so);
+  const d=document.createElement('div'); d.className='ctxm'; d.id='ctxm';
+  d.innerHTML=vis.map((i,n)=>i.cab!==undefined?`<div class="cab">${esc(i.cab)}</div>`
+    :i.sep?'<div class="sep"></div>'
+    :`<button data-n="${n}"${i.dgr?' class="dgr"':''}><span class="ic">${i.ic||''}</span>${esc(i.t)}</button>`).join('');
+  document.body.appendChild(d);
+  d.querySelectorAll('button[data-n]').forEach(b=>{ b.onclick=(e)=>{ e.stopPropagation(); ctxFechar(); vis[+b.dataset.n].f(); }; });
+  const r=d.getBoundingClientRect();
+  let x=(ev&&ev.clientX)||0, y=(ev&&ev.clientY)||0;
+  if(!x&&!y&&ev&&ev.currentTarget&&ev.currentTarget.getBoundingClientRect){
+    const b=ev.currentTarget.getBoundingClientRect(); x=b.left; y=b.bottom+4; }
+  d.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';
+  d.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px';
+  setTimeout(()=>{ document.addEventListener('click',ctxFechar,{once:true}); document.addEventListener('contextmenu',ctxFechar,{once:true}); },0);
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') ctxFechar(); });
+window.addEventListener('resize',ctxFechar);
+
+/* ---------- menu do workspace (topo da barra) ---------- */
+window.wsMenu=(ev)=>{
+  const m=!!(currentUser&&currentUser.role==='master');
+  ctxAbrir(ev,[
+    {cab:WS_NOME},
+    {ic:'🏠',t:'Início',f:()=>render('dash')},
+    {ic:'📥',t:'Minhas tarefas',f:()=>spCaixa()},
+    {sep:true},
+    {ic:'➕',t:'Novo espaço',f:()=>tkNovoEspaco()},
+    {ic:'👥',t:'Usuários',f:()=>render('usuarios'),so:m},
+    {ic:'💰',t:'Financeiro',f:()=>render('financeiro'),so:m},
+    {sep:true},
+    {ic:'⬇',t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click()},
+    {ic:'🔒',t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
+    {sep:true},
+    {ic:'↩',t:'Sair',dgr:true,f:()=>document.getElementById('btnLogout').click()}
+  ]);
+};
+
+/* ---------- menu de espaco / pasta / lista ---------- */
+window.spNoMenu=(ev,tipo,id)=>{
+  const o=spNo(tipo,id); if(!o) return;
+  const m=!!(currentUser&&currentUser.role==='master');
+  const it=[{cab:spNome(o)}];
+  if(tipo==='espaco'){
+    it.push({ic:'📁',t:'Nova pasta',f:()=>tkNovoNo(id,'pasta')});
+    it.push({ic:'≡',t:'Nova lista',f:()=>tkNovaLista(id,null)});
+  } else if(tipo==='pasta'){
+    it.push({ic:'≡',t:'Nova lista',f:()=>tkNovaLista(o.espaco_id,id)});
+  } else {
+    it.push({ic:'＋',t:'Nova tarefa',f:()=>{ spSelLista(id); setTimeout(()=>tkAbrir(),50); }});
+    it.push({ic:favTem(id)?'★':'☆',t:favTem(id)?'Tirar dos favoritos':'Adicionar aos favoritos',f:()=>favToggle(id)});
+  }
+  it.push({sep:true});
+  it.push({ic:'✏️',t:'Renomear',f:()=>spRenomear(tipo,id)});
+  it.push({ic:'🎨',t:'Cor e ícone',f:()=>spCorIcone(tipo,id)});
+  it.push({ic:'⧉',t:'Duplicar',f:()=>spDuplicar(tipo,id),so:m});
+  it.push({sep:true,so:m&&!spProtegido(tipo,id)});
+  it.push({ic:'🗑',t:'Excluir',dgr:true,f:()=>spExcluir(tipo,id),so:m&&!spProtegido(tipo,id)});
+  ctxAbrir(ev,it);
+};
+
+/* ---------- favoritos (por usuario, no proprio navegador) ---------- */
+let SP_FAV=[]; try{ SP_FAV=JSON.parse(localStorage.getItem('sp_favs')||'[]')||[]; }catch(_){}
+const favTem=(id)=>SP_FAV.indexOf(id)>=0;
+window.favToggle=(id)=>{ const i=SP_FAV.indexOf(id); if(i>=0) SP_FAV.splice(i,1); else SP_FAV.push(id);
+  try{ localStorage.setItem('sp_favs',JSON.stringify(SP_FAV)); }catch(_){}
+  spDesenhar(); toast(favTem(id)?'Adicionado aos favoritos.':'Removido dos favoritos.'); };
+
+/* ---------- busca da barra lateral ---------- */
+let SP_Q='';
+window.spFiltrar=(v)=>{ SP_Q=String(v||'').trim().toLowerCase(); spDesenhar(); };
+const spBate=(s)=>String(s||'').toLowerCase().indexOf(SP_Q)>=0;
+
+/* ---------- caixa de entrada: o que esta atribuido a mim ---------- */
+window.spCaixa=()=>{
+  TK.escopo='minhas'; TK.listaSel=''; TK.visao='lista'; currentView='lista'; searchTerm='';
+  spMarcarAtalho('');
+  if(!TK.listas.length) return renderTarefas($('#content'));
+  tkDesenhar($('#content')); spDesenhar();
+};
+const spMinhas=()=>{ const u=(currentUser||{}).id; return u?TK.tarefas.filter(t=>t.responsavel_id===u&&t.status!=='feito'):[]; };
+
+/* ---------- renomear ---------- */
+window.spRenomear=(tipo,id)=>{
+  const o=spNo(tipo,id); if(!o) return;
+  modal('Renomear '+spRotulo(tipo),`<div class="field"><label>Nome</label><input id="sp_rn" value="${esc(o.nome||'')}"></div>`,
+    async ()=>{
+      const n=$('#sp_rn').value.trim(); if(!n){ toast('Informe o nome.'); return false; }
+      const {error}=await sb.from(spTab(tipo)).update({nome:n}).eq('id',id);
+      if(error){ toast('Erro: '+error.message); return false; }
+      o.nome=n; spRepintar(); toast('Renomeado.'); return true; });
+  setTimeout(()=>{ const e=$('#sp_rn'); if(e){ e.focus(); e.select(); } },40);
+};
+
+/* ---------- cor e icone ---------- */
+const SP_EMO=['📋','✅','🎯','🚀','💡','📈','📊','💰','🧾','🗂','📁','📌','🔧','⚙️','🎨','🎬','📣','📢','🤝','🧠',
+  '🔥','⭐','⚡','🛒','🏷','📝','🗓','⏰','🔔','🔒','🔑','👥','👤','🏠','🏢','💼','📦','🚚','🧪','🌱',
+  '☕','🍿','🎧','📞','✉️','🌐','🛠','♻️','❤️','🏆'];
+const SP_COR=['#7c3aed','#a78bfa','#2f7cf6','#22b8a6','#3fcf8e','#e6b13f','#f97316','#ef5b6b','#ec4899','#64748b'];
+window.spPickEmo=(b,e)=>{ $('#sp_ic').value=e; document.querySelectorAll('#sp_eg button').forEach(x=>x.classList.remove('on')); if(b) b.classList.add('on'); };
+window.spPickCor=(b,c)=>{ $('#sp_cr').value=c; document.querySelectorAll('#sp_cg button').forEach(x=>x.classList.remove('on')); if(b) b.classList.add('on'); };
+window.spCorIcone=(tipo,id)=>{
+  const o=spNo(tipo,id); if(!o) return;
+  const ic0=o.icone||'', cor0=o.cor||SP_COR[0];
+  modal('Cor e ícone — '+spNome(o),`
+    <input type="hidden" id="sp_ic" value="${esc(ic0)}"><input type="hidden" id="sp_cr" value="${esc(cor0)}">
+    <div class="field"><label>Ícone</label>
+      <div class="emo-g" id="sp_eg">${SP_EMO.map(e=>`<button type="button" class="${e===ic0?'on':''}" onclick="spPickEmo(this,'${e}')">${e}</button>`).join('')}</div>
+      <button class="btn ghost small" type="button" style="margin-top:8px" onclick="spPickEmo(null,'')">Sem ícone</button></div>
+    <div class="field"><label>Cor</label>
+      <div class="cor-g" id="sp_cg">${SP_COR.map(c=>`<button type="button" class="${c===cor0?'on':''}" style="background:${c}" onclick="spPickCor(this,'${c}')"></button>`).join('')}
+        <input type="color" value="${esc(cor0)}" title="Cor livre" style="width:38px;height:26px;padding:2px;border-radius:7px" oninput="spPickCor(null,this.value)"></div></div>
+    <p class="hint">${tipo==='espaco'?'A cor pinta o quadradinho do espaço na barra lateral.':'A cor tinge o ícone da '+spRotulo(tipo)+'.'}</p>`,
+    async ()=>{
+      const patch={icone:$('#sp_ic').value||null,cor:$('#sp_cr').value||null};
+      const {error}=await sb.from(spTab(tipo)).update(patch).eq('id',id);
+      if(error){ toast('Erro: '+error.message); return false; }
+      Object.assign(o,patch); spRepintar(); toast('Visual atualizado.'); return true; });
+};
+
+/* ---------- duplicar (estrutura, sem as tarefas) ---------- */
+async function spDupLista(l,espId,pastaId,nome,ordem){
+  const {data,error}=await sb.from('listas').insert({espaco_id:espId,pasta_id:pastaId||null,nome:nome,
+    cor:l.cor||null,icone:l.icone||null,ordem:ordem==null?(l.ordem||0):ordem}).select().maybeSingle();
+  if(error) throw error;
+  const st=TK.status.filter(s=>s.lista_id===l.id).map(s=>({lista_id:data.id,nome:s.nome,cor:s.cor,grupo:s.grupo,ordem:s.ordem}));
+  if(st.length){ const r=await sb.from('status_lista').insert(st); if(r.error) throw r.error; }
+  const cp=TK.campos.filter(k=>k.lista_id===l.id).map(k=>({lista_id:data.id,nome:k.nome,tipo:k.tipo,opcoes:k.opcoes,ordem:k.ordem,largura:k.largura}));
+  if(cp.length){ const r=await sb.from('campos_lista').insert(cp); if(r.error) throw r.error; }
+  return data.id;
+}
+window.spDuplicar=async (tipo,id)=>{
+  const o=spNo(tipo,id); if(!o) return;
+  toast('Duplicando…');
+  try{
+    if(tipo==='lista'){
+      await spDupLista(o,o.espaco_id,o.pasta_id,(o.nome||'')+' (cópia)',
+        TK.listas.filter(l=>o.pasta_id?l.pasta_id===o.pasta_id:(l.espaco_id===o.espaco_id&&!l.pasta_id)).length);
+    } else if(tipo==='pasta'){
+      const {data,error}=await sb.from('pastas').insert({espaco_id:o.espaco_id,nome:(o.nome||'')+' (cópia)',
+        cor:o.cor||null,icone:o.icone||null,ordem:TK.pastas.filter(p=>p.espaco_id===o.espaco_id).length}).select().maybeSingle();
+      if(error) throw error;
+      for(const l of TK.listas.filter(x=>x.pasta_id===o.id)) await spDupLista(l,o.espaco_id,data.id,l.nome);
+    } else {
+      const {data,error}=await sb.from('espacos').insert({nome:(o.nome||'')+' (cópia)',cor:o.cor||'#7c3aed',
+        icone:o.icone||null,ordem:TK.espacos.length}).select().maybeSingle();
+      if(error) throw error;
+      const mapa={};
+      for(const p of TK.pastas.filter(x=>x.espaco_id===o.id)){
+        const r=await sb.from('pastas').insert({espaco_id:data.id,nome:p.nome,cor:p.cor||null,icone:p.icone||null,ordem:p.ordem||0}).select().maybeSingle();
+        if(r.error) throw r.error; mapa[p.id]=r.data.id;
+      }
+      for(const l of TK.listas.filter(x=>x.espaco_id===o.id)) await spDupLista(l,data.id,l.pasta_id?mapa[l.pasta_id]:null,l.nome);
+    }
+    await tkCarregar(); spRepintar(); toast('Duplicado — a estrutura veio junto, as tarefas não.');
+  }catch(e){ toast('Erro: '+(e.message||e)); }
+};
+
+/* ---------- excluir ---------- */
+window.spExcluir=(tipo,id)=>{
+  const o=spNo(tipo,id); if(!o) return;
+  if(spProtegido(tipo,id)) return toast('Esta é uma tela do sistema — não dá para excluir.');
+  const nome=spNome(o);
+  const listas=tipo==='lista'?[o]:tipo==='espaco'?TK.listas.filter(l=>l.espaco_id===id):[];
+  const nt=listas.reduce((s,l)=>s+TK.tarefas.filter(t=>t.lista_id===l.id).length,0);
+  const leve=(tipo==='pasta');
+  const corpo=leve
+    ? `<p class="hint" style="margin:0">Excluir a pasta <strong>${esc(nome)}</strong>. As listas que estão dentro dela <strong>não são apagadas</strong> — voltam para a raiz do espaço.</p>`
+    : `<p class="hint" style="margin:0 0 12px">Isso apaga <strong>${listas.length} lista(s)</strong> e <strong>${nt} tarefa(s)</strong> de uma vez. Não dá para desfazer.</p>
+       <div class="field"><label>Digite <strong>${esc(nome)}</strong> para confirmar</label><input id="sp_del" placeholder="${esc(nome)}" autocomplete="off"></div>`;
+  modal('Excluir '+spRotulo(tipo),corpo,async ()=>{
+    if(!leve&&$('#sp_del').value.trim()!==nome){ toast('O nome não confere.'); return false; }
+    const {error}=await sb.from(spTab(tipo)).delete().eq('id',id);
+    if(error){ toast('Erro: '+error.message); return false; }
+    await tkCarregar();
+    if(!TK.listas.some(l=>l.id===TK.listaSel)){ TK.listaSel=(TK.listas[0]||{}).id||''; TK.escopo='lista'; }
+    spRepintar(); toast('Excluído.'); return true; });
+};
 /* Checklist da tarefa (modelo ClickUp): mora em tarefas.checklist como [{t,ok}]. */
 let TK_CK=[];
 function ckLer(){ TK_CK.forEach((x,i)=>{ const e=document.getElementById('ck_t'+i), k=document.getElementById('ck_k'+i); if(e) x.t=e.value; if(k) x.ok=k.checked; }); }
@@ -1748,10 +2013,10 @@ function renderTarefas(c){
 }
 const tkNomeUser=(id)=>{ const u=TK.equipe.find(x=>x.id===id); return u?u.nome:''; };
 const tkNomeFicha=(fid)=>{ const f=fichaDe(fid); return f?f.nome:''; };
-const tkCaminho=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); if(!l) return ''; const e=TK.espacos.find(x=>x.id===l.espaco_id)||{}; const p=TK.pastas.find(x=>x.id===l.pasta_id); return (e.nome||'')+(p?' / '+p.nome:'')+' / '+l.nome; };
+const tkCaminho=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); if(!l) return ''; const e=TK.espacos.find(x=>x.id===l.espaco_id)||{}; const p=TK.pastas.find(x=>x.id===l.pasta_id); return [spNome(e),p?spNome(p):null,spNome(l)].filter(Boolean).join(' / '); };
 function tkFiltradas(){
   const q=TK.busca.trim().toLowerCase();
-  let arr=TK.tarefas.filter(t=>TK.escopo==='todas'||t.lista_id===TK.listaSel);
+  let arr=TK.escopo==='minhas'?spMinhas():TK.tarefas.filter(t=>TK.escopo==='todas'||t.lista_id===TK.listaSel);
   if(q) arr=arr.filter(t=>((t.titulo||'')+' '+(t.descricao||'')+' '+tkNomeFicha(t.ficha_id)+' '+tkNomeUser(t.responsavel_id)).toLowerCase().indexOf(q)>=0);
   return arr;
 }
@@ -1785,12 +2050,12 @@ function tkCard(t){
       ${t.ficha_id?`<span class="tag st" style="font-size:10.5px">👤 ${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
       ${t.prazo?`<span class="tag ${atrasada?'churn':'st'}" style="font-size:10.5px">📅 ${fmtDate(t.prazo)}</span>`:''}
       ${t.responsavel_id?`<span class="tag st" style="font-size:10.5px">${esc(tkNomeUser(t.responsavel_id))}</span>`:''}
-      ${ckResumo(t)?`<span class="tag st" style="font-size:10.5px">${ckResumo(t)}</span>`:''}${TK.escopo==='todas'?`<span class="tag st" style="font-size:10.5px;opacity:.7">${esc(tkCaminho(t.lista_id))}</span>`:''}
+      ${ckResumo(t)?`<span class="tag st" style="font-size:10.5px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<span class="tag st" style="font-size:10.5px;opacity:.7">${esc(tkCaminho(t.lista_id))}</span>`:''}
     </div></div>`;
 }
 function tkViewBoard(){
   const arr=tkOrdenadas(tkFiltradas());
-  const sts=TK.escopo!=='todas'?tkStatusDe(TK.listaSel):[];
+  const sts=TK.escopo==='lista'?tkStatusDe(TK.listaSel):[];
   let cols;
   if(sts.length){
     cols=sts.map(s=>({rot:s.nome,cor:s.cor,drop:"tkSoltarSt(event,'"+s.id+"')",its:arr.filter(t=>t.status_id===s.id)}));
@@ -1813,7 +2078,7 @@ function tkGrupos(){
   if(g==='nenhum') return [{k:'all',rot:'Todas as tarefas',cor:'#8b95a5',its:arr}];
   if(g==='status'){
     const sts=tkStatusDe(lid);
-    if(sts.length&&TK.escopo!=='todas'){
+    if(sts.length&&TK.escopo==='lista'){
       const gs=sts.map(s=>pack(s.id,s.nome,s.cor,t=>t.status_id===s.id));
       const sem=arr.filter(t=>!sts.some(s=>s.id===t.status_id));
       if(sem.length) gs.push({k:'nost',rot:'Sem status',cor:'#64748b',its:sem});
@@ -1857,8 +2122,8 @@ const tkSelo=(t)=>{
   return `<select class="tk-stsel" style="color:${esc(cor)};border-color:${esc(cor)}66;background:${esc(cor)}1a" onchange="tkSetStatus('${t.id}',this.value)"><option value="">— sem status —</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
 };
 function tkViewLista(){
-  const lc=ehLC(TK.listaSel)&&TK.escopo!=='todas';
-  const cps=TK.escopo==='todas'?[]:tkCamposDe(TK.listaSel);
+  const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
+  const cps=TK.escopo!=='lista'?[]:tkCamposDe(TK.listaSel);
   let grupos=tkGrupos(); const hoje=tkHoje();
   if(lc) grupos=grupos.filter(g=>g.its.length);
   const seta=(k)=>TK.ord===k?(TK.dir===1?' ▲':' ▼'):'';
@@ -1867,7 +2132,7 @@ function tkViewLista(){
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
-  const nome=(t)=>`<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo==='todas'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
+  const nome=(t)=>`<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
@@ -1897,7 +2162,7 @@ function tkViewLista(){
   return `<div class="tk-bar">
     <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
     <button class="btn ghost small" onclick="tkMenuCols()">&#9707; Colunas</button>
-    ${TK.escopo!=='todas'?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>`:''}
+    ${TK.escopo==='lista'?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>`:''}
     <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
   </div>${grupos.length?grupos.map(bloco).join(''):'<div class="empty">Nada por aqui.</div>'}`;
 }
@@ -2170,40 +2435,69 @@ function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
   const bt=document.getElementById('spMiniBtn'); if(bt) bt.textContent=SP_MINI?'»':'«';
-  const item=(l)=>{
-    const m=String(l.nome||'').match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u);
-    const ic=m?`<span class="tk-ic emo">${esc(m[1])}</span>`:'<span class="tk-ic">&#8803;</span>';
-    const nm=m?m[2]:l.nome;
+  const mst=!!(currentUser&&currentUser.role==='master');
+  /* contador da caixa de entrada + estado do atalho */
+  const bx=document.getElementById('spInbox'), bn=document.getElementById('spInboxN');
+  if(bx) bx.classList.toggle('active',TK.escopo==='minhas'&&currentView==='lista');
+  if(bn){ const n=spMinhas().length; bn.textContent=n||''; }
+  const item=(l,fav)=>{
+    const ico=spIcone(l), cor=l.cor||'';
+    const ic=ico?`<span class="tk-ic emo"${cor?` style="color:${esc(cor)}"`:''}>${esc(ico)}</span>`
+                :`<span class="tk-ic"${cor?` style="color:${esc(cor)}"`:''}>&#8803;</span>`;
     const cont=(l.id===LF_ID||ehFin(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
     const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)))?' on':'';
-    return `<button class="tk-lista${on}" draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()" onclick="spSelLista('${l.id}')">${ic}<span class="tk-nome">${esc(nm)}</span>${cont}</button>`; };
+    const dnd=fav?'':` draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()"`;
+    return `<div class="tk-lista${on}" role="button" tabindex="0"${dnd} onclick="spSelLista('${l.id}')" oncontextmenu="spNoMenu(event,'lista','${l.id}')" title="${esc(tkCaminho(l.id))}">
+      ${ic}<span class="tk-nome">${esc(spNome(l))}</span>${favTem(l.id)&&!fav?'<span class="tk-star">★</span>':''}${cont}
+      <span class="tk-acts">
+        <button title="Nova tarefa" onclick="event.stopPropagation();spSelLista('${l.id}');setTimeout(tkAbrir,50)">+</button>
+        <button title="Mais ações" onclick="spNoMenu(event,'lista','${l.id}')">⋯</button>
+      </span></div>`; };
   if(!TK.espacos.length){ el.innerHTML='<div class="hint" style="margin:0;padding:8px 6px">Nenhum espaço ainda.</div>'; return; }
   if(SP_MINI){
     const lsel=TK.listas.find(x=>x.id===TK.listaSel);
-    el.innerHTML='<div class="sp-rail">'+TK.espacos.map(e=>`<button class="sp-railb${(lsel&&lsel.espaco_id===e.id)?' on':''}" title="${esc(e.nome)}" onclick="spExpandir('${e.id}')"><span class="sp-ic" style="background:${esc(e.cor)}">${esc((e.nome||'?').trim().charAt(0).toUpperCase())}</span></button>`).join('')+'</div>';
+    el.innerHTML='<div class="sp-rail">'+TK.espacos.map(e=>`<button class="sp-railb${(lsel&&lsel.espaco_id===e.id)?' on':''}" title="${esc(e.nome)}" onclick="spExpandir('${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')"><span class="sp-ic" style="background:${esc(e.cor||'#7c3aed')}">${e.icone?esc(e.icone):esc((spNome(e)||'?').trim().charAt(0).toUpperCase())}</span></button>`).join('')+'</div>';
     return; }
-  el.innerHTML='<div class="tk-tree">'+TK.espacos.map(e=>{
-    const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id);
-    const pas=TK.pastas.filter(p=>p.espaco_id===e.id&&(p.id!==PASTA_FIN||(currentUser&&currentUser.role==='master')));
-    const abE=!TK.fechadas['e'+e.id];
+  /* Busca: um no aparece se ele bate, ou se algum filho bate. Com busca ativa, tudo fica aberto. */
+  const lVis=(l)=>!SP_Q||spBate(l.nome);
+  const pVis=(p)=>!SP_Q||spBate(p.nome)||TK.listas.some(l=>l.pasta_id===p.id&&spBate(l.nome));
+  const eVis=(e)=>!SP_Q||spBate(e.nome)||TK.pastas.some(p=>p.espaco_id===e.id&&pVis(p))||TK.listas.some(l=>l.espaco_id===e.id&&spBate(l.nome));
+  const aberto=(k)=>SP_Q?true:!TK.fechadas[k];
+  /* Favoritos: atalho direto para as listas que voce marcou com estrela. */
+  const favs=SP_FAV.map(id=>TK.listas.find(l=>l.id===id)).filter(l=>l&&(!ehFin(l.id)||mst)&&lVis(l));
+  const secFav=favs.length?`<div class="sp-sec">FAVORITOS</div><div class="tk-tree" style="margin-bottom:6px">${favs.map(l=>item(l,true)).join('')}</div>`:'';
+  const esps=TK.espacos.filter(eVis);
+  const secEsp=`<div class="sp-sec">ESPAÇOS<button title="Novo espaço" onclick="tkNovoEspaco()">+</button></div>`;
+  const corpo=esps.length?esps.map(e=>{
+    const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id&&lVis(l));
+    const pas=TK.pastas.filter(p=>p.espaco_id===e.id&&(p.id!==PASTA_FIN||mst)&&pVis(p));
+    const abE=aberto('e'+e.id);
     return `<div class="tk-esp">
-      <div class="tk-esph" draggable="true" ondragstart="dndEspaco(event,'${e.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarEspaco(event,'${e.id}')" ondragend="dndFim()" onclick="tkToggle('e','${e.id}')">
+      <div class="tk-esph" draggable="true" ondragstart="dndEspaco(event,'${e.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarEspaco(event,'${e.id}')" ondragend="dndFim()" onclick="tkToggle('e','${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')">
         <span class="tk-cv${abE?' ab':''}">&#9656;</span>
-        <span class="sp-ic" style="background:${esc(e.cor)}">${esc((e.nome||'?').trim().charAt(0).toUpperCase())}</span>
-        <span class="tk-nome">${esc(e.nome)}</span>
-        <button class="iconbtn tk-add" title="Nova pasta ou lista" onclick="event.stopPropagation();tkNovoNo('${e.id}')">+</button>
+        <span class="sp-ic" style="background:${esc(e.cor||'#7c3aed')}">${e.icone?esc(e.icone):esc((spNome(e)||'?').trim().charAt(0).toUpperCase())}</span>
+        <span class="tk-nome">${esc(spNome(e))}</span>
+        <span class="tk-acts">
+          <button title="Nova pasta ou lista" onclick="event.stopPropagation();tkNovoNo('${e.id}')">+</button>
+          <button title="Mais ações" onclick="spNoMenu(event,'espaco','${e.id}')">⋯</button>
+        </span>
       </div>
       ${abE?`<div class="tk-filhos">${pas.map(p=>{
-        const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||(currentUser&&currentUser.role==='master'))); const abP=!TK.fechadas['p'+p.id];
+        const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||mst)&&lVis(l)); const abP=aberto('p'+p.id);
         return `<div class="tk-pasta">
-          <div class="tk-pastah" draggable="true" ondragstart="dndPasta(event,'${p.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarPasta(event,'${p.id}','${e.id}')" ondragend="dndFim()" onclick="tkToggle('p','${p.id}')">
-            <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic">&#128193;</span>
-            <span class="tk-nome">${esc(p.nome)}</span>
-            <button class="iconbtn tk-add" title="Nova lista" onclick="event.stopPropagation();tkNovaLista('${e.id}','${p.id}')">+</button>
+          <div class="tk-pastah" draggable="true" ondragstart="dndPasta(event,'${p.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarPasta(event,'${p.id}','${e.id}')" ondragend="dndFim()" onclick="tkToggle('p','${p.id}')" oncontextmenu="spNoMenu(event,'pasta','${p.id}')">
+            <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic"${p.cor?` style="color:${esc(p.cor)}"`:''}>${p.icone?esc(p.icone):'&#128193;'}</span>
+            <span class="tk-nome">${esc(spNome(p))}</span>
+            <span class="tk-acts">
+              <button title="Nova lista" onclick="event.stopPropagation();tkNovaLista('${e.id}','${p.id}')">+</button>
+              <button title="Mais ações" onclick="spNoMenu(event,'pasta','${p.id}')">⋯</button>
+            </span>
           </div>
-          ${abP?`<div class="tk-filhos">${ls.map(item).join('')||'<div class="hint" style="margin:0;padding:2px 10px">sem listas</div>'}</div>`:''}
-        </div>`;}).join('')}${soltas.map(item).join('')}</div>`:''}
-    </div>`;}).join('')+'</div>';
+          ${abP?`<div class="tk-filhos">${ls.map(l=>item(l)).join('')||'<div class="hint" style="margin:0;padding:2px 10px">sem listas</div>'}</div>`:''}
+        </div>`;}).join('')}${soltas.map(l=>item(l)).join('')}</div>`:''}
+    </div>`;}).join('')
+    :`<div class="hint" style="margin:0;padding:8px 6px">Nada encontrado para “${esc(SP_Q)}”.</div>`;
+  el.innerHTML=secFav+secEsp+'<div class="tk-tree">'+corpo+'</div>';
 }
 window.spSelLista=(id)=>{
   TK.listaSel=id; TK.escopo='lista'; searchTerm=''; spMarcarAtalho(''); spAbrirCaminho(id);
@@ -2218,20 +2512,21 @@ window.spAbrirClientes=()=>{
   spSelLista(LC_ID);
 };
 function tkDesenhar(c){
-  if(TK.listaSel==='7381fb45-8d78-458d-b432-77dd88972338'&&TK.escopo!=='todas'){ return renderTrafego(c); }
-  if(TK.listaSel===NC_LISTA&&TK.escopo!=='todas'){ return ncFormulario(c); }
+  if(TK.listaSel==='7381fb45-8d78-458d-b432-77dd88972338'&&TK.escopo==='lista'){ return renderTrafego(c); }
+  if(TK.listaSel===NC_LISTA&&TK.escopo==='lista'){ return ncFormulario(c); }
   const lista=TK.listas.find(x=>x.id===TK.listaSel);
-  const cli=ehLC(TK.listaSel)&&TK.escopo!=='todas';
+  const cli=ehLC(TK.listaSel)&&TK.escopo==='lista';
   const abas=`<div class="tk-seg">${[['lista','☰ Lista'],['board','▦ Board'],['cal','🗓 Calendário']].map(v=>`<button class="${TK.visao===v[0]?'on':''}" onclick="tkVisao('${v[0]}')">${v[1]}</button>`).join('')}</div>`;
   const corpo=TK.visao==='lista'?tkViewLista():TK.visao==='cal'?tkViewCal():tkViewBoard();
   const dica=TK.visao==='board'?'arraste os cartões entre as colunas':TK.visao==='cal'?'arraste para outro dia para mudar o prazo':'clique no nome para abrir, no cabeçalho para ordenar';
+  const titulo=TK.escopo==='minhas'?'Minhas tarefas':TK.escopo==='todas'?'Todas as tarefas':(lista?esc(spNome(lista)):'Listas');
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>${TK.escopo==='todas'?'Todas as tarefas':(lista?esc(lista.nome):'Listas')}</h2><div class="desc">${TK.escopo==='todas'?'Autosíntese — todas as listas':esc(tkCaminho(TK.listaSel))} · ${dica}</div></div>
+     <div>${tkCrumb()}<h2>${titulo}</h2><div class="desc">${TK.escopo==='minhas'?'tudo que está atribuído a você e ainda não foi concluído':TK.escopo==='todas'?'Autosíntese — todas as listas':esc(tkCaminho(TK.listaSel))} · ${dica}</div></div>
      <div class="toolbar">
        ${abas}
        <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
-       <button class="btn ghost small" onclick="tkEscopo()">${TK.escopo==='todas'?'Só esta lista':'Ver todas'}</button>
+       <button class="btn ghost small" onclick="tkEscopo()">${TK.escopo==='lista'?'Ver todas':'Só esta lista'}</button>
        ${cli?`<button class="btn small" onclick="render('fechamento')">+ Cliente</button>`:`<button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>`}
      </div>
    </div>
@@ -2247,7 +2542,33 @@ async function tkPatch(id,patch,msg){
 }
 window.tkSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; tkDesenhar($('#content')); };
 window.tkVisao=(v)=>{ TK.visao=v; TK.visaoTocada=true; tkDesenhar($('#content')); };
-window.tkEscopo=()=>{ TK.escopo=TK.escopo==='todas'?'lista':'todas'; tkDesenhar($('#content')); };
+window.tkEscopo=()=>{
+  if(TK.escopo==='lista'){ TK.escopo='todas'; }
+  else { TK.escopo='lista'; if(!TK.listaSel) TK.listaSel=(TK.listas[0]||{}).id||''; }
+  tkDesenhar($('#content')); spDesenhar(); };
+/* Caminho clicavel Workspace / Espaco / Pasta / Lista, igual ao topo do ClickUp. */
+function tkCrumb(){
+  const nos=[`<button onclick="render('dash')" title="Início">${esc(WS_NOME)}</button>`];
+  if(TK.escopo==='minhas') nos.push('<span class="sp">/</span><span>Minhas tarefas</span>');
+  else if(TK.escopo==='todas') nos.push('<span class="sp">/</span><span>Todas as tarefas</span>');
+  else{
+    const l=TK.listas.find(x=>x.id===TK.listaSel);
+    if(!l) return '';
+    const e=TK.espacos.find(x=>x.id===l.espaco_id), p=TK.pastas.find(x=>x.id===l.pasta_id);
+    if(e) nos.push(`<span class="sp">/</span><button onclick="spVerEspaco('${e.id}')">${esc(spNome(e))}</button>`);
+    if(p) nos.push(`<span class="sp">/</span><button onclick="spVerPasta('${p.id}')">${esc(spNome(p))}</button>`);
+    nos.push(`<span class="sp">/</span><button onclick="spNoMenu(event,'lista','${l.id}')" title="Ações da lista">${esc(spNome(l))} ▾</button>`);
+  }
+  return `<div class="crumb">${nos.join('')}</div>`;
+}
+/* Clicar no espaco/pasta do caminho abre o no na barra e cai na primeira lista dele. */
+window.spVerEspaco=(id)=>{ SP_MINI=false; TK.fechadas['e'+id]=false; spSalvarArvore();
+  const l=TK.listas.find(x=>x.espaco_id===id&&!x.pasta_id)||TK.listas.find(x=>x.espaco_id===id);
+  if(l) spSelLista(l.id); else spDesenhar(); };
+window.spVerPasta=(id)=>{ const p=TK.pastas.find(x=>x.id===id); if(!p) return;
+  SP_MINI=false; TK.fechadas['e'+p.espaco_id]=false; TK.fechadas['p'+id]=false; spSalvarArvore();
+  const l=TK.listas.find(x=>x.pasta_id===id);
+  if(l) spSelLista(l.id); else spDesenhar(); };
 window.tkBusca=(v)=>{ TK.busca=v; TK.focoBusca=true; tkDesenhar($('#content')); };
 window.tkOrdenar=(k)=>{ if(TK.ord===k){ if(TK.dir===-1){ TK.ord=''; TK.dir=1; toast('Ordem manual (arraste as linhas).'); } else { TK.dir=-1; } } else { TK.ord=k; TK.dir=1; } tkDesenhar($('#content')); };
 window.tkMes=(d)=>{
@@ -2398,9 +2719,9 @@ window.tkNovoEspaco=()=>{
       render('tarefas'); toast('Espaço criado.'); return true;
     });
 };
-window.tkNovoNo=(espacoId)=>{
+window.tkNovoNo=(espacoId,tipoPre)=>{
   modal('Novo item neste espaço',`
-    <div class="field"><label>O que criar?</label><select id="tk_tipo"><option value="pasta">Pasta</option><option value="lista">Lista (solta no espaço)</option></select></div>
+    <div class="field"><label>O que criar?</label><select id="tk_tipo"><option value="pasta"${tipoPre==='pasta'?' selected':''}>Pasta</option><option value="lista"${tipoPre==='lista'?' selected':''}>Lista (solta no espaço)</option></select></div>
     <div class="field"><label>Nome</label><input id="tk_nn" placeholder="Ex: Base de Clientes"></div>
     <p class="hint">Pasta agrupa listas — é o nível do meio, igual ao ClickUp.</p>`,
     async ()=>{
