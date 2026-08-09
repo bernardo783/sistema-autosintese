@@ -178,6 +178,30 @@
   .sb-grip:hover::after,.sb-grip.arr::after{background:var(--brand2)}
   body.sb-arr,body.sb-arr *{cursor:col-resize!important;user-select:none}
   #app.mini .sb-grip{display:none}
+  /* ---------- Conexão: dois painéis (Meta Ads · Clientes) ---------- */
+  .cx-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  @media(max-width:980px){.cx-grid{grid-template-columns:1fr}}
+  .cx-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .cx-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .cx-h h3{font-size:17px;font-weight:800}
+  .cx-ok{display:inline-block;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:7px;
+    background:rgba(52,211,153,.14);color:#34d399}
+  .cx-off{background:rgba(248,113,113,.14);color:#f87171}
+  .cx-n{color:var(--muted);font-size:12.5px;margin-bottom:10px}
+  .cx-list{max-height:420px;overflow-y:auto;padding-right:4px;margin:0 -2px}
+  .cx-item{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid transparent;
+    border-radius:10px;padding:11px 13px;margin-bottom:7px}
+  .cx-item:hover{border-color:var(--line)}
+  .cx-item .nm{font-weight:700;font-size:13.5px;letter-spacing:.2px}
+  .cx-item .id{color:var(--muted);font-size:11.5px;margin-top:2px;font-family:ui-monospace,monospace}
+  .cx-tag{font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap;
+    background:rgba(52,211,153,.14);color:#34d399}
+  .cx-tag.warn{background:rgba(251,191,36,.14);color:#fbbf24}
+  .cx-tag.off{background:rgba(248,113,113,.14);color:#f87171}
+  .cx-num{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .cx-num > div{background:var(--panel2);border-radius:10px;padding:12px 14px}
+  .cx-num .k{font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+  .cx-num .v{font-size:26px;font-weight:800;margin-top:2px}
   .sidebar .logo{margin-bottom:26px;padding:0 6px}
   .nav{display:flex;flex-direction:column;gap:4px}
   .nav button{display:flex;align-items:center;gap:11px;background:transparent;border:none;color:var(--muted);
@@ -931,48 +955,110 @@ function custoConversa(c){
   return n?g/n:null;
 }
 const squadDaConta=(c)=>{ const f=fichaDaConta(c.id); return (f&&f.squad)||''; };
-/* ---------- Conexão: o que está espelhado da BM e pronto pra receber relatório ---------- */
+/* "01" → "Squad 01"; nome já escrito por extenso fica como está */
+const nomeSquad=(s)=>{ s=String(s||'').trim(); if(!s) return 'Sem squad';
+  return /^\d+$/.test(s)?('Squad '+s.padStart(2,'0')):(/squad/i.test(s)?s:('Squad '+s)); };
+/* Atribui squad (e gestor) às contas que estão sem dono */
+window.atribuirSquads=()=>{
+  const semDono=(window.__mtDados||[]).map(c=>({c,f:fichaDaConta(c.id)})).filter(x=>x.f&&!x.f.squad);
+  if(!semDono.length){ toast('Todas as contas já têm squad.'); return; }
+  const opts=SQUADS().filter(Boolean);
+  if(!opts.length) opts.push('01','02');
+  const sel=(f)=>`<select class="search" data-sq="${f.id}" style="width:100%">
+      <option value="">— escolher squad —</option>
+      ${opts.map(s=>`<option value="${esc(s)}">${esc(nomeSquad(s))}</option>`).join('')}
+    </select>`;
+  modal('Atribuir squad',`
+    <p class="hint" style="margin:0 0 12px">${semDono.length} conta${semDono.length===1?'':'s'} de anúncio sem squad. Escolha o responsável de cada uma.</p>
+    ${semDono.map(x=>`<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-weight:700;font-size:13.5px">${esc(x.f.nome)}</div>
+        <div style="color:var(--muted);font-size:11.5px;margin-bottom:7px">${esc(x.c.nome)}</div>
+        <div class="row2" style="gap:8px">
+          ${sel(x.f)}
+          <input class="search" data-gest="${x.f.id}" value="${esc(x.f.responsavel||'')}" placeholder="Gestor de tráfego">
+        </div>
+      </div>`).join('')}
+    <div style="display:flex;gap:8px;margin-top:4px">
+      ${opts.map(s=>`<button class="btn ghost small" onclick="document.querySelectorAll('.overlay select[data-sq]').forEach(e=>e.value='${esc(s)}')">Todos p/ ${esc(nomeSquad(s))}</button>`).join('')}
+    </div>`,
+    async ()=>{
+      let n=0;
+      document.querySelectorAll('.overlay select[data-sq]').forEach(e=>{
+        const f=fichaDe(e.dataset.sq); if(!f) return;
+        const g=document.querySelector('.overlay input[data-gest="'+e.dataset.sq+'"]');
+        const gv=g?g.value.trim():'';
+        if(e.value&&e.value!==f.squad){ f.squad=e.value; n++; }
+        if(gv&&gv!==f.responsavel) f.responsavel=gv;
+      });
+      if(!n){ toast('Nenhum squad escolhido.'); return false; }
+      await saveDB();
+      render('trafego');
+      toast(n===1?'1 conta atribuída.':n+' contas atribuídas.');
+      return true;
+    });
+};
+/* ---------- Conexão: espelho da BM (layout de dois painéis) ---------- */
 function abaConexao(){
   const dados=window.__mtDados||[];
-  if(!dados.length) return '<div class="empty">Carregando as contas do Meta…</div>';
-  const linhas=dados.map(c=>({c,f:fichaDaConta(c.id),m:contaMarca(c.id)}));
+  const ok=dados.length>0;
+  const linhas=dados.map(c=>({c,f:fichaDaConta(c.id),m:contaMarca(c.id)}))
+                    .sort((a,b)=>(a.c.nome||'').localeCompare(b.c.nome||''));
   const ligadas=linhas.filter(x=>x.f), soltas=linhas.filter(x=>!x.f);
-  const prontas=ligadas.filter(x=>x.m&&x.m.logo);
-  const item=(x,solta)=>{
-    const pg=pagConta(x.c);
-    return `<div style="display:flex;align-items:center;gap:11px;border:1px solid ${solta?'#7a5c17':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:7px;background:${solta?'rgba(251,191,36,.06)':'transparent'}">
-      <span style="font-size:15px">${solta?'⚠️':(x.m&&x.m.logo?'🟢':'🟡')}</span>
-      <div style="flex:1;min-width:150px">
-        <div style="font-weight:700;font-size:13.5px">${esc(x.c.nome)}</div>
-        <div style="color:var(--muted);font-size:11.5px">${esc(x.c.id)}${pg?' · '+(pg.prepago?'⚡ Pix':'💳 cartão'):''}${x.c.status!==1?' · <span style="color:#f87171">conta inativa</span>':''}</div>
+  const prontas=ligadas.filter(x=>x.m&&x.m.logo).length;
+  const conta=(x)=>`<div class="cx-item">
+      <div style="flex:1;min-width:0">
+        <div class="nm">${esc(x.c.nome)}</div>
+        <div class="id">ID: ${esc(String(x.c.id).replace('act_',''))}</div>
       </div>
-      <div style="text-align:right;min-width:150px">
-        ${solta
-          ? `<button class="btn small" onclick="abrirVinculos('${esc(x.c.id)}')">🔗 Ligar a um cliente</button>`
-          : `<div style="font-size:12.5px"><a class="link" style="cursor:pointer" onclick="abrirCliente('${x.f.id}')">${esc(x.f.nome)}</a></div>
-             <div style="font-size:11px;color:${x.m&&x.m.logo?'var(--muted)':'#fbbf24'}">${x.m&&x.m.logo?'pronta para relatório':'falta a logo da marca'}</div>`}
-      </div>
+      <span class="cx-tag ${x.c.status===1?'':'off'}">${x.c.status===1?'Ativa':'Inativa'}</span>
     </div>`;
-  };
-  return `
-    <div class="cards" style="margin-bottom:16px">
-      <div class="card"><div class="k">Contas na BM</div><div class="v">${dados.length}</div><div class="sub">espelhadas do Meta</div></div>
-      <div class="card"><div class="k">Ligadas a um cliente</div><div class="v pos">${ligadas.length}</div><div class="sub">${prontas.length} prontas p/ relatório</div></div>
-      <div class="card"><div class="k">Sem cliente</div><div class="v" style="${soltas.length?'color:#fbbf24':''}">${soltas.length}</div><div class="sub">${soltas.length?'precisam ser ligadas':'tudo ligado'}</div></div>
+  const pendente=(x)=>`<div class="cx-item">
+      <div style="flex:1;min-width:0">
+        <div class="nm">${esc(x.c.nome)}</div>
+        <div class="id">ID: ${esc(String(x.c.id).replace('act_',''))}</div>
+      </div>
+      <button class="btn small" onclick="abrirVinculos('${esc(x.c.id)}')">Ligar</button>
+    </div>`;
+  const ligada=(x)=>`<div class="cx-item">
+      <div style="flex:1;min-width:0">
+        <div class="nm"><a class="link" style="cursor:pointer" onclick="abrirCliente('${x.f.id}')">${esc(x.f.nome)}</a></div>
+        <div class="id">${esc(x.c.nome)}</div>
+      </div>
+      <span class="cx-tag ${x.m&&x.m.logo?'':'warn'}">${x.m&&x.m.logo?'Pronta':'Sem logo'}</span>
+    </div>`;
+  return `<div class="cx-grid">
+    <div class="cx-card">
+      <div class="cx-h">
+        <div><h3>Meta Ads</h3><span class="cx-ok ${ok?'':'cx-off'}" style="margin-top:7px;display:inline-block">${ok?'Conexão realizada':'Sem conexão'}</span></div>
+        <button class="btn secondary small" onclick="metaCarregar()">↻ Recarregar</button>
+      </div>
+      <div class="cx-n">${ok?dados.length+' conta(s) encontrada(s)':'Carregando as contas da BM…'}</div>
+      <div class="cx-list">${linhas.map(conta).join('')||'<div class="empty">Nenhuma conta.</div>'}</div>
     </div>
-    ${soltas.length?`<div style="font-size:13px;font-weight:800;margin:4px 0 8px">⚠️ Contas sem cliente</div>${soltas.map(x=>item(x,true)).join('')}`:''}
-    <div style="font-size:13px;font-weight:800;margin:16px 0 8px">Contas ligadas</div>
-    ${ligadas.length?ligadas.sort((a,b)=>(a.f.nome||'').localeCompare(b.f.nome||'')).map(x=>item(x,false)).join(''):'<div class="empty">Nenhuma conta ligada ainda.</div>'}
-    <p class="hint" style="margin-top:12px">🟢 ligada e com marca configurada · 🟡 ligada, mas falta a logo para o relatório sair com a identidade do cliente · ⚠️ conta da BM que ninguém reivindicou.</p>`;
+    <div class="cx-card">
+      <div class="cx-h">
+        <div><h3>Clientes</h3><span class="cx-ok ${soltas.length?'cx-off':''}" style="margin-top:7px;display:inline-block">${soltas.length?soltas.length+' conta(s) sem cliente':'Tudo ligado'}</span></div>
+      </div>
+      <div class="cx-num">
+        <div><div class="k">Ligadas</div><div class="v">${ligadas.length}</div></div>
+        <div><div class="k">Prontas p/ relatório</div><div class="v" style="color:${prontas===ligadas.length&&prontas?'#34d399':'#fbbf24'}">${prontas}</div></div>
+      </div>
+      ${soltas.length?`<div class="cx-n" style="margin-bottom:6px">Sem cliente</div>
+        <div class="cx-list" style="max-height:170px;margin-bottom:12px">${soltas.map(pendente).join('')}</div>`:''}
+      <div class="cx-n" style="margin-bottom:6px">Contas por cliente</div>
+      <div class="cx-list" style="max-height:${soltas.length?'210px':'420px'}">${ligadas.length?ligadas.sort((a,b)=>(a.f.nome||'').localeCompare(b.f.nome||'')).map(ligada).join(''):'<div class="empty">Nenhuma conta ligada ainda.</div>'}</div>
+    </div>
+  </div>`;
 }
 /* ---------- Equipes: quantas contas cada squad cuida ---------- */
 function abaEquipes(){
   const dados=window.__mtDados||[];
   if(!dados.length) return '<div class="empty">Carregando as contas do Meta…</div>';
-  const grupos={};
+  const grupos={}; const semDono=[];
   dados.forEach(c=>{
     const f=fichaDaConta(c.id); if(!f) return;
-    const sq=f.squad||'— sem squad —';
+    if(!f.squad){ semDono.push({c,f}); return; }      /* sem squad não é um squad: vira pendência */
+    const sq=f.squad;
     (grupos[sq]=grupos[sq]||{contas:[],gasto:0,critico:0,atencao:0,gestores:{}})
     const g=grupos[sq]; const r=risco(c);
     g.contas.push({c,f,r}); g.gasto+=+((c.ins||{}).spend||0);
@@ -980,13 +1066,20 @@ function abaEquipes(){
     const gest=f.responsavel||'—'; g.gestores[gest]=(g.gestores[gest]||0)+1;
   });
   const nomes=Object.keys(grupos).sort();
-  if(!nomes.length) return '<div class="empty">Nenhuma conta ligada a cliente ainda. Ligue em <strong>Conexão</strong> para ver a divisão por squad.</div>';
-  return nomes.map(sq=>{
+  const pend = semDono.length?`<div style="border:1px solid #7a5c17;background:rgba(251,191,36,.07);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <div style="font-weight:800;font-size:14.5px;color:#fbbf24">⚠️ ${semDono.length} conta${semDono.length===1?'':'s'} sem squad</div>
+        <button class="btn small" style="margin-left:auto" onclick="atribuirSquads()">Atribuir responsável</button>
+      </div>
+      <div style="font-size:12.5px;color:var(--muted)">${semDono.map(x=>esc(x.f.nome)).join(' · ')}</div>
+    </div>`:'';
+  if(!nomes.length) return pend+'<div class="empty">Nenhuma conta com squad ainda. Use <strong>Atribuir responsável</strong> acima.</div>';
+  return pend+nomes.map(sq=>{
     const g=grupos[sq], n=g.contas.length;
     const pctRisco=n?Math.round((g.critico+g.atencao)/n*100):0;
     return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <div style="font-weight:800;font-size:14.5px">${esc(sq)}</div>
+        <div style="font-weight:800;font-size:14.5px">${esc(nomeSquad(sq))}</div>
         <span class="tag st">${n} conta${n===1?'':'s'}</span>
         ${g.critico?`<span class="tag churn">${g.critico} crítica${g.critico===1?'':'s'}</span>`:''}
         ${g.atencao?`<span class="tag pausado">${g.atencao} em atenção</span>`:''}
@@ -1040,7 +1133,7 @@ function renderTrafego(c){
      <button class="ftab ${trafAba==='contas'?'active':''}" onclick="trafGo('contas')">📡 Contas e relatórios</button>
      <button class="ftab ${trafAba==='central'?'active':''}" onclick="trafGo('central')">🏢 Central da agência</button>
      <button class="ftab ${trafAba==='conexao'?'active':''}" onclick="trafGo('conexao')">🔌 Conexão</button>
-     <button class="ftab ${trafAba==='equipes'?'active':''}" onclick="trafGo('equipes')">👥 Equipes</button>
+     <button class="ftab ${trafAba==='equipes'?'active':''}" onclick="trafGo('equipes')">👥 Squads</button>
    </div>
    ${trafAba!=='contas'?`<div id="trafSub">${trafAba==='conexao'?abaConexao():trafAba==='equipes'?abaEquipes():abaCentral()}</div>`:`
    <div class="cards">
