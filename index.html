@@ -357,7 +357,6 @@
   #app.mini .sp-tit{justify-content:center;padding:0 0 8px}
   #app.mini .sp-tit button{margin-left:0}
   #app.mini .sp-ats{flex-direction:column;align-items:center;gap:6px}
-  #app.mini #whoami{display:none}
   #app.mini .foot .btn.ghost{padding:8px 0;text-align:center}
   .sp-rail{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:2px}
   .sp-railb{background:transparent;border:1px solid transparent;border-radius:10px;padding:5px;cursor:pointer;line-height:0}
@@ -676,7 +675,6 @@
     <div class="sp-tree" id="spTree"><div class="hint" style="margin:0;padding:8px 6px">carregando espaços…</div></div>
     <div class="foot">
       
-      <div id="whoami" style="color:var(--muted);font-size:12px;padding:0 6px 4px"></div>
       <div class="hidden">
         <button class="btn ghost" id="btnBackup">Backup / Restaurar</button>
         <button class="btn ghost" id="btnChangePw">Mudar senha</button>
@@ -2541,11 +2539,8 @@ window.minhaFoto=()=>{
       toast(nova?'Foto atualizada.':'Foto removida.'); return true; });
   setTimeout(()=>{ const f=$('#mf_f'); if(f) f.onchange=(e)=>fotoDoArquivo(e.target.files[0],192,mfPick); },30);
 };
-function pintarWhoami(){
-  const el=$('#whoami'); if(!el||!currentUser) return;
-  let mail=''; try{ mail=(SESSION&&SESSION.user&&SESSION.user.email)||''; }catch(_){}
-  const sufixo=currentUser.role==='master'?' · master':(currentUser.gerente?' · gerente':'');
-  el.innerHTML=`<span class="avl" style="cursor:pointer" title="${esc((mail?mail+' — ':'')+'clique para abrir seu perfil')}" onclick="meuPerfil()">${avatar(currentUser.id,currentUser.nome)}<span class="nm">${esc(currentUser.nome||'')}${sufixo}</span></span>`;
+function pintarWhoami(){ /* usuário só no avatar do topo (Gabriel tirou o rodapé) */
+  if(!currentUser) return;
   const top=document.getElementById('uavBtn');
   if(top) top.innerHTML=avatar(currentUser.id,currentUser.nome)+'<span class="pt"></span>';
 }
