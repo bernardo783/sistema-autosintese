@@ -2090,6 +2090,82 @@ window.dndSoltarLinha=async (ev,alvoId)=>{
   TK.tarefas.sort(porOrdem);
   dndRedesenhar();
 };
+/* ---------- NOVAS CONTAS: formulario aberto para toda a equipe ---------- */
+const NC_LISTA='c2000000-0000-4000-8000-0000000000b1';
+const NC_ABERTO='c2000000-0000-4000-8000-00000000b101';
+const NC_C={sol:'c2000000-0000-4000-8000-00000000b201',nat:'c2000000-0000-4000-8000-00000000b202',dep:'c2000000-0000-4000-8000-00000000b203',forn:'c2000000-0000-4000-8000-00000000b204',val:'c2000000-0000-4000-8000-00000000b205',pag:'c2000000-0000-4000-8000-00000000b206',parc:'c2000000-0000-4000-8000-00000000b207',venc:'c2000000-0000-4000-8000-00000000b208',mot:'c2000000-0000-4000-8000-00000000b209',desc:'c2000000-0000-4000-8000-00000000b20a',obs:'c2000000-0000-4000-8000-00000000b20b',anexo:'c2000000-0000-4000-8000-00000000b20c'};
+const NC_NAT=['Reembolso','Pagamento','Retirada'];
+const NC_DEP=['Marketing','Comercial','Tecnologia','Administrativo'];
+const NC_PAG=['Débito','Crédito','Dinheiro','Transferência/Pix','Boleto'];
+const NC_PARC=['À Vista','1x','2x','3x','4x','5x','6x','7x','8x','9x','10x','11x','12x'];
+const ncOpc=(a)=>'<option value="">—</option>'+a.map(o=>'<option>'+esc(o)+'</option>').join('');
+const ncV=(id)=>{ const e=document.getElementById(id); return e?String(e.value||'').trim():''; };
+function ncFormulario(c){
+  const meu=(window.currentUser&&currentUser.nome)||'';
+  const envs=TK.tarefas.filter(t=>t.lista_id===NC_LISTA).slice().sort((x,y)=>String(y.criado_em||'').localeCompare(String(x.criado_em||''))).slice(0,10);
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Novas Contas</h2><div class="desc">Solicitação de pagamento — qualquer pessoa do time pode enviar</div></div>
+   </div>
+   <div class="card" style="padding:18px;max-width:920px">
+     <div class="row2">
+       <div class="field"><label>Nome do solicitante *</label><input id="nc_sol" value="${esc(meu)}"></div>
+       <div class="field"><label>Natureza da conta *</label><select id="nc_nat">${ncOpc(NC_NAT)}</select></div>
+     </div>
+     <div class="row2">
+       <div class="field"><label>Departamento *</label><select id="nc_dep">${ncOpc(NC_DEP)}</select></div>
+       <div class="field"><label>Nome do fornecedor *</label><input id="nc_forn" placeholder="Para quem vai o pagamento"></div>
+     </div>
+     <div class="row2">
+       <div class="field"><label>Valor (R$) *</label><input type="number" step="0.01" id="nc_val"></div>
+       <div class="field"><label>Vencimento *</label><input type="date" id="nc_venc"></div>
+     </div>
+     <div class="row2">
+       <div class="field"><label>Forma de pagamento</label><select id="nc_pag">${ncOpc(NC_PAG)}</select></div>
+       <div class="field"><label>Parcelamento</label><select id="nc_parc">${ncOpc(NC_PARC)}</select></div>
+     </div>
+     <div class="field"><label>Motivo da solicitação *</label><input id="nc_mot" placeholder="Por que esse pagamento é necessário"></div>
+     <div class="row2">
+       <div class="field"><label>Descrição</label><textarea id="nc_desc" rows="2"></textarea></div>
+       <div class="field"><label>Observações</label><textarea id="nc_obs" rows="2"></textarea></div>
+     </div>
+     <div class="field"><label>Anexo — link do boleto/comprovante</label><input id="nc_anexo" placeholder="https://..."></div>
+     <div style="display:flex;gap:10px;margin-top:8px">
+       <button class="btn" onclick="ncEnviar()">Enviar solicitação</button>
+       <button class="btn secondary" onclick="ncLimpar()">Limpar</button>
+     </div>
+   </div>
+   <h2 style="font-size:15px;margin:20px 0 8px">Últimas solicitações</h2>
+   <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th style="text-align:right">Valor</th><th>Vencimento</th></tr></thead><tbody>${envs.map(t=>`<tr>
+      <td><strong>${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">${esc((t.valores||{})[NC_C.sol]||'')}</div></td>
+      <td>${tkSelo(t)}</td>
+      <td>${esc((t.valores||{})[NC_C.dep]||'—')}</td>
+      <td style="text-align:right">${brl((t.valores||{})[NC_C.val])}</td>
+      <td>${fmtDate((t.valores||{})[NC_C.venc]||'')||'—'}</td>
+    </tr>`).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
+}
+window.ncLimpar=()=>{ ['nc_forn','nc_val','nc_venc','nc_mot','nc_desc','nc_obs','nc_anexo','nc_nat','nc_dep','nc_pag','nc_parc'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; }); };
+window.ncEnviar=async ()=>{
+  const sol=ncV('nc_sol'), nat=ncV('nc_nat'), dep=ncV('nc_dep'), forn=ncV('nc_forn'), venc=ncV('nc_venc'), mot=ncV('nc_mot');
+  const val=Number(ncV('nc_val')||0);
+  if(!sol||!nat||!dep||!forn||!venc||!mot||!val){ toast('Preencha os campos com *.'); return; }
+  const v={};
+  v[NC_C.sol]=sol; v[NC_C.nat]=nat; v[NC_C.dep]=dep; v[NC_C.forn]=forn; v[NC_C.val]=val; v[NC_C.venc]=venc; v[NC_C.mot]=mot;
+  const pag=ncV('nc_pag'), parc=ncV('nc_parc'), des=ncV('nc_desc'), obs=ncV('nc_obs'), anx=ncV('nc_anexo');
+  if(pag) v[NC_C.pag]=pag;
+  if(parc) v[NC_C.parc]=parc;
+  if(des) v[NC_C.desc]=des;
+  if(obs) v[NC_C.obs]=obs;
+  if(anx) v[NC_C.anexo]=anx;
+  const reg={lista_id:NC_LISTA,titulo:forn+' — '+nat,descricao:mot,status:'todo',status_id:NC_ABERTO,prioridade:'med',prazo:venc,ordem:TK.tarefas.filter(t=>t.lista_id===NC_LISTA).length,valores:v};
+  try{ if(window.SESSION&&SESSION.user) reg.criado_por=SESSION.user.id; }catch(_){}
+  const {data,error}=await sb.from('tarefas').insert(reg).select().single();
+  if(error){ toast('Erro: '+error.message); return; }
+  TK.tarefas.push(data);
+  ncLimpar();
+  toast('Solicitação enviada.');
+  tkDesenhar(document.getElementById('content')); spDesenhar();
+};
 function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
@@ -2143,6 +2219,7 @@ window.spAbrirClientes=()=>{
 };
 function tkDesenhar(c){
   if(TK.listaSel==='7381fb45-8d78-458d-b432-77dd88972338'&&TK.escopo!=='todas'){ return renderTrafego(c); }
+  if(TK.listaSel===NC_LISTA&&TK.escopo!=='todas'){ return ncFormulario(c); }
   const lista=TK.listas.find(x=>x.id===TK.listaSel);
   const cli=ehLC(TK.listaSel)&&TK.escopo!=='todas';
   const abas=`<div class="tk-seg">${[['lista','☰ Lista'],['board','▦ Board'],['cal','🗓 Calendário']].map(v=>`<button class="${TK.visao===v[0]?'on':''}" onclick="tkVisao('${v[0]}')">${v[1]}</button>`).join('')}</div>`;
