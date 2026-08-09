@@ -478,7 +478,6 @@
     </button>
     <input class="sp-busca" id="spBusca" placeholder="Buscar espaço, pasta ou lista…" autocomplete="off" oninput="spFiltrar(this.value)">
     <div class="sp-nav" id="spNav">
-      <button class="navlink" data-view="dash" title="Início"><span class="ic">🏠</span><span>Início</span></button>
       <button id="spInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()"><span class="ic">📥</span><span>Minhas tarefas</span><span class="tk-n" id="spInboxN"></span></button>
     </div>
     <div class="sp-tree" id="spTree"><div class="hint" style="margin:0;padding:8px 6px">carregando espaços…</div></div>
@@ -733,15 +732,21 @@ function render(view){
   spMarcarAtalho(view); spDesenhar();
   /* o ciclo do Meta continua rodando fora da aba — os dados nunca ficam frios */
   const c=$('#content');
-  if(view==='dash') return renderDash(c);
-  if(view==='fechamento') return renderFechamento(c);
-  if(view==='financeiro'||view==='recebimentos'||view==='folha'||view==='contratos'){
-    if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+  /* O Painel e financeiro: para master ele mora como aba do Financeiro.
+     Quem nao e master so ve o resumo generico, sem passar pelo modulo. */
+  if(view==='dash'){
+    if(!currentUser||currentUser.role!=='master') return renderDash(c);
+    finTab='painel'; currentView='financeiro'; spMarcarAtalho('financeiro'); return renderFinanceiro(c);
   }
-  if(view==='financeiro') return renderFinanceiro(c);
-  if(view==='recebimentos'){ finTab='recebimentos'; return renderFinanceiro(c); }
-  if(view==='folha'){ finTab='folha'; return renderFinanceiro(c); }
-  if(view==='contratos') return renderContratos(c);
+  if(view==='fechamento') return renderFechamento(c);
+  if(FIN_TAB[view]){
+    if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+    finTab=FIN_TAB[view]; return renderFinanceiro(c);
+  }
+  if(view==='contratos'){
+    if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+    return renderContratos(c);
+  }
   if(view==='acessos') return renderAcessos(c);
   if(view==='fichas') return renderProjetos(c);
   if(view==='trafego') return renderTrafego(c);
@@ -1811,11 +1816,11 @@ window.wsMenu=(ev)=>{
   const m=!!(currentUser&&currentUser.role==='master');
   ctxAbrir(ev,[
     {cab:WS_NOME},
-    {ic:'🏠',t:'Início',f:()=>render('dash')},
     {ic:'📥',t:'Minhas tarefas',f:()=>spCaixa()},
+    {ic:'👥',t:'Clientes',f:()=>spAbrirClientes()},
     {sep:true},
     {ic:'➕',t:'Novo espaço',f:()=>tkNovoEspaco()},
-    {ic:'👥',t:'Usuários',f:()=>render('usuarios'),so:m},
+    {ic:'👤',t:'Usuários',f:()=>render('usuarios'),so:m},
     {ic:'💰',t:'Financeiro',f:()=>render('financeiro'),so:m},
     {sep:true},
     {ic:'⬇',t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click()},
@@ -2548,7 +2553,7 @@ window.tkEscopo=()=>{
   tkDesenhar($('#content')); spDesenhar(); };
 /* Caminho clicavel Workspace / Espaco / Pasta / Lista, igual ao topo do ClickUp. */
 function tkCrumb(){
-  const nos=[`<button onclick="render('dash')" title="Início">${esc(WS_NOME)}</button>`];
+  const nos=[`<button onclick="spAbrirClientes()" title="Base de Clientes">${esc(WS_NOME)}</button>`];
   if(TK.escopo==='minhas') nos.push('<span class="sp">/</span><span>Minhas tarefas</span>');
   else if(TK.escopo==='todas') nos.push('<span class="sp">/</span><span>Todas as tarefas</span>');
   else{
@@ -2931,6 +2936,9 @@ window.calRender=()=>{
 };
 
 /* ---------- FINANCEIRO (central) ---------- */
+/* Toda aba do Financeiro tem que ter rota aqui — sem isso o clique na pilula nao redesenha nada. */
+const FIN_TAB={financeiro:'lanc',lanc:'lanc',recebimentos:'recebimentos',
+  folha:'folha',escritorios:'escritorios',painel:'painel'};
 let finTab='lanc';
 let lancComp=compNow();
 let lancDe=''; let lancAte='';
@@ -2939,17 +2947,17 @@ function renderFinanceiro(c){
   c.innerHTML=`
    <div class="fin-tabs">
      <button class="ftab ${finTab==='lanc'?'active':''}" onclick="finGo('lanc')">💰 Lançamentos</button>
-     <button class="ftab ${finTab==='apagar'?'active':''}" onclick="finGo('apagar')">📥 Contas a Pagar</button>
-     <button class="ftab ${finTab==='cadcontas'?'active':''}" onclick="finGo('cadcontas')">🗂 Cadastro de Contas</button>
      <button class="ftab ${finTab==='recebimentos'?'active':''}" onclick="finGo('recebimentos')">🤝 Recebimentos</button>
      <button class="ftab ${finTab==='folha'?'active':''}" onclick="finGo('folha')">🧾 Folha de Pagamento</button>
+     <button class="ftab ${finTab==='escritorios'?'active':''}" onclick="finGo('escritorios')">🏢 Escritórios</button>
+     <button class="ftab ${finTab==='painel'?'active':''}" onclick="finGo('painel')">📊 Painel</button>
    </div>
    <div id="finSub"></div>`;
   const sub=$('#finSub');
-  if(finTab==='apagar') return renderFinAPagar(sub);
-  if(finTab==='cadcontas') return renderFinContas(sub);
+  if(finTab==='painel') return renderDash(sub);
   if(finTab==='recebimentos') return renderRecebimentos(sub);
   if(finTab==='folha') return renderFolha(sub);
+  if(finTab==='escritorios') return renderFolha(sub,true);
   return renderLanc(sub);
 }
 function renderLanc(c){
@@ -4176,28 +4184,33 @@ window.ctModelosModal=async ()=>{
 
 /* ---------- FOLHA DE PAGAMENTO ---------- */
 const DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
-function renderFolha(c){
+/* Folha e Escritórios dividem o mesmo motor: fixo com campo `esc` (nome do escritório)
+   pertence à aba Escritórios; sem `esc` é equipe. Pagamento avulso carrega `esc` próprio. */
+const folhaView=()=>finTab==='escritorios'?'escritorios':'folha';
+function renderFolha(c,escMode){
   const comp=folhaComp;
-  const pays=DB.folha.filter(p=>p.comp===comp).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
+  const meuLado=p=>{ const f=fixoById[p.fixoId]; return !!(f?f.esc:p.esc)===!!escMode; };
+  const fixos=DB.folhaFixos.filter(f=>!!f.esc===!!escMode);
+  const pays=DB.folha.filter(p=>p.comp===comp&&meuLado(p)).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
   const [fy,fm]=comp.split('-').map(Number);
   const fLast=new Date(fy,fm,0).getDate();
   const ocorrencias=(f)=>{ if(f.freq!=='semanal') return 1; let n=0; for(let d=1;d<=fLast;d++){ if(new Date(fy,fm-1,d).getDay()===(Number(f.diaSemana)||0)) n++; } return n; };
-  const previstoFixos=DB.folhaFixos.filter(f=>f.ativo).reduce((s,f)=>s+(Number(f.valor)||0)*ocorrencias(f),0);
+  const previstoFixos=fixos.filter(f=>f.ativo).reduce((s,f)=>s+(Number(f.valor)||0)*ocorrencias(f),0);
   const avulsos=pays.filter(p=>!p.fixoId).reduce((s,p)=>s+Number(p.valor),0);
   const tot=previstoFixos+avulsos;
   const pago=pays.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
   const pend=pays.filter(p=>!p.pago);
   const totPend=Math.max(0,tot-pago);
-  const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
   const semGrupos={}; pays.forEach(p=>{ const f=fixoById[p.fixoId]; if(f&&f.freq==='semanal'){ (semGrupos[p.fixoId]=semGrupos[p.fixoId]||[]).push(p); } });
   const paysMain=pays.filter(p=>{ const f=fixoById[p.fixoId]; return !(f&&f.freq==='semanal'); });
   const hoje=hojeISO();
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Folha de Pagamento</h2><div class="desc">Pagamentos mensais de equipe e prestadores</div></div>
+     <div><h2>${escMode?'Escritórios':'Folha de Pagamento'}</h2><div class="desc">${escMode?'Aluguéis e contas fixas dos escritórios':'Pagamentos mensais de equipe e prestadores'}</div></div>
      <div class="toolbar">
        <input type="month" class="search" id="fpComp" value="${comp}" style="min-width:150px">
-       <button class="btn secondary small" onclick="gerarFolha()">⚡ Gerar folha do mês</button>
+       <button class="btn secondary small" onclick="gerarFolha()">⚡ Gerar ${escMode?'contas':'folha'} do mês</button>
        <button class="btn small" onclick="openFpModal()">+ Pagamento</button>
      </div>
    </div>
@@ -4218,7 +4231,7 @@ function renderFolha(c){
         <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button>
         <button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button>
       </div></td></tr>`;}).join('')}</tbody></table>
-   ${pays.length?'':'<div class="empty">Nenhum pagamento em '+fmtComp(comp)+'. Use “⚡ Gerar folha do mês” (cria a partir dos pré-definidos) ou “+ Pagamento”.</div>'}</div>
+   ${pays.length?'':'<div class="empty">Nenhum pagamento em '+fmtComp(comp)+'. Use “⚡ Gerar '+(escMode?'contas':'folha')+' do mês” (cria a partir dos pré-definidos) ou “+ Pagamento”.</div>'}</div>
 
    ${Object.keys(semGrupos).length?`
    <h2 style="font-size:16px;margin:26px 0 10px">Pagamentos semanais — ${fmtComp(comp)}</h2>
@@ -4233,9 +4246,9 @@ function renderFolha(c){
       <td class="money" style="text-align:right">${brl(pagoSem)} <span style="color:var(--muted);font-size:11px">${ps.filter(p=>p.pago).length}/${ps.length}</span></td>
      </tr>`;}).join('')}</tbody></table></div>`:''}
    <h2 style="font-size:16px;margin:26px 0 10px">Pré-definidos — fixos de todo mês</h2>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
-   <tbody>${DB.folhaFixos.map(f=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—'}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:#7db0ff">📅 próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>${escMode?'Escritório':'DP'}</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
+   <tbody>${fixos.map(f=>`<tr>
+     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${escMode?(f.esc?`<span class="tag st">${esc(f.esc)}</span>`:'—'):(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:#7db0ff">📅 próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
      <td class="money" style="text-align:right">${brl(f.valor)}</td>
      <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
      <td><div class="rowact">
@@ -4244,14 +4257,15 @@ function renderFolha(c){
        <button class="iconbtn" onclick="openFixoModal('${f.id}')">Editar</button>
        <button class="iconbtn del" onclick="fixoExcluir('${f.id}')">Excluir</button>
      </div></td></tr>`).join('')}</tbody></table>
-   ${DB.folhaFixos.length?'':'<div class="empty">Nenhum fixo cadastrado. Cadastre aqui quem recebe todo mês (nome, valor e dia).</div>'}</div>
+   ${fixos.length?'':'<div class="empty">Nenhum fixo cadastrado. Cadastre aqui '+(escMode?'as contas de cada escritório (aluguel, internet, energia...)':'quem recebe todo mês (nome, valor e dia)')+'.</div>'}</div>
    <div style="margin-top:10px"><button class="btn secondary small" onclick="openFixoModal()">+ Fixo mensal</button></div>
-   <p class="hint" style="margin-top:12px">“Gerar folha do mês” cria os pagamentos do mês selecionado a partir dos fixos ativos, sem duplicar. Ao marcar <strong>✓ Pagar</strong>, a despesa entra automaticamente no Financeiro (categoria Folha de Pagamento); “Desfazer” remove.</p>`;
-  $('#fpComp').onchange=e=>{ folhaComp=e.target.value||compNow(); render('folha'); };
+   <p class="hint" style="margin-top:12px">“Gerar ${escMode?'contas':'folha'} do mês” cria os pagamentos do mês selecionado a partir dos fixos ativos, sem duplicar. Ao marcar <strong>✓ Pagar</strong>, a despesa entra automaticamente no Financeiro (categoria ${escMode?'Escritórios':'Folha de Pagamento'}); “Desfazer” remove.</p>`;
+  $('#fpComp').onchange=e=>{ folhaComp=e.target.value||compNow(); render(folhaView()); };
 }
 window.gerarFolha=async ()=>{
   const comp=folhaComp;
-  const ativos=DB.folhaFixos.filter(f=>f.ativo);
+  const escMode=finTab==='escritorios';
+  const ativos=DB.folhaFixos.filter(f=>f.ativo&&!!f.esc===escMode);
   if(!ativos.length){ toast('Cadastre os fixos mensais primeiro.'); return; }
   const doComp=DB.folha.filter(p=>p.comp===comp&&p.fixoId);
   const temMensal=new Set(doComp.map(p=>p.fixoId));
@@ -4282,35 +4296,38 @@ window.gerarFolha=async ()=>{
       n++;
     }
   });
-  if(!n){ toast('A folha de '+fmtComp(comp)+' já está gerada.'); return; }
-  await saveDB(); render('folha'); toast(n+' pagamento(s) gerado(s) para '+fmtComp(comp)+'.');
+  if(!n){ toast((escMode?'As contas de ':'A folha de ')+fmtComp(comp)+' já está gerada.'); return; }
+  await saveDB(); render(folhaView()); toast(n+' pagamento(s) gerado(s) para '+fmtComp(comp)+'.');
 };
 window.fpToggle=(id)=>{ const p=DB.folha.find(x=>x.id===id); if(!p)return; if(p.pago) fpDesfazer(id); else fpPagar(id); };
 window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
   p.pago=true; p.pagoEm=hojeISO();
   const fxp=DB.folhaFixos.find(f=>f.id===p.fixoId);
-  DB.financeiro.push({id:'fp_'+p.id,data:(p.venc||((p.comp||compNow())+'-01')),comp:p.comp,pagoEm:p.pagoEm,tipo:'despesa',descricao:'Folha: '+p.nome+(p.descricao?' — '+p.descricao:''),categoria:(fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento',valor:Number(p.valor)||0});
-  await saveDB(); render('folha'); toast('Pagamento de '+p.nome+' registrado no Financeiro.');
+  const escN=(fxp&&fxp.esc)||p.esc||'';
+  DB.financeiro.push({id:'fp_'+p.id,data:(p.venc||((p.comp||compNow())+'-01')),comp:p.comp,pagoEm:p.pagoEm,tipo:'despesa',descricao:escN?(p.nome+(p.descricao?' — '+p.descricao:'')+' [Escritório '+escN+']'):('Folha: '+p.nome+(p.descricao?' — '+p.descricao:'')),categoria:escN?'Escritórios':((fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento'),valor:Number(p.valor)||0});
+  await saveDB(); render(folhaView()); toast('Pagamento de '+p.nome+' registrado no Financeiro.');
 };
 window.fpDesfazer=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||!p.pago)return;
   p.pago=false; p.pagoEm=null;
   DB.financeiro=DB.financeiro.filter(x=>x.id!=='fp_'+p.id);
-  await saveDB(); render('folha'); toast('Pagamento desfeito (despesa removida do Financeiro).');
+  await saveDB(); render(folhaView()); toast('Pagamento desfeito (despesa removida do Financeiro).');
 };
 window.fpExcluir=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p)return;
   if(!confirm('Excluir este pagamento'+(p.pago?' (a despesa vinculada no Financeiro também será removida)':'')+'?'))return;
   DB.folha=DB.folha.filter(x=>x.id!==id);
   DB.financeiro=DB.financeiro.filter(x=>x.id!=='fp_'+id);
-  await saveDB(); render('folha'); toast('Excluído.');
+  await saveDB(); render(folhaView()); toast('Excluído.');
 };
 window.openFpModal=(id)=>{
   const it=id?DB.folha.find(x=>x.id===id):{venc:vencOf(folhaComp,new Date().getDate())};
+  const em=id?!!it.esc:finTab==='escritorios'; /* pagamento avulso da aba Escritórios */
   modal(id?'Editar pagamento':'Novo pagamento — '+fmtComp(folhaComp),`
     <div class="field"><label>Nome (quem recebe)</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Maria Silva"></div>
     <div class="field"><label>Descrição / função</label><input id="m_desc" value="${esc(it.descricao)}" placeholder="Ex: Social media"></div>
+    ${em?`<div class="field"><label>Escritório</label><input id="m_esc" value="${esc(it.esc||'Itajubá')}" placeholder="Itajubá, Volta Redonda, SJRP..."></div>`:''}
     <div class="row2">
       <div class="field"><label>Vencimento</label><input type="date" id="m_venc" value="${it.venc||''}"></div>
       <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
@@ -4318,26 +4335,29 @@ window.openFpModal=(id)=>{
     async ()=>{
       const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),venc:$('#m_venc').value,valor:parseFloat($('#m_valor').value)||0};
       if(!v.nome){ toast('Informe o nome.'); return false; }
+      if(em){ v.esc=($('#m_esc').value||'').trim(); if(!v.esc){ toast('Informe o escritório.'); return false; } }
       if(id){
         Object.assign(it,v);
         if(it.pago){ const f=DB.financeiro.find(x=>x.id==='fp_'+it.id);
-          if(f){ f.valor=v.valor; f.descricao='Folha: '+v.nome+(v.descricao?' — '+v.descricao:''); } }
+          if(f){ f.valor=v.valor; f.descricao=it.esc?(v.nome+(v.descricao?' — '+v.descricao:'')+' [Escritório '+it.esc+']'):('Folha: '+v.nome+(v.descricao?' — '+v.descricao:'')); } }
       } else {
         DB.folha.push({id:uid(),comp:folhaComp,fixoId:null,...v,pago:false,pagoEm:null});
       }
-      await saveDB(); render('folha'); toast('Salvo.'); return true;
+      await saveDB(); render(folhaView()); toast('Salvo.'); return true;
     });
 };
 window.openFixoModal=(id)=>{
   const it=id?DB.folhaFixos.find(x=>x.id===id):{dia:5,ativo:true};
+  const em=id?!!it.esc:finTab==='escritorios'; /* fixo da aba Escritórios */
   modal(id?'Editar fixo mensal':'Novo fixo mensal',`
-    <div class="field"><label>Nome (quem recebe)</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Maria Silva"></div>
-    <div class="field"><label>Descrição / função</label><input id="m_desc" value="${esc(it.descricao)}" placeholder="Ex: Social media"></div>
+    <div class="field"><label>Nome (quem recebe)</label><input id="m_nome" value="${esc(it.nome)}" placeholder="${em?'Ex: Aluguel — José Carlos Lemes':'Ex: Maria Silva'}"></div>
+    <div class="field"><label>Descrição / função</label><input id="m_desc" value="${esc(it.descricao)}" placeholder="${em?'Ex: Aluguel R$ 750 + IPTU R$ 25':'Ex: Social media'}"></div>
     <div class="row2">
       <div class="field"><label>Chave Pix</label><input id="m_pix" value="${esc(it.pix)}" placeholder="CPF, telefone, email ou CNPJ"></div>
       <div class="field"><label>Banco / Instituição</label><input id="m_banco" value="${esc(it.banco)}" placeholder="Ex: NuBank"></div>
     </div>
-    <div class="field"><label>Departamento (DP)</label><input id="m_dp" value="${esc(it.dp)}" placeholder="Ex: Marketing, Tecnologia..."></div>
+    ${em?`<div class="field"><label>Escritório</label><input id="m_esc" value="${esc(it.esc||'')}" placeholder="Itajubá, Volta Redonda, SJRP..."></div>`
+       :`<div class="field"><label>Departamento (DP)</label><input id="m_dp" value="${esc(it.dp)}" placeholder="Ex: Marketing, Tecnologia..."></div>`}
     <div class="row2">
       <div class="field"><label>Frequência</label><select id="m_freq"><option value="mensal"${it.freq!=='semanal'?' selected':''}>Mensal — uma vez por mês</option><option value="semanal"${it.freq==='semanal'?' selected':''}>Semanal — toda semana</option></select></div>
       <div class="field"><label>Valor (R$ por pagamento)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
@@ -4356,11 +4376,12 @@ window.openFixoModal=(id)=>{
     </div>
     <div class="field"><label>Ativo (entra na geração do mês)</label><select id="m_ativo"><option value="1"${it.ativo?' selected':''}>Sim</option><option value="0"${!it.ativo?' selected':''}>Não</option></select></div>`,
     async ()=>{
-      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),banco:$('#m_banco').value.trim(),dp:$('#m_dp').value.trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,posPago:$('#m_pos').value==='1',inicioComp:$('#m_inicioComp').value||null,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1',proxData:$('#m_prox').value||null,recorrente:$('#m_rec').checked};
+      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),banco:$('#m_banco').value.trim(),dp:(($('#m_dp')||{}).value||'').trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,posPago:$('#m_pos').value==='1',inicioComp:$('#m_inicioComp').value||null,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1',proxData:$('#m_prox').value||null,recorrente:$('#m_rec').checked};
       if(v.proxData){ const pd=new Date(v.proxData+'T12:00:00'); v.dia=Math.min(31,Math.max(1,pd.getDate())); v.diaSemana=pd.getDay(); v.inicioComp=v.proxData.slice(0,7); }
       if(!v.nome){ toast('Informe o nome.'); return false; }
+      if(em){ v.esc=($('#m_esc').value||'').trim(); if(!v.esc){ toast('Informe o escritório.'); return false; } }
       if(id){ Object.assign(it,v); } else { DB.folhaFixos.push({id:uid(),...v}); }
-      await saveDB(); render('folha'); toast('Salvo.'); return true;
+      await saveDB(); render(folhaView()); toast('Salvo.'); return true;
     });
   $('#m_freq').onchange=()=>{ const s=$('#m_freq').value==='semanal'; $('#wrapDia').style.display=s?'none':''; $('#wrapDsem').style.display=s?'':'none'; };
 };
@@ -4369,12 +4390,12 @@ window.fixoMove=async (id,dir)=>{
   const i=DB.folhaFixos.findIndex(x=>x.id===id); if(i<0)return;
   const j=i+dir; if(j<0||j>=DB.folhaFixos.length)return;
   const t=DB.folhaFixos[i]; DB.folhaFixos[i]=DB.folhaFixos[j]; DB.folhaFixos[j]=t;
-  await saveDB(); render('folha');
+  await saveDB(); render(folhaView());
 };
 window.fixoExcluir=async (id)=>{
   if(!confirm('Excluir este fixo mensal? (Os pagamentos já gerados permanecem.)'))return;
   DB.folhaFixos=DB.folhaFixos.filter(x=>x.id!==id);
-  await saveDB(); render('folha'); toast('Fixo excluído.');
+  await saveDB(); render(folhaView()); toast('Fixo excluído.');
 };
 
 /* ---------- USUÁRIOS (perfis no Supabase) ---------- */
