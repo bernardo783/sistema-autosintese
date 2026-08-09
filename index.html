@@ -162,7 +162,27 @@
 
   /* ---------- APP LAYOUT ---------- */
   /* Shell em duas colunas de navegacao, igual ao ClickUp: trilho de icones + painel da arvore. */
-  #app{display:grid;grid-template-columns:70px var(--sbw,276px) 1fr;min-height:100vh}
+  #app{display:grid;grid-template-columns:70px var(--sbw,276px) 1fr;grid-template-rows:auto 1fr;min-height:100vh}
+  .railbar,.sidebar{grid-row:1/3}
+  .topbar{grid-column:3;grid-row:1;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 24px 0}
+  .main{grid-column:3;grid-row:2}
+  .uav{background:transparent;border:none;padding:0;border-radius:50%;line-height:0;position:relative}
+  .uav .av{width:34px;height:34px;font-size:12px;box-shadow:inset 0 0 0 1px var(--line),0 0 0 2px transparent}
+  .uav:hover .av{box-shadow:inset 0 0 0 1px var(--line),0 0 0 2px var(--brand2)}
+  .uav .pt{position:absolute;right:0;bottom:0;width:10px;height:10px;border-radius:50%;background:var(--ok);
+    box-shadow:0 0 0 2px var(--bg)}
+  /* cartao de perfil */
+  .pf-top{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px}
+  .pf-foto{width:96px;height:96px;border-radius:14px;overflow:hidden;flex:none;display:grid;place-items:center;
+    background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted);font-size:32px;font-weight:800}
+  .pf-foto img{width:100%;height:100%;object-fit:cover;display:block}
+  .pf-nome{font-size:18px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
+  .pf-cargo{color:var(--muted);font-size:13px;margin-top:3px}
+  .pf-linha{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+  .pf-linha .ic{width:18px;text-align:center;color:var(--muted);flex:none}
+  .pf-linha .vz{color:var(--muted)}
+  .pf-linha a{color:var(--brand2);text-decoration:none}
+  .pf-linha a:hover{text-decoration:underline}
   .railbar{background:var(--bg);border-right:1px solid var(--line);display:flex;flex-direction:column;
     align-items:center;gap:1px;padding:12px 6px 10px}
   .railbar .rl{display:flex;flex-direction:column;align-items:center;gap:4px;width:58px;padding:7px 3px;
@@ -507,8 +527,10 @@
   .bar.r{background:linear-gradient(180deg,var(--ok),#2a8f50)}
   .bar.d{background:linear-gradient(180deg,var(--danger),#a5343a)}
   .barwrap .lbl{font-size:12px;color:var(--muted)}
-  @media(max-width:720px){#app{grid-template-columns:1fr}
+  @media(max-width:720px){#app{grid-template-columns:1fr;grid-template-rows:auto auto auto 1fr}
     #app.mini{grid-template-columns:1fr}
+    .railbar,.sidebar,.topbar,.main{grid-column:auto;grid-row:auto}
+    .topbar{padding:10px 18px 0}
     .railbar{flex-direction:row;justify-content:flex-start;overflow-x:auto;border-right:none;
       border-bottom:1px solid var(--line);padding:8px 10px;gap:4px}
     .railbar #rlInicio{margin:0 4px 0 0}
@@ -642,7 +664,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14" r="1.2"/></svg><span class="t">Financeiro</span></button>
     <button class="rl navlink hidden" data-view="usuarios" id="navUsuarios" title="Usuários">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg><span class="t">Usuários</span></button>
-    <div class="bot"><div id="rlEu"></div></div>
   </nav>
   <aside class="sidebar">
     <button class="ws-head" id="wsHead" title="AutoSíntese — menu do workspace" onclick="wsMenu(event)" oncontextmenu="wsMenu(event)">
@@ -664,6 +685,9 @@
     </div>
     <div class="sb-grip" id="sbGrip" title="Arraste para mudar a largura · 2 cliques volta ao padrão"></div>
   </aside>
+  <div class="topbar" id="topbar">
+    <button class="uav" id="uavBtn" title="Meu perfil" onclick="menuUsuario(event)"></button>
+  </div>
   <main class="main" id="content"></main>
 </div>
 
@@ -1354,7 +1378,7 @@ const avatar=(uid,nome,cls)=>{ const f=fotoDe(uid), n=nome||tkNomeUser(uid);
   return f?`<span class="av ${cls||''}"><img src="${esc(f)}" alt="${esc(n)}"></span>`
           :`<span class="av ${cls||''}" title="${esc(n)}">${esc(inicial(n))}</span>`; };
 const avatarNome=(uid,nome)=>{ const n=nome||tkNomeUser(uid); if(!uid&&!n) return '';
-  return `<span class="avl">${avatar(uid,n,'sm')}<span class="nm">${esc(n)}</span></span>`; };
+  return `<span class="avl" style="cursor:pointer" title="Ver perfil de ${esc(n)}" onclick="event.stopPropagation();verPerfil('${uid}')">${avatar(uid,n,'sm')}<span class="nm">${esc(n)}</span></span>`; };
 /* Icone do espaco: foto ganha do emoji, que ganha da inicial colorida. */
 const espIcone=(e)=>e&&e.foto
   ? `<span class="sp-ic ft"><img src="${esc(e.foto)}" alt=""></span>`
@@ -2359,7 +2383,6 @@ window.wsMenu=(ev)=>{
     {ic:'👤',t:'Usuários',f:()=>render('usuarios'),so:m},
     {ic:'💰',t:'Financeiro',f:()=>render('financeiro'),so:m},
     {sep:true},
-    {ic:'🙂',t:'Minha foto',f:()=>minhaFoto()},
     {ic:'⬇',t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click()},
     {ic:'🔒',t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
     {sep:true},
@@ -2395,6 +2418,106 @@ window.spNoMenu=(ev,tipo,id)=>{
    que mexe somente na coluna foto da propria linha. */
 window.mfPick=(d)=>{ window.__mfFoto=d||''; const pv=$('#mf_p');
   if(pv) pv.innerHTML=d?`<img src="${d}" alt="">`:esc(inicial((currentUser||{}).nome)); };
+/* ---------- PERFIL ----------
+   Cargo e foto sao publicos pro time; e-mail e telefone so aparecem se a pessoa marcar.
+   Quem escreve e a RPC salvar_meu_perfil: perfis so aceita UPDATE de master. */
+const perfilDe=(uid)=>{
+  if(currentUser&&currentUser.id===uid) return currentUser;
+  return TK.equipe.find(x=>x.id===uid)||null;
+};
+const soDigitos=(v)=>String(v||'').replace(/\D+/g,'');
+const zapDe=(tel)=>{ const d=soDigitos(tel); if(d.length<10) return ''; return 'https://wa.me/'+(d.length<=11?'55'+d:d); };
+const mascTel=(v)=>{ const d=soDigitos(v).slice(0,11);
+  if(d.length<=2) return d;
+  if(d.length<=6) return '('+d.slice(0,2)+') '+d.slice(2);
+  if(d.length<=10) return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
+  return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7); };
+window.pfMascara=(el)=>{ el.value=mascTel(el.value); };
+const papelDe=(u)=>u? (u.role==='master'?'Administrador':(u.gerente?'Gerente':'Membro')) : '';
+window.menuUsuario=(ev)=>{
+  if(!currentUser) return;
+  ctxAbrir(ev,[
+    {cab:currentUser.nome||'Meu perfil'},
+    {ic:'👤',t:'Meu perfil',f:()=>meuPerfil()},
+    {ic:'🔒',t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
+    {sep:true},
+    {ic:'↩',t:'Sair',dgr:true,f:()=>document.getElementById('btnLogout').click()}
+  ]);
+};
+/* Cartao de leitura — o que o time ve de voce. */
+window.verPerfil=(uid)=>{
+  const u=perfilDe(uid);
+  if(!u){ toast('Perfil não encontrado.'); return; }
+  const eu=currentUser&&currentUser.id===uid;
+  /* no proprio cartao o e-mail sempre aparece pra voce, mesmo que esteja escondido do time */
+  let mail=u.email||'';
+  if(eu&&!mail){ try{ mail=(SESSION&&SESSION.user&&SESSION.user.email)||''; }catch(_){} }
+  const tel=u.telefone||'';
+  const sq=(u.squads&&u.squads.length)?u.squads.map(x=>'Squad '+x).join(', '):'';
+  const linha=(ic,html)=>`<div class="pf-linha"><span class="ic">${ic}</span>${html}</div>`;
+  modal('Perfil',`
+    <div class="pf-top">
+      <div class="pf-foto">${u.foto?`<img src="${esc(u.foto)}" alt="">`:esc(inicial(u.nome))}</div>
+      <div style="min-width:0">
+        <div class="pf-nome">${esc(u.nome||'')}</div>
+        <div class="pf-cargo">${esc(u.cargo||'Sem cargo definido')}</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <span class="tag st">${esc(papelDe(u))}</span>${sq?`<span class="tag st">${esc(sq)}</span>`:''}
+        </div>
+      </div>
+    </div>
+    ${linha('✉️', mail?`<a href="mailto:${esc(mail)}">${esc(mail)}</a>`:'<span class="vz">e-mail não divulgado</span>')}
+    ${linha('📞', tel?`${esc(tel)} · <a href="${esc(zapDe(tel))}" target="_blank" rel="noopener">WhatsApp</a>`:'<span class="vz">telefone não divulgado</span>')}
+    ${eu?'<p class="hint">Só aparece para o time o que você marcar como visível.</p>':''}`,
+    async ()=>{ if(eu){ setTimeout(meuPerfil,60); } return true; });
+  const ov=document.querySelector('.overlay');
+  const b=ov&&ov.querySelector('.msave'); if(b) b.textContent=eu?'Editar':'Fechar';
+  /* cartao de leitura nao precisa de Cancelar + Fechar */
+  const c=ov&&ov.querySelector('.mcancel'); if(c&&!eu) c.style.display='none';
+};
+/* Edicao do proprio perfil. */
+window.meuPerfil=()=>{
+  if(!currentUser) return;
+  window.__mfFoto=currentUser.foto||'';
+  modal('Meu perfil',`
+    <div class="fotobox" style="margin-bottom:16px">
+      <div class="fotoprev rd" id="mf_p">${currentUser.foto?`<img src="${esc(currentUser.foto)}" alt="">`:esc(inicial(currentUser.nome))}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;margin-bottom:2px">${esc(currentUser.nome||'')}</div>
+        <div class="hint" style="margin:0 0 8px">${esc(papelDe(currentUser))}</div>
+        <input type="file" id="mf_f" accept="image/*" style="width:100%">
+        <button class="btn ghost small" type="button" style="margin-top:8px" onclick="mfPick('')">Remover foto</button>
+      </div>
+    </div>
+    <div class="field"><label>Cargo</label>
+      <input id="pf_cargo" value="${esc(currentUser.cargo||'')}" placeholder="Ex: Gestor de Tráfego" maxlength="60"></div>
+    <div class="field"><label>Telefone</label>
+      <input id="pf_tel" value="${esc(currentUser.telefone||'')}" placeholder="(17) 99999-9999" oninput="pfMascara(this)"></div>
+    <div class="field"><label>O que o time pode ver</label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:500;margin-bottom:6px">
+        <input type="checkbox" id="pf_vm" style="width:auto" ${currentUser.mostrar_email?'checked':''}>
+        Meu e-mail${SESSION&&SESSION.user&&SESSION.user.email?' ('+esc(SESSION.user.email)+')':''}</label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:500">
+        <input type="checkbox" id="pf_vt" style="width:auto" ${currentUser.mostrar_telefone?'checked':''}>
+        Meu telefone</label></div>
+    <p class="hint">Nome e cargo o time sempre vê. Contato só se você marcar aqui.</p>`,
+    async ()=>{
+      const dados={ p_foto:window.__mfFoto||null,
+        p_cargo:$('#pf_cargo').value.trim()||null,
+        p_telefone:$('#pf_tel').value.trim()||null,
+        p_mostrar_email:$('#pf_vm').checked, p_mostrar_telefone:$('#pf_vt').checked };
+      const {error}=await sb.rpc('salvar_meu_perfil',dados);
+      if(error){ toast('Erro: '+error.message); return false; }
+      Object.assign(currentUser,{foto:dados.p_foto,cargo:dados.p_cargo,telefone:dados.p_telefone,
+        mostrar_email:dados.p_mostrar_email,mostrar_telefone:dados.p_mostrar_telefone});
+      const u=TK.equipe.find(x=>x.id===currentUser.id);
+      if(u) Object.assign(u,{foto:dados.p_foto,cargo:dados.p_cargo,
+        email:dados.p_mostrar_email?(SESSION&&SESSION.user?SESSION.user.email:null):null,
+        telefone:dados.p_mostrar_telefone?dados.p_telefone:null});
+      pintarWhoami(); spDesenhar(); if(currentView==='lista') tkDesenhar($('#content'));
+      toast('Perfil salvo.'); return true; });
+  setTimeout(()=>{ const f=$('#mf_f'); if(f) f.onchange=(e)=>fotoDoArquivo(e.target.files[0],192,mfPick); },30);
+};
 window.minhaFoto=()=>{
   if(!currentUser) return;
   window.__mfFoto=currentUser.foto||'';
@@ -2422,9 +2545,9 @@ function pintarWhoami(){
   const el=$('#whoami'); if(!el||!currentUser) return;
   let mail=''; try{ mail=(SESSION&&SESSION.user&&SESSION.user.email)||''; }catch(_){}
   const sufixo=currentUser.role==='master'?' · master':(currentUser.gerente?' · gerente':'');
-  el.innerHTML=`<span class="avl" style="cursor:pointer" title="${esc((mail?mail+' — ':'')+'clique para trocar sua foto')}" onclick="minhaFoto()">${avatar(currentUser.id,currentUser.nome)}<span class="nm">${esc(currentUser.nome||'')}${sufixo}</span></span>`;
-  const rl=document.getElementById('rlEu');
-  if(rl) rl.innerHTML=`<span class="av" title="${esc(currentUser.nome||'')} — trocar minha foto" onclick="minhaFoto()">${(currentUser.foto?`<img src="${esc(currentUser.foto)}" alt="">`:esc(inicial(currentUser.nome)))}</span>`;
+  el.innerHTML=`<span class="avl" style="cursor:pointer" title="${esc((mail?mail+' — ':'')+'clique para abrir seu perfil')}" onclick="meuPerfil()">${avatar(currentUser.id,currentUser.nome)}<span class="nm">${esc(currentUser.nome||'')}${sufixo}</span></span>`;
+  const top=document.getElementById('uavBtn');
+  if(top) top.innerHTML=avatar(currentUser.id,currentUser.nome)+'<span class="pt"></span>';
 }
 /* ---------- favoritos (por usuario, no proprio navegador) ---------- */
 let SP_FAV=[]; try{ SP_FAV=JSON.parse(localStorage.getItem('sp_favs')||'[]')||[]; }catch(_){}
@@ -2585,7 +2708,7 @@ async function tkCarregar(){
     sb.from('pastas').select('*').order('ordem'),
     sb.from('listas').select('*').order('ordem'),
     sb.from('tarefas').select('*').order('criado_em'),
-    sb.from('equipe_nomes').select('id,nome,foto'),
+    sb.from('equipe_nomes').select('id,nome,foto,cargo,role,gerente,email,telefone'),
     sb.from('status_lista').select('*').order('ordem'),
     sb.from('campos_lista').select('*').order('ordem')]);
   const err=e.error||pa.error||l.error||t.error||st.error||cp.error;
