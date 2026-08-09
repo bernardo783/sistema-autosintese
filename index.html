@@ -478,7 +478,7 @@
     </button>
     <input class="sp-busca" id="spBusca" placeholder="Buscar espaço, pasta ou lista…" autocomplete="off" oninput="spFiltrar(this.value)">
     <div class="sp-nav" id="spNav">
-      <button id="spInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()"><span class="ic">📥</span><span>Minhas tarefas</span><span class="tk-n" id="spInboxN"></span></button>
+      <button id="spInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg></span><span>Minhas tarefas</span><span class="tk-n" id="spInboxN"></span></button>
     </div>
     <div class="sp-tree" id="spTree"><div class="hint" style="margin:0;padding:8px 6px">carregando espaços…</div></div>
     <div class="foot">
@@ -1839,7 +1839,8 @@ const spRotulo=(tipo)=>tipo==='espaco'?'espaço':tipo==='pasta'?'pasta':'lista';
 const spEmojiNome=(n)=>{ const m=String(n||'').match(/^(\p{Extended_Pictographic}️?)\s*/u); return m?m[1]:''; };
 const spIcone=(o)=>(o&&o.icone)||spEmojiNome(o&&o.nome)||'';
 /* visual limpo estilo ClickUp: emoji só quando escolhido de propósito no "Cor e ícone" */
-const SVG_PASTA='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+const SVG_PASTA='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>';
+const SVG_LISTA='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l1.5 1.5L7 5"/><line x1="11" y1="6" x2="21" y2="6"/><path d="M3 15l1.5 1.5L7 14"/><line x1="11" y1="15" x2="21" y2="15"/></svg>';
 const spNome=(o)=>{ const n=String((o&&o.nome)||''); return (o&&o.icone)?n:(n.replace(/^(\p{Extended_Pictographic}️?)\s*/u,'')||n); };
 function spRepintar(){ spDesenhar(); if(currentView==='lista') tkDesenhar($('#content')); }
 
@@ -2506,7 +2507,7 @@ function spDesenhar(){
   const item=(l,fav)=>{
     const cor=l.cor||'';
     const ic=l.icone?`<span class="tk-ic emo">${esc(l.icone)}</span>`
-                    :`<span class="tk-dot"${cor?` style="background:${esc(cor)}"`:''}></span>`;
+                    :`<span class="tk-ic"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${SVG_LISTA}</span>`;
     const cont=(l.id===LF_ID||ehFin(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
     const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)))?' on':'';
     const dnd=fav?'':` draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()"`;
@@ -2549,7 +2550,7 @@ function spDesenhar(){
         const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||mst)&&lVis(l)); const abP=aberto('p'+p.id);
         return `<div class="tk-pasta">
           <div class="tk-pastah" draggable="true" ondragstart="dndPasta(event,'${p.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarPasta(event,'${p.id}','${e.id}')" ondragend="dndFim()" onclick="tkToggle('p','${p.id}')" oncontextmenu="spNoMenu(event,'pasta','${p.id}')">
-            <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic"${p.cor?` style="color:${esc(p.cor)}"`:''}>${p.icone?esc(p.icone):'&#128193;'}</span>
+            <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic"${p.cor?` style="color:${esc(p.cor)};opacity:1"`:''}>${p.icone?esc(p.icone):SVG_PASTA}</span>
             <span class="tk-nome">${esc(spNome(p))}</span>
             <span class="tk-acts">
               <button title="Nova lista" onclick="event.stopPropagation();tkNovaLista('${e.id}','${p.id}')">+</button>
