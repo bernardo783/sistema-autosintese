@@ -34,6 +34,74 @@
   .page-head h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
   .hint,.desc{font-size:12.5px}
 
+  /* ---------- DAILY DOS SQUADS ---------- */
+  .dl-wrap{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+  @media(max-width:1150px){.dl-wrap{grid-template-columns:1fr}}
+  .dl-clock{display:flex;flex-direction:column;align-items:flex-end;background:var(--panel);
+    border:1px solid var(--line);border-radius:9px;padding:6px 13px 6px 26px;position:relative;min-width:118px}
+  .dl-clock b{font-family:ui-monospace,Menlo,monospace;font-size:19px;font-weight:700;line-height:1.15}
+  .dl-clock small{font-size:10.5px;color:var(--muted);font-weight:600}
+  .dl-clock i{position:absolute;left:10px;top:13px;width:8px;height:8px;border-radius:50%;
+    background:var(--ok);animation:dlpl 1.6s infinite}
+  .dl-clock.off{opacity:.6} .dl-clock.off i{background:var(--muted);animation:none}
+  @keyframes dlpl{0%,100%{opacity:1}50%{opacity:.25}}
+  @media(prefers-reduced-motion:reduce){.dl-clock i{animation:none}}
+  .dl-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
+  .dl-grp{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .dl-grp h4{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:800;color:var(--muted)}
+  .dl-grp .n{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:700}
+  .dl-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .dl-row{display:flex;align-items:center;gap:11px;padding:10px 14px;border-bottom:1px solid var(--line);
+    cursor:pointer;width:100%;background:transparent;border-left:none;border-right:none;border-top:none;
+    color:var(--txt);text-align:left;font-size:13.5px}
+  .dl-row:last-child{border-bottom:none}
+  .dl-row:hover{background:rgba(255,255,255,.04)}
+  .dl-row:focus-visible{outline:2px solid var(--brand2);outline-offset:-2px}
+  .dl-row.on{background:rgba(123,104,238,.13);box-shadow:inset 2px 0 0 var(--brand)}
+  .dl-row.ok{opacity:.55}
+  .dl-av{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;font-size:10.5px;
+    font-weight:900;color:#fff;flex:none;background:var(--brand)}
+  .dl-nm{flex:1;min-width:0}
+  .dl-nm b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dl-sub{font-size:11.5px;color:var(--muted);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap}
+  .dl-num{display:flex;gap:14px;flex:none;font-variant-numeric:tabular-nums}
+  .dl-num div{text-align:right}
+  .dl-num b{display:block;font-size:13px;font-weight:700}
+  .dl-num span{color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .dl-chk{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--line);flex:none;
+    display:grid;place-items:center;font-size:11px;color:transparent}
+  .dl-chk.on{background:var(--ok);border-color:var(--ok);color:#04231a}
+  .dl-t{border-radius:999px;font-size:10.5px;font-weight:700;padding:2px 8px;white-space:nowrap;display:inline-block}
+  .dl-t.r{background:rgba(239,91,107,.16);color:#ff9aa5}
+  .dl-t.w{background:rgba(230,177,63,.16);color:#f0cb7d}
+  .dl-t.g{background:rgba(63,207,142,.15);color:#7fe4bb}
+  .dl-t.n{background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+  .dl-t.b{background:rgba(123,104,238,.2);color:#c4b8ff}
+  .dl-side{position:sticky;top:14px}
+  .dl-sec{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:15px 0 8px}
+  .dl-sec:first-child{margin-top:0}
+  .dl-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .dl-mini div{background:var(--panel2);border-radius:8px;padding:9px 10px}
+  .dl-mini b{display:block;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+  .dl-mini span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .dl-ck{display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--panel2);
+    border-radius:8px;margin-bottom:7px;font-size:13px;cursor:pointer;width:100%;border:none;color:var(--txt);text-align:left}
+  .dl-hist{font-size:12px;color:var(--muted);border-left:2px solid var(--line);padding:2px 0 2px 10px;
+    margin-bottom:9px;line-height:1.5}
+  .dl-hist b{color:var(--txt);font-weight:600}
+  .dl-dest{display:flex;gap:6px;flex-wrap:wrap}
+  .dl-dest button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600}
+  .dl-dest button.on{border-color:var(--brand);background:rgba(123,104,238,.16);color:var(--txt)}
+  .dl-bars{display:flex;align-items:flex-end;gap:18px;height:170px;padding:16px 6px 0;border-bottom:1px solid var(--line)}
+  .dl-bcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .dl-bpair{display:flex;gap:5px;align-items:flex-end;width:100%;justify-content:center;height:100%}
+  .dl-bar{width:24px;border-radius:5px 5px 0 0;position:relative;min-height:2px}
+  .dl-bar span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10.5px;
+    font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+  .dl-blab{font-size:11.5px;color:var(--muted);font-weight:700}
+  .dl-leg{display:flex;gap:16px;font-size:12px;color:var(--muted);padding:12px 14px;align-items:center;flex-wrap:wrap}
+  .dl-leg i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:6px}
   /* ---------- CONTAS A PAGAR / SOLICITACOES ---------- */
   .fin2-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;
     justify-content:center;padding:20px;z-index:120}
@@ -495,6 +563,7 @@
     <input class="sp-busca" id="spBusca" placeholder="Buscar espaço, pasta ou lista…" autocomplete="off" oninput="spFiltrar(this.value)">
     <div class="sp-nav" id="spNav">
       <button id="spInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg></span><span>Minhas tarefas</span><span class="tk-n" id="spInboxN"></span></button>
+      <button id="spDaily" title="Reunião diária do squad" onclick="render('daily')"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span>Daily do squad</span></button>
     </div>
     <div class="sp-tree" id="spTree"><div class="hint" style="margin:0;padding:8px 6px">carregando espaços…</div></div>
     <div class="foot">
@@ -569,7 +638,8 @@ async function loadDB(){
 async function loadSenhasPriv(){ try{ const {data}=await sb.from('senhas_privadas').select('id,dados'); DB.senhasPriv=(data||[]).map(r=>({...(r.dados||{}),id:r.id,__priv:true})); }catch(_){ DB.senhasPriv=[]; } }
 async function saveDB(){
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
-  const livres=['projetos','senhas','links','trafego','contas_meta'];
+  /* senhas saiu da lista: o cofre é só do master. Membro nem lê nem regrava esse módulo. */
+  const livres=['projetos','links','trafego','contas_meta'];
   const mods=(currentUser&&currentUser.role==='master')?MODMAP:MODMAP.filter(([m])=>livres.includes(m));
   const rows=mods.map(([m,k])=>({modulo:m,dados:DB[k]||[],criado_por:SESSION.user.id}));
   const {error}=await sb.from('itens').upsert(rows,{onConflict:'modulo'});
@@ -766,11 +836,15 @@ function render(view){
   }
   if(view==='acessos') return renderAcessos(c);
   if(view==='fichas') return renderProjetos(c);
+  if(view==='daily') return renderDaily(c);
   if(view==='trafego') return renderTrafego(c);
   if(view==='lista') return renderTarefas(c);
   if(view==='reembolsos') return renderReembolsos(c);
   if(view==='processos') return renderProcessos(c);
-  if(view==='usuarios') return renderUsuarios(c);
+  if(view==='usuarios'){
+    if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+    return renderUsuarios(c);
+  }
 }
 
 /* ---------- TRÁFEGO PAGO ---------- */
@@ -2814,6 +2888,7 @@ function spDesenhar(){
   /* contador da caixa de entrada + estado do atalho */
   const bx=document.getElementById('spInbox'), bn=document.getElementById('spInboxN');
   if(bx) bx.classList.toggle('active',TK.escopo==='minhas'&&currentView==='lista');
+  const bdl=document.getElementById('spDaily'); if(bdl) bdl.classList.toggle('active',currentView==='daily');
   if(bn){ const n=spMinhas().length; bn.textContent=n||''; }
   const item=(l,fav)=>{
     const cor=l.cor||'';
@@ -3227,6 +3302,402 @@ function renderProcessos(c){
 /* ---------- PAINEL ---------- */
 let dashComp=compNow();
 let dashDe=''; let dashAte='';
+/* ======================= DAILY DOS SQUADS =======================
+   Reunião diária de cada squad: fila de contas montada sozinha (sinais do Meta +
+   rodízio de quem está há mais tempo sem revisão), conferência, e a decisão do dia
+   virando tarefa na hora. O cronômetro mede a reunião e alimenta o relatório de tempo. */
+const DL_LISTA='da11a000-0000-4000-8000-000000000001';   /* 🗓️ Ações do Dia */
+const DL_STATUS='da11a000-0000-4000-8000-0000000000a1';  /* status "A fazer" da lista */
+const DL_RODIZIO=12;    /* quantas contas sem sinal entram por dia (47 contas ÷ 5 dias, com folga) */
+let DL={squad:'',dia:null,itens:[],ult:{},sel:'',aba:'reuniao',tick:null,dest:'',sem:0,carregou:false};
+
+const dlHoje=()=>hojeISO();
+const dlFichasSquad=(sq)=>(DB.projetos||[]).filter(p=>String(p.squad||'')===String(sq)&&String(p.status||'')!=='churn');
+const dlSquadsVisiveis=()=>{ const s=SQUADS(); const meus=meusSquads();
+  return (vejoTudo()||!meus.length)?s:s.filter(x=>meus.includes(String(x))); };
+const dlItem=(fid)=>DL.itens.find(x=>x.ficha_id===String(fid))||null;
+const dlContasMeta=(f)=>contasDoCliente(f.id).map(m=>(window.__mtDados||[]).find(y=>y.id===m.id)).filter(Boolean);
+
+/* Sinais: por que essa conta precisa de olho hoje. Peso maior = sobe na fila. */
+function dlSinais(f){
+  const out=[], visto={};
+  dlContasMeta(f).forEach(c=>{
+    const pg=(typeof pagConta==='function')?pagConta(c):null;
+    if(pg&&pg.problema) out.push({k:'pag',t:pg.statusTxt||'problema de pagamento',p:3,c:'r'});
+    if(semSaldoReal(c))  out.push({k:'saldo',t:'sem saldo',p:3,c:'r'});
+    const sd=saldoConta(c);
+    if(sd.ok&&sd.parou)  out.push({k:'parou',t:'sem gastar há '+(sd.haDias||1)+'d',p:2,c:'w'});
+  });
+  if(String(f.status||'')==='novo') out.push({k:'novo',t:'cliente novo',p:1,c:'b'});
+  if(!contasDoCliente(f.id).length) out.push({k:'semconta',t:'sem conta vinculada',p:1,c:'n'});
+  return out.filter(x=>visto[x.k]?false:(visto[x.k]=true));
+}
+/* Números da conta no período que o Tráfego já carregou */
+function dlNums(f){
+  let g=0,l=0,tem=false;
+  dlContasMeta(f).forEach(c=>{ const i=c.ins||{}; tem=true; g+=(+i.spend||0);
+    l+=(i.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0); });
+  return {tem,gasto:g,leads:l,cpl:l?g/l:0};
+}
+function dlFila(){
+  const com=[],sem=[];
+  dlFichasSquad(DL.squad).forEach(f=>{ const s=dlSinais(f);
+    (s.length?com:sem).push({f,sinais:s,ult:DL.ult[f.id]||''}); });
+  const peso=(x)=>x.sinais.reduce((a,b)=>Math.max(a,b.p),0);
+  com.sort((a,b)=>peso(b)-peso(a)||String(a.f.nome).localeCompare(String(b.f.nome)));
+  sem.sort((a,b)=>String(a.ult||'').localeCompare(String(b.ult||''))||String(a.f.nome).localeCompare(String(b.f.nome)));
+  return {sinal:com,rodizio:sem.slice(0,DL_RODIZIO),resto:sem.slice(DL_RODIZIO)};
+}
+/* ---------- banco ---------- */
+async function dlCarregar(){
+  const [d,h]=await Promise.all([
+    sb.from('dailies').select('*').eq('data',dlHoje()).eq('squad',DL.squad).limit(1),
+    sb.from('daily_itens').select('ficha_id,visto_em').not('visto_em','is',null)]);
+  if(d.error) throw new Error(d.error.message);
+  DL.dia=(d.data||[])[0]||null;
+  DL.ult={}; (h.data||[]).forEach(r=>{ const a=DL.ult[r.ficha_id];
+    if(!a||String(r.visto_em)>String(a)) DL.ult[r.ficha_id]=r.visto_em; });
+  DL.itens=[];
+  if(DL.dia){ const it=await sb.from('daily_itens').select('*').eq('daily_id',DL.dia.id);
+    DL.itens=it.data||[]; }
+  DL.carregou=true;
+}
+window.dlComecar=async ()=>{
+  const {data,error}=await sb.from('dailies')
+    .insert({data:dlHoje(),squad:DL.squad,criado_por:(currentUser||{}).id||null}).select().single();
+  if(error){ toast('Erro ao abrir a daily: '+error.message); return; }
+  DL.dia=data; DL.itens=[]; render('daily'); toast('Daily aberta. Cronômetro rodando.');
+};
+window.dlPausar=async ()=>{
+  if(!DL.dia) return;
+  if(DL.dia.pausada_ini){ /* retomando: acumula o que ficou parado */
+    const add=Math.max(0,Math.round((Date.now()-DL.dia.pausada_ini)/1000));
+    DL.dia.pausada_seg=(+DL.dia.pausada_seg||0)+add; DL.dia.pausada_ini=0;
+    await sb.from('dailies').update({pausada_seg:DL.dia.pausada_seg}).eq('id',DL.dia.id);
+  }else DL.dia.pausada_ini=Date.now();
+  render('daily');
+};
+window.dlEncerrar=async ()=>{
+  if(!DL.dia) return;
+  if(!confirm('Encerrar a daily de hoje? O cronômetro para e a ata é gerada.')) return;
+  let pausa=+DL.dia.pausada_seg||0;
+  if(DL.dia.pausada_ini) pausa+=Math.max(0,Math.round((Date.now()-DL.dia.pausada_ini)/1000));
+  const {error}=await sb.from('dailies')
+    .update({encerrada_em:new Date().toISOString(),pausada_seg:pausa}).eq('id',DL.dia.id);
+  if(error){ toast('Erro ao encerrar: '+error.message); return; }
+  await dlCarregar(); render('daily'); toast('Daily encerrada.');
+};
+async function dlUpsert(fid,patch){
+  if(!DL.dia) return null;
+  const at=dlItem(fid);
+  const base=Object.assign({daily_id:DL.dia.id,ficha_id:String(fid),visto_em:new Date().toISOString()},patch);
+  if(at){ const {data,error}=await sb.from('daily_itens').update(base).eq('id',at.id).select().single();
+    if(error){ toast('Erro ao salvar: '+error.message); return null; }
+    Object.assign(at,data); return at; }
+  const {data,error}=await sb.from('daily_itens').insert(base).select().single();
+  if(error){ toast('Erro ao salvar: '+error.message); return null; }
+  DL.itens.push(data); return data;
+}
+window.dlMarcar=async (fid,campo)=>{
+  const at=dlItem(fid), v=!(at&&at[campo]);
+  const p={}; p[campo]=v; await dlUpsert(fid,p);
+  DL.ult[fid]=new Date().toISOString(); dlPintar();
+};
+/* ---------- criar a ação do dia ---------- */
+const dlPrimeiro=(s)=>String(s||'').trim().split(/\s+/)[0].toLowerCase();
+function dlAcharUser(nome){
+  const n=dlPrimeiro(nome); if(!n) return '';
+  const u=(TK.equipe||[]).find(x=>dlPrimeiro(x.nome)===n)
+       || (TK.equipe||[]).find(x=>String(x.nome||'').toLowerCase().includes(n));
+  return u?u.id:'';
+}
+window.dlDest=(id)=>{ DL.dest=id; dlPintar(); };
+window.dlCriar=async ()=>{
+  const f=fichaDe(DL.sel); if(!f||!DL.dia) return;
+  const tx=$('#dlTexto'), titulo=(tx?tx.value:'').trim();
+  if(!titulo){ toast('Escreva o que vai ser feito.'); if(tx) tx.focus(); return; }
+  if(!DL.dest){ toast('Escolha quem faz.'); return; }
+  const alta=$('#dlAlta'), prazo=$('#dlAmanha');
+  const reg={lista_id:DL_LISTA,status_id:DL_STATUS,status:'todo',
+    titulo:titulo,ficha_id:String(f.id),squad:String(f.squad||DL.squad),
+    responsavel_id:DL.dest,prazo:(prazo&&prazo.checked)?isoMais(1):dlHoje(),
+    prioridade:(alta&&alta.checked)?'alta':'med',origem_daily:DL.dia.id,
+    criado_por:(currentUser||{}).id||null,ordem:(TK.tarefas||[]).length};
+  const {data,error}=await sb.from('tarefas').insert(reg).select().single();
+  if(error){ toast('Erro ao criar a tarefa: '+error.message); return; }
+  TK.tarefas.push(data);
+  await dlUpsert(f.id,{conferido_conta:true});
+  DL.ult[f.id]=new Date().toISOString();
+  if(tx) tx.value='';
+  toast('Tarefa criada para '+(tkNomeUser(DL.dest)||'a equipe')+'.');
+  dlProxima();
+};
+function dlProxima(){
+  const fl=dlFila(), ordem=fl.sinal.concat(fl.rodizio).map(x=>x.f.id);
+  const i=ordem.indexOf(DL.sel);
+  const resto=ordem.slice(i+1).find(id=>{ const it=dlItem(id); return !(it&&it.conferido_conta); });
+  DL.sel=resto||ordem[i]||'';
+  render('daily');
+}
+window.dlSel=(fid)=>{ DL.sel=String(fid); DL.dest=''; dlPintar(); };
+window.dlSquad=(sq)=>{ DL.squad=String(sq); DL.sel=''; DL.carregou=false; render('daily'); };
+window.dlAba=(a)=>{ DL.aba=a; render('daily'); };
+window.dlSemana=(n)=>{ DL.sem=n; render('daily'); };
+
+/* ---------- cronômetro ---------- */
+function dlDur(d){
+  if(!d) return 0;
+  const fim=d.encerrada_em?new Date(d.encerrada_em).getTime():Date.now();
+  let pausa=(+d.pausada_seg||0);
+  if(d.pausada_ini&&!d.encerrada_em) pausa+=Math.max(0,Math.round((Date.now()-d.pausada_ini)/1000));
+  return Math.max(0,Math.round((fim-new Date(d.iniciada_em).getTime())/1000)-pausa);
+}
+const dlHMS=(s)=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+const dlMin=(s)=>Math.round(s/60);
+function dlTicar(){
+  clearInterval(DL.tick); DL.tick=null;
+  if(currentView!=='daily'||!DL.dia||DL.dia.encerrada_em||DL.dia.pausada_ini) return;
+  DL.tick=setInterval(()=>{
+    if(currentView!=='daily'){ clearInterval(DL.tick); DL.tick=null; return; }
+    const el=document.getElementById('dlCron'); if(el) el.textContent=dlHMS(dlDur(DL.dia));
+  },1000);
+}
+/* ---------- tela ---------- */
+function renderDaily(c){
+  const sqs=dlSquadsVisiveis();
+  if(!sqs.length){ c.innerHTML='<div class="empty">Nenhum squad cadastrado ainda — defina o campo Squad na ficha dos clientes.</div>'; return; }
+  if(!DL.squad||sqs.indexOf(DL.squad)<0) DL.squad=sqs[0];
+  if(!DL.carregou){
+    c.innerHTML='<div class="empty">Carregando a daily...</div>';
+    dlCarregar().then(()=>renderDaily(c)).catch(err=>{
+      c.innerHTML='<div class="empty">Erro ao carregar: '+esc(err.message)
+        +'<br><br><span class="hint">Se a mensagem fala em tabela inexistente, a migração <code>migracao-daily.sql</code> ainda não rodou no Supabase.</span></div>'; });
+    return; }
+  c.innerHTML=`
+    <div class="page-head">
+      <div><h2>Daily do squad</h2><div class="desc" id="dlDesc">${esc(dlSubtitulo())}</div></div>
+      <div class="toolbar">${dlBotoes()}</div>
+    </div>
+    <div class="fin-tabs">
+      ${sqs.map(s=>`<button class="ftab${s===DL.squad?' on':''}" onclick="dlSquad('${esc(s)}')">Squad ${esc(s)}</button>`).join('')}
+      <span style="width:14px"></span>
+      <button class="ftab${DL.aba==='reuniao'?' on':''}" onclick="dlAba('reuniao')">Reunião de hoje</button>
+      <button class="ftab${DL.aba==='tempo'?' on':''}" onclick="dlAba('tempo')">Tempo das dailies</button>
+    </div>
+    <div id="dlCorpo"></div>`;
+  dlPintar(); dlTicar();
+}
+function dlSubtitulo(){
+  const d=DL.dia;
+  if(!d) return 'Squad '+DL.squad+' · '+fmtDate(dlHoje())+' · ainda não começou hoje';
+  if(d.encerrada_em) return 'Squad '+DL.squad+' · encerrada · durou '+dlMin(dlDur(d))+' min';
+  return 'Squad '+DL.squad+' · começou '+new Date(d.iniciada_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+function dlBotoes(){
+  const d=DL.dia;
+  if(DL.aba==='tempo') return '';
+  if(!d) return `<button class="btn small" onclick="dlComecar()">▶ Começar a daily</button>`;
+  if(d.encerrada_em) return `<span class="dl-clock off"><i></i><b>${dlHMS(dlDur(d))}</b><small>encerrada</small></span>`;
+  const parada=!!d.pausada_ini;
+  return `<span class="dl-clock${parada?' off':''}"><i></i><b id="dlCron">${dlHMS(dlDur(d))}</b><small>${esc(dlMedia())}</small></span>
+    <button class="btn ghost small" onclick="dlPausar()">${parada?'▶ Retomar':'⏸ Pausar'}</button>
+    <button class="btn small" onclick="dlEncerrar()">Encerrar e gerar ata</button>`;
+}
+function dlMedia(){ const m=DL.medias&&DL.medias[DL.squad]; return m?('média: '+m+' min'):'em andamento'; }
+
+function dlPintar(){
+  const el=document.getElementById('dlCorpo'); if(!el) return;
+  el.innerHTML=DL.aba==='tempo'?dlTempoHTML():dlReuniaoHTML();
+  if(DL.aba==='tempo') dlTempoCarregar();
+}
+function dlReuniaoHTML(){
+  if(!DL.dia) return `<div class="empty">A daily de hoje ainda não foi aberta.<br><br>
+    <span class="hint">Clique em <strong>Começar a daily</strong>. O cronômetro liga e a fila do dia é montada na hora.</span></div>`;
+  const fl=dlFila();
+  const feitas=DL.itens.filter(x=>x.conferido_conta).length;
+  const acoes=(TK.tarefas||[]).filter(t=>t.origem_daily===DL.dia.id);
+  const naFila=fl.sinal.length+fl.rodizio.length;
+  const cards=`<div class="cards">
+    <div class="card"><div class="k">Na fila de hoje</div><div class="v">${naFila}<span style="font-size:14px;color:var(--muted)"> de ${dlFichasSquad(DL.squad).length}</span></div><div class="sub">${fl.sinal.length} por sinal + ${fl.rodizio.length} do rodízio</div></div>
+    <div class="card"><div class="k">Conferidas</div><div class="v pos">${feitas}</div><div class="sub">${Math.max(0,naFila-feitas)} restantes</div></div>
+    <div class="card"><div class="k">Ações criadas</div><div class="v">${acoes.length}</div><div class="sub">${esc(dlPorPessoa(acoes))}</div></div>
+    <div class="card"><div class="k">Tempo</div><div class="v">${dlMin(dlDur(DL.dia))} min</div><div class="sub">${DL.dia.encerrada_em?'encerrada':'rodando'}</div></div>
+  </div>`;
+  const ata=DL.dia.encerrada_em?dlAtaHTML(acoes):'';
+  return cards+ata+`<div class="dl-wrap">
+    <div>
+      ${dlGrupo('Precisa de atenção hoje','var(--danger)',fl.sinal,'o sistema puxou pelos sinais do Meta')}
+      ${dlGrupo('Rodízio da semana','var(--warn)',fl.rodizio,'há mais tempo sem revisão')}
+      ${fl.resto.length?`<p class="hint">Mais ${fl.resto.length} contas do squad estão fora da fila hoje — elas entram no rodízio dos próximos dias.</p>`:''}
+    </div>
+    <aside class="dl-side">${dlPainelHTML()}</aside>
+  </div>`;
+}
+function dlPorPessoa(acoes){
+  const m={}; acoes.forEach(t=>{ const n=tkNomeUser(t.responsavel_id)||'sem dono'; m[n]=(m[n]||0)+1; });
+  const ks=Object.keys(m); return ks.length?ks.map(k=>m[k]+' '+dlPrimeiroMai(k)).join(' · '):'nenhuma ainda';
+}
+const dlPrimeiroMai=(s)=>String(s||'').trim().split(/\s+/)[0];
+function dlGrupo(titulo,cor,arr,dica){
+  if(!arr.length) return '';
+  return `<div class="dl-box"><div class="dl-grp"><span class="dl-dot" style="background:${cor}"></span>
+      <h4>${esc(titulo)}</h4><span class="n">${arr.length} · ${esc(dica)}</span></div>
+    ${arr.map(dlLinha).join('')}</div>`;
+}
+function dlLinha(x){
+  const f=x.f, it=dlItem(f.id), ok=!!(it&&it.conferido_conta);
+  const n=dlNums(f), ini=String(f.nome||'?').trim().charAt(0).toUpperCase();
+  const sin=x.sinais.length?x.sinais.map(s=>`<span class="dl-t ${s.c}">${esc(s.t)}</span>`).join('')
+    :`<span class="dl-t n">${x.ult?('revisado '+fmtDate(String(x.ult).slice(0,10))):'nunca revisado'}</span>`;
+  return `<button type="button" class="dl-row${DL.sel===String(f.id)?' on':''}${ok?' ok':''}" onclick="dlSel('${esc(f.id)}')">
+    <span class="dl-chk${ok?' on':''}">&#10003;</span>
+    <span class="dl-av">${esc(ini)}</span>
+    <span class="dl-nm"><b>${esc(f.nome||'(sem nome)')}</b><span class="dl-sub">${sin}</span></span>
+    ${n.tem?`<span class="dl-num">
+      <div><span>gasto</span><b>${esc(brl(n.gasto))}</b></div>
+      <div><span>leads</span><b>${n.leads}</b></div>
+      <div><span>CPL</span><b>${n.leads?esc(brl(n.cpl)):'—'}</b></div></span>`:''}
+  </button>`;
+}
+function dlPainelHTML(){
+  const f=fichaDe(DL.sel);
+  if(!f) return `<div class="dl-box"><div class="sbody" style="padding:26px;text-align:center;color:var(--muted);font-size:13px">
+    Escolha uma conta da fila para conferir e decidir o que fazer hoje.</div></div>`;
+  const it=dlItem(f.id), n=dlNums(f), fim=!!DL.dia.encerrada_em;
+  const gestor=dlAcharUser(f.responsavel), gerente=dlAcharUser(f.gerente), eu=(currentUser||{}).id||'';
+  const hist=(TK.tarefas||[]).filter(t=>String(t.ficha_id||'')===String(f.id)&&t.origem_daily&&t.origem_daily!==DL.dia.id)
+    .slice(-3).reverse();
+  const zap=f.grupoWpp?`<a class="btn ghost small" href="${esc(f.grupoWpp)}" target="_blank" rel="noopener">💬 Grupo</a>`:'';
+  const drv=f.drive?`<a class="btn ghost small" href="${esc(f.drive)}" target="_blank" rel="noopener">📁 Drive</a>`:'';
+  return `<div class="dl-box">
+    <div class="dl-grp"><span class="dl-av">${esc(String(f.nome||'?').trim().charAt(0).toUpperCase())}</span>
+      <h4 style="font-size:14px;text-transform:none;letter-spacing:0;color:var(--txt)">${esc(f.nome||'')}</h4></div>
+    <div style="padding:15px">
+      ${n.tem?`<div class="dl-mini">
+        <div><span>gasto</span><b>${esc(brl(n.gasto))}</b></div>
+        <div><span>leads</span><b>${n.leads}</b></div>
+        <div><span>CPL</span><b>${n.leads?esc(brl(n.cpl)):'—'}</b></div></div>`
+      :`<p class="hint" style="margin:0">Sem conta de anúncio vinculada — vincule na aba Tráfego Pago para ver os números aqui.</p>`}
+      <div class="toolbar" style="margin-top:10px">${zap}${drv}
+        <button class="btn ghost small" onclick="abrirCliente('${esc(f.id)}')">👤 Ficha</button></div>
+
+      <div class="dl-sec">Conferência</div>
+      <button type="button" class="dl-ck" onclick="dlMarcar('${esc(f.id)}','conferido_conta')">
+        <span class="dl-chk${it&&it.conferido_conta?' on':''}">&#10003;</span> Conta de anúncio conferida</button>
+      <button type="button" class="dl-ck" onclick="dlMarcar('${esc(f.id)}','conferido_wpp')">
+        <span class="dl-chk${it&&it.conferido_wpp?' on':''}">&#10003;</span> Grupo do WhatsApp lido</button>
+
+      ${hist.length?`<div class="dl-sec">Dailies anteriores</div>${hist.map(t=>`<div class="dl-hist">
+        <b>${esc(fmtDate(String(t.criado_em||'').slice(0,10)))} · ${esc(dlPrimeiroMai(tkNomeUser(t.responsavel_id)))}</b><br>
+        ${esc(t.titulo)}${t.status==='feito'?' <span class="dl-t g">feito</span>':''}</div>`).join('')}`:''}
+
+      ${fim?`<p class="hint" style="margin-top:14px">Daily encerrada — para criar novas ações, use a lista 🗓️ Ações do Dia.</p>`
+      :`<div class="dl-sec">Decisão de hoje</div>
+      <div class="field" style="margin-bottom:8px">
+        <textarea id="dlTexto" rows="3" placeholder="O que vai ser feito hoje nessa conta?"
+          onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter')dlCriar()"></textarea></div>
+      <div class="dl-sec">Cai na lista de quem</div>
+      <div class="dl-dest">
+        ${gestor?`<button type="button" class="${DL.dest===gestor?'on':''}" onclick="dlDest('${gestor}')">Gestor · ${esc(dlPrimeiroMai(tkNomeUser(gestor)))}</button>`:''}
+        ${gerente&&gerente!==gestor?`<button type="button" class="${DL.dest===gerente?'on':''}" onclick="dlDest('${gerente}')">Gerente · ${esc(dlPrimeiroMai(tkNomeUser(gerente)))}</button>`:''}
+        ${eu&&eu!==gestor&&eu!==gerente?`<button type="button" class="${DL.dest===eu?'on':''}" onclick="dlDest('${eu}')">Eu</button>`:''}
+      </div>
+      ${(!gestor&&!gerente)?`<p class="hint" style="margin-top:8px">Essa ficha não tem gestor nem gerente com usuário no sistema. Escolha na lista abaixo.</p>`:''}
+      <div class="field" style="margin-top:9px"><select onchange="dlDest(this.value)">
+        <option value="">— outra pessoa —</option>
+        ${(TK.equipe||[]).map(u=>`<option value="${u.id}"${DL.dest===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}
+      </select></div>
+      <label class="dl-ck" style="cursor:pointer"><input type="checkbox" id="dlAlta" style="width:16px;height:16px;accent-color:var(--brand2)"> Prioridade alta</label>
+      <label class="dl-ck" style="cursor:pointer"><input type="checkbox" id="dlAmanha" style="width:16px;height:16px;accent-color:var(--brand2)"> Prazo amanhã (padrão é hoje)</label>
+      <div class="toolbar" style="margin-top:10px">
+        <button class="btn small" onclick="dlCriar()">Criar e ir p/ próxima</button>
+        <button class="btn ghost small" onclick="dlMarcar('${esc(f.id)}','conferido_conta');dlProxima()">Só marcar OK</button>
+      </div>
+      <p class="hint">Ctrl+Enter cria a tarefa e já pula pra próxima conta da fila.</p>`}
+    </div></div>`;
+}
+function dlAtaHTML(acoes){
+  const d=DL.dia, conf=DL.itens.filter(x=>x.conferido_conta).length;
+  return `<div class="dl-box"><div class="dl-grp"><h4>Ata de hoje</h4>
+      <span class="n">${new Date(d.iniciada_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} → ${new Date(d.encerrada_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${dlMin(dlDur(d))} min · ${conf} contas conferidas</span></div>
+    <div style="padding:15px">
+      ${acoes.length?acoes.map(t=>`<div class="dl-hist"><b>${esc(tkNomeFicha(t.ficha_id)||'sem cliente')}</b><br>
+        ${esc(t.titulo)} → <b>${esc(dlPrimeiroMai(tkNomeUser(t.responsavel_id)))}</b>, ${t.prazo===dlHoje()?'hoje':esc(fmtDate(t.prazo))}</div>`).join('')
+      :'<p class="hint" style="margin:0">Nenhuma ação criada nessa daily.</p>'}
+    </div></div>`;
+}
+/* ---------- relatório de tempo ---------- */
+function dlTempoHTML(){
+  return `<div id="dlTempoBox"><div class="empty">Carregando o histórico...</div></div>`;
+}
+async function dlTempoCarregar(){
+  const box=document.getElementById('dlTempoBox'); if(!box) return;
+  const de=isoMais(-7*(DL.sem+1)-7), r=await sb.from('dailies').select('*').gte('data',de).order('data');
+  if(r.error){ box.innerHTML='<div class="empty">Erro: '+esc(r.error.message)+'</div>'; return; }
+  const todas=(r.data||[]).filter(d=>d.encerrada_em);
+  DL.medias={}; dlSquadsVisiveis().forEach(s=>{
+    const arr=todas.filter(d=>d.squad===s); if(arr.length)
+      DL.medias[s]=Math.round(arr.reduce((a,d)=>a+dlDur(d),0)/arr.length/60); });
+  /* semana = seg a sex, DL.sem = 0 é a atual */
+  const hoje=new Date(dlHoje()+'T12:00:00'), dow=(hoje.getDay()+6)%7;
+  const seg=new Date(hoje); seg.setDate(hoje.getDate()-dow-7*DL.sem);
+  const dias=[0,1,2,3,4].map(i=>{ const d=new Date(seg); d.setDate(seg.getDate()+i); return isoLocal(d); });
+  const daSemana=todas.filter(d=>dias.indexOf(d.data)>=0);
+  const sqs=dlSquadsVisiveis(), cores={};
+  sqs.forEach((s,i)=>cores[s]=['#2f7cf6','#f59e0b','#3ec46d','#ef5b6b'][i%4]);
+  const total=daSemana.reduce((a,d)=>a+dlDur(d),0);
+  const media=daSemana.length?Math.round(total/daSemana.length/60):0;
+  const pico=Math.max(60,...daSemana.map(d=>dlDur(d)/60));
+  const NOMES=['seg','ter','qua','qui','sex'];
+  const cont=await dlContar(daSemana.map(d=>d.id));
+  box.innerHTML=`
+   <div class="cards">
+     <div class="card"><div class="k">Tempo total da semana</div><div class="v">${Math.floor(total/3600)}h ${Math.round((total%3600)/60)}min</div><div class="sub">${daSemana.length} reuniões</div></div>
+     <div class="card"><div class="k">Média por daily</div><div class="v">${media} min</div><div class="sub">semana de ${fmtDate(dias[0])}</div></div>
+     ${sqs.map(s=>{ const a=daSemana.filter(d=>d.squad===s);
+       const m=a.length?Math.round(a.reduce((x,d)=>x+dlDur(d),0)/a.length/60):0;
+       return `<div class="card"><div class="k">Squad ${esc(s)}</div><div class="v" style="color:${cores[s]}">${m} min</div><div class="sub">média · ${a.length} reuniões</div></div>`; }).join('')}
+   </div>
+   <div class="toolbar" style="margin-bottom:14px">
+     <button class="btn ghost small" onclick="dlSemana(${DL.sem+1})">◀ semana anterior</button>
+     ${DL.sem?`<button class="btn ghost small" onclick="dlSemana(0)">semana atual ▶</button>`:''}
+   </div>
+   <div class="dl-box">
+     <div class="dl-grp"><h4>Duração por dia</h4><span class="n">minutos</span></div>
+     <div class="dl-bars">
+       ${dias.map((iso,i)=>`<div class="dl-bcol"><div class="dl-bpair">
+         ${sqs.map(s=>{ const d=daSemana.find(x=>x.data===iso&&x.squad===s); if(!d) return '';
+           const mm=dlMin(dlDur(d));
+           return `<div class="dl-bar" style="height:${Math.max(2,Math.round(mm/pico*100))}%;background:${cores[s]}" title="Squad ${esc(s)} · ${mm} min"><span>${mm}</span></div>`;
+         }).join('')||'<div class="dl-bar" style="height:2px;background:var(--line)"></div>'}
+       </div><div class="dl-blab">${NOMES[i]} ${esc(fmtDate(iso).slice(0,5))}</div></div>`).join('')}
+     </div>
+     <div class="dl-leg">${sqs.map(s=>`<span><i style="background:${cores[s]}"></i>Squad ${esc(s)}</span>`).join('')}</div>
+   </div>
+   <div class="dl-box"><div class="dl-grp"><h4>Detalhe por reunião</h4><span class="n">min/conta = duração ÷ contas conferidas</span></div>
+     <div class="tablewrap"><table><thead><tr><th>Dia</th><th>Squad</th><th>Início</th><th>Duração</th><th>Contas</th><th>Ações</th><th>Min/conta</th></tr></thead>
+     <tbody>${daSemana.length?daSemana.map(d=>{
+        const conf=cont[d.id]||{contas:0,acoes:0}, mm=dlMin(dlDur(d));
+        return `<tr${d.encerrada_auto?' style="opacity:.55"':''}><td>${esc(fmtDate(d.data))}</td><td>${esc(d.squad)}</td>
+          <td>${new Date(d.iniciada_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td>
+          <td><strong>${mm} min</strong>${d.encerrada_auto?' <span class="dl-t n">encerrada sozinha</span>':''}</td>
+          <td>${conf.contas}</td><td>${conf.acoes}</td>
+          <td>${conf.contas?(mm/conf.contas).toFixed(1):'—'}</td></tr>`; }).join('')
+      :'<tr><td colspan="7" style="color:var(--muted)">Nenhuma daily encerrada nessa semana.</td></tr>'}</tbody></table></div>
+   </div>`;
+}
+/* contas conferidas e ações criadas de cada daily — usado no min/conta da tabela */
+async function dlContar(ids){
+  const m={}; if(!ids.length) return m;
+  ids.forEach(id=>m[id]={contas:0,acoes:0});
+  const [it,tf]=await Promise.all([
+    sb.from('daily_itens').select('daily_id,conferido_conta').in('daily_id',ids),
+    sb.from('tarefas').select('origem_daily').in('origem_daily',ids)]);
+  (it.data||[]).forEach(r=>{ if(r.conferido_conta&&m[r.daily_id]) m[r.daily_id].contas++; });
+  (tf.data||[]).forEach(r=>{ if(m[r.origem_daily]) m[r.origem_daily].acoes++; });
+  return m;
+}
+
 function renderDash(c){
   if(!currentUser||currentUser.role!=='master'){
     c.innerHTML=`
@@ -3437,11 +3908,14 @@ window.openFinModal=(id)=>{
 let acTab='senhas';
 window.acGo=(t)=>{ acTab=t; searchTerm=''; render('acessos'); };
 function renderAcessos(c){
+  /* Cofre da equipe é só do master. Membro vê as próprias senhas privadas e os links. */
+  const mst=!!(currentUser&&currentUser.role==='master');
+  if(!mst&&acTab==='senhas') acTab='links';
   const nS=(DB.senhas||[]).length+((DB.senhasPriv||[]).length);
   const nL=(DB.links||[]).length;
   c.innerHTML=`
    <div class="fin-tabs">
-     <button class="ftab ${acTab==='links'?'':'active'}" onclick="acGo('senhas')">🔑 Senhas${nS?' ('+nS+')':''}</button>
+     ${mst?`<button class="ftab ${acTab==='links'?'':'active'}" onclick="acGo('senhas')">🔑 Senhas${nS?' ('+nS+')':''}</button>`:''}
      <button class="ftab ${acTab==='links'?'active':''}" onclick="acGo('links')">🔗 Links${nL?' ('+nL+')':''}</button>
    </div>
    <div id="acSub"></div>`;
