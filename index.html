@@ -34,6 +34,26 @@
   .page-head h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
   .hint,.desc{font-size:12.5px}
 
+  /* ---------- CONTAS A PAGAR / SOLICITACOES ---------- */
+  .fin2-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;
+    justify-content:center;padding:20px;z-index:120}
+  .fin2-modal{width:100%;max-width:580px;max-height:90vh;display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+  .fin2-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:15px 18px;border-bottom:1px solid var(--line)}
+  .fin2-head h3{font-size:15px;font-weight:700}
+  .fin2-body{padding:16px 18px;overflow:auto}
+  .fin2-foot{display:flex;justify-content:flex-end;gap:8px;padding:13px 18px;border-top:1px solid var(--line)}
+  .fin2-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .fin2-grid .full{grid-column:1/-1}
+  .fin2-f label{display:block;font-size:11px;font-weight:700;letter-spacing:.045em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .fin2-f input,.fin2-f select,.fin2-f textarea{width:100%;padding:9px 11px;background:var(--panel2);
+    color:var(--txt);border:1px solid var(--line);border-radius:8px;font-size:13.5px}
+  .fin2-f textarea{min-height:78px;resize:vertical}
+  .fin2-rec{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--panel2)}
+  tr.fin2-venc td{background:rgba(239,91,107,.07)}
+
   /* ---------- LOGIN ---------- */
   #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
     background:radial-gradient(1200px 600px at 50% -10%,#241d3f 0%,#17171a 45%,#111113 100%)}
@@ -400,6 +420,7 @@
         
         <button class="navlink" data-view="acessos" title="Acessos e senhas">🔑</button>
         <button class="navlink" data-view="processos" title="Processos">📋</button>
+        <button class="navlink" data-view="reembolsos" title="Solicitações e reembolsos">💸</button>
         <button class="navlink hidden" data-view="financeiro" id="navFin" title="Financeiro">💰</button>
         <button class="navlink hidden" data-view="usuarios" id="navUsuarios" title="Usuários">👥</button>
       </div>
@@ -656,6 +677,7 @@ function render(view){
   if(view==='fichas') return renderProjetos(c);
   if(view==='trafego') return renderTrafego(c);
   if(view==='lista') return renderTarefas(c);
+  if(view==='reembolsos') return renderReembolsos(c);
   if(view==='processos') return renderProcessos(c);
   if(view==='usuarios') return renderUsuarios(c);
 }
@@ -2519,11 +2541,15 @@ function renderFinanceiro(c){
   c.innerHTML=`
    <div class="fin-tabs">
      <button class="ftab ${finTab==='lanc'?'active':''}" onclick="finGo('lanc')">💰 Lançamentos</button>
+     <button class="ftab ${finTab==='apagar'?'active':''}" onclick="finGo('apagar')">📥 Contas a Pagar</button>
+     <button class="ftab ${finTab==='cadcontas'?'active':''}" onclick="finGo('cadcontas')">🗂 Cadastro de Contas</button>
      <button class="ftab ${finTab==='recebimentos'?'active':''}" onclick="finGo('recebimentos')">🤝 Recebimentos</button>
      <button class="ftab ${finTab==='folha'?'active':''}" onclick="finGo('folha')">🧾 Folha de Pagamento</button>
    </div>
    <div id="finSub"></div>`;
   const sub=$('#finSub');
+  if(finTab==='apagar') return renderFinAPagar(sub);
+  if(finTab==='cadcontas') return renderFinContas(sub);
   if(finTab==='recebimentos') return renderRecebimentos(sub);
   if(finTab==='folha') return renderFolha(sub);
   return renderLanc(sub);
@@ -3327,7 +3353,7 @@ window.openCliModal=(id)=>{
       const v={nome:$('#m_nome').value.trim(),nicho:$('#m_nicho').value.trim(),servico:$('#m_serv').value.trim(),produtos:$('#m_serv').value.trim(),grupoWpp:$('#m_grupo').value.trim(),instagram:$('#m_insta').value.trim(),drive:$('#m_drive').value.trim(),
         diaVenc:(dia>=1&&dia<=31)?dia:null,valor:parseFloat($('#m_valor').value)||0,
         resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null,fim:$('#m_fim').value||null,
-        contrato:['razao','cnpj','endereco','bairro','cidade_uf','cep','rep_nome','rep_rg','rep_cpf','email'].reduce((o,k)=>{o[k]=(($('#m_k_'+k)||{}).value||'').trim();return o;},{})};
+        contrato:Object.assign({},it.contrato||{},['razao','cnpj','endereco','bairro','cidade_uf','cep','rep_nome','rep_rg','rep_cpf','email'].reduce((o,k)=>{o[k]=(($('#m_k_'+k)||{}).value||'').trim();return o;},{}))};
       if(!v.nome){toast('Informe o nome.');return false;}
       const probDoc=ctConfereDocs(v.contrato.cnpj,v.contrato.rep_cpf,v.contrato.cep);
       if(probDoc){ toast(probDoc); return false; }
@@ -3376,37 +3402,40 @@ window.rcStatusCli=async (cliId,novo)=>{
 };
 
 /* ======================= CONTRATOS (minutas) ======================= */
-/* As minutas ficam em contrato_modelos (docx em base64). O preenchimento acontece
-   no navegador: o .docx e um zip, entao troca-se {{campo}} dentro de word/document.xml
-   e rezipa. Nada de servidor pra gerar arquivo. */
-const CT_MODELOS={marketing:'Marketing / Tráfego Pago',ia_crm:'Agente de IA e CRM',full:'Marketing + Agente de IA e CRM'};
-const CT_ICONE={marketing:'📣',ia_crm:'🤖',full:'🔀'};
-/* Unica empresa contratada do grupo — todo contrato sai por ela. */
-const CT_CONTRATADA={razao:'SÍNTESE SOLUÇÕES TECNOLÓGICAS LTDA',cnpj:'53.862.558/0001-42',
-  sede:'Avenida Sumaré, 179, Perdizes, São Paulo - SP, CEP 05016-090',
-  foro:'São Paulo - SP',cidade:'São Paulo'};
+/* O modelo .docx vive em contrato_modelos, em base64. Preencher acontece no
+   navegador: docx e zip, entao troca-se {{campo}} dentro de word/document.xml
+   e rezipa. O vocabulario de campos e o do MODELO_CONTRATO_SINTESE. */
+const CT_MODELOS={full:'Marketing + IA (Tráfego Pago)',marketing:'Marketing / Tráfego Pago',ia_crm:'Agente de IA e CRM'};
+const CT_ICONE={full:'🔀',marketing:'📣',ia_crm:'🤖'};
+/* Unica contratada do grupo — entra sozinha em todo contrato. */
+const CT_CONTRATADA={razao:'SINTESE SOLUÇÕES TECNOLÓGICAS LTDA',cnpj:'53.862.558/0001-42',
+  sede:'Avenida Sumaré, 179, Perdizes, São Paulo – SP, CEP 05016-090',
+  foro_comarca:'São Paulo',foro_uf:'SP',cidade:'São Paulo'};
 const CT_SIGNATARIOS={
-  jose:{nome:'José Carlos Divino',rg:'MG 14827248',cpf:'066.535.896-25'},
-  bernardo:{nome:'Bernardo Rocha Antunes',rg:'25.852.419-8',cpf:'202.851.937-16'}};
-const CT_COMUNS=[
-  ['contratante_razao','Razão social',''],['contratante_cnpj','CNPJ',''],
-  ['contratante_endereco','Rua/Av. e número',''],['contratante_bairro','Bairro',''],
-  ['contratante_cidade_uf','Cidade - UF',''],['contratante_cep','CEP',''],
-  ['rep_nome','Representante legal',''],['rep_rg','RG do representante',''],
-  ['rep_cpf','CPF do representante',''],['contratante_tel','Telefone',''],
+  bernardo:{nome:'Bernardo Rocha Antunes',rg:'25.852.419-8',cpf:'202.851.937-16'},
+  jose:{nome:'José Carlos Divino',rg:'MG 14827248',cpf:'066.535.896-25'}};
+/* Dados do cliente — sao exatamente os que o formulario publico pergunta. */
+const CT_CLIENTE=[
+  ['contratante_razao','Razão social',''],
+  ['contratante_cnpj','CNPJ',''],
+  ['contratante_endereco','Endereço completo (rua, nº, bairro, cidade/UF, CEP)',''],
+  ['rep_cargo','Cargo do representante','sócio-administrador'],
+  ['rep_nome','Nome completo do representante',''],
+  ['rep_rg','RG do representante',''],
+  ['rep_cpf','CPF do representante',''],
+  ['rep_nascimento','Data de nascimento do representante',''],
+  ['contratante_tel','Telefone',''],
   ['contratante_email','E-mail','']];
-const CT_NEGOCIO={
-  marketing:[['vigencia','Vigência','12 (doze) meses'],['valor_mensal','Mensalidade (R$)',''],
-      ['dia_venc','Dia do vencimento',''],['data_primeira_parcela','Vencimento da 1ª parcela','']],
-  ia_crm:[['vigencia','Vigência','6 (seis) meses'],['valor_total','Valor total (R$)',''],
-      ['parcelas','Nº de parcelas','6'],['dia_venc','Dia do vencimento',''],
-      ['data_primeira_parcela','Vencimento da 1ª parcela',''],
-      ['prazo_entrega','Prazo de entrega','07 (sete) dias úteis']],
-  full:[['vigencia','Vigência','12 (doze) meses'],['valor_mensal','Mensalidade única (R$)',''],
-      ['dia_venc','Dia do vencimento',''],['data_primeira_parcela','Vencimento da 1ª parcela',''],
-      ['prazo_entrega','Prazo de entrega da IA','07 (sete) dias úteis']]};
+/* Condicoes comerciais — so voce preenche, o cliente nunca ve. */
+const CT_NEGOCIO=[
+  ['vigencia','Vigência','12 (doze) meses'],
+  ['valor_mensal','Valor mensal (R$)',''],
+  ['data_inicio','Início da vigência',''],
+  ['data_vencimento','Vencimento das parcelas',''],
+  ['forma_pagamento','Forma de pagamento','Boleto Bancário ou PIX'],
+  ['verba_minima','Verba mínima semanal de mídia (R$)','350,00']];
 
-/* ---- numero por extenso (pt-BR), usado nas clausulas de remuneracao ---- */
+/* ---- numero por extenso (pt-BR) ---- */
 const CT_U=['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
 const CT_D=['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
 const CT_C=['','cento','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
@@ -3428,7 +3457,6 @@ function ctExtenso(v){
     if(mi) g.push([mi,ctTrio(mi)+(mi===1?' milhão':' milhões')]);
     if(mil) g.push([mil,mil===1?'mil':ctTrio(mil)+' mil']);
     if(un) g.push([un,ctTrio(un)]);
-    /* liga com "e" quando o grupo seguinte e menor que cem ou centena redonda; senao virgula */
     let s=g[0][1];
     for(let k=1;k<g.length;k++){ const n=g[k][0]; s+=((n<100||n%100===0)?' e ':', ')+g[k][1]; }
     const redondo=(mi>0&&mil===0&&un===0)||(mi===0&&mil>0&&un===0&&mil%100===0&&mil>=100);
@@ -3441,29 +3469,88 @@ const ctNum=(s)=>Number(String(s==null?'':s).replace(/\./g,'').replace(',','.').
 const ctMoeda=(n)=>Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const CT_MES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 function ctDataExtenso(iso){ const d=(iso||hojeISO()).split('-').map(Number); return d[2]+' de '+CT_MES[d[1]-1]+' de '+d[0]; }
+const ctBR=(iso)=>/^\d{4}-\d{2}-\d{2}$/.test(iso||'')?iso.split('-').reverse().join('/'):(iso||'');
+const ctMeses=(v)=>parseInt(String(v||'').trim(),10)||0;
+/* soma N meses a uma data, sem estourar pra o mes seguinte */
+function ctMaisMeses(iso,n){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||'')) return '';
+  const [y,m,d]=iso.split('-').map(Number);
+  const alvo=new Date(y,m-1+n,1); const ult=new Date(alvo.getFullYear(),alvo.getMonth()+1,0).getDate();
+  const dia=Math.min(d,ult);
+  return alvo.getFullYear()+'-'+String(alvo.getMonth()+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+}
+/* mensal x meses = total, e a frase do parcelamento pronta pro contrato */
+function ctCalcula(mensalTxt,vigenciaTxt){
+  const mensal=ctNum(mensalTxt), meses=ctMeses(vigenciaTxt);
+  const total=mensal*meses;
+  const parc=meses?(meses+' ('+(CT_U[meses]||meses)+') parcela'+(meses>1?'s mensais':' mensal')+' de R$ '+ctMoeda(mensal)+' ('+ctExtenso(mensal)+')'):'';
+  return {mensal,meses,total,parcelamento:parc};
+}
 
-/* ---- monta o dicionario final, ja com os campos calculados ---- */
-function ctResolver(modelo,dados){
+/* ---- mascaras e conferencia de documento ---- */
+const ctSoDig=(s)=>String(s==null?'':s).replace(/\D/g,'');
+window.ctMascCNPJ=(v)=>{ const d=ctSoDig(v).slice(0,14); let s='';
+  for(let i=0;i<d.length;i++){ if(i===2||i===5) s+='.'; else if(i===8) s+='/'; else if(i===12) s+='-'; s+=d[i]; } return s; };
+window.ctMascCPF=(v)=>{ const d=ctSoDig(v).slice(0,11); let s='';
+  for(let i=0;i<d.length;i++){ if(i===3||i===6) s+='.'; else if(i===9) s+='-'; s+=d[i]; } return s; };
+window.ctMascCEP=(v)=>{ const d=ctSoDig(v).slice(0,8); return d.length>5?d.slice(0,5)+'-'+d.slice(5):d; };
+window.ctMascTel=(v)=>{ const d=ctSoDig(v).slice(0,11);
+  if(!d) return ''; if(d.length<=2) return '('+d;
+  if(d.length<=6) return '('+d.slice(0,2)+') '+d.slice(2);
+  if(d.length<=10) return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
+  return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7); };
+function ctCNPJValido(v){
+  const d=ctSoDig(v); if(d.length!==14||/^(\d)\1{13}$/.test(d)) return false;
+  const dv=(len)=>{ let s=0,p=len-7;
+    for(let i=len;i>=1;i--){ s+=Number(d[len-i])*p--; if(p<2) p=9; }
+    const r=s%11; return r<2?0:11-r; };
+  return dv(12)===Number(d[12])&&dv(13)===Number(d[13]);
+}
+function ctCPFValido(v){
+  const d=ctSoDig(v); if(d.length!==11||/^(\d)\1{10}$/.test(d)) return false;
+  const dv=(n)=>{ let s=0; for(let i=0;i<n;i++) s+=Number(d[i])*(n+1-i);
+    const r=(s*10)%11; return r===10?0:r; };
+  return dv(9)===Number(d[9])&&dv(10)===Number(d[10]);
+}
+const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_tel:'ctMascTel'};
+const CT_DATA={rep_nascimento:1,data_inicio:1};
+const CT_VIGENCIAS=(()=>{ const e=['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze'];
+  return e.map((x,i)=>(i+1)+' ('+x+') '+(i?'meses':'mês')); })();
+const CT_PAGAMENTOS=['Boleto Bancário ou PIX','Boleto Bancário','PIX','Cartão de Crédito','Boleto Bancário ou Cartão de Crédito'];
+const CT_OPCOES={vigencia:CT_VIGENCIAS,forma_pagamento:CT_PAGAMENTOS};
+function ctConfereDocs(cnpj,cpf){
+  if(cnpj&&ctSoDig(cnpj).length!==14) return 'O CNPJ precisa ter 14 dígitos — você digitou '+ctSoDig(cnpj).length+'.';
+  if(cpf&&ctSoDig(cpf).length!==11) return 'O CPF precisa ter 11 dígitos — você digitou '+ctSoDig(cpf).length+'.';
+  return '';
+}
+function ctConfereDV(cnpj,cpf){
+  if(cnpj&&!ctCNPJValido(cnpj)&&!confirm('O CNPJ '+cnpj+' não fecha na conta do dígito verificador — quase sempre é erro de digitação.\n\nConferiu e quer seguir assim mesmo?')) return false;
+  if(cpf&&!ctCPFValido(cpf)&&!confirm('O CPF '+cpf+' não fecha na conta do dígito verificador.\n\nConferiu e quer seguir assim mesmo?')) return false;
+  return true;
+}
+
+/* ---- monta o dicionario final: o que voce digitou + tudo que da pra calcular ---- */
+function ctResolver(dados){
   const d=Object.assign({},dados);
-  const emp=CT_CONTRATADA, sig=CT_SIGNATARIOS[d._signatario]||CT_SIGNATARIOS.jose;
-  d.contratada_razao=emp.razao; d.contratada_cnpj=emp.cnpj; d.contratada_sede=emp.sede;
-  d.foro=emp.foro; d.cidade_assinatura=emp.cidade;
+  const sig=CT_SIGNATARIOS[d._signatario]||CT_SIGNATARIOS.bernardo, e=CT_CONTRATADA;
+  d.contratada_razao=e.razao; d.contratada_cnpj=e.cnpj; d.contratada_sede=e.sede;
+  d.foro_comarca=e.foro_comarca; d.foro_uf=e.foro_uf; d.cidade_assinatura=e.cidade;
   d.contratada_rep_nome=sig.nome; d.contratada_rep_rg=sig.rg; d.contratada_rep_cpf=sig.cpf;
   d.data_contrato_extenso=ctDataExtenso(d.data_contrato||'');
-  if(d.data_primeira_parcela&&/^\d{4}-\d{2}-\d{2}$/.test(d.data_primeira_parcela))
-    d.data_primeira_parcela=d.data_primeira_parcela.split('-').reverse().join('/');
-  if(modelo==='ia_crm'){
-    const tot=ctNum(d.valor_total), par=Math.max(1,parseInt(d.parcelas,10)||1);
-    d.valor_total=ctMoeda(tot); d.valor_total_extenso=ctExtenso(tot);
-    d.valor_parcela=ctMoeda(tot/par); d.parcelas=String(par);
-  }else{
-    const m=ctNum(d.valor_mensal);
-    d.valor_mensal=ctMoeda(m); d.valor_mensal_extenso=ctExtenso(m); d.valor_garantia=ctMoeda(m*3);
-  }
+  const c=ctCalcula(d.valor_mensal,d.vigencia);
+  d.valor_mensal=ctMoeda(c.mensal); d.valor_mensal_extenso=ctExtenso(c.mensal);
+  d.valor_total='R$ '+ctMoeda(c.total); d.valor_total_extenso=ctExtenso(c.total);
+  d.parcelas=String(c.meses); d.valor_parcela=ctMoeda(c.mensal);
+  d.forma_parcelamento=c.parcelamento;
+  const vm=ctNum(d.verba_minima);
+  d.verba_minima='R$ '+ctMoeda(vm); d.verba_minima_extenso=ctExtenso(vm);
+  if(!d.data_termino) d.data_termino=ctBR(ctMaisMeses(d.data_inicio,c.meses));
+  ['rep_nascimento','data_inicio','data_vencimento','data_primeira_parcela'].forEach(k=>{ if(d[k]) d[k]=ctBR(d[k]); });
+  if(!d.data_vencimento) d.data_vencimento=d.data_inicio||'';
   return d;
 }
 
-/* ---- carrega o JSZip sob demanda (so quando vai gerar um contrato) ---- */
+/* ---- gera o .docx no navegador ---- */
 let CT_ZIPOK=null;
 function ctJSZip(){
   if(CT_ZIPOK) return CT_ZIPOK;
@@ -3478,170 +3565,182 @@ function ctJSZip(){
 }
 const ctB64Bytes=(b64)=>{ const bin=atob(b64), a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a; };
 const ctEsc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const CT_ALVOS=['word/document.xml','word/header1.xml','word/header2.xml','word/header3.xml','word/footer1.xml','word/footer2.xml'];
 
-/* ---- mascaras e conferencia de documento ---- */
-const ctSoDig=(s)=>String(s==null?'':s).replace(/\D/g,'');
-window.ctMascCNPJ=(v)=>{ const d=ctSoDig(v).slice(0,14); let s='';
-  for(let i=0;i<d.length;i++){ if(i===2||i===5) s+='.'; else if(i===8) s+='/'; else if(i===12) s+='-'; s+=d[i]; }
-  return s; };
-window.ctMascCPF=(v)=>{ const d=ctSoDig(v).slice(0,11); let s='';
-  for(let i=0;i<d.length;i++){ if(i===3||i===6) s+='.'; else if(i===9) s+='-'; s+=d[i]; }
-  return s; };
-window.ctMascCEP=(v)=>{ const d=ctSoDig(v).slice(0,8); return d.length>5?d.slice(0,5)+'-'+d.slice(5):d; };
-window.ctMascTel=(v)=>{ const d=ctSoDig(v).slice(0,11);
-  if(!d) return '';
-  if(d.length<=2) return '('+d;
-  if(d.length<=6) return '('+d.slice(0,2)+') '+d.slice(2);
-  if(d.length<=10) return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
-  return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7); };
-/* digito verificador — pega o erro de digitacao que a mascara sozinha nao pega */
-function ctCNPJValido(v){
-  const d=ctSoDig(v); if(d.length!==14||/^(\d)\1{13}$/.test(d)) return false;
-  const dv=(len)=>{ let s=0,p=len-7;
-    for(let i=len;i>=1;i--){ s+=Number(d[len-i])*p--; if(p<2) p=9; }
-    const r=s%11; return r<2?0:11-r; };
-  return dv(12)===Number(d[12])&&dv(13)===Number(d[13]);
-}
-function ctCPFValido(v){
-  const d=ctSoDig(v); if(d.length!==11||/^(\d)\1{10}$/.test(d)) return false;
-  const dv=(n)=>{ let s=0; for(let i=0;i<n;i++) s+=Number(d[i])*(n+1-i);
-    const r=(s*10)%11; return r===10?0:r; };
-  return dv(9)===Number(d[9])&&dv(10)===Number(d[10]);
-}
-const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_cep:'ctMascCEP',contratante_tel:'ctMascTel'};
-/* Vigencia e escolha, nao texto livre: 1 a 12 meses, ja no formato do contrato. */
-const CT_VIGENCIAS=(()=>{ const ext=['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze'];
-  return ext.map((e,i)=>(i+1)+' ('+e+') '+(i?'meses':'mês')); })();
-const CT_OPCOES={vigencia:CT_VIGENCIAS};
-function ctConfereDocs(cnpj,cpf,cep){
-  if(cnpj&&ctSoDig(cnpj).length!==14) return 'O CNPJ precisa ter 14 dígitos — você digitou '+ctSoDig(cnpj).length+'.';
-  if(cpf&&ctSoDig(cpf).length!==11) return 'O CPF precisa ter 11 dígitos — você digitou '+ctSoDig(cpf).length+'.';
-  if(cep&&ctSoDig(cep).length!==8) return 'O CEP precisa ter 8 dígitos — você digitou '+ctSoDig(cep).length+'.';
-  return '';
-}
-function ctConfereDV(cnpj,cpf){
-  if(cnpj&&!ctCNPJValido(cnpj)&&!confirm('O CNPJ '+cnpj+' não fecha na conta do dígito verificador — quase sempre isso é erro de digitação.\n\nConferiu e quer seguir assim mesmo?')) return false;
-  if(cpf&&!ctCPFValido(cpf)&&!confirm('O CPF '+cpf+' não fecha na conta do dígito verificador.\n\nConferiu e quer seguir assim mesmo?')) return false;
-  return true;
-}
-
-async function ctModeloB64(slug){
+async function ctModeloZip(slug){
   const {data,error}=await sb.from('contrato_modelos').select('conteudo_b64,arquivo').eq('slug',slug).single();
   if(error) throw new Error(error.message);
-  if(!data||!data.conteudo_b64) throw new Error('O modelo "'+CT_MODELOS[slug]+'" ainda não foi enviado. Use ⚙️ Modelos nesta tela.');
-  return data;
-}
-async function ctGerar(modelo,dados,nomeArquivo){
+  if(!data||!data.conteudo_b64) throw new Error('O modelo "'+CT_MODELOS[slug]+'" ainda não foi enviado. Use ⚙️ Modelos.');
   const JSZipC=await ctJSZip();
-  const mod=await ctModeloB64(modelo);
-  const zip=await JSZipC.loadAsync(ctB64Bytes(mod.conteudo_b64));
-  const d=ctResolver(modelo,dados);
-  const faltando=[];
-  for(const alvo of ['word/document.xml','word/header1.xml','word/header2.xml','word/header3.xml']){
+  return {zip:await JSZipC.loadAsync(ctB64Bytes(data.conteudo_b64)),arquivo:data.arquivo};
+}
+/* le quais {{campos}} o modelo pede — usado na validacao do upload */
+async function ctCamposDoZip(zip){
+  const achados=new Set();
+  for(const alvo of CT_ALVOS){ const f=zip.file(alvo); if(!f) continue;
+    (await f.async('string')).replace(/\{\{(\w+)\}\}/g,(_,k)=>{ achados.add(k); return _; }); }
+  return [...achados];
+}
+async function ctGerar(slug,dados,nomeArquivo){
+  const {zip}=await ctModeloZip(slug);
+  const d=ctResolver(dados);
+  const faltando=new Set();
+  for(const alvo of CT_ALVOS){
     const f=zip.file(alvo); if(!f) continue;
     let xml=await f.async('string');
-    xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k]; if(v===undefined||v==='') { faltando.push(k); return todo; } return ctEsc(v); });
+    xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k];
+      if(v===undefined||v===''){ faltando.add(k); return todo; } return ctEsc(v); });
     zip.file(alvo,xml);
   }
   const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=(nomeArquivo||('Contrato-'+modelo))+'.docx'; a.click();
+  a.download=(nomeArquivo||('Contrato-'+slug))+'.docx'; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-  return [...new Set(faltando)];
+  return [...faltando];
 }
 
-/* ---- estado da tela ---- */
-let ctModelo='marketing'; let ctCliSel=''; let ctRasc={};
-let ctSignatario='jose';
+/* ---- tela ---- */
+let ctModelo='full'; let ctCliSel=''; let ctSignatario='bernardo'; let ctRasc={}; let ctLeads=[];
+const CT_LINK=SUPA_URL+'/functions/v1/formulario/sintese';
 
-/* Puxa o que ja esta salvo na ficha do cliente pra nao redigitar nada. */
 function ctDoCliente(cliId){
   const c=DB.clientes.find(x=>x.id===cliId); if(!c) return {};
   const k=c.contrato||{};
+  /* a ficha guarda rua, bairro, cidade e CEP separados; o contrato quer uma linha so */
+  const partes=[k.endereco,k.bairro,k.cidade_uf,k.cep?('CEP '+k.cep):''].filter(Boolean).join(', ');
+  const endereco=partes||k.endereco_completo||'';
   return {contratante_razao:k.razao||c.nome||'',contratante_cnpj:k.cnpj||'',
-    contratante_endereco:k.endereco||'',contratante_bairro:k.bairro||'',
-    contratante_cidade_uf:k.cidade_uf||'',contratante_cep:k.cep||'',
-    rep_nome:k.rep_nome||c.resp||'',rep_rg:k.rep_rg||'',rep_cpf:k.rep_cpf||'',
+    contratante_endereco:endereco,rep_cargo:k.rep_cargo||'',rep_nome:k.rep_nome||c.resp||'',
+    rep_rg:k.rep_rg||'',rep_cpf:k.rep_cpf||'',rep_nascimento:k.rep_nascimento||'',
     contratante_tel:k.tel||c.tel||'',contratante_email:k.email||'',
-    dia_venc:c.diaVenc?String(c.diaVenc):'',valor_mensal:c.valor?ctMoeda(c.valor):''};
+    valor_mensal:c.valor?ctMoeda(c.valor):''};
+}
+async function ctCarregarLeads(){
+  const {data}=await sb.from('contrato_leads').select('*').eq('status','novo').order('criado_em',{ascending:false});
+  ctLeads=data||[];
 }
 function renderContratos(c){
   if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
   const cls=[...DB.clientes].sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
-  c.innerHTML=`
+  const pinta=()=>{
+    c.innerHTML=`
    <div class="page-head">
-     <div><h2>Contratos</h2><div class="desc">Gera a minuta preenchida em .docx a partir do cadastro do cliente.</div></div>
-     <div class="toolbar"><button class="btn secondary small" onclick="ctModelosModal()">⚙️ Modelos</button></div>
+     <div><h2>Contratos</h2><div class="desc">Preenche e baixa o .docx pronto. O valor total sai do mensal × prazo, sem redigitar.</div></div>
+     <div class="toolbar">
+       <button class="btn secondary small" onclick="ctCopiarLink()">🔗 Link do formulário</button>
+       <button class="btn secondary small" onclick="ctModelosModal()">⚙️ Modelos</button>
+     </div>
    </div>
+   ${ctLeads.length?`
+   <div class="card" style="margin-bottom:18px;border-left:3px solid var(--brand)">
+     <div class="k" style="margin-bottom:10px">📥 ${ctLeads.length} formulário(s) que o cliente preencheu</div>
+     ${ctLeads.map(l=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--panel2)">
+        <div style="flex:1"><strong>${esc(l.dados.contratante_razao||'sem razão social')}</strong>
+          <div style="color:var(--muted);font-size:12px">${esc(l.dados.contratante_cnpj||'')} · ${esc(l.dados.rep_nome||'')} · ${fmtDate(String(l.criado_em||'').slice(0,10))}</div></div>
+        <button class="btn small" onclick="ctUsarLead('${l.id}')">Usar</button>
+        <button class="iconbtn del" onclick="ctArquivarLead('${l.id}')">Arquivar</button>
+      </div>`).join('')}
+   </div>`:''}
    <div class="card" style="margin-bottom:18px">
      <div class="k" style="margin-bottom:10px">1. Qual contrato?</div>
      <div class="fin-tabs" style="margin-bottom:18px">
        ${Object.entries(CT_MODELOS).map(([k,v])=>`<button class="ftab ${ctModelo===k?'active':''}" onclick="ctSetModelo('${k}')">${CT_ICONE[k]} ${esc(v)}</button>`).join('')}
      </div>
-     <div class="k" style="margin-bottom:8px">2. Para qual cliente?</div>
-     <select id="ctCli" style="width:100%;max-width:460px;margin-bottom:18px">
-       <option value="">— cliente novo, ainda não cadastrado —</option>
-       ${cls.map(x=>`<option value="${x.id}"${ctCliSel===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}
-     </select>
-     <div class="k" style="margin-bottom:8px">3. Quem assina pela contratada?</div>
-     <div class="field" style="max-width:460px;margin-bottom:18px">
-       <select id="ctSig">
+     <div class="row2" style="margin-bottom:18px">
+       <div class="field"><label>2. Para qual cliente?</label><select id="ctCli">
+         <option value="">— cliente novo, ainda não cadastrado —</option>
+         ${cls.map(x=>`<option value="${x.id}"${ctCliSel===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}
+       </select></div>
+       <div class="field"><label>3. Quem assina pela Síntese?</label><select id="ctSig">
          ${Object.entries(CT_SIGNATARIOS).map(([k,s])=>`<option value="${k}"${ctSignatario===k?' selected':''}>${esc(s.nome)}</option>`).join('')}
-       </select>
-       <div style="color:var(--muted);font-size:12px;margin-top:6px">${esc(CT_CONTRATADA.razao)} · CNPJ ${esc(CT_CONTRATADA.cnpj)} · foro ${esc(CT_CONTRATADA.foro)}</div>
+       </select></div>
      </div>
      <div><button class="btn" onclick="ctForm()">✍️ Preencher e gerar contrato</button></div>
-     <div id="ctStatus" class="hint" style="margin-top:12px"></div>
+     <div style="color:var(--muted);font-size:12px;margin-top:12px">${esc(CT_CONTRATADA.razao)} · CNPJ ${esc(CT_CONTRATADA.cnpj)} · foro ${esc(CT_CONTRATADA.foro_comarca)} – ${esc(CT_CONTRATADA.foro_uf)}</div>
    </div>
-   <p class="hint">Os dados fixos do cliente (CNPJ, endereço, representante) ficam salvos na ficha dele — na segunda vez o formulário já vem pronto. Valor por extenso, valor da parcela e data do contrato são calculados sozinhos.</p>`;
-  $('#ctCli').onchange=e=>{ ctCliSel=e.target.value; };
-  $('#ctSig').onchange=e=>{ ctSignatario=e.target.value; };
+   <p class="hint">O link do formulário é sempre o mesmo: mande pro cliente, ele preenche os dados dele e cai aqui em cima pra você completar valor e prazo.</p>`;
+    $('#ctCli').onchange=e=>{ ctCliSel=e.target.value; };
+    $('#ctSig').onchange=e=>{ ctSignatario=e.target.value; };
+  };
+  pinta();
+  ctCarregarLeads().then(pinta).catch(()=>{});
 }
 window.ctSetModelo=(m)=>{ ctModelo=m; render('contratos'); };
+window.ctCopiarLink=()=>{
+  const t=document.createElement('textarea'); t.value=CT_LINK; document.body.appendChild(t); t.select();
+  try{ document.execCommand('copy'); toast('Link copiado — é o mesmo pra todos os clientes.'); }
+  catch(e){ prompt('Copie o link do formulário:',CT_LINK); }
+  t.remove();
+};
+window.ctUsarLead=async (id)=>{
+  const l=ctLeads.find(x=>x.id===id); if(!l) return;
+  ctRasc=Object.assign({},l.dados); ctRasc._lead=id;
+  toast('Dados carregados. Agora preencha valor e prazo.');
+  ctForm();
+};
+window.ctArquivarLead=async (id)=>{
+  if(!confirm('Arquivar este formulário? Ele sai da lista.')) return;
+  await sb.from('contrato_leads').update({status:'arquivado'}).eq('id',id);
+  render('contratos');
+};
 
 window.ctForm=()=>{
   const base=Object.assign(ctDoCliente(ctCliSel),ctRasc);
-  const campo=([k,rot,pad])=>{ const m=CT_MASC[k]; const v0=base[k]||pad||''; const ops=CT_OPCOES[k];
-    if(ops) return `<div class="field"><label>${esc(rot)}</label><select id="ct_${k}">${ops.map(o=>`<option value="${esc(o)}"${o===v0?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+  const campo=([k,rot,pad])=>{
+    const v0=base[k]||pad||'', ops=CT_OPCOES[k], m=CT_MASC[k];
+    if(ops) return `<div class="field"><label>${esc(rot)}</label><select id="ct_${k}" ${k==='vigencia'?'onchange="ctPrevia()"':''}>${ops.map(o=>`<option value="${esc(o)}"${o===v0?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
     const v=m?window[m](v0):v0;
-    return `<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(v)}"${m?` oninput="this.value=${m}(this.value)"`:''} ${k==='data_primeira_parcela'?'type="date"':''}></div>`; };
-  const negocio=CT_NEGOCIO[ctModelo];
+    const extra=(k==='valor_mensal')?' oninput="ctPrevia()"':(m?` oninput="this.value=${m}(this.value);"`:'');
+    return `<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(v)}"${extra}${CT_DATA[k]?' type="date"':''}></div>`; };
   modal('Contrato — '+CT_MODELOS[ctModelo],`
-    <div class="k" style="margin:4px 0 10px">Dados do contratante</div>
-    <div class="row2">${CT_COMUNS.map(campo).join('')}</div>
-    <div class="k" style="margin:18px 0 10px">Condições do negócio</div>
-    <div class="row2">${negocio.map(campo).join('')}</div>
-    <p class="hint">Ao salvar, o .docx é gerado e baixado. Os dados do contratante voltam pra ficha do cliente.</p>`,
+    <div class="k" style="margin:4px 0 10px">Dados do cliente</div>
+    <div class="row2">${CT_CLIENTE.map(campo).join('')}</div>
+    <div class="k" style="margin:18px 0 10px">Condições comerciais</div>
+    <div class="row2">${CT_NEGOCIO.map(campo).join('')}</div>
+    <div id="ctPrev" class="card" style="margin-top:14px"></div>`,
   async ()=>{
-    const d={}; [...CT_COMUNS,...negocio].forEach(([k])=>{ d[k]=(($('#ct_'+k)||{}).value||'').trim(); });
-    const problema=ctConfereDocs(d.contratante_cnpj,d.rep_cpf,d.contratante_cep);
-    if(problema){ toast(problema); return false; }
+    const todos=[...CT_CLIENTE,...CT_NEGOCIO];
+    const d={}; todos.forEach(([k])=>{ d[k]=(($('#ct_'+k)||{}).value||'').trim(); });
+    const prob=ctConfereDocs(d.contratante_cnpj,d.rep_cpf);
+    if(prob){ toast(prob); return false; }
     if(!ctConfereDV(d.contratante_cnpj,d.rep_cpf)) return false;
-    const vazios=[...CT_COMUNS,...negocio].filter(([k])=>!d[k]).map(([,rot])=>rot);
+    const vazios=todos.filter(([k])=>!d[k]).map(([,rot])=>rot);
     if(vazios.length&&!confirm('Estes campos ficaram em branco:\n\n• '+vazios.join('\n• ')+'\n\nGerar mesmo assim? Os marcadores vão aparecer no documento.')) return false;
+    d._signatario=ctSignatario;
     ctRasc=d;
     if(ctCliSel) await ctSalvarNaFicha(ctCliSel,d);
-    d._signatario=ctSignatario;
     try{
       const nome=(d.contratante_razao||'Contrato').replace(/[^\w\sÀ-ÿ-]/g,'').trim().slice(0,60);
-      const rot={marketing:'Marketing',ia_crm:'IA-CRM',full:'Marketing-IA-CRM'}[ctModelo]||ctModelo;
-      await ctGerar(ctModelo,d,'Contrato-'+rot+'-'+nome);
-      ctRasc={}; toast('Contrato gerado. Confira o download.');
+      const faltou=await ctGerar(ctModelo,d,'Contrato-'+ctModelo+'-'+nome);
+      if(ctRasc._lead){ await sb.from('contrato_leads').update({status:'usado'}).eq('id',ctRasc._lead); }
+      ctRasc={};
+      toast(faltou.length?('Gerado, mas ficaram sem preencher: '+faltou.join(', ')):'Contrato gerado. Confira o download.');
     }catch(e){ toast(e.message); return false; }
     return true;
   });
+  ctPrevia();
 };
-/* O que foi digitado volta pra ficha do cliente: da proxima vez ja vem pronto. */
+/* o total aparece enquanto voce digita — nada de calcular na mao */
+window.ctPrevia=()=>{
+  const el=$('#ctPrev'); if(!el) return;
+  const mensal=(($('#ct_valor_mensal')||{}).value)||'', vig=(($('#ct_vigencia')||{}).value)||'';
+  const c=ctCalcula(mensal,vig);
+  el.innerHTML=c.total>0
+    ? `<div class="k" style="margin-bottom:6px">Cálculo automático</div>
+       <div style="font-size:15px"><strong>R$ ${ctMoeda(c.mensal)}</strong> × ${c.meses} ${c.meses>1?'meses':'mês'} = <strong style="color:var(--ok)">R$ ${ctMoeda(c.total)}</strong></div>
+       <div style="color:var(--muted);font-size:12px;margin-top:5px">${esc(ctExtenso(c.total))}</div>
+       <div style="color:var(--muted);font-size:12px;margin-top:3px">Vai no contrato como: ${esc(c.parcelamento)}</div>`
+    : '<div class="hint" style="margin:0">Preencha o valor mensal para eu calcular o total.</div>';
+};
 async function ctSalvarNaFicha(cliId,d){
   const c=DB.clientes.find(x=>x.id===cliId); if(!c) return;
   c.contrato=Object.assign({},c.contrato,{razao:d.contratante_razao,cnpj:d.contratante_cnpj,
-    endereco:d.contratante_endereco,bairro:d.contratante_bairro,cidade_uf:d.contratante_cidade_uf,
-    cep:d.contratante_cep,rep_nome:d.rep_nome,rep_rg:d.rep_rg,rep_cpf:d.rep_cpf,
-    tel:d.contratante_tel,email:d.contratante_email});
+    endereco_completo:d.contratante_endereco,rep_cargo:d.rep_cargo,rep_nome:d.rep_nome,rep_rg:d.rep_rg,
+    rep_cpf:d.rep_cpf,rep_nascimento:d.rep_nascimento,tel:d.contratante_tel,email:d.contratante_email});
   try{ await saveDB(); }catch(e){}
 }
 
-/* ---- modelos: o master sobe os .docx com os marcadores {{campo}} ---- */
+/* ---- modelos: sobe o .docx e confere na hora se ele tem marcadores ---- */
 function ctBlobB64(blob){
   return new Promise((ok,err)=>{ const r=new FileReader();
     r.onload=()=>ok(String(r.result).split(',')[1]); r.onerror=()=>err(new Error('não consegui ler o arquivo'));
@@ -3651,11 +3750,11 @@ window.ctModelosModal=async ()=>{
   const {data}=await sb.from('contrato_modelos').select('slug,nome,arquivo,bytes,atualizado');
   const por={}; (data||[]).forEach(x=>{ por[x.slug]=x; });
   modal('Modelos de contrato',`
-    <p class="hint" style="margin-top:0">Suba aqui os .docx com os marcadores <code>{{campo}}</code>. Trocar o modelo não mexe em nada que já foi gerado.</p>
+    <p class="hint" style="margin-top:0">O .docx precisa ter os marcadores <code>{{campo}}</code> nos lugares a preencher. Se o arquivo não tiver nenhum, eu recuso — foi isso que deixou o sistema sem preencher nada.</p>
     ${Object.entries(CT_MODELOS).map(([k,v])=>{ const m=por[k]||{};
       return `<div class="field">
-        <label>${k==='ia'?'🤖':'📣'} ${esc(v)}</label>
-        <div style="color:var(--muted);font-size:12px;margin-bottom:6px">${m.bytes?('carregado · '+Math.round(m.bytes/1024)+' KB · '+fmtDate(String(m.atualizado||'').slice(0,10))):'<span style="color:var(--danger)">nenhum arquivo enviado</span>'}</div>
+        <label>${CT_ICONE[k]} ${esc(v)}</label>
+        <div style="color:var(--muted);font-size:12px;margin-bottom:6px">${m.bytes?(esc(m.arquivo||'')+' · '+Math.round(m.bytes/1024)+' KB'):'<span style="color:var(--danger)">nenhum arquivo enviado</span>'}</div>
         <input type="file" id="ctf_${k}" accept=".docx">
       </div>`; }).join('')}`,
   async ()=>{
@@ -3663,12 +3762,16 @@ window.ctModelosModal=async ()=>{
     for(const k of Object.keys(CT_MODELOS)){
       const inp=$('#ctf_'+k); const f=inp&&inp.files&&inp.files[0]; if(!f) continue;
       if(!/\.docx$/i.test(f.name)){ toast('“'+f.name+'” não é .docx.'); return false; }
+      let campos=[];
+      try{ const JSZipC=await ctJSZip(); campos=await ctCamposDoZip(await JSZipC.loadAsync(f)); }
+      catch(e){ toast('Não consegui abrir “'+f.name+'” como .docx.'); return false; }
+      if(!campos.length){ alert('“'+f.name+'” não tem nenhum marcador {{campo}} dentro.\n\nÉ o contrato cru, não o modelo. Suba o arquivo que tem {{contratante_razao}}, {{valor_total}} e afins.'); return false; }
       const b64=await ctBlobB64(f);
       const {error}=await sb.from('contrato_modelos').update({conteudo_b64:b64,arquivo:f.name,bytes:f.size,atualizado:new Date().toISOString()}).eq('slug',k);
-      if(error){ toast('Erro ao salvar o modelo: '+error.message); return false; }
-      n++;
+      if(error){ toast('Erro ao salvar: '+error.message); return false; }
+      n++; toast('“'+CT_MODELOS[k]+'”: '+campos.length+' campos reconhecidos.');
     }
-    toast(n?(n+' modelo(s) atualizado(s).'):'Nenhum arquivo escolhido.');
+    if(!n) toast('Nenhum arquivo escolhido.');
     return true;
   });
 };
