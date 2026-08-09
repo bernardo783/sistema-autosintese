@@ -177,6 +177,21 @@
   #app.mini .sp-nav button span:not(.ic){display:none}
   #app.mini .ws-head{justify-content:center;padding:6px 0;margin-bottom:6px}
   #app.mini .sp-nav button{justify-content:center;padding:7px 0}
+  /* ---------- FOTOS: do espaco e da pessoa ---------- */
+  .sp-ic.ft{background:none!important;box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+  .sp-ic img{width:100%;height:100%;object-fit:cover;display:block}
+  .av{width:24px;height:24px;border-radius:50%;flex:none;display:inline-grid;place-items:center;overflow:hidden;
+    background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted);font-size:10px;font-weight:800;
+    vertical-align:middle;line-height:1}
+  .av img{width:100%;height:100%;object-fit:cover;display:block}
+  .av.sm{width:19px;height:19px;font-size:8.5px}
+  .avl{display:inline-flex;align-items:center;gap:7px;min-width:0}
+  .avl span.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fotobox{display:flex;align-items:center;gap:14px}
+  .fotoprev{width:66px;height:66px;border-radius:16px;overflow:hidden;flex:none;display:grid;place-items:center;
+    background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted);font-size:21px;font-weight:800}
+  .fotoprev.rd{border-radius:50%}
+  .fotoprev img{width:100%;height:100%;object-fit:cover;display:block}
   /* ---------- CHECKLIST DA TAREFA ---------- */
   .ck-l{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .ck-l input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2);flex:none}
@@ -684,7 +699,7 @@ async function enterApp(){
   try{ await loadDB(); }
   catch(e){ $('#loginErr').textContent='Erro ao carregar dados: '+(e.message||e); show($('#loginView')); return; }
   hide($('#login')); show($('#app'));
-  $('#whoami').textContent='👤 '+currentUser.nome+(currentUser.role==='master'?' · master':'')+(user.email?(' · '+user.email):'');
+  pintarWhoami();
   if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); } else { hide($('#navUsuarios')); hide($('#navFin')); }
   try{ await tkCarregar(); }catch(e){}
   spDesenhar();
@@ -933,6 +948,42 @@ const SQUADS=()=>Array.from(new Set((DB.projetos||[]).map(p=>String(p.squad||'')
 /* Gerente e um flag proprio (perfis.gerente), separado do role: manda na estrutura das listas
    travadas (status e colunas) sem virar master. Gestor de trafego nao entra aqui. */
 const souGerente=()=>!!(currentUser&&(currentUser.role==='master'||currentUser.gerente));
+/* ---------- FOTOS ----------
+   Guardadas como data URL (mesmo caminho da logo das contas Meta). Antes de subir, a imagem e
+   recortada no quadrado e reduzida — senao uma foto de celular vira 3 MB dentro do banco. */
+function fotoDoArquivo(file,lado,cb){
+  if(!file) return;
+  if(!/^image\//.test(file.type||'')){ toast('Escolha um arquivo de imagem.'); return; }
+  const rd=new FileReader();
+  rd.onerror=()=>toast('Não consegui ler o arquivo.');
+  rd.onload=()=>{
+    const img=new Image();
+    img.onerror=()=>toast('Essa imagem não abriu — tente PNG ou JPG.');
+    img.onload=()=>{
+      const l=Math.min(img.width,img.height);
+      const cv=document.createElement('canvas'); cv.width=cv.height=lado;
+      const cx=cv.getContext('2d');
+      cx.drawImage(img,(img.width-l)/2,(img.height-l)/2,l,l,0,0,lado,lado);
+      cb(cv.toDataURL('image/jpeg',0.82));
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(file);
+}
+const inicial=(n)=>String(n||'?').trim().charAt(0).toUpperCase()||'?';
+/* Avatar de pessoa. A foto dos colegas chega pela view equipe_nomes; a minha vem do proprio perfil. */
+const fotoDe=(uid)=>{ if(!uid) return '';
+  if(currentUser&&currentUser.id===uid&&currentUser.foto) return currentUser.foto;
+  const u=TK.equipe.find(x=>x.id===uid); return (u&&u.foto)||''; };
+const avatar=(uid,nome,cls)=>{ const f=fotoDe(uid), n=nome||tkNomeUser(uid);
+  return f?`<span class="av ${cls||''}"><img src="${esc(f)}" alt="${esc(n)}"></span>`
+          :`<span class="av ${cls||''}" title="${esc(n)}">${esc(inicial(n))}</span>`; };
+const avatarNome=(uid,nome)=>{ const n=nome||tkNomeUser(uid); if(!uid&&!n) return '';
+  return `<span class="avl">${avatar(uid,n,'sm')}<span class="nm">${esc(n)}</span></span>`; };
+/* Icone do espaco: foto ganha do emoji, que ganha da inicial colorida. */
+const espIcone=(e)=>e&&e.foto
+  ? `<span class="sp-ic ft"><img src="${esc(e.foto)}" alt=""></span>`
+  : `<span class="sp-ic" style="background:${esc((e&&e.cor)||'#7c3aed')}">${(e&&e.icone)?esc(e.icone):esc(inicial(spNome(e)))}</span>`;
 const selFicha=(idCampo,atual)=>`<select id="${idCampo}"><option value="">— geral (todo o time vê) —</option>`+
   [...(DB.projetos||[])].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(f=>`<option value="${f.id}"${atual===f.id?' selected':''}>${esc(f.nome)}</option>`).join('')+`</select>`;
 const fichaDaConta=(accId)=>{ const m=contaMarca(accId); return m&&m.fichaId?fichaDe(m.fichaId):null; };
@@ -1879,6 +1930,7 @@ window.wsMenu=(ev)=>{
     {ic:'👤',t:'Usuários',f:()=>render('usuarios'),so:m},
     {ic:'💰',t:'Financeiro',f:()=>render('financeiro'),so:m},
     {sep:true},
+    {ic:'🙂',t:'Minha foto',f:()=>minhaFoto()},
     {ic:'⬇',t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click()},
     {ic:'🔒',t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
     {sep:true},
@@ -1909,6 +1961,40 @@ window.spNoMenu=(ev,tipo,id)=>{
   ctxAbrir(ev,it);
 };
 
+/* ---------- minha foto ----------
+   perfis so aceita UPDATE de master, entao a troca passa pela RPC salvar_minha_foto,
+   que mexe somente na coluna foto da propria linha. */
+window.mfPick=(d)=>{ window.__mfFoto=d||''; const pv=$('#mf_p');
+  if(pv) pv.innerHTML=d?`<img src="${d}" alt="">`:esc(inicial((currentUser||{}).nome)); };
+window.minhaFoto=()=>{
+  if(!currentUser) return;
+  window.__mfFoto=currentUser.foto||'';
+  modal('Minha foto',`
+    <div class="fotobox">
+      <div class="fotoprev rd" id="mf_p">${currentUser.foto?`<img src="${esc(currentUser.foto)}" alt="">`:esc(inicial(currentUser.nome))}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;margin-bottom:6px">${esc(currentUser.nome||'')}</div>
+        <input type="file" id="mf_f" accept="image/*" style="width:100%">
+        <button class="btn ghost small" type="button" style="margin-top:8px" onclick="mfPick('')">Remover foto</button>
+      </div>
+    </div>
+    <p class="hint">Recorto no quadrado e reduzo pra 192px antes de salvar. Sua foto aparece pra todo o time nas tarefas em que você é responsável.</p>`,
+    async ()=>{
+      const nova=window.__mfFoto||null;
+      const {error}=await sb.rpc('salvar_minha_foto',{p_foto:nova});
+      if(error){ toast('Erro: '+error.message); return false; }
+      currentUser.foto=nova;
+      const u=TK.equipe.find(x=>x.id===currentUser.id); if(u) u.foto=nova;
+      pintarWhoami(); spDesenhar(); if(currentView==='lista') tkDesenhar($('#content'));
+      toast(nova?'Foto atualizada.':'Foto removida.'); return true; });
+  setTimeout(()=>{ const f=$('#mf_f'); if(f) f.onchange=(e)=>fotoDoArquivo(e.target.files[0],192,mfPick); },30);
+};
+function pintarWhoami(){
+  const el=$('#whoami'); if(!el||!currentUser) return;
+  let mail=''; try{ mail=(SESSION&&SESSION.user&&SESSION.user.email)||''; }catch(_){}
+  const sufixo=currentUser.role==='master'?' · master':(currentUser.gerente?' · gerente':'');
+  el.innerHTML=`<span class="avl" style="cursor:pointer" title="${esc((mail?mail+' — ':'')+'clique para trocar sua foto')}" onclick="minhaFoto()">${avatar(currentUser.id,currentUser.nome)}<span class="nm">${esc(currentUser.nome||'')}${sufixo}</span></span>`;
+}
 /* ---------- favoritos (por usuario, no proprio navegador) ---------- */
 let SP_FAV=[]; try{ SP_FAV=JSON.parse(localStorage.getItem('sp_favs')||'[]')||[]; }catch(_){}
 const favTem=(id)=>SP_FAV.indexOf(id)>=0;
@@ -1949,10 +2035,26 @@ const SP_EMO=['📋','✅','🎯','🚀','💡','📈','📊','💰','🧾','�
 const SP_COR=['#7c3aed','#a78bfa','#2f7cf6','#22b8a6','#3fcf8e','#e6b13f','#f97316','#ef5b6b','#ec4899','#64748b'];
 window.spPickEmo=(b,e)=>{ $('#sp_ic').value=e; document.querySelectorAll('#sp_eg button').forEach(x=>x.classList.remove('on')); if(b) b.classList.add('on'); };
 window.spPickCor=(b,c)=>{ $('#sp_cr').value=c; document.querySelectorAll('#sp_cg button').forEach(x=>x.classList.remove('on')); if(b) b.classList.add('on'); };
+window.spPickFoto=(d)=>{ window.__spFoto=d||''; const pv=$('#sp_fp');
+  if(pv) pv.innerHTML=d?`<img src="${d}" alt="">`:esc(inicial($('#sp_fnome')?$('#sp_fnome').value:'?')); };
 window.spCorIcone=(tipo,id)=>{
   const o=spNo(tipo,id); if(!o) return;
   const ic0=o.icone||'', cor0=o.cor||SP_COR[0];
-  modal('Cor e ícone — '+spNome(o),`
+  const ehEsp=(tipo==='espaco');
+  window.__spFoto=ehEsp?(o.foto||''):'';
+  const blocoFoto=ehEsp?`
+    <div class="field"><label>Foto do espaço</label>
+      <input type="hidden" id="sp_fnome" value="${esc(spNome(o))}">
+      <div class="fotobox">
+        <div class="fotoprev" id="sp_fp">${o.foto?`<img src="${esc(o.foto)}" alt="">`:esc(inicial(spNome(o)))}</div>
+        <div style="flex:1;min-width:0">
+          <input type="file" id="sp_ff" accept="image/*" style="width:100%">
+          <button class="btn ghost small" type="button" style="margin-top:8px" onclick="spPickFoto('')">Remover foto</button>
+        </div>
+      </div>
+      <p class="hint" style="margin:6px 0 0">A foto substitui o quadradinho colorido na barra lateral. Recorto no quadrado e reduzo pra 256px sozinho.</p></div>`:'';
+  modal((ehEsp?'Aparência — ':'Cor e ícone — ')+spNome(o),`
+    ${blocoFoto}
     <input type="hidden" id="sp_ic" value="${esc(ic0)}"><input type="hidden" id="sp_cr" value="${esc(cor0)}">
     <div class="field"><label>Ícone</label>
       <div class="emo-g" id="sp_eg">${SP_EMO.map(e=>`<button type="button" class="${e===ic0?'on':''}" onclick="spPickEmo(this,'${e}')">${e}</button>`).join('')}</div>
@@ -1960,12 +2062,15 @@ window.spCorIcone=(tipo,id)=>{
     <div class="field"><label>Cor</label>
       <div class="cor-g" id="sp_cg">${SP_COR.map(c=>`<button type="button" class="${c===cor0?'on':''}" style="background:${c}" onclick="spPickCor(this,'${c}')"></button>`).join('')}
         <input type="color" value="${esc(cor0)}" title="Cor livre" style="width:38px;height:26px;padding:2px;border-radius:7px" oninput="spPickCor(null,this.value)"></div></div>
-    <p class="hint">${tipo==='espaco'?'A cor pinta o quadradinho do espaço na barra lateral.':'A cor tinge o ícone da '+spRotulo(tipo)+'.'}</p>`,
+    <p class="hint">${ehEsp?'Sem foto, vale o emoji; sem emoji, a inicial sobre a cor.':'A cor tinge o ícone da '+spRotulo(tipo)+'.'}</p>`,
     async ()=>{
       const patch={icone:$('#sp_ic').value||null,cor:$('#sp_cr').value||null};
+      if(ehEsp) patch.foto=window.__spFoto||null;
       const {error}=await sb.from(spTab(tipo)).update(patch).eq('id',id);
       if(error){ toast('Erro: '+error.message); return false; }
       Object.assign(o,patch); spRepintar(); toast('Visual atualizado.'); return true; });
+  if(ehEsp) setTimeout(()=>{ const f=$('#sp_ff');
+    if(f) f.onchange=(e)=>fotoDoArquivo(e.target.files[0],256,spPickFoto); },30);
 };
 
 /* ---------- duplicar (estrutura, sem as tarefas) ---------- */
@@ -2049,7 +2154,7 @@ async function tkCarregar(){
     sb.from('pastas').select('*').order('ordem'),
     sb.from('listas').select('*').order('ordem'),
     sb.from('tarefas').select('*').order('criado_em'),
-    sb.from('equipe_nomes').select('id,nome'),
+    sb.from('equipe_nomes').select('id,nome,foto'),
     sb.from('status_lista').select('*').order('ordem'),
     sb.from('campos_lista').select('*').order('ordem')]);
   const err=e.error||pa.error||l.error||t.error||st.error||cp.error;
@@ -2112,7 +2217,7 @@ function tkCard(t){
       <span class="tag ${TK_PRIOC[t.prioridade]||'st'}" style="font-size:10.5px">${TK_PRIO[t.prioridade]||'—'}</span>
       ${t.ficha_id?`<span class="tag st" style="font-size:10.5px">👤 ${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
       ${t.prazo?`<span class="tag ${atrasada?'churn':'st'}" style="font-size:10.5px">📅 ${fmtDate(t.prazo)}</span>`:''}
-      ${t.responsavel_id?`<span class="tag st" style="font-size:10.5px">${esc(tkNomeUser(t.responsavel_id))}</span>`:''}
+      ${t.responsavel_id?`<span class="tag st" style="font-size:10.5px">${avatarNome(t.responsavel_id)}</span>`:''}
       ${ckResumo(t)?`<span class="tag st" style="font-size:10.5px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<span class="tag st" style="font-size:10.5px;opacity:.7">${esc(tkCaminho(t.lista_id))}</span>`:''}
     </div></div>`;
 }
@@ -2206,7 +2311,7 @@ function tkViewLista(){
       ${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}
       <td><span class="tag ${TK_PRIOC[t.prioridade]||'st'}">${TK_PRIO[t.prioridade]||'—'}</span></td>
       <td>${t.prazo?`<span class="tag ${atr?'churn':'st'}">${fmtDate(t.prazo)}</span>`:'<span class="hint" style="margin:0">—</span>'}</td>
-      <td>${esc(tkNomeUser(t.responsavel_id))||'<span class="hint" style="margin:0">—</span>'}</td>
+      <td>${t.responsavel_id?avatarNome(t.responsavel_id):'<span class="hint" style="margin:0">—</span>'}</td>
       <td><button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button></td>
     </tr>`;};
   const ncols=lc?(cps.length+2):(cps.length+7);
@@ -2520,7 +2625,7 @@ function spDesenhar(){
   if(!TK.espacos.length){ el.innerHTML='<div class="hint" style="margin:0;padding:8px 6px">Nenhum espaço ainda.</div>'; return; }
   if(SP_MINI){
     const lsel=TK.listas.find(x=>x.id===TK.listaSel);
-    el.innerHTML='<div class="sp-rail">'+TK.espacos.map(e=>`<button class="sp-railb${(lsel&&lsel.espaco_id===e.id)?' on':''}" title="${esc(e.nome)}" onclick="spExpandir('${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')"><span class="sp-ic" style="background:${esc(e.cor||'#7c3aed')}">${e.icone?esc(e.icone):esc((spNome(e)||'?').trim().charAt(0).toUpperCase())}</span></button>`).join('')+'</div>';
+    el.innerHTML='<div class="sp-rail">'+TK.espacos.map(e=>`<button class="sp-railb${(lsel&&lsel.espaco_id===e.id)?' on':''}" title="${esc(e.nome)}" onclick="spExpandir('${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')">${espIcone(e)}</button>`).join('')+'</div>';
     return; }
   /* Busca: um no aparece se ele bate, ou se algum filho bate. Com busca ativa, tudo fica aberto. */
   const lVis=(l)=>!SP_Q||spBate(l.nome);
@@ -2539,7 +2644,7 @@ function spDesenhar(){
     return `<div class="tk-esp">
       <div class="tk-esph" draggable="true" ondragstart="dndEspaco(event,'${e.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarEspaco(event,'${e.id}')" ondragend="dndFim()" onclick="tkToggle('e','${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')">
         <span class="tk-cv${abE?' ab':''}">&#9656;</span>
-        <span class="sp-ic" style="background:${esc(e.cor||'#7c3aed')}">${e.icone?esc(e.icone):esc((spNome(e)||'?').trim().charAt(0).toUpperCase())}</span>
+        ${espIcone(e)}
         <span class="tk-nome">${esc(spNome(e))}</span>
         <span class="tk-acts">
           <button title="Nova pasta ou lista" onclick="event.stopPropagation();tkNovoNo('${e.id}')">+</button>
