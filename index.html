@@ -922,6 +922,9 @@ const fichaDaContaMeta=(c)=>{ const m=contaMarca(c&&c.id); if(m&&m.fichaId) retu
 const contaVisivel=(c)=>vejoTudo()||fichaNoMeuSquad(fichaDaContaMeta(c));
 const acessoVisivel=(r)=>vejoTudo()||!r.fichaId||fichaNoMeuSquad(fichaDe(r.fichaId));
 const SQUADS=()=>Array.from(new Set((DB.projetos||[]).map(p=>String(p.squad||'')).filter(Boolean))).sort();
+/* Gerente e um flag proprio (perfis.gerente), separado do role: manda na estrutura das listas
+   travadas (status e colunas) sem virar master. Gestor de trafego nao entra aqui. */
+const souGerente=()=>!!(currentUser&&(currentUser.role==='master'||currentUser.gerente));
 const selFicha=(idCampo,atual)=>`<select id="${idCampo}"><option value="">— geral (todo o time vê) —</option>`+
   [...(DB.projetos||[])].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(f=>`<option value="${f.id}"${atual===f.id?' selected':''}>${esc(f.nome)}</option>`).join('')+`</select>`;
 const fichaDaConta=(accId)=>{ const m=contaMarca(accId); return m&&m.fichaId?fichaDe(m.fichaId):null; };
@@ -1741,7 +1744,18 @@ const TK_STC={todo:'st',fazendo:'onboarding',feito:'ativo'};
 const TK_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const TK_SEM=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 let TK={espacos:[],pastas:[],listas:[],tarefas:[],equipe:[],status:[],campos:[],listaSel:'',arrastando:null,
-  visao:'lista',escopo:'lista',ord:'',dir:1,busca:'',focoBusca:false,ref:'',grupo:'status',fechadas:{},colsOff:{}};
+  visao:'lista',escopo:'lista',ord:'',dir:1,busca:'',focoBusca:false,ref:'',grupo:'status',fechadas:{},colsOff:{},squadF:''};
+/* ---------- SQUAD NA TAREFA ----------
+   O recorte real e do Postgres (RLS tarefa_visivel): quem tem squad so enxerga o proprio.
+   Aqui em cima ficam o campo na tarefa, o filtro da lista e a trava da estrutura. */
+const espacoDaLista=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); return l?(TK.espacos.find(e=>e.id===l.espaco_id)||null):null; };
+const exigeSquad=(lid)=>{ const e=espacoDaLista(lid); return !!(e&&e.exige_squad); };
+/* Squads conhecidos: os das fichas + os que ja aparecem em tarefas + os meus. */
+const SQUADS_TK=()=>Array.from(new Set([].concat(SQUADS(),TK.tarefas.map(t=>String(t.squad||'')),meusSquads()).filter(Boolean))).sort();
+/* Quais squads eu posso marcar numa tarefa: tenho recorte -> so os meus. */
+const squadsQuePosso=()=>vejoTudo()?SQUADS_TK():meusSquads().slice().sort();
+/* Lista com estrutura travada: status e colunas so na mao do master e do gerente. */
+const estruturaEditavel=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); return !l||!l.estrutura_restrita||souGerente(); };
 const TK_GRUPOL={nao_iniciado:'Nao iniciado',ativo:'Ativo',feito:'Feito',fechado:'Fechado'};
 const TK_G2ST={nao_iniciado:'todo',ativo:'fazendo',feito:'feito',fechado:'feito'};
 const tkStatusDe=(lid)=>TK.status.filter(s=>s.lista_id===lid);
@@ -2015,6 +2029,8 @@ const tkCaminho=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); if(!l) return ''
 function tkFiltradas(){
   const q=TK.busca.trim().toLowerCase();
   let arr=TK.escopo==='minhas'?spMinhas():TK.tarefas.filter(t=>TK.escopo==='todas'||t.lista_id===TK.listaSel);
+  if(TK.squadF==='(sem)') arr=arr.filter(t=>!String(t.squad||'').trim());
+  else if(TK.squadF) arr=arr.filter(t=>String(t.squad||'')===TK.squadF);
   if(q) arr=arr.filter(t=>((t.titulo||'')+' '+(t.descricao||'')+' '+tkNomeFicha(t.ficha_id)+' '+tkNomeUser(t.responsavel_id)).toLowerCase().indexOf(q)>=0);
   return arr;
 }
@@ -2160,7 +2176,8 @@ function tkViewLista(){
   return `<div class="tk-bar">
     <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
     <button class="btn ghost small" onclick="tkMenuCols()">&#9707; Colunas</button>
-    ${TK.escopo==='lista'?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>`:''}
+    ${(TK.escopo==='lista'&&estruturaEditavel(TK.listaSel))?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>`
+      :(TK.escopo==='lista'?`<span class="hint" style="margin:0">&#128274; colunas fixas — só master e gerente mudam</span>`:'')}
     <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
   </div>${grupos.length?grupos.map(bloco).join(''):'<div class="empty">Nada por aqui.</div>'}`;
 }
@@ -2509,6 +2526,17 @@ window.spAbrirClientes=()=>{
     return tkCarregar().then(()=>{ spDesenhar(); spSelLista(LC_ID); }).catch(err=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(err.message)+'</div>'; }); }
   spSelLista(LC_ID);
 };
+/* Pilulas de squad: aparecem so na lista que exige squad e so pra quem enxerga mais de um.
+   Quem tem recorte ja recebe do banco somente o proprio squad — pra ele o filtro seria decorativo. */
+function tkBarraSquad(){
+  if(TK.escopo!=='lista'||!exigeSquad(TK.listaSel)) return '';
+  const sqs=vejoTudo()?SQUADS_TK():meusSquads();
+  if(sqs.length<2) return '';
+  const pil=(v,r)=>`<button class="ftab ${TK.squadF===v?'active':''}" onclick="tkSquadF('${v}')">${esc(r)}</button>`;
+  return `<div class="fin-tabs" style="margin:-2px 0 14px">
+    ${pil('','Todos os squads')}${sqs.map(s=>pil(s,'Squad '+s)).join('')}${pil('(sem)','Sem squad')}</div>`;
+}
+window.tkSquadF=(s)=>{ TK.squadF=s; tkDesenhar($('#content')); };
 function tkDesenhar(c){
   if(TK.listaSel==='7381fb45-8d78-458d-b432-77dd88972338'&&TK.escopo==='lista'){ return renderTrafego(c); }
   if(TK.listaSel===NC_LISTA&&TK.escopo==='lista'){ return ncFormulario(c); }
@@ -2531,6 +2559,7 @@ function tkDesenhar(c){
        ${cli?`<button class="btn small" onclick="render('fechamento')">+ Cliente</button>`:`<button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>`}
      </div>
    </div>
+   ${tkBarraSquad()}
    ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}
    <p class="hint" style="margin-top:14px">${cli?'Cada card é um cliente — clique para abrir a ficha. Arrastar entre colunas muda o estágio.':'Espaço agrupa pastas; pasta agrupa listas; lista agrupa tarefas — cada lista tem seus próprios status e colunas. Tarefa com <strong>cliente</strong> só aparece para quem tem o squad daquele cliente.'}</p>`;
   if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
@@ -2672,6 +2701,7 @@ window.tkMenuCols=()=>{
 };
 window.tkNovoCampo=()=>{
   if(!TK.listaSel){ toast('Selecione uma lista.'); return; }
+  if(!estruturaEditavel(TK.listaSel)){ toast('Esta lista tem colunas fixas — só master e gerente podem mudar.'); return; }
   const tipos=[['texto','Texto'],['numero','Número'],['moeda','Moeda (R$)'],['select','Lista de opções'],['pessoa','Pessoa'],['data','Data'],['checkbox','Caixa de seleção'],['link','Link']];
   modal('Nova coluna',`
     <div class="field"><label>Nome</label><input id="tk_cn" placeholder="Ex: Mensalidade"></div>
@@ -2690,6 +2720,7 @@ window.tkNovoCampo=()=>{
 };
 window.tkEditarStatus=()=>{
   if(!TK.listaSel){ toast('Selecione uma lista.'); return; }
+  if(!estruturaEditavel(TK.listaSel)){ toast('Esta lista tem colunas fixas — só master e gerente podem mudar.'); return; }
   const sts=tkStatusDe(TK.listaSel);
   modal('Status desta lista',
     `<p class="hint" style="margin-top:0">Um por linha: <strong>nome | cor | grupo</strong>. Grupos aceitos: nao_iniciado, ativo, feito, fechado. A ordem das linhas é a ordem das colunas no Board.</p>
@@ -2758,6 +2789,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     else if(tkCampo1(TK.grupo)){ const o={}; o[TK.grupo]=grupoPre; it.valores=Object.assign({},it.valores,o); }
   }
   const lid=it.lista_id, sts=tkStatusDe(lid), cps=TK.campos.filter(k=>k.lista_id===lid);
+  /* Tarefa nova ja nasce no meu squad; quem tem recorte so consegue escolher entre os seus. */
+  const sqOpc=squadsQuePosso(), sqAtual=t?String(it.squad||''):(String(it.squad||'')||(meusSquads()[0]||''));
   const campoHtml=(c)=>{ const v=(it.valores||{})[c.id];
     if(c.tipo==='select') return `<select id="cp_${c.id}"><option value="">—</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
     if(c.tipo==='pessoa') return `<select id="cp_${c.id}"><option value="">—</option>${TK.equipe.map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
@@ -2778,6 +2811,9 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <div class="field"><label>Prazo</label><input type="date" id="tk_prazo" value="${esc(it.prazo||'')}"></div>
       <div class="field"><label>Responsável</label><select id="tk_resp"><option value="">— ninguém —</option>${TK.equipe.map(u=>`<option value="${u.id}"${it.responsavel_id===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select></div>
     </div>
+    <div class="field"><label>Squad${exigeSquad(it.lista_id)?' *':''}</label>
+      <select id="tk_squad"><option value="">— sem squad (todo o time vê) —</option>${sqOpc.map(s=>`<option value="${esc(s)}"${sqAtual===s?' selected':''}>Squad ${esc(s)}</option>`).join('')}</select>
+      <p class="hint" style="margin:6px 0 0">Quem tem squad só enxerga as tarefas do próprio squad. Master vê tudo.</p></div>
     ${cps.length?`<div class="tk-cpbox"><div class="tk-cptit">Campos desta lista</div><div class="row2">${cps.map(c=>`<div class="field"><label>${esc(c.nome)}</label>${campoHtml(c)}</div>`).join('')}</div></div>`:''}
     <div class="tk-cpbox"><div class="tk-cptit">Checklist <span id="ck_prog"></span></div>
       <div id="ck_lista"></div>
@@ -2789,6 +2825,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         prioridade:$('#tk_prio').value, prazo:$('#tk_prazo').value||null,
         responsavel_id:$('#tk_resp').value||null, descricao:$('#tk_desc').value.trim()};
       if(!v.titulo){ toast('Informe o título.'); return false; }
+      v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
+      if(exigeSquad(v.lista_id)&&!v.squad){ toast('Esta lista exige o squad — escolha um.'); return false; }
       ckLer(); v.checklist=TK_CK.filter(x=>(x.t||'').trim()).map(x=>({t:x.t.trim(),ok:!!x.ok}));
       const el=$('#tk_stid');
       if(el){ const s=el.value?tkStatus1(el.value):null; v.status_id=el.value||null; v.status=s?TK_G2ST[s.grupo]:'todo'; }
