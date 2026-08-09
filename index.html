@@ -239,9 +239,12 @@
   .ws-head{display:flex;align-items:center;gap:9px;width:100%;background:transparent;border:1px solid transparent;
     border-radius:8px;padding:7px 8px;margin-bottom:10px;color:var(--txt);font-size:13.5px;font-weight:700;text-align:left}
   .ws-head:hover{background:var(--panel2);border-color:var(--line)}
-  .ws-av{width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;
-    background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line)}
-  .ws-av svg{width:15px;height:15px}
+  /* O tile É a marca: roxo cheio com o símbolo vazado. Antes era um quadrado cinza com o
+     símbolo encolhido dentro — duas formas competindo, lia como avatar vazio. */
+  .ws-av{width:26px;height:26px;border-radius:8px;flex:none;display:grid;place-items:center;
+    background:linear-gradient(145deg,#8b5cf6,#6d4aff)}
+  .ws-av svg{width:14px;height:14px}
+  .ws-av svg path{fill:#fff}
   .ws-head .ws-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ws-head .ws-cv{margin-left:auto;color:var(--muted);font-size:9px}
   .sp-busca{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
