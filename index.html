@@ -498,8 +498,10 @@
     padding:11px 13px;margin-bottom:7px;cursor:pointer;box-shadow:none;
     transition:background .12s,border-color .12s,box-shadow .12s}
   .tk-card:hover{background:#2a2a31;border-color:var(--line);box-shadow:0 2px 10px rgba(0,0,0,.22)}
-  .tk-card.p-alta{--pc:var(--danger)}
+  .tk-card.p-urgente{--pc:#ef5b6b}
+  .tk-card.p-alta{--pc:#e6b13f}
   .tk-card.p-med{--pc:#4f8ff7}
+  .tk-card.p-baixa{--pc:#3fcf8e}
   .tk-card.feito{opacity:.55}
   .tk-card.feito .tk-tit{text-decoration:line-through;color:var(--muted)}
   .tk-card.arrastando{opacity:.35;transform:rotate(1.5deg)}
@@ -529,6 +531,15 @@
   .ini-tag.atraso{color:#fca5a5;background:rgba(248,113,113,.14)}
   .tk-addcard{flex:none;width:100%;background:transparent;border:none;color:var(--muted);font-size:12.5px;font-weight:600;text-align:left;padding:8px 10px;border-radius:8px;margin-top:2px}
   .tk-addcard:hover{background:var(--panel2);color:var(--txt)}
+  .tk-addbox{padding:2px}
+  .tk-addbox .search{width:100%}
+  .tk-qa{display:inline-flex;gap:2px;margin-left:auto;align-items:center}
+  .tk-qab{position:relative;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;border:1px dashed var(--line);background:transparent;color:var(--muted);overflow:hidden}
+  .tk-qab:hover{color:var(--txt);border-color:var(--brand2);border-style:solid}
+  .tk-qab input[type=date]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .tk-qab .av{width:20px;height:20px;font-size:8.5px}
+  .tk-card .tk-qa .tk-qab{opacity:.55;transition:opacity .12s}
+  .tk-card:hover .tk-qa .tk-qab{opacity:1}
   .tk-vazio{border:1.5px dashed var(--line);border-radius:10px;color:var(--muted);font-size:12px;text-align:center;padding:18px 8px;margin:0 0 8px}
   /* popovers de filtro (Responsavel / Filtros) estilo ClickUp */
   .tkpop{position:fixed;z-index:1500;width:330px;max-height:70vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow);scrollbar-width:thin}
@@ -2500,9 +2511,10 @@ const PLAYBOOK_B64='CjxzdHlsZT4KICAqIHsgbWFyZ2luOiAwOyBwYWRkaW5nOiAwOyBib3gtc2l6
 /* ---------- TAREFAS (Espaços → Listas → Tarefas) ----------
    Gestão de tarefas em duas visões: Lista e Board. Uma linha por tarefa
    no banco; o recorte por squad continua sendo aplicado pelo Postgres (RLS). */
-const TK_PRIO={alta:'Alta',med:'Média',baixa:'Baixa'};
-const TK_PRIOC={alta:'churn',med:'onboarding',baixa:'st'};
-const TK_PRIOO={alta:0,med:1,baixa:2};
+const TK_PRIO={urgente:'Urgente',alta:'Alta',med:'Normal',baixa:'Baixa'};
+const PRIO_COR={urgente:'#ef5b6b',alta:'#e6b13f',med:'#4f8ff7',baixa:'#3fcf8e'}; /* cores do Gabriel, 10/08 */
+const TK_PRIOC={urgente:'churn',alta:'areceber',med:'sinal',baixa:'recebido'};
+const TK_PRIOO={urgente:0,alta:1,med:2,baixa:3};
 const TK_ST={todo:'A fazer',fazendo:'Em progresso',feito:'Concluído'};
 const TK_STC={todo:'st',fazendo:'onboarding',feito:'ativo'};
 const TK_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -3220,11 +3232,20 @@ function tkCard(t){
     </div>`;
   }
   /* bandeirinha de prioridade (ClickUp) + faixa colorida na borda esquerda */
-  const pcl=t.prioridade==='alta'?' p-alta':t.prioridade==='med'?' p-med':'';
-  const fcor=t.prioridade==='alta'?'var(--danger)':t.prioridade==='med'?'#4f8ff7':'var(--muted)';
+  const pcl=' p-'+(t.prioridade||'med');
+  const fcor=PRIO_COR[t.prioridade||'med']||'var(--muted)';
   const FLAG=`<svg class="tk-flag" width="12" height="12" viewBox="0 0 24 24" fill="${fcor}" stroke="${fcor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`;
   const CAL='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
   const CK='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg>';
+  /* ações rápidas direto no cartão, estilo ClickUp (vídeo do Gabriel 10/08): nada de modal pra ajustes simples */
+  const USR='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  const FLG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
+  const qa=`<span class="tk-qa" onclick="event.stopPropagation()">
+      <span class="tk-qab" title="Definir prazo">${CAL}<input type="date" value="${t.prazo||''}" onchange="tkQaPrazo('${t.id}',this.value)"></span>
+      <button class="tk-qab" title="Prioridade (clique alterna)" onclick="tkQaPrio('${t.id}')">${FLG}</button>
+      <button class="tk-qab" title="Responsável" onclick="tkQaResp(event,'${t.id}')">${t.responsavel_id?avatar(t.responsavel_id):USR}</button>
+      <button class="tk-qab" title="Cliente / projeto" onclick="tkQaCli(event,'${t.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg></button>
+    </span>`;
   return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')">
     <div class="tk-tit">${FLAG}${esc(t.titulo)}</div>
     <div class="tk-foot">
@@ -3232,9 +3253,51 @@ function tkCard(t){
       ${ckResumo(t)?`<span class="tk-chip">${CK}${ckResumo(t).replace('☑ ','')}</span>`:''}
       ${t.ficha_id?`<span class="tk-chip" title="${esc(tkNomeFicha(t.ficha_id))}">${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
       ${TK.escopo!=='lista'?`<span class="tk-chip" style="opacity:.75" title="${esc(tkCaminho(t.lista_id))}">${esc(tkCaminho(t.lista_id))}</span>`:''}
-      ${t.responsavel_id?avatar(t.responsavel_id):''}
+      ${qa}
     </div></div>`;
 }
+window.tkQaPrazo=(id,v)=>{ tkPatch(id,{prazo:v||null},v?'Prazo definido.':'Prazo removido.'); };
+window.tkQaPrio=(id)=>{ const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  const seq=['baixa','med','alta','urgente']; const nx=seq[(seq.indexOf(t.prioridade||'med')+1)%4];
+  tkPatch(id,{prioridade:nx},'Prioridade: '+TK_PRIO[nx]); };
+window.tkQaResp=(ev,id)=>{ ev.stopPropagation();
+  const vel=document.getElementById('tkQaMenu'); if(vel){ vel.remove(); if(vel.dataset.id===id) return; }
+  const r=ev.currentTarget.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='tkQaMenu'; el.className='tkpop'; el.dataset.id=id;
+  el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-266))+'px'; el.style.top=(r.bottom+6)+'px'; el.style.width='260px';
+  const t=TK.tarefas.find(x=>x.id===id)||{};
+  el.innerHTML=`<div class="tkp-sec">Responsável</div>
+    <label class="tkp-row" onclick="tkQaSetResp('${id}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span><span class="tkp-nm">Sem responsável</span>${!t.responsavel_id?'<span class="tkp-n">•</span>':''}</label>
+    ${[...TK.equipe].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
+      <label class="tkp-row" onclick="tkQaSetResp('${id}','${u.id}')">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span>${t.responsavel_id===u.id?'<span class="tkp-n">•</span>':''}</label>`).join('')}`;
+  document.body.appendChild(el);
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.tkQaSetResp=(id,uid)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
+  tkPatch(id,{responsavel_id:uid||null},'Responsável atualizado.'); };
+/* etiqueta de cliente pesquisando (pedido do Gabriel 10/08): digita e acha, sem lista gigante */
+window.tkQaCli=(ev,id)=>{ ev.stopPropagation();
+  const vel=document.getElementById('tkQaMenu'); if(vel){ vel.remove(); if(vel.dataset.id==='cli'+id) return; }
+  const r=ev.currentTarget.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='tkQaMenu'; el.className='tkpop'; el.dataset.id='cli'+id;
+  el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-286))+'px'; el.style.top=(r.bottom+6)+'px'; el.style.width='280px';
+  el.innerHTML=`<div class="tkp-sec">Cliente / projeto</div>
+    <input class="search" style="width:100%" placeholder="Digite pra pesquisar…" oninput="tkQaCliBusca('${id}',this.value)">
+    <div id="tkQaCliRes" style="margin-top:8px"></div>`;
+  document.body.appendChild(el);
+  el.querySelector('input').focus();
+  tkQaCliBusca(id,'');
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.tkQaCliBusca=(id,q)=>{ const box=document.getElementById('tkQaCliRes'); if(!box) return;
+  const t=TK.tarefas.find(x=>x.id===id)||{};
+  const nq=chaveNome(q);
+  const res=(DB.projetos||[]).filter(p=>!nq||chaveNome(p.nome).indexOf(nq)>=0).slice(0,8);
+  box.innerHTML=(t.ficha_id?`<label class="tkp-row" onclick="tkQaSetCli('${id}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">✕</span><span class="tkp-nm">Remover cliente</span></label>`:'')+
+    (res.map(p=>`<label class="tkp-row" onclick="tkQaSetCli('${id}','${p.id}')"><span class="lc-av" style="background:${lcCor(p.nome)}">${esc(String(p.nome||'?').trim().charAt(0).toUpperCase())}</span><span class="tkp-nm">${esc(p.nome)}</span>${t.ficha_id===p.id?'<span class="tkp-n">•</span>':''}</label>`).join('')||'<div class="hint" style="margin:4px 2px">Nenhum cliente com esse nome.</div>');
+};
+window.tkQaSetCli=(id,fid)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
+  tkPatch(id,{ficha_id:fid||null},fid?'Cliente etiquetado.':'Cliente removido.'); };
 function tkViewBoard(){
   const arr=tkOrdenadas(tkFiltradas());
   const sts=TK.escopo==='lista'?tkStatusDe(TK.listaSel):[];
@@ -3251,9 +3314,30 @@ function tkViewBoard(){
     <div class="tk-col" ondragover="event.preventDefault();this.classList.add('hover');tkOrdenaDrag(event,this)" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');${c.drop}">
       <div class="tk-colh"><span class="tk-selo" style="color:${esc(c.cor)};background:${esc(c.cor)}1f">${esc(c.rot)}</span><span class="tk-n">${c.its.length}</span>${lc?'':`<button class="tk-mais" title="Nova tarefa nesta coluna" onclick="tkAbrirSt('${esc(c.key)}')">+</button>`}</div>
       <div class="tk-colb">${c.its.map(tkCard).join('')||'<div class="tk-vazio">arraste uma tarefa para cá</div>'}</div>
-      ${lc?'':`<button class="tk-addcard" onclick="tkAbrirSt('${esc(c.key)}')">+ Nova tarefa</button>`}
+      ${lc?'':`<button class="tk-addcard" onclick="tkAddInline(this,'${esc(c.key)}')">+ ${TK.listaSel===LISTA_EDICAO?'Adicionar Vídeo':'Nova tarefa'}</button>`}
     </div>`).join('')}</div>`;
 }
+/* Edição de Vídeo: todo vídeo novo nasce com o Fluxo de Edição (checklist padrão, vídeo do Gabriel 10/08) */
+const CK_EDICAO=['Baixar material bruto do Drive','Consultar preferências do cliente no Guia','Editar vídeo conforme orientações','Aplicar legenda no estilo do cliente','Inserir logo atualizada','Adicionar narração (se aplicável)','Subir material editado no Drive','Preencher o link do material editado','Mover para Revisão e aguardar feedback'];
+/* criar digitando direto na coluna, sem modal (Enter cria, Esc cancela) */
+window.tkAddInline=(btn,key)=>{
+  const box=document.createElement('div'); box.className='tk-addbox';
+  box.innerHTML=`<input class="search" placeholder="Nome… (Enter cria, Esc sai)" onkeydown="tkAddKey(event,'${esc(key)}')">`;
+  btn.replaceWith(box); box.querySelector('input').focus();
+};
+window.tkAddKey=async (ev,key)=>{
+  if(ev.key==='Escape'){ tkDesenhar($('#content')); return; }
+  if(ev.key!=='Enter') return;
+  const tit=ev.target.value.trim(); if(!tit) return;
+  ev.target.disabled=true;
+  const v={titulo:tit,lista_id:TK.listaSel,prioridade:'med',valores:{}};
+  if(tkStatus1(key)){ v.status_id=key; v.status='todo'; } else { v.status=key||'todo'; v.status_id=null; }
+  if(TK.listaSel===LISTA_EDICAO) v.checklist=CK_EDICAO.map(x=>({t:x,ok:false}));
+  const {data,error}=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
+  if(error){ toast('Erro: '+error.message); ev.target.disabled=false; return; }
+  TK.tarefas.push(data); tkDesenhar($('#content')); spDesenhar();
+  toast(TK.listaSel===LISTA_EDICAO?'Vídeo criado com o Fluxo de Edição (0/9).':'Tarefa criada.');
+};
 /* nova tarefa já caindo na coluna clicada (reusa o preset por grupo do tkAbrir) */
 window.tkAbrirSt=(k)=>{ const g=TK.grupo; TK.grupo='status'; try{ tkAbrir('','',k); }finally{ TK.grupo=g; } };
 /* sensação Trello: enquanto arrasta, o card se posiciona sob o cursor (visual; o drop persiste) */
@@ -3280,7 +3364,7 @@ function tkGrupos(){
     }
     return ['todo','fazendo','feito'].map(k=>pack(k,TK_ST[k],k==='feito'?'#3ec46d':k==='fazendo'?'#2f7cf6':'#8b95a5',t=>t.status===k));
   }
-  if(g==='prioridade') return Object.keys(TK_PRIO).map(k=>pack(k,TK_PRIO[k],k==='alta'?'#ef4444':k==='med'?'#f59e0b':'#8b95a5',t=>t.prioridade===k));
+  if(g==='prioridade') return Object.keys(TK_PRIO).map(k=>pack(k,TK_PRIO[k],PRIO_COR[k]||'#8b95a5',t=>t.prioridade===k));
   if(g==='responsavel'){
     const gs=TK.equipe.map(u=>pack(u.id,u.nome,'#7c3aed',t=>t.responsavel_id===u.id)).filter(x=>x.its.length);
     const sem=arr.filter(t=>!t.responsavel_id); if(sem.length) gs.push({k:'noresp',rot:'Sem responsável',cor:'#64748b',its:sem});
@@ -3336,9 +3420,9 @@ function tkViewLista(){
       <td>${nome(t)}</td>
       <td>${tkSelo(t)}</td>
       ${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}
-      <td><span class="tag ${TK_PRIOC[t.prioridade]||'st'}">${TK_PRIO[t.prioridade]||'—'}</span></td>
+      <td><span class="tag st" style="color:${PRIO_COR[t.prioridade]||'var(--muted)'};background:${(PRIO_COR[t.prioridade]||'#888888')}1a;font-weight:800">${TK_PRIO[t.prioridade]||'—'}</span></td>
       <td>${t.prazo?`<span class="tag ${atr?'churn':'st'}">${fmtDate(t.prazo)}</span>`:'<span class="hint" style="margin:0">—</span>'}</td>
-      <td>${t.responsavel_id?avatarNome(t.responsavel_id):'<span class="hint" style="margin:0">—</span>'}</td>
+      <td>${t.responsavel_id?`<span title="${esc(tkNomeUser(t.responsavel_id))}" style="cursor:pointer" onclick="event.stopPropagation();verPerfil('${t.responsavel_id}')">${avatar(t.responsavel_id)}</span>`:'<span class="hint" style="margin:0">—</span>'}</td>
       <td><button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button></td>
     </tr>`;};
   const ncols=lc?(cps.length+2):(cps.length+7);
@@ -4069,7 +4153,7 @@ function tkPopFiltroHTML(){ const F=TK.filtro;
      <input type="date" class="search" value="${F.ate||''}" onchange="TK.filtro.ate=this.value;TK.filtro.prazo='';tkFAplicar()">
    </div>
    <div class="tkp-sec" style="margin-top:12px">Prioridade</div>
-   <div class="tkp-chips">${['alta','med','baixa'].map(k=>`<button class="tkp-chip${F.prios.includes(k)?' on':''}" onclick="tkFPrio('${k}')">${TK_PRIO[k]}</button>`).join('')}</div>
+   <div class="tkp-chips">${['urgente','alta','med','baixa'].map(k=>`<button class="tkp-chip${F.prios.includes(k)?' on':''}" onclick="tkFPrio('${k}')">${TK_PRIO[k]}</button>`).join('')}</div>
    ${tkFiltroN()?`<button class="tkp-limpar" onclick="tkFLimpar()">Limpar filtros</button>`:''}`;
 }
 window.tkFResp=(id)=>{ const r=TK.filtro.resps, i=r.indexOf(id); if(i>=0) r.splice(i,1); else r.push(id); tkFAplicar(); };
