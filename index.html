@@ -1094,6 +1094,7 @@ async function enterApp(){
   hide($('#login')); show($('#app'));
   pintarWhoami();
   if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); } else { hide($('#navUsuarios')); hide($('#navFin')); }
+  tlAplicar();   /* tira da barra as telas que essa pessoa não tem */
   if(souGerente()){ show($('#navDaily')); } else { hide($('#navDaily')); } /* Daily: só master e gerentes (regra do Gabriel, 10/08) */
   try{ await tkCarregar(); }catch(e){}
   spDesenhar();
@@ -1213,6 +1214,7 @@ function render(view){
     if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
     return renderContratos(c);
   }
+  if(tlBloqueada(view)){ c.innerHTML='<div class="empty">Esta tela não faz parte do seu acesso.</div>'; return; }
   if(view==='acessos') return renderAcessos(c);
   if(view==='fichas') return renderProjetos(c);
   if(view==='daily'){ if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito aos gerentes e ao master.</div>'; return; } return renderDaily(c); }
@@ -6508,6 +6510,47 @@ function drawUsuarios(c){
    </tr>`).join('')}</tbody></table></div>
    <p class="hint" style="margin-top:14px">O acesso só existe se um <strong>master</strong> criar aqui — não há autocadastro na tela de login. A senha fica <strong>cifrada no servidor</strong>: o 👁 pede a senha a uma função protegida que só responde a masters. Quem esquecer a senha pede a um master para <strong>Redefinir</strong>.${masters<=1?' <br><strong>Atenção:</strong> só existe um master hoje — promova alguém para não ficar sem acesso.':''}</p>`;
 }
+/* ---------- TELAS FIXAS POR USUÁRIO ----------
+   As telas que não são lista (Acessos, Processos, Reembolsos, Daily...) não passam
+   por no_membros — quem manda nelas é perfis.telas_off. A lista de telas é lida do
+   próprio HTML, então atalho novo entra aqui sozinho. */
+const tlLista=()=>Array.from(document.querySelectorAll('.navlink[data-view]'))
+  .map(b=>({v:b.dataset.view,nome:(b.getAttribute('title')||b.dataset.view),
+            master:['financeiro','usuarios'].indexOf(b.dataset.view)>=0}));
+const tlOff=(u)=>((u&&u.telas_off)||[]);
+const tlBloqueada=(v)=>tlOff(currentUser).indexOf(String(v))>=0;
+/* esconde os atalhos que essa pessoa não tem — chamado no login */
+function tlAplicar(){
+  const off=tlOff(currentUser);
+  document.querySelectorAll('.navlink[data-view]').forEach(b=>{
+    if(off.indexOf(b.dataset.view)>=0) b.classList.add('hidden');
+  });
+}
+window.tlMarcar=async (uid,view,ligado)=>{
+  const u=(PERFIS||[]).find(x=>String(x.id)===String(uid)); if(!u) return;
+  const atual=tlOff(u).filter(v=>v!==view);
+  const novo=ligado?atual:atual.concat([view]);      /* ligado = tem acesso = fora da lista de bloqueio */
+  const {error}=await sb.from('perfis').update({telas_off:novo}).eq('id',uid);
+  if(error){ toast('Erro: '+error.message); return; }
+  u.telas_off=novo;
+  if(String(uid)===String((currentUser||{}).id)){ currentUser.telas_off=novo; tlAplicar(); }
+  uaPintar(uid);
+  toast(ligado?'Tela liberada.':'Tela escondida para '+(u.nome||'o usuário')+'.');
+};
+function tlBloco(uid){
+  const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{};
+  const telas=tlLista().filter(t=>!t.master);
+  if(!telas.length) return '';
+  const off=tlOff(u);
+  return `<div class="nm-sec" style="margin-top:16px">Telas do sistema</div>
+    <div class="ua-tree">${telas.map(t=>`<div class="ua-l">
+      <span class="ua-nm">${esc(t.nome)}</span>
+      <span class="ua-a"><label class="ua-ck"><input type="checkbox" ${off.indexOf(t.v)<0?'checked':''}
+        onchange="tlMarcar('${uid}','${t.v}',this.checked)"> vê</label></span>
+    </div>`).join('')}</div>
+    <p class="hint" style="margin:8px 0 0">Financeiro e Usuários não aparecem aqui: são sempre só de master.</p>`;
+}
+
 /* ---------- ACESSOS DE UM USUÁRIO ----------
    Mesma informação da tela "Compartilhar", vista do outro lado: em vez de
    "quem entra nesta lista", é "em que esta pessoa entra".
@@ -6552,7 +6595,8 @@ function uaCorpo(uid){
   return `<p class="hint" style="margin:0 0 12px">O que está <strong>aberto</strong> todo mundo vê — não precisa marcar.
     Use <strong>Restringir</strong> para fechar e daí escolher quem entra.
     O recorte por <strong>squad</strong> continua valendo por cima disso.</p>
-    <div class="ua-tree">${corpo||'<div class="hint">Nenhum espaço.</div>'}</div>`;
+    <div class="ua-tree">${corpo||'<div class="hint">Nenhum espaço.</div>'}</div>
+    ${tlBloco(uid)}`;
 }
 window.uaFechar=async (uid,tipo,id)=>{
   const o=uaNo(tipo,id); if(!o) return;
