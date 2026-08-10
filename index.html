@@ -759,6 +759,15 @@
   .modal .mhead h3{font-size:17px}
   .modal .mbody{padding:20px 22px}
   .modal .mfoot{display:flex;gap:10px;justify-content:flex-end;padding:16px 22px;border-top:1px solid var(--line)}
+  /* folha lateral (tarefa): grande, ancorada na direita, quadro visível atrás */
+  .overlay.folha{align-items:stretch;justify-content:flex-end;padding:0}
+  .overlay.folha .modal{width:min(1040px,94vw);max-width:min(1040px,94vw);height:100vh;max-height:100vh;
+    border-radius:0;border-top:none;border-bottom:none;border-right:none;display:flex;flex-direction:column;
+    animation:folhaIn .16s ease}
+  .overlay.folha .mbody{flex:1;overflow:auto;padding:22px 30px}
+  .overlay.folha .mhead{padding:16px 30px}
+  .overlay.folha .mfoot{padding:14px 30px}
+  @keyframes folhaIn{from{transform:translateX(26px);opacity:.5}to{transform:none;opacity:1}}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .x{background:transparent;border:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
   .x:hover{color:var(--txt)}
@@ -7409,6 +7418,7 @@ function modal(title, bodyHTML, onSave){
   o.innerHTML=`<div class="modal"><div class="mhead"><h3>${title}</h3><button class="x">&times;</button></div>
     <div class="mbody">${bodyHTML}</div>
     <div class="mfoot"><button class="btn secondary small mcancel">Cancelar</button><button class="btn small msave">Salvar</button></div></div>`;
+  if(bodyHTML.indexOf('class="tkm"')>=0) o.classList.add('folha'); /* tarefa abre como painel lateral, estilo ClickUp */
   document.body.appendChild(o);
   const close=()=>o.remove();
   o.querySelector('.x').onclick=close; o.querySelector('.mcancel').onclick=close;
