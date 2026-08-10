@@ -69,6 +69,20 @@
   .nm-av{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;flex:none;
     display:grid;place-items:center;font-size:11px;font-weight:800}
   .tk-lock{font-size:10px;opacity:.75;margin-left:4px;flex:none}
+  .tk-tipo{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;
+    padding:5px 12px;font-size:12.5px;font-weight:700;font-family:inherit;margin-bottom:10px}
+  .rp-box{display:flex;gap:5px;flex-wrap:wrap}
+  .rp-chip{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);
+    color:var(--muted);border-radius:999px;padding:3px 10px 3px 3px;font-size:12px;font-weight:600;font-family:inherit}
+  .rp-chip:hover{border-color:var(--brand2);color:var(--txt)}
+  .rp-chip.on{background:rgba(123,104,238,.18);border-color:var(--brand);color:var(--txt)}
+  .rp-av{width:20px;height:20px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;
+    font-size:10px;font-weight:800;flex:none}
+  .rp-chip.on .rp-av{background:var(--brand);color:#fff}
+  .tt-val{font-family:ui-monospace,Menlo,monospace;font-size:13.5px;font-weight:700}
+  .tt-comp{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px}
+  .tt-comp.ok{background:rgba(63,207,142,.15);color:#7fe4bb}
+  .tt-comp.passou{background:rgba(239,91,107,.16);color:#ff9aa5}
   .tk-tit{width:100%;background:transparent;border:none;color:var(--txt);font-size:21px;font-weight:700;
     letter-spacing:-.015em;padding:2px 0 12px;outline:none;font-family:inherit}
   .tk-tit::placeholder{color:var(--muted)}
@@ -3045,7 +3059,7 @@ window.spCaixa=()=>{
   if(!TK.listas.length) return renderTarefas($('#content'));
   tkDesenhar($('#content')); spDesenhar();
 };
-const spMinhas=()=>{ const u=(currentUser||{}).id; return u?TK.tarefas.filter(t=>t.responsavel_id===u&&t.status!=='feito'):[]; };
+const spMinhas=()=>{ const u=(currentUser||{}).id; return u?TK.tarefas.filter(t=>ehMinha(t,u)&&t.status!=='feito'):[]; };
 
 /* ---------- renomear ---------- */
 window.spRenomear=(tipo,id)=>{
@@ -3192,6 +3206,8 @@ async function tkCarregar(){
   if(err) throw new Error(err.message);
   TK.espacos=e.data||[]; TK.pastas=pa.data||[]; TK.listas=l.data||[]; TK.tarefas=t.data||[];
   const mm=await sb.from('no_membros').select('*'); TK.membros=(mm&&mm.data)||[];
+  const tp=await sb.from('tipos_tarefa').select('*').order('ordem'); TK.tipos=(tp&&tp.data)||[];
+  const tt=await sb.from('tarefa_tempos').select('*'); TK.tempos=(tt&&tt.data)||[];
   TK.equipe=q.data||[]; TK.status=st.data||[]; TK.campos=cp.data||[];
   if(!TK.listaSel||!TK.listas.some(x=>x.id===TK.listaSel)) TK.listaSel=(TK.listas[0]||{}).id||'';
   if(!TK.semeado){ TK.semeado=true;
@@ -3960,7 +3976,7 @@ function faseDe(t){
   if(s&&s.grupo) return s.grupo;
   return t.status==='feito'?'feito':t.status==='fazendo'?'ativo':'nao_iniciado';
 }
-const minhasTarefas=()=>{ const u=(currentUser||{}).id; return u?(TK.tarefas||[]).filter(t=>t.responsavel_id===u):[]; };
+const minhasTarefas=()=>{ const u=(currentUser||{}).id; return u?(TK.tarefas||[]).filter(t=>ehMinha(t,u)):[]; };
 window.inicioPeriodo=(p)=>{
   inicioPer=p;
   if(p==='per'&&!inicioDe){ inicioDe=isoMais(-29); inicioAte=tkHoje(); }
@@ -4502,6 +4518,98 @@ window.tkNovaLista=(espacoId,pastaId)=>{
       render('tarefas'); toast('Lista criada.'); return true;
     });
 };
+/* ---------- RESPONSÁVEIS, TIPO E CRONÔMETRO ----------
+   Três coisas que faltavam para a tarefa parecer com a do ClickUp. */
+
+/* ---- vários responsáveis ----
+   responsavel_id continua existindo e espelha o primeiro da lista: tudo que já
+   filtrava por ele continua valendo, e quem olha "minhas tarefas" enxerga também
+   onde entrou como segundo responsável. */
+const respDe=(t)=>{
+  const a=(t&&Array.isArray(t.responsaveis))?t.responsaveis.filter(Boolean):[];
+  if(a.length) return a.map(String);
+  return (t&&t.responsavel_id)?[String(t.responsavel_id)]:[];
+};
+const ehMinha=(t,uid)=>respDe(t).indexOf(String(uid||''))>=0;
+window.tkRespToggle=(uid)=>{
+  const el=document.getElementById('tk_resps'); if(!el) return;
+  const atual=String(el.value||'').split(',').filter(Boolean);
+  const i=atual.indexOf(String(uid));
+  if(i>=0) atual.splice(i,1); else atual.push(String(uid));
+  el.value=atual.join(',');
+  const box=document.getElementById('tk_respbox'); if(box) box.innerHTML=tkRespChips(atual);
+};
+function tkRespChips(ids){
+  const eq=(TK.equipe||[]);
+  return eq.map(u=>{
+    const on=ids.indexOf(String(u.id))>=0;
+    return `<button type="button" class="rp-chip${on?' on':''}" onclick="tkRespToggle('${u.id}')"
+      title="${esc(u.nome)}"><span class="rp-av">${esc(inicial(u.nome))}</span>${esc(primeiroNome(u.nome))}</button>`;
+  }).join('');
+}
+const primeiroNome=(s)=>String(s||'').trim().split(/\s+/)[0]||'';
+
+/* ---- tipo da tarefa ---- */
+const tipoDe=(id)=>(TK.tipos||[]).find(x=>String(x.id)===String(id))||null;
+function tkTipoSel(atual){
+  const ts=TK.tipos||[];
+  if(!ts.length) return '';
+  return `<select id="tk_tipo" class="tk-tipo">
+    <option value="">◻ Sem tipo</option>
+    ${ts.map(t=>`<option value="${t.id}"${String(atual||'')===String(t.id)?' selected':''}>${esc((t.icone||'')+' '+t.nome)}</option>`).join('')}
+  </select>`;
+}
+
+/* ---- cronômetro ----
+   Uma marcação aberta por vez, por pessoa: começar em outra tarefa fecha a anterior,
+   senão o dia soma mais horas do que tem. */
+const ttDe=(tid)=>(TK.tempos||[]).filter(x=>String(x.tarefa_id)===String(tid));
+const ttAberta=(tid)=>ttDe(tid).find(x=>!x.fim&&String(x.user_id)===String((currentUser||{}).id))||null;
+const ttMinhaAberta=()=>(TK.tempos||[]).find(x=>!x.fim&&String(x.user_id)===String((currentUser||{}).id))||null;
+function ttTotal(tid){
+  return ttDe(tid).reduce((s,x)=>{
+    const fim=x.fim?new Date(x.fim):new Date();
+    return s+Math.max(0,(fim-new Date(x.inicio))/60000);
+  },0);
+}
+window.ttComecar=async (tid)=>{
+  const aberta=ttMinhaAberta();
+  if(aberta&&String(aberta.tarefa_id)!==String(tid)){
+    await ttParar(aberta.tarefa_id,true);
+    toast('Cronômetro da outra tarefa foi fechado.');
+  }
+  if(ttAberta(tid)) return;
+  const {data,error}=await sb.from('tarefa_tempos')
+    .insert({tarefa_id:tid,user_id:(currentUser||{}).id}).select().single();
+  if(error){ toast('Erro: '+error.message); return; }
+  TK.tempos.push(data); ttPintar(tid);
+};
+window.ttParar=async (tid,quieto)=>{
+  const a=ttAberta(tid); if(!a) return;
+  const fim=new Date().toISOString();
+  const {error}=await sb.from('tarefa_tempos').update({fim:fim}).eq('id',a.id);
+  if(error){ toast('Erro: '+error.message); return; }
+  a.fim=fim; if(!quieto) ttPintar(tid);
+};
+function ttPintar(tid){
+  const el=document.getElementById('tk_tempo'); if(!el) return;
+  el.innerHTML=ttLinha(tid);
+  clearInterval(window.__ttTick); window.__ttTick=null;
+  if(ttAberta(tid)) window.__ttTick=setInterval(()=>{
+    const v=document.getElementById('tt_val'); if(!v){ clearInterval(window.__ttTick); return; }
+    v.textContent=estTexto(Math.round(ttTotal(tid)))||'0min';
+  },1000);
+}
+function ttLinha(tid){
+  const rodando=!!ttAberta(tid), tot=Math.round(ttTotal(tid));
+  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(tid));
+  const est=t&&t.estimativa_min?Number(t.estimativa_min):0;
+  const comp=(est&&tot)?`<span class="tt-comp ${tot>est?'passou':'ok'}">${tot>est?'passou de':'dentro de'} ${esc(estTexto(est))}</span>`:'';
+  return `<button type="button" class="btn ${rodando?'danger':'ghost'} small" onclick="${rodando?`ttParar('${tid}')`:`ttComecar('${tid}')`}">
+      ${rodando?'⏹ Parar':'▶ Start'}</button>
+    <span class="tt-val" id="tt_val">${esc(estTexto(tot))||'0min'}</span>${comp}`;
+}
+
 /* ---------- MODAL DA TAREFA: propriedades em linha, estilo ClickUp ----------
    Ícone + rótulo à esquerda, valor à direita. Uma propriedade por linha, sem caixa
    dentro de caixa — o que estava em duas colunas competia pela atenção. */
@@ -4516,7 +4624,8 @@ const SVG_P={
   cliente:ic('<path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>'),
   squad:ic('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M2 20c0-3.3 3.1-5 7-5s7 1.7 7 5"/><path d="M17 14c3 .4 5 2 5 4.5"/>'),
   lista:ic('<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>'),
-  campo:ic('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h5"/>')};
+  campo:ic('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h5"/>'),
+  cron:ic('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>')};
 /* "1h30", "90min", "2h" -> minutos. Devolve null se não entender, para poder avisar. */
 function estMinutos(s){
   s=String(s||'').trim().toLowerCase(); if(!s) return null;
@@ -4554,14 +4663,16 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
     return `<input type="${tp}" id="cp_${c.id}" value="${esc(v==null?'':String(v))}" placeholder="${c.tipo==='moeda'?'R$':''}">`; };
   modal(t?'Editar tarefa':'Nova tarefa',`
+    ${tkTipoSel(it.tipo_id)}
     <input class="tk-tit" id="tk_tit" value="${esc(it.titulo)}" placeholder="Nome da tarefa">
     <div class="tk-props">
       <div class="tk-p"><span class="tk-pl">${SVG_P.status} Status</span><span class="tk-pv">
         ${sts.length?`<select id="tk_stid"><option value="">— sem status —</option>${sts.map(s=>`<option value="${s.id}"${it.status_id===s.id?' selected':''}>${esc(s.nome)}</option>`).join('')}</select>`
                     :`<select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`}
       </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.pessoa} Responsável</span><span class="tk-pv">
-        <select id="tk_resp"><option value="">— ninguém —</option>${equipeDe(lid,it.responsavel_id).map(u=>`<option value="${u.id}"${it.responsavel_id===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>
+      <div class="tk-p"><span class="tk-pl">${SVG_P.pessoa} Responsáveis</span><span class="tk-pv">
+        <input type="hidden" id="tk_resps" value="${esc(respDe(it).join(','))}">
+        <span class="rp-box" id="tk_respbox">${tkRespChips(respDe(it))}</span>
       </span></div>
       <div class="tk-p"><span class="tk-pl">${SVG_P.data} Datas</span><span class="tk-pv tk-datas">
         <input type="date" id="tk_ini" value="${esc(it.iniciada_em||'')}" title="Início">
@@ -4575,6 +4686,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <input id="tk_est" class="tk-curto" value="${esc(estTexto(it.estimativa_min))}" placeholder="ex: 1h30">
         <span class="hint" style="margin:0">horas e minutos</span>
       </span></div>
+      ${t?`<div class="tk-p"><span class="tk-pl">${SVG_P.cron} Rastrear tempo</span>
+        <span class="tk-pv" id="tk_tempo">${ttLinha(t.id)}</span></div>`:''}
       <div class="tk-p"><span class="tk-pl">${SVG_P.tag} Etiquetas</span><span class="tk-pv">
         <input id="tk_tags" value="${esc((it.tags||[]).join(', '))}" placeholder="separadas por vírgula">
       </span></div>
@@ -4606,7 +4719,10 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         iniciada_em:($('#tk_ini')&&$('#tk_ini').value)||null,
         estimativa_min:estMinutos($('#tk_est')?$('#tk_est').value:''),
         tags:($('#tk_tags')?$('#tk_tags').value:'').split(',').map(s=>s.trim()).filter(Boolean),
-        responsavel_id:$('#tk_resp').value||null, descricao:$('#tk_desc').value.trim()};
+        descricao:$('#tk_desc').value.trim()};
+      const _rs=String(($('#tk_resps')||{}).value||'').split(',').filter(Boolean);
+      v.responsaveis=_rs; v.responsavel_id=_rs[0]||null;
+      v.tipo_id=($('#tk_tipo')&&$('#tk_tipo').value)||null;
       if($('#tk_est')&&$('#tk_est').value.trim()&&v.estimativa_min===null){
         toast('Estimativa: use algo como 45min, 1h30 ou 2h.'); $('#tk_est').focus(); return false; }
       if(v.iniciada_em&&v.prazo&&v.iniciada_em>v.prazo){ const x=v.iniciada_em; v.iniciada_em=v.prazo; v.prazo=x; }
