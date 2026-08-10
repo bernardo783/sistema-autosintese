@@ -5301,7 +5301,10 @@ window.rcStatusCli=async (cliId,novo)=>{
 const CT_MODELOS={full:'Marketing + IA (Tráfego Pago)',marketing:'Marketing / Tráfego Pago',ia_crm:'Agente de IA e CRM'};
 const CT_ICONE={full:'🔀',marketing:'📣',ia_crm:'🤖'};
 /* Unica contratada do grupo — entra sozinha em todo contrato. */
-const CT_CONTRATADA={razao:'SINTESE SOLUÇÕES TECNOLÓGICAS LTDA',cnpj:'53.862.558/0001-42',
+/* Razao social sem acento, decisao do Gabriel. No corpo do contrato sai em caixa alta;
+   no bloco de assinatura sai em caixa normal, por isso as duas formas. */
+const CT_CONTRATADA={razao:'SINTESE SOLUCOES TECNOLOGICAS LTDA',
+  razao_assinatura:'Sintese Solucoes Tecnologicas Ltda',cnpj:'53.862.558/0001-42',
   sede:'Avenida Sumaré, 179, Perdizes, São Paulo – SP, CEP 05016-090',
   foro_comarca:'São Paulo',foro_uf:'SP',cidade:'São Paulo'};
 const CT_SIGNATARIOS={
@@ -5428,6 +5431,7 @@ function ctResolver(dados){
   const d=Object.assign({},dados);
   const sig=CT_SIGNATARIOS[d._signatario]||CT_SIGNATARIOS.bernardo, e=CT_CONTRATADA;
   d.contratada_razao=e.razao; d.contratada_cnpj=e.cnpj; d.contratada_sede=e.sede;
+  d.contratada_razao_assinatura=e.razao_assinatura||e.razao;
   d.foro_comarca=e.foro_comarca; d.foro_uf=e.foro_uf; d.cidade_assinatura=e.cidade;
   d.contratada_rep_nome=sig.nome; d.contratada_rep_rg=sig.rg; d.contratada_rep_cpf=sig.cpf;
   d.data_contrato_extenso=ctDataExtenso(d.data_contrato||'');
