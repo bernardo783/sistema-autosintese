@@ -3296,7 +3296,7 @@ function tkCard(t){
   const FLG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
   const qa=`<span class="tk-qa" onclick="event.stopPropagation()">
       <span class="tk-qab" title="Definir prazo">${CAL}<input type="date" value="${t.prazo||''}" onchange="tkQaPrazo('${t.id}',this.value)"></span>
-      <button class="tk-qab" title="Prioridade (clique alterna)" onclick="tkQaPrio('${t.id}')">${FLG}</button>
+      <button class="tk-qab" title="Prioridade" onclick="tkQaPrio(event,'${t.id}')">${FLG}</button>
       <button class="tk-qab" title="Responsável" onclick="tkQaResp(event,'${t.id}')">${t.responsavel_id?avatar(t.responsavel_id):USR}</button>
       <button class="tk-qab" title="Cliente / projeto" onclick="tkQaCli(event,'${t.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg></button>
     </span>`;
@@ -3311,9 +3311,22 @@ function tkCard(t){
     </div></div>`;
 }
 window.tkQaPrazo=(id,v)=>{ tkPatch(id,{prazo:v||null},v?'Prazo definido.':'Prazo removido.'); };
-window.tkQaPrio=(id)=>{ const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
-  const seq=['baixa','med','alta','urgente']; const nx=seq[(seq.indexOf(t.prioridade||'med')+1)%4];
-  tkPatch(id,{prioridade:nx},'Prioridade: '+TK_PRIO[nx]); };
+/* bandeira abre menu escrito com as opções (pedido do Gabriel: ciclar ficava confuso) */
+window.tkQaPrio=(ev,id)=>{ ev.stopPropagation();
+  const vel=document.getElementById('tkQaMenu'); if(vel){ vel.remove(); if(vel.dataset.id==='pr'+id) return; }
+  const r=ev.currentTarget.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='tkQaMenu'; el.className='tkpop'; el.dataset.id='pr'+id;
+  el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-186))+'px'; el.style.top=(r.bottom+6)+'px'; el.style.width='180px';
+  const t=TK.tarefas.find(x=>x.id===id)||{};
+  el.innerHTML=`<div class="tkp-sec">Prioridade</div>`+
+    ['urgente','alta','med','baixa'].map(k=>`<label class="tkp-row" onclick="tkQaSetPrio('${id}','${k}')">
+      <span style="width:9px;height:9px;border-radius:3px;background:${PRIO_COR[k]};flex:none"></span>
+      <span class="tkp-nm" style="color:${PRIO_COR[k]}">${TK_PRIO[k]}</span>${(t.prioridade||'med')===k?'<span class="tkp-n">•</span>':''}</label>`).join('');
+  document.body.appendChild(el);
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.tkQaSetPrio=(id,k)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
+  tkPatch(id,{prioridade:k},'Prioridade: '+TK_PRIO[k]); };
 window.tkQaResp=(ev,id)=>{ ev.stopPropagation();
   const vel=document.getElementById('tkQaMenu'); if(vel){ vel.remove(); if(vel.dataset.id===id) return; }
   const r=ev.currentTarget.getBoundingClientRect();
