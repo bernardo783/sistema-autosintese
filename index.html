@@ -365,6 +365,19 @@
     background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted);font-size:21px;font-weight:800}
   .fotoprev.rd{border-radius:50%}
   .fotoprev img{width:100%;height:100%;object-fit:cover;display:block}
+  /* ---------- EDITOR DO CONTRATO ---------- */
+  .ct-ov{align-items:flex-start;overflow:auto;padding:0}
+  .ct-wrap{width:100%;max-width:900px;margin:0 auto}
+  .ct-bar{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;
+    gap:12px;background:var(--panel);border-bottom:1px solid var(--line);padding:12px 18px;flex-wrap:wrap}
+  .ct-falta{background:rgba(230,177,63,.13);border:1px solid rgba(230,177,63,.4);color:#e6b13f;
+    border-radius:8px;padding:10px 14px;margin:14px 18px;font-size:13px}
+  .ct-folha{background:#fff;color:#111;margin:18px;padding:56px 64px;border-radius:6px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.65}
+  .ct-folha .ct-p{margin:0 0 11px;outline:none;border-radius:3px;text-align:justify}
+  .ct-folha .ct-p:hover{background:#f2f4f8}
+  .ct-folha .ct-p:focus{background:#fffbe6;box-shadow:inset 0 0 0 1px #e6b13f}
+  .ct-folha .ct-p.mex{background:#fff8dc;box-shadow:inset 0 0 0 1px #d8b34a}
   /* ---------- CHECKLIST DA TAREFA ---------- */
   .ck-l{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .ck-l input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2);flex:none}
@@ -5788,6 +5801,115 @@ async function ctGerar(slug,dados,nomeArquivo){
   return [...faltando];
 }
 
+/* ======================= EDITOR DO CONTRATO =======================
+   Mesma ideia do editor de relatorio: o closer ve o documento pronto, corrige o que
+   estiver errado e baixa. Diferenca: relatorio e HTML, contrato e .docx. Entao aqui a
+   gente le os paragrafos do Word, deixa editar, e na hora de baixar escreve o texto de
+   volta no proprio arquivo. Paragrafo que ninguem tocou sai identico; paragrafo editado
+   e reescrito no primeiro <w:t> (perde negrito no meio da frase, ganha o texto certo). */
+const CT_PAR=/<w:p[ >][\s\S]*?<\/w:p>/g;
+const CT_T=/(<w:t[^>]*>)([\s\S]*?)(<\/w:t>)/g;
+const ctUnesc=(x)=>String(x).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");
+/* le os paragrafos de um xml, na ordem */
+function ctParas(xml){
+  const out=[]; let m, i=0;
+  CT_PAR.lastIndex=0;
+  while((m=CT_PAR.exec(xml))){
+    const ts=m[0].match(CT_T);
+    const txt=ts?ts.map(t=>ctUnesc(t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,''))).join(''):'';
+    out.push({i:i++, txt, tem:!!ts});
+  }
+  return out;
+}
+/* escreve de volta so os paragrafos que mudaram */
+function ctAplica(xml,mudou){
+  let i=-1;
+  return xml.replace(CT_PAR,(par)=>{
+    i++;
+    if(!(i in mudou)) return par;
+    let primeiro=true;
+    return par.replace(CT_T,(_a,ab,_m,fe)=>{
+      const corpo=primeiro?ctEsc(mudou[i]):''; primeiro=false;
+      const abre=ab.indexOf('xml:space')>=0?ab:ab.replace('<w:t','<w:t xml:space="preserve"');
+      return abre+corpo+fe;
+    });
+  });
+}
+let CT_ED=null;   /* {zip, xml, paras, mudou, slug, dados, nome, faltando} */
+window.ctEditor=async (slug,dados,nomeArquivo)=>{
+  toast('Montando o contrato…');
+  let zip;
+  try{ zip=(await ctModeloZip(slug)).zip; }
+  catch(e){ toast('Não consegui abrir o modelo: '+(e.message||e)); return; }
+  const d=ctResolver(dados), faltando=new Set();
+  for(const alvo of CT_ALVOS){
+    const f=zip.file(alvo); if(!f) continue;
+    let xml=await f.async('string');
+    xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k];
+      if(v===undefined||v===''){ faltando.add(k); return todo; } return ctEsc(v); });
+    zip.file(alvo,xml);
+  }
+  const xml=await zip.file('word/document.xml').async('string');
+  CT_ED={zip,xml,paras:ctParas(xml),mudou:{},slug,dados:d,nome:nomeArquivo||('Contrato-'+slug),faltando:[...faltando]};
+  ctEdPintar();
+};
+function ctEdPintar(){
+  const e=CT_ED; if(!e) return;
+  const linhas=e.paras.filter(p=>p.tem&&p.txt.trim()).map(p=>
+    `<p class="ct-p" contenteditable="true" data-i="${p.i}" oninput="ctEdMudou(${p.i},this)">${esc(p.txt)}</p>`).join('');
+  const alerta=e.faltando.length
+    ? `<div class="ct-falta">Ficaram ${e.faltando.length} campo(s) sem preencher: ${esc(e.faltando.join(', '))}. Dá pra corrigir direto no texto aqui embaixo.</div>` : '';
+  const ov=document.createElement('div'); ov.className='overlay ct-ov'; ov.id='ctOv';
+  ov.innerHTML=`<div class="ct-wrap">
+    <div class="ct-bar">
+      <div><strong>${esc(CT_MODELOS[e.slug]||e.slug)}</strong>
+        <span class="hint" style="margin:0 0 0 10px">clique em qualquer parágrafo para corrigir · <span id="ctEdN">0</span> alterado(s)</span></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn secondary small" onclick="ctEdFechar()">Cancelar</button>
+        <button class="btn small" id="ctEdBaixar" onclick="ctEdBaixar()">Baixar .docx</button>
+      </div>
+    </div>
+    ${alerta}
+    <div class="ct-folha">${linhas}</div>
+    <p class="hint" style="text-align:center;padding:0 0 20px">O parágrafo que você editar perde negrito/itálico no meio da frase. Os que você não tocar ficam idênticos ao modelo.</p>
+  </div>`;
+  document.body.appendChild(ov);
+}
+window.ctEdMudou=(i,el)=>{ if(!CT_ED) return;
+  const orig=(CT_ED.paras.find(p=>p.i===i)||{}).txt||'';
+  const agora=el.innerText.replace(/ /g,' ');
+  if(agora===orig) delete CT_ED.mudou[i]; else CT_ED.mudou[i]=agora;
+  el.classList.toggle('mex',i in CT_ED.mudou);
+  const n=document.getElementById('ctEdN'); if(n) n.textContent=Object.keys(CT_ED.mudou).length;
+};
+window.ctEdFechar=()=>{ const o=document.getElementById('ctOv'); if(o) o.remove(); CT_ED=null; };
+window.ctEdBaixar=async ()=>{
+  const e=CT_ED; if(!e) return;
+  const b=document.getElementById('ctEdBaixar'); if(b){ b.disabled=true; b.textContent='Gerando…'; }
+  try{
+    e.zip.file('word/document.xml', ctAplica(e.xml,e.mudou));
+    const blob=await e.zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=e.nome+'.docx'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    /* o contrato fica guardado no sistema — sem planilha de controle por fora */
+    try{
+      const cli=DB.clientes.find(x=>x.id===ctCliSel);
+      const b64=await ctBlobB64(blob);
+      const {error}=await sb.from('contratos_gerados').insert({
+        modelo:e.slug, cliente_id:ctCliSel||null, cliente_nome:(cli&&cli.nome)||e.dados.contratante_razao||'',
+        signatario:ctSignatario, dados:e.dados, edicoes:e.mudou, arquivo:e.nome+'.docx',
+        conteudo_b64:b64, bytes:blob.size, gerado_por:(currentUser||{}).id||null});
+      if(error) toast('Baixado, mas não consegui arquivar: '+error.message);
+      else toast('Contrato baixado e guardado no sistema.');
+    }catch(err){ toast('Baixado, mas não consegui arquivar.'); }
+    ctEdFechar();
+  }catch(err){
+    toast('Erro ao gerar: '+(err.message||err));
+    if(b){ b.disabled=false; b.textContent='Baixar .docx'; }
+  }
+};
+
 /* ---- tela ---- */
 let ctModelo='full'; let ctCliSel=''; let ctSignatario='bernardo'; let ctRasc={}; let ctLeads=[];
 const CT_LINK=SUPA_URL+'/functions/v1/formulario/sintese';
@@ -5900,10 +6022,10 @@ window.ctForm=()=>{
     if(ctCliSel) await ctSalvarNaFicha(ctCliSel,d);
     try{
       const nome=(d.contratante_razao||'Contrato').replace(/[^\w\sÀ-ÿ-]/g,'').trim().slice(0,60);
-      const faltou=await ctGerar(ctModelo,d,'Contrato-'+ctModelo+'-'+nome);
+      /* nao baixa direto: abre o editor pro closer conferir e corrigir antes */
+      await ctEditor(ctModelo,d,'Contrato-'+ctModelo+'-'+nome);
       if(ctRasc._lead){ await sb.from('contrato_leads').update({status:'usado'}).eq('id',ctRasc._lead); }
       ctRasc={};
-      toast(faltou.length?('Gerado, mas ficaram sem preencher: '+faltou.join(', ')):'Contrato gerado. Confira o download.');
     }catch(e){ toast(e.message); return false; }
     return true;
   });
