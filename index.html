@@ -450,6 +450,33 @@
   .tk-addcard{flex:none;width:100%;background:transparent;border:none;color:var(--muted);font-size:12.5px;font-weight:600;text-align:left;padding:8px 10px;border-radius:8px;margin-top:2px}
   .tk-addcard:hover{background:var(--panel2);color:var(--txt)}
   .tk-vazio{border:1.5px dashed var(--line);border-radius:10px;color:var(--muted);font-size:12px;text-align:center;padding:18px 8px;margin:0 0 8px}
+  /* popovers de filtro (Responsavel / Filtros) estilo ClickUp */
+  .tkpop{position:fixed;z-index:1500;width:330px;max-height:70vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow);scrollbar-width:thin}
+  .tkp-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .tkp-h strong{font-size:14px}
+  .tkp-x{background:transparent;border:none;color:var(--muted);font-size:12px;padding:4px 8px;border-radius:7px}
+  .tkp-x:hover{background:var(--panel2);color:var(--txt)}
+  .tkp-busca{width:100%;margin-bottom:10px}
+  .tkp-sec{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:4px 2px 7px;display:flex;gap:6px}
+  .tkp-row{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;cursor:pointer}
+  .tkp-row:hover{background:var(--panel2)}
+  .tkp-nm{flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tkp-n{color:var(--muted);font-size:11px;font-weight:700}
+  .tkp-row input{accent-color:#7c3aed;width:15px;height:15px;cursor:pointer;flex:none}
+  .tkp-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .tkp-chip{background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-size:12px;font-weight:600;border-radius:8px;padding:5px 10px}
+  .tkp-chip:hover{border-color:var(--brand2)}
+  .tkp-chip.on{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff}
+  .tkp-datas{display:flex;align-items:center;gap:8px}
+  .tkp-datas .search{flex:1;min-width:0}
+  .tkp-datas span{color:var(--muted);font-size:12px}
+  .tkp-limpar{width:100%;margin-top:12px;background:transparent;border:1px dashed var(--line);color:var(--muted);border-radius:8px;padding:7px;font-size:12px;font-weight:600}
+  .tkp-limpar:hover{color:var(--txt);border-color:var(--brand2)}
+  .toolbar .btn.fon{border-color:var(--brand2);color:#c4b5fd}
+  .toolbar .btn.ghost svg{vertical-align:-1px;margin-right:2px}
+  .fbad{display:inline-grid;place-items:center;min-width:16px;height:16px;border-radius:8px;background:var(--brand);color:#fff;font-size:10px;font-weight:800;padding:0 4px;margin-left:5px}
+  .avstack{display:inline-flex;margin-left:7px}
+  .avstack .av{margin-left:-6px;box-shadow:0 0 0 2px var(--panel)}
   .tk-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .tk-sub{color:var(--muted);font-size:11.5px;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tk-wrap{display:grid;grid-template-columns:252px 1fr;gap:16px;align-items:start}
@@ -938,6 +965,7 @@ let searchTerm='';
 
 /* ======================= RENDER ======================= */
 function render(view){
+  if(window.tkPopFechar) tkPopFechar();
   /* Senhas e Links são a mesma tela, separadas por filtro */
   if(view==='senhas'||view==='links'){ acTab=view; view='acessos'; }
   /* "Projetos" e "Clientes" viraram a lista Base de Clientes, dentro do espaço Projetos */
@@ -2228,7 +2256,9 @@ const TK_STC={todo:'st',fazendo:'onboarding',feito:'ativo'};
 const TK_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const TK_SEM=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 let TK={espacos:[],pastas:[],listas:[],tarefas:[],equipe:[],status:[],campos:[],listaSel:'',arrastando:null,
-  visao:'lista',escopo:'lista',ord:'',dir:1,busca:'',focoBusca:false,ref:'',grupo:'status',fechadas:{},colsOff:{},squadF:''};
+  visao:'lista',escopo:'lista',ord:'',dir:1,busca:'',focoBusca:false,ref:'',grupo:'status',fechadas:{},colsOff:{},squadF:'',
+  filtro:{resps:[],prazo:'',de:'',ate:'',prios:[]}};
+try{ const _f=JSON.parse(localStorage.getItem('tk_filtro')||'null'); if(_f&&typeof _f==='object') TK.filtro={resps:_f.resps||[],prazo:_f.prazo||'',de:_f.de||'',ate:_f.ate||'',prios:_f.prios||[]}; }catch(_){}
 /* ---------- SQUAD NA TAREFA ----------
    O recorte real e do Postgres (RLS tarefa_visivel): quem tem squad so enxerga o proprio.
    Aqui em cima ficam o campo na tarefa, o filtro da lista e a trava da estrutura. */
@@ -2368,6 +2398,7 @@ const ICO_LIB={
  pacote:'<path d="M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="M3.3 7l8.7 5 8.7-5"/><path d="M12 22V12"/>',
  enviar:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',
  brilho:'<path d="M12 3l1.9 5.8 5.8 2.2-5.8 1.9L12 18.7l-1.9-5.8-5.8-1.9 5.8-2.2z"/><path d="M19 3v4"/><path d="M17 5h4"/>',
+ funil:'<path d="M22 3H2l8 9.5V21l4-2v-6.5z"/>',
  banco:'<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2L2 8h20z"/>'};
 const svgIco=(k,s)=>ICO_LIB[k]?`<svg width="${s||13}" height="${s||13}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICO_LIB[k]}</svg>`:'';
 const icHtml=(ic,s)=>{ ic=String(ic||''); return ic.slice(0,4)==='svg:'?svgIco(ic.slice(4),s):esc(ic); };
@@ -2767,6 +2798,11 @@ function tkFiltradas(){
   let arr=TK.escopo==='minhas'?spMinhas():TK.tarefas.filter(t=>TK.escopo==='todas'||t.lista_id===TK.listaSel);
   if(TK.squadF==='(sem)') arr=arr.filter(t=>!String(t.squad||'').trim());
   else if(TK.squadF) arr=arr.filter(t=>String(t.squad||'')===TK.squadF);
+  const F=TK.filtro||{};
+  if(F.resps&&F.resps.length) arr=arr.filter(t=>F.resps.includes(t.responsavel_id)||(F.resps.includes('(sem)')&&!t.responsavel_id));
+  if(F.prios&&F.prios.length) arr=arr.filter(t=>F.prios.includes(t.prioridade||'med'));
+  if(F.de||F.ate) arr=arr.filter(t=>t.prazo&&(!F.de||t.prazo>=F.de)&&(!F.ate||t.prazo<=F.ate));
+  else if(F.prazo) arr=arr.filter(t=>tkPrazoBate(t,F.prazo));
   if(q) arr=arr.filter(t=>((t.titulo||'')+' '+(t.descricao||'')+' '+tkNomeFicha(t.ficha_id)+' '+tkNomeUser(t.responsavel_id)).toLowerCase().indexOf(q)>=0);
   return arr;
 }
@@ -3129,7 +3165,48 @@ window.dndSoltarLinha=async (ev,alvoId)=>{
 /* ---------- NOVAS CONTAS: formulario aberto para toda a equipe ---------- */
 const NC_LISTA='c2000000-0000-4000-8000-0000000000b1';
 const NC_ABERTO='c2000000-0000-4000-8000-00000000b101';
-const NC_C={sol:'c2000000-0000-4000-8000-00000000b201',nat:'c2000000-0000-4000-8000-00000000b202',dep:'c2000000-0000-4000-8000-00000000b203',forn:'c2000000-0000-4000-8000-00000000b204',val:'c2000000-0000-4000-8000-00000000b205',pag:'c2000000-0000-4000-8000-00000000b206',parc:'c2000000-0000-4000-8000-00000000b207',venc:'c2000000-0000-4000-8000-00000000b208',mot:'c2000000-0000-4000-8000-00000000b209',desc:'c2000000-0000-4000-8000-00000000b20a',obs:'c2000000-0000-4000-8000-00000000b20b',anexo:'c2000000-0000-4000-8000-00000000b20c'};
+const NC_C={sol:'c2000000-0000-4000-8000-00000000b201',nat:'c2000000-0000-4000-8000-00000000b202',dep:'c2000000-0000-4000-8000-00000000b203',forn:'c2000000-0000-4000-8000-00000000b204',val:'c2000000-0000-4000-8000-00000000b205',pag:'c2000000-0000-4000-8000-00000000b206',parc:'c2000000-0000-4000-8000-00000000b207',venc:'c2000000-0000-4000-8000-00000000b208',mot:'c2000000-0000-4000-8000-00000000b209',desc:'c2000000-0000-4000-8000-00000000b20a',obs:'c2000000-0000-4000-8000-00000000b20b',anexo:'c2000000-0000-4000-8000-00000000b20c',rec:'c2000000-0000-4000-8000-00000000b20d'};
+const NC_REC=['Não é recorrente','Semanal','Quinzenal','Mensal','Trimestral','Semestral','Anual'];
+/* ---------- Anexo: upload direto pro bucket privado 'comprovantes' ---------- */
+const NC_BUCKET='comprovantes';
+window.__ncAnexos=[];   /* [{path,nome,tam}] do envio atual */
+const ncTam=(b)=>b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB';
+function ncPintarAnexos(){
+  const el=document.getElementById('ncArqs'); if(!el) return;
+  el.innerHTML=(window.__ncAnexos||[]).map((a,i)=>`
+    <div style="display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);
+                border-radius:9px;padding:8px 11px;margin-top:7px">
+      <span>${/\.pdf$/i.test(a.nome)?'📄':'🖼️'}</span>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.nome)}</div>
+        <div style="color:var(--muted);font-size:11px">${ncTam(a.tam)} · enviado</div></div>
+      <button class="iconbtn del" onclick="ncTirarAnexo(${i})" title="Remover">✕</button>
+    </div>`).join('');
+}
+window.ncTirarAnexo=(i)=>{ (window.__ncAnexos||[]).splice(i,1); ncPintarAnexos(); };
+window.ncSubir=async (input)=>{
+  const arqs=[...(input.files||[])]; if(!arqs.length) return;
+  const st=document.getElementById('ncUpSt');
+  let uid=''; try{ uid=(SESSION&&SESSION.user&&SESSION.user.id)||''; }catch(_){}
+  if(!uid){ toast('Faça login de novo para anexar.'); return; }
+  for(const f of arqs){
+    if(f.size>10*1024*1024){ toast('“'+f.name+'” tem mais de 10 MB — reduza e tente de novo.'); continue; }
+    if(st) st.textContent='Enviando '+f.name+'…';
+    const limpo=f.name.replace(/[^\w.\-]+/g,'_').slice(-60);
+    const path=uid+'/'+Date.now()+'-'+limpo;
+    const {error}=await sb.storage.from(NC_BUCKET).upload(path,f,{upsert:false,contentType:f.type||undefined});
+    if(error){ if(st) st.textContent=''; toast('Falha ao anexar: '+error.message); continue; }
+    window.__ncAnexos.push({path,nome:f.name,tam:f.size});
+  }
+  if(st) st.textContent='';
+  input.value=''; ncPintarAnexos();
+};
+/* abre um anexo do bucket privado gerando link temporário */
+window.ncAbrirAnexo=async (path)=>{
+  if(/^https?:\/\//i.test(path)) return window.open(path,'_blank','noopener');
+  const {data,error}=await sb.storage.from(NC_BUCKET).createSignedUrl(path,600);
+  if(error||!data){ toast('Não consegui abrir o anexo: '+((error&&error.message)||'sem permissão')); return; }
+  window.open(data.signedUrl,'_blank','noopener');
+};
 const NC_NAT=['Reembolso','Pagamento','Retirada'];
 const NC_DEP=['Marketing','Comercial','Tecnologia','Administrativo'];
 const NC_PAG=['Débito','Crédito','Dinheiro','Transferência/Pix','Boleto'];
@@ -3193,20 +3270,39 @@ function ncFormulario(c){
        <div class="field"><label>Descrição</label><textarea id="nc_desc" rows="2"></textarea></div>
        <div class="field"><label>Observações</label><textarea id="nc_obs" rows="2"></textarea></div>
      </div>
-     <div class="field"><label>Anexo * — link do boleto, NF ou comprovante</label><input id="nc_anexo" placeholder="https://... (Drive, foto digitalizada ou boleto)"></div>
+     <div class="row2">
+       <div class="field"><label>Esse pagamento se repete? *</label><select id="nc_rec">${ncOpc(NC_REC)}</select></div>
+       <div class="field"><label>Link do comprovante (opcional)</label><input id="nc_anexo" placeholder="Se já estiver no Drive, cole aqui"></div>
+     </div>
+     <div class="field">
+       <label>Anexo * — NF, cupom, boleto ou comprovante</label>
+       <label for="nc_arq" style="display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;
+              border:1.5px dashed var(--line);border-radius:11px;padding:16px;color:var(--muted);font-size:13.5px;
+              background:var(--panel2);transition:border-color .15s"
+              onmouseover="this.style.borderColor='var(--brand2)'" onmouseout="this.style.borderColor='var(--line)'">
+         📎 <strong style="color:var(--txt)">Escolher arquivo</strong> — foto ou PDF, até 10 MB
+       </label>
+       <input type="file" id="nc_arq" accept="image/*,application/pdf,.pdf" multiple style="display:none" onchange="ncSubir(this)">
+       <div id="ncUpSt" class="hint" style="margin-top:6px"></div>
+       <div id="ncArqs"></div>
+     </div>
      <div style="display:flex;gap:10px;margin-top:8px">
        <button class="btn" onclick="ncEnviar()">Enviar solicitação</button>
        <button class="btn secondary" onclick="ncLimpar()">Limpar</button>
      </div>
    </div>
    <h2 style="font-size:15px;margin:20px 0 8px">Últimas solicitações</h2>
-   <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th style="text-align:right">Valor</th><th>Vencimento</th></tr></thead><tbody>${envs.map(t=>`<tr>
-      <td><strong>${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">${esc((t.valores||{})[NC_C.sol]||'')}</div></td>
+   <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th style="text-align:right">Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead><tbody>${envs.map(t=>{
+      const vv=t.valores||{}; const rec=vv[NC_C.rec]||''; const anx=String(vv[NC_C.anexo]||'');
+      const lista=anx?anx.split('\n').filter(Boolean):[];
+      return `<tr>
+      <td><strong>${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">${esc(vv[NC_C.sol]||'')}${rec&&rec!=='Não é recorrente'?' · <span style="color:#a855f7">🔁 '+esc(rec)+'</span>':''}</div></td>
       <td>${tkSelo(t)}</td>
-      <td>${esc((t.valores||{})[NC_C.dep]||'—')}</td>
-      <td style="text-align:right">${brl((t.valores||{})[NC_C.val])}</td>
-      <td>${fmtDate((t.valores||{})[NC_C.venc]||'')||'—'}</td>
-    </tr>`).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
+      <td>${esc(vv[NC_C.dep]||'—')}</td>
+      <td style="text-align:right">${brl(vv[NC_C.val])}</td>
+      <td>${fmtDate(vv[NC_C.venc]||'')||'—'}</td>
+      <td>${lista.length?lista.map((p,i)=>`<button class="iconbtn" onclick="ncAbrirAnexo('${esc(p)}')" title="${esc(p.split('/').pop())}">${/^https?:/i.test(p)?'🔗':'📎'} ${lista.length>1?(i+1):'ver'}</button>`).join(' '):'<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`;}).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
 }
 /* Atalho 💸 da barra lateral: mesmo canal de solicitação, já em Reembolso.
    (o roteador chamava renderReembolsos, que não existia — a tela quebrava sem renderizar nada) */
@@ -3216,7 +3312,8 @@ window.renderReembolsos=(c)=>{
   const n=document.getElementById('nc_nat');
   if(n&&!n.value){ n.value='Reembolso'; if(window.ncNat) ncNat(); }
 };
-window.ncLimpar=()=>{ ['nc_forn','nc_val','nc_venc','nc_mot','nc_desc','nc_obs','nc_anexo','nc_nat','nc_dep','nc_pag','nc_parc'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; }); };
+window.ncLimpar=()=>{ ['nc_forn','nc_val','nc_venc','nc_mot','nc_desc','nc_obs','nc_anexo','nc_nat','nc_dep','nc_pag','nc_parc','nc_rec'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  window.__ncAnexos=[]; ncPintarAnexos(); };
 window.ncEnviar=async ()=>{
   const sol=ncV('nc_sol'), nat=ncV('nc_nat'), dep=ncV('nc_dep'), forn=ncV('nc_forn'), venc=ncV('nc_venc'), mot=ncV('nc_mot');
   const val=ncNum(ncV('nc_val'));
@@ -3229,17 +3326,23 @@ window.ncEnviar=async ()=>{
     const el=document.getElementById(faltando[0][1]); if(el){ el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); }
     return;
   }
-  /* regra 2 e 5: sem comprovante o pedido não é considerado — barra aqui em vez de barrar depois */
-  if(!ncV('nc_anexo')){ toast('Anexe a NF, o cupom ou o comprovante — sem isso a solicitação não é considerada.');
-    const a=document.getElementById('nc_anexo'); if(a) a.focus(); return; }
+  /* regra 2 e 5: sem comprovante o pedido não é considerado — vale arquivo enviado OU link colado */
+  const arquivos=(window.__ncAnexos||[]).map(a=>a.path);
+  if(!arquivos.length && !ncV('nc_anexo')){
+    toast('Anexe a NF, o cupom ou o comprovante — sem isso a solicitação não é considerada.');
+    const a=document.getElementById('nc_arq'); if(a&&a.parentElement) a.parentElement.scrollIntoView({block:'center',behavior:'smooth'});
+    return; }
   const v={};
   v[NC_C.sol]=sol; v[NC_C.nat]=nat; v[NC_C.dep]=dep; v[NC_C.forn]=forn; v[NC_C.val]=val; v[NC_C.venc]=venc; v[NC_C.mot]=mot;
-  const pag=ncV('nc_pag'), parc=ncV('nc_parc'), des=ncV('nc_desc'), obs=ncV('nc_obs'), anx=ncV('nc_anexo');
+  const pag=ncV('nc_pag'), parc=ncV('nc_parc'), des=ncV('nc_desc'), obs=ncV('nc_obs'), anx=ncV('nc_anexo'), rec=ncV('nc_rec');
   if(pag) v[NC_C.pag]=pag;
   if(parc) v[NC_C.parc]=parc;
   if(des) v[NC_C.desc]=des;
   if(obs) v[NC_C.obs]=obs;
-  if(anx) v[NC_C.anexo]=anx;
+  if(rec) v[NC_C.rec]=rec;
+  /* arquivos enviados + link colado, um por linha */
+  const anexos=arquivos.concat(anx?[anx]:[]);
+  if(anexos.length) v[NC_C.anexo]=anexos.join('\n');
   const reg={lista_id:NC_LISTA,titulo:forn+' — '+nat,descricao:mot,status:'todo',status_id:NC_ABERTO,prioridade:'med',prazo:venc,ordem:TK.tarefas.filter(t=>t.lista_id===NC_LISTA).length,valores:v};
   try{ if(window.SESSION&&SESSION.user) reg.criado_por=SESSION.user.id; }catch(_){}
   const {data,error}=await sb.from('tarefas').insert(reg).select().single();
@@ -3342,6 +3445,81 @@ function tkBarraSquad(){
     ${pil('','Todos os squads')}${sqs.map(s=>pil(s,'Squad '+s)).join('')}${pil('(sem)','Sem squad')}</div>`;
 }
 window.tkSquadF=(s)=>{ TK.squadF=s; tkDesenhar($('#content')); };
+/* ===== FILTROS estilo ClickUp (video do Gabriel, 09/08): Responsavel + Data + Prioridade ===== */
+function tkDiaMais(base,n){ const d=new Date(base+'T12:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function tkPrazoBate(t,k){ const hj=tkHoje();
+  if(k==='semprazo') return !t.prazo;
+  if(k==='atraso') return !!t.prazo&&t.prazo<hj&&t.status!=='feito';
+  if(!t.prazo) return false;
+  if(k==='hoje') return t.prazo===hj;
+  if(k==='ontem') return t.prazo===tkDiaMais(hj,-1);
+  if(k==='amanha') return t.prazo===tkDiaMais(hj,1);
+  if(k==='ult7') return t.prazo>=tkDiaMais(hj,-7)&&t.prazo<=hj;
+  if(k==='prox7') return t.prazo>=hj&&t.prazo<=tkDiaMais(hj,7);
+  if(k==='semana'){ const d=new Date(hj+'T12:00:00'); const dow=(d.getDay()+6)%7; return t.prazo>=tkDiaMais(hj,-dow)&&t.prazo<=tkDiaMais(hj,6-dow); }
+  if(k==='mes') return t.prazo.slice(0,7)===hj.slice(0,7);
+  return true; }
+const tkFiltroN=()=>{ const F=TK.filtro||{}; return ((F.prazo||F.de||F.ate)?1:0)+((F.prios&&F.prios.length)?1:0); };
+function tkBtnFiltro(){ const n=tkFiltroN();
+  return `<button class="btn ghost small${n?' fon':''}" onclick="tkPopFiltro(event)">${svgIco('funil',12)} Filtro${n?`<span class="fbad">${n}</span>`:''}</button>`; }
+function tkBtnResp(){ const rs=(TK.filtro||{}).resps||[];
+  const avs=rs.filter(x=>x!=='(sem)').slice(0,3).map(u=>avatar(u,null,'sm')).join('');
+  return `<button class="btn ghost small${rs.length?' fon':''}" onclick="tkPopResp(event)">${svgIco('usuario',12)} Responsável${rs.length?`<span class="avstack">${avs}</span><span class="fbad">${rs.length}</span>`:''}</button>`; }
+let TKPOP=null, TKQR='';
+window.tkPopFechar=()=>{ const el=document.getElementById('tkPop'); if(el) el.remove(); TKPOP=null; document.removeEventListener('mousedown',tkPopFora,true); };
+function tkPopFora(e){ const el=document.getElementById('tkPop'); if(el&&!el.contains(e.target)) tkPopFechar(); }
+function tkPopAbrir(tipo,ev){ ev.stopPropagation();
+  if(TKPOP&&TKPOP.tipo===tipo){ tkPopFechar(); return; }
+  tkPopFechar(); TKQR='';
+  const r=ev.currentTarget.getBoundingClientRect();
+  TKPOP={tipo,x:Math.max(8,Math.min(r.left,window.innerWidth-346)),y:r.bottom+6};
+  const el=document.createElement('div'); el.id='tkPop'; el.className='tkpop';
+  el.style.left=TKPOP.x+'px'; el.style.top=TKPOP.y+'px';
+  document.body.appendChild(el); tkPopPintar();
+  setTimeout(()=>document.addEventListener('mousedown',tkPopFora,true),0);
+}
+window.tkPopFiltro=(ev)=>tkPopAbrir('filtro',ev);
+window.tkPopResp=(ev)=>tkPopAbrir('resp',ev);
+function tkPopPintar(){ const el=document.getElementById('tkPop'); if(!el||!TKPOP) return;
+  el.innerHTML=TKPOP.tipo==='resp'?tkPopRespHTML():tkPopFiltroHTML(); }
+function tkFiltradasSemResp(){ const s=TK.filtro.resps; TK.filtro.resps=[]; let r; try{ r=tkFiltradas(); }finally{ TK.filtro.resps=s; } return r; }
+function tkPopRespHTML(){ const F=TK.filtro;
+  const cont={}; tkFiltradasSemResp().forEach(t=>{ const k=t.responsavel_id||'(sem)'; cont[k]=(cont[k]||0)+1; });
+  const q=TKQR.toLowerCase();
+  const pessoas=[...TK.equipe].sort((a,b)=>((cont[b.id]||0)-(cont[a.id]||0))||String(a.nome||'').localeCompare(String(b.nome||'')));
+  const linha=(id,nome,av)=>{ if(q&&nome.toLowerCase().indexOf(q)<0) return '';
+    return `<label class="tkp-row"><span>${av}</span><span class="tkp-nm">${esc(nome)}</span><span class="tkp-n">${cont[id]||0}</span><input type="checkbox" ${F.resps.includes(id)?'checked':''} onchange="tkFResp('${id}')"></label>`; };
+  return `<div class="tkp-h"><strong>Responsáveis</strong><button class="tkp-x" onclick="tkPopFechar()">&#10005;</button></div>
+   <input class="search tkp-busca" placeholder="Pesquisar por usuário..." value="${esc(TKQR)}" oninput="TKQR=this.value;tkPopPintar();const b=document.querySelector('.tkp-busca');if(b){b.focus();b.setSelectionRange(b.value.length,b.value.length);}">
+   <div class="tkp-sec">Pessoas <span>${pessoas.length}</span></div>
+   ${linha('(sem)','Não atribuído','<span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span>')}
+   ${pessoas.map(u=>linha(u.id,u.nome||'?',avatar(u.id,u.nome,'sm'))).join('')}
+   ${F.resps.length?`<button class="tkp-limpar" onclick="TK.filtro.resps=[];tkFAplicar()">Limpar responsáveis</button>`:''}`;
+}
+function tkPopFiltroHTML(){ const F=TK.filtro;
+  const chip=(k,r)=>`<button class="tkp-chip${(F.prazo===k&&!F.de&&!F.ate)?' on':''}" onclick="tkFPrazo('${k}')">${r}</button>`;
+  return `<div class="tkp-h"><strong>Filtros</strong><button class="tkp-x" onclick="tkPopFechar()">&#10005;</button></div>
+   <div class="tkp-sec">Data de vencimento</div>
+   <div class="tkp-chips">
+     ${chip('hoje','Hoje')}${chip('ontem','Ontem')}${chip('amanha','Amanhã')}${chip('atraso','Atrasadas')}
+     ${chip('ult7','Últimos 7 dias')}${chip('prox7','Próximos 7 dias')}${chip('semana','Esta semana')}${chip('mes','Este mês')}${chip('semprazo','Sem prazo')}
+   </div>
+   <div class="tkp-sec" style="margin-top:12px">Período exato</div>
+   <div class="tkp-datas">
+     <input type="date" class="search" value="${F.de||''}" onchange="TK.filtro.de=this.value;TK.filtro.prazo='';tkFAplicar()">
+     <span>até</span>
+     <input type="date" class="search" value="${F.ate||''}" onchange="TK.filtro.ate=this.value;TK.filtro.prazo='';tkFAplicar()">
+   </div>
+   <div class="tkp-sec" style="margin-top:12px">Prioridade</div>
+   <div class="tkp-chips">${['alta','med','baixa'].map(k=>`<button class="tkp-chip${F.prios.includes(k)?' on':''}" onclick="tkFPrio('${k}')">${TK_PRIO[k]}</button>`).join('')}</div>
+   ${tkFiltroN()?`<button class="tkp-limpar" onclick="tkFLimpar()">Limpar filtros</button>`:''}`;
+}
+window.tkFResp=(id)=>{ const r=TK.filtro.resps, i=r.indexOf(id); if(i>=0) r.splice(i,1); else r.push(id); tkFAplicar(); };
+window.tkFPrazo=(k)=>{ const F=TK.filtro; F.de=''; F.ate=''; F.prazo=(F.prazo===k?'':k); tkFAplicar(); };
+window.tkFPrio=(k)=>{ const p=TK.filtro.prios, i=p.indexOf(k); if(i>=0) p.splice(i,1); else p.push(k); tkFAplicar(); };
+window.tkFLimpar=()=>{ TK.filtro.prazo=''; TK.filtro.de=''; TK.filtro.ate=''; TK.filtro.prios=[]; tkFAplicar(); };
+function tkFAplicar(){ try{ localStorage.setItem('tk_filtro',JSON.stringify(TK.filtro)); }catch(_){}
+  tkDesenhar($('#content')); tkPopPintar(); }
 function tkDesenhar(c){
   if(TK.listaSel==='7381fb45-8d78-458d-b432-77dd88972338'&&TK.escopo==='lista'){ return renderTrafego(c); }
   if(TK.listaSel===NC_LISTA&&TK.escopo==='lista'){ return ncFormulario(c); }
@@ -3359,6 +3537,8 @@ function tkDesenhar(c){
      <div>${tkCrumb()}<h2>${titulo}</h2><div class="desc">${TK.escopo==='minhas'?'tudo que está atribuído a você e ainda não foi concluído':TK.escopo==='todas'?'Autosíntese — todas as listas':esc(tkCaminho(TK.listaSel))} · ${dica}</div></div>
      <div class="toolbar">
        ${abas}
+       ${cli?'':tkBtnFiltro()}
+       ${cli?'':tkBtnResp()}
        <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
        <button class="btn ghost small" onclick="tkEscopo()">${TK.escopo==='lista'?'Ver todas':'Só esta lista'}</button>
        ${cli?`<button class="btn small" onclick="render('fechamento')">+ Cliente</button>`:`<button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>`}
