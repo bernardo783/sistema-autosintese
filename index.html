@@ -2439,7 +2439,37 @@ try{ const _f=JSON.parse(localStorage.getItem('tk_filtro')||'null'); if(_f&&type
 /* ---------- SQUAD NA TAREFA ----------
    O recorte real e do Postgres (RLS tarefa_visivel): quem tem squad so enxerga o proprio.
    Aqui em cima ficam o campo na tarefa, o filtro da lista e a trava da estrutura. */
-const espacoDaLista=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); return l?(TK.espacos.find(e=>e.id===l.espaco_id)||null):null; };
+const espacoDaLista=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); if(!l) return null;
+  let eid=l.espaco_id;
+  if(!eid&&l.pasta_id){ const p=(TK.pastas||[]).find(x=>x.id===l.pasta_id); eid=p&&p.espaco_id; }
+  return TK.espacos.find(e=>e.id===eid)||null; };
+/* ---------- Quem atende cada espaço (regra do Gabriel, ago/2026) ----------
+   Marketing (tráfego e edição) é atendido só por estes cinco; os demais somem
+   dos campos de responsável desse espaço. */
+const ESPACO_MKT='547007c2-ec8c-4ec2-ba1e-b02a158bdb18';
+const EQ_MARKETING=['fe486b96-f26a-40b7-96c3-ffa621b2fe64', /* Luan Santiago */
+                    '6b3b1d5d-2ee0-4529-a6c4-23d415678bff', /* Bernardo Antunes */
+                    '9a31fb28-69ea-4d98-a47c-c92437bdc763', /* Yghor */
+                    '7d2d310a-0490-4e83-a660-8b4fe9c75e1a', /* João */
+                    'a21fc27b-6656-4bfb-b1aa-bfc9858ccb98']; /* Luiz */
+/* Edição de Vídeo tem uma editora só: toda tarefa nova já nasce com ela. */
+const LISTA_EDICAO='23b91ffd-0afa-4db1-8239-444bce201aad';
+const EDITORA_PADRAO='fd1c84c0-b605-46b7-a83d-fe6cc5abb3b2'; /* Maria Eduarda */
+/* Equipe que aparece para escolher responsável, conforme a lista/espaço.
+   `extra` mantém na lista quem já está atribuído, para ninguém sumir de tarefa antiga. */
+function equipeDe(lid,extra){
+  const base=TK.equipe||[];
+  const e=espacoDaLista(lid||TK.listaSel);
+  let arr=base;
+  if(e&&e.id===ESPACO_MKT){
+    const perm=EQ_MARKETING.concat(String(lid||TK.listaSel)===LISTA_EDICAO?[EDITORA_PADRAO]:[]);
+    const so=base.filter(u=>perm.indexOf(u.id)>=0);
+    if(so.length) arr=so;
+  }
+  if(extra&&base.length){ const ja=arr.map(u=>u.id);
+    (Array.isArray(extra)?extra:[extra]).forEach(id=>{ if(id&&ja.indexOf(id)<0){ const u=base.find(x=>x.id===id); if(u){ arr=arr.concat([u]); ja.push(id); } } }); }
+  return arr;
+}
 const exigeSquad=(lid)=>{ const e=espacoDaLista(lid); return !!(e&&e.exige_squad); };
 /* Squads conhecidos: os das fichas + os que ja aparecem em tarefas + os meus. */
 const SQUADS_TK=()=>Array.from(new Set([].concat(SQUADS(),TK.tarefas.map(t=>String(t.squad||'')),meusSquads()).filter(Boolean))).sort();
@@ -3199,7 +3229,7 @@ const ementarCor=(s)=>{ let h=0; for(let i=0;i<String(s).length;i++) h=(h*31+Str
 const tkCelula=(t,c)=>{
   const v=(t.valores||{})[c.id];
   if(c.tipo==='select') return `<select class="tk-cel sel" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
-  if(c.tipo==='pessoa') return `<select class="tk-cel sel" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${TK.equipe.map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
+  if(c.tipo==='pessoa') return `<select class="tk-cel sel" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${equipeDe(t.lista_id,v).map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
   if(c.tipo==='checkbox') return `<input type="checkbox" ${v?'checked':''} onchange="tkSetVal('${t.id}','${c.id}',this.checked)">`;
   const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
   const pre=c.tipo==='moeda'?'<span class="tk-pre">R$</span>':'';
@@ -4117,12 +4147,14 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     else if(TK.grupo==='cliente') it.ficha_id=grupoPre;
     else if(tkCampo1(TK.grupo)){ const o={}; o[TK.grupo]=grupoPre; it.valores=Object.assign({},it.valores,o); }
   }
+  /* Edição de Vídeo tem uma editora só — tarefa nova já nasce com ela */
+  if(!t && it.lista_id===LISTA_EDICAO && !it.responsavel_id) it.responsavel_id=EDITORA_PADRAO;
   const lid=it.lista_id, sts=tkStatusDe(lid), cps=TK.campos.filter(k=>k.lista_id===lid);
   /* Tarefa nova ja nasce no meu squad; quem tem recorte so consegue escolher entre os seus. */
   const sqOpc=squadsQuePosso(), sqAtual=t?String(it.squad||''):(String(it.squad||'')||(meusSquads()[0]||''));
   const campoHtml=(c)=>{ const v=(it.valores||{})[c.id];
     if(c.tipo==='select') return `<select id="cp_${c.id}"><option value="">—</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
-    if(c.tipo==='pessoa') return `<select id="cp_${c.id}"><option value="">—</option>${TK.equipe.map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
+    if(c.tipo==='pessoa') return `<select id="cp_${c.id}"><option value="">—</option>${equipeDe(lid,v).map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
     if(c.tipo==='checkbox') return `<input type="checkbox" id="cp_${c.id}" ${v?'checked':''} style="width:auto">`;
     const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
     return `<input type="${tp}" id="cp_${c.id}" value="${esc(v==null?'':String(v))}" placeholder="${c.tipo==='moeda'?'R$':''}">`; };
@@ -4140,7 +4172,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     </div>
     <div class="row2">
       <div class="field"><label>Prazo</label><input type="date" id="tk_prazo" value="${esc(it.prazo||'')}"></div>
-      <div class="field"><label>Responsável</label><select id="tk_resp"><option value="">— ninguém —</option>${TK.equipe.map(u=>`<option value="${u.id}"${it.responsavel_id===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select></div>
+      <div class="field"><label>Responsável</label><select id="tk_resp"><option value="">— ninguém —</option>${equipeDe(lid,it.responsavel_id).map(u=>`<option value="${u.id}"${it.responsavel_id===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select></div>
     </div>
     <div class="field"><label>Squad${exigeSquad(it.lista_id)?' *':''}</label>
       <select id="tk_squad"><option value="">— sem squad (todo o time vê) —</option>${sqOpc.map(s=>`<option value="${esc(s)}"${sqAtual===s?' selected':''}>Squad ${esc(s)}</option>`).join('')}</select>
