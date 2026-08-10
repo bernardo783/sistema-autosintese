@@ -97,10 +97,12 @@
   .tk-pv select,.tk-pv input[type=text],.tk-pv input:not([type]),.tk-pv input[type=date],.tk-pv input[type=number]{
     background:transparent;border:1px solid transparent;border-radius:7px;color:var(--txt);
     padding:5px 8px;font-size:13.5px;font-family:inherit;max-width:100%;color-scheme:dark}
+  .tk-pv select{min-width:210px}
   .tk-pv select:hover,.tk-pv input:hover{background:var(--panel2);border-color:var(--line)}
   .tk-pv select:focus,.tk-pv input:focus{background:var(--panel2);border-color:var(--brand2);outline:none}
   .tk-pv input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2)}
-  .tk-datas{gap:4px}
+  .tk-datas{gap:4px;flex-wrap:nowrap}
+  .tk-datas input[type=date]{width:122px;flex:none}
   .tk-seta{color:var(--muted);font-size:12px}
   .tk-curto{width:110px}
   .tk-sec{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
@@ -109,8 +111,7 @@
     border-radius:9px;padding:10px 11px;font-size:13.5px;font-family:inherit;resize:vertical}
   .tk-desc:focus{border-color:var(--brand2);outline:none}
   .tk-rodape{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
-  .cp-obr{font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;margin-left:7px;
-    color:#f0cb7d;background:rgba(230,177,63,.14);border-radius:999px;padding:1px 7px}
+  .cp-obr{font-size:13px;font-weight:900;margin-left:4px;color:#f0cb7d;line-height:1}
   .cp-ori{font-size:9.5px;font-weight:700;margin-left:7px;color:#c4b8ff;
     background:rgba(123,104,238,.16);border-radius:999px;padding:1px 7px}
   .ini-dt{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
@@ -3414,7 +3415,6 @@ function tkViewBoard(){
     </div>`).join('')}</div>`;
 }
 /* Edição de Vídeo: todo vídeo novo nasce com o Fluxo de Edição (checklist padrão, vídeo do Gabriel 10/08) */
-const USER_MARIA='fd1c84c0-b605-46b7-a83d-fe6cc5abb3b2'; /* Maria Eduarda, editora */
 const CK_EDICAO=['Baixar material bruto do Drive','Consultar preferências do cliente no Guia','Editar vídeo conforme orientações','Aplicar legenda no estilo do cliente','Inserir logo atualizada','Adicionar narração (se aplicável)','Subir material editado no Drive','Preencher o link do material editado','Mover para Revisão e aguardar feedback'];
 /* criar digitando direto na coluna, sem modal (Enter cria, Esc cancela) */
 window.tkAddInline=(btn,key)=>{
@@ -3429,7 +3429,7 @@ window.tkAddKey=async (ev,key)=>{
   ev.target.disabled=true;
   const v={titulo:tit,lista_id:TK.listaSel,prioridade:'med',valores:{}};
   if(tkStatus1(key)){ v.status_id=key; v.status='todo'; } else { v.status=key||'todo'; v.status_id=null; }
-  if(TK.listaSel===LISTA_EDICAO){ v.checklist=CK_EDICAO.map(x=>({t:x,ok:false})); v.responsavel_id=USER_MARIA; v.responsaveis=[USER_MARIA]; }
+  if(TK.listaSel===LISTA_EDICAO){ v.checklist=CK_EDICAO.map(x=>({t:x,ok:false})); v.responsavel_id=EDITORA_PADRAO; v.responsaveis=[EDITORA_PADRAO]; }
   const {data,error}=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
   if(error){ toast('Erro: '+error.message); ev.target.disabled=false; return; }
   TK.tarefas.push(data); tkDesenhar($('#content')); spDesenhar();
@@ -4700,7 +4700,6 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const t=id?TK.tarefas.find(x=>x.id===id):null;
   TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok)})):[];
   const it=t||{prioridade:'med',status:'todo',status_id:'',lista_id:TK.listaSel,prazo:prazoPre||'',valores:{}};
-  if(!t&&TK.listaSel===LISTA_EDICAO&&!it.responsavel_id) it.responsavel_id=USER_MARIA; /* edição: Maria é o padrão */
   if(!t&&grupoPre&&grupoPre.indexOf('no')!==0){
     if(TK.grupo==='status'){ if(tkStatus1(grupoPre)) it.status_id=grupoPre; else it.status=grupoPre; }
     else if(TK.grupo==='prioridade') it.prioridade=grupoPre;
@@ -4740,8 +4739,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <select id="tk_prio">${Object.keys(TK_PRIO).map(k=>`<option value="${k}"${it.prioridade===k?' selected':''}>${TK_PRIO[k]}</option>`).join('')}</select>
       </span></div>
       <div class="tk-p"><span class="tk-pl">${SVG_P.ampulheta} Estimativa</span><span class="tk-pv">
-        <input id="tk_est" class="tk-curto" value="${esc(estTexto(it.estimativa_min))}" placeholder="ex: 1h30">
-        <span class="hint" style="margin:0">horas e minutos</span>
+        <input id="tk_est" class="tk-curto" value="${esc(estTexto(it.estimativa_min))}" placeholder="ex: 1h30" title="Horas e minutos — ex: 1h30">
       </span></div>
       ${t?`<div class="tk-p"><span class="tk-pl">${SVG_P.cron} Rastrear tempo</span>
         <span class="tk-pv" id="tk_tempo">${ttLinha(t.id)}</span></div>`:''}
@@ -4757,8 +4755,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <div class="tk-p"><span class="tk-pl">${SVG_P.lista} Lista</span><span class="tk-pv">
         <select id="tk_lista">${TK.listas.map(l=>`<option value="${l.id}"${it.lista_id===l.id?' selected':''}>${esc(tkCaminho(l.id))}</option>`).join('')}</select>
       </span></div>
-      ${cps.map(c=>`<div class="tk-p"><span class="tk-pl">${SVG_P.campo} ${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr">obrigatório</span>':''}</span><span class="tk-pv">
-        ${campoHtml(c)}${c.origem?`<span class="cp-ori" title="Preenche sozinho ao escolher o cliente">↩ ${esc(cpOrigemNome(c.origem))}</span>`:''}
+      ${cps.filter(c=>!c.origem).map(c=>`<div class="tk-p"><span class="tk-pl">${SVG_P.campo} ${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr" title="Obrigatório">*</span>':''}</span><span class="tk-pv">
+        ${campoHtml(c)}
       </span></div>`).join('')}
     </div>
     <div class="tk-sec">Descrição</div>
