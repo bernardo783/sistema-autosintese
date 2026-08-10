@@ -413,13 +413,36 @@
   .tk-lista:hover{background:var(--panel2)}
   .tk-lista.on{background:var(--panel2);color:#c4b5fd}
   .tk-n{margin-left:auto;color:var(--muted);font-size:11px;font-weight:800}
-  .tk-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-  .tk-col{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;min-height:200px}
-  .tk-col.hover{border-color:var(--brand2)}
-  .tk-colh{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-  .tk-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 11px;margin-bottom:8px;cursor:pointer}
-  .tk-card:hover{border-color:var(--brand2)}
+  /* ---------- KANBAN estilo ClickUp/Trello (redesign ago/2026, pedido do Gabriel) ---------- */
+  .tk-cols{display:flex;gap:14px;overflow-x:auto;align-items:flex-start;padding:2px 2px 16px;scrollbar-width:thin}
+  .tk-col{flex:0 0 282px;width:282px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 8px 8px;display:flex;flex-direction:column;max-height:calc(100vh - 205px);min-height:150px}
+  .tk-col.hover{border-color:var(--brand2);background:rgba(167,139,250,.05)}
+  .tk-colh{display:flex;align-items:center;gap:8px;margin:0 4px 10px;flex:none}
+  .tk-colh .tk-selo{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 10px;border-radius:7px;border:none!important}
+  .tk-colh .tk-selo::before{content:'';width:7px;height:7px;border-radius:3px;background:currentColor;flex:none}
+  .tk-colh .tk-n{margin-left:0;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:1px 8px;font-size:10.5px}
+  .tk-colh .tk-mais{margin-left:auto;background:transparent;border:none;color:var(--muted);font-size:16px;line-height:1;padding:2px 7px;border-radius:7px}
+  .tk-colh .tk-mais:hover{background:var(--panel2);color:var(--txt)}
+  .tk-colb{overflow-y:auto;min-height:36px;padding:0 2px;scrollbar-width:thin}
+  .tk-card{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:8px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.28);transition:border-color .12s,transform .12s,box-shadow .12s}
+  .tk-card:hover{border-color:#41414b;transform:translateY(-1px);box-shadow:0 5px 14px rgba(0,0,0,.4)}
+  .tk-card::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--pc,transparent)}
+  .tk-card.p-alta{--pc:var(--danger)}
+  .tk-card.p-med{--pc:#4f8ff7}
+  .tk-card.feito{opacity:.55}
   .tk-card.feito .tk-tit{text-decoration:line-through;color:var(--muted)}
+  .tk-card.arrastando{opacity:.35;transform:rotate(1.5deg)}
+  .tk-card .tk-tit{font-weight:600;font-size:13.5px;line-height:1.35}
+  .tk-flag{flex:none;margin-right:6px;vertical-align:-1px}
+  .tk-foot{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:9px}
+  .tk-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:2px 7px;line-height:1.5;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tk-chip svg{flex:none}
+  .tk-chip.hoje{color:#f0c869;background:rgba(230,177,63,.12);border-color:rgba(230,177,63,.3)}
+  .tk-chip.tarde{color:#ff8b97;background:rgba(239,91,107,.12);border-color:rgba(239,91,107,.3)}
+  .tk-foot .av{margin-left:auto}
+  .tk-addcard{flex:none;width:100%;background:transparent;border:none;color:var(--muted);font-size:12.5px;font-weight:600;text-align:left;padding:8px 10px;border-radius:8px;margin-top:2px}
+  .tk-addcard:hover{background:var(--panel2);color:var(--txt)}
+  .tk-vazio{border:1.5px dashed var(--line);border-radius:10px;color:var(--muted);font-size:12px;text-align:center;padding:18px 8px;margin:0 0 8px}
   .tk-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .tk-sub{color:var(--muted);font-size:11.5px;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tk-wrap{display:grid;grid-template-columns:252px 1fr;gap:16px;align-items:start}
@@ -2755,41 +2778,61 @@ function tkCard(t){
   const hoje=tkHoje();
   const cli=ehLC(t.lista_id)&&t.ficha_id;
   const atrasada=t.prazo&&t.prazo<hoje&&t.status!=='feito';
+  const hojeP=t.prazo===hoje&&t.status!=='feito';
+  const drag=`draggable="true" ondragstart="tkPegar(event,'${t.id}');this.classList.add('arrastando')" ondragend="this.classList.remove('arrastando')"`;
   if(cli){
     const f=fichaDe(t.ficha_id)||{};
     const sub=[f.gerente,f.responsavel].filter(Boolean).map(esc).join(' · ');
-    return `<div class="tk-card" draggable="true" ondragstart="tkPegar(event,'${t.id}')" onclick="abrirCliente('${t.ficha_id}')">
-      <div class="tk-tit" style="font-weight:700;font-size:13.5px">${esc(t.titulo)}</div>
+    return `<div class="tk-card" ${drag} onclick="abrirCliente('${t.ficha_id}')">
+      <div class="tk-tit">${esc(t.titulo)}</div>
       ${sub?`<div class="tk-sub">${sub}</div>`:''}
     </div>`;
   }
-  return `<div class="tk-card${t.status==='feito'?' feito':''}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" onclick="tkAbrir('${t.id}')">
-    <div class="tk-tit" style="font-weight:700;font-size:13.5px">${esc(t.titulo)}</div>
-    <div class="tk-meta">
-      <span class="tag ${TK_PRIOC[t.prioridade]||'st'}" style="font-size:10.5px">${TK_PRIO[t.prioridade]||'—'}</span>
-      ${t.ficha_id?`<span class="tag st" style="font-size:10.5px">👤 ${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
-      ${t.prazo?`<span class="tag ${atrasada?'churn':'st'}" style="font-size:10.5px">📅 ${fmtDate(t.prazo)}</span>`:''}
-      ${t.responsavel_id?`<span class="tag st" style="font-size:10.5px">${avatarNome(t.responsavel_id)}</span>`:''}
-      ${ckResumo(t)?`<span class="tag st" style="font-size:10.5px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<span class="tag st" style="font-size:10.5px;opacity:.7">${esc(tkCaminho(t.lista_id))}</span>`:''}
+  /* bandeirinha de prioridade (ClickUp) + faixa colorida na borda esquerda */
+  const pcl=t.prioridade==='alta'?' p-alta':t.prioridade==='med'?' p-med':'';
+  const fcor=t.prioridade==='alta'?'var(--danger)':t.prioridade==='med'?'#4f8ff7':'var(--muted)';
+  const FLAG=`<svg class="tk-flag" width="12" height="12" viewBox="0 0 24 24" fill="${fcor}" stroke="${fcor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`;
+  const CAL='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+  const CK='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg>';
+  return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')">
+    <div class="tk-tit">${FLAG}${esc(t.titulo)}</div>
+    <div class="tk-foot">
+      ${t.prazo?`<span class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}">${CAL}${hojeP?'Hoje':fmtDate(t.prazo).slice(0,5)}</span>`:''}
+      ${ckResumo(t)?`<span class="tk-chip">${CK}${ckResumo(t).replace('☑ ','')}</span>`:''}
+      ${t.ficha_id?`<span class="tk-chip" title="${esc(tkNomeFicha(t.ficha_id))}">${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
+      ${TK.escopo!=='lista'?`<span class="tk-chip" style="opacity:.75" title="${esc(tkCaminho(t.lista_id))}">${esc(tkCaminho(t.lista_id))}</span>`:''}
+      ${t.responsavel_id?avatar(t.responsavel_id):''}
     </div></div>`;
 }
 function tkViewBoard(){
   const arr=tkOrdenadas(tkFiltradas());
   const sts=TK.escopo==='lista'?tkStatusDe(TK.listaSel):[];
+  const lc=ehLC(TK.listaSel)&&TK.escopo==='lista'; /* board de clientes: criar é pelo + Cliente */
   let cols;
   if(sts.length){
-    cols=sts.map(s=>({rot:s.nome,cor:s.cor,drop:"tkSoltarSt(event,'"+s.id+"')",its:arr.filter(t=>t.status_id===s.id)}));
+    cols=sts.map(s=>({key:s.id,rot:s.nome,cor:s.cor,drop:"tkSoltarSt(event,'"+s.id+"')",its:arr.filter(t=>t.status_id===s.id)}));
     const sem=arr.filter(t=>!sts.some(s=>s.id===t.status_id));
-    if(sem.length) cols.unshift({rot:'Sem status',cor:'#64748b',drop:"tkSoltarSt(event,'')",its:sem});
+    if(sem.length) cols.unshift({key:'',rot:'Sem status',cor:'#64748b',drop:"tkSoltarSt(event,'')",its:sem});
   } else {
-    cols=['todo','fazendo','feito'].map(k=>({rot:TK_ST[k],cor:k==='feito'?'#3ec46d':k==='fazendo'?'#2f7cf6':'#8b95a5',drop:"tkSoltar(event,'"+k+"')",its:arr.filter(t=>t.status===k)}));
+    cols=['todo','fazendo','feito'].map(k=>({key:k,rot:TK_ST[k],cor:k==='feito'?'#3ec46d':k==='fazendo'?'#2f7cf6':'#8b95a5',drop:"tkSoltar(event,'"+k+"')",its:arr.filter(t=>t.status===k)}));
   }
-  return `<div class="tk-cols" style="grid-template-columns:repeat(${cols.length},minmax(215px,1fr))">${cols.map(c=>`
-    <div class="tk-col" ondragover="event.preventDefault();this.classList.add('hover')" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');${c.drop}">
-      <div class="tk-colh"><span class="tk-selo" style="color:${esc(c.cor)};border-color:${esc(c.cor)}66;background:${esc(c.cor)}1a">${esc(c.rot)}</span><span class="tk-n">${c.its.length}</span></div>
-      ${c.its.map(tkCard).join('')||'<div class="hint" style="padding:8px 4px">arraste uma tarefa para cá</div>'}
+  return `<div class="tk-cols">${cols.map(c=>`
+    <div class="tk-col" ondragover="event.preventDefault();this.classList.add('hover');tkOrdenaDrag(event,this)" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');${c.drop}">
+      <div class="tk-colh"><span class="tk-selo" style="color:${esc(c.cor)};background:${esc(c.cor)}1f">${esc(c.rot)}</span><span class="tk-n">${c.its.length}</span>${lc?'':`<button class="tk-mais" title="Nova tarefa nesta coluna" onclick="tkAbrirSt('${esc(c.key)}')">+</button>`}</div>
+      <div class="tk-colb">${c.its.map(tkCard).join('')||'<div class="tk-vazio">arraste uma tarefa para cá</div>'}</div>
+      ${lc?'':`<button class="tk-addcard" onclick="tkAbrirSt('${esc(c.key)}')">+ Nova tarefa</button>`}
     </div>`).join('')}</div>`;
 }
+/* nova tarefa já caindo na coluna clicada (reusa o preset por grupo do tkAbrir) */
+window.tkAbrirSt=(k)=>{ const g=TK.grupo; TK.grupo='status'; try{ tkAbrir('','',k); }finally{ TK.grupo=g; } };
+/* sensação Trello: enquanto arrasta, o card se posiciona sob o cursor (visual; o drop persiste) */
+window.tkOrdenaDrag=(ev,col)=>{
+  const wrap=col.closest('.tk-cols'); const drag=wrap&&wrap.querySelector('.tk-card.arrastando'); if(!drag) return;
+  const body=col.querySelector('.tk-colb'); if(!body) return;
+  const els=[...body.querySelectorAll('.tk-card:not(.arrastando)')];
+  const alvo=els.find(el=>{ const r=el.getBoundingClientRect(); return ev.clientY < r.top + r.height/2; });
+  if(alvo) body.insertBefore(drag,alvo); else body.appendChild(drag);
+};
 const tkGrupoNome=()=>{ const g=TK.grupo;
   return g==='nenhum'?'nenhum':g==='status'?'Status':g==='prioridade'?'Prioridade':g==='responsavel'?'Responsável':g==='cliente'?'Cliente':((tkCampo1(g)||{}).nome||'Status'); };
 function tkGrupos(){
