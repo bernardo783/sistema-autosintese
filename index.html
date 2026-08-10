@@ -649,6 +649,14 @@
   .ini-ok.feito:hover{background:transparent;color:var(--muted);border-color:var(--line)}
   .ini-it.feita .ini-tit{text-decoration:line-through;color:var(--muted)}
   .ini-it.feita{opacity:.62}
+  .sq-lista{display:inline-flex;gap:5px;flex-wrap:wrap}
+  .sq-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+    border-radius:999px;padding:3px 10px 3px 8px;color:var(--c);
+    background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 32%,transparent)}
+  .sq-chip i{width:6px;height:6px;border-radius:50%;background:var(--c);flex:none}
+  .sq-todos{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:3px 10px}
+  .sq-todos.master{color:var(--muted);background:var(--panel2);border:1px solid var(--line)}
+  .sq-todos.aberto{color:#f0cb7d;background:rgba(230,177,63,.12);border:1px solid rgba(230,177,63,.3)}
   .ini-prog{font-size:11.5px;color:var(--muted);font-weight:600;padding:9px 14px 2px}
   .ini-tit{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ini-sub{color:var(--muted);font-size:11.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -7394,6 +7402,27 @@ async function eqCall(acao,extra){
 }
 const eqPw={};
 window.geraSenha=()=>{ const a='abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<12;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; };
+/* A coluna Squads era "01" e "02" soltos: numero sem contexto, e o estado mais
+   importante — quem nao tem recorte e ve TUDO — aparecia como um cinza discreto,
+   quando na verdade e o que merece atencao. */
+const SQ_COR=['#4f8ff7','#e6b13f','#3fcf8e','#a855f7','#ef5b6b'];
+const sqCor=(s)=>{ const i=SQUADS().indexOf(String(s)); return SQ_COR[(i<0?0:i)%SQ_COR.length]; };
+/* quem toca o squad, para o numero virar gente */
+function sqQuem(s){
+  const donos=(TK.equipe||[]).filter(u=>{
+    const p=(PERFIS||[]).find(x=>String(x.id)===String(u.id));
+    return p&&(p.squads||[]).map(String).indexOf(String(s))>=0&&p.role!=='master';
+  }).map(u=>String(u.nome||'').trim().split(/\s+/)[0]);
+  return donos.join(' · ');
+}
+const sqChip=(s)=>{ const c=sqCor(s), quem=sqQuem(s);
+  return `<span class="sq-chip" style="--c:${c}" title="Squad ${esc(s)}${quem?' — '+esc(quem):''}"><i></i>Squad ${esc(s)}</span>`; };
+function sqCelula(u){
+  const ss=(u.squads||[]).map(String).filter(Boolean);
+  if(u.role==='master') return '<span class="sq-todos master">Todos os squads</span>';
+  if(!ss.length) return '<span class="sq-todos aberto" title="Sem recorte: enxerga os clientes de todos os squads">Sem recorte — vê todos</span>';
+  return '<span class="sq-lista">'+ss.map(sqChip).join('')+'</span>';
+}
 function drawUsuarios(c){
   const masters=PERFIS.filter(u=>u.role==='master').length;
   c.innerHTML=`
@@ -7408,7 +7437,7 @@ function drawUsuarios(c){
      <td><div class="pw-cell"><span class="pw-dots" id="up_${u.id}">${u.temSenha?'••••••••':'<span style="color:var(--muted)">não guardada</span>'}</span>
        ${u.temSenha?`<button class="iconbtn" onclick="toggleUserPw('${u.id}')">👁</button><button class="iconbtn" onclick="copyUserPw('${u.id}')">copiar</button>`:''}</div></td>
      <td><span class="tag ${u.role==='master'?'andamento':'st'}">${u.role==='master'?'Master':'Usuário'}</span></td>
-     <td>${(u.squads&&u.squads.length)?u.squads.map(s=>`<span class="tag st">${esc(s)}</span>`).join(' '):`<span style="color:var(--muted)">${u.role==='master'?'tudo':'tudo (sem recorte)'}</span>`}</td>
+     <td>${sqCelula(u)}</td>
      <td>${fmtDate((u.criado_em||'').slice(0,10))||'—'}</td>
      <td><div class="rowact">
        <button class="iconbtn" onclick="editSquads('${u.id}')">Squads</button>
