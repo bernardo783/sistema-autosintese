@@ -879,9 +879,9 @@
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <nav class="railbar" id="railbar">
-    <button class="rl" id="rlInicio" title="Início — suas demandas do dia" onclick="renderInicio(document.getElementById('content'))">
+    <button class="rl" id="rlInicio" title="Início — suas demandas do dia" onclick="spInicio()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="t">Início</span></button>
-    <button class="rl" id="rlEspacos" title="Mostrar ou esconder a lista de espaços" onclick="spMini()">
+    <button class="rl" id="rlEspacos" title="Mostrar ou esconder a lista de espaços" onclick="spEspacos()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span class="t">Espaços</span></button>
     <button class="rl" id="rlInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg><span class="t">Tarefas</span><span class="bdg" id="spInboxN"></span></button>
@@ -1127,7 +1127,7 @@ async function enterApp(){
   spDesenhar();
   /* veio de um link? cai direto no destino em vez da tela padrão */
   const foi=await lkIr();
-  if(!foi) renderInicio($('#content'));   /* cada um abre no próprio dia de trabalho */
+  if(!foi) spInicio(true);   /* cada um abre no próprio dia de trabalho */
   mtBoot();   /* Meta começa a carregar no login: quando você abrir Tráfego já está pronto */
 }
 
@@ -6581,6 +6581,63 @@ function drawUsuarios(c){
    </tr>`).join('')}</tbody></table></div>
    <p class="hint" style="margin-top:14px">O acesso só existe se um <strong>master</strong> criar aqui — não há autocadastro na tela de login. A senha fica <strong>cifrada no servidor</strong>: o 👁 pede a senha a uma função protegida que só responde a masters. Quem esquecer a senha pede a um master para <strong>Redefinir</strong>.${masters<=1?' <br><strong>Atenção:</strong> só existe um master hoje — promova alguém para não ficar sem acesso.':''}</p>`;
 }
+/* ---------- ONDE CADA UM COMEÇA ----------
+   perfis.inicio decide o pouso ao entrar e no botão Início: 'dash', vazio (Base de
+   Clientes) ou o id de uma lista. perfis.lista_inicial é o atalho do botão Espaços,
+   pra quem trabalha o dia inteiro na mesma lista e não quer caçar na árvore. */
+const inUUID=(s)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||''));
+window.spInicio=(quieto)=>{
+  const v=String((currentUser||{}).inicio||'');
+  if(v==='dash') return render('dash');
+  if(v==='clientes'&&TK.listas.some(l=>l.id===LC_ID)) return spSelLista(LC_ID,quieto);
+  if(inUUID(v)&&TK.listas.some(l=>l.id===v)) return spSelLista(v,quieto);
+  return renderInicio(document.getElementById('content'));   /* padrão: as demandas do dia */
+};
+window.spEspacos=()=>{
+  const abrindo=SP_MINI;          /* estava encolhida: este clique abre */
+  spMini();
+  const lid=String((currentUser||{}).lista_inicial||'');
+  if(abrindo&&lid&&TK.listaSel!==lid&&TK.listas.some(l=>l.id===lid)) spSelLista(lid);
+};
+/* A lista de usuários vem da edge function e não traz estas colunas — busco direto. */
+async function uaExtras(){
+  const r=await sb.from('perfis').select('id,telas_off,inicio,lista_inicial');
+  if(r&&r.data) r.data.forEach(p=>{
+    const u=(PERFIS||[]).find(x=>String(x.id)===String(p.id));
+    if(u){ u.telas_off=p.telas_off||[]; u.inicio=p.inicio||''; u.lista_inicial=p.lista_inicial||''; }
+  });
+}
+function inBloco(uid){
+  const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{};
+  const ls=(TK.listas||[]).slice().sort((a,b)=>tkCaminho(a.id).localeCompare(tkCaminho(b.id)));
+  const opt=(v,txt,sel)=>`<option value="${esc(v)}"${String(sel||'')===String(v)?' selected':''}>${esc(txt)}</option>`;
+  return `<div class="nm-sec" style="margin-top:16px">Onde essa pessoa começa</div>
+    <div class="ua-tree">
+      <div class="ua-l"><span class="ua-nm">Ao entrar e no botão Início</span><span class="ua-a">
+        <select onchange="inSet('${uid}','inicio',this.value)">
+          ${opt('','Demandas do dia (padrão)',u.inicio)}
+          ${opt('clientes','Base de Clientes',u.inicio)}
+          ${opt('dash','Painel de números',u.inicio)}
+          ${ls.map(l=>opt(l.id,tkCaminho(l.id),u.inicio)).join('')}
+        </select></span></div>
+      <div class="ua-l"><span class="ua-nm">O botão Espaços abre direto</span><span class="ua-a">
+        <select onchange="inSet('${uid}','lista_inicial',this.value)">
+          ${opt('','— só abre a árvore —',u.lista_inicial)}
+          ${ls.map(l=>opt(l.id,tkCaminho(l.id),u.lista_inicial)).join('')}
+        </select></span></div>
+    </div>
+    <p class="hint" style="margin:8px 0 0">Serve para quem passa o dia na mesma lista: entra já no lugar certo
+      e chega nela num clique, sem abrir a árvore.</p>`;
+}
+window.inSet=async (uid,campo,v)=>{
+  const patch={}; patch[campo]=v||null;
+  const {error}=await sb.from('perfis').update(patch).eq('id',uid);
+  if(error){ toast('Erro: '+error.message); return; }
+  const u=(PERFIS||[]).find(x=>String(x.id)===String(uid)); if(u) u[campo]=v||'';
+  if(String(uid)===String((currentUser||{}).id)) currentUser[campo]=v||null;
+  toast('Salvo.');
+};
+
 /* ---------- TELAS FIXAS POR USUÁRIO ----------
    As telas que não são lista (Acessos, Processos, Reembolsos, Daily...) não passam
    por no_membros — quem manda nelas é perfis.telas_off. A lista de telas é lida do
@@ -6631,6 +6688,7 @@ const uaTem=(uid,tipo,id)=>(TK.membros||[]).find(m=>m.tipo===tipo&&String(m.no_i
 window.usAcessos=async (uid)=>{
   const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{nome:'usuário'};
   if(!TK.listas.length){ try{ await tkCarregar(); }catch(_){} }
+  try{ await uaExtras(); }catch(_){}
   modal('Acessos de '+esc(u.nome),`<div id="uaCorpo">${uaCorpo(uid)}</div>`,async()=>true);
   setTimeout(()=>{ const ov=document.querySelectorAll('.overlay'); const el=ov[ov.length-1]; if(!el) return;
     const s=el.querySelector('.msave'); if(s) s.textContent='Concluído';
@@ -6667,7 +6725,8 @@ function uaCorpo(uid){
     Use <strong>Restringir</strong> para fechar e daí escolher quem entra.
     O recorte por <strong>squad</strong> continua valendo por cima disso.</p>
     <div class="ua-tree">${corpo||'<div class="hint">Nenhum espaço.</div>'}</div>
-    ${tlBloco(uid)}`;
+    ${tlBloco(uid)}
+    ${inBloco(uid)}`;
 }
 window.uaFechar=async (uid,tipo,id)=>{
   const o=uaNo(tipo,id); if(!o) return;
