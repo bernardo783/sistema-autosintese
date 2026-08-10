@@ -14,6 +14,9 @@
     --txt:#e9e9ec; --muted:#8e8e99; --brand:#7b68ee; --brand2:#a78bfa;
     --danger:#ef5b6b; --ok:#3fcf8e; --warn:#e6b13f; --shadow:0 8px 24px rgba(0,0,0,.34);
   }
+  /* Diz ao navegador que a página é escura: sem isto o calendário nativo, o seletor
+     de hora e as barras de rolagem saem brancos no meio do sistema escuro. */
+  :root{color-scheme:dark}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased}
@@ -71,6 +74,13 @@
   .tk-lock{font-size:10px;opacity:.75;margin-left:4px;flex:none}
   .tk-tipo{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;
     padding:5px 12px;font-size:12.5px;font-weight:700;font-family:inherit;margin-bottom:10px}
+  .pr-box{display:flex;gap:6px;flex-wrap:wrap}
+  .pr-chip{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);
+    color:var(--muted);border-radius:8px;padding:5px 11px;font-size:12.5px;font-weight:600;
+    font-family:inherit;transition:border-color .12s,background .12s,color .12s}
+  .pr-chip:hover{color:var(--txt)}
+  .pr-chip.on{font-weight:700}
+  .pr-chip svg{flex:none}
   .rp-box{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
   .rp-add{width:26px;height:26px;border-radius:7px;border:1.5px dashed var(--line);background:transparent;color:var(--muted);display:grid;place-items:center}
   .rp-add:hover{border-color:var(--brand2);color:var(--txt);border-style:solid}
@@ -607,7 +617,7 @@
   .tk-addcard:hover{background:var(--panel2);color:var(--txt)}
   .tk-addbox{padding:2px}
   .tk-addbox .search{width:100%}
-  .tk-qa{display:inline-flex;gap:2px;margin-left:auto;align-items:center}
+  .tk-qa{display:flex;gap:3px;align-items:center;margin-top:7px}
   .tk-qab{position:relative;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;border:1px dashed var(--line);background:transparent;color:var(--muted);overflow:hidden}
   .tk-qab:hover{color:var(--txt);border-color:var(--brand2);border-style:solid}
   .tk-qab input[type=date]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
@@ -1416,7 +1426,7 @@ window.atribuirSquads=()=>{
   const opts=SQUADS().filter(Boolean);
   if(!opts.length) opts.push('01','02');
   const sel=(f)=>`<select class="search" data-sq="${f.id}" style="width:100%">
-      <option value="">— escolher squad —</option>
+      <option value="">Escolher squad</option>
       ${opts.map(s=>`<option value="${esc(s)}">${esc(nomeSquad(s))}</option>`).join('')}
     </select>`;
   modal('Atribuir squad',`
@@ -1799,7 +1809,7 @@ const avatarNome=(uid,nome)=>{ const n=nome||tkNomeUser(uid); if(!uid&&!n) retur
 const espIcone=(e)=>e&&e.foto
   ? `<span class="sp-ic ft"><img src="${esc(e.foto)}" alt=""></span>`
   : `<span class="sp-ic" style="background:${esc((e&&e.cor)||'#7c3aed')}">${(e&&e.icone)?icHtml(e.icone,12):esc(inicial(spNome(e)))}</span>`;
-const selFicha=(idCampo,atual,aoTrocar)=>`<select id="${idCampo}"${aoTrocar?` onchange="${aoTrocar}"`:''}><option value="">— geral (todo o time vê) —</option>`+
+const selFicha=(idCampo,atual,aoTrocar)=>`<select id="${idCampo}"${aoTrocar?` onchange="${aoTrocar}"`:''}><option value="">Todo o time vê</option>`+
   [...(DB.projetos||[])].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(f=>`<option value="${f.id}"${atual===f.id?' selected':''}>${esc(f.nome)}</option>`).join('')+`</select>`;
 const fichaDaConta=(accId)=>{ const m=contaMarca(accId); return m&&m.fichaId?fichaDe(m.fichaId):null; };
 const contasDoCliente=(fid)=>(DB.contasMeta||[]).filter(m=>m.fichaId===fid);
@@ -2614,6 +2624,22 @@ const TK_PRIO={urgente:'Urgente',alta:'Alta',med:'Normal',baixa:'Baixa'};
 const PRIO_COR={urgente:'#ef5b6b',alta:'#e6b13f',med:'#4f8ff7',baixa:'#3fcf8e'}; /* cores do Gabriel, 10/08 */
 const TK_PRIOC={urgente:'churn',alta:'areceber',med:'sinal',baixa:'recebido'};
 const TK_PRIOO={urgente:0,alta:1,med:2,baixa:3};
+/* Bandeira colorida em vez de lista cinza: prioridade se lê de relance pela cor,
+   não pela palavra. Vazada = disponível; cheia = escolhida. */
+const prioFlag=(cor,cheia)=>`<svg viewBox="0 0 24 24" width="13" height="13" fill="${cheia?cor:'none'}"
+  stroke="${cor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h12l-1.6 4.2L17 13H5"/></svg>`;
+function prioChips(atual){
+  return Object.keys(TK_PRIO).map(k=>{
+    const on=String(atual||'med')===k, cor=PRIO_COR[k]||'#8b95a5';
+    return `<button type="button" class="pr-chip${on?' on':''}" onclick="prioEscolher('${k}')"
+      style="${on?`border-color:${cor};background:${cor}22;color:${cor}`:''}"
+      title="${esc(TK_PRIO[k])}">${prioFlag(cor,on)}${esc(TK_PRIO[k])}</button>`;
+  }).join('');
+}
+window.prioEscolher=(k)=>{
+  const el=document.getElementById('tk_prio'); if(el) el.value=k;
+  const box=document.getElementById('tk_priobox'); if(box) box.innerHTML=prioChips(k);
+};
 const TK_ST={todo:'A fazer',fazendo:'Em progresso',feito:'Concluído'};
 const TK_STC={todo:'st',fazendo:'onboarding',feito:'ativo'};
 const TK_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -2894,7 +2920,7 @@ function nmCorpo(tipo,id){
     </div>
     ${mst?`<div class="nm-conv">
       <select id="nm_u">${livres.length?livres.map(u=>`<option value="${u.id}">${esc(u.nome)}</option>`).join('')
-        :'<option value="">— todo mundo já tem acesso —</option>'}</select>
+        :'<option value="">Todo mundo já tem acesso</option>'}</select>
       <select id="nm_p"><option value="editar">Pode editar</option><option value="ver">Só visualizar</option></select>
       <button class="btn small" onclick="nmConvidar('${tipo}','${id}')">Convidar</button>
     </div>`:''}
@@ -3352,9 +3378,9 @@ function tkCard(t){
   const USR='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   const FLG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
   const qa=`<span class="tk-qa" onclick="event.stopPropagation()">
+      <button class="tk-qab" title="Responsável" onclick="tkQaResp(event,'${t.id}')">${t.responsavel_id?avatar(t.responsavel_id):USR}</button>
       <span class="tk-qab" title="Definir prazo">${CAL}<input type="date" value="${t.prazo||''}" onchange="tkQaPrazo('${t.id}',this.value)"></span>
       <button class="tk-qab" title="Prioridade" onclick="tkQaPrio(event,'${t.id}')">${FLG}</button>
-      <button class="tk-qab" title="Responsável" onclick="tkQaResp(event,'${t.id}')">${t.responsavel_id?avatar(t.responsavel_id):USR}</button>
       <button class="tk-qab" title="Cliente / projeto" onclick="tkQaCli(event,'${t.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg></button>
     </span>`;
   return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')">
@@ -3364,8 +3390,8 @@ function tkCard(t){
       ${ckResumo(t)?`<span class="tk-chip">${CK}${ckResumo(t).replace('☑ ','')}</span>`:''}
       ${t.ficha_id?`<span class="tk-chip" title="${esc(tkNomeFicha(t.ficha_id))}">${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
       ${TK.escopo!=='lista'?`<span class="tk-chip" style="opacity:.75" title="${esc(tkCaminho(t.lista_id))}">${esc(tkCaminho(t.lista_id))}</span>`:''}
-      ${qa}
-    </div></div>`;
+    </div>
+    ${qa}</div>`;
 }
 window.tkQaPrazo=(id,v)=>{ tkPatch(id,{prazo:v||null},v?'Prazo definido.':'Prazo removido.'); };
 /* bandeira abre menu escrito com as opções (pedido do Gabriel: ciclar ficava confuso) */
@@ -3524,7 +3550,7 @@ const tkSelo=(t)=>{
   const sts=tkStatusDe(t.lista_id);
   if(!sts.length) return `<select class="stSel" onchange="tkStatus('${t.id}',this.value)">${Object.keys(TK_ST).map(k=>`<option value="${k}"${t.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`;
   const s=tkStatus1(t.status_id), cor=s?s.cor:'#64748b';
-  return `<select class="tk-stsel" style="color:${esc(cor)};border-color:${esc(cor)}66;background:${esc(cor)}1a" onchange="tkSetStatus('${t.id}',this.value)"><option value="">— sem status —</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
+  return `<select class="tk-stsel" style="color:${esc(cor)};border-color:${esc(cor)}66;background:${esc(cor)}1a" onchange="tkSetStatus('${t.id}',this.value)"><option value="">Sem status</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
 };
 function tkViewLista(){
   const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
@@ -4754,7 +4780,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     <input class="tk-tit" id="tk_tit" value="${esc(it.titulo)}" placeholder="Nome da tarefa">
     <div class="tk-props">
       <div class="tk-p"><span class="tk-pl">${SVG_P.status} Status</span><span class="tk-pv">
-        ${sts.length?`<select id="tk_stid"><option value="">— sem status —</option>${sts.map(s=>`<option value="${s.id}"${it.status_id===s.id?' selected':''}>${esc(s.nome)}</option>`).join('')}</select>`
+        ${sts.length?`<select id="tk_stid"><option value="">Sem status</option>${sts.map(s=>`<option value="${s.id}"${it.status_id===s.id?' selected':''}>${esc(s.nome)}</option>`).join('')}</select>`
                     :`<select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`}
       </span></div>
       <div class="tk-p"><span class="tk-pl">${SVG_P.pessoa} Responsáveis</span><span class="tk-pv">
@@ -4767,7 +4793,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <input type="date" id="tk_prazo" value="${esc(it.prazo||'')}" title="Prazo">
       </span></div>
       <div class="tk-p"><span class="tk-pl">${SVG_P.flag} Prioridade</span><span class="tk-pv">
-        <select id="tk_prio">${Object.keys(TK_PRIO).map(k=>`<option value="${k}"${it.prioridade===k?' selected':''}>${TK_PRIO[k]}</option>`).join('')}</select>
+        <input type="hidden" id="tk_prio" value="${esc(it.prioridade||'med')}">
+        <span class="pr-box" id="tk_priobox">${prioChips(it.prioridade||'med')}</span>
       </span></div>
       <div class="tk-p"><span class="tk-pl">${SVG_P.ampulheta} Estimativa</span><span class="tk-pv">
         <input id="tk_est" class="tk-curto" value="${esc(estTexto(it.estimativa_min))}" placeholder="ex: 1h30" title="Horas e minutos — ex: 1h30">
@@ -4781,7 +4808,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         ${selFicha('tk_ficha',it.ficha_id||'',"tkPuxaCliente()")}
       </span></div>
       <div class="tk-p"><span class="tk-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</span><span class="tk-pv">
-        <select id="tk_squad"><option value="">— todo o time vê —</option>${sqOpc.map(s=>`<option value="${esc(s)}"${sqAtual===s?' selected':''}>Squad ${esc(s)}</option>`).join('')}</select>
+        <select id="tk_squad"><option value="">Todo o time vê</option>${sqOpc.map(s=>`<option value="${esc(s)}"${sqAtual===s?' selected':''}>Squad ${esc(s)}</option>`).join('')}</select>
       </span></div>
       <!-- A lista saiu das propriedades: você já está dentro dela e ela aparece no caminho
            lá em cima. Fica só como valor, para o salvamento e para mover por arrastar. -->
@@ -5249,7 +5276,7 @@ function dlPainelHTML(){
       </div>
       ${(!gestor&&!gerente)?`<p class="hint" style="margin-top:8px">Essa ficha não tem gestor nem gerente com usuário no sistema. Escolha na lista abaixo.</p>`:''}
       <div class="field" style="margin-top:9px"><select onchange="dlDest(this.value)">
-        <option value="">— outra pessoa —</option>
+        <option value="">Outra pessoa</option>
         ${(TK.equipe||[]).map(u=>`<option value="${u.id}"${DL.dest===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}
       </select></div>
       <label class="dl-ck" style="cursor:pointer"><input type="checkbox" id="dlAlta" style="width:16px;height:16px;accent-color:var(--brand2)"> Prioridade alta</label>
@@ -5837,7 +5864,7 @@ function renderFechamento(c){
     <div class="card" style="margin-bottom:14px"><h2 style="font-size:15px;margin-bottom:12px">👥 Responsáveis · comercial x projetos</h2>
       <div class="row2">${fcField('SDR responsável *','fc_sdr','')}${fcField('Closer responsável *','fc_closer','',(currentUser&&currentUser.nome)||'')}</div>
       <div class="row2">
-        <div class="field"><label>Gerente *</label><select id="fc_ger"><option value="">— selecione —</option><option value="luiz">Luiz Marcelo (squad 01)</option><option value="joao">João Vitor (squad 02)</option></select></div>
+        <div class="field"><label>Gerente *</label><select id="fc_ger"><option value="">Selecione</option><option value="luiz">Luiz Marcelo (squad 01)</option><option value="joao">João Vitor (squad 02)</option></select></div>
         <div class="field" id="fc_gw"><label>Gestor de tráfego *</label><input id="fc_gestor" list="dlFcGestores" placeholder="ex: Luan, Yghor, Vitor"><datalist id="dlFcGestores">${gestores.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div></div>
       ${fcField('Link da call de vendas','fc_call','https://...')}
     </div>
@@ -6117,7 +6144,7 @@ window.openProjCard=(id)=>{
       </div>
       <div style="margin:16px 0 8px;font-size:13px;font-weight:800">&#127970; Negócio</div>
       <div class="row2" style="margin-bottom:12px">
-        <div class="field" style="margin:0"><label>Nicho</label><select id="pc_nicho"><option value="">— escolher —</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select></div>
+        <div class="field" style="margin:0"><label>Nicho</label><select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select></div>
         <div class="field" style="margin:0"><label>Nível (NPS)</label><select id="pc_nivel"><option value="">—</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select></div>
         <div class="field" style="margin:0"><label>Produtos / serviços entregues</label><input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Social media, Agente de IA"></div>
       </div>
@@ -6325,7 +6352,7 @@ window.openCliModal=(id)=>{
   modal(id?'Editar cliente':'Novo cliente',`
     <div class="field"><label>Nome do cliente</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Loja X Veículos"></div>
     <div class="row2">
-      <div class="field"><label>Nicho</label><select id="m_nicho"><option value="">— escolher —</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,it)===n?' selected':''}>${n}</option>`).join('')}</select></div>
+      <div class="field"><label>Nicho</label><select id="m_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,it)===n?' selected':''}>${n}</option>`).join('')}</select></div>
       <div class="field"><label>Serviço entregue</label><input id="m_serv" value="${esc(it.servico)}" placeholder="Ex: Tráfego Pago + Agent IA"></div>
     </div>
     <div class="row2">
@@ -6786,7 +6813,7 @@ function renderContratos(c){
      </div>
      <div class="row2" style="margin-bottom:18px">
        <div class="field"><label>2. Para qual cliente?</label><select id="ctCli">
-         <option value="">— cliente novo, ainda não cadastrado —</option>
+         <option value="">Cliente novo, ainda não cadastrado</option>
          ${cls.map(x=>`<option value="${x.id}"${ctCliSel===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}
        </select></div>
        <div class="field"><label>3. Quem assina pela Síntese?</label><select id="ctSig">
