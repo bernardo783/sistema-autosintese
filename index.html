@@ -3175,6 +3175,16 @@ async function tkCarregar(){
     spSalvarArvore();
     if(!TK.colsSalvo){ const esconder=['Remuneração por Contrato','Verba Semanal','Forma de Pagamento','Canal'];
       TK.campos.forEach(k=>{ if(k.lista_id===LC_ID&&esconder.indexOf(k.nome)>=0) TK.colsOff[k.id]=true; }); }
+    if(!TK.colsSalvo){
+      TK.campos.forEach(k=>{
+        if(k.lista_id===LC_ID) return;
+        const daLista=TK.tarefas.filter(t=>t.lista_id===k.lista_id);
+        if(!daLista.length) return;                       /* lista nova: nao esconde nada */
+        const usada=daLista.some(t=>{ const v=(t.valores||{})[k.id];
+          return v!==undefined&&v!==null&&v!==''&&v!==false; });
+        if(!usada) TK.colsOff[k.id]=true;
+      });
+    }
   }
 }
 function renderTarefas(c){
@@ -3878,7 +3888,9 @@ window.spSelLista=(id,semAbrir)=>{
   TK.listaSel=id; TK.escopo='lista'; searchTerm=''; spMarcarAtalho(''); if(!semAbrir) spAbrirCaminho(id);
   if(LFIN[id]){ render(LFIN[id]); return; }
   if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
-  if(id===LC_ID&&!TK.visaoTocada) TK.visao='board';
+  /* Lista de fluxo (4+ status proprios) abre no Board, como a linha editorial do ClickUp.
+     Vale so ate a pessoa escolher a visao na mao — dai respeita a escolha dela. */
+  if(!TK.visaoTocada) TK.visao=(id===LC_ID||tkStatusDe(id).length>=4)?'board':'lista';
   currentView='lista'; lkMarcar('l',id); tkDesenhar($('#content')); spDesenhar(); };
 /* ======================= INÍCIO: o dia de trabalho de cada um =======================
    Cada pessoa abre o sistema no que é dela: o que vence hoje, o que está em andamento
