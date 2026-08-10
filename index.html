@@ -4084,7 +4084,10 @@ function tkDesenhar(c){
   const lista=TK.listas.find(x=>x.id===TK.listaSel);
   const cli=ehLC(TK.listaSel)&&TK.escopo==='lista';
   if(TK.visao==='cal') TK.visao='board';   /* calendário removido a pedido do Gabriel */
-  const visoes=[['lista','☰ Lista'],['board','▦ Board']];
+  /* listas que só existem em Kanban (pedido do Gabriel, 10/08): 🎬 Edição de Vídeo */
+  const soBoard=['23b91ffd-0afa-4db1-8239-444bce201aad'].includes(TK.listaSel)&&TK.escopo==='lista';
+  if(soBoard) TK.visao='board';
+  const visoes=soBoard?[['board','▦ Board']]:[['lista','☰ Lista'],['board','▦ Board']];
   const abas=`<div class="tk-seg">${visoes.map(v=>`<button class="${TK.visao===v[0]?'on':''}" onclick="tkVisao('${v[0]}')">${v[1]}</button>`).join('')}</div>`;
   const corpo=(cli&&TK.lcVista==='gerentes')?lcVistaGerentes():(TK.visao==='lista'?tkViewLista():tkViewBoard());
   const dica=TK.visao==='board'?'arraste os cartões entre as colunas':'clique no nome para abrir, no cabeçalho para ordenar';
