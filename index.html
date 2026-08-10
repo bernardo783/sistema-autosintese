@@ -4779,9 +4779,9 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <div class="tk-p"><span class="tk-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</span><span class="tk-pv">
         <select id="tk_squad"><option value="">— todo o time vê —</option>${sqOpc.map(s=>`<option value="${esc(s)}"${sqAtual===s?' selected':''}>Squad ${esc(s)}</option>`).join('')}</select>
       </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.lista} Lista</span><span class="tk-pv">
-        <select id="tk_lista">${TK.listas.map(l=>`<option value="${l.id}"${it.lista_id===l.id?' selected':''}>${esc(tkCaminho(l.id))}</option>`).join('')}</select>
-      </span></div>
+      <!-- A lista saiu das propriedades: você já está dentro dela e ela aparece no caminho
+           lá em cima. Fica só como valor, para o salvamento e para mover por arrastar. -->
+      <input type="hidden" id="tk_lista" value="${esc(it.lista_id||'')}">
       ${cps.filter(c=>!c.origem).map(c=>`<div class="tk-p"><span class="tk-pl">${SVG_P.campo} ${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr" title="Obrigatório">*</span>':''}</span><span class="tk-pv">
         ${campoHtml(c)}
       </span></div>`).join('')}
