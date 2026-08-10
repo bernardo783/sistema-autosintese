@@ -69,6 +69,30 @@
   .nm-av{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;flex:none;
     display:grid;place-items:center;font-size:11px;font-weight:800}
   .tk-lock{font-size:10px;opacity:.75;margin-left:4px;flex:none}
+  .tk-tit{width:100%;background:transparent;border:none;color:var(--txt);font-size:21px;font-weight:700;
+    letter-spacing:-.015em;padding:2px 0 12px;outline:none;font-family:inherit}
+  .tk-tit::placeholder{color:var(--muted)}
+  .tk-props{display:flex;flex-direction:column;margin-bottom:6px}
+  .tk-p{display:flex;align-items:center;gap:12px;padding:7px 0;min-height:38px}
+  .tk-pl{display:flex;align-items:center;gap:9px;width:152px;flex:none;color:var(--muted);
+    font-size:12.5px;font-weight:600}
+  .tk-pl svg{width:15px;height:15px;flex:none;opacity:.8}
+  .tk-pv{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tk-pv select,.tk-pv input[type=text],.tk-pv input:not([type]),.tk-pv input[type=date],.tk-pv input[type=number]{
+    background:transparent;border:1px solid transparent;border-radius:7px;color:var(--txt);
+    padding:5px 8px;font-size:13.5px;font-family:inherit;max-width:100%;color-scheme:dark}
+  .tk-pv select:hover,.tk-pv input:hover{background:var(--panel2);border-color:var(--line)}
+  .tk-pv select:focus,.tk-pv input:focus{background:var(--panel2);border-color:var(--brand2);outline:none}
+  .tk-pv input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2)}
+  .tk-datas{gap:4px}
+  .tk-seta{color:var(--muted);font-size:12px}
+  .tk-curto{width:110px}
+  .tk-sec{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+    font-weight:800;margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--line)}
+  .tk-desc{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:10px 11px;font-size:13.5px;font-family:inherit;resize:vertical}
+  .tk-desc:focus{border-color:var(--brand2);outline:none}
+  .tk-rodape{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
   .cp-obr{font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;margin-left:7px;
     color:#f0cb7d;background:rgba(230,177,63,.14);border-radius:999px;padding:1px 7px}
   .cp-ori{font-size:9.5px;font-weight:700;margin-left:7px;color:#c4b8ff;
@@ -4478,6 +4502,35 @@ window.tkNovaLista=(espacoId,pastaId)=>{
       render('tarefas'); toast('Lista criada.'); return true;
     });
 };
+/* ---------- MODAL DA TAREFA: propriedades em linha, estilo ClickUp ----------
+   Ícone + rótulo à esquerda, valor à direita. Uma propriedade por linha, sem caixa
+   dentro de caixa — o que estava em duas colunas competia pela atenção. */
+const ic=(d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const SVG_P={
+  status:ic('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>'),
+  pessoa:ic('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>'),
+  data:ic('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
+  flag:ic('<path d="M4 21V4h11l-1.5 4L15 12H4"/>'),
+  ampulheta:ic('<path d="M6 2h12M6 22h12M8 2c0 5 8 5 8 10s-8 5-8 10"/><path d="M16 2c0 5-8 5-8 10s8 5 8 10"/>'),
+  tag:ic('<path d="M20.6 13.4 12 22l-9-9V4h9l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/>'),
+  cliente:ic('<path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>'),
+  squad:ic('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M2 20c0-3.3 3.1-5 7-5s7 1.7 7 5"/><path d="M17 14c3 .4 5 2 5 4.5"/>'),
+  lista:ic('<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>'),
+  campo:ic('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h5"/>')};
+/* "1h30", "90min", "2h" -> minutos. Devolve null se não entender, para poder avisar. */
+function estMinutos(s){
+  s=String(s||'').trim().toLowerCase(); if(!s) return null;
+  if(/^\d+$/.test(s)) return Number(s);
+  const m=s.match(/^(?:(\d+)\s*h)?\s*(?:(\d+)\s*(?:min|m)?)?$/);
+  if(!m||(!m[1]&&!m[2])) return null;
+  return (Number(m[1]||0)*60)+Number(m[2]||0);
+}
+const estTexto=(min)=>{
+  if(min==null||min==='') return '';
+  const n=Number(min); if(!n) return '';
+  const hs=Math.floor(n/60), ms=n%60;
+  return hs?(hs+'h'+(ms?String(ms).padStart(2,'0'):'')):(ms+'min');
+};
 window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const t=id?TK.tarefas.find(x=>x.id===id):null;
   TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok)})):[];
@@ -4501,34 +4554,62 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
     return `<input type="${tp}" id="cp_${c.id}" value="${esc(v==null?'':String(v))}" placeholder="${c.tipo==='moeda'?'R$':''}">`; };
   modal(t?'Editar tarefa':'Nova tarefa',`
-    ${t?`<div class="lk-linha"><span>Link direto para esta tarefa</span>
-      <button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button></div>`:''}
-    <div class="field"><label>Título</label><input id="tk_tit" value="${esc(it.titulo)}" placeholder="Ex: Subir criativos da semana"></div>
-    <div class="row2">
-      <div class="field"><label>Lista</label><select id="tk_lista">${TK.listas.map(l=>`<option value="${l.id}"${it.lista_id===l.id?' selected':''}>${esc(tkCaminho(l.id))}</option>`).join('')}</select></div>
-      <div class="field"><label>Cliente</label>${selFicha('tk_ficha',it.ficha_id||'',"tkPuxaCliente()")}</div>
+    <input class="tk-tit" id="tk_tit" value="${esc(it.titulo)}" placeholder="Nome da tarefa">
+    <div class="tk-props">
+      <div class="tk-p"><span class="tk-pl">${SVG_P.status} Status</span><span class="tk-pv">
+        ${sts.length?`<select id="tk_stid"><option value="">— sem status —</option>${sts.map(s=>`<option value="${s.id}"${it.status_id===s.id?' selected':''}>${esc(s.nome)}</option>`).join('')}</select>`
+                    :`<select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`}
+      </span></div>
+      <div class="tk-p"><span class="tk-pl">${SVG_P.pessoa} Responsável</span><span class="tk-pv">
+        <select id="tk_resp"><option value="">— ninguém —</option>${equipeDe(lid,it.responsavel_id).map(u=>`<option value="${u.id}"${it.responsavel_id===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>
+      </span></div>
+      <div class="tk-p"><span class="tk-pl">${SVG_P.data} Datas</span><span class="tk-pv tk-datas">
+        <input type="date" id="tk_ini" value="${esc(it.iniciada_em||'')}" title="Início">
+        <span class="tk-seta">→</span>
+        <input type="date" id="tk_prazo" value="${esc(it.prazo||'')}" title="Prazo">
+      </span></div>
+      <div class="tk-p"><span class="tk-pl">${SVG_P.flag} Prioridade</span><span class="tk-pv">
+        <select id="tk_prio">${Object.keys(TK_PRIO).map(k=>`<option value="${k}"${it.prioridade===k?' selected':''}>${TK_PRIO[k]}</option>`).join('')}</select>
+      </span></div>
+      <div class="tk-p"><span class="tk-pl">${SVG_P.ampulheta} Estimativa</span><span class="tk-pv">
+        <input id="tk_est" class="tk-curto" value="${esc(estTexto(it.estimativa_min))}" placeholder="ex: 1h30">
+        <span class="hint" style="margin:0">horas e minutos</span>
+      </span></div>
+      <div class="tk-p"><span class="tk-pl">${SVG_P.tag} Etiquetas</span><span class="tk-pv">
+        <input id="tk_tags" value="${esc((it.tags||[]).join(', '))}" placeholder="separadas por vírgula">
+      </span></div>
+      <div class="tk-p"><span class="tk-pl">${SVG_P.cliente} Cliente</span><span class="tk-pv">
+        ${selFicha('tk_ficha',it.ficha_id||'',"tkPuxaCliente()")}
+      </span></div>
+      <div class="tk-p"><span class="tk-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</span><span class="tk-pv">
+        <select id="tk_squad"><option value="">— todo o time vê —</option>${sqOpc.map(s=>`<option value="${esc(s)}"${sqAtual===s?' selected':''}>Squad ${esc(s)}</option>`).join('')}</select>
+      </span></div>
+      <div class="tk-p"><span class="tk-pl">${SVG_P.lista} Lista</span><span class="tk-pv">
+        <select id="tk_lista">${TK.listas.map(l=>`<option value="${l.id}"${it.lista_id===l.id?' selected':''}>${esc(tkCaminho(l.id))}</option>`).join('')}</select>
+      </span></div>
+      ${cps.map(c=>`<div class="tk-p"><span class="tk-pl">${SVG_P.campo} ${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr">obrigatório</span>':''}</span><span class="tk-pv">
+        ${campoHtml(c)}${c.origem?`<span class="cp-ori" title="Preenche sozinho ao escolher o cliente">↩ ${esc(cpOrigemNome(c.origem))}</span>`:''}
+      </span></div>`).join('')}
     </div>
-    <div class="row2">
-      <div class="field"><label>Prioridade</label><select id="tk_prio">${Object.keys(TK_PRIO).map(k=>`<option value="${k}"${it.prioridade===k?' selected':''}>${TK_PRIO[k]}</option>`).join('')}</select></div>
-      <div class="field"><label>Status</label>${sts.length?`<select id="tk_stid"><option value="">— sem status —</option>${sts.map(s=>`<option value="${s.id}"${it.status_id===s.id?' selected':''}>${esc(s.nome)}</option>`).join('')}</select>`:`<select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`}</div>
-    </div>
-    <div class="row2">
-      <div class="field"><label>Prazo</label><input type="date" id="tk_prazo" value="${esc(it.prazo||'')}"></div>
-      <div class="field"><label>Responsável</label><select id="tk_resp"><option value="">— ninguém —</option>${equipeDe(lid,it.responsavel_id).map(u=>`<option value="${u.id}"${it.responsavel_id===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select></div>
-    </div>
-    <div class="field"><label>Squad${exigeSquad(it.lista_id)?' *':''}</label>
-      <select id="tk_squad"><option value="">— sem squad (todo o time vê) —</option>${sqOpc.map(s=>`<option value="${esc(s)}"${sqAtual===s?' selected':''}>Squad ${esc(s)}</option>`).join('')}</select>
-      <p class="hint" style="margin:6px 0 0">Quem tem squad só enxerga as tarefas do próprio squad. Master vê tudo.</p></div>
-    ${cps.length?`<div class="tk-cpbox"><div class="tk-cptit">Campos desta lista</div><div class="row2">${cps.map(c=>`<div class="field"><label>${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr">obrigatório</span>':''}${c.origem?`<span class="cp-ori" title="Preenche sozinho ao escolher o cliente">↩ ${esc(cpOrigemNome(c.origem))}</span>`:''}</label>${campoHtml(c)}</div>`).join('')}</div></div>`:''}
-    <div class="tk-cpbox"><div class="tk-cptit">Checklist <span id="ck_prog"></span></div>
-      <div id="ck_lista"></div>
-      <button class="btn ghost small" onclick="ckAdd()" style="margin-top:6px">+ item</button></div>
-    <div class="field"><label>Descrição</label><textarea id="tk_desc" rows="3" placeholder="detalhes...">${esc(it.descricao)}</textarea></div>
-    ${t?`<button class="btn ghost small" onclick="tkExcluir('${t.id}')">Excluir tarefa</button>`:''}`,
+    <div class="tk-sec">Descrição</div>
+    <textarea id="tk_desc" rows="3" class="tk-desc" placeholder="detalhes...">${esc(it.descricao)}</textarea>
+    <div class="tk-sec">Checklist <span id="ck_prog"></span></div>
+    <div id="ck_lista"></div>
+    <button class="btn ghost small" onclick="ckAdd()" style="margin-top:6px">+ item</button>
+    <div class="tk-rodape">
+      ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
+      ${t?`<button class="btn ghost small" onclick="tkExcluir('${t.id}')">Excluir</button>`:''}
+    </div>`,
     async ()=>{
       const v={titulo:$('#tk_tit').value.trim(), lista_id:$('#tk_lista').value, ficha_id:$('#tk_ficha').value||null,
         prioridade:$('#tk_prio').value, prazo:$('#tk_prazo').value||null,
+        iniciada_em:($('#tk_ini')&&$('#tk_ini').value)||null,
+        estimativa_min:estMinutos($('#tk_est')?$('#tk_est').value:''),
+        tags:($('#tk_tags')?$('#tk_tags').value:'').split(',').map(s=>s.trim()).filter(Boolean),
         responsavel_id:$('#tk_resp').value||null, descricao:$('#tk_desc').value.trim()};
+      if($('#tk_est')&&$('#tk_est').value.trim()&&v.estimativa_min===null){
+        toast('Estimativa: use algo como 45min, 1h30 ou 2h.'); $('#tk_est').focus(); return false; }
+      if(v.iniciada_em&&v.prazo&&v.iniciada_em>v.prazo){ const x=v.iniciada_em; v.iniciada_em=v.prazo; v.prazo=x; }
       if(!v.titulo){ toast('Informe o título.'); return false; }
       v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
       if(exigeSquad(v.lista_id)&&!v.squad){ toast('Esta lista exige o squad — escolha um.'); return false; }
