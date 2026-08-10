@@ -3384,9 +3384,11 @@ window.tkQaCli=(ev,id)=>{ ev.stopPropagation();
 window.tkQaCliBusca=(id,q)=>{ const box=document.getElementById('tkQaCliRes'); if(!box) return;
   const t=TK.tarefas.find(x=>x.id===id)||{};
   const nq=chaveNome(q);
-  const res=(DB.projetos||[]).filter(p=>!nq||chaveNome(p.nome).indexOf(nq)>=0).slice(0,8);
-  box.innerHTML=(t.ficha_id?`<label class="tkp-row" onclick="tkQaSetCli('${id}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">✕</span><span class="tkp-nm">Remover cliente</span></label>`:'')+
-    (res.map(p=>`<label class="tkp-row" onclick="tkQaSetCli('${id}','${p.id}')"><span class="lc-av" style="background:${lcCor(p.nome)}">${esc(String(p.nome||'?').trim().charAt(0).toUpperCase())}</span><span class="tkp-nm">${esc(p.nome)}</span>${t.ficha_id===p.id?'<span class="tkp-n">•</span>':''}</label>`).join('')||'<div class="hint" style="margin:4px 2px">Nenhum cliente com esse nome.</div>');
+  const remover=t.ficha_id?`<label class="tkp-row" onclick="tkQaSetCli('${id}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">&#10005;</span><span class="tkp-nm">Remover cliente</span></label>`:'';
+  /* sem prévia (pedido do Gabriel): lista só aparece depois que digitar */
+  if(!nq){ box.innerHTML=remover+`<div class="hint" style="margin:6px 2px;display:flex;align-items:center;gap:7px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>Pesquise o nome do cliente</div>`; return; }
+  const res=(DB.projetos||[]).filter(p=>chaveNome(p.nome).indexOf(nq)>=0).slice(0,8);
+  box.innerHTML=remover+(res.map(p=>`<label class="tkp-row" onclick="tkQaSetCli('${id}','${p.id}')"><span class="lc-av" style="background:${lcCor(p.nome)}">${esc(String(p.nome||'?').trim().charAt(0).toUpperCase())}</span><span class="tkp-nm">${esc(p.nome)}</span>${t.ficha_id===p.id?'<span class="tkp-n">•</span>':''}</label>`).join('')||'<div class="hint" style="margin:4px 2px">Nenhum cliente com esse nome.</div>');
 };
 window.tkQaSetCli=(id,fid)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
   tkPatch(id,{ficha_id:fid||null},fid?'Cliente etiquetado.':'Cliente removido.'); };
