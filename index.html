@@ -4447,7 +4447,7 @@ function tkDesenhar(c){
   const cli=ehLC(TK.listaSel)&&TK.escopo==='lista';
   if(TK.visao==='cal') TK.visao='board';   /* calendário removido a pedido do Gabriel */
   /* listas que só existem em Kanban (pedido do Gabriel, 10/08): 🎬 Edição de Vídeo */
-  const soBoard=['23b91ffd-0afa-4db1-8239-444bce201aad'].includes(TK.listaSel)&&TK.escopo==='lista';
+  const soBoard=[LISTA_EDICAO].includes(TK.listaSel)&&TK.escopo==='lista';
   if(soBoard) TK.visao='board';
   const visoes=soBoard?[['board','▦ Board']]:[['lista','☰ Lista'],['board','▦ Board']];
   const abas=`<div class="tk-seg">${visoes.map(v=>`<button class="${TK.visao===v[0]?'on':''}" onclick="tkVisao('${v[0]}')">${v[1]}</button>`).join('')}</div>`;
