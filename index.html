@@ -667,6 +667,22 @@
   .tk-filhos{padding-left:10px;border-left:1px solid var(--line);margin-left:13px}
   .tk-grupo{margin-bottom:16px}
   .tk-grupoh{display:flex;align-items:center;gap:9px;padding:5px 2px;cursor:pointer}
+  /* faixa de grupo dentro da tabela única */
+  .tk-faixa > td{background:var(--panel2);padding:7px 14px!important;cursor:pointer;border-bottom:1px solid var(--line)}
+  .tk-faixa:hover > td{background:#26262c}
+  .tk-faixa > td > *{vertical-align:middle}
+  .tk-faixa .tk-cv{display:inline-block;transition:transform .15s;color:var(--muted);font-size:11px;margin-right:7px}
+  .tk-faixa .tk-cv.ab{transform:rotate(90deg)}
+  .tk-faixa .tk-selo{margin-right:8px}
+  .tk-faixa .tk-n{color:var(--muted);font-size:11.5px;font-weight:700}
+  .tk-faixa .tk-add{margin-left:10px;opacity:0;transition:opacity .12s}
+  .tk-faixa:hover .tk-add{opacity:1}
+  .tk-faixa.vazio > td{opacity:.5}
+  .tk-faixa.vazio:hover > td{opacity:1}
+  /* linha de tarefa: mais enxuta e com o excluir só no hover */
+  .tk-tab tbody tr:not(.tk-faixa) > td{padding:8px 14px}
+  .tk-tab tbody tr:not(.tk-faixa) .iconbtn.del{opacity:0;transition:opacity .12s}
+  .tk-tab tbody tr:not(.tk-faixa):hover .iconbtn.del{opacity:1}
   .tk-selo{font-size:11px;font-weight:800;padding:3px 9px;border-radius:6px;border:1px solid;letter-spacing:.3px;white-space:nowrap}
   .tk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
   /* Célula editável: parece texto na lista; vira campo só quando a linha recebe o mouse. */
@@ -3532,18 +3548,18 @@ function tkViewLista(){
       <td><button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button></td>
     </tr>`;};
   const ncols=lc?(cps.length+2):(cps.length+7);
+  /* Uma tabela só: o cabeçalho aparece uma vez e cada grupo vira uma faixa dentro dela.
+     Antes cada grupo montava a própria tabela — com 1 tarefa, o cabeçalho pesava mais que o dado. */
   const bloco=(g)=>{
     const fech=TK.fechadas['g'+g.k];
-    return `<div class="tk-grupo">
-      <div class="tk-grupoh" onclick="tkToggle('g','${g.k}')">
+    const faixa=`<tr class="tk-faixa${g.its.length?'':' vazio'}" onclick="tkToggle('g','${g.k}')"><td colspan="${ncols}">
         <span class="tk-cv${fech?'':' ab'}">&#9656;</span>
         <span class="tk-selo" style="color:${esc(g.cor)};border-color:${esc(g.cor)}66;background:${esc(g.cor)}1a">${esc(g.rot)}</span>
         <span class="tk-n">${g.its.length}</span>
         ${lc?'':`<button class="iconbtn tk-add" title="Nova tarefa aqui" onclick="event.stopPropagation();tkAbrir(null,null,'${g.k}')">+</button>`}
-      </div>
-      ${(fech||!g.its.length)?'':`<div class="tablewrap"><table class="tk-tab"><thead>${cab}</thead><tbody>${g.its.map(linha).join('')}</tbody></table></div>`}
-      ${(!fech&&!g.its.length&&!lc)?`<button class="tk-vazio" onclick="tkAbrir(null,null,'${g.k}')">+ Tarefa</button>`:''}
-    </div>`;};
+      </td></tr>`;
+    return faixa+((fech||!g.its.length)?'':g.its.map(linha).join(''));
+  };
   const total=grupos.reduce((a,g)=>a+g.its.length,0);
   return `<div class="tk-bar">${tkBarraSquad()}
     <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
@@ -3551,7 +3567,9 @@ function tkViewLista(){
     ${(TK.escopo==='lista'&&estruturaEditavel(TK.listaSel))?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>`
       :(TK.escopo==='lista'?`<span class="hint" style="margin:0">&#128274; colunas fixas — só master e gerente mudam</span>`:'')}
     <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
-  </div>${grupos.length?grupos.map(bloco).join(''):'<div class="empty">Nada por aqui.</div>'}`;
+  </div>${grupos.length
+    ? `<div class="tablewrap"><table class="tk-tab"><thead>${cab}</thead><tbody>${grupos.map(bloco).join('')}</tbody></table></div>`
+    : '<div class="empty">Nada por aqui.</div>'}`;
 }
 /* A arvore de espacos mora na barra lateral: ela e a navegacao principal do sistema. */
 /* ---------- ARRASTAR LISTAS: reordenar e mover entre pastas/espacos ---------- */
