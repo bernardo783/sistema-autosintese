@@ -512,6 +512,19 @@
   .tk-chip.hoje{color:#f0c869}
   .tk-chip.tarde{color:#ff8b97;font-weight:700}
   .tk-foot .av{margin-left:auto}
+  /* ---------- Início: o dia de trabalho da pessoa ---------- */
+  .ini-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+  .ini-box.atraso{border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.06)}
+  .ini-h{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:800;margin-bottom:10px;flex-wrap:wrap}
+  .ini-box.atraso .ini-h{color:#fca5a5}
+  .ini-it{display:flex;align-items:center;gap:11px;padding:9px 6px;border-radius:9px;cursor:pointer;transition:background .12s}
+  .ini-it:hover{background:var(--panel2)}
+  .ini-it+.ini-it{border-top:1px solid var(--line)}
+  .ini-bolha{width:8px;height:8px;border-radius:50%;flex:none}
+  .ini-tit{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ini-sub{color:var(--muted);font-size:11.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ini-tag{flex:none;font-size:11px;font-weight:700;color:var(--muted);background:var(--panel2);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .ini-tag.atraso{color:#fca5a5;background:rgba(248,113,113,.14)}
   .tk-addcard{flex:none;width:100%;background:transparent;border:none;color:var(--muted);font-size:12.5px;font-weight:600;text-align:left;padding:8px 10px;border-radius:8px;margin-top:2px}
   .tk-addcard:hover{background:var(--panel2);color:var(--txt)}
   .tk-vazio{border:1.5px dashed var(--line);border-radius:10px;color:var(--muted);font-size:12px;text-align:center;padding:18px 8px;margin:0 0 8px}
@@ -866,7 +879,7 @@
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <nav class="railbar" id="railbar">
-    <button class="rl" id="rlInicio" title="Início — Base de Clientes" onclick="spAbrirClientes()">
+    <button class="rl" id="rlInicio" title="Início — suas demandas do dia" onclick="renderInicio(document.getElementById('content'))">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="t">Início</span></button>
     <button class="rl" id="rlEspacos" title="Mostrar ou esconder a lista de espaços" onclick="spMini()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span class="t">Espaços</span></button>
@@ -1114,7 +1127,7 @@ async function enterApp(){
   spDesenhar();
   /* veio de um link? cai direto no destino em vez da tela padrão */
   const foi=await lkIr();
-  if(!foi){ if(TK.listas.some(l=>l.id===LC_ID)) spSelLista(LC_ID,true); else render('dash'); }
+  if(!foi) renderInicio($('#content'));   /* cada um abre no próprio dia de trabalho */
   mtBoot();   /* Meta começa a carregar no login: quando você abrir Tráfego já está pronto */
 }
 
@@ -3709,7 +3722,7 @@ function spDesenhar(){
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
   const be=document.getElementById('rlEspacos'); if(be) be.classList.toggle('active',!SP_MINI);
   const bi=document.getElementById('rlInicio');
-  if(bi) bi.classList.toggle('active', currentView==='lista'&&TK.escopo==='lista'&&ehLC(TK.listaSel));
+  if(bi) bi.classList.toggle('active', currentView==='inicio');
   const mst=!!(currentUser&&currentUser.role==='master');
   /* contador da caixa de entrada + estado do atalho */
   const bx=document.getElementById('rlInbox'), bn=document.getElementById('spInboxN');
@@ -3778,6 +3791,83 @@ window.spSelLista=(id,semAbrir)=>{
   if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
   if(id===LC_ID&&!TK.visaoTocada) TK.visao='board';
   currentView='lista'; lkMarcar('l',id); tkDesenhar($('#content')); spDesenhar(); };
+/* ======================= INÍCIO: o dia de trabalho de cada um =======================
+   Cada pessoa abre o sistema no que é dela: o que vence hoje, o que está em andamento
+   e o que já concluiu. Atrasado aparece sempre, mesmo filtrando só o dia. */
+let inicioPer='hoje';   /* 'hoje' | '7d' */
+/* Em que fase a tarefa está: usa o grupo do status da lista; sem status personalizado, o status simples */
+function faseDe(t){
+  const s=(TK.status||[]).find(x=>x.id===t.status_id);
+  if(s&&s.grupo) return s.grupo;
+  return t.status==='feito'?'feito':t.status==='fazendo'?'ativo':'nao_iniciado';
+}
+const minhasTarefas=()=>{ const u=(currentUser||{}).id; return u?(TK.tarefas||[]).filter(t=>t.responsavel_id===u):[]; };
+window.inicioPeriodo=(p)=>{ inicioPer=p; renderInicio($('#content')); };
+function renderInicio(c){
+  if(!TK.listas.length){ c.innerHTML='<div class="empty">Carregando…</div>';
+    return tkCarregar().then(()=>{ spDesenhar(); renderInicio(c); }).catch(e=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(e.message)+'</div>'; }); }
+  currentView='inicio'; spMarcarAtalho('inicio');
+  const hoje=tkHoje(), de=inicioPer==='7d'?isoMais(-6):hoje;
+  const noPeriodo=(d)=>!!d && String(d).slice(0,10)>=de && String(d).slice(0,10)<=hoje;
+  const todas=minhasTarefas();
+  const abertas=todas.filter(t=>faseDe(t)!=='feito'&&faseDe(t)!=='fechado');
+  const pendentes=abertas.filter(t=>noPeriodo(t.prazo));
+  const andamento=abertas.filter(t=>faseDe(t)==='ativo');
+  const feitas=todas.filter(t=>faseDe(t)==='feito'&&(noPeriodo(t.concluida_em)||noPeriodo(t.prazo)));
+  const atrasadas=abertas.filter(t=>t.prazo&&String(t.prazo).slice(0,10)<hoje)
+                         .sort((a,b)=>String(a.prazo).localeCompare(String(b.prazo)));
+  const primeiro=String((currentUser||{}).nome||'').trim().split(/\s+/)[0]||'';
+  const h=new Date().getHours();
+  const ola=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+  const item=(t,tipo)=>{
+    const dias=t.prazo?Math.round((new Date(hoje)-new Date(String(t.prazo).slice(0,10)))/86400000):0;
+    return `<div class="ini-it" onclick="tkAbrir('${t.id}')">
+      <span class="ini-bolha" style="background:${tipo==='atraso'?'#f87171':faseDe(t)==='ativo'?'#60a5fa':'#8b8b95'}"></span>
+      <div style="flex:1;min-width:0">
+        <div class="ini-tit">${esc(t.titulo)}</div>
+        <div class="ini-sub">${esc(tkCaminho(t.lista_id))}${t.ficha_id?' · '+esc(tkNomeFicha(t.ficha_id)):''}</div>
+      </div>
+      ${tipo==='atraso'
+        ? `<span class="ini-tag atraso">${dias===1?'1 dia atrasada':dias+' dias atrasada'}</span>`
+        : `<span class="ini-tag">${t.prazo?(String(t.prazo).slice(0,10)===hoje?'hoje':fmtDate(t.prazo).slice(0,5)):'sem prazo'}</span>`}
+    </div>`;
+  };
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>${ola}${primeiro?', '+esc(primeiro):''} 👋</h2>
+       <div class="desc">${inicioPer==='hoje'?'O que é seu para hoje':'O que é seu nos últimos 7 dias'}</div></div>
+     <div class="fin-tabs" style="margin:0">
+       <button class="ftab ${inicioPer==='hoje'?'active':''}" onclick="inicioPeriodo('hoje')">Hoje</button>
+       <button class="ftab ${inicioPer==='7d'?'active':''}" onclick="inicioPeriodo('7d')">Últimos 7 dias</button>
+     </div>
+   </div>
+   <div class="cards">
+     <div class="card"><div class="k">Demandas ${inicioPer==='hoje'?'de hoje':'do período'}</div>
+       <div class="v">${pendentes.length}</div><div class="sub">${pendentes.length?'esperando você':'nada pendente 🎉'}</div></div>
+     <div class="card"><div class="k">Em andamento</div>
+       <div class="v" style="color:#60a5fa">${andamento.length}</div><div class="sub">já começadas</div></div>
+     <div class="card"><div class="k">Concluídas</div>
+       <div class="v pos">${feitas.length}</div><div class="sub">${inicioPer==='hoje'?'hoje':'nos últimos 7 dias'}</div></div>
+   </div>
+   ${atrasadas.length?`
+   <div class="ini-box atraso">
+     <div class="ini-h">⚠️ ${atrasadas.length===1?'1 demanda atrasada':atrasadas.length+' demandas atrasadas'}
+       <span class="hint" style="margin:0;font-weight:600">venceram antes de hoje e continuam abertas</span></div>
+     ${atrasadas.slice(0,8).map(t=>item(t,'atraso')).join('')}
+     ${atrasadas.length>8?`<div class="hint" style="margin:8px 0 0">e mais ${atrasadas.length-8}…</div>`:''}
+   </div>`:''}
+   <div class="ini-box">
+     <div class="ini-h">📋 ${inicioPer==='hoje'?'Para hoje':'Do período'}</div>
+     ${pendentes.length?pendentes.sort((a,b)=>String(a.prazo||'').localeCompare(String(b.prazo||''))).map(t=>item(t,'')).join('')
+       :'<div class="empty" style="padding:18px">Nada com prazo '+(inicioPer==='hoje'?'para hoje':'no período')+'.</div>'}
+   </div>
+   ${andamento.length?`
+   <div class="ini-box">
+     <div class="ini-h">🔵 Em andamento</div>
+     ${andamento.slice(0,10).map(t=>item(t,'')).join('')}
+   </div>`:''}
+   <p class="hint" style="margin-top:14px">Clique numa demanda para abrir. Tudo que aparece aqui está atribuído a você.</p>`;
+}
 window.spAbrirClientes=()=>{
   const c=$('#content');
   if(!TK.listas.length){ c.innerHTML='<div class="empty">Carregando...</div>';
