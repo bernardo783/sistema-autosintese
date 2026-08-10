@@ -3474,24 +3474,46 @@ function lcAtalhos(){
 }
 window.lcGestorF=(g)=>{ TK.lcGestor=g; TK.lcVista=''; tkDesenhar($('#content')); };
 window.lcVerGerentes=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
+const LC_NIVEL={promotor:{rot:'Promotor',cor:'#3fcf8e'},neutro:{rot:'Neutro',cor:'#8b95a5'},detrator:{rot:'Detrator',cor:'#ef5b6b'}};
+const LC_PG={recebido:{rot:'OK',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'#60a5fa'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},churn:{rot:'CHURN',cor:'#8b95a5'}};
 function lcVistaGerentes(){
   const por={};
   tkFiltradas().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
     const g=String(f.gerente||'').trim()||'Sem gerente'; (por[g]=por[g]||[]).push({t,f}); });
   const sts=tkStatusDe(TK.listaSel);
   const st=(id)=>sts.find(x=>x.id===id)||{nome:'—',cor:'#64748b'};
+  /* mensalidade + situação de pagamento: só master enxerga (DB.clientes/recebimentos são restritos) */
+  const fin=!!(currentUser&&currentUser.role==='master'&&(DB.clientes||[]).length);
+  let pgDe=null, valDe=null;
+  if(fin){ const comp=compNow(), hoje=hojeISO();
+    const byCli={}; (DB.recebimentos||[]).filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
+    pgDe=(c)=>{ if(!c) return ''; const r=byCli[c.id];
+      if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
+      if(c.churnComp&&comp>c.churnComp) return 'churn';
+      if(!(c.diaVenc>=1&&c.diaVenc<=31)) return '';
+      return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
+    valDe=(c)=>{ if(!c) return 0; const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; };
+  }
+  const tagN=(k)=>{ const n=LC_NIVEL[k]; return n?`<span class="tag st" style="color:${n.cor};background:${n.cor}1a">${n.rot}</span>`:'—'; };
+  const tagPG=(k)=>{ const p=LC_PG[k]; return p?`<span class="tag st" style="font-weight:800;color:${p.cor};background:${p.cor}1f">${p.rot}</span>`:'—'; };
   const gs=Object.keys(por).sort((a,b)=>por[b].length-por[a].length);
-  return gs.map(g=>`
-   <div class="lc-ger">
-     <div class="lc-gerh"><span class="lc-av g" style="background:${lcCor(g)}">${esc(g.charAt(0).toUpperCase())}</span><strong>${esc(g)}</strong><span class="lc-n">${por[g].length} cliente${por[g].length===1?'':'s'}</span></div>
-     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Gestor de tráfego</th><th>Squad</th><th>Estágio</th></tr></thead>
-     <tbody>${por[g].map(x=>`<tr style="cursor:pointer" onclick="abrirCliente('${x.f.id}')">
-       <td><strong>${esc(x.f.nome)}</strong></td>
+  return gs.map(g=>{
+    const linhas=por[g].map(x=>{ const c=fin?finDaFicha(x.f):null;
+      return `<tr style="cursor:pointer" onclick="abrirCliente('${x.f.id}')">
+       <td><strong>${esc(x.f.nome)}</strong> <span class="tag cat-${catDe(x.f)}" style="font-size:10px">${CAT_LABEL[catDe(x.f)]}</span></td>
+       <td>${tagN(x.f.nivel)}</td>
        <td>${x.f.responsavel?`<span class="lc-av" style="background:${lcCor(x.f.responsavel)}">${esc(String(x.f.responsavel).trim().charAt(0).toUpperCase())}</span>${esc(x.f.responsavel)}`:'—'}</td>
        <td>${x.f.squad?esc(nomeSquad(x.f.squad)):'—'}</td>
        <td><span class="tag st" style="color:${st(x.t.status_id).cor};background:${st(x.t.status_id).cor}1a">${esc(st(x.t.status_id).nome)}</span></td>
-     </tr>`).join('')}</tbody></table></div>
-   </div>`).join('')||'<div class="empty">Nenhum cliente.</div>';
+       ${fin?`<td class="money" style="text-align:right">${c?brl(valDe(c)):'—'}</td><td>${c?tagPG(pgDe(c)):'—'}</td>`:''}
+     </tr>`; }).join('');
+    const total=fin?por[g].reduce((s,x)=>{ const c=finDaFicha(x.f); return s+(c?valDe(c):0); },0):0;
+    return `
+   <div class="lc-ger">
+     <div class="lc-gerh"><span class="lc-av g" style="background:${lcCor(g)}">${esc(g.charAt(0).toUpperCase())}</span><strong>${esc(g)}</strong><span class="lc-n">${por[g].length} cliente${por[g].length===1?'':'s'}</span>${fin?`<span class="lc-n" style="margin-left:auto">mensalidades: <strong style="color:var(--txt)">${brl(total)}</strong></span>`:''}</div>
+     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nível</th><th>Gestor de tráfego</th><th>Squad</th><th>Estágio</th>${fin?'<th style="text-align:right">Mensalidade</th><th>PG</th>':''}</tr></thead>
+     <tbody>${linhas}</tbody></table></div>
+   </div>`; }).join('')||'<div class="empty">Nenhum cliente.</div>';
 }
 /* ===== FILTROS estilo ClickUp (video do Gabriel, 09/08): Responsavel + Data + Prioridade ===== */
 function tkDiaMais(base,n){ const d=new Date(base+'T12:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -4994,6 +5016,7 @@ window.openProjCard=(id)=>{
       <div style="margin:16px 0 8px;font-size:13px;font-weight:800">&#127970; Negócio</div>
       <div class="row2" style="margin-bottom:12px">
         <div class="field" style="margin:0"><label>Nicho</label><select id="pc_nicho"><option value="">— escolher —</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select></div>
+        <div class="field" style="margin:0"><label>Nível (NPS)</label><select id="pc_nivel"><option value="">—</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select></div>
         <div class="field" style="margin:0"><label>Produtos / serviços entregues</label><input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Social media, Agente de IA"></div>
       </div>
       <div style="margin:16px 0 8px;font-size:13px;font-weight:800">&#128279; Links</div>
@@ -5041,7 +5064,7 @@ window.openProjCard=(id)=>{
     if(!_r && !($('#pc_cat').value==='ia'||$('#pc_cat').value==='outro')){ toast('Ficha incompleta: informe o gestor de tráfego.'); return; }
     if(!_g){ toast('Ficha incompleta: informe o gerente.'); return; }
     if(!_sq){ toast('Ficha incompleta: informe o squad.'); return; }
-    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=_r; it.gerente=_g; it.squad=_sq; it.nicho=$('#pc_nicho').value; it.grupoWpp=$('#pc_grupo').value.trim(); it.produtos=$('#pc_produtos').value.trim(); it.instagram=$('#pc_insta').value.trim(); it.drive=$('#pc_drive').value.trim(); it.notas=$('#pc_notas').value.trim();
+    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=_r; it.gerente=_g; it.squad=_sq; it.nicho=$('#pc_nicho').value; it.nivel=$('#pc_nivel').value; it.grupoWpp=$('#pc_grupo').value.trim(); it.produtos=$('#pc_produtos').value.trim(); it.instagram=$('#pc_insta').value.trim(); it.drive=$('#pc_drive').value.trim(); it.notas=$('#pc_notas').value.trim();
     const _oc=$('#pc_orc'), _op=$('#pc_orcper'), _av=$('#pc_aviso');   /* só existem quando o cliente tem conta de anúncio */
     if(_oc){ it.orcamento=parseFloat(String(_oc.value).replace(',','.'))||0; it.orcPer=_op?_op.value:'semanal';
              it.avisoPct=Math.min(90,Math.max(1,parseInt(_av&&_av.value,10)||20)); }
