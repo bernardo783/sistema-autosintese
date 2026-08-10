@@ -1796,7 +1796,14 @@ const fichaNoMeuSquad=(f)=>vejoTudo()||(!!f&&meusSquads().includes(String(f.squa
 const fichasVisiveis=()=>(DB.projetos||[]).filter(fichaNoMeuSquad);
 const fichaDaContaMeta=(c)=>{ const m=contaMarca(c&&c.id); if(m&&m.fichaId) return fichaDe(m.fichaId); const p=(typeof palpiteCliente==='function')?palpiteCliente((c&&c.nome)||''):null; return p?p.ficha:null; };
 const contaVisivel=(c)=>vejoTudo()||fichaNoMeuSquad(fichaDaContaMeta(c));
-const acessoVisivel=(r)=>vejoTudo()||!r.fichaId||fichaNoMeuSquad(fichaDe(r.fichaId));
+/* Link com lista de pessoas aparece só para elas. Lista vazia = todo mundo.
+   Isto ORGANIZA a tela, não tranca o dado: o módulo links é legível por qualquer
+   membro. O que é segredo (senha) já está restrito ao master. */
+const lkPara=(r)=>Array.isArray(r&&r.users)?r.users.filter(Boolean).map(String):[];
+const lkMeu=(r)=>{ const p=lkPara(r); if(!p.length) return true;
+  if(currentUser&&currentUser.role==='master') return true;
+  return p.indexOf(String((currentUser||{}).id))>=0; };
+const acessoVisivel=(r)=>(vejoTudo()||!r.fichaId||fichaNoMeuSquad(fichaDe(r.fichaId)))&&lkMeu(r);
 const SQUADS=()=>Array.from(new Set((DB.projetos||[]).map(p=>String(p.squad||'')).filter(Boolean))).sort();
 /* Gerente e um flag proprio (perfis.gerente), separado do role: manda na estrutura das listas
    travadas (status e colunas) sem virar master. Gestor de trafego nao entra aqui. */
@@ -7454,6 +7461,40 @@ window.tlMarcar=async (uid,view,ligado)=>{
   uaPintar(uid);
   toast(ligado?'Tela liberada.':'Tela escondida para '+(u.nome||'o usuário')+'.');
 };
+/* Quais links dessa pessoa aparecem na aba Links */
+function lkBloco(uid){
+  const ls=(DB.links||[]).slice().sort((a,b)=>String(a.titulo||'').localeCompare(String(b.titulo||'')));
+  if(!ls.length) return '';
+  const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{};
+  if(u.role==='master') return `<div class="nm-sec" style="margin-top:16px">Links</div>
+    <p class="hint" style="margin:0">Master vê todos os links, sempre.</p>`;
+  return `<div class="nm-sec" style="margin-top:16px">Links</div>
+    <div class="ua-tree">${ls.map(l=>{
+      const p=lkPara(l), aberto=!p.length, tem=aberto||p.indexOf(String(uid))>=0;
+      return `<div class="ua-l"><span class="ua-nm">${esc(l.titulo||'(sem título)')}</span>
+        ${aberto?'<span class="ua-chip aberto">todos</span>':'<span class="ua-chip fechado">escolhidos</span>'}
+        <span class="ua-a"><label class="ua-ck"><input type="checkbox" ${tem?'checked':''}
+          onchange="lkMarcar('${uid}','${l.id}',this.checked)"> vê</label></span></div>`;
+    }).join('')}</div>
+    <p class="hint" style="margin:8px 0 0">Link sem ninguém marcado vale para a equipe toda.
+      Desmarcar aqui o restringe às pessoas que sobrarem marcadas.</p>`;
+}
+window.lkMarcar=async (uid,lid,ligado)=>{
+  const l=(DB.links||[]).find(x=>String(x.id)===String(lid)); if(!l) return;
+  let p=lkPara(l);
+  if(!p.length){
+    /* estava aberto: fechar significa deixar todos menos essa pessoa */
+    if(ligado) return;
+    p=(PERFIS||[]).filter(x=>x.role!=='master'&&String(x.id)!==String(uid)).map(x=>String(x.id));
+  }else{
+    p=p.filter(x=>String(x)!==String(uid));
+    if(ligado) p.push(String(uid));
+  }
+  l.users=p;
+  try{ await saveDB(); }catch(e){ toast('Erro ao salvar.'); return; }
+  uaPintar(uid);
+  toast(ligado?'Link liberado.':'Link escondido para essa pessoa.');
+};
 function tlBloco(uid){
   const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{};
   const telas=tlLista().filter(t=>!t.master);
@@ -7515,6 +7556,7 @@ function uaCorpo(uid){
     O recorte por <strong>squad</strong> continua valendo por cima disso.</p>
     <div class="ua-tree">${corpo||'<div class="hint">Nenhum espaço.</div>'}</div>
     ${tlBloco(uid)}
+    ${lkBloco(uid)}
     ${inBloco(uid)}`;
 }
 window.uaFechar=async (uid,tipo,id)=>{
