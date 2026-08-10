@@ -3158,6 +3158,14 @@ function ncFormulario(c){
       <td>${fmtDate((t.valores||{})[NC_C.venc]||'')||'—'}</td>
     </tr>`).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
 }
+/* Atalho 💸 da barra lateral: mesmo canal de solicitação, já em Reembolso.
+   (o roteador chamava renderReembolsos, que não existia — a tela quebrava sem renderizar nada) */
+window.renderReembolsos=(c)=>{
+  ncFormulario(c);
+  const t=c.querySelector('.page-head h2'); if(t) t.textContent='Solicitações e reembolsos';
+  const n=document.getElementById('nc_nat');
+  if(n&&!n.value){ n.value='Reembolso'; if(window.ncNat) ncNat(); }
+};
 window.ncLimpar=()=>{ ['nc_forn','nc_val','nc_venc','nc_mot','nc_desc','nc_obs','nc_anexo','nc_nat','nc_dep','nc_pag','nc_parc'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; }); };
 window.ncEnviar=async ()=>{
   const sol=ncV('nc_sol'), nat=ncV('nc_nat'), dep=ncV('nc_dep'), forn=ncV('nc_forn'), venc=ncV('nc_venc'), mot=ncV('nc_mot');
@@ -3189,7 +3197,9 @@ window.ncEnviar=async ()=>{
   TK.tarefas.push(data);
   ncLimpar();
   toast('Solicitação enviada.');
-  tkDesenhar(document.getElementById('content')); spDesenhar();
+  const alvo=document.getElementById('content');
+  if(currentView==='reembolsos') renderReembolsos(alvo); else tkDesenhar(alvo);
+  spDesenhar();
 };
 function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
