@@ -34,6 +34,20 @@
   .page-head h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
   .hint,.desc{font-size:12.5px}
 
+  .ua-tree{max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:9px}
+  .ua-l{display:flex;align-items:center;gap:9px;padding:8px 11px;border-bottom:1px solid var(--line);font-size:13px}
+  .ua-l:last-child{border-bottom:none}
+  .ua-l.n1{padding-left:28px} .ua-l.n2{padding-left:46px}
+  .ua-l.n0{background:var(--panel2);font-weight:600}
+  .ua-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ua-a{display:flex;align-items:center;gap:7px;flex:none}
+  .ua-chip{font-size:10px;font-weight:700;border-radius:999px;padding:2px 8px;flex:none}
+  .ua-chip.aberto{background:rgba(63,207,142,.14);color:#7fe4bb}
+  .ua-chip.fechado{background:rgba(230,177,63,.16);color:#f0cb7d}
+  .ua-ck{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer}
+  .ua-ck input{width:15px;height:15px;accent-color:var(--brand2)}
+  .ua-a select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:7px;padding:4px 6px;font-size:11.5px;font-family:inherit}
   .nm-link{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
     border-radius:9px;padding:9px 11px;margin-bottom:14px;font-size:12.5px;color:var(--muted)}
   .nm-link span{flex:1;min-width:0}
@@ -6376,12 +6390,87 @@ function drawUsuarios(c){
      <td>${fmtDate((u.criado_em||'').slice(0,10))||'—'}</td>
      <td><div class="rowact">
        <button class="iconbtn" onclick="editSquads('${u.id}')">Squads</button>
+       <button class="iconbtn" onclick="usAcessos('${u.id}')">Acessos</button>
        <button class="iconbtn" onclick="resetUserPw('${u.id}')">Redefinir senha</button>
        ${u.id!==currentUser.id?`<button class="iconbtn" onclick="toggleRole('${u.id}')">${u.role==='master'?'Tornar usuário':'Tornar master'}</button><button class="iconbtn del" onclick="removeUser('${u.id}')">Remover</button>`:''}
      </div></td>
    </tr>`).join('')}</tbody></table></div>
    <p class="hint" style="margin-top:14px">O acesso só existe se um <strong>master</strong> criar aqui — não há autocadastro na tela de login. A senha fica <strong>cifrada no servidor</strong>: o 👁 pede a senha a uma função protegida que só responde a masters. Quem esquecer a senha pede a um master para <strong>Redefinir</strong>.${masters<=1?' <br><strong>Atenção:</strong> só existe um master hoje — promova alguém para não ficar sem acesso.':''}</p>`;
 }
+/* ---------- ACESSOS DE UM USUÁRIO ----------
+   Mesma informação da tela "Compartilhar", vista do outro lado: em vez de
+   "quem entra nesta lista", é "em que esta pessoa entra".
+   Nó aberto vale para todo mundo — só nó fechado tem lista de convidados. */
+const uaNo=(tipo,id)=>({espaco:TK.espacos,pasta:TK.pastas,lista:TK.listas}[tipo]||[]).find(x=>x.id===id);
+const uaTem=(uid,tipo,id)=>(TK.membros||[]).find(m=>m.tipo===tipo&&String(m.no_id)===String(id)&&String(m.user_id)===String(uid))||null;
+window.usAcessos=async (uid)=>{
+  const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{nome:'usuário'};
+  if(!TK.listas.length){ try{ await tkCarregar(); }catch(_){} }
+  modal('Acessos de '+esc(u.nome),`<div id="uaCorpo">${uaCorpo(uid)}</div>`,async()=>true);
+  setTimeout(()=>{ const ov=document.querySelectorAll('.overlay'); const el=ov[ov.length-1]; if(!el) return;
+    const s=el.querySelector('.msave'); if(s) s.textContent='Concluído';
+    const c=el.querySelector('.mcancel'); if(c) c.style.display='none'; },0);
+};
+function uaPintar(uid){ const el=document.getElementById('uaCorpo'); if(el) el.innerHTML=uaCorpo(uid); }
+function uaCorpo(uid){
+  const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{};
+  if(u.role==='master') return `<div class="nm-estado aberto"><b>Master enxerga tudo</b>
+    <p>Usuário master passa por cima de qualquer recorte — de squad e de compartilhamento.
+       Para limitar o que ${esc(u.nome||'ele')} vê, primeiro mude a função para Usuário.</p></div>`;
+  if(TK.espacos.length&&TK.espacos[0].privado===undefined)
+    return `<div class="nm-estado fechado"><b>Compartilhamento ainda não ativado</b>
+      <p>Falta rodar a migração <code>migracao-compartilhar.sql</code> no Supabase.</p></div>`;
+  const linha=(tipo,o,nivel)=>{
+    const priv=!!o.privado, m=uaTem(uid,tipo,o.id);
+    const est=priv?`<span class="ua-chip fechado">privado</span>`:`<span class="ua-chip aberto">aberto</span>`;
+    const acao=priv
+      ? `<label class="ua-ck"><input type="checkbox" ${m?'checked':''} onchange="uaMarcar('${uid}','${tipo}','${o.id}',this.checked)"> acesso</label>
+         ${m?`<select onchange="uaPerm('${m.id}','${uid}',this.value)">
+            <option value="editar"${m.permissao==='editar'?' selected':''}>edita</option>
+            <option value="ver"${m.permissao==='ver'?' selected':''}>só vê</option></select>`:''}`
+      : `<button class="btn ghost small" onclick="uaFechar('${uid}','${tipo}','${o.id}')">Restringir</button>`;
+    return `<div class="ua-l n${nivel}"><span class="ua-nm">${esc(spNome(o))}</span>${est}<span class="ua-a">${acao}</span></div>`;
+  };
+  const corpo=TK.espacos.map(e=>{
+    const pas=TK.pastas.filter(p=>p.espaco_id===e.id);
+    const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id);
+    return linha('espaco',e,0)
+      + pas.map(p=>linha('pasta',p,1)+TK.listas.filter(l=>l.pasta_id===p.id).map(l=>linha('lista',l,2)).join('')).join('')
+      + soltas.map(l=>linha('lista',l,1)).join('');
+  }).join('');
+  return `<p class="hint" style="margin:0 0 12px">O que está <strong>aberto</strong> todo mundo vê — não precisa marcar.
+    Use <strong>Restringir</strong> para fechar e daí escolher quem entra.
+    O recorte por <strong>squad</strong> continua valendo por cima disso.</p>
+    <div class="ua-tree">${corpo||'<div class="hint">Nenhum espaço.</div>'}</div>`;
+}
+window.uaFechar=async (uid,tipo,id)=>{
+  const o=uaNo(tipo,id); if(!o) return;
+  if(!confirm('Fechar "'+spNome(o)+'"?\n\nEle sai da vista de todo mundo (menos masters). Depois você marca quem entra.')) return;
+  const {error}=await sb.from(nmTab[tipo]).update({privado:true}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  o.privado=true; uaPintar(uid); spDesenhar(); toast('"'+spNome(o)+'" agora é privado.');
+};
+window.uaMarcar=async (uid,tipo,id,ligado)=>{
+  const m=uaTem(uid,tipo,id);
+  if(ligado&&!m){
+    const {data,error}=await sb.from('no_membros')
+      .insert({tipo:tipo,no_id:id,user_id:uid,permissao:'editar',criado_por:(currentUser||{}).id||null}).select().single();
+    if(error){ toast('Erro: '+error.message); uaPintar(uid); return; }
+    TK.membros.push(data); toast('Acesso liberado.');
+  }else if(!ligado&&m){
+    const {error}=await sb.from('no_membros').delete().eq('id',m.id);
+    if(error){ toast('Erro: '+error.message); uaPintar(uid); return; }
+    TK.membros=TK.membros.filter(x=>x.id!==m.id); toast('Acesso removido.');
+  }
+  uaPintar(uid);
+};
+window.uaPerm=async (mid,uid,v)=>{
+  const {error}=await sb.from('no_membros').update({permissao:v}).eq('id',mid);
+  if(error){ toast('Erro: '+error.message); return; }
+  const m=TK.membros.find(x=>x.id===mid); if(m) m.permissao=v;
+  uaPintar(uid); toast('Permissão atualizada.');
+};
+
 window.toggleUserPw=async (id)=>{
   const el=$('#up_'+id); if(!el) return;
   if(eqPw[id]){ el.textContent='••••••••'; eqPw[id]=null; return; }
