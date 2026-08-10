@@ -1366,6 +1366,10 @@ function spMarcarAtalho(v){ document.querySelectorAll('.navlink').forEach(x=>x.c
 $('#btnLogout').onclick=async ()=>{ if(confirm('Sair do sistema?')){ try{ await sb.auth.signOut(); }catch(e){} location.reload(); } };
 
 /* ======================= HELPERS ======================= */
+/* Ordem alfabética de verdade: 'Ágil' antes de 'Bruno', 'ç' junto de 'c'.
+   localeCompare sem locale usa o do navegador e varia de máquina para máquina. */
+const porNome=(a,b)=>String((a&&a.nome)||'').localeCompare(String((b&&b.nome)||''),'pt-BR',{sensitivity:'base'});
+const alfab=(arr)=>(arr||[]).slice().sort(porNome);
 const brl = n => (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const esc = s => (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtDate = d => d? d.split('-').reverse().join('/') : '';
@@ -3434,7 +3438,7 @@ async function tkCarregar(){
   const mm=await sb.from('no_membros').select('*'); TK.membros=(mm&&mm.data)||[];
   const tp=await sb.from('tipos_tarefa').select('*').order('ordem'); TK.tipos=(tp&&tp.data)||[];
   const tt=await sb.from('tarefa_tempos').select('*'); TK.tempos=(tt&&tt.data)||[];
-  TK.equipe=q.data||[]; TK.status=st.data||[]; TK.campos=cp.data||[];
+  TK.equipe=alfab(q.data); TK.status=st.data||[]; TK.campos=cp.data||[];
   if(!TK.listaSel||!TK.listas.some(x=>x.id===TK.listaSel)) TK.listaSel=(TK.listas[0]||{}).id||'';
   if(!TK.semeado){ TK.semeado=true;
     /* Regra do Gabriel: abrir o sistema sempre com os espacos fechados. O que voce abre continua
@@ -7386,7 +7390,7 @@ function renderUsuarios(c){
   c.innerHTML='<div class="empty">Carregando usuários...</div>';
   eqCall('listar').then(r=>{
     if(!r.ok){ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(r.erro)+'</div>'; return; }
-    PERFIS=r.usuarios||[]; drawUsuarios(c);
+    PERFIS=alfab(r.usuarios); drawUsuarios(c);
   });
 }
 async function eqCall(acao,extra){
