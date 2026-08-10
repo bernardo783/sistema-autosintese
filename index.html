@@ -3088,6 +3088,11 @@ const NC_PAG=['Débito','Crédito','Dinheiro','Transferência/Pix','Boleto'];
 const NC_PARC=['À Vista','1x','2x','3x','4x','5x','6x','7x','8x','9x','10x','11x','12x'];
 const ncOpc=(a)=>'<option value="">—</option>'+a.map(o=>'<option>'+esc(o)+'</option>').join('');
 const ncV=(id)=>{ const e=document.getElementById(id); return e?String(e.value||'').trim():''; };
+/* Valor: aceita "1.234,56" e "1234.56" — input type=number descartava a vírgula e o campo chegava vazio */
+const ncNum=(s)=>{ s=String(s||'').replace(/[^\d.,-]/g,'');
+  if(s.indexOf(',')>=0) s=s.replace(/\./g,'').replace(',','.');       /* pt-BR: ponto é milhar */
+  const n=parseFloat(s); return isNaN(n)?0:n; };
+window.ncMoeda=(el)=>{ el.value=el.value.replace(/[^\d.,]/g,''); };
 /* Regras do canal — as mesmas que valiam no formulário antigo, agora dentro do sistema. */
 const NC_REGRAS=[
   'Reembolso é pago em até <strong>dois dias úteis</strong> após o envio.',
@@ -3128,7 +3133,7 @@ function ncFormulario(c){
        <div class="field"><label>Nome do fornecedor *</label><input id="nc_forn" placeholder="Para quem vai o pagamento"></div>
      </div>
      <div class="row2">
-       <div class="field"><label>Valor (R$) *</label><input type="number" step="0.01" id="nc_val"></div>
+       <div class="field"><label>Valor (R$) *</label><input type="text" inputmode="decimal" id="nc_val" placeholder="0,00" oninput="ncMoeda(this)"></div>
        <div class="field"><label>Vencimento *</label><input type="date" id="nc_venc"></div>
      </div>
      <div class="row2">
@@ -3158,8 +3163,16 @@ function ncFormulario(c){
 window.ncLimpar=()=>{ ['nc_forn','nc_val','nc_venc','nc_mot','nc_desc','nc_obs','nc_anexo','nc_nat','nc_dep','nc_pag','nc_parc'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; }); };
 window.ncEnviar=async ()=>{
   const sol=ncV('nc_sol'), nat=ncV('nc_nat'), dep=ncV('nc_dep'), forn=ncV('nc_forn'), venc=ncV('nc_venc'), mot=ncV('nc_mot');
-  const val=Number(ncV('nc_val')||0);
-  if(!sol||!nat||!dep||!forn||!venc||!mot||!val){ toast('Preencha os campos com *.'); return; }
+  const val=ncNum(ncV('nc_val'));
+  /* diz QUAL campo falta e leva o foco até ele, em vez do aviso genérico */
+  const faltando=[[sol,'nc_sol','Nome do solicitante'],[nat,'nc_nat','Natureza da conta'],[dep,'nc_dep','Departamento'],
+                  [forn,'nc_forn','Nome do fornecedor'],[val,'nc_val','Valor'],[venc,'nc_venc','Vencimento'],[mot,'nc_mot','Motivo da solicitação']]
+                 .filter(x=>!x[0]);
+  if(faltando.length){
+    toast(faltando.length===1?('Falta preencher: '+faltando[0][2]+'.'):('Faltam '+faltando.length+' campos: '+faltando.map(x=>x[2]).join(', ')+'.'));
+    const el=document.getElementById(faltando[0][1]); if(el){ el.focus(); el.scrollIntoView({block:'center',behavior:'smooth'}); }
+    return;
+  }
   /* regra 2 e 5: sem comprovante o pedido não é considerado — barra aqui em vez de barrar depois */
   if(!ncV('nc_anexo')){ toast('Anexe a NF, o cupom ou o comprovante — sem isso a solicitação não é considerada.');
     const a=document.getElementById('nc_anexo'); if(a) a.focus(); return; }
