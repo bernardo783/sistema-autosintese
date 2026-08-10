@@ -69,6 +69,10 @@
   .nm-av{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;flex:none;
     display:grid;place-items:center;font-size:11px;font-weight:800}
   .tk-lock{font-size:10px;opacity:.75;margin-left:4px;flex:none}
+  .cp-obr{font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;margin-left:7px;
+    color:#f0cb7d;background:rgba(230,177,63,.14);border-radius:999px;padding:1px 7px}
+  .cp-ori{font-size:9.5px;font-weight:700;margin-left:7px;color:#c4b8ff;
+    background:rgba(123,104,238,.16);border-radius:999px;padding:1px 7px}
   .ini-dt{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
     padding:5px 8px;font-size:12.5px;font-family:inherit;color-scheme:dark}
   .lk-linha{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
@@ -1700,7 +1704,7 @@ const avatarNome=(uid,nome)=>{ const n=nome||tkNomeUser(uid); if(!uid&&!n) retur
 const espIcone=(e)=>e&&e.foto
   ? `<span class="sp-ic ft"><img src="${esc(e.foto)}" alt=""></span>`
   : `<span class="sp-ic" style="background:${esc((e&&e.cor)||'#7c3aed')}">${(e&&e.icone)?icHtml(e.icone,12):esc(inicial(spNome(e)))}</span>`;
-const selFicha=(idCampo,atual)=>`<select id="${idCampo}"><option value="">— geral (todo o time vê) —</option>`+
+const selFicha=(idCampo,atual,aoTrocar)=>`<select id="${idCampo}"${aoTrocar?` onchange="${aoTrocar}"`:''}><option value="">— geral (todo o time vê) —</option>`+
   [...(DB.projetos||[])].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(f=>`<option value="${f.id}"${atual===f.id?' selected':''}>${esc(f.nome)}</option>`).join('')+`</select>`;
 const fichaDaConta=(accId)=>{ const m=contaMarca(accId); return m&&m.fichaId?fichaDe(m.fichaId):null; };
 const contasDoCliente=(fid)=>(DB.contasMeta||[]).filter(m=>m.fichaId===fid);
@@ -4335,6 +4339,59 @@ window.tkMenuCols=()=>{
   modal('Colunas visíveis', cps.map(c=>`<label class="tk-chkline"><input type="checkbox" data-col="${c.id}" ${TK.colsOff[c.id]?'':'checked'}> <span class="tk-nome">${esc(c.nome)}</span> <span class="hint" style="margin:0">${esc(c.tipo)}</span></label>`).join('')+`<p class="hint">Desmarcar só esconde a coluna na tela; os dados continuam salvos.</p>`,
     async ()=>{ document.querySelectorAll('[data-col]').forEach(i=>{ TK.colsOff[i.getAttribute('data-col')]=!i.checked; }); spSalvarCols(); tkDesenhar($('#content')); return true; });
 };
+/* ---------- CAMPOS QUE PUXAM DA FICHA DO CLIENTE ----------
+   Em vez de adivinhar pelo nome da coluna, o vínculo é declarado: cada coluna diz
+   de qual atributo da ficha ela vem. Escolheu o cliente na tarefa, os campos ligados
+   se preenchem na hora. Só preenche o que está vazio — nunca apaga o que a pessoa
+   escreveu à mão. */
+const CP_ORIGEM=[
+  ['','— não puxa nada —'],
+  ['nome','Nome do cliente'],
+  ['drive','Link do Drive'],
+  ['instagram','Instagram'],
+  ['telAnuncios','Telefone dos anúncios'],
+  ['grupoWpp','Grupo do WhatsApp'],
+  ['nicho','Nicho'],
+  ['produtos','Produtos / serviços']];
+const cpOrigemNome=(k)=>((CP_ORIGEM.find(o=>o[0]===k)||[])[1])||'';
+/* valor do atributo na ficha, com o mesmo fallback que o resto do sistema usa */
+function fichaAtributo(fid,chave){
+  const p=fichaDe(fid); if(!p) return '';
+  const c=(typeof finDaFicha==='function')?(finDaFicha(p)||null):null;
+  if(chave==='nome') return String(p.nome||'').trim();
+  if(typeof fichaVal==='function') return fichaVal(p,c,chave);
+  return String(p[chave]||'').trim();
+}
+/* Chamado quando o cliente muda na modal da tarefa. */
+window.tkPuxaCliente=(forcar)=>{
+  const sel=document.getElementById('tk_ficha'); if(!sel) return;
+  const fid=sel.value||'';
+  const lid=(document.getElementById('tk_lista')||{}).value||TK.listaSel;
+  let mexeu=0;
+  /* squad herda do cliente: é o que decide quem enxerga a tarefa */
+  const f=fid?fichaDe(fid):null, sq=document.getElementById('tk_squad');
+  if(f&&sq&&String(f.squad||'')&&(forcar||!sq.value)){
+    const alvo=String(f.squad);
+    if(Array.from(sq.options).some(o=>o.value===alvo)){ sq.value=alvo; mexeu++; }
+  }
+  (TK.campos||[]).filter(c=>c.lista_id===lid&&c.origem).forEach(c=>{
+    const el=document.getElementById('cp_'+c.id); if(!el) return;
+    if(!forcar&&String(el.value||'').trim()) return;      /* já tem coisa: não mexe */
+    const v=fid?fichaAtributo(fid,c.origem):'';
+    if(v){ el.value=v; mexeu++; }
+    else if(forcar) el.value='';
+  });
+  if(mexeu) toast(mexeu===1?'1 campo preenchido pela ficha do cliente.':mexeu+' campos preenchidos pela ficha do cliente.');
+  return mexeu;
+};
+/* O que falta preencher antes de salvar */
+function cpFaltando(lid){
+  return (TK.campos||[]).filter(c=>c.lista_id===lid&&c.obrigatorio).filter(c=>{
+    const el=document.getElementById('cp_'+c.id); if(!el) return false;
+    return c.tipo==='checkbox'?false:!String(el.value||'').trim();
+  });
+}
+
 window.tkNovoCampo=()=>{
   if(!TK.listaSel){ toast('Selecione uma lista.'); return; }
   if(!estruturaEditavel(TK.listaSel)){ toast('Esta lista tem colunas fixas — só master e gerente podem mudar.'); return; }
@@ -4345,11 +4402,19 @@ window.tkNovoCampo=()=>{
       <div class="field"><label>Tipo</label><select id="tk_ct">${tipos.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('')}</select></div>
       <div class="field"><label>Largura (px)</label><input type="number" id="tk_cw" value="140"></div>
     </div>
-    <div class="field"><label>Opções — uma por linha (só para "Lista de opções")</label><textarea id="tk_co" rows="3" placeholder="Pix"></textarea></div>`,
+    <div class="field"><label>Opções — uma por linha (só para "Lista de opções")</label><textarea id="tk_co" rows="3" placeholder="Pix"></textarea></div>
+    <div class="row2">
+      <div class="field"><label>Puxa da ficha do cliente</label>
+        <select id="tk_cor">${CP_ORIGEM.map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join('')}</select></div>
+      <div class="field"><label>Preenchimento</label>
+        <label class="ua-ck" style="padding-top:9px"><input type="checkbox" id="tk_cob"> obrigatório</label></div>
+    </div>
+    <p class="hint" style="margin:0">"Puxa da ficha" preenche sozinho ao escolher o cliente na tarefa — e não sobrescreve o que já estiver digitado.</p>`,
     async ()=>{
       const nome=$('#tk_cn').value.trim(); if(!nome){ toast('Informe o nome.'); return false; }
       const ops=$('#tk_co').value.split('\n').map(s=>s.trim()).filter(Boolean);
-      const {error}=await sb.from('campos_lista').insert({lista_id:TK.listaSel,nome:nome,tipo:$('#tk_ct').value,opcoes:ops,largura:Number($('#tk_cw').value)||140,ordem:TK.campos.filter(k=>k.lista_id===TK.listaSel).length});
+      const {error}=await sb.from('campos_lista').insert({lista_id:TK.listaSel,nome:nome,tipo:$('#tk_ct').value,opcoes:ops,largura:Number($('#tk_cw').value)||140,ordem:TK.campos.filter(k=>k.lista_id===TK.listaSel).length,
+        obrigatorio:!!($('#tk_cob')&&$('#tk_cob').checked), origem:($('#tk_cor')&&$('#tk_cor').value)||null});
       if(error){ toast('Erro: '+error.message); return false; }
       render('tarefas'); toast('Coluna criada.'); return true;
     });
@@ -4441,7 +4506,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     <div class="field"><label>Título</label><input id="tk_tit" value="${esc(it.titulo)}" placeholder="Ex: Subir criativos da semana"></div>
     <div class="row2">
       <div class="field"><label>Lista</label><select id="tk_lista">${TK.listas.map(l=>`<option value="${l.id}"${it.lista_id===l.id?' selected':''}>${esc(tkCaminho(l.id))}</option>`).join('')}</select></div>
-      <div class="field"><label>Cliente</label>${selFicha('tk_ficha',it.ficha_id||'')}</div>
+      <div class="field"><label>Cliente</label>${selFicha('tk_ficha',it.ficha_id||'',"tkPuxaCliente()")}</div>
     </div>
     <div class="row2">
       <div class="field"><label>Prioridade</label><select id="tk_prio">${Object.keys(TK_PRIO).map(k=>`<option value="${k}"${it.prioridade===k?' selected':''}>${TK_PRIO[k]}</option>`).join('')}</select></div>
@@ -4454,7 +4519,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     <div class="field"><label>Squad${exigeSquad(it.lista_id)?' *':''}</label>
       <select id="tk_squad"><option value="">— sem squad (todo o time vê) —</option>${sqOpc.map(s=>`<option value="${esc(s)}"${sqAtual===s?' selected':''}>Squad ${esc(s)}</option>`).join('')}</select>
       <p class="hint" style="margin:6px 0 0">Quem tem squad só enxerga as tarefas do próprio squad. Master vê tudo.</p></div>
-    ${cps.length?`<div class="tk-cpbox"><div class="tk-cptit">Campos desta lista</div><div class="row2">${cps.map(c=>`<div class="field"><label>${esc(c.nome)}</label>${campoHtml(c)}</div>`).join('')}</div></div>`:''}
+    ${cps.length?`<div class="tk-cpbox"><div class="tk-cptit">Campos desta lista</div><div class="row2">${cps.map(c=>`<div class="field"><label>${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr">obrigatório</span>':''}${c.origem?`<span class="cp-ori" title="Preenche sozinho ao escolher o cliente">↩ ${esc(cpOrigemNome(c.origem))}</span>`:''}</label>${campoHtml(c)}</div>`).join('')}</div></div>`:''}
     <div class="tk-cpbox"><div class="tk-cptit">Checklist <span id="ck_prog"></span></div>
       <div id="ck_lista"></div>
       <button class="btn ghost small" onclick="ckAdd()" style="margin-top:6px">+ item</button></div>
@@ -4467,6 +4532,9 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       if(!v.titulo){ toast('Informe o título.'); return false; }
       v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
       if(exigeSquad(v.lista_id)&&!v.squad){ toast('Esta lista exige o squad — escolha um.'); return false; }
+      const faltam=cpFaltando(v.lista_id);
+      if(faltam.length){ toast(faltam.length===1?('Falta preencher: '+faltam[0].nome+'.'):('Faltam '+faltam.length+' campos: '+faltam.map(x=>x.nome).join(', ')+'.'));
+        const e0=$('#cp_'+faltam[0].id); if(e0) e0.focus(); return false; }
       ckLer(); v.checklist=TK_CK.filter(x=>(x.t||'').trim()).map(x=>({t:x.t.trim(),ok:!!x.ok}));
       const el=$('#tk_stid');
       if(el){ const s=el.value?tkStatus1(el.value):null; v.status_id=el.value||null; v.status=s?TK_G2ST[s.grupo]:'todo'; }
