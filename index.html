@@ -4960,7 +4960,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
       ${t?(arquivada(t)
         ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
-           <button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`
+           ${(currentUser&&currentUser.role==='master')?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:'<span class="hint" style="margin:0">só master exclui de vez</span>'}`
         : `<button class="btn ghost small" onclick="tkArquivar('${t.id}')">Arquivar</button>`):''}
     </div>
     </div>
@@ -5111,6 +5111,8 @@ window.tkArqVista=(v)=>{ TK.arqVista=!!v; tkDesenhar($('#content')); };
 window.tkExcluir=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
   if(!arquivada(t)){ return tkArquivar(id); }   /* nunca apaga direto: arquiva primeiro */
+  if(!(currentUser&&currentUser.role==='master')){
+    toast('Só um master exclui de vez. Ela continua arquivada.'); return; }
   if(!confirm('Excluir "'+t.titulo+'" de vez?\n\nIsso não tem volta.')) return;
   const {error}=await sb.from('tarefas').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
