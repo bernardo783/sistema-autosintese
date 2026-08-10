@@ -559,12 +559,41 @@
   .tk-grupoh{display:flex;align-items:center;gap:9px;padding:5px 2px;cursor:pointer}
   .tk-selo{font-size:11px;font-weight:800;padding:3px 9px;border-radius:6px;border:1px solid;letter-spacing:.3px;white-space:nowrap}
   .tk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
-  .tk-cel{width:100%;background:transparent;border:1px solid transparent;border-radius:6px;padding:4px 6px;color:var(--txt);font-family:inherit;font-size:12.5px}
-  .tk-cel:hover{border-color:var(--line);background:var(--panel2)}
-  .tk-cel:focus{border-color:var(--brand2);background:var(--panel2);outline:none}
-  .tk-cel.sel{cursor:pointer}
+  /* Célula editável: parece texto na lista; vira campo só quando a linha recebe o mouse. */
+  .tk-cel{width:100%;background:transparent;border:1px solid transparent;border-radius:7px;padding:5px 7px;
+    color:var(--txt);font-family:inherit;font-size:13px;appearance:none;-webkit-appearance:none;
+    text-overflow:ellipsis;transition:background .12s,border-color .12s}
+  .tk-cel.sel{cursor:pointer;padding-right:20px;background-image:none}
+  tr:hover .tk-cel.sel,.tk-cel.sel:focus{
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 11px) calc(50% + 1px),calc(100% - 7px) calc(50% + 1px);
+    background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+  tr:hover .tk-cel{border-color:var(--line);background-color:var(--panel2)}
+  .tk-cel:focus{border-color:var(--brand2);background-color:var(--panel2);outline:none}
+  /* valor vazio fica discreto para o olho ir no que está preenchido */
+  .tk-cel.vazio{color:var(--muted);opacity:.55}
+  tr:hover .tk-cel.vazio{opacity:.9}
+  /* dinheiro: alinhado à direita, sem quebrar linha e com dígitos de largura fixa */
+  .tk-money{display:flex;align-items:center;justify-content:flex-end;gap:2px;white-space:nowrap}
+  .tk-money .tk-cel{width:78px;flex:none;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;
+    field-sizing:content;min-width:52px;max-width:104px}
+  .tk-money .tk-cel::-webkit-outer-spin-button,.tk-money .tk-cel::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .tk-tab td.money,.tk-tab th.money{text-align:right}
   .tk-pre{color:var(--muted);font-size:11px;margin-right:1px}
-  .tk-stsel{border:1px solid;border-radius:6px;padding:4px 8px;font-size:11.5px;font-weight:800;font-family:inherit;cursor:pointer;max-width:100%}
+  /* Status = pílula colorida; a seta só aparece quando o mouse passa na linha */
+  .tk-stsel{border:1px solid;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:800;font-family:inherit;
+    cursor:pointer;max-width:100%;letter-spacing:.3px;appearance:none;-webkit-appearance:none;
+    text-transform:uppercase;transition:filter .12s}
+  tr:hover .tk-stsel{padding-right:22px;filter:brightness(1.12);
+    background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+    background-position:calc(100% - 13px) calc(50% + 1px),calc(100% - 9px) calc(50% + 1px);
+    background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+  .tk-stsel:focus{outline:2px solid var(--brand2);outline-offset:1px}
+  /* lista mais densa e com o nome do cliente em destaque */
+  .tk-tab td{padding:9px 14px}
+  .tk-tab th{padding:10px 14px;position:sticky;top:0;z-index:2}
+  .tk-tab tbody tr+tr td{border-top:1px solid var(--line)}
+  .tk-tab td:first-child{font-weight:700;font-size:13.5px}
   .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
   .tk-cpbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:var(--panel2)}
   .tk-cptit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px}
@@ -3242,12 +3271,13 @@ function tkGrupos(){
 const ementarCor=(s)=>{ let h=0; for(let i=0;i<String(s).length;i++) h=(h*31+String(s).charCodeAt(i))%360; return 'hsl('+h+',55%,55%)'; };
 const tkCelula=(t,c)=>{
   const v=(t.valores||{})[c.id];
-  if(c.tipo==='select') return `<select class="tk-cel sel" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
-  if(c.tipo==='pessoa') return `<select class="tk-cel sel" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${equipeDe(t.lista_id,v).map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
+  const vazio=(v==null||v==='')?' vazio':'';
+  if(c.tipo==='select') return `<select class="tk-cel sel${vazio}" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  if(c.tipo==='pessoa') return `<select class="tk-cel sel${vazio}" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${equipeDe(t.lista_id,v).map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
   if(c.tipo==='checkbox') return `<input type="checkbox" ${v?'checked':''} onchange="tkSetVal('${t.id}','${c.id}',this.checked)">`;
   const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
-  const pre=c.tipo==='moeda'?'<span class="tk-pre">R$</span>':'';
-  return `${pre}<input class="tk-cel${c.tipo==='moeda'?' moeda':''}" type="${tp}" value="${esc(v==null?'':String(v))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)" placeholder="—">`;
+  if(c.tipo==='moeda') return `<span class="tk-money"><span class="tk-pre">R$</span><input class="tk-cel moeda${vazio}" type="number" value="${esc(v==null?'':String(v))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)" placeholder="—"></span>`;
+  return `<input class="tk-cel${vazio}" type="${tp}" value="${esc(v==null?'':String(v))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)" placeholder="—">`;
 };
 const tkSelo=(t)=>{
   const sts=tkStatusDe(t.lista_id);
