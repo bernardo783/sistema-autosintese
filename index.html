@@ -74,6 +74,8 @@
   .tk-lock{font-size:10px;opacity:.75;margin-left:4px;flex:none}
   .tk-tipo{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;
     padding:5px 12px;font-size:12.5px;font-weight:700;font-family:inherit;margin-bottom:10px}
+  .btn.tk-del{color:#ff9aa5;border-color:rgba(239,91,107,.4)}
+  .btn.tk-del:hover{background:rgba(239,91,107,.12)}
   .dtf{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid transparent;
     border-radius:7px;padding:5px 9px;font-size:13.5px;cursor:pointer;color:var(--txt);white-space:nowrap}
   .dtf:hover{background:var(--panel2);border-color:var(--line)}
@@ -2758,7 +2760,7 @@ const TK_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 const TK_SEM=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 let TK={espacos:[],pastas:[],listas:[],tarefas:[],equipe:[],status:[],campos:[],listaSel:'',arrastando:null,
   visao:'lista',escopo:'lista',ord:'',dir:1,busca:'',focoBusca:false,ref:'',grupo:'status',fechadas:{},colsOff:{},squadF:'',
-  filtro:{resps:[],prazo:'',de:'',ate:'',prios:[]},lcGestor:'',lcVista:''};
+  filtro:{resps:[],prazo:'',de:'',ate:'',prios:[]},lcGestor:'',lcVista:'',arqVista:false};
 try{ const _f=JSON.parse(localStorage.getItem('tk_filtro')||'null'); if(_f&&typeof _f==='object') TK.filtro={resps:_f.resps||[],prazo:_f.prazo||'',de:_f.de||'',ate:_f.ate||'',prios:_f.prios||[]}; }catch(_){}
 /* ---------- SQUAD NA TAREFA ----------
    O recorte real e do Postgres (RLS tarefa_visivel): quem tem squad so enxerga o proprio.
@@ -3255,7 +3257,7 @@ window.spCaixa=()=>{
   if(!TK.listas.length) return renderTarefas($('#content'));
   tkDesenhar($('#content')); spDesenhar();
 };
-const spMinhas=()=>{ const u=(currentUser||{}).id; return u?TK.tarefas.filter(t=>ehMinha(t,u)&&t.status!=='feito'):[]; };
+const spMinhas=()=>{ const u=(currentUser||{}).id; return u?TK.tarefas.filter(t=>ehMinha(t,u)&&t.status!=='feito'&&!arquivada(t)):[]; };
 
 /* ---------- renomear ---------- */
 window.spRenomear=(tipo,id)=>{
@@ -3440,7 +3442,9 @@ const tkNomeFicha=(fid)=>{ const f=fichaDe(fid); return f?f.nome:''; };
 const tkCaminho=(lid)=>{ const l=TK.listas.find(x=>x.id===lid); if(!l) return ''; const e=TK.espacos.find(x=>x.id===l.espaco_id)||{}; const p=TK.pastas.find(x=>x.id===l.pasta_id); return [spNome(e),p?spNome(p):null,spNome(l)].filter(Boolean).join(' / '); };
 function tkFiltradas(){
   const q=TK.busca.trim().toLowerCase();
-  let arr=TK.escopo==='minhas'?spMinhas():TK.tarefas.filter(t=>TK.escopo==='todas'||t.lista_id===TK.listaSel);
+  if(TK.arqVista&&TK.escopo==='lista') return tkArquivadasDa(TK.listaSel);
+  let arr=(TK.escopo==='minhas'?spMinhas():TK.tarefas.filter(t=>TK.escopo==='todas'||t.lista_id===TK.listaSel))
+          .filter(t=>!arquivada(t));
   if(TK.squadF==='(sem)') arr=arr.filter(t=>!String(t.squad||'').trim());
   else if(TK.squadF) arr=arr.filter(t=>String(t.squad||'')===TK.squadF);
   if(ehLC(TK.listaSel)&&TK.escopo==='lista'&&TK.lcGestor){
@@ -4152,7 +4156,7 @@ function spDesenhar(){
     +'<div class="hint" style="margin:14px 6px 4px;opacity:.5;font-size:11px">Botão direito abre renomear, cor, duplicar e excluir.</div>';
 }
 window.spSelLista=(id,semAbrir)=>{
-  TK.listaSel=id; TK.escopo='lista'; searchTerm=''; spMarcarAtalho(''); if(!semAbrir) spAbrirCaminho(id);
+  TK.listaSel=id; TK.escopo='lista'; searchTerm=''; TK.arqVista=false; spMarcarAtalho(''); if(!semAbrir) spAbrirCaminho(id);
   if(LFIN[id]){ render(LFIN[id]); return; }
   if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
   /* Lista de fluxo (4+ status proprios) abre no Board, como a linha editorial do ClickUp.
@@ -4199,7 +4203,7 @@ function faseDe(t){
   if(s&&s.grupo) return s.grupo;
   return t.status==='feito'?'feito':t.status==='fazendo'?'ativo':'nao_iniciado';
 }
-const minhasTarefas=()=>{ const u=(currentUser||{}).id; return u?(TK.tarefas||[]).filter(t=>ehMinha(t,u)):[]; };
+const minhasTarefas=()=>{ const u=(currentUser||{}).id; return u?(TK.tarefas||[]).filter(t=>ehMinha(t,u)&&!arquivada(t)):[]; };
 window.inicioPeriodo=(p)=>{
   inicioPer=p;
   if(p==='per'&&!inicioDe){ inicioDe=isoMais(-29); inicioAte=tkHoje(); }
@@ -4461,7 +4465,9 @@ function tkDesenhar(c){
   const soBoard=[LISTA_EDICAO].includes(TK.listaSel)&&TK.escopo==='lista';
   if(soBoard) TK.visao='board';
   const visoes=soBoard?[['board','▦ Board']]:[['lista','☰ Lista'],['board','▦ Board']];
-  const abas=`<div class="tk-seg">${visoes.map(v=>`<button class="${TK.visao===v[0]?'on':''}" onclick="tkVisao('${v[0]}')">${v[1]}</button>`).join('')}</div>`;
+  const nArq=TK.escopo==='lista'?tkArquivadasDa(TK.listaSel).length:0;
+  const abas=`<div class="tk-seg">${visoes.map(v=>`<button class="${TK.visao===v[0]&&!TK.arqVista?'on':''}" onclick="tkArqVista(false);tkVisao('${v[0]}')">${v[1]}</button>`).join('')}
+    ${(TK.escopo==='lista'&&(nArq||TK.arqVista))?`<button class="${TK.arqVista?'on':''}" onclick="tkArqVista(${TK.arqVista?'false':'true'})" title="Cartões arquivados">🗄 Arquivados${nArq?' ('+nArq+')':''}</button>`:''}</div>`;
   const corpo=(cli&&TK.lcVista==='gerentes')?lcVistaGerentes():(TK.visao==='lista'?tkViewLista():tkViewBoard());
   const dica=TK.visao==='board'?'arraste os cartões entre as colunas':'clique no nome para abrir, no cabeçalho para ordenar';
   const titulo=TK.escopo==='minhas'?'Minhas tarefas':TK.escopo==='todas'?'Todas as tarefas':(lista?esc(spNome(lista)):'Listas');
@@ -4952,7 +4958,10 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     <button class="btn ghost small" onclick="ckAdd()" style="margin-top:6px">+ item</button>
     <div class="tk-rodape">
       ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
-      ${t?`<button class="btn ghost small" onclick="tkExcluir('${t.id}')">Excluir</button>`:''}
+      ${t?(arquivada(t)
+        ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
+           <button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`
+        : `<button class="btn ghost small" onclick="tkArquivar('${t.id}')">Arquivar</button>`):''}
     </div>
     </div>
     <div class="tkm-painel hidden" id="tkmAtv">
@@ -5077,9 +5086,32 @@ window.tkmRelPintar=()=>{
     ${outras.slice(0,12).map(x=>`<div class="tkm-hist"><span>${esc(x.titulo||'')}</span>
        <span class="hint" style="margin:0">${esc(tkCaminho(x.lista_id))}</span></div>`).join('')||'<p class="hint">Esta é a primeira.</p>'}`;
 };
+/* ---------- ARQUIVAR E EXCLUIR (fluxo do Trello) ----------
+   Arquivar tira o cartão da vista sem destruir nada; excluir de vez só acontece
+   dentro de Arquivados. Assim ninguém apaga trabalho num clique errado. */
+const arquivada=(t)=>!!(t&&t.arquivada_em);
+const tkArquivadasDa=(lid)=>(TK.tarefas||[]).filter(t=>arquivada(t)&&(!lid||t.lista_id===lid));
+window.tkArquivar=async (id)=>{
+  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  const {error}=await sb.from('tarefas')
+    .update({arquivada_em:new Date().toISOString(),arquivada_por:(currentUser||{}).id||null}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  t.arquivada_em=new Date().toISOString();
+  const ov=document.querySelector('.overlay'); if(ov) ov.remove();
+  tkDesenhar($('#content')); spDesenhar();
+  toast('Arquivada. Está em Arquivados, dentro da lista.');
+};
+window.tkRestaurar=async (id)=>{
+  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  const {error}=await sb.from('tarefas').update({arquivada_em:null,arquivada_por:null}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  t.arquivada_em=null; tkDesenhar($('#content')); spDesenhar(); toast('Restaurada.');
+};
+window.tkArqVista=(v)=>{ TK.arqVista=!!v; tkDesenhar($('#content')); };
 window.tkExcluir=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
-  if(!confirm('Excluir "'+t.titulo+'"?')) return;
+  if(!arquivada(t)){ return tkArquivar(id); }   /* nunca apaga direto: arquiva primeiro */
+  if(!confirm('Excluir "'+t.titulo+'" de vez?\n\nIsso não tem volta.')) return;
   const {error}=await sb.from('tarefas').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
   const ov=document.querySelector('.overlay'); if(ov) ov.remove();
