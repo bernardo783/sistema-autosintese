@@ -445,6 +445,31 @@
   .tk-grupo .tk-vazio:hover{color:var(--txt);opacity:1;background:none}
   .tk-sqs{display:inline-flex;gap:5px;align-items:center;margin-right:8px}
   .tk-sqs .ftab{padding:5px 10px;font-size:12px}
+  /* ---------- PAINEL DA TAREFA (rail de icones na direita, estilo ClickUp) ---------- */
+  .tkm{display:flex;gap:0;align-items:stretch}
+  .tkm-painel{flex:1;min-width:0}
+  .tkm-tit{font-size:14px;font-weight:800;margin:0 0 12px}
+  .tkm-rail{display:flex;flex-direction:column;gap:4px;padding:0 0 0 12px;margin-left:12px;
+    border-left:1px solid var(--line);flex:none}
+  .tkm-i{position:relative;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;
+    background:transparent;border:none;color:var(--muted)}
+  .tkm-i svg{width:17px;height:17px}
+  .tkm-i:hover{background:var(--panel2);color:var(--txt)}
+  .tkm-i.on{background:var(--panel2);color:#c4b5fd}
+  .tkm-b{position:absolute;top:-2px;right:-2px;background:var(--brand);color:#fff;border-radius:999px;
+    font-size:8.5px;font-weight:800;padding:1px 4px;min-width:14px;line-height:1.35}
+  .tkm-b:empty{display:none}
+  #tkmMsgs{max-height:300px;overflow-y:auto;padding-right:4px}
+  .tkm-msg{padding:9px 0;border-top:1px solid var(--line)}
+  .tkm-msg:first-child{border-top:none}
+  .tkm-msgh{display:flex;align-items:center;gap:7px;font-size:12.5px;margin-bottom:4px}
+  .tkm-msgh .iconbtn{margin-left:auto}
+  .tkm-msgt{font-size:13.5px;line-height:1.55;white-space:pre-wrap}
+  .tkm-novo{display:flex;gap:8px;align-items:flex-end;margin-top:12px}
+  .tkm-novo textarea{flex:1;resize:vertical}
+  .tkm-rel{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .tkm-relh{font-weight:800;font-size:14px}
+  .tkm-hist{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
   /* ---------- CHECKLIST DA TAREFA ---------- */
   .ck-l{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .ck-l input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2);flex:none}
@@ -4675,7 +4700,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     if(c.tipo==='checkbox') return `<input type="checkbox" id="cp_${c.id}" ${v?'checked':''} style="width:auto">`;
     const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
     return `<input type="${tp}" id="cp_${c.id}" value="${esc(v==null?'':String(v))}" placeholder="${c.tipo==='moeda'?'R$':''}">`; };
-  modal(t?'Editar tarefa':'Nova tarefa',`
+  modal(t?'Editar tarefa':'Nova tarefa',`<div class="tkm"><div class="tkm-painel" id="tkmDet">
     ${tkTipoSel(it.tipo_id)}
     <input class="tk-tit" id="tk_tit" value="${esc(it.titulo)}" placeholder="Nome da tarefa">
     <div class="tk-props">
@@ -4725,7 +4750,30 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     <div class="tk-rodape">
       ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
       ${t?`<button class="btn ghost small" onclick="tkExcluir('${t.id}')">Excluir</button>`:''}
-    </div>`,
+    </div>
+    </div>
+    <div class="tkm-painel hidden" id="tkmAtv">
+      <h4 class="tkm-tit">Atividade</h4>
+      ${t?`<div id="tkmMsgs"><div class="hint">carregando…</div></div>
+        <div class="tkm-novo">
+          <textarea id="tkmTxt" rows="2" placeholder="Escreva para o time…"></textarea>
+          <button class="btn small" type="button" onclick="tkmEnviar('${t.id}')">Enviar</button>
+        </div>`
+       :`<p class="hint">Salve a tarefa primeiro — aí a conversa fica guardada aqui.</p>`}
+    </div>
+    <div class="tkm-painel hidden" id="tkmRel">
+      <h4 class="tkm-tit">Relacionamentos</h4>
+      <div id="tkmRelBox"></div>
+    </div>
+    <div class="tkm-rail">
+      <button type="button" class="tkm-i on" id="tkmIDet" title="Detalhes" onclick="tkmAba('Det')">${SVG_P.tipo||'≡'}</button>
+      <button type="button" class="tkm-i" id="tkmIAtv" title="Atividade" onclick="tkmAba('Atv')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="tkm-b" id="tkmBAtv"></span></button>
+      <button type="button" class="tkm-i" id="tkmIRel" title="Relacionamentos" onclick="tkmAba('Rel')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        <span class="tkm-b" id="tkmBRel"></span></button>
+    </div></div>`,
     async ()=>{
       const v={titulo:$('#tk_tit').value.trim(), lista_id:$('#tk_lista').value, ficha_id:$('#tk_ficha').value||null,
         prioridade:$('#tk_prio').value, prazo:$('#tk_prazo').value||null,
@@ -4764,6 +4812,70 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       render('tarefas'); toast('Salvo.'); return true;
     });
   ckPintar();
+  setTimeout(()=>{ if(t) tkmAtvCarregar(t.id); tkmRelPintar();
+    const sel=document.getElementById('tk_ficha'); if(sel) sel.addEventListener('change',tkmRelPintar); },40);
+};
+/* ---------- PAINEL DA TAREFA: Detalhes | Atividade | Relacionamentos ----------
+   A barra de icones fica na direita, como no ClickUp, e o contador aparece no proprio
+   icone — o vinculo com o cliente deixa de ser um campo perdido no meio do formulario. */
+window.tkmAba=(a)=>{
+  ['Det','Atv','Rel'].forEach(x=>{
+    const pan=document.getElementById('tkm'+x), ic=document.getElementById('tkmI'+x);
+    if(pan) pan.classList.toggle('hidden',x!==a);
+    if(ic) ic.classList.toggle('on',x===a);
+  });
+};
+const tkmQuando=(iso)=>{ const d=new Date(iso); const h=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  return fmtDate(String(iso).slice(0,10))+' '+h; };
+window.tkmAtvCarregar=async (tid)=>{
+  const box=document.getElementById('tkmMsgs'); if(!box) return;
+  const {data,error}=await sb.from('tarefa_comentarios').select('*').eq('tarefa_id',tid).order('criado_em');
+  if(error){ box.innerHTML='<div class="hint">Não consegui carregar: '+esc(error.message)+'</div>'; return; }
+  const msgs=data||[];
+  const b=document.getElementById('tkmBAtv'); if(b) b.textContent=msgs.length||'';
+  if(!msgs.length){ box.innerHTML='<p class="hint">Nada por aqui ainda. O que for combinado nesta tarefa fica registrado neste espaço.</p>'; return; }
+  box.innerHTML=msgs.map(m=>`<div class="tkm-msg">
+      <div class="tkm-msgh">${avatar(m.autor,tkNomeUser(m.autor),'sm')}
+        <strong>${esc(tkNomeUser(m.autor)||'alguém')}</strong>
+        <span class="hint" style="margin:0">${esc(tkmQuando(m.criado_em))}</span>
+        ${(currentUser&&m.autor===currentUser.id)?`<button class="iconbtn del" title="Apagar" onclick="tkmApagar('${m.id}','${tid}')">&times;</button>`:''}
+      </div>
+      <div class="tkm-msgt">${esc(m.texto)}</div>
+    </div>`).join('');
+  box.scrollTop=box.scrollHeight;
+};
+window.tkmEnviar=async (tid)=>{
+  const el=document.getElementById('tkmTxt'); const txt=(el.value||'').trim();
+  if(!txt) return;
+  el.disabled=true;
+  const {error}=await sb.from('tarefa_comentarios').insert({tarefa_id:tid,autor:(currentUser||{}).id,texto:txt});
+  el.disabled=false;
+  if(error){ toast('Erro: '+error.message); return; }
+  el.value=''; tkmAtvCarregar(tid);
+};
+window.tkmApagar=async (id,tid)=>{
+  if(!confirm('Apagar este comentário?')) return;
+  const {error}=await sb.from('tarefa_comentarios').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  tkmAtvCarregar(tid);
+};
+/* O vinculo ja existe no dado (tarefas.ficha_id) — aqui ele finalmente aparece como
+   relacionamento: cartao do cliente, com atalho pra ficha e o historico dele. */
+window.tkmRelPintar=()=>{
+  const box=document.getElementById('tkmRelBox'); if(!box) return;
+  const fid=((document.getElementById('tk_ficha')||{}).value)||'';
+  const f=fid?fichaDe(fid):null;
+  const b=document.getElementById('tkmBRel'); if(b) b.textContent=f?'1':'';
+  if(!f){ box.innerHTML='<p class="hint">Nenhum projeto ligado. Escolha o cliente em Detalhes e ele aparece aqui como relacionamento.</p>'; return; }
+  const outras=(TK.tarefas||[]).filter(x=>String(x.ficha_id||'')===String(fid));
+  box.innerHTML=`<div class="tkm-rel">
+      <div class="tkm-relh">${esc(f.nome||'Cliente')}</div>
+      <div class="hint" style="margin:2px 0 10px">${esc(PRJ_NORM(f.status)||'')}${f.squad?(' · Squad '+esc(f.squad)):''}</div>
+      <button class="btn secondary small" type="button" onclick="abrirCliente('${fid}')">Abrir ficha do cliente</button>
+    </div>
+    <div class="hint" style="margin:14px 0 6px">Histórico deste projeto — ${outras.length} tarefa(s)</div>
+    ${outras.slice(0,12).map(x=>`<div class="tkm-hist"><span>${esc(x.titulo||'')}</span>
+       <span class="hint" style="margin:0">${esc(tkCaminho(x.lista_id))}</span></div>`).join('')||'<p class="hint">Esta é a primeira.</p>'}`;
 };
 window.tkExcluir=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
