@@ -34,6 +34,27 @@
   .page-head h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
   .hint,.desc{font-size:12.5px}
 
+  .nm-link{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:9px;padding:9px 11px;margin-bottom:14px;font-size:12.5px;color:var(--muted)}
+  .nm-link span{flex:1;min-width:0}
+  .nm-estado{border-radius:9px;padding:11px 13px;margin-bottom:14px}
+  .nm-estado b{font-size:13px;display:block;margin-bottom:3px}
+  .nm-estado p{font-size:12.5px;line-height:1.5;margin:0;color:var(--muted)}
+  .nm-estado.aberto{background:rgba(63,207,142,.1);border:1px solid rgba(63,207,142,.28)}
+  .nm-estado.fechado{background:rgba(230,177,63,.1);border:1px solid rgba(230,177,63,.3)}
+  .nm-conv{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+  .nm-conv select{flex:1;min-width:120px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);border-radius:8px;padding:8px 9px;font-size:12.5px;font-family:inherit}
+  .nm-sec{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+    font-weight:800;margin:0 0 8px}
+  .nm-p{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .nm-p:last-of-type{border-bottom:none}
+  .nm-n{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nm-p select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:7px;padding:5px 7px;font-size:12px;font-family:inherit}
+  .nm-av{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;flex:none;
+    display:grid;place-items:center;font-size:11px;font-weight:800}
+  .tk-lock{font-size:10px;opacity:.75;margin-left:4px;flex:none}
   .lk-linha{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
     border-radius:9px;padding:8px 10px;margin-bottom:14px;font-size:12.5px;color:var(--muted)}
   .lk-linha span{flex:1;min-width:0}
@@ -2591,6 +2612,105 @@ window.wsMenu=(ev)=>{
 };
 
 /* ---------- menu de espaco / pasta / lista ---------- */
+/* ======================= COMPARTILHAR =======================
+   Modelo ClickUp: tudo nasce aberto. Fechar um nó esconde ele — e tudo que está
+   dentro dele — de quem não foi convidado. Master enxerga tudo, sempre.
+   Quem entra como "ver" lê as tarefas mas não mexe; quem entra como "editar" mexe.
+   A trava de verdade é a RLS; isto aqui é só a tela. */
+const nmTab={espaco:'espacos',pasta:'pastas',lista:'listas'};
+const nmArt={espaco:'este espaço',pasta:'esta pasta',lista:'esta lista'};
+const nmSigla={espaco:'e',pasta:'p',lista:'l'};
+const nmDe=(tipo,id)=>(TK.membros||[]).filter(m=>m.tipo===tipo&&String(m.no_id)===String(id));
+const nmEhMaster=()=>!!(currentUser&&currentUser.role==='master');
+
+window.spCompartilhar=(tipo,id)=>{
+  const o=spNo(tipo,id); if(!o) return;
+  modal('Compartilhar '+nmArt[tipo],`<div id="nmCorpo">${nmCorpo(tipo,id)}</div>`,async()=>true);
+  setTimeout(()=>{
+    const ov=document.querySelectorAll('.overlay'); const el=ov[ov.length-1]; if(!el) return;
+    const s=el.querySelector('.msave'); if(s) s.textContent='Concluído';
+    const c=el.querySelector('.mcancel'); if(c) c.style.display='none';
+  },0);
+};
+function nmPintar(tipo,id){ const el=document.getElementById('nmCorpo'); if(el) el.innerHTML=nmCorpo(tipo,id); }
+function nmCorpo(tipo,id){
+  const o=spNo(tipo,id); if(!o) return '<div class="hint">Item não encontrado.</div>';
+  const priv=!!o.privado, membros=nmDe(tipo,id), mst=nmEhMaster();
+  const jaTem=membros.map(m=>String(m.user_id));
+  const livres=(TK.equipe||[]).filter(u=>jaTem.indexOf(String(u.id))<0);
+  const linhaLink=`<div class="nm-link">
+      <span>Link direto para ${esc(nmArt[tipo])}</span>
+      <button class="btn ghost small" type="button" onclick="lkCopiar('${nmSigla[tipo]}','${id}')">🔗 Copiar link</button>
+    </div>`;
+  /* entre o deploy e a migração a coluna nem existe — melhor dizer isso do que
+     oferecer um botão que vai dar erro */
+  if(o.privado===undefined) return `${linhaLink}
+    <div class="nm-estado fechado"><b>Compartilhamento ainda não ativado</b>
+      <p>Falta rodar a migração <code>migracao-compartilhar.sql</code> no Supabase.
+         O link direto acima já funciona normalmente.</p></div>`;
+  if(!priv) return `
+    ${linhaLink}
+    <div class="nm-estado aberto">
+      <b>Aberto para a equipe toda</b>
+      <p>Qualquer pessoa aprovada no sistema enxerga ${esc(nmArt[tipo])}${tipo!=='lista'?' e tudo que está dentro':''}.
+         ${tipo==='lista'?'O recorte por squad continua valendo nas tarefas com cliente.':''}</p>
+    </div>
+    ${mst?`<button class="btn secondary" style="width:100%" onclick="nmPrivar('${tipo}','${id}',true)">🔒 Tornar privado</button>`
+        :`<p class="hint">Só um usuário master pode fechar ou liberar acesso.</p>`}`;
+  return `
+    ${linhaLink}
+    <div class="nm-estado fechado">
+      <b>🔒 Privado</b>
+      <p>Só quem está na lista abaixo — e os masters — enxerga ${esc(nmArt[tipo])}${tipo!=='lista'?' e o que está dentro':''}.</p>
+    </div>
+    ${mst?`<div class="nm-conv">
+      <select id="nm_u">${livres.length?livres.map(u=>`<option value="${u.id}">${esc(u.nome)}</option>`).join('')
+        :'<option value="">— todo mundo já tem acesso —</option>'}</select>
+      <select id="nm_p"><option value="editar">Pode editar</option><option value="ver">Só visualizar</option></select>
+      <button class="btn small" onclick="nmConvidar('${tipo}','${id}')">Convidar</button>
+    </div>`:''}
+    <div class="nm-sec">Com acesso</div>
+    ${membros.length?membros.map(m=>`<div class="nm-p">
+        <span class="nm-av">${esc(inicial(tkNomeUser(m.user_id)||'?'))}</span>
+        <span class="nm-n">${esc(tkNomeUser(m.user_id)||'(usuário removido)')}</span>
+        ${mst?`<select onchange="nmPerm('${m.id}','${tipo}','${id}',this.value)">
+          <option value="editar"${m.permissao==='editar'?' selected':''}>Pode editar</option>
+          <option value="ver"${m.permissao==='ver'?' selected':''}>Só visualizar</option></select>
+        <button class="btn ghost small" onclick="nmRemover('${m.id}','${tipo}','${id}')">Remover</button>`
+        :`<span class="hint" style="margin:0">${m.permissao==='ver'?'só visualiza':'pode editar'}</span>`}
+      </div>`).join('')
+    :'<p class="hint" style="margin:0 0 12px">Ninguém além dos masters. Convide alguém acima.</p>'}
+    ${mst?`<button class="btn secondary" style="width:100%;margin-top:6px" onclick="nmPrivar('${tipo}','${id}',false)">Voltar a ser aberto</button>`:''}`;
+}
+window.nmPrivar=async (tipo,id,valor)=>{
+  if(valor&&!confirm('Fechar '+nmArt[tipo]+'?\n\nA partir de agora só você (e outros masters) e quem for convidado vão enxergar.')) return;
+  const {error}=await sb.from(nmTab[tipo]).update({privado:valor}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const o=spNo(tipo,id); if(o) o.privado=valor;
+  nmPintar(tipo,id); spDesenhar();
+  toast(valor?'Agora é privado.':'Voltou a ser aberto.');
+};
+window.nmConvidar=async (tipo,id)=>{
+  const u=$('#nm_u'), p=$('#nm_p');
+  if(!u||!u.value){ toast('Escolha a pessoa.'); return; }
+  const reg={tipo:tipo,no_id:id,user_id:u.value,permissao:(p?p.value:'editar'),criado_por:(currentUser||{}).id||null};
+  const {data,error}=await sb.from('no_membros').insert(reg).select().single();
+  if(error){ toast('Erro: '+error.message); return; }
+  TK.membros.push(data); nmPintar(tipo,id);
+  toast(tkNomeUser(u.value)+' agora tem acesso.');
+};
+window.nmRemover=async (mid,tipo,id)=>{
+  const {error}=await sb.from('no_membros').delete().eq('id',mid);
+  if(error){ toast('Erro: '+error.message); return; }
+  TK.membros=TK.membros.filter(m=>m.id!==mid); nmPintar(tipo,id); toast('Acesso removido.');
+};
+window.nmPerm=async (mid,tipo,id,v)=>{
+  const {error}=await sb.from('no_membros').update({permissao:v}).eq('id',mid);
+  if(error){ toast('Erro: '+error.message); return; }
+  const m=TK.membros.find(x=>x.id===mid); if(m) m.permissao=v;
+  nmPintar(tipo,id); toast('Permissão atualizada.');
+};
+
 window.spNoMenu=(ev,tipo,id)=>{
   const o=spNo(tipo,id); if(!o) return;
   const m=!!(currentUser&&currentUser.role==='master');
@@ -2605,6 +2725,7 @@ window.spNoMenu=(ev,tipo,id)=>{
     it.push({ic:favTem(id)?'★':'☆',t:favTem(id)?'Tirar dos favoritos':'Adicionar aos favoritos',f:()=>favToggle(id)});
   }
   it.push({sep:true});
+  it.push({ic:'👥',t:'Compartilhar',f:()=>spCompartilhar(tipo,id)});
   it.push({ic:'🔗',t:'Copiar link',f:()=>lkCopiar({espaco:'e',pasta:'p',lista:'l'}[tipo],id)});
   it.push({ic:'✏️',t:'Renomear',f:()=>spRenomear(tipo,id)});
   it.push({ic:'🎨',t:tipo==='espaco'?'Aparência — foto, cor e ícone':'Cor e ícone',f:()=>spCorIcone(tipo,id)});
@@ -2912,6 +3033,7 @@ async function tkCarregar(){
   const err=e.error||pa.error||l.error||t.error||st.error||cp.error;
   if(err) throw new Error(err.message);
   TK.espacos=e.data||[]; TK.pastas=pa.data||[]; TK.listas=l.data||[]; TK.tarefas=t.data||[];
+  const mm=await sb.from('no_membros').select('*'); TK.membros=(mm&&mm.data)||[];
   TK.equipe=q.data||[]; TK.status=st.data||[]; TK.campos=cp.data||[];
   if(!TK.listaSel||!TK.listas.some(x=>x.id===TK.listaSel)) TK.listaSel=(TK.listas[0]||{}).id||'';
   if(!TK.ref) TK.ref=tkHoje().slice(0,7);
