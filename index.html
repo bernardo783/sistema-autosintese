@@ -71,7 +71,9 @@
   .tk-lock{font-size:10px;opacity:.75;margin-left:4px;flex:none}
   .tk-tipo{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;
     padding:5px 12px;font-size:12.5px;font-weight:700;font-family:inherit;margin-bottom:10px}
-  .rp-box{display:flex;gap:5px;flex-wrap:wrap}
+  .rp-box{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+  .rp-add{width:26px;height:26px;border-radius:7px;border:1.5px dashed var(--line);background:transparent;color:var(--muted);display:grid;place-items:center}
+  .rp-add:hover{border-color:var(--brand2);color:var(--txt);border-style:solid}
   .rp-chip{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);
     color:var(--muted);border-radius:999px;padding:3px 10px 3px 3px;font-size:12px;font-weight:600;font-family:inherit}
   .rp-chip:hover{border-color:var(--brand2);color:var(--txt)}
@@ -3412,6 +3414,7 @@ function tkViewBoard(){
     </div>`).join('')}</div>`;
 }
 /* Edição de Vídeo: todo vídeo novo nasce com o Fluxo de Edição (checklist padrão, vídeo do Gabriel 10/08) */
+const USER_MARIA='fd1c84c0-b605-46b7-a83d-fe6cc5abb3b2'; /* Maria Eduarda, editora */
 const CK_EDICAO=['Baixar material bruto do Drive','Consultar preferências do cliente no Guia','Editar vídeo conforme orientações','Aplicar legenda no estilo do cliente','Inserir logo atualizada','Adicionar narração (se aplicável)','Subir material editado no Drive','Preencher o link do material editado','Mover para Revisão e aguardar feedback'];
 /* criar digitando direto na coluna, sem modal (Enter cria, Esc cancela) */
 window.tkAddInline=(btn,key)=>{
@@ -3426,7 +3429,7 @@ window.tkAddKey=async (ev,key)=>{
   ev.target.disabled=true;
   const v={titulo:tit,lista_id:TK.listaSel,prioridade:'med',valores:{}};
   if(tkStatus1(key)){ v.status_id=key; v.status='todo'; } else { v.status=key||'todo'; v.status_id=null; }
-  if(TK.listaSel===LISTA_EDICAO) v.checklist=CK_EDICAO.map(x=>({t:x,ok:false}));
+  if(TK.listaSel===LISTA_EDICAO){ v.checklist=CK_EDICAO.map(x=>({t:x,ok:false})); v.responsavel_id=USER_MARIA; v.responsaveis=[USER_MARIA]; }
   const {data,error}=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
   if(error){ toast('Erro: '+error.message); ev.target.disabled=false; return; }
   TK.tarefas.push(data); tkDesenhar($('#content')); spDesenhar();
@@ -4580,13 +4583,26 @@ window.tkRespToggle=(uid)=>{
   const box=document.getElementById('tk_respbox'); if(box) box.innerHTML=tkRespChips(atual);
 };
 function tkRespChips(ids){
+  /* estilo ClickUp (pedido do Gabriel 10/08): mostra só quem está atribuído + quadradinho pra escolher */
   const eq=(TK.equipe||[]);
-  return eq.map(u=>{
-    const on=ids.indexOf(String(u.id))>=0;
-    return `<button type="button" class="rp-chip${on?' on':''}" onclick="tkRespToggle('${u.id}')"
-      title="${esc(u.nome)}"><span class="rp-av">${esc(inicial(u.nome))}</span>${esc(primeiroNome(u.nome))}</button>`;
-  }).join('');
+  const sel=ids.map(id=>eq.find(u=>String(u.id)===String(id))).filter(Boolean);
+  return sel.map(u=>`<button type="button" class="rp-chip on" onclick="tkRespToggle('${u.id}')" title="Clique para tirar ${esc(u.nome)}">${avatar(u.id,u.nome,'sm')}${esc(primeiroNome(u.nome))}</button>`).join('')
+   +`<button type="button" class="rp-add" title="Escolher responsável" onclick="tkRespMenu(event)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>`;
 }
+window.tkRespMenu=(ev)=>{ ev.stopPropagation();
+  const vel=document.getElementById('tkQaMenu'); if(vel){ vel.remove(); return; }
+  const r=ev.currentTarget.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='tkQaMenu'; el.className='tkpop'; el.style.zIndex=3000;
+  el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-266))+'px'; el.style.top=(r.bottom+6)+'px'; el.style.width='260px';
+  const pinta=()=>{ const ids=String(($('#tk_resps')||{}).value||'').split(',').filter(Boolean);
+    el.innerHTML=`<div class="tkp-sec">Equipe</div>`+[...(TK.equipe||[])].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
+      <label class="tkp-row" data-u="${u.id}">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span><input type="checkbox" ${ids.includes(String(u.id))?'checked':''}></label>`).join('');
+    el.querySelectorAll('.tkp-row').forEach(row=>{ row.onclick=(e)=>{ e.preventDefault(); tkRespToggle(row.dataset.u); pinta(); }; });
+  };
+  pinta();
+  document.body.appendChild(el);
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
 const primeiroNome=(s)=>String(s||'').trim().split(/\s+/)[0]||'';
 
 /* ---- tipo da tarefa ---- */
@@ -4684,6 +4700,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const t=id?TK.tarefas.find(x=>x.id===id):null;
   TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok)})):[];
   const it=t||{prioridade:'med',status:'todo',status_id:'',lista_id:TK.listaSel,prazo:prazoPre||'',valores:{}};
+  if(!t&&TK.listaSel===LISTA_EDICAO&&!it.responsavel_id) it.responsavel_id=USER_MARIA; /* edição: Maria é o padrão */
   if(!t&&grupoPre&&grupoPre.indexOf('no')!==0){
     if(TK.grupo==='status'){ if(tkStatus1(grupoPre)) it.status_id=grupoPre; else it.status=grupoPre; }
     else if(TK.grupo==='prioridade') it.prioridade=grupoPre;
