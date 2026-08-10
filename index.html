@@ -74,6 +74,32 @@
   .tk-lock{font-size:10px;opacity:.75;margin-left:4px;flex:none}
   .tk-tipo{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;
     padding:5px 12px;font-size:12.5px;font-weight:700;font-family:inherit;margin-bottom:10px}
+  .dtf{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid transparent;
+    border-radius:7px;padding:5px 9px;font-size:13.5px;cursor:pointer;color:var(--txt);white-space:nowrap}
+  .dtf:hover{background:var(--panel2);border-color:var(--line)}
+  .dtf svg{width:13px;height:13px;color:var(--muted);flex:none}
+  .dtpop{position:fixed;z-index:9998;width:246px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:12px;box-shadow:0 16px 44px rgba(0,0,0,.55)}
+  .dt-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .dt-h b{font-size:13px;font-weight:700;text-transform:capitalize}
+  .dt-h button{background:transparent;border:none;color:var(--muted);font-size:19px;line-height:1;
+    width:26px;height:26px;border-radius:7px;cursor:pointer}
+  .dt-h button:hover{background:var(--panel2);color:var(--txt)}
+  .dt-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+  .dt-sem span{text-align:center;font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.04em}
+  .dt-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .dt-d{height:28px;border:none;background:transparent;color:var(--txt);border-radius:8px;
+    font-size:12.5px;font-family:inherit;cursor:pointer}
+  .dt-d:hover{background:var(--panel2)}
+  .dt-d.fora{color:#55555f}
+  .dt-d.hoje{box-shadow:inset 0 0 0 1px var(--brand2);color:#c4b8ff;font-weight:700}
+  .dt-d.sel{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-weight:700;box-shadow:none}
+  .dt-f{display:flex;justify-content:space-between;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+  .dt-f button{background:transparent;border:none;color:var(--muted);font-size:12.5px;font-weight:600;
+    font-family:inherit;cursor:pointer;padding:4px 7px;border-radius:6px}
+  .dt-f button:hover{background:var(--panel2);color:var(--txt)}
+  .dt-f .dt-hoje{color:#c4b8ff}
+  .tk-qab.tem{border-style:solid;border-color:var(--brand2);color:#c4b8ff}
   .pr-box{display:flex;gap:6px;flex-wrap:wrap}
   .pr-chip{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);
     color:var(--muted);border-radius:8px;padding:5px 11px;font-size:12.5px;font-weight:600;
@@ -2620,6 +2646,92 @@ const PLAYBOOK_B64='CjxzdHlsZT4KICAqIHsgbWFyZ2luOiAwOyBwYWRkaW5nOiAwOyBib3gtc2l6
 /* ---------- TAREFAS (Espaços → Listas → Tarefas) ----------
    Gestão de tarefas em duas visões: Lista e Board. Uma linha por tarefa
    no banco; o recorte por squad continua sendo aplicado pelo Postgres (RLS). */
+/* ---------- CALENDÁRIO PRÓPRIO ----------
+   O nativo do Chrome não aceita estilo: mesmo escuro, continua com a cara dele.
+   Este guarda a data em ISO num input escondido (então tudo que já lia .value
+   continua funcionando) e mostra dd/mm num botão. */
+const DT_MES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const DT_SEM=['D','S','T','Q','Q','S','S'];
+const dtISO=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const dtDe=(iso)=>{ const p=String(iso||'').slice(0,10).split('-'); return (p.length===3)?new Date(+p[0],+p[1]-1,+p[2]):null; };
+const dtCurto=(iso)=>{ const d=dtDe(iso); return d?String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'):''; };
+/* 6 semanas fixas: o popup não muda de altura ao trocar de mês */
+function dtGrade(ano,mes,sel,hoje){
+  const primeiro=new Date(ano,mes,1), recuo=primeiro.getDay();
+  const ini=new Date(ano,mes,1-recuo), out=[];
+  for(let i=0;i<42;i++){
+    const d=new Date(ini.getFullYear(),ini.getMonth(),ini.getDate()+i), iso=dtISO(d);
+    out.push({iso:iso,dia:d.getDate(),fora:d.getMonth()!==mes,hoje:iso===hoje,sel:!!sel&&iso===sel});
+  }
+  return out;
+}
+/* campo: botão com a data + input escondido com o valor real */
+function dtCampo(id,valor,extra){
+  return `<span class="dtf" onclick="dtAbrir(event,'${id}')" title="Escolher data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span id="${id}_lbl">${valor?esc(dtCurto(valor)):'Escolher'}</span>
+    </span><input type="hidden" id="${id}" value="${esc(valor||'')}"${extra||''}>`;
+}
+/* No cartão o que importa é "falta quanto", não a data seca: 45d diz mais que 23/09. */
+function dtRel(iso,hoje){
+  const a=dtDe(iso), b=dtDe(hoje||dtISO(new Date()));
+  if(!a||!b) return '';
+  const n=Math.round((a-b)/86400000);
+  if(n===0) return 'Hoje';
+  if(n===1) return 'Amanhã';
+  if(n===-1) return 'Ontem';
+  if(n>0) return n+'d';
+  return Math.abs(n)+'d atrás';
+}
+let DT={id:'',ano:0,mes:0};
+window.dtAbrir=(ev,id)=>{
+  ev.stopPropagation(); dtFechar();
+  const inp=document.getElementById(id); if(!inp) return;
+  const base=dtDe(inp.value)||new Date();
+  DT={id:id,ano:base.getFullYear(),mes:base.getMonth()};
+  const pop=document.createElement('div'); pop.className='dtpop'; pop.id='dtPop';
+  pop.onclick=e=>e.stopPropagation();
+  document.body.appendChild(pop);
+  dtPintar();
+  const r=(ev.currentTarget||inp).getBoundingClientRect();
+  const alt=pop.offsetHeight||300, abaixo=window.innerHeight-r.bottom>alt+8;
+  pop.style.left=Math.max(8,Math.min(r.left,window.innerWidth-pop.offsetWidth-8))+'px';
+  pop.style.top=(abaixo?r.bottom+6:Math.max(8,r.top-alt-6))+'px';
+  setTimeout(()=>document.addEventListener('click',dtFechar,{once:true}),0);
+};
+window.dtFechar=()=>{ const p=document.getElementById('dtPop'); if(p) p.remove(); };
+window.dtMes=(n)=>{ let m=DT.mes+n, a=DT.ano;
+  if(m<0){ m=11; a--; } if(m>11){ m=0; a++; }
+  DT.mes=m; DT.ano=a; dtPintar(); };
+window.dtEscolher=(iso)=>{
+  const inp=document.getElementById(DT.id); if(!inp) return;
+  inp.value=iso||'';
+  const lbl=document.getElementById(DT.id+'_lbl');
+  if(lbl) lbl.textContent=iso?dtCurto(iso):'Escolher';
+  dtFechar();
+  try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){}
+};
+function dtPintar(){
+  const pop=document.getElementById('dtPop'); if(!pop) return;
+  const inp=document.getElementById(DT.id);
+  const sel=inp?String(inp.value||'').slice(0,10):'';
+  const hoje=dtISO(new Date());
+  const dias=dtGrade(DT.ano,DT.mes,sel,hoje);
+  pop.innerHTML=`
+    <div class="dt-h">
+      <button type="button" onclick="dtMes(-1)" aria-label="Mês anterior">‹</button>
+      <b>${DT_MES[DT.mes]} de ${DT.ano}</b>
+      <button type="button" onclick="dtMes(1)" aria-label="Próximo mês">›</button>
+    </div>
+    <div class="dt-sem">${DT_SEM.map(s=>`<span>${s}</span>`).join('')}</div>
+    <div class="dt-g">${dias.map(d=>`<button type="button" class="dt-d${d.fora?' fora':''}${d.hoje?' hoje':''}${d.sel?' sel':''}"
+      onclick="dtEscolher('${d.iso}')">${d.dia}</button>`).join('')}</div>
+    <div class="dt-f">
+      <button type="button" onclick="dtEscolher('')">Limpar</button>
+      <button type="button" class="dt-hoje" onclick="dtEscolher('${hoje}')">Hoje</button>
+    </div>`;
+}
+
 const TK_PRIO={urgente:'Urgente',alta:'Alta',med:'Normal',baixa:'Baixa'};
 const PRIO_COR={urgente:'#ef5b6b',alta:'#e6b13f',med:'#4f8ff7',baixa:'#3fcf8e'}; /* cores do Gabriel, 10/08 */
 const TK_PRIOC={urgente:'churn',alta:'areceber',med:'sinal',baixa:'recebido'};
@@ -3379,20 +3491,30 @@ function tkCard(t){
   const FLG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
   const qa=`<span class="tk-qa" onclick="event.stopPropagation()">
       <button class="tk-qab" title="Responsável" onclick="tkQaResp(event,'${t.id}')">${t.responsavel_id?avatar(t.responsavel_id):USR}</button>
-      <span class="tk-qab" title="Definir prazo">${CAL}<input type="date" value="${t.prazo||''}" onchange="tkQaPrazo('${t.id}',this.value)"></span>
+      <button type="button" class="tk-qab${t.prazo?' tem':''}" title="${t.prazo?('Prazo: '+fmtDate(t.prazo)):'Definir prazo'}"
+        onclick="dtCartao(event,'${t.id}','${t.prazo||''}')">${CAL}</button>
       <button class="tk-qab" title="Prioridade" onclick="tkQaPrio(event,'${t.id}')">${FLG}</button>
       <button class="tk-qab" title="Cliente / projeto" onclick="tkQaCli(event,'${t.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg></button>
     </span>`;
   return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')">
     <div class="tk-tit">${FLAG}${esc(t.titulo)}</div>
     <div class="tk-foot">
-      ${t.prazo?`<span class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}">${CAL}${hojeP?'Hoje':fmtDate(t.prazo).slice(0,5)}</span>`:''}
+      ${t.prazo?`<span class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}">${CAL}${dtRel(t.prazo,hoje)}</span>`:''}
       ${ckResumo(t)?`<span class="tk-chip">${CK}${ckResumo(t).replace('☑ ','')}</span>`:''}
       ${t.ficha_id?`<span class="tk-chip" title="${esc(tkNomeFicha(t.ficha_id))}">${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
       ${TK.escopo!=='lista'?`<span class="tk-chip" style="opacity:.75" title="${esc(tkCaminho(t.lista_id))}">${esc(tkCaminho(t.lista_id))}</span>`:''}
     </div>
     ${qa}</div>`;
 }
+/* No cartão não há formulário: o calendário grava direto na tarefa. */
+window.dtCartao=(ev,tid,atual)=>{
+  ev.stopPropagation();
+  let esc0=document.getElementById('dtTmp'); if(esc0) esc0.remove();
+  const tmp=document.createElement('input'); tmp.type='hidden'; tmp.id='dtTmp'; tmp.value=atual||'';
+  document.body.appendChild(tmp);
+  tmp.addEventListener('change',()=>{ tkQaPrazo(tid,tmp.value); tmp.remove(); });
+  dtAbrir(ev,'dtTmp');
+};
 window.tkQaPrazo=(id,v)=>{ tkPatch(id,{prazo:v||null},v?'Prazo definido.':'Prazo removido.'); };
 /* bandeira abre menu escrito com as opções (pedido do Gabriel: ciclar ficava confuso) */
 window.tkQaPrio=(ev,id)=>{ ev.stopPropagation();
@@ -4715,9 +4837,7 @@ function ttPintar(tid){
 }
 function ttLinha(tid){
   const rodando=!!ttAberta(tid), tot=Math.round(ttTotal(tid));
-  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(tid));
-  const est=t&&t.estimativa_min?Number(t.estimativa_min):0;
-  const comp=(est&&tot)?`<span class="tt-comp ${tot>est?'passou':'ok'}">${tot>est?'passou de':'dentro de'} ${esc(estTexto(est))}</span>`:'';
+  const comp='';   /* estimativa saiu da tela: o cronômetro mostra só o tempo real */
   return `<button type="button" class="btn ${rodando?'danger':'ghost'} small" onclick="${rodando?`ttParar('${tid}')`:`ttComecar('${tid}')`}">
       ${rodando?'⏹ Parar':'▶ Start'}</button>
     <span class="tt-val" id="tt_val">${esc(estTexto(tot))||'0min'}</span>${comp}`;
@@ -4788,16 +4908,13 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <span class="rp-box" id="tk_respbox">${tkRespChips(respDe(it))}</span>
       </span></div>
       <div class="tk-p"><span class="tk-pl">${SVG_P.data} Datas</span><span class="tk-pv tk-datas">
-        <input type="date" id="tk_ini" value="${esc(it.iniciada_em||'')}" title="Início">
+        ${dtCampo('tk_ini',it.iniciada_em||'')}
         <span class="tk-seta">→</span>
-        <input type="date" id="tk_prazo" value="${esc(it.prazo||'')}" title="Prazo">
+        ${dtCampo('tk_prazo',it.prazo||'')}
       </span></div>
       <div class="tk-p"><span class="tk-pl">${SVG_P.flag} Prioridade</span><span class="tk-pv">
         <input type="hidden" id="tk_prio" value="${esc(it.prioridade||'med')}">
         <span class="pr-box" id="tk_priobox">${prioChips(it.prioridade||'med')}</span>
-      </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.ampulheta} Estimativa</span><span class="tk-pv">
-        <input id="tk_est" class="tk-curto" value="${esc(estTexto(it.estimativa_min))}" placeholder="ex: 1h30" title="Horas e minutos — ex: 1h30">
       </span></div>
       ${t?`<div class="tk-p"><span class="tk-pl">${SVG_P.cron} Rastrear tempo</span>
         <span class="tk-pv" id="tk_tempo">${ttLinha(t.id)}</span></div>`:''}
@@ -4853,14 +4970,11 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       const v={titulo:$('#tk_tit').value.trim(), lista_id:$('#tk_lista').value, ficha_id:$('#tk_ficha').value||null,
         prioridade:$('#tk_prio').value, prazo:$('#tk_prazo').value||null,
         iniciada_em:($('#tk_ini')&&$('#tk_ini').value)||null,
-        estimativa_min:estMinutos($('#tk_est')?$('#tk_est').value:''),
         tags:($('#tk_tags')?$('#tk_tags').value:'').split(',').map(s=>s.trim()).filter(Boolean),
         descricao:$('#tk_desc').value.trim()};
       const _rs=String(($('#tk_resps')||{}).value||'').split(',').filter(Boolean);
       v.responsaveis=_rs; v.responsavel_id=_rs[0]||null;
       v.tipo_id=($('#tk_tipo')&&$('#tk_tipo').value)||null;
-      if($('#tk_est')&&$('#tk_est').value.trim()&&v.estimativa_min===null){
-        toast('Estimativa: use algo como 45min, 1h30 ou 2h.'); $('#tk_est').focus(); return false; }
       if(v.iniciada_em&&v.prazo&&v.iniciada_em>v.prazo){ const x=v.iniciada_em; v.iniciada_em=v.prazo; v.prazo=x; }
       if(!v.titulo){ toast('Informe o título.'); return false; }
       v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
