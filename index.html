@@ -3249,6 +3249,7 @@ const spBate=(s)=>String(s||'').toLowerCase().indexOf(SP_Q)>=0;
 
 /* ---------- caixa de entrada: o que esta atribuido a mim ---------- */
 window.spCaixa=()=>{
+  if(tlBloqueada('tarefas')) return spInicio();   /* sem esse atalho, cai no Inicio */
   TK.escopo='minhas'; TK.listaSel=''; TK.visao='lista'; currentView='lista'; searchTerm='';
   spMarcarAtalho('');
   if(!TK.listas.length) return renderTarefas($('#content'));
@@ -4222,6 +4223,9 @@ function renderInicio(c){
   const abertas=todas.filter(t=>faseDe(t)!=='feito'&&faseDe(t)!=='fechado');
   const pendentes=abertas.filter(t=>noPeriodo(t.prazo));
   const andamento=abertas.filter(t=>faseDe(t)==='ativo');
+  /* aberta, sem prazo e sem ter comecado: nao cai em nenhum outro bloco.
+     Sem isto, esconder o atalho Tarefas faria a demanda sumir da vista. */
+  const semPrazo=abertas.filter(t=>!t.prazo&&faseDe(t)!=='ativo');
   const feitas=todas.filter(t=>faseDe(t)==='feito'&&(noPeriodo(t.concluida_em)||noPeriodo(t.prazo)));
   /* média só do que dá para medir: precisa de abertura e conclusão com hora */
   const comTempo=feitas.filter(t=>t.criado_em&&t.concluida_em);
@@ -4286,6 +4290,13 @@ function renderInicio(c){
    <div class="ini-box">
      <div class="ini-h">🔵 Em andamento</div>
      ${andamento.slice(0,10).map(t=>item(t,'')).join('')}
+   </div>`:''}
+   ${semPrazo.length?`
+   <div class="ini-box">
+     <div class="ini-h">◻ Sem prazo definido
+       <span class="hint" style="margin:0;font-weight:600">é sua, mas ninguém marcou quando</span></div>
+     ${semPrazo.slice(0,10).map(t=>item(t,'')).join('')}
+     ${semPrazo.length>10?`<div class="hint" style="margin:8px 0 0">e mais ${semPrazo.length-10}…</div>`:''}
    </div>`:''}
    <p class="hint" style="margin-top:14px">Clique numa demanda para abrir. Tudo que aparece aqui está atribuído a você.</p>`;
   spDesenhar();   /* sem isto o realce do rail nao acompanha o clique em Inicio */
@@ -7380,9 +7391,13 @@ window.inSet=async (uid,campo,v)=>{
    As telas que não são lista (Acessos, Processos, Reembolsos, Daily...) não passam
    por no_membros — quem manda nelas é perfis.telas_off. A lista de telas é lida do
    próprio HTML, então atalho novo entra aqui sozinho. */
+/* Atalhos do rail que nao sao .navlink entram na mao. Inicio e Espacos ficam de
+   fora de proposito: sem eles a pessoa nao navega. */
+const TL_RAIL=[{v:'tarefas',nome:'Tarefas (as suas)',el:'rlInbox'}];
 const tlLista=()=>Array.from(document.querySelectorAll('.navlink[data-view]'))
   .map(b=>({v:b.dataset.view,nome:(b.getAttribute('title')||b.dataset.view),
-            master:['financeiro','usuarios'].indexOf(b.dataset.view)>=0}));
+            master:['financeiro','usuarios'].indexOf(b.dataset.view)>=0}))
+  .concat(TL_RAIL.filter(r=>document.getElementById(r.el)).map(r=>({v:r.v,nome:r.nome,master:false})));
 const tlOff=(u)=>((u&&u.telas_off)||[]);
 const tlBloqueada=(v)=>tlOff(currentUser).indexOf(String(v))>=0;
 /* esconde os atalhos que essa pessoa não tem — chamado no login */
@@ -7391,6 +7406,8 @@ function tlAplicar(){
   document.querySelectorAll('.navlink[data-view]').forEach(b=>{
     if(off.indexOf(b.dataset.view)>=0) b.classList.add('hidden');
   });
+  TL_RAIL.forEach(r=>{ const el=document.getElementById(r.el);
+    if(el) el.classList.toggle('hidden',off.indexOf(r.v)>=0); });
 }
 window.tlMarcar=async (uid,view,ligado)=>{
   const u=(PERFIS||[]).find(x=>String(x.id)===String(uid)); if(!u) return;
