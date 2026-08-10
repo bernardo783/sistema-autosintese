@@ -69,6 +69,8 @@
   .nm-av{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;flex:none;
     display:grid;place-items:center;font-size:11px;font-weight:800}
   .tk-lock{font-size:10px;opacity:.75;margin-left:4px;flex:none}
+  .ini-dt{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
+    padding:5px 8px;font-size:12.5px;font-family:inherit;color-scheme:dark}
   .lk-linha{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
     border-radius:9px;padding:8px 10px;margin-bottom:14px;font-size:12.5px;color:var(--muted)}
   .lk-linha span{flex:1;min-width:0}
@@ -3794,7 +3796,37 @@ window.spSelLista=(id,semAbrir)=>{
 /* ======================= INÍCIO: o dia de trabalho de cada um =======================
    Cada pessoa abre o sistema no que é dela: o que vence hoje, o que está em andamento
    e o que já concluiu. Atrasado aparece sempre, mesmo filtrando só o dia. */
-let inicioPer='hoje';   /* 'hoje' | '7d' */
+let inicioPer='hoje';   /* 'hoje' | '7d' | 'per' */
+let inicioDe='', inicioAte='';
+/* ---------- TEMPO ÚTIL ----------
+   Só conta segunda a sexta, das 8h às 18h. Demanda criada 19h e concluída 9h do dia
+   seguinte gasta 1h, não 14h — e fim de semana não entra. Sem isso a média mede
+   o relógio da parede, não o trabalho. */
+const HH_DE=8, HH_ATE=18;
+function minUteis(ini,fim){
+  let a=new Date(ini), b=new Date(fim);
+  if(!(a<b)) return 0;
+  let total=0;
+  const d=new Date(a.getFullYear(),a.getMonth(),a.getDate());
+  let guarda=0;
+  while(d<=b && guarda++<800){
+    const dow=d.getDay();
+    if(dow>=1&&dow<=5){
+      const abre=new Date(d); abre.setHours(HH_DE,0,0,0);
+      const fecha=new Date(d); fecha.setHours(HH_ATE,0,0,0);
+      const de=a>abre?a:abre, ate=b<fecha?b:fecha;
+      if(ate>de) total+=(ate-de)/60000;
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return Math.max(0,Math.round(total));
+}
+function fmtUteis(min){
+  if(!min||min<1) return 'menos de 1 min';
+  if(min<60) return Math.round(min)+' min';
+  const hs=Math.floor(min/60), ms=Math.round(min%60);
+  return hs+'h'+(ms?String(ms).padStart(2,'0'):'');
+}
 /* Em que fase a tarefa está: usa o grupo do status da lista; sem status personalizado, o status simples */
 function faseDe(t){
   const s=(TK.status||[]).find(x=>x.id===t.status_id);
@@ -3802,18 +3834,33 @@ function faseDe(t){
   return t.status==='feito'?'feito':t.status==='fazendo'?'ativo':'nao_iniciado';
 }
 const minhasTarefas=()=>{ const u=(currentUser||{}).id; return u?(TK.tarefas||[]).filter(t=>t.responsavel_id===u):[]; };
-window.inicioPeriodo=(p)=>{ inicioPer=p; renderInicio($('#content')); };
+window.inicioPeriodo=(p)=>{
+  inicioPer=p;
+  if(p==='per'&&!inicioDe){ inicioDe=isoMais(-29); inicioAte=tkHoje(); }
+  renderInicio($('#content'));
+};
+window.inicioData=()=>{
+  const a=document.getElementById('iniDe'), b=document.getElementById('iniAte');
+  inicioDe=(a&&a.value)||inicioDe; inicioAte=(b&&b.value)||inicioAte;
+  if(inicioDe&&inicioAte&&inicioDe>inicioAte){ const t=inicioDe; inicioDe=inicioAte; inicioAte=t; }
+  renderInicio($('#content'));
+};
 function renderInicio(c){
   if(!TK.listas.length){ c.innerHTML='<div class="empty">Carregando…</div>';
     return tkCarregar().then(()=>{ spDesenhar(); renderInicio(c); }).catch(e=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(e.message)+'</div>'; }); }
   currentView='inicio'; spMarcarAtalho('inicio');
-  const hoje=tkHoje(), de=inicioPer==='7d'?isoMais(-6):hoje;
-  const noPeriodo=(d)=>!!d && String(d).slice(0,10)>=de && String(d).slice(0,10)<=hoje;
+  const hoje=tkHoje();
+  const de = inicioPer==='7d'?isoMais(-6) : inicioPer==='per'?(inicioDe||hoje) : hoje;
+  const ate= inicioPer==='per'?(inicioAte||hoje) : hoje;
+  const noPeriodo=(d)=>!!d && String(d).slice(0,10)>=de && String(d).slice(0,10)<=ate;
   const todas=minhasTarefas();
   const abertas=todas.filter(t=>faseDe(t)!=='feito'&&faseDe(t)!=='fechado');
   const pendentes=abertas.filter(t=>noPeriodo(t.prazo));
   const andamento=abertas.filter(t=>faseDe(t)==='ativo');
   const feitas=todas.filter(t=>faseDe(t)==='feito'&&(noPeriodo(t.concluida_em)||noPeriodo(t.prazo)));
+  /* média só do que dá para medir: precisa de abertura e conclusão com hora */
+  const comTempo=feitas.filter(t=>t.criado_em&&t.concluida_em);
+  const medUteis=comTempo.length?comTempo.reduce((s,t)=>s+minUteis(t.criado_em,t.concluida_em),0)/comTempo.length:0;
   const atrasadas=abertas.filter(t=>t.prazo&&String(t.prazo).slice(0,10)<hoje)
                          .sort((a,b)=>String(a.prazo).localeCompare(String(b.prazo)));
   const primeiro=String((currentUser||{}).nome||'').trim().split(/\s+/)[0]||'';
@@ -3839,6 +3886,10 @@ function renderInicio(c){
      <div class="fin-tabs" style="margin:0">
        <button class="ftab ${inicioPer==='hoje'?'active':''}" onclick="inicioPeriodo('hoje')">Hoje</button>
        <button class="ftab ${inicioPer==='7d'?'active':''}" onclick="inicioPeriodo('7d')">Últimos 7 dias</button>
+       <button class="ftab ${inicioPer==='per'?'active':''}" onclick="inicioPeriodo('per')">Personalizado</button>
+       ${inicioPer==='per'?`<input type="date" class="ini-dt" id="iniDe" value="${esc(de)}" onchange="inicioData()">
+         <span style="color:var(--muted);font-size:12px">até</span>
+         <input type="date" class="ini-dt" id="iniAte" value="${esc(ate)}" onchange="inicioData()">`:''}
      </div>
    </div>
    <div class="cards">
@@ -3847,7 +3898,12 @@ function renderInicio(c){
      <div class="card"><div class="k">Em andamento</div>
        <div class="v" style="color:#60a5fa">${andamento.length}</div><div class="sub">já começadas</div></div>
      <div class="card"><div class="k">Concluídas</div>
-       <div class="v pos">${feitas.length}</div><div class="sub">${inicioPer==='hoje'?'hoje':'nos últimos 7 dias'}</div></div>
+       <div class="v pos">${feitas.length}</div><div class="sub">${inicioPer==='hoje'?'hoje':inicioPer==='7d'?'nos últimos 7 dias':'no período'}</div></div>
+     <div class="card"><div class="k">Tempo médio por demanda</div>
+       <div class="v">${comTempo.length?esc(fmtUteis(medUteis)):'—'}</div>
+       <div class="sub">${comTempo.length
+         ? ('em '+comTempo.length+' concluída'+(comTempo.length>1?'s':'')+' · só 8h–18h, dias úteis')
+         : 'ainda sem concluída no período'}</div></div>
    </div>
    ${atrasadas.length?`
    <div class="ini-box atraso">
