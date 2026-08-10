@@ -4281,7 +4281,7 @@ let dashDe=''; let dashAte='';
 const DL_LISTA='da11a000-0000-4000-8000-000000000001';   /* 🗓️ Ações do Dia */
 const DL_STATUS='da11a000-0000-4000-8000-0000000000a1';  /* status "A fazer" da lista */
 const DL_RODIZIO=12;    /* quantas contas sem sinal entram por dia (47 contas ÷ 5 dias, com folga) */
-let DL={squad:'',dia:null,itens:[],ult:{},sel:'',aba:'reuniao',tick:null,dest:'',sem:0,carregou:false};
+let DL={squad:'',dia:null,itens:[],ult:{},sel:'',aba:'reuniao',tick:null,dest:'',sem:0,carregou:false,hDe:'',hAte:'',hSquad:'',hBusca:''};
 
 const dlHoje=()=>hojeISO();
 const dlFichasSquad=(sq)=>(DB.projetos||[]).filter(p=>String(p.squad||'')===String(sq)&&String(p.status||'')!=='churn');
@@ -4455,6 +4455,7 @@ function renderDaily(c){
       <span style="width:14px"></span>
       <button class="ftab${DL.aba==='reuniao'?' on':''}" onclick="dlAba('reuniao')">Reunião de hoje</button>
       <button class="ftab${DL.aba==='tempo'?' on':''}" onclick="dlAba('tempo')">Tempo das dailies</button>
+      <button class="ftab${DL.aba==='hist'?' on':''}" onclick="dlAba('hist')">Todas as dailies</button>
     </div>
     <div id="dlCorpo"></div>`;
   dlPintar(); dlTicar();
@@ -4479,8 +4480,9 @@ function dlMedia(){ const m=DL.medias&&DL.medias[DL.squad]; return m?('média: '
 
 function dlPintar(){
   const el=document.getElementById('dlCorpo'); if(!el) return;
-  el.innerHTML=DL.aba==='tempo'?dlTempoHTML():dlReuniaoHTML();
+  el.innerHTML=DL.aba==='tempo'?dlTempoHTML():DL.aba==='hist'?dlHistHTML():dlReuniaoHTML();
   if(DL.aba==='tempo') dlTempoCarregar();
+  if(DL.aba==='hist') dlHistCarregar();
 }
 function dlReuniaoHTML(){
   if(!DL.dia) return `<div class="empty">A daily de hoje ainda não foi aberta.<br><br>
@@ -4599,6 +4601,84 @@ function dlAtaHTML(acoes){
     </div></div>`;
 }
 /* ---------- relatório de tempo ---------- */
+/* ---------- TODAS AS DAILIES: o arquivo, com filtro ----------
+   A aba "Tempo" so mostra a semana corrente. Aqui fica o historico inteiro, filtravel,
+   e e daqui que se apaga uma reuniao lancada errado. */
+window.dlHistFiltro=()=>{ DL.hDe=(($('#dlhDe')||{}).value)||''; DL.hAte=(($('#dlhAte')||{}).value)||'';
+  DL.hSquad=(($('#dlhSq')||{}).value)||''; DL.hBusca=(($('#dlhQ')||{}).value)||''; dlHistCarregar(); };
+window.dlHistLimpar=()=>{ DL.hDe=DL.hAte=DL.hSquad=DL.hBusca=''; render('daily'); };
+window.dlHistPeriodo=(dias)=>{ DL.hAte=dlHoje(); DL.hDe=isoMais(-dias); render('daily'); };
+function dlHistHTML(){
+  const sqs=dlSquadsVisiveis();
+  return `<div class="dl-box">
+    <div class="toolbar" style="margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <input type="date" class="search" id="dlhDe" value="${esc(DL.hDe)}" onchange="dlHistFiltro()" title="De" style="width:150px">
+      <input type="date" class="search" id="dlhAte" value="${esc(DL.hAte)}" onchange="dlHistFiltro()" title="Até" style="width:150px">
+      <select class="search" id="dlhSq" onchange="dlHistFiltro()" style="width:150px">
+        <option value="">Todos os squads</option>
+        ${sqs.map(x=>`<option value="${esc(x)}"${DL.hSquad===String(x)?' selected':''}>Squad ${esc(x)}</option>`).join('')}
+      </select>
+      <input class="search" id="dlhQ" placeholder="Buscar cliente..." value="${esc(DL.hBusca)}" oninput="dlHistFiltro()" style="width:180px">
+      <button class="btn ghost small" onclick="dlHistPeriodo(7)">7 dias</button>
+      <button class="btn ghost small" onclick="dlHistPeriodo(30)">30 dias</button>
+      <button class="btn ghost small" onclick="dlHistLimpar()">Limpar</button>
+    </div>
+    <div id="dlHistBox"><div class="empty">Carregando...</div></div>
+  </div>`;
+}
+async function dlHistCarregar(){
+  const box=document.getElementById('dlHistBox'); if(!box) return;
+  let q=sb.from('dailies').select('*').order('data',{ascending:false});
+  if(DL.hDe) q=q.gte('data',DL.hDe);
+  if(DL.hAte) q=q.lte('data',DL.hAte);
+  if(DL.hSquad) q=q.eq('squad',DL.hSquad);
+  const r=await q;
+  if(r.error){ box.innerHTML='<div class="empty">Erro: '+esc(r.error.message)+'</div>'; return; }
+  let ds=(r.data||[]).filter(d=>dlSquadsVisiveis().indexOf(String(d.squad))>=0);
+  const ids=ds.map(d=>d.id);
+  /* itens e tarefas de cada reuniao, pra mostrar o peso do que sera apagado */
+  const [it,tf]=await Promise.all([
+    ids.length?sb.from('daily_itens').select('daily_id,ficha_id,conferido_conta').in('daily_id',ids):{data:[]},
+    ids.length?sb.from('tarefas').select('origem_daily').in('origem_daily',ids):{data:[]}]);
+  const porD={}; (it.data||[]).forEach(x=>{ (porD[x.daily_id]=porD[x.daily_id]||[]).push(x); });
+  const tarD={}; (tf.data||[]).forEach(x=>{ tarD[x.origem_daily]=(tarD[x.origem_daily]||0)+1; });
+  window.__dlHist={}; ds.forEach(d=>{ window.__dlHist[d.id]={itens:(porD[d.id]||[]).length,tarefas:tarD[d.id]||0,data:d.data,squad:d.squad}; });
+  const q2=DL.hBusca.trim().toLowerCase();
+  if(q2) ds=ds.filter(d=>(porD[d.id]||[]).some(x=>String(tkNomeFicha(x.ficha_id)||'').toLowerCase().indexOf(q2)>=0));
+  if(!ds.length){ box.innerHTML='<div class="empty">Nenhuma daily nesse recorte.</div>'; return; }
+  const podeApagar=(d)=>!!(currentUser&&(currentUser.role==='master'||souGerente()||String(d.criado_por||'')===String(currentUser.id)));
+  box.innerHTML=`<div class="hint" style="margin:0 0 10px">${ds.length} reunião(ões) no recorte.</div>
+   <div class="tablewrap"><table><thead><tr>
+     <th>Data</th><th>Squad</th><th>Duração</th><th>Contas conferidas</th><th>Tarefas geradas</th><th>Status</th><th style="width:44px"></th>
+   </tr></thead><tbody>${ds.map(d=>{
+     const inf=window.__dlHist[d.id], seg=dlDur(d);
+     const conf=(porD[d.id]||[]).filter(x=>x.conferido_conta).length;
+     return `<tr>
+       <td><strong>${esc(fmtDate(d.data))}</strong></td>
+       <td><span class="tag st">Squad ${esc(d.squad)}</span></td>
+       <td>${d.encerrada_em?(Math.floor(seg/60)+' min'):'<span class="hint" style="margin:0">em aberto</span>'}</td>
+       <td>${conf}/${inf.itens}</td>
+       <td>${inf.tarefas||'—'}</td>
+       <td>${d.encerrada_em?(d.encerrada_auto?'<span class="tag st">encerrada sozinha</span>':'<span class="tag ok">concluída</span>'):'<span class="tag churn">aberta</span>'}</td>
+       <td style="text-align:right">${podeApagar(d)?`<button class="iconbtn del" title="Excluir esta daily" onclick="dlExcluir('${d.id}')">&times;</button>`:''}</td>
+     </tr>`;}).join('')}</tbody></table></div>`;
+}
+/* Apagar reuniao lancada errado. Os itens vao junto (cascata); as tarefas que nasceram
+   dela FICAM — a reuniao foi um engano, mas o trabalho pode ja estar rodando. */
+window.dlExcluir=(id)=>{
+  const inf=(window.__dlHist||{})[id]; if(!inf) return;
+  modal('Excluir a daily de '+fmtDate(inf.data),`
+    <p class="hint" style="margin:0 0 12px">Squad ${esc(inf.squad)} · ${inf.itens} conta(s) na fila daquele dia.</p>
+    <p class="hint" style="margin:0 0 12px">Some o registro da reunião e o que foi conferido nela. Não dá para desfazer.</p>
+    ${inf.tarefas?`<p class="hint" style="margin:0 0 12px"><strong>As ${inf.tarefas} tarefa(s) criadas nessa daily continuam onde estão</strong> — só perdem o vínculo com a reunião.</p>`:''}
+    <div class="field"><label>Digite <strong>EXCLUIR</strong> para confirmar</label><input id="dlDelOk" placeholder="EXCLUIR" autocomplete="off"></div>`,
+    async ()=>{
+      if(($('#dlDelOk').value||'').trim().toUpperCase()!=='EXCLUIR'){ toast('Digite EXCLUIR para confirmar.'); return false; }
+      const {error}=await sb.from('dailies').delete().eq('id',id);
+      if(error){ toast('Erro: '+error.message); return false; }
+      if(DL.dia&&DL.dia.id===id){ DL.dia=null; DL.itens=[]; DL.carregou=false; }
+      toast('Daily excluída.'); dlHistCarregar(); return true; });
+};
 function dlTempoHTML(){
   return `<div id="dlTempoBox"><div class="empty">Carregando o histórico...</div></div>`;
 }
