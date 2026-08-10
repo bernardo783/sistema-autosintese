@@ -3722,9 +3722,12 @@ window.ncEnviar=async ()=>{
 function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
-  const be=document.getElementById('rlEspacos'); if(be) be.classList.toggle('active',!SP_MINI);
-  const bi=document.getElementById('rlInicio');
-  if(bi) bi.classList.toggle('active', currentView==='inicio');
+  /* Um aceso por vez: o realce diz ONDE VOCÊ ESTÁ, não que a árvore está aberta.
+     Antes o Espaços acendia só por estar aberta, e ficava aceso junto com o Início. */
+  const naCaixa=(TK.escopo==='minhas'&&currentView==='lista');
+  const noInicio=(currentView==='inicio');
+  const bi=document.getElementById('rlInicio'); if(bi) bi.classList.toggle('active',noInicio);
+  const be=document.getElementById('rlEspacos'); if(be) be.classList.toggle('active',!SP_MINI&&!noInicio&&!naCaixa);
   const mst=!!(currentUser&&currentUser.role==='master');
   /* contador da caixa de entrada + estado do atalho */
   const bx=document.getElementById('rlInbox'), bn=document.getElementById('spInboxN');
@@ -3923,6 +3926,7 @@ function renderInicio(c){
      ${andamento.slice(0,10).map(t=>item(t,'')).join('')}
    </div>`:''}
    <p class="hint" style="margin-top:14px">Clique numa demanda para abrir. Tudo que aparece aqui está atribuído a você.</p>`;
+  spDesenhar();   /* sem isto o realce do rail nao acompanha o clique em Inicio */
 }
 window.spAbrirClientes=()=>{
   const c=$('#content');
