@@ -3652,6 +3652,7 @@ function ncFormulario(c){
        <button class="btn secondary" onclick="ncLimpar()">Limpar</button>
      </div>
    </div>
+${(currentUser&&currentUser.role==='master')?`
    <h2 style="font-size:15px;margin:20px 0 8px">Últimas solicitações</h2>
    <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th style="text-align:right">Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead><tbody>${envs.map(t=>{
       const vv=t.valores||{}; const rec=vv[NC_C.rec]||''; const anx=String(vv[NC_C.anexo]||'');
@@ -3663,7 +3664,7 @@ function ncFormulario(c){
       <td style="text-align:right">${brl(vv[NC_C.val])}</td>
       <td>${fmtDate(vv[NC_C.venc]||'')||'—'}</td>
       <td>${lista.length?lista.map((p,i)=>`<button class="iconbtn" onclick="ncAbrirAnexo('${esc(p)}')" title="${esc(p.split('/').pop())}">${/^https?:/i.test(p)?'🔗':'📎'} ${lista.length>1?(i+1):'ver'}</button>`).join(' '):'<span style="color:var(--muted)">—</span>'}</td>
-    </tr>`;}).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
+    </tr>`;}).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`:''}`;
 }
 /* Atalho 💸 da barra lateral: mesmo canal de solicitação, já em Reembolso.
    (o roteador chamava renderReembolsos, que não existia — a tela quebrava sem renderizar nada) */
