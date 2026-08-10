@@ -256,14 +256,19 @@
   .sp-ic{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:900;color:#fff;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.35)}
   .tk-ic.emo{font-size:13.5px;opacity:1}
   /* ---------- WORKSPACE + NAVEGACAO (modelo ClickUp) ---------- */
-  .ws-head{display:flex;align-items:center;gap:9px;width:100%;background:transparent;border:1px solid transparent;
-    border-radius:8px;padding:7px 8px;margin-bottom:10px;color:var(--txt);font-size:13.5px;font-weight:700;text-align:left}
+  .ws-head{display:flex;align-items:center;gap:12px;width:100%;background:transparent;border:1px solid transparent;
+    border-radius:12px;padding:11px 10px;margin-bottom:14px;color:var(--txt);font-size:17px;font-weight:800;text-align:left;
+    letter-spacing:-.2px;transition:background .18s,border-color .18s}
   .ws-head:hover{background:var(--panel2);border-color:var(--line)}
-  .ws-av{width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;
-    background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line)}
-  .ws-av svg{width:15px;height:15px}
-  .ws-head .ws-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .ws-head .ws-cv{margin-left:auto;color:var(--muted);font-size:9px}
+  .ws-av{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;position:relative;
+    background:linear-gradient(145deg,#2a1a55,#160f2e);box-shadow:inset 0 0 0 1px rgba(168,85,247,.42),0 6px 20px rgba(168,85,247,.32);
+    transition:box-shadow .22s,transform .22s}
+  .ws-head:hover .ws-av{box-shadow:inset 0 0 0 1px rgba(168,85,247,.7),0 8px 28px rgba(168,85,247,.55);transform:translateY(-1px)}
+  .ws-av svg{width:23px;height:23px;filter:drop-shadow(0 0 7px rgba(168,85,247,.85))}
+  .ws-head .ws-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    background:linear-gradient(92deg,#fff 20%,#c9a6ff 90%);-webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;text-shadow:0 0 22px rgba(168,85,247,.28)}
+  .ws-head .ws-cv{margin-left:auto;color:var(--muted);font-size:10px;opacity:.65}
   .sp-busca{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
     color:var(--txt);font-size:12.5px;padding:7px 9px;margin-bottom:8px}
   .sp-busca:focus{outline:none;border-color:var(--brand2)}
@@ -317,7 +322,9 @@
   .crumb .sp{opacity:.45}
   #app.mini .ws-head .ws-nm,#app.mini .ws-head .ws-cv,#app.mini .sp-busca,#app.mini .sp-sec,
   #app.mini .sp-nav button span:not(.ic){display:none}
-  #app.mini .ws-head{justify-content:center;padding:6px 0;margin-bottom:6px}
+  #app.mini .ws-head{justify-content:center;padding:8px 0;margin-bottom:8px;gap:0}
+  #app.mini .ws-av{width:36px;height:36px;border-radius:11px}   /* cabe no trilho de 64px */
+  #app.mini .ws-av svg{width:20px;height:20px}
   #app.mini .sp-nav button{justify-content:center;padding:7px 0}
   /* ---------- FOTOS: do espaco e da pessoa ---------- */
   .sp-ic.ft{background:none!important;box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
