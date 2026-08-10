@@ -5045,7 +5045,8 @@ const CT_NEGOCIO=[
   ['vigencia','Vigência','12 (doze) meses'],
   ['valor_mensal','Valor mensal (R$)',''],
   ['data_inicio','Início da vigência',''],
-  ['data_vencimento','Vencimento das parcelas',''],
+  ['data_vencimento','Dia do vencimento (1 a 31)',''],
+  ['data_primeira_parcela','Vencimento da 1ª parcela',''],
   ['forma_pagamento','Forma de pagamento','Boleto Bancário ou PIX'],
   ['verba_minima','Verba mínima semanal de mídia (R$)','350,00']];
 
@@ -5158,9 +5159,15 @@ function ctResolver(dados){
   d.forma_parcelamento=c.parcelamento;
   const vm=ctNum(d.verba_minima);
   d.verba_minima='R$ '+ctMoeda(vm); d.verba_minima_extenso=ctExtenso(vm);
+  /* Garantia de retorno (§6 do Marketing): o prazo da clausula acompanha a vigencia
+     e o valor e sempre mensalidade x meses — nao existe valor fechado aqui. */
+  d.garantia_meses=String(c.meses||'');
+  d.garantia_meses_extenso=CT_U[c.meses]||String(c.meses||'');
+  d.valor_garantia='R$ '+ctMoeda(c.total);
   if(!d.data_termino) d.data_termino=ctBR(ctMaisMeses(d.data_inicio,c.meses));
-  ['rep_nascimento','data_inicio','data_vencimento','data_primeira_parcela'].forEach(k=>{ if(d[k]) d[k]=ctBR(d[k]); });
-  if(!d.data_vencimento) d.data_vencimento=d.data_inicio||'';
+  ['rep_nascimento','data_inicio','data_primeira_parcela'].forEach(k=>{ if(d[k]) d[k]=ctBR(d[k]); });
+  /* data_vencimento e o DIA do mes ("todo dia 10"), entao nao passa por ctBR nem herda a data de inicio */
+  d.data_vencimento=String(d.data_vencimento||'').replace(/\D/g,'').slice(0,2);
   return d;
 }
 
