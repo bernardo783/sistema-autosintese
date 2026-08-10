@@ -2402,7 +2402,7 @@ window.spNoMenu=(ev,tipo,id)=>{
   }
   it.push({sep:true});
   it.push({ic:'✏️',t:'Renomear',f:()=>spRenomear(tipo,id)});
-  it.push({ic:'🎨',t:'Cor e ícone',f:()=>spCorIcone(tipo,id)});
+  it.push({ic:'🎨',t:tipo==='espaco'?'Aparência — foto, cor e ícone':'Cor e ícone',f:()=>spCorIcone(tipo,id)});
   it.push({ic:'⧉',t:'Duplicar',f:()=>spDuplicar(tipo,id),so:m});
   it.push({sep:true,so:m&&!spProtegido(tipo,id)});
   it.push({ic:'🗑',t:'Excluir',dgr:true,f:()=>spExcluir(tipo,id),so:m&&!spProtegido(tipo,id)});
