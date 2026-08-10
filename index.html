@@ -34,6 +34,9 @@
   .page-head h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
   .hint,.desc{font-size:12.5px}
 
+  .lk-linha{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:9px;padding:8px 10px;margin-bottom:14px;font-size:12.5px;color:var(--muted)}
+  .lk-linha span{flex:1;min-width:0}
   /* ---------- NOVAS CONTAS: regras do canal ---------- */
   .nc-regras{max-width:920px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand2);
     border-radius:0 10px 10px 0;padding:14px 18px;margin-bottom:14px}
@@ -1016,9 +1019,64 @@ async function enterApp(){
   if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); } else { hide($('#navUsuarios')); hide($('#navFin')); }
   try{ await tkCarregar(); }catch(e){}
   spDesenhar();
-  if(TK.listas.some(l=>l.id===LC_ID)) spSelLista(LC_ID,true); else render('dash');
+  /* veio de um link? cai direto no destino em vez da tela padrão */
+  const foi=await lkIr();
+  if(!foi){ if(TK.listas.some(l=>l.id===LC_ID)) spSelLista(LC_ID,true); else render('dash'); }
   mtBoot();   /* Meta começa a carregar no login: quando você abrir Tráfego já está pronto */
 }
+
+/* ======================= LINKS DIRETOS =======================
+   Todo espaço, pasta, lista e tarefa tem endereço próprio. Cola o link no
+   WhatsApp e a pessoa cai exatamente ali, sem procurar na árvore.
+   Formato: #e/<id> espaço · #p/<id> pasta · #l/<id> lista · #t/<id> tarefa · #v/<tela> */
+const lkUrl=(tipo,id)=>location.origin+location.pathname+'#'+tipo+'/'+id;
+window.lkCopiar=async (tipo,id)=>{
+  const u=lkUrl(tipo,id);
+  try{ await navigator.clipboard.writeText(u); toast('Link copiado — é só colar pra pessoa.'); }
+  catch(_){ try{ prompt('Copie o link:',u); }catch(e){ toast(u); } }
+};
+/* a barra de endereço acompanha o que está aberto, então dá pra copiar direto de lá */
+let lkEuMudei=false;
+function lkMarcar(tipo,id){
+  if(!id) return;
+  const h='#'+tipo+'/'+id;
+  if(location.hash===h) return;
+  lkEuMudei=true;
+  try{ history.replaceState(null,'',h); }catch(_){}
+  setTimeout(()=>{ lkEuMudei=false; },0);
+}
+const lkOrdem=(a,b)=>(a.ordem||0)-(b.ordem||0);
+async function lkIr(hash){
+  const h=String(hash||location.hash||'').replace(/^#/,'');
+  if(!h.includes('/')) return false;
+  const barra=h.indexOf('/'), tipo=h.slice(0,barra), id=h.slice(barra+1);
+  if(!tipo||!id) return false;
+  if(!TK.listas.length){ try{ await tkCarregar(); }catch(_){} }
+  const sumiu=(o)=>{ toast(o+' não encontrado, ou você não tem acesso a ele.'); return false; };
+  if(tipo==='v'){ render(id); return true; }
+  if(tipo==='e'){
+    if(!TK.espacos.some(x=>x.id===id)) return sumiu('Espaço');
+    spExpandir(id);
+    const l=TK.listas.filter(x=>x.espaco_id===id).sort(lkOrdem)[0];
+    if(l) spSelLista(l.id);
+    return true; }
+  if(tipo==='p'){
+    const p=TK.pastas.find(x=>x.id===id); if(!p) return sumiu('Pasta');
+    TK.fechadas['e'+p.espaco_id]=false; TK.fechadas['p'+id]=false; spSalvarArvore(); spDesenhar();
+    const l=TK.listas.filter(x=>x.pasta_id===id).sort(lkOrdem)[0];
+    if(l) spSelLista(l.id);
+    return true; }
+  if(tipo==='l'){
+    if(!TK.listas.some(x=>x.id===id)) return sumiu('Lista');
+    spSelLista(id); return true; }
+  if(tipo==='t'){
+    const t=TK.tarefas.find(x=>x.id===id); if(!t) return sumiu('Tarefa');
+    spSelLista(t.lista_id);
+    setTimeout(()=>{ try{ tkAbrir(t.id); }catch(_){} },90);
+    return true; }
+  return false;
+}
+window.addEventListener('hashchange',()=>{ if(!lkEuMudei) lkIr(); });
 
 /* ======================= NAVEGAÇÃO ======================= */
 let currentView='dash';
@@ -2547,6 +2605,7 @@ window.spNoMenu=(ev,tipo,id)=>{
     it.push({ic:favTem(id)?'★':'☆',t:favTem(id)?'Tirar dos favoritos':'Adicionar aos favoritos',f:()=>favToggle(id)});
   }
   it.push({sep:true});
+  it.push({ic:'🔗',t:'Copiar link',f:()=>lkCopiar({espaco:'e',pasta:'p',lista:'l'}[tipo],id)});
   it.push({ic:'✏️',t:'Renomear',f:()=>spRenomear(tipo,id)});
   it.push({ic:'🎨',t:tipo==='espaco'?'Aparência — foto, cor e ícone':'Cor e ícone',f:()=>spCorIcone(tipo,id)});
   it.push({ic:'⧉',t:'Duplicar',f:()=>spDuplicar(tipo,id),so:m});
@@ -3517,7 +3576,7 @@ window.spSelLista=(id,semAbrir)=>{
   if(LFIN[id]){ render(LFIN[id]); return; }
   if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
   if(id===LC_ID&&!TK.visaoTocada) TK.visao='board';
-  currentView='lista'; tkDesenhar($('#content')); spDesenhar(); };
+  currentView='lista'; lkMarcar('l',id); tkDesenhar($('#content')); spDesenhar(); };
 window.spAbrirClientes=()=>{
   const c=$('#content');
   if(!TK.listas.length){ c.innerHTML='<div class="empty">Carregando...</div>';
@@ -3933,6 +3992,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
     return `<input type="${tp}" id="cp_${c.id}" value="${esc(v==null?'':String(v))}" placeholder="${c.tipo==='moeda'?'R$':''}">`; };
   modal(t?'Editar tarefa':'Nova tarefa',`
+    ${t?`<div class="lk-linha"><span>Link direto para esta tarefa</span>
+      <button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button></div>`:''}
     <div class="field"><label>Título</label><input id="tk_tit" value="${esc(it.titulo)}" placeholder="Ex: Subir criativos da semana"></div>
     <div class="row2">
       <div class="field"><label>Lista</label><select id="tk_lista">${TK.listas.map(l=>`<option value="${l.id}"${it.lista_id===l.id?' selected':''}>${esc(tkCaminho(l.id))}</option>`).join('')}</select></div>
