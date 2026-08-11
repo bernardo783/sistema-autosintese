@@ -672,9 +672,17 @@
   .tk-col{flex:0 0 282px;width:282px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 8px 8px;display:flex;flex-direction:column;max-height:calc(100vh - 205px);min-height:150px}
   .tk-col.hover{border-color:var(--brand2);background:rgba(167,139,250,.05)}
   .tk-colh{display:flex;align-items:center;gap:8px;margin:0 4px 10px;flex:none}
-  .tk-colh .tk-selo{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 10px;border-radius:7px;border:none!important}
-  .tk-colh .tk-selo::before{content:'';width:7px;height:7px;border-radius:3px;background:currentColor;flex:none}
-  .tk-colh .tk-n{margin-left:0;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:1px 8px;font-size:10.5px}
+  /* Cabecalho de coluna no padrao Trello: nome em maiuscula e o contador ao lado, sem
+     pilula colorida. A cor do status vira so um ponto — informa sem gritar. */
+  .tk-colh .tk-selo{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;
+    letter-spacing:.7px;text-transform:uppercase;padding:2px 2px;border-radius:0;
+    background:none!important;border:none!important}
+  .tk-colh .tk-selo::before{content:'';width:8px;height:8px;border-radius:999px;background:currentColor;flex:none}
+  .tk-colh .tk-n{margin-left:0;background:none;border:none;padding:0 2px;font-size:11.5px;
+    font-weight:700;color:var(--muted)}
+  /* a coluna respira mais, como no Trello */
+  .tk-col{padding:12px 10px 10px}
+  .tk-colh{margin:0 2px 12px}
   .tk-colh .tk-mais{margin-left:auto;background:transparent;border:none;color:var(--muted);font-size:16px;line-height:1;padding:2px 7px;border-radius:7px}
   .tk-colh .tk-mais:hover{background:var(--panel2);color:var(--txt)}
   .tk-colb{overflow-y:auto;min-height:36px;padding:0 2px;scrollbar-width:thin}
