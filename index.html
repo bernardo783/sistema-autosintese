@@ -563,6 +563,14 @@
   .tkm-rel{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
   .tkm-relh{font-weight:800;font-size:14px}
   .tkm-hist{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+  /* ---------- ACESSOS > TRÁFEGO PAGO ---------- */
+  .tf-l{display:flex;align-items:center;justify-content:space-between;gap:14px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+  .tf-n{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tf-v{font-size:10.5px;font-weight:800;color:var(--ok);background:rgba(63,207,142,.14);
+    border:1px solid rgba(63,207,142,.35);border-radius:999px;padding:1px 7px}
+  .tf-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;letter-spacing:.4px;
+    color:var(--txt);margin-top:3px;user-select:all}
   /* ---------- CHECKLIST DA TAREFA ---------- */
   .ck-l{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .ck-l input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2);flex:none}
@@ -6016,17 +6024,90 @@ function renderAcessos(c){
   /* Cofre da equipe é só do master. Membro vê as próprias senhas privadas e os links. */
   const mst=!!(currentUser&&currentUser.role==='master');
   if(!mst&&acTab==='senhas') acTab='links';
+  /* "links" era o unico valor alem de senhas; agora ha uma terceira aba */
   const nS=(DB.senhas||[]).length+((DB.senhasPriv||[]).length);
   const nL=(DB.links||[]).length;
   c.innerHTML=`
    <div class="fin-tabs">
      ${mst?`<button class="ftab ${acTab==='links'?'':'active'}" onclick="acGo('senhas')">🔑 Senhas${nS?' ('+nS+')':''}</button>`:''}
      <button class="ftab ${acTab==='links'?'active':''}" onclick="acGo('links')">🔗 Links${nL?' ('+nL+')':''}</button>
+     <button class="ftab ${acTab==='trafego'?'active':''}" onclick="acGo('trafego')">📣 Tráfego Pago</button>
    </div>
    <div id="acSub"></div>`;
   const sub=$('#acSub');
+  if(acTab==='trafego') return renderTrafegoIds(sub);
   return acTab==='links'?renderLinks(sub):renderSenhas(sub);
 }
+/* ---------- ACESSOS > TRÁFEGO PAGO ----------
+   ID de BM, pixel e conta de anuncio: coisa que se copia e cola o dia inteiro.
+   Fica em tabela propria (trafego_ids), nao no JSON de senhas/links, porque varios
+   gestores mexem ao mesmo tempo e aquele bloco e reescrito inteiro a cada salvamento. */
+const TF_TIPOS={bm:'Business Manager',pixel:'Pixel',conta:'Conta de anúncio',outro:'Outro'};
+let TF_LISTA=null;
+window.tfCopiar=async (id)=>{
+  const r=(TF_LISTA||[]).find(x=>x.id===id); if(!r) return;
+  try{ await navigator.clipboard.writeText(r.identificador||''); toast('Copiado: '+r.nome); }
+  catch(e){ const t=document.createElement('textarea'); t.value=r.identificador||'';
+    document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('Copiado.'); }
+};
+async function renderTrafegoIds(c){
+  c.innerHTML='<div class="empty">Carregando...</div>';
+  const podeEditar=!!(currentUser&&(currentUser.role==='master'||currentUser.gerente));
+  const {data,error}=await sb.from('trafego_ids').select('*').order('ordem').order('nome');
+  if(error){ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(error.message)+'</div>'; return; }
+  TF_LISTA=data||[];
+  const grupos={};
+  TF_LISTA.forEach(r=>{ (grupos[r.tipo]=grupos[r.tipo]||[]).push(r); });
+  const linha=(r)=>`<div class="tf-l">
+      <div style="min-width:0">
+        <div class="tf-n">${esc(r.nome)}${r.verificada?'<span class="tf-v" title="Business Manager verificada">✔ verificada</span>':''}</div>
+        <div class="tf-id">${esc(r.identificador)}</div>
+        ${r.obs?`<div class="hint" style="margin:3px 0 0">${esc(r.obs)}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;flex:none">
+        <button class="btn secondary small" onclick="tfCopiar('${r.id}')" title="Copiar o identificador">Copiar</button>
+        ${podeEditar?`<button class="iconbtn" onclick="tfEditar('${r.id}')" title="Editar">✎</button>`:''}
+      </div>
+    </div>`;
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Tráfego Pago</h2><div class="desc">Identificadores que a equipe usa no dia a dia — um clique copia</div></div>
+     ${podeEditar?`<div class="toolbar"><button class="btn small" onclick="tfEditar()">+ Identificador</button></div>`:''}
+   </div>
+   ${TF_LISTA.length?Object.keys(TF_TIPOS).filter(k=>grupos[k]).map(k=>
+     `<div class="k" style="margin:14px 0 8px">${esc(TF_TIPOS[k])}</div>${grupos[k].map(linha).join('')}`).join('')
+    :'<div class="empty">Nada cadastrado ainda.</div>'}
+   <p class="hint">O identificador sozinho não dá acesso a nada — quem for usar precisa já ter permissão dentro do Meta. Senha de verdade continua no cofre, na aba Senhas.</p>`;
+}
+window.tfEditar=(id)=>{
+  const r=id?(TF_LISTA||[]).find(x=>x.id===id):null;
+  const it=r||{nome:'',identificador:'',tipo:'bm',verificada:false,obs:''};
+  modal(r?'Editar identificador':'Novo identificador',`
+    <div class="field"><label>Nome</label><input id="tf_nome" value="${esc(it.nome)}" placeholder="Ex: Matriz - Síntese"></div>
+    <div class="field"><label>Identificador</label><input id="tf_id" value="${esc(it.identificador)}" placeholder="só os números"></div>
+    <div class="row2">
+      <div class="field"><label>Tipo</label><select id="tf_tipo">${Object.keys(TF_TIPOS).map(k=>`<option value="${k}"${it.tipo===k?' selected':''}>${TF_TIPOS[k]}</option>`).join('')}</select></div>
+      <div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:8px;font-weight:500">
+        <input type="checkbox" id="tf_ver" style="width:auto" ${it.verificada?'checked':''}> Verificada</label></div>
+    </div>
+    <div class="field"><label>Observação</label><input id="tf_obs" value="${esc(it.obs||'')}" placeholder="opcional"></div>
+    ${r?`<button class="btn ghost small" type="button" onclick="tfExcluir('${r.id}')">Excluir</button>`:''}`,
+    async ()=>{
+      const v={nome:$('#tf_nome').value.trim(),identificador:$('#tf_id').value.trim(),
+        tipo:$('#tf_tipo').value,verificada:$('#tf_ver').checked,obs:$('#tf_obs').value.trim()||null};
+      if(!v.nome||!v.identificador){ toast('Informe o nome e o identificador.'); return false; }
+      const {error}=r?await sb.from('trafego_ids').update(v).eq('id',r.id)
+                     :await sb.from('trafego_ids').insert(Object.assign(v,{criado_por:(currentUser||{}).id||null}));
+      if(error){ toast('Erro: '+error.message); return false; }
+      renderTrafegoIds($('#acSub')); toast('Salvo.'); return true; });
+};
+window.tfExcluir=async (id)=>{
+  if(!confirm('Excluir este identificador?')) return;
+  const {error}=await sb.from('trafego_ids').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const ov=document.querySelector('.overlay'); if(ov) ov.remove();
+  renderTrafegoIds($('#acSub')); toast('Excluído.');
+};
 function renderSenhas(c){
   c.innerHTML=`
    <div class="page-head">
