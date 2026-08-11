@@ -112,6 +112,11 @@
   .rp-box{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
   .rp-add{width:26px;height:26px;border-radius:7px;border:1.5px dashed var(--line);background:transparent;color:var(--muted);display:grid;place-items:center}
   .rp-add:hover{border-color:var(--brand2);color:var(--txt);border-style:solid}
+  .uf-av{width:30px;height:30px;border-radius:50%;overflow:hidden;display:inline-grid;place-items:center;
+    background:var(--panel2);color:var(--muted);font-weight:800;font-size:11px;cursor:pointer;
+    border:1.5px dashed var(--line);flex:none}
+  .uf-av img{width:100%;height:100%;object-fit:cover}
+  .uf-av:hover{border-color:var(--brand2);border-style:solid}
   .rp-chip{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--line);
     color:var(--muted);border-radius:999px;padding:3px 10px 3px 3px;font-size:12px;font-weight:600;font-family:inherit}
   .rp-chip:hover{border-color:var(--brand2);color:var(--txt)}
@@ -3277,6 +3282,12 @@ window.meuPerfil=()=>{
         <button class="btn ghost small" type="button" style="margin-top:8px" onclick="mfPick('')">Remover foto</button>
       </div>
     </div>
+    <div class="field"><label>Nome</label>
+      <input id="pf_nome" value="${esc(currentUser.nome||'')}" placeholder="Como o time te vê" maxlength="60">
+      <p class="hint" style="margin:5px 0 0">Só o nome de exibição — seu login continua o mesmo.</p></div>
+    <div class="field"><label>Email de login</label>
+      <input type="email" id="pf_mail" value="${esc((SESSION&&SESSION.user&&SESSION.user.email)||'')}" autocomplete="username">
+      <p class="hint" style="margin:5px 0 0">Trocar o email muda o seu login — chega uma confirmação no email novo.</p></div>
     <div class="field"><label>Cargo</label>
       <input id="pf_cargo" value="${esc(currentUser.cargo||'')}" placeholder="Ex: Gestor de Tráfego" maxlength="60"></div>
     <div class="field"><label>Telefone</label>
@@ -3293,13 +3304,22 @@ window.meuPerfil=()=>{
       const dados={ p_foto:window.__mfFoto||null,
         p_cargo:$('#pf_cargo').value.trim()||null,
         p_telefone:$('#pf_tel').value.trim()||null,
-        p_mostrar_email:$('#pf_vm').checked, p_mostrar_telefone:$('#pf_vt').checked };
+        p_mostrar_email:$('#pf_vm').checked, p_mostrar_telefone:$('#pf_vt').checked,
+        p_nome:$('#pf_nome').value.trim()||null };
       const {error}=await sb.rpc('salvar_meu_perfil',dados);
       if(error){ toast('Erro: '+error.message); return false; }
+      /* email de login: muda no Auth, com confirmação no email novo (o nome NÃO mexe no login) */
+      const mailNovo=$('#pf_mail').value.trim(), mailAtual=(SESSION&&SESSION.user&&SESSION.user.email)||'';
+      if(mailNovo&&mailNovo!==mailAtual){
+        const r=await sb.auth.updateUser({email:mailNovo});
+        if(r.error){ toast('Perfil salvo, mas o email não mudou: '+r.error.message); }
+        else toast('Confirma no email novo pra trocar o login.');
+      }
       Object.assign(currentUser,{foto:dados.p_foto,cargo:dados.p_cargo,telefone:dados.p_telefone,
-        mostrar_email:dados.p_mostrar_email,mostrar_telefone:dados.p_mostrar_telefone});
+        mostrar_email:dados.p_mostrar_email,mostrar_telefone:dados.p_mostrar_telefone,
+        nome:dados.p_nome||currentUser.nome});
       const u=TK.equipe.find(x=>x.id===currentUser.id);
-      if(u) Object.assign(u,{foto:dados.p_foto,cargo:dados.p_cargo,
+      if(u) Object.assign(u,{foto:dados.p_foto,cargo:dados.p_cargo,nome:dados.p_nome||u.nome,
         email:dados.p_mostrar_email?(SESSION&&SESSION.user?SESSION.user.email:null):null,
         telefone:dados.p_mostrar_telefone?dados.p_telefone:null});
       pintarWhoami(); spDesenhar(); if(currentView==='lista') tkDesenhar($('#content'));
@@ -7492,6 +7512,16 @@ async function eqCall(acao,extra){
   }catch(e){ return {ok:false,erro:String((e&&e.message)||e)}; }
 }
 const eqPw={};
+/* master atribui a foto de qualquer usuário direto na tabela (pedido do Gabriel 10/08) */
+window.ufTrocar=(id)=>{ const f=document.createElement('input'); f.type='file'; f.accept='image/*';
+  f.onchange=(e)=>fotoDoArquivo(e.target.files[0],192,async (d)=>{
+    const {error}=await sb.from('perfis').update({foto:d||null}).eq('id',id);
+    if(error){ toast('Erro: '+error.message); return; }
+    const p=(PERFIS||[]).find(x=>String(x.id)===String(id)); if(p) p.foto=d;
+    const u=(TK.equipe||[]).find(x=>String(x.id)===String(id)); if(u) u.foto=d;
+    if(currentUser&&String(currentUser.id)===String(id)) currentUser.foto=d;
+    pintarWhoami(); render('usuarios'); toast('Foto atualizada.');
+  }); f.click(); };
 window.geraSenha=()=>{ const a='abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<12;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; };
 /* A coluna Squads era "01" e "02" soltos: numero sem contexto, e o estado mais
    importante — quem nao tem recorte e ve TUDO — aparecia como um cinza discreto,
@@ -7523,7 +7553,7 @@ function drawUsuarios(c){
    </div>
    <div class="tablewrap"><table><thead><tr><th>Nome</th><th>E-mail (login)</th><th>Senha</th><th>Função</th><th>Squads</th><th>Criado em</th><th></th></tr></thead>
    <tbody>${PERFIS.map(u=>`<tr>
-     <td><strong>${esc(u.nome)}</strong>${u.id===currentUser.id?' <span class="tag st">você</span>':''}</td>
+     <td><span style="display:inline-flex;align-items:center;gap:9px"><span class="uf-av" title="Trocar a foto de ${esc(u.nome)}" onclick="ufTrocar('${u.id}')">${u.foto?`<img src="${esc(u.foto)}" alt="">`:esc(inicial(u.nome))}</span><strong>${esc(u.nome)}</strong></span>${u.id===currentUser.id?' <span class="tag st">você</span>':''}</td>
      <td>${esc(u.email)||'<span style="color:var(--muted)">—</span>'}</td>
      <td><div class="pw-cell"><span class="pw-dots" id="up_${u.id}">${u.temSenha?'••••••••':'<span style="color:var(--muted)">não guardada</span>'}</span>
        ${u.temSenha?`<button class="iconbtn" onclick="toggleUserPw('${u.id}')">👁</button><button class="iconbtn" onclick="copyUserPw('${u.id}')">copiar</button>`:''}</div></td>
