@@ -4897,6 +4897,9 @@ window.tkPuxaCliente=(forcar)=>{
   return mexeu;
 };
 /* O que falta preencher antes de salvar */
+/* Campos do próprio sistema que a lista exige (listas.exige). Diferente de
+   campos_lista.obrigatorio, que vale para as colunas criadas na lista. */
+const exigeDaLista=(lid)=>{ const l=(TK.listas||[]).find(x=>x.id===lid); return (l&&Array.isArray(l.exige))?l.exige:[]; };
 function cpFaltando(lid){
   return (TK.campos||[]).filter(c=>c.lista_id===lid&&c.obrigatorio).filter(c=>{
     const el=document.getElementById('cp_'+c.id); if(!el) return false;
@@ -5153,7 +5156,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         ${sts.length?`<select id="tk_stid"><option value="">Sem status</option>${sts.map(s=>`<option value="${s.id}"${it.status_id===s.id?' selected':''}>${esc(s.nome)}</option>`).join('')}</select>`
                     :`<select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`}
       </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.pessoa} Responsáveis</span><span class="tk-pv">
+      <div class="tk-p"><span class="tk-pl">${SVG_P.pessoa} Responsáveis${exigeDaLista(lid).indexOf('responsavel')>=0?'<span class="cp-obr">obrigatório</span>':''}</span><span class="tk-pv">
         <input type="hidden" id="tk_resps" value="${esc(respDe(it).join(','))}">
         <span class="rp-box" id="tk_respbox">${tkRespChips(respDe(it))}</span>
       </span></div>
@@ -5171,7 +5174,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <div class="tk-p"><span class="tk-pl">${SVG_P.tag} Etiquetas</span><span class="tk-pv">
         <input id="tk_tags" value="${esc((it.tags||[]).join(', '))}" placeholder="separadas por vírgula">
       </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.cliente} Cliente</span><span class="tk-pv">
+      <div class="tk-p"><span class="tk-pl">${SVG_P.cliente} Cliente${exigeDaLista(lid).indexOf('cliente')>=0?'<span class="cp-obr">obrigatório</span>':''}</span><span class="tk-pv">
         ${selFicha('tk_ficha',it.ficha_id||'',"tkPuxaCliente()")}
       </span></div>
       <div class="tk-p"><span class="tk-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</span><span class="tk-pv">
@@ -5232,6 +5235,14 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       if(!v.titulo){ toast('Informe o título.'); return false; }
       v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
       if(exigeSquad(v.lista_id)&&!v.squad){ toast('Esta lista exige o squad — escolha um.'); return false; }
+      const exig=exigeDaLista(v.lista_id);
+      if(exig.indexOf('cliente')>=0&&!v.ficha_id){ toast('Esta lista exige o cliente.'); const e0=$('#tk_ficha'); if(e0) e0.focus(); return false; }
+      if(exig.indexOf('responsavel')>=0&&!(v.responsaveis||[]).length){ toast('Esta lista exige ao menos um responsável.'); return false; }
+      if(exig.indexOf('entrega')>=0){
+        const ce=(TK.campos||[]).find(c=>c.lista_id===v.lista_id&&c.nome==='Entrega');
+        const ve=ce?String((($('#cp_'+ce.id)||{}).value)||'').trim():'';
+        if(!ve){ toast('Esta lista exige a data de entrega.'); const e1=ce?$('#cp_'+ce.id):null; if(e1) e1.focus(); return false; }
+      }
       const faltam=cpFaltando(v.lista_id);
       if(faltam.length){ toast(faltam.length===1?('Falta preencher: '+faltam[0].nome+'.'):('Faltam '+faltam.length+' campos: '+faltam.map(x=>x.nome).join(', ')+'.'));
         const e0=$('#cp_'+faltam[0].id); if(e0) e0.focus(); return false; }
