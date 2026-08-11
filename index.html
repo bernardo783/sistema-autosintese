@@ -588,6 +588,9 @@
     border:1px solid rgba(63,207,142,.35);border-radius:999px;padding:1px 7px}
   .tf-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;letter-spacing:.4px;
     color:var(--txt);margin-top:3px;user-select:all}
+  .tk-addcol{flex:0 0 250px;width:250px;align-self:flex-start;background:var(--panel);border:1px dashed var(--line);
+    border-radius:14px;padding:14px 12px;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;text-align:left}
+  .tk-addcol:hover{background:var(--panel2);color:var(--txt);border-color:var(--brand2)}
   /* ---------- CHECKLIST DA TAREFA ---------- */
   .ck-l{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .ck-l input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2);flex:none}
@@ -3778,8 +3781,41 @@ function tkViewBoard(){
       <div class="tk-colh"><span class="tk-selo" style="color:${esc(c.cor)};background:${esc(c.cor)}1f">${esc(c.rot)}</span><span class="tk-n">${c.its.length}</span>${lc?'':`<button class="tk-mais" title="Nova tarefa nesta coluna" onclick="tkAbrirSt('${esc(c.key)}')">+</button>`}</div>
       <div class="tk-colb">${c.its.map(tkCard).join('')||'<div class="tk-vazio">arraste uma tarefa para cá</div>'}</div>
       ${lc?'':`<button class="tk-addcard" onclick="tkAddInline(this,'${esc(c.key)}')">+ ${TK.listaSel===LISTA_EDICAO?'Adicionar Vídeo':'Nova tarefa'}</button>`}
-    </div>`).join('')}</div>`;
+    </div>`).join('')}
+    ${(TK.escopo==='lista'&&!lc&&estruturaEditavel(TK.listaSel))?`<button class="tk-addcol" onclick="tkNovaColuna()">+ Adicionar outra lista</button>`:''}
+    </div>`;
 }
+/* "+ Adicionar outra lista" no fim do quadro, como no Trello: cria um status novo na
+   lista sem precisar abrir o menu de configuracao. Respeita a trava de estrutura. */
+window.tkNovaColuna=()=>{
+  const lid=TK.listaSel; if(!lid) return;
+  if(!estruturaEditavel(lid)){ toast('Esta lista tem colunas fixas — só master e gerente podem mudar.'); return; }
+  const CORES=['#8b95a5','#2f7cf6','#a855f7','#e6b13f','#38bdf8','#3ec46d','#ef5b6b','#22b8a6'];
+  const jah=tkStatusDe(lid);
+  modal('Nova coluna',`
+    <div class="field"><label>Nome da coluna</label><input id="nc_nome" placeholder="Ex: EM REVISÃO" autocomplete="off"></div>
+    <div class="field"><label>Cor</label><div class="cor-g" id="nc_cores">
+      ${CORES.map((c,i)=>`<button type="button" class="${i===0?'on':''}" style="background:${c}" onclick="ncPickCor(this,'${c}')"></button>`).join('')}</div>
+      <input type="hidden" id="nc_cor" value="${CORES[0]}"></div>
+    <div class="field"><label>Onde ela entra no fluxo</label>
+      <select id="nc_grupo">
+        <option value="nao_iniciado">Começo — ainda não iniciado</option>
+        <option value="ativo" selected>Meio — em andamento</option>
+        <option value="feito">Fim — concluído</option>
+      </select></div>
+    <p class="hint">A coluna vale só para esta lista. Tarefa não é apagada quando você mexe nas colunas.</p>`,
+    async ()=>{
+      const nome=$('#nc_nome').value.trim();
+      if(!nome){ toast('Informe o nome da coluna.'); return false; }
+      if(jah.some(x=>String(x.nome||'').toLowerCase()===nome.toLowerCase())){ toast('Já existe uma coluna com esse nome.'); return false; }
+      const {data,error}=await sb.from('status_lista').insert({lista_id:lid,nome:nome,
+        cor:$('#nc_cor').value,grupo:$('#nc_grupo').value,ordem:jah.length}).select().maybeSingle();
+      if(error){ toast('Erro: '+error.message); return false; }
+      if(data) TK.status.push(data);
+      tkDesenhar($('#content')); toast('Coluna criada.'); return true; });
+};
+window.ncPickCor=(b,c)=>{ $('#nc_cor').value=c;
+  document.querySelectorAll('#nc_cores button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
 /* Edição de Vídeo: todo vídeo novo nasce com o Fluxo de Edição (checklist padrão, vídeo do Gabriel 10/08) */
 const CK_EDICAO=['Baixar material bruto do Drive','Consultar preferências do cliente no Guia','Editar vídeo conforme orientações','Aplicar legenda no estilo do cliente','Inserir logo atualizada','Adicionar narração (se aplicável)','Subir material editado no Drive','Preencher o link do material editado','Mover para Revisão e aguardar feedback'];
 /* criar digitando direto na coluna, sem modal (Enter cria, Esc cancela) */
