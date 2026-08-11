@@ -979,14 +979,7 @@
     .bt-barra i{animation:none;width:100%}
     .bt-p{display:none}
   }
-  /* Tela de entrada: fundo escuro liso com um respiro de cor no topo e nada de caixa.
-     Antes eram dois borrões roxos + card de vidro + brilho na marca — efeito demais
-     brigando com a marca. Agora sobra o que importa: marca, dois campos e o botão. */
-  #login{position:relative;overflow:hidden;background:var(--bg)}
-  #login::before{content:'';position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(620px 300px at 50% -8%,rgba(123,104,238,.16),transparent 70%)}
-  .login-card{position:relative;z-index:1;max-width:340px;background:transparent;
-    border:none;box-shadow:none;padding:0}
+  /* Tela de entrada: estilo definido no bloco "LOGIN — spotlight premium", lá em cima. */
   .sidebar{background:var(--panel);box-shadow:none}
   .sidebar .logo{padding:2px 6px 14px;margin-bottom:18px;border-bottom:1px solid rgba(168,85,247,.18)}
   .sidebar .logo .mark{filter:drop-shadow(0 0 10px rgba(168,85,247,.55))}
@@ -1062,13 +1055,13 @@
 <div id="login">
   <div class="login-card">
     <div class="logo" style="flex-direction:column;align-items:center;text-align:center;gap:12px;margin-bottom:26px">
-      <div class="mark" style="width:56px;height:56px"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></div>
+      <div class="mark"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></div>
       <div class="wordmark"><span class="wm">AUTO<span class="thin">SÍNTESE</span></span></div>
     </div>
 
     <div id="loginView" class="hidden">
-      <h2>Entrar</h2>
-      <p class="sub">Acesse com seu email e senha.</p>
+      <h2>Acesse o sistema</h2>
+      <p class="sub">Entre com as credenciais da sua conta interna.</p>
       <div class="field"><label>Email</label><input type="email" id="loginUser" placeholder="voce@autosintese.com.br" autocomplete="username"></div>
       <div class="field"><label>Senha</label><input type="password" id="loginPw" placeholder="senha" autocomplete="current-password"></div>
       <button class="btn" id="btnLogin">Entrar</button>
