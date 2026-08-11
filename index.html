@@ -1033,10 +1033,22 @@
       <div class="field"><label>Senha</label><input type="password" id="loginPw" placeholder="senha" autocomplete="current-password"></div>
       <button class="btn" id="btnLogin">Entrar</button>
       <div class="err" id="loginErr"></div>
-      <p class="hint" style="text-align:center;margin-top:16px;font-size:13px">O acesso é criado por um usuário <strong>master</strong>, na aba Usuários.<br>Esqueceu a senha? Peça a um master para redefinir.</p>
+      <p class="hint" style="text-align:center;margin-top:16px;font-size:13px"><a href="#" id="goRec" class="link">Esqueci minha senha</a></p>
       <p class="hint" style="text-align:center;opacity:.55;margin-top:8px">versão 4.0 · autosintese.app.br</p>
     </div>
 
+    <div id="recView" class="hidden">
+      <h2>Redefinir senha</h2>
+      <p class="sub">Enviamos um código por SMS para o seu telefone cadastrado.</p>
+      <div class="field" id="rec_p1"><label>Telefone (com DDD)</label><input type="tel" id="recTel" placeholder="17 99999-9999" autocomplete="tel"></div>
+      <div id="rec_p2" class="hidden">
+        <div class="field"><label>Código recebido por SMS</label><input id="recCod" inputmode="numeric" placeholder="000000"></div>
+        <div class="field"><label>Nova senha</label><input type="password" id="recPw" placeholder="mínimo 6 caracteres"></div>
+      </div>
+      <div class="err" id="recErr"></div>
+      <button class="btn" id="btnRec">Enviar código</button>
+      <p class="hint" style="text-align:center;margin-top:14px"><a href="#" id="recVoltar" class="link">← Voltar para o login</a></p>
+    </div>
     <div id="signupView" class="hidden">
       <h2>Criar conta</h2>
       <p class="sub">Use seu email. A conta fica aguardando aprovação de um usuário master.</p>
@@ -1259,6 +1271,36 @@ sb.auth.onAuthStateChange((event,session)=>{
 /* ---- criar conta (aprovada por um master) ---- */
 /* autocadastro desativado — contas são provisionadas por um master na aba Usuários */
 $('#goLogin').onclick=(e)=>{e.preventDefault(); hide($('#signupView')); show($('#loginView')); $('#loginUser').focus();};
+/* ---- redefinicao de senha por SMS (pedido do Gabriel 10/08). Exige provedor de SMS ativo no Supabase. ---- */
+const telE164=(v)=>{ const d=String(v||'').replace(/\D/g,''); if(d.length<10) return '';
+  return '+'+(d.startsWith('55')&&d.length>=12?d:'55'+d); };
+let REC_FASE=1;
+window.__recIr=()=>{ hide($('#loginView')); hide($('#signupView')); show($('#recView'));
+  REC_FASE=1; show($('#rec_p1')); hide($('#rec_p2')); $('#recErr').textContent=''; $('#btnRec').textContent='Enviar código'; $('#recTel').focus(); };
+$('#goRec').onclick=(e)=>{e.preventDefault(); __recIr();};
+$('#recVoltar').onclick=(e)=>{e.preventDefault(); hide($('#recView')); show($('#loginView'));};
+$('#btnRec').onclick=async ()=>{
+  const err=$('#recErr'); err.textContent='';
+  const tel=telE164($('#recTel').value);
+  if(!tel){ err.textContent='Informe o telefone com DDD.'; return; }
+  const btn=$('#btnRec'); btn.disabled=true;
+  try{
+    if(REC_FASE===1){
+      const {error}=await sb.auth.signInWithOtp({phone:tel,options:{shouldCreateUser:false}});
+      if(error){ err.textContent=/sms|provider|not enabled|disabled/i.test(error.message)?'Envio de SMS ainda não está ativo — fale com o Gabriel.':(/signup|user not found|not allowed/i.test(error.message)?'Esse telefone não está cadastrado no seu perfil.':'Erro: '+error.message); return; }
+      REC_FASE=2; hide($('#rec_p1')); show($('#rec_p2')); btn.textContent='Redefinir senha'; $('#recCod').focus();
+    } else {
+      const cod=$('#recCod').value.trim(), pw=$('#recPw').value;
+      if(!cod){ err.textContent='Digite o código do SMS.'; return; }
+      if(pw.length<6){ err.textContent='Senha muito curta (mínimo 6).'; return; }
+      const {error}=await sb.auth.verifyOtp({phone:tel,token:cod,type:'sms'});
+      if(error){ err.textContent='Código inválido ou vencido.'; return; }
+      const r2=await sb.auth.updateUser({password:pw});
+      if(r2.error){ err.textContent='Erro ao salvar a senha: '+r2.error.message; return; }
+      toast('Senha redefinida!'); await enterApp();
+    }
+  } finally { btn.disabled=false; }
+};
 $('#btnSignup').onclick=doSignup;
 $('#suPw2').addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});
 async function doSignup(){
