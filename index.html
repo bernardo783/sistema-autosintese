@@ -3649,6 +3649,9 @@ function tkCard(t){
     return `<div class="tk-card" ${drag} onclick="abrirCliente('${t.ficha_id}')">
       <div class="tk-tit">${esc(t.titulo)}</div>
       ${sub?`<div class="tk-sub">${sub}</div>`:''}
+      <span class="tk-qa" onclick="event.stopPropagation()">
+        <button class="tk-qab" title="Mudar o estágio do cliente" onclick="tkQaEstagio(event,'${t.id}')">⇄</button>
+      </span>
     </div>`;
   }
   /* bandeirinha de prioridade (ClickUp) + faixa colorida na borda esquerda */
@@ -3685,6 +3688,16 @@ window.dtCartao=(ev,tid,atual)=>{
   document.body.appendChild(tmp);
   tmp.addEventListener('change',()=>{ tkQaPrazo(tid,tmp.value); tmp.remove(); });
   dtAbrir(ev,'dtTmp');
+};
+/* Mudar o estágio sem arrastar. CHURN é a última das oito colunas e vive fora da
+   tela — arrastar até lá era impossível sem o board rolar junto. */
+window.tkQaEstagio=(ev,id)=>{
+  ev.stopPropagation();
+  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  const sts=tkStatusDe(t.lista_id);
+  ctxAbrir(ev,[{cab:t.titulo||'Cliente'}].concat(sts.map(s=>({
+    ic:s.id===t.status_id?'●':'○', t:s.nome, f:()=>tkSetStatus(id,s.id)
+  }))));
 };
 window.tkQaPrazo=(id,v)=>{ tkPatch(id,{prazo:v||null},v?'Prazo definido.':'Prazo removido.'); };
 /* bandeira abre menu escrito com as opções (pedido do Gabriel: ciclar ficava confuso) */
@@ -3756,7 +3769,7 @@ function tkViewBoard(){
     cols=['todo','fazendo','feito'].map(k=>({key:k,rot:TK_ST[k],cor:k==='feito'?'#3ec46d':k==='fazendo'?'#2f7cf6':'#8b95a5',drop:"tkSoltar(event,'"+k+"')",its:arr.filter(t=>t.status===k)}));
   }
   return `<div class="tk-cols">${cols.map(c=>`
-    <div class="tk-col" ondragover="event.preventDefault();this.classList.add('hover');tkOrdenaDrag(event,this)" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');${c.drop}">
+    <div class="tk-col" ondragover="event.preventDefault();this.classList.add('hover');tkOrdenaDrag(event,this);tkAutoRolar(event)" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');${c.drop}">
       <div class="tk-colh"><span class="tk-selo" style="color:${esc(c.cor)};background:${esc(c.cor)}1f">${esc(c.rot)}</span><span class="tk-n">${c.its.length}</span>${lc?'':`<button class="tk-mais" title="Nova tarefa nesta coluna" onclick="tkAbrirSt('${esc(c.key)}')">+</button>`}</div>
       <div class="tk-colb">${c.its.map(tkCard).join('')||'<div class="tk-vazio">arraste uma tarefa para cá</div>'}</div>
       ${lc?'':`<button class="tk-addcard" onclick="tkAddInline(this,'${esc(c.key)}')">+ ${TK.listaSel===LISTA_EDICAO?'Adicionar Vídeo':'Nova tarefa'}</button>`}
@@ -4861,6 +4874,15 @@ async function lcSincronizarFicha(id,sid){
   p.status=novo;
   try{ await saveDB(); }catch(e){}
 }
+/* Sem isto, coluna fora da area visivel e inalcancavel: o navegador nao rola a
+   pagina durante um arrasto. */
+window.tkAutoRolar=(ev)=>{
+  const box=ev.currentTarget&&ev.currentTarget.closest?ev.currentTarget.closest('.tk-cols'):null;
+  if(!box) return;
+  const r=box.getBoundingClientRect(), x=ev.clientX, margem=90;
+  if(x>r.right-margem) box.scrollLeft+=22;
+  else if(x<r.left+margem) box.scrollLeft-=22;
+};
 window.tkSoltarSt=async (ev,sid)=>{ ev.preventDefault(); const id=tkAlvo(ev); if(!id) return; await tkSetStatus(id,sid); };
 window.tkMenuGrupo=()=>{
   const cps=TK.campos.filter(k=>k.lista_id===TK.listaSel&&(k.tipo==='select'||k.tipo==='pessoa'));
