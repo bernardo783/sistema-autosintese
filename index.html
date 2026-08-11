@@ -3674,7 +3674,7 @@ function tkCard(t){
       <button class="tk-qab" title="Prioridade" onclick="tkQaPrio(event,'${t.id}')">${FLG}</button>
       <button class="tk-qab" title="Cliente / projeto" onclick="tkQaCli(event,'${t.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg></button>
     </span>`;
-  return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')">
+  return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')" oncontextmenu="tkCardMenu(event,'${t.id}')">
     <div class="tk-tit">${FLAG}${esc(t.titulo)}</div>
     <div class="tk-foot">
       ${t.prazo?`<span class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}">${CAL}${dtRel(t.prazo,hoje)}</span>`:''}
@@ -5401,6 +5401,26 @@ window.tkRestaurar=async (id)=>{
   t.arquivada_em=null; tkDesenhar($('#content')); spDesenhar(); toast('Restaurada.');
 };
 window.tkArqVista=(v)=>{ TK.arqVista=!!v; tkDesenhar($('#content')); };
+/* Botao direito no cartao: as acoes rapidas sem precisar abrir a tarefa — principalmente
+   apagar, que antes so existia dentro do modal. */
+window.tkCardMenu=(ev,id)=>{
+  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  const sts=tkStatusDe(t.lista_id);
+  const it=[{cab:t.titulo||'Tarefa'},
+    {ic:'✏️',t:'Abrir',f:()=>tkAbrir(id)},
+    {ic:'👤',t:'Atribuir a mim',f:()=>tkPatch(id,{responsavel_id:(currentUser||{}).id||null},'Atribuída a você.')}];
+  if(sts.length>1){
+    it.push({sep:true});
+    sts.slice(0,6).forEach(st=>{ if(st.id!==t.status_id)
+      it.push({ic:'●',t:'Mover para '+st.nome,f:()=>tkSetStatus(id,st.id)}); });
+  }
+  it.push({sep:true});
+  /* tkExcluir arquiva primeiro; so master apaga de vez o que ja esta arquivado.
+     O rotulo diz o que vai acontecer de verdade. */
+  const arq=arquivada(t);
+  it.push({ic:'🗑',t:arq?'Excluir de vez':'Arquivar tarefa',dgr:true,f:()=>tkExcluir(id)});
+  ctxAbrir(ev,it);
+};
 window.tkExcluir=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
   if(!arquivada(t)){ return tkArquivar(id); }   /* nunca apaga direto: arquiva primeiro */
