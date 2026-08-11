@@ -266,12 +266,8 @@
   tr.fin2-venc td{background:rgba(239,91,107,.07)}
 
   /* ---------- LOGIN — spotlight premium: card com borda em gradient, marca em squircle ---------- */
-  #login{position:relative;overflow:hidden;min-height:100vh;display:grid;grid-template-columns:1fr 1fr;background:#111113}
-  #login .login-card{grid-column:1;justify-self:center;align-self:center;margin:48px 24px}
-  .lg-dir{position:relative;overflow:hidden;background:#1b1030 url('totens.jpg') center/cover no-repeat}
-  .lg-dir::before{content:'';position:absolute;inset:0;pointer-events:none;
-    background:linear-gradient(180deg,rgba(15,8,32,.14) 0%,rgba(15,8,32,0) 30%,rgba(13,7,28,.42) 100%)}
-  @media(max-width:960px){#login{grid-template-columns:1fr}.lg-dir{display:none}}
+  #login{position:relative;overflow:hidden;min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:48px 24px;background:#111113}
   #login::before{content:'';position:absolute;inset:0;pointer-events:none;
     background:radial-gradient(640px 480px at 50% 36%,rgba(124,58,237,.21),rgba(124,58,237,.055) 48%,transparent 72%),
       radial-gradient(300px 220px at 50% 30%,rgba(168,85,247,.14),transparent 70%),
@@ -1124,9 +1120,6 @@
       <button class="btn" id="btnSignup">Criar conta</button>
       <div class="err" id="suErr"></div>
       <p class="hint" style="text-align:center"><a href="#" id="goLogin" class="link">← Voltar para o login</a></p>
-    </div>
-  </div>
-  <div class="lg-dir" aria-hidden="true">
     </div>
   </div>
 </div>
