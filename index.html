@@ -576,6 +576,12 @@
   .tk-addcol{flex:0 0 250px;width:250px;align-self:flex-start;background:var(--panel);border:1px dashed var(--line);
     border-radius:14px;padding:14px 12px;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;text-align:left}
   .tk-addcol:hover{background:var(--panel2);color:var(--txt);border-color:var(--brand2)}
+  /* ---------- CONFIRMAÇÃO DO SISTEMA ---------- */
+  .cf-m{max-width:430px}
+  .cf-m .mbody{padding-top:22px}
+  .cf-t{font-size:16.5px;font-weight:800;line-height:1.35;letter-spacing:-.01em}
+  .cf-x{color:var(--muted);font-size:13.5px;line-height:1.6;margin-top:9px}
+  .cf-m .mfoot{gap:8px}
   /* ---------- CHECKLIST DA TAREFA ---------- */
   .ck-l{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .ck-l input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2);flex:none}
@@ -6920,7 +6926,10 @@ window.rcStatusCli=async (cliId,novo)=>{
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
     DB.financeiro.push({id:'rcs_'+r.id,data:(r.venc||vencOf(comp,c.diaVenc)),comp:comp,pagoEm:r.sinalEm,tipo:'receita',descricao:'Sinal: '+r.nome,categoria:'Mensalidade Clientes',valor:sv});
   } else if(novo==='churn'){
-    if(!confirm('Marcar '+c.nome+' como CHURN em '+fmtComp(comp)+'?\n\nO valor deste mês entra como receita perdida e o cliente para de gerar cobrança a partir do mês seguinte.')){ render('recebimentos'); return; }
+    const okChurn=await confirmar('Marcar '+c.nome+' como churn em '+fmtComp(comp)+'?',
+      'O valor deste mês entra como receita perdida, e o cliente para de gerar cobrança a partir do mês seguinte.',
+      {sim:'Sim, marcar churn',nao:'Não',perigo:true});
+    if(!okChurn){ render('recebimentos'); return; }
     r.status='churn'; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.churnEm=hojeISO();
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
     c.churnComp=comp; c.fim=comp;
@@ -8027,6 +8036,33 @@ window.removeUser=async (id)=>{
 };
 
 /* ======================= MODAL / AÇÕES ======================= */
+/* Confirmacao do sistema, no meio da tela, com Sim e Nao — no lugar do confirm() do
+   navegador, que aparece colado no topo, nao da pra estilizar e assusta em acao de dinheiro.
+   Devolve Promise<boolean>: use com await. Enter confirma, Esc e clique fora cancelam. */
+function confirmar(titulo, texto, op){
+  op=op||{};
+  return new Promise((ok)=>{
+    const o=document.createElement('div'); o.className='overlay';
+    o.innerHTML=`<div class="modal cf-m">
+      <div class="mbody">
+        <div class="cf-t">${esc(titulo)}</div>
+        ${texto?`<p class="cf-x">${esc(texto)}</p>`:''}
+      </div>
+      <div class="mfoot">
+        <button class="btn secondary small cf-n">${esc(op.nao||'Não')}</button>
+        <button class="btn small cf-s${op.perigo?' danger':''}">${esc(op.sim||'Sim')}</button>
+      </div></div>`;
+    document.body.appendChild(o);
+    const fim=(v)=>{ document.removeEventListener('keydown',tecla); o.remove(); ok(v); };
+    const tecla=(e)=>{ if(e.key==='Escape'){ e.preventDefault(); fim(false); }
+                       else if(e.key==='Enter'){ e.preventDefault(); fim(true); } };
+    o.querySelector('.cf-n').onclick=()=>fim(false);
+    o.querySelector('.cf-s').onclick=()=>fim(true);
+    o.onclick=(e)=>{ if(e.target===o) fim(false); };
+    document.addEventListener('keydown',tecla);
+    setTimeout(()=>{ const b=o.querySelector('.cf-s'); if(b) b.focus(); },30);
+  });
+}
 function modal(title, bodyHTML, onSave){
   const o=document.createElement('div'); o.className='overlay';
   o.innerHTML=`<div class="modal"><div class="mhead"><h3>${title}</h3><button class="x">&times;</button></div>
