@@ -268,17 +268,14 @@
   /* ---------- LOGIN — spotlight premium: card com borda em gradient, marca em squircle ---------- */
   #login{position:relative;overflow:hidden;min-height:100vh;display:grid;grid-template-columns:1fr 1fr;background:#111113}
   #login .login-card{grid-column:1;justify-self:center;align-self:center;margin:48px 24px}
-  .lg-dir{position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;padding:52px 48px;
-    background:#1b1030 url('totens.jpg') center/cover no-repeat}
+  .lg-dir{position:relative;overflow:hidden;background:#1b1030 url('totens.jpg') center/cover no-repeat}
   .lg-dir::before{content:'';position:absolute;inset:0;pointer-events:none;
-    background:linear-gradient(180deg,rgba(15,8,32,.30) 0%,rgba(15,8,32,.02) 38%,rgba(13,7,28,.86) 100%)}
-  .lg-conteudo{position:relative;z-index:1;max-width:460px;text-align:center;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.55)}
-  .lg-conteudo h1{font-size:27px;font-weight:800;letter-spacing:-.02em;line-height:1.25;margin-bottom:12px}
-  .lg-conteudo p{font-size:14px;line-height:1.6;color:rgba(255,255,255,.85);margin-bottom:26px}
-  .lg-card{background:rgba(22,12,44,.55);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:18px 22px;text-align:left;
-    display:flex;flex-direction:column;gap:12px;backdrop-filter:blur(10px);text-shadow:none}
-  .lg-card div{display:flex;align-items:center;gap:11px;font-size:13.5px;font-weight:600}
-  .lg-card svg{width:16px;height:16px;flex:none;opacity:.9}
+    background:linear-gradient(180deg,rgba(15,8,32,.14) 0%,rgba(15,8,32,0) 30%,rgba(13,7,28,.42) 100%)}
+  .lg-marca{position:absolute;left:50%;top:41%;transform:translate(-50%,-50%);width:104px;height:104px;border-radius:30px;
+    display:grid;place-items:center;
+    background:radial-gradient(120px 80px at 50% -12%,rgba(255,255,255,.30),transparent 60%),linear-gradient(150deg,#9d5cf0 0%,#7c3aed 55%,#6023c9 100%);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.35),inset 0 -10px 18px rgba(24,6,58,.45),0 4px 10px rgba(0,0,0,.5),0 24px 60px -8px rgba(124,58,237,.75)}
+  .lg-marca svg{width:44px;height:auto;filter:drop-shadow(0 2px 3px rgba(20,4,48,.5))}
   @media(max-width:960px){#login{grid-template-columns:1fr}.lg-dir{display:none}}
   #login::before{content:'';position:absolute;inset:0;pointer-events:none;
     background:radial-gradient(640px 480px at 50% 36%,rgba(124,58,237,.21),rgba(124,58,237,.055) 48%,transparent 72%),
@@ -1135,15 +1132,8 @@
     </div>
   </div>
   <div class="lg-dir" aria-hidden="true">
-    <div class="lg-conteudo">
-      <h1>A agência inteira<br>num lugar só</h1>
-      <p>Clientes, tráfego pago, tarefas e financeiro — tudo conectado, do jeito que a AutoSíntese trabalha.</p>
-      <div class="lg-card">
-        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="M22 4L12 14.6l-3-3"/></svg>Kanban dos squads</div>
-        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="M22 4L12 14.6l-3-3"/></svg>Tráfego Pago em tempo real</div>
-        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="M22 4L12 14.6l-3-3"/></svg>Daily, relatórios e financeiro</div>
-      </div>
-      </div>
+    <div class="lg-marca"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#fff"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#fff"/></svg>
+    </div>
   </div>
 </div>
 
