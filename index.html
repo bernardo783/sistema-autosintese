@@ -7493,7 +7493,6 @@ function renderFolha(c,escMode){
      <div><h2>${escMode?'Escritórios':'Folha de Pagamento'}</h2><div class="desc">${escMode?'Aluguéis e contas fixas dos escritórios':'Pagamentos mensais de equipe e prestadores'}</div></div>
      <div class="toolbar">
        <input type="month" class="search" id="fpComp" value="${comp}" style="min-width:150px">
-       <button class="btn secondary small" onclick="gerarFolha()">⚡ Gerar ${escMode?'contas':'folha'} do mês</button>
        <button class="btn small" onclick="openFpModal()">+ Pagamento</button>
      </div>
    </div>
@@ -7514,7 +7513,7 @@ function renderFolha(c,escMode){
         <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button>
         <button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button>
       </div></td></tr>`;}).join('')}</tbody></table>
-   ${pays.length?'':'<div class="empty">Nenhum pagamento em '+fmtComp(comp)+'. Use “⚡ Gerar '+(escMode?'contas':'folha')+' do mês” (cria a partir dos pré-definidos) ou “+ Pagamento”.</div>'}</div>
+   ${pays.length?'':'<div class="empty">Nenhum pagamento em '+fmtComp(comp)+'. Use “+ Pagamento”, ou marque “Recebeu?” na tabela de fixos abaixo — o registro do mês nasce na hora.</div>'}</div>
 
    ${Object.keys(semGrupos).length?`
    <h2 style="font-size:16px;margin:26px 0 10px">Pagamentos semanais — ${fmtComp(comp)}</h2>
@@ -7542,46 +7541,12 @@ function renderFolha(c,escMode){
      </div></td></tr>`).join('')}</tbody></table>
    ${fixos.length?'':'<div class="empty">Nenhum fixo cadastrado. Cadastre aqui '+(escMode?'as contas de cada escritório (aluguel, internet, energia...)':'quem recebe todo mês (nome, valor e dia)')+'.</div>'}</div>
    <div style="margin-top:10px"><button class="btn secondary small" onclick="openFixoModal()">+ Fixo mensal</button></div>
-   <p class="hint" style="margin-top:12px">“Gerar ${escMode?'contas':'folha'} do mês” cria os pagamentos do mês selecionado a partir dos fixos ativos, sem duplicar. Ao marcar <strong>✓ Pagar</strong>, a despesa entra automaticamente no Financeiro (categoria ${escMode?'Escritórios':'Folha de Pagamento'}); “Desfazer” remove.</p>`;
+   <p class="hint" style="margin-top:12px">A lista já é a do mês escolhido no filtro — não precisa gerar nada. Ao marcar <strong>✓ Pagar</strong>, o registro do mês nasce e a despesa entra no Financeiro (categoria ${escMode?'Escritórios':'Folha de Pagamento'}); “Desfazer” remove os dois.</p>`;
   $('#fpComp').onchange=e=>{ folhaComp=e.target.value||compNow(); render(folhaView()); };
 }
-window.gerarFolha=async ()=>{
-  const comp=folhaComp;
-  const escMode=finTab==='escritorios';
-  const ativos=DB.folhaFixos.filter(f=>f.ativo&&!!f.esc===escMode);
-  if(!ativos.length){ toast('Cadastre os fixos mensais primeiro.'); return; }
-  const doComp=DB.folha.filter(p=>p.comp===comp&&p.fixoId);
-  const temMensal=new Set(doComp.map(p=>p.fixoId));
-  const temData=new Set(doComp.map(p=>p.fixoId+'|'+p.venc));
-  const [y,m]=comp.split('-').map(Number);
-  const last=new Date(y,m,0).getDate();
-  const dAnt=new Date(y,m-2,1); const mesAnt=dAnt.getFullYear()+'-'+String(dAnt.getMonth()+1).padStart(2,'0');
-  let n=0;
-  ativos.forEach(f=>{
-    if(f.inicioComp && comp<f.inicioComp) return; /* só gera a partir do mês configurado */
-    if(f.recorrente===false){ /* pagamento único na data marcada, sem recorrência */
-      if(!f.proxData||f.proxData.slice(0,7)!==comp) return;
-      if(temData.has(f.id+'|'+f.proxData)||temMensal.has(f.id)) return;
-      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:((f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):'')+' · único').trim(),valor:Number(f.valor)||0,venc:f.proxData,pago:false,pagoEm:null});
-      n++; return;
-    }
-    if(f.freq==='semanal'){
-      for(let d=1;d<=last;d++){
-        if(new Date(y,m-1,d).getDay()!==(Number(f.diaSemana)||0)) continue;
-        const venc=comp+'-'+String(d).padStart(2,'0');
-        if(temData.has(f.id+'|'+venc)) continue;
-        DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao?f.descricao+' — ':'')+'semanal ('+DSEM[Number(f.diaSemana)||0]+')'+(f.posPago?' · pós-pago':''),valor:Number(f.valor)||0,venc,pago:false,pagoEm:null});
-        n++;
-      }
-    } else {
-      if(temMensal.has(f.id)) return;
-      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,descricao:(f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):''),valor:Number(f.valor)||0,venc:vencOf(comp,f.dia),pago:false,pagoEm:null});
-      n++;
-    }
-  });
-  if(!n){ toast((escMode?'As contas de ':'A folha de ')+fmtComp(comp)+' já está gerada.'); return; }
-  await saveDB(); render(folhaView()); toast(n+' pagamento(s) gerado(s) para '+fmtComp(comp)+'.');
-};
+/* gerarFolha() saiu (Gabriel, 10/08/2026: "essa funcionalidade n tem logica"). Criava o mes
+   inteiro de uma vez a partir dos pre-definidos. O registro do mes nasce quando voce marca
+   "Recebeu?" na linha do fixo, que e como a equipe realmente usa. */
 window.fpToggle=(id)=>{ const p=DB.folha.find(x=>x.id===id); if(!p)return; if(p.pago) fpDesfazer(id); else fpPagar(id); };
 window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
@@ -7639,8 +7604,11 @@ window.openFixoModal=(id)=>{
       <div class="field"><label>Chave Pix</label><input id="m_pix" value="${esc(it.pix)}" placeholder="CPF, telefone, email ou CNPJ"></div>
       <div class="field"><label>Banco / Instituição</label><input id="m_banco" value="${esc(it.banco)}" placeholder="Ex: NuBank"></div>
     </div>
-    ${em?`<div class="field"><label>Escritório</label><input id="m_esc" value="${esc(it.esc||'')}" placeholder="Itajubá, Volta Redonda, SJRP..."></div>`
-       :`<div class="field"><label>Departamento (DP)</label><input id="m_dp" value="${esc(it.dp)}" placeholder="Ex: Marketing, Tecnologia..."></div>`}
+    <div class="row2">
+      <div class="field"><label>Escritório</label><input id="m_esc" value="${esc(it.esc||'')}" placeholder="vazio = pagamento de equipe">
+        <p class="hint" style="margin:5px 0 0">Preencheu = vira pagamento de escritório.</p></div>
+      <div class="field"><label>Departamento (DP)</label><input id="m_dp" value="${esc(it.dp)}" placeholder="Ex: Marketing, Tecnologia..."></div>
+    </div>
     <div class="row2">
       <div class="field"><label>Frequência</label><select id="m_freq"><option value="mensal"${it.freq!=='semanal'?' selected':''}>Mensal — uma vez por mês</option><option value="semanal"${it.freq==='semanal'?' selected':''}>Semanal — toda semana</option></select></div>
       <div class="field"><label>Valor (R$ por pagamento)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
@@ -7662,7 +7630,8 @@ window.openFixoModal=(id)=>{
       const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),banco:$('#m_banco').value.trim(),dp:(($('#m_dp')||{}).value||'').trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,posPago:$('#m_pos').value==='1',inicioComp:$('#m_inicioComp').value||null,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1',proxData:$('#m_prox').value||null,recorrente:$('#m_rec').checked};
       if(v.proxData){ const pd=new Date(v.proxData+'T12:00:00'); v.dia=Math.min(31,Math.max(1,pd.getDate())); v.diaSemana=pd.getDay(); v.inicioComp=v.proxData.slice(0,7); }
       if(!v.nome){ toast('Informe o nome.'); return false; }
-      if(em){ v.esc=($('#m_esc').value||'').trim(); if(!v.esc){ toast('Informe o escritório.'); return false; } }
+      /* o campo aparece sempre agora: preenchido = pagamento de escritorio, vazio = equipe */
+      v.esc=(($('#m_esc')||{}).value||'').trim()||null;
       if(id){ Object.assign(it,v); } else { DB.folhaFixos.push({id:uid(),...v}); }
       await saveDB(); render(folhaView()); toast('Salvo.'); return true;
     });
