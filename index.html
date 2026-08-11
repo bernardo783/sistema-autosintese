@@ -649,6 +649,12 @@
   .ini-ok.feito:hover{background:transparent;color:var(--muted);border-color:var(--line)}
   .ini-it.feita .ini-tit{text-decoration:line-through;color:var(--muted)}
   .ini-it.feita{opacity:.62}
+  .tk-pega{white-space:nowrap}
+  .tk-grip{display:inline-block;width:14px;color:#4a4a55;cursor:grab;font-size:13px;
+    margin-right:4px;vertical-align:middle;user-select:none}
+  tr.arrastavel:hover .tk-grip{color:var(--muted)}
+  tr.arrastavel:active .tk-grip{cursor:grabbing}
+  tr:not(.arrastavel) .tk-grip{opacity:.25;cursor:not-allowed}
   .sq-lista{display:inline-flex;gap:5px;flex-wrap:wrap}
   .sq-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
     border-radius:999px;padding:3px 10px 3px 8px;color:var(--c);
@@ -3726,8 +3732,9 @@ function tkViewLista(){
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
-    return `<tr draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()">
-      <td><input type="checkbox" class="tk-chk" ${t.status==='feito'?'checked':''} onclick="tkConcluir('${t.id}',this.checked)"></td>
+    const manual=!TK.ord;
+    return `<tr${manual?` draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"`:''} class="${manual?'arrastavel':''}">
+      <td class="tk-pega"><span class="tk-grip" title="${manual?'Arraste para mudar a posição':'Volte para a ordem manual para poder arrastar'}">⠿</span><input type="checkbox" class="tk-chk" ${t.status==='feito'?'checked':''} onclick="tkConcluir('${t.id}',this.checked)"></td>
       <td>${nome(t)}</td>
       <td>${tkSelo(t)}</td>
       ${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}
@@ -4533,6 +4540,8 @@ function tkDesenhar(c){
   if(soBoard) TK.visao='board';
   const visoes=soBoard?[['board','▦ Board']]:[['lista','☰ Lista'],['board','▦ Board']];
   const nArq=TK.escopo==='lista'?tkArquivadasDa(TK.listaSel).length:0;
+  const ordBtn=(TK.escopo==='lista'&&TK.visao==='lista')
+    ? `<button class="btn ghost small${TK.ord?'':' on'}" onclick="tkOrdemManual()" title="${TK.ord?'Voltar a poder arrastar as linhas':'Você já pode arrastar as linhas'}">⠿ Ordem manual</button>` : '';
   const abas=`<div class="tk-seg">${visoes.map(v=>`<button class="${TK.visao===v[0]&&!TK.arqVista?'on':''}" onclick="tkArqVista(false);tkVisao('${v[0]}')">${v[1]}</button>`).join('')}
     ${(TK.escopo==='lista'&&(nArq||TK.arqVista))?`<button class="${TK.arqVista?'on':''}" onclick="tkArqVista(${TK.arqVista?'false':'true'})" title="Cartões arquivados">🗄 Arquivados${nArq?' ('+nArq+')':''}</button>`:''}</div>`;
   const corpo=(cli&&TK.lcVista==='gerentes')?lcVistaGerentes():(TK.visao==='lista'?tkViewLista():tkViewBoard());
@@ -4542,7 +4551,7 @@ function tkDesenhar(c){
    <div class="page-head">
      <div>${tkCrumb()}<h2>${titulo}</h2><div class="desc">${TK.escopo==='minhas'?'tudo que está atribuído a você e ainda não foi concluído':TK.escopo==='todas'?'Autosíntese — todas as listas':esc(tkCaminho(TK.listaSel))} · ${dica}</div></div>
      <div class="toolbar">
-       ${abas}
+       ${abas}${ordBtn}
        ${cli?'':tkBtnFiltro()}
        ${cli?'':tkBtnResp()}
        <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
@@ -4591,6 +4600,10 @@ window.spVerPasta=(id)=>{ const p=TK.pastas.find(x=>x.id===id); if(!p) return;
   const l=TK.listas.find(x=>x.pasta_id===id);
   if(l) spSelLista(l.id); else spDesenhar(); };
 window.tkBusca=(v)=>{ TK.busca=v; TK.focoBusca=true; tkDesenhar($('#content')); };
+/* Voltar para a ordem manual em um clique. Antes so dava clicando tres vezes no
+   cabecalho, e arrastar com a lista ordenada nao movia nada na tela — parecia bug. */
+window.tkOrdemManual=()=>{ TK.ord=''; TK.dir=1; tkDesenhar($('#content'));
+  toast('Ordem manual: arraste as linhas pelo ⠿.'); };
 window.tkOrdenar=(k)=>{ if(TK.ord===k){ if(TK.dir===-1){ TK.ord=''; TK.dir=1; toast('Ordem manual (arraste as linhas).'); } else { TK.dir=-1; } } else { TK.ord=k; TK.dir=1; } tkDesenhar($('#content')); };
 window.tkPegar=(ev,id)=>{ TK.arrastando=id; try{ev.dataTransfer.setData('text/plain',id);}catch(_){} };
 const tkAlvo=(ev)=>{ let id=''; try{ id=ev.dataTransfer.getData('text/plain'); }catch(_){} id=id||TK.arrastando; TK.arrastando=null; return id; };
