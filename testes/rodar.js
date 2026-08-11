@@ -1,0 +1,145 @@
+/* Bateria de testes do Sistema AutoSíntese.
+   Rodar:  node testes/rodar.js
+
+   O app é um index.html só, sem build. Este arquivo recorta os blocos de lógica
+   direto do HTML, roda cada um num contexto isolado com o mínimo de stubs e
+   confere o comportamento. Não precisa de login, banco nem navegador.
+
+   Estava tudo em /tmp e o sistema limpou a pasta — por isso mora aqui agora. */
+const fs=require('fs'), vm=require('vm'), path=require('path');
+const HTML=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+
+let falhas=0, total=0;
+const ok=(n,c)=>{ total++; if(c) console.log('  ok  '+n); else { console.log('  FALHOU  '+n); falhas++; } };
+const secao=(t)=>console.log('\n— '+t+' —');
+const grupo=(t)=>console.log('\n\x1b[1m'+t+'\x1b[0m');
+
+/* recorta de "de" até "ate" (exclusivo) */
+function bloco(de,ate){
+  const i=HTML.indexOf(de);
+  if(i<0) throw new Error('não achei o trecho: '+de.slice(0,50));
+  const j=HTML.indexOf(ate,i);
+  if(j<0) throw new Error('não achei o fim: '+ate.slice(0,50));
+  return HTML.slice(i,j);
+}
+/* `const x=...` dentro do contexto fica no escopo léxico e não vira propriedade
+   global — só `function f(){}` e `window.x=` viram. Por isso os nomes a testar
+   são exportados na mão no fim do trecho. */
+function rodar(codigo,ctx,exporta){
+  const g=Object.assign({console,Date,Math,JSON,String,Number,Array,Object,Boolean,
+    parseFloat,parseInt,isNaN,Promise,setTimeout,clearInterval,setInterval:()=>0},ctx||{});
+  g.window=g;
+  vm.createContext(g);
+  const fim=(exporta&&exporta.length)?('\n;try{Object.assign(window,{'+exporta.join(',')+'})}catch(e){}'):'';
+  vm.runInContext(codigo+fim,g);
+  return g;
+}
+
+/* ---------------- sintaxe do arquivo inteiro ---------------- */
+grupo('O arquivo carrega');
+{
+  const blocos=HTML.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)||[];
+  const corpo=HTML.replace(/[\s\S]*?<script(?![^>]*\bsrc=)[^>]*>/,'').replace(/<\/script>[\s\S]*$/,'');
+  let erro=null;
+  try{ new vm.Script(corpo); }catch(e){ erro=e.message; }
+  ok('o JavaScript do index.html é válido', !erro || erro);
+  if(erro) console.log('      '+erro);
+  ok('tem exatamente um bloco de script', blocos.length===1);
+  ok('não sobrou marca de conflito de merge', HTML.indexOf('<<<<<<<')<0);
+}
+
+/* ---------------- tempo útil ---------------- */
+grupo('Tempo útil (8h–18h, seg a sex)');
+{
+  const g=rodar(bloco('const HH_DE=8','window.iniConcluir'),null,['minUteis','fmtUteis']);
+  const D=s=>new Date(s);
+  secao('dentro do expediente');
+  ok('9h às 11h de uma quarta = 120min', g.minUteis(D('2026-08-12T09:00'),D('2026-08-12T11:00'))===120);
+  ok('8h às 18h = 600min', g.minUteis(D('2026-08-12T08:00'),D('2026-08-12T18:00'))===600);
+  secao('fora do expediente não conta');
+  ok('19h às 20h = 0', g.minUteis(D('2026-08-12T19:00'),D('2026-08-12T20:00'))===0);
+  ok('criada 19h, feita 9h do dia seguinte = 60min', g.minUteis(D('2026-08-12T19:00'),D('2026-08-13T09:00'))===60);
+  secao('fim de semana não conta');
+  ok('sábado inteiro = 0', g.minUteis(D('2026-08-15T08:00'),D('2026-08-15T18:00'))===0);
+  ok('sexta 17h até segunda 9h = 120min', g.minUteis(D('2026-08-14T17:00'),D('2026-08-17T09:00'))===120);
+  secao('limites');
+  ok('fim antes do início = 0', g.minUteis(D('2026-08-12T11:00'),D('2026-08-12T09:00'))===0);
+  ok('intervalo de anos não trava', g.minUteis(D('2020-01-01T09:00'),D('2026-08-12T09:00'))>0);
+  ok('mostra 2h', g.fmtUteis(120)==='2h');
+  ok('mostra 3h20', g.fmtUteis(200)==='3h20');
+}
+
+/* ---------------- calendário ---------------- */
+grupo('Calendário próprio');
+{
+  const g=rodar(bloco('const DT_MES=','let DT={'),{esc:s=>String(s==null?'':s)},
+    ['dtISO','dtDe','dtCurto','dtGrade','dtCampo','dtRel']);
+  secao('datas');
+  ok('ISO', g.dtISO(new Date(2026,7,10))==='2026-08-10');
+  ok('dd/mm', g.dtCurto('2026-08-10')==='10/08');
+  ok('vazio não vira data', g.dtDe('')===null);
+  secao('grade do mês');
+  const ag=g.dtGrade(2026,7,'2026-08-10','2026-08-10');
+  ok('sempre 6 semanas', ag.length===42);
+  ok('agosto tem 31 dias', ag.filter(d=>!d.fora).length===31);
+  ok('marca o escolhido', ag.filter(d=>d.sel).length===1);
+  ok('fevereiro bissexto tem 29', g.dtGrade(2024,1,'','').filter(d=>!d.fora).length===29);
+  ok('dezembro emenda no ano seguinte', g.dtGrade(2026,11,'','')[41].iso.slice(0,4)==='2027');
+}
+
+/* ---------------- prazo relativo ---------------- */
+grupo('Prazo relativo no cartão');
+{
+  const g=rodar(bloco('const DT_MES=','let DT={'),{esc:s=>String(s==null?'':s)},['dtDe','dtISO','dtRel']);
+  ok('hoje', g.dtRel('2026-08-10','2026-08-10')==='Hoje');
+  ok('amanhã', g.dtRel('2026-08-11','2026-08-10')==='Amanhã');
+  ok('daqui 45 dias', g.dtRel('2026-09-24','2026-08-10')==='45d');
+  ok('vencida há 5 dias', g.dtRel('2026-08-05','2026-08-10')==='5d atrás');
+  ok('vira o ano', g.dtRel('2027-01-10','2026-08-10')==='153d');
+  ok('vazio não quebra', g.dtRel('','2026-08-10')==='');
+}
+
+/* ---------------- ordem alfabética ---------------- */
+grupo('Ordem alfabética');
+{
+  const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
+  const n=a=>g.alfab(a).map(x=>x.nome).join(', ');
+  ok('acento no lugar certo', n([{nome:'Bruno'},{nome:'Ágata'}])==='Ágata, Bruno');
+  ok('João antes de José', n([{nome:'José'},{nome:'João'}])==='João, José');
+  ok('maiúscula não pula na frente', n([{nome:'arthur'},{nome:'Bruno'},{nome:'Ana'}])==='Ana, arthur, Bruno');
+  ok('nulo não quebra', g.alfab(null).length===0);
+  ok('não altera o original', (()=>{const o=[{nome:'B'},{nome:'A'}]; g.alfab(o); return o[0].nome==='B';})());
+}
+
+/* ---------------- estimativa em texto ---------------- */
+grupo('Leitura de duração escrita à mão');
+{
+  const g=rodar(bloco('function estMinutos(s){','window.tkAbrir='),null,['estMinutos','estTexto']);
+  ok('1h30', g.estMinutos('1h30')===90);
+  ok('45min', g.estMinutos('45min')===45);
+  ok('só número vira minutos', g.estMinutos('90')===90);
+  ok('texto solto é recusado', g.estMinutos('umas horas')===null);
+  ok('vazio é vazio', g.estMinutos('')===null);
+  ok('ida e volta', g.estTexto(g.estMinutos('1h30'))==='1h30');
+}
+
+/* ---------------- visão por lista ---------------- */
+grupo('Cada lista lembra da própria visão');
+{
+  const loja={};
+  const g=rodar(bloco("const VIS_KEY=",'window.tkVisao=')+bloco('window.tkVisao=(v)=>{','window.tkEscopo='),{
+    localStorage:{getItem:k=>loja[k]||null,setItem:(k,v)=>{loja[k]=v;}},
+    LC_ID:'LC', TK:{listaSel:'',visao:'lista',lcVista:''},
+    tkStatusDe:id=>({L4:[1,2,3,4]}[id]||[]), $:()=>null, tkDesenhar:()=>{}},['visaoDe','visaoPadrao']);
+  ok('lista comum abre em lista', g.visaoDe('L1')==='lista');
+  ok('lista com 4+ status abre em board', g.visaoDe('L4')==='board');
+  g.TK.listaSel='L1'; g.tkVisao('board');
+  ok('L1 guardou board', g.visaoDe('L1')==='board');
+  ok('L2 não foi junto', g.visaoDe('L2')==='lista');
+  ok('gravou no navegador', /L1/.test(loja['tk_visao_lista']||''));
+}
+
+console.log('\n'+(falhas
+  ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
+  : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
+process.exit(falhas?1:0);
