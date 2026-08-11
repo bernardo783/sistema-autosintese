@@ -582,6 +582,10 @@
   .cf-t{font-size:16.5px;font-weight:800;line-height:1.35;letter-spacing:-.01em}
   .cf-x{color:var(--muted);font-size:13.5px;line-height:1.6;margin-top:9px}
   .cf-m .mfoot{gap:8px}
+  /* faixa que separa equipe de escritório dentro da folha */
+  .fp-faixa td{background:var(--panel2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);padding:8px 12px}
+  .fp-faixa .fp-sub{margin-left:8px;font-weight:600;letter-spacing:0;text-transform:none;opacity:.65}
   /* ---------- CHECKLIST DA TAREFA ---------- */
   .ck-l{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .ck-l input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2);flex:none}
@@ -6001,7 +6005,7 @@ window.calRender=()=>{
 /* ---------- FINANCEIRO (central) ---------- */
 /* Toda aba do Financeiro tem que ter rota aqui — sem isso o clique na pilula nao redesenha nada. */
 const FIN_TAB={financeiro:'lanc',lanc:'lanc',recebimentos:'recebimentos',
-  folha:'folha',escritorios:'escritorios',painel:'painel'};
+  folha:'folha',escritorios:'folha',painel:'painel'};  /* escritorios virou secao da folha */
 let finTab='lanc';
 let lancComp=compNow();
 let lancDe=''; let lancAte='';
@@ -6012,7 +6016,6 @@ function renderFinanceiro(c){
      <button class="ftab ${finTab==='lanc'?'active':''}" onclick="finGo('lanc')">💰 Lançamentos</button>
      <button class="ftab ${finTab==='recebimentos'?'active':''}" onclick="finGo('recebimentos')">🤝 Recebimentos</button>
      <button class="ftab ${finTab==='folha'?'active':''}" onclick="finGo('folha')">🧾 Folha de Pagamento</button>
-     <button class="ftab ${finTab==='escritorios'?'active':''}" onclick="finGo('escritorios')">🏢 Escritórios</button>
      <button class="ftab ${finTab==='painel'?'active':''}" onclick="finGo('painel')">📊 Painel</button>
    </div>
    <div id="finSub"></div>`;
@@ -6020,7 +6023,6 @@ function renderFinanceiro(c){
   if(finTab==='painel') return renderDash(sub);
   if(finTab==='recebimentos') return renderRecebimentos(sub);
   if(finTab==='folha') return renderFolha(sub);
-  if(finTab==='escritorios') return renderFolha(sub,true);
   return renderLanc(sub);
 }
 function renderLanc(c){
@@ -7469,13 +7471,22 @@ window.ctModelosModal=async ()=>{
 const DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 /* Folha e Escritórios dividem o mesmo motor: fixo com campo `esc` (nome do escritório)
    pertence à aba Escritórios; sem `esc` é equipe. Pagamento avulso carrega `esc` próprio. */
-const folhaView=()=>finTab==='escritorios'?'escritorios':'folha';
-function renderFolha(c,escMode){
+const folhaView=()=>'folha';
+function renderFolha(c){
   const comp=folhaComp;
   const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
-  const meuLado=p=>{ const f=fixoById[p.fixoId]; return !!(f?f.esc:p.esc)===!!escMode; };
-  const fixos=DB.folhaFixos.filter(f=>!!f.esc===!!escMode);
-  const pays=DB.folha.filter(p=>p.comp===comp&&meuLado(p)).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  /* Uma tela so (Gabriel, 10/08/2026): equipe primeiro, depois a faixa "Gastos de Escritório"
+     com um sub-grupo por escritório. O que separa continua sendo o campo esc do fixo. */
+  const escDe=p=>{ const f=fixoById[p.fixoId]; return ((f?f.esc:p.esc)||'').trim(); };
+  const fixos=DB.folhaFixos.slice();
+  const pays=DB.folha.filter(p=>p.comp===comp).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  /* agrupa em [equipe, escritório A, escritório B...] preservando a ordem já existente */
+  const agrupar=(arr,chave)=>{
+    const eq=arr.filter(x=>!chave(x));
+    const escs=[]; arr.forEach(x=>{ const e=chave(x); if(e&&escs.indexOf(e)<0) escs.push(e); });
+    escs.sort((x,y)=>x.localeCompare(y));
+    return {eq, escs, por:e=>arr.filter(x=>chave(x)===e)};
+  };
   const [fy,fm]=comp.split('-').map(Number);
   const fLast=new Date(fy,fm,0).getDate();
   const ocorrencias=(f)=>{ if(f.freq!=='semanal') return 1; let n=0; for(let d=1;d<=fLast;d++){ if(new Date(fy,fm-1,d).getDay()===(Number(f.diaSemana)||0)) n++; } return n; };
@@ -7490,7 +7501,7 @@ function renderFolha(c,escMode){
   const hoje=hojeISO();
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>${escMode?'Escritórios':'Folha de Pagamento'}</h2><div class="desc">${escMode?'Aluguéis e contas fixas dos escritórios':'Pagamentos mensais de equipe e prestadores'}</div></div>
+     <div><h2>Folha de Pagamento</h2><div class="desc">Equipe e gastos de escritório na mesma tela</div></div>
      <div class="toolbar">
        <input type="month" class="search" id="fpComp" value="${comp}" style="min-width:150px">
        <button class="btn small" onclick="openFpModal()">+ Pagamento</button>
@@ -7528,9 +7539,10 @@ function renderFolha(c,escMode){
       <td class="money" style="text-align:right">${brl(pagoSem)} <span style="color:var(--muted);font-size:11px">${ps.filter(p=>p.pago).length}/${ps.length}</span></td>
      </tr>`;}).join('')}</tbody></table></div>`:''}
    <h2 style="font-size:16px;margin:26px 0 10px">Pré-definidos — fixos de todo mês</h2>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>${escMode?'Escritório':'DP'}</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
-   <tbody>${fixos.map(f=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${escMode?(f.esc?`<span class="tag st">${esc(f.esc)}</span>`:'—'):(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:#7db0ff">📅 próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>Escritório / DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
+   <tbody>${(()=>{ const g=agrupar(fixos,f=>(f.esc||'').trim());
+     const linha=(f)=>`<tr>
+     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.esc?`<span class="tag st">🏢 ${esc(f.esc)}</span>`:(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:#7db0ff">📅 próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
      <td class="money" style="text-align:right">${brl(f.valor)}</td>
      <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
      <td><div class="rowact">
@@ -7538,10 +7550,17 @@ function renderFolha(c,escMode){
        <button class="iconbtn" onclick="fixoMove('${f.id}',1)" title="Descer">↓</button>
        <button class="iconbtn" onclick="openFixoModal('${f.id}')">Editar</button>
        <button class="iconbtn del" onclick="fixoExcluir('${f.id}')">Excluir</button>
-     </div></td></tr>`).join('')}</tbody></table>
-   ${fixos.length?'':'<div class="empty">Nenhum fixo cadastrado. Cadastre aqui '+(escMode?'as contas de cada escritório (aluguel, internet, energia...)':'quem recebe todo mês (nome, valor e dia)')+'.</div>'}</div>
+     </div></td></tr>`;
+     const faixa=(txt,sub)=>`<tr class="fp-faixa"><td colspan="8">${esc(txt)}${sub?`<span class="fp-sub">${esc(sub)}</span>`:''}</td></tr>`;
+     let h=g.eq.map(linha).join('');
+     if(g.escs.length){
+       h+=faixa('Gastos de Escritório');
+       g.escs.forEach(e=>{ h+=faixa(e,'escritório')+g.por(e).map(linha).join(''); });
+     }
+     return h; })()}</tbody></table>
+   ${fixos.length?'':'<div class="empty">Nenhum fixo cadastrado. Cadastre quem recebe todo mês e as contas de cada escritório — o campo Escritório é o que separa os dois.</div>'}</div>
    <div style="margin-top:10px"><button class="btn secondary small" onclick="openFixoModal()">+ Fixo mensal</button></div>
-   <p class="hint" style="margin-top:12px">A lista já é a do mês escolhido no filtro — não precisa gerar nada. Ao marcar <strong>✓ Pagar</strong>, o registro do mês nasce e a despesa entra no Financeiro (categoria ${escMode?'Escritórios':'Folha de Pagamento'}); “Desfazer” remove os dois.</p>`;
+   <p class="hint" style="margin-top:12px">A lista já é a do mês escolhido no filtro — não precisa gerar nada. Ao marcar <strong>✓ Pagar</strong>, o registro do mês nasce e a despesa entra no Financeiro (categoria Folha de Pagamento, ou Escritórios quando o fixo tem escritório); “Desfazer” remove os dois.</p>`;
   $('#fpComp').onchange=e=>{ folhaComp=e.target.value||compNow(); render(folhaView()); };
 }
 /* gerarFolha() saiu (Gabriel, 10/08/2026: "essa funcionalidade n tem logica"). Criava o mes
