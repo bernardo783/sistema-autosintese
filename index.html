@@ -473,7 +473,10 @@
   .ctxm button:hover{background:var(--panel2)}
   .ctxm button.dgr{color:var(--danger)}
   .ctxm .sep{height:1px;background:var(--line);margin:4px 2px}
-  .ctxm .ic{width:16px;text-align:center;flex:none;font-size:13px}
+  .ctxm .ic{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;flex:none;font-size:13px;color:var(--muted)}
+  .ctxm .ic svg{width:15px;height:15px}
+  .ctxm button:hover .ic{color:var(--txt)}
+  .ctxm button.dgr .ic{color:inherit}
   .ctxm .cab{font-size:10px;letter-spacing:.9px;font-weight:800;color:var(--muted);padding:6px 9px 5px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase}
   /* seletor de icone + cor */
@@ -3042,6 +3045,25 @@ function spRepintar(){ spDesenhar(); if(currentView==='lista') tkDesenhar($('#co
 
 /* ---------- menu de contexto reaproveitavel (botao direito e o "..." ) ---------- */
 function ctxFechar(){ const e=document.getElementById('ctxm'); if(e) e.remove(); }
+/* Ícones de traço dos menus de contexto — no lugar dos emojis */
+const MI=(d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const MICO={
+  perfil:MI('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>'),
+  senha:MI('<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'),
+  sair:MI('<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 17l-5-5 5-5M5 12h11"/>'),
+  inbox:MI('<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/>'),
+  pessoas:MI('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><path d="M16.5 4.6a3.5 3.5 0 0 1 0 6.8M17 14.7c2.6.5 4.5 2.3 4.5 5.3"/>'),
+  mais:MI('<path d="M12 5v14M5 12h14"/>'),
+  fin:MI('<path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2"/><path d="M3 7v10a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14" r="1.4" fill="currentColor" stroke="none"/>'),
+  backup:MI('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/>'),
+  pasta:MI('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+  lista:MI('<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>'),
+  link:MI('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>'),
+  lapis:MI('<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>'),
+  cor:MI('<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18c1.2 0 2-.9 2-2s-.8-2-2-2h-1a2 2 0 0 1 0-4h4a6 6 0 0 0-3-10z"/>'),
+  dup:MI('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  lixo:MI('<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>'),
+};
 function ctxAbrir(ev,itens){
   if(ev){ ev.preventDefault(); ev.stopPropagation(); }
   ctxFechar();
@@ -3068,17 +3090,17 @@ window.wsMenu=(ev)=>{
   const m=!!(currentUser&&currentUser.role==='master');
   ctxAbrir(ev,[
     {cab:WS_NOME},
-    {ic:'📥',t:'Minhas tarefas',f:()=>spCaixa()},
-    {ic:'👥',t:'Clientes',f:()=>spAbrirClientes()},
+    {ic:MICO.inbox,t:'Minhas tarefas',f:()=>spCaixa()},
+    {ic:MICO.pessoas,t:'Clientes',f:()=>spAbrirClientes()},
     {sep:true},
-    {ic:'➕',t:'Novo espaço',f:()=>tkNovoEspaco()},
-    {ic:'👤',t:'Usuários',f:()=>render('usuarios'),so:m},
-    {ic:'💰',t:'Financeiro',f:()=>render('financeiro'),so:m},
+    {ic:MICO.mais,t:'Novo espaço',f:()=>tkNovoEspaco()},
+    {ic:MICO.pessoas,t:'Usuários',f:()=>render('usuarios'),so:m},
+    {ic:MICO.fin,t:'Financeiro',f:()=>render('financeiro'),so:m},
     {sep:true},
-    {ic:'⬇',t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click()},
-    {ic:'🔒',t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
+    {ic:MICO.backup,t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click()},
+    {ic:MICO.senha,t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
     {sep:true},
-    {ic:'↩',t:'Sair',dgr:true,f:()=>document.getElementById('btnLogout').click()}
+    {ic:MICO.sair,t:'Sair',dgr:true,f:()=>document.getElementById('btnLogout').click()}
   ]);
 };
 
@@ -3187,22 +3209,22 @@ window.spNoMenu=(ev,tipo,id)=>{
   const m=!!(currentUser&&currentUser.role==='master');
   const it=[{cab:spNome(o)}];
   if(tipo==='espaco'){
-    it.push({ic:'📁',t:'Nova pasta',f:()=>tkNovoNo(id,'pasta')});
-    it.push({ic:'≡',t:'Nova lista',f:()=>tkNovaLista(id,null)});
+    it.push({ic:MICO.pasta,t:'Nova pasta',f:()=>tkNovoNo(id,'pasta')});
+    it.push({ic:MICO.lista,t:'Nova lista',f:()=>tkNovaLista(id,null)});
   } else if(tipo==='pasta'){
-    it.push({ic:'≡',t:'Nova lista',f:()=>tkNovaLista(o.espaco_id,id)});
+    it.push({ic:MICO.lista,t:'Nova lista',f:()=>tkNovaLista(o.espaco_id,id)});
   } else {
-    it.push({ic:'＋',t:'Nova tarefa',f:()=>{ spSelLista(id); setTimeout(()=>tkAbrir(),50); }});
+    it.push({ic:MICO.mais,t:'Nova tarefa',f:()=>{ spSelLista(id); setTimeout(()=>tkAbrir(),50); }});
     it.push({ic:favTem(id)?'★':'☆',t:favTem(id)?'Tirar dos favoritos':'Adicionar aos favoritos',f:()=>favToggle(id)});
   }
   it.push({sep:true});
-  it.push({ic:'👥',t:'Compartilhar',f:()=>spCompartilhar(tipo,id)});
-  it.push({ic:'🔗',t:'Copiar link',f:()=>lkCopiar({espaco:'e',pasta:'p',lista:'l'}[tipo],id)});
-  it.push({ic:'✏️',t:'Renomear',f:()=>spRenomear(tipo,id)});
-  it.push({ic:'🎨',t:tipo==='espaco'?'Aparência — foto, cor e ícone':'Cor e ícone',f:()=>spCorIcone(tipo,id)});
-  it.push({ic:'⧉',t:'Duplicar',f:()=>spDuplicar(tipo,id),so:m});
+  it.push({ic:MICO.pessoas,t:'Compartilhar',f:()=>spCompartilhar(tipo,id)});
+  it.push({ic:MICO.link,t:'Copiar link',f:()=>lkCopiar({espaco:'e',pasta:'p',lista:'l'}[tipo],id)});
+  it.push({ic:MICO.lapis,t:'Renomear',f:()=>spRenomear(tipo,id)});
+  it.push({ic:MICO.cor,t:tipo==='espaco'?'Aparência — foto, cor e ícone':'Cor e ícone',f:()=>spCorIcone(tipo,id)});
+  it.push({ic:MICO.dup,t:'Duplicar',f:()=>spDuplicar(tipo,id),so:m});
   it.push({sep:true,so:m&&!spProtegido(tipo,id)});
-  it.push({ic:'🗑',t:'Excluir',dgr:true,f:()=>spExcluir(tipo,id),so:m&&!spProtegido(tipo,id)});
+  it.push({ic:MICO.lixo,t:'Excluir',dgr:true,f:()=>spExcluir(tipo,id),so:m&&!spProtegido(tipo,id)});
   ctxAbrir(ev,it);
 };
 
@@ -3231,10 +3253,10 @@ window.menuUsuario=(ev)=>{
   if(!currentUser) return;
   ctxAbrir(ev,[
     {cab:currentUser.nome||'Meu perfil'},
-    {ic:'👤',t:'Meu perfil',f:()=>meuPerfil()},
-    {ic:'🔒',t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
+    {ic:MICO.perfil,t:'Meu perfil',f:()=>meuPerfil()},
+    {ic:MICO.senha,t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
     {sep:true},
-    {ic:'↩',t:'Sair',dgr:true,f:()=>document.getElementById('btnLogout').click()}
+    {ic:MICO.sair,t:'Sair',dgr:true,f:()=>document.getElementById('btnLogout').click()}
   ]);
 };
 /* Cartao de leitura — o que o time ve de voce. */
