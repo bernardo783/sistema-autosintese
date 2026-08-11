@@ -4256,7 +4256,7 @@ window.spSelLista=(id,semAbrir)=>{
   if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
   /* Lista de fluxo (4+ status proprios) abre no Board, como a linha editorial do ClickUp.
      Vale so ate a pessoa escolher a visao na mao — dai respeita a escolha dela. */
-  if(!TK.visaoTocada) TK.visao=(id===LC_ID||tkStatusDe(id).length>=4)?'board':'lista';
+  TK.visao=visaoDe(id);
   currentView='lista'; lkMarcar('l',id); tkDesenhar($('#content')); spDesenhar(); };
 /* ======================= INÍCIO: o dia de trabalho de cada um =======================
    Cada pessoa abre o sistema no que é dela: o que vence hoje, o que está em andamento
@@ -4627,7 +4627,18 @@ async function tkPatch(id,patch,msg){
   tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); return true;
 }
 window.tkSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; tkDesenhar($('#content')); };
-window.tkVisao=(v)=>{ TK.visao=v; TK.visaoTocada=true; TK.lcVista=''; tkDesenhar($('#content')); };
+/* Cada lista lembra da própria visão. Antes era uma só para o sistema inteiro:
+   clicar em Board numa lista fazia todas as outras abrirem em Board, e listas
+   iguais pareciam configuradas diferente. */
+const VIS_KEY='tk_visao_lista';
+let VIS={}; try{ VIS=JSON.parse(localStorage.getItem(VIS_KEY)||'{}')||{}; }catch(_){ VIS={}; }
+const visaoPadrao=(id)=>(id===LC_ID||tkStatusDe(id).length>=4)?'board':'lista';
+const visaoDe=(id)=>(id&&VIS[id])?VIS[id]:visaoPadrao(id);
+window.tkVisao=(v)=>{
+  TK.visao=v; TK.lcVista='';
+  if(TK.listaSel){ VIS[TK.listaSel]=v; try{ localStorage.setItem(VIS_KEY,JSON.stringify(VIS)); }catch(_){} }
+  tkDesenhar($('#content'));
+};
 window.tkEscopo=()=>{
   if(TK.escopo==='lista'){ TK.escopo='todas'; }
   else { TK.escopo='lista'; if(!TK.listaSel) TK.listaSel=(TK.listas[0]||{}).id||''; }
