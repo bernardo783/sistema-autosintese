@@ -587,6 +587,18 @@
     font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);padding:8px 12px}
   .fp-faixa .fp-sub{margin-left:8px;font-weight:600;letter-spacing:0;text-transform:none;opacity:.65}
   .tk-sec-n{color:var(--muted);font-weight:700;font-size:11px;margin-left:5px}
+  /* ---------- NOTIFICAÇÕES ---------- */
+  .ntf{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+  .ntf:hover{background:var(--panel2)}
+  .ntf-pt{width:8px;height:8px;border-radius:999px;background:transparent;flex:none;margin-top:6px}
+  .ntf.nova{border-color:rgba(167,139,250,.45)}
+  .ntf.nova .ntf-pt{background:var(--brand2)}
+  .ntf-t{font-weight:700;font-size:13.5px}
+  .ntf.nova .ntf-t{color:#e9e9ec}
+  .ntf:not(.nova) .ntf-t{color:var(--muted);font-weight:600}
+  .ntf-x{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .ntf-q{color:var(--muted);font-size:11px;margin-top:4px;opacity:.75}
   /* ---------- ANEXOS DA TAREFA ---------- */
   .tkm-drop{border:1.5px dashed var(--line);border-radius:10px;padding:16px 14px;text-align:center;
     color:var(--muted);font-size:13px;cursor:pointer;transition:border-color .12s,background .12s}
@@ -1159,6 +1171,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="t">Início</span></button>
     <button class="rl" id="rlEspacos" title="Mostrar ou esconder a lista de espaços" onclick="spEspacos()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span class="t">Espaços</span></button>
+    <button class="rl navlink" data-view="notificacoes" id="rlNtf" title="Notificações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      <span class="t">Avisos</span><span class="bdg" id="ntfBdg"></span></button>
     <button class="rl" id="rlInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg><span class="t">Tarefas</span><span class="bdg" id="spInboxN"></span></button>
     <button class="rl navlink hidden" data-view="daily" id="navDaily" title="Reunião diária do squad">
@@ -1420,6 +1435,7 @@ async function enterApp(){
   const foi=await lkIr();
   if(!foi) spInicio(true);   /* cada um abre no próprio dia de trabalho */
   mtBoot();   /* Meta começa a carregar no login: quando você abrir Tráfego já está pronto */
+  ntfBadge(); /* sino já acorda com o número certo */
 }
 
 /* ======================= LINKS DIRETOS =======================
@@ -1542,6 +1558,7 @@ function render(view){
   if(view==='daily'){ if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito aos gerentes e ao master.</div>'; return; } return renderDaily(c); }
   if(view==='trafego') return renderTrafego(c);
   if(view==='lista') return renderTarefas(c);
+  if(view==='notificacoes') return renderNotificacoes(c);
   if(view==='reembolsos') return renderReembolsos(c);
   if(view==='processos') return renderProcessos(c);
   if(view==='usuarios'){
@@ -3583,7 +3600,7 @@ async function tkCarregar(){
     sb.from('pastas').select('*').order('ordem'),
     sb.from('listas').select('*').order('ordem'),
     sb.from('tarefas').select('*').order('criado_em'),
-    sb.from('equipe_nomes').select('id,nome,foto,cargo,role,gerente,email,telefone'),
+    sb.from('equipe_nomes').select('id,nome,foto,cargo,role,gerente,email,telefone,squads'),
     sb.from('status_lista').select('*').order('ordem'),
     sb.from('campos_lista').select('*').order('ordem')]);
   const err=e.error||pa.error||l.error||t.error||st.error||cp.error;
@@ -4840,9 +4857,86 @@ window.tkSetVal=async (id,campoId,v)=>{
   if(v===null||v===false) delete val[campoId]; else val[campoId]=v;
   await tkPatch(id,{valores:val});
 };
+/* ======================= NOTIFICAÇÕES =======================
+   Aviso interno, guardado em `notificacoes` (RLS: cada um le so as proprias).
+   Gatilho de hoje: video da lista Edição de Vídeo entrou em status de grupo
+   'feito' -> avisa quem tem o squad daquela tarefa (gestor e gerente do squad),
+   menos quem fez a acao. O insert roda no navegador de quem moveu o status. */
+async function ntfCriar(rows){
+  if(!rows.length) return;
+  try{ await sb.from('notificacoes').insert(rows); ntfBadge(); }catch(_){}
+}
+async function ntfVideoPronto(t, sidNovo){
+  try{
+    if(!t || t.lista_id!==LISTA_EDICAO) return;
+    const s=sidNovo?tkStatus1(sidNovo):null;
+    if(!s || s.grupo!=='feito') return;
+    const sAntes=t.status_id?tkStatus1(t.status_id):null;
+    if(sAntes && sAntes.grupo==='feito') return;              /* ja estava pronto: nao repete */
+    const sq=String(t.squad||((fichaDe(t.ficha_id)||{}).squad)||'').trim();
+    if(!sq) return;
+    const eu=(currentUser||{}).id;
+    const dest=(TK.equipe||[]).filter(u=>Array.isArray(u.squads)&&u.squads.indexOf(sq)>=0&&u.id!==eu);
+    if(!dest.length) return;
+    const cli=tkNomeFicha(t.ficha_id);
+    await ntfCriar(dest.map(u=>({para:u.id,
+      titulo:'🎬 Vídeo pronto: '+(t.titulo||''),
+      texto:(cli?('Cliente '+cli+' · '):'')+'Squad '+sq+' · finalizado por '+((currentUser||{}).nome||'alguém'),
+      tarefa_id:t.id, criado_por:eu||null})));
+  }catch(_){}
+}
+/* badge do sino: conta as nao lidas; roda no boot e a cada 2 minutos */
+window.__ntfN=0;
+async function ntfBadge(){
+  try{
+    const {count,error}=await sb.from('notificacoes').select('id',{count:'exact',head:true}).is('lida_em',null);
+    if(error) return;
+    window.__ntfN=count||0;
+    const b=document.getElementById('ntfBdg'); if(b) b.textContent=window.__ntfN||'';
+  }catch(_){}
+}
+try{ setInterval(ntfBadge, 120000); }catch(_){}
+async function renderNotificacoes(c){
+  c.innerHTML='<div class="empty">Carregando...</div>';
+  const {data,error}=await sb.from('notificacoes').select('*').order('criado_em',{ascending:false}).limit(80);
+  if(error){ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(error.message)+'</div>'; return; }
+  const ns=data||[];
+  const quando=(iso)=>{ const d=new Date(iso), h=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    return fmtDate(String(iso).slice(0,10))+' '+h; };
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Notificações</h2><div class="desc">O que aconteceu e é da sua conta</div></div>
+     <div class="toolbar">${ns.some(n=>!n.lida_em)?'<button class="btn secondary small" onclick="ntfTodasLidas()">Marcar todas como lidas</button>':''}</div>
+   </div>
+   ${ns.length?ns.map(n=>`<div class="ntf${n.lida_em?'':' nova'}" onclick="ntfAbrir('${n.id}')">
+      <div class="ntf-pt"></div>
+      <div style="min-width:0;flex:1">
+        <div class="ntf-t">${esc(n.titulo)}</div>
+        ${n.texto?`<div class="ntf-x">${esc(n.texto)}</div>`:''}
+        <div class="ntf-q">${esc(quando(n.criado_em))}</div>
+      </div>
+    </div>`).join(''):'<div class="empty">Nada por aqui — quando um vídeo do seu squad ficar pronto, o aviso cai aqui.</div>'}`;
+  window.__ntf={}; ns.forEach(n=>{ window.__ntf[n.id]=n; });
+}
+window.ntfAbrir=async (id)=>{
+  const n=(window.__ntf||{})[id]; if(!n) return;
+  if(!n.lida_em){ try{ await sb.from('notificacoes').update({lida_em:new Date().toISOString()}).eq('id',id); }catch(_){} ntfBadge(); }
+  if(n.tarefa_id){
+    const t=(TK.tarefas||[]).find(x=>x.id===n.tarefa_id);
+    if(t){ spSelLista(t.lista_id); setTimeout(()=>tkAbrir(t.id),80); return; }
+    toast('Essa tarefa não está mais visível pra você.');
+  }
+  render('notificacoes');
+};
+window.ntfTodasLidas=async ()=>{
+  try{ await sb.from('notificacoes').update({lida_em:new Date().toISOString()}).is('lida_em',null); }catch(_){}
+  ntfBadge(); render('notificacoes');
+};
 window.tkSetStatus=async (id,sid)=>{
   const s=sid?tkStatus1(sid):null, st=s?TK_G2ST[s.grupo]:'todo';
+  const antes=Object.assign({},TK.tarefas.find(x=>x.id===id)||{});
   const ok=await tkPatch(id,{status_id:sid||null,status:st,concluida_em:st==='feito'?new Date().toISOString():null}, s?s.nome:'Sem status');
+  if(ok) ntfVideoPronto(antes,sid);
   if(ok) await lcSincronizarFicha(id,sid);
   if(ok&&sid===LC_CHURN) chPerguntarChurn(id);
 };
@@ -5339,6 +5433,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       const {error} = t ? await sb.from('tarefas').update(v).eq('id',t.id)
                         : await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length}));
       if(error){ toast('Erro: '+error.message); return false; }
+      /* so avisa se a tarefa CONTINUA na mesma lista — trocou de lista junto, nao vale */
+      if(t && v.status_id!==t.status_id && v.lista_id===t.lista_id) ntfVideoPronto(t, v.status_id);
       render('tarefas'); toast('Salvo.'); return true;
     });
   ckPintar();
