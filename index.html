@@ -586,6 +586,7 @@
   .fp-faixa td{background:var(--panel2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
     font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);padding:8px 12px}
   .fp-faixa .fp-sub{margin-left:8px;font-weight:600;letter-spacing:0;text-transform:none;opacity:.65}
+  .tk-sec-n{color:var(--muted);font-weight:700;font-size:11px;margin-left:5px}
   /* ---------- ANEXOS DA TAREFA ---------- */
   .tkm-drop{border:1.5px dashed var(--line);border-radius:10px;padding:16px 14px;text-align:center;
     color:var(--muted);font-size:13px;cursor:pointer;transition:border-color .12s,background .12s}
@@ -5256,6 +5257,18 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     <div class="tk-sec">Checklist <span id="ck_prog"></span></div>
     <div id="ck_lista"></div>
     <button class="btn ghost small" onclick="ckAdd()" style="margin-top:6px">+ item</button>
+    <div class="tk-sec">Anexos <span id="tkmBAnx" class="tk-sec-n"></span></div>
+    ${t?`<div class="tkm-drop" id="tkmDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="tkmAnxDrop(event,'${t.id}')" onclick="document.getElementById('tkmFile').click()">
+          Arraste arquivos aqui ou <u>clique para escolher</u>
+          <div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar — até 50 MB por arquivo</div>
+        </div>
+        <input type="file" id="tkmFile" multiple class="hidden" onchange="tkmAnxUpload('${t.id}',this.files)">
+        <div class="tkm-lnk">
+          <input id="tkmUrl" placeholder="ou cole um link (Drive, YouTube, site...)" onkeydown="if(event.key==='Enter'){event.preventDefault();tkmAnxLink('${t.id}');}">
+          <button class="btn secondary small" type="button" onclick="tkmAnxLink('${t.id}')">Anexar link</button>
+        </div>
+        <div id="tkmAnxLista"><div class="hint">carregando…</div></div>`
+       :`<p class="hint">Salve a tarefa primeiro — aí os anexos ficam guardados aqui.</p>`}
     <div class="tk-rodape">
       ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
       ${t?(arquivada(t)
@@ -5277,20 +5290,6 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <h4 class="tkm-tit">Relacionamentos</h4>
       <div id="tkmRelBox"></div>
     </div>
-    <div class="tkm-painel hidden" id="tkmAnx">
-      <h4 class="tkm-tit">Anexos</h4>
-      ${t?`<div class="tkm-drop" id="tkmDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="tkmAnxDrop(event,'${t.id}')" onclick="document.getElementById('tkmFile').click()">
-          Arraste arquivos aqui ou <u>clique para escolher</u>
-          <div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar — até 50 MB por arquivo</div>
-        </div>
-        <input type="file" id="tkmFile" multiple class="hidden" onchange="tkmAnxUpload('${t.id}',this.files)">
-        <div class="tkm-lnk">
-          <input id="tkmUrl" placeholder="ou cole um link (Drive, YouTube, site...)" onkeydown="if(event.key==='Enter'){event.preventDefault();tkmAnxLink('${t.id}');}">
-          <button class="btn secondary small" type="button" onclick="tkmAnxLink('${t.id}')">Anexar link</button>
-        </div>
-        <div id="tkmAnxLista"><div class="hint">carregando…</div></div>`
-       :`<p class="hint">Salve a tarefa primeiro — aí os anexos ficam guardados aqui.</p>`}
-    </div>
     <div class="tkm-rail">
       <button type="button" class="tkm-i on" id="tkmIDet" title="Detalhes" onclick="tkmAba('Det')">${SVG_P.tipo||'≡'}</button>
       <button type="button" class="tkm-i" id="tkmIAtv" title="Atividade" onclick="tkmAba('Atv')">
@@ -5299,9 +5298,6 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <button type="button" class="tkm-i" id="tkmIRel" title="Relacionamentos" onclick="tkmAba('Rel')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
         <span class="tkm-b" id="tkmBRel"></span></button>
-      <button type="button" class="tkm-i" id="tkmIAnx" title="Anexos" onclick="tkmAba('Anx')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-        <span class="tkm-b" id="tkmBAnx"></span></button>
     </div></div>`,
     async ()=>{
       const v={titulo:$('#tk_tit').value.trim(), lista_id:$('#tk_lista').value, ficha_id:$('#tk_ficha').value||null,
@@ -5353,7 +5349,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
    A barra de icones fica na direita, como no ClickUp, e o contador aparece no proprio
    icone — o vinculo com o cliente deixa de ser um campo perdido no meio do formulario. */
 window.tkmAba=(a)=>{
-  ['Det','Atv','Rel','Anx'].forEach(x=>{
+  ['Det','Atv','Rel'].forEach(x=>{
     const pan=document.getElementById('tkm'+x), ic=document.getElementById('tkmI'+x);
     if(pan) pan.classList.toggle('hidden',x!==a);
     if(ic) ic.classList.toggle('on',x===a);
