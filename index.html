@@ -1254,24 +1254,116 @@ function blankDB(){ return normalizeDB({}); }
 
 /* Dados da empresa: uma linha por módulo na tabela `itens` (jsonb) */
 const MODMAP=[['financeiro','financeiro'],['senhas','senhas'],['links','links'],['projetos','projetos'],['folha_fixos','folhaFixos'],['folha','folha'],['clientes','clientes'],['recebimentos','recebimentos'],['trafego','trafego'],['contas_meta','contasMeta']];
-async function loadDB(){
-  const {data,error}=await sb.from('itens').select('modulo,dados');
+async function loadDBImpl(){
+  const {data,error}=await sb.from('itens').select('modulo,dados,atualizado_em');
   if(error) throw error;
-  const map={}; (data||[]).forEach(r=>map[r.modulo]=r.dados);
+  const map={}, revs={}; (data||[]).forEach(r=>{ map[r.modulo]=r.dados; revs[r.modulo]=r.atualizado_em; });
   DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha,clientes:map.clientes,recebimentos:map.recebimentos,trafego:map.trafego,contasMeta:map.contas_meta});
-  /* autocura: todo cliente sempre tem um projeto */
+  /* autocura: todo cliente sempre tem um projeto — roda ANTES da fotografia, senao
+     "projetos" nasce eternamente sujo e fabrica conflito falso em toda gravacao */
   DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:c.nome,responsavel:'',status:'novo',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
+  /* carimbo e fotografia por modulo: o saveDB usa pra so gravar o que mudou,
+     e pra detectar quando alguem salvou por baixo (lock otimista) */
+  DB.__rev=revs;
+  DB.__snap={}; MODMAP.forEach(([m,k])=>{ DB.__snap[m]=JSON.stringify(DB[k]||[]); });
   await loadSenhasPriv();
 }
 async function loadSenhasPriv(){ try{ const {data}=await sb.from('senhas_privadas').select('id,dados'); DB.senhasPriv=(data||[]).map(r=>({...(r.dados||{}),id:r.id,__priv:true})); }catch(_){ DB.senhasPriv=[]; } }
-async function saveDB(){
+/* Aviso que nao some sozinho — pra coisa que o usuario PRECISA ler (perda evitada). */
+function avisoModal(titulo,texto){
+  const o=document.createElement('div'); o.className='overlay';
+  o.innerHTML=`<div class="modal cf-m"><div class="mbody" style="padding-top:22px">
+      <div class="cf-t">${esc(titulo)}</div><p class="cf-x">${esc(texto)}</p></div>
+    <div class="mfoot"><button class="btn small">Entendi</button></div></div>`;
+  document.body.appendChild(o);
+  o.querySelector('.btn').onclick=()=>o.remove();
+}
+/* Fila unica de acesso ao banco de modulos: um load/save por vez. Sem ela, dois saves
+   sobrepostos se auto-conflitam, e um load de navegacao no meio de um save inverte o
+   estado (o select chega antes do commit e o rev novo casa com dados velhos). */
+let __dbFila=Promise.resolve();
+function naFila(fn){
+  const p=__dbFila.then(fn);
+  __dbFila=p.catch(()=>{});   /* erro nao trava a fila */
+  return p;
+}
+const loadDB=(...a)=>naFila(()=>loadDBImpl(...a));
+const saveDB=(...a)=>naFila(()=>saveDBImpl(...a));
+/* Recarrega SO os modulos indicados — troca os arrays no DB atual em vez de substituir
+   o objeto inteiro, entao um formulario aberto sobre OUTRO modulo continua valido. */
+async function recarregarModulos(nomes){
+  const {data,error}=await sb.from('itens').select('modulo,dados,atualizado_em').in('modulo',nomes);
+  if(error) throw error;
+  const porMod={}; MODMAP.forEach(([m,k])=>{ porMod[m]=k; });
+  (data||[]).forEach(r=>{
+    const k=porMod[r.modulo]; if(!k) return;
+    DB[k]=normalizeDB({[k]:r.dados})[k]||r.dados||[];
+    DB.__rev[r.modulo]=r.atualizado_em;
+    DB.__snap[r.modulo]=JSON.stringify(DB[k]||[]);
+  });
+}
+async function saveDBImpl(op){
+  op=op||{};
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
-  /* senhas saiu da lista: o cofre é só do master. Membro nem lê nem regrava esse módulo. */
+  /* senhas: o cofre é só do master. Membro nem lê nem regrava esse módulo. */
   const livres=['projetos','links','trafego','contas_meta'];
   const mods=(currentUser&&currentUser.role==='master')?MODMAP:MODMAP.filter(([m])=>livres.includes(m));
-  const rows=mods.map(([m,k])=>({modulo:m,dados:DB[k]||[],criado_por:SESSION.user.id}));
-  const {error}=await sb.from('itens').upsert(rows,{onConflict:'modulo'});
-  if(error){ toast('Erro ao salvar: '+error.message); throw error; }
+  DB.__snap=DB.__snap||{}; DB.__rev=DB.__rev||{};
+  /* so grava o modulo que a acao realmente mudou — o save de um fixo nao arrasta
+     mais os recebimentos do estado (possivelmente velho) deste navegador junto */
+  const sujos=[];
+  for(const [m,k] of mods){
+    const j=JSON.stringify(DB[k]||[]);
+    if(DB.__snap[m]!==j) sujos.push([m,k,j]);
+  }
+  if(!sujos.length) return;
+  /* pre-checagem: os carimbos de TODOS os sujos ainda batem? Se nao, ninguem gravou
+     nada ainda — recarrega os desatualizados e a acao inteira e refeita. Evita salvar
+     metade de uma acao que toca dois modulos (pagar folha = folha + financeiro). */
+  const comRev=sujos.filter(([m])=>DB.__rev[m]);
+  if(comRev.length){
+    const {data:atual,error:e0}=await sb.from('itens').select('modulo,atualizado_em')
+      .in('modulo',comRev.map(([m])=>m));
+    if(e0){ toast('NÃO SALVOU: '+e0.message+' — tente de novo.'); throw e0; }
+    const mudaram=(atual||[]).filter(r=>DB.__rev[r.modulo]&&r.atualizado_em!==DB.__rev[r.modulo]).map(r=>r.modulo);
+    if(mudaram.length){
+      await recarregarModulos(mudaram);
+      render(currentView);
+      if(op.fundo) toast('Outra tela salvou '+mudaram.join(', ')+' — dados atualizados.');
+      else avisoModal('Alguém salvou enquanto você editava',
+        'Módulo(s): '+mudaram.join(', ')+'. Nada desta ação foi gravado por cima — recarreguei os dados do servidor. Confira na tela e refaça a alteração.');
+      throw new Error('conflito de edição: '+mudaram.join(','));
+    }
+  }
+  /* grava um a um com o lock; se AINDA assim alguem passar na frente (janela minima),
+     continua os demais e avisa exatamente o que entrou e o que nao entrou */
+  const conflitados=[];
+  for(const [m,k,j] of sujos){
+    const rev=DB.__rev[m];
+    if(rev){
+      const {data,error}=await sb.from('itens')
+        .update({dados:DB[k]||[],criado_por:SESSION.user.id})
+        .eq('modulo',m).eq('atualizado_em',rev).select('atualizado_em');
+      if(error){ toast('NÃO SALVOU ('+m+'): '+error.message+' — tente de novo.'); throw error; }
+      if(data&&data.length){ DB.__rev[m]=data[0].atualizado_em; DB.__snap[m]=j; }
+      else conflitados.push(m);
+    } else {
+      const {data,error}=await sb.from('itens')
+        .upsert({modulo:m,dados:DB[k]||[],criado_por:SESSION.user.id},{onConflict:'modulo'})
+        .select('atualizado_em');
+      if(error){ toast('NÃO SALVOU ('+m+'): '+error.message+' — tente de novo.'); throw error; }
+      if(data&&data.length) DB.__rev[m]=data[0].atualizado_em;
+      DB.__snap[m]=j;
+    }
+  }
+  if(conflitados.length){
+    await recarregarModulos(conflitados);
+    render(currentView);
+    if(op.fundo) toast('Outra tela salvou '+conflitados.join(', ')+' — dados atualizados.');
+    else avisoModal('Alguém salvou "'+conflitados.join(', ')+'" no mesmo instante',
+      'A sua alteração NESSE(S) módulo(s) não entrou — recarreguei do servidor; confira e refaça. O resto desta ação foi salvo.');
+    throw new Error('conflito de edição: '+conflitados.join(','));
+  }
 }
 async function ensurePerfil(user){
   const {data:p}=await sb.from('perfis').select('*').eq('id',user.id).maybeSingle();
@@ -2097,7 +2189,7 @@ async function aprenderLimites(){
     if(at > (+mc.limiteVisto||0)){ mc.limiteVisto=at; mudou=true; }   /* pico corrente (informativo) */
     if(mc.ultBalance!==at){ mc.ultBalance=at; mudou=true; }
   });
-  if(mudou){ try{ await saveDB(); }catch(_){} }
+  if(mudou){ try{ await saveDB({fundo:true}); }catch(_){} }
 }
 /* Saldo: conta habilitada que estava rodando e zerou o gasto ontem/hoje = provavelmente sem saldo */
 const isoLocal=(d)=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10);};
@@ -2461,7 +2553,7 @@ window.openRelatorioModal=(accId)=>{
         const rel=await montarRelatorio(accId,cfg);
         const ex=contaMarca(accId)||(()=>{const nv={id:accId,nome:acc.nome,logo:'',cor1:'#14100b',cor2:'#b08d3e',fundo:'#f5f0e8'};DB.contasMeta.push(nv);return nv;})();
         ex.ultRel={impostoPct:cfg.impostoPct};
-        saveDB().catch(()=>{});
+        saveDB({fundo:true}).catch(()=>{});
         abrirEditorRelatorio(rel);
         return true;
       }catch(e){
@@ -3161,7 +3253,7 @@ window.wsMenu=(ev)=>{
     {ic:MICO.pessoas,t:'Usuários',f:()=>render('usuarios'),so:m},
     {ic:MICO.fin,t:'Financeiro',f:()=>render('financeiro'),so:m},
     {sep:true},
-    {ic:MICO.backup,t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click()},
+    {ic:MICO.backup,t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click(),so:m},
     {ic:MICO.senha,t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
     {sep:true},
     {ic:MICO.sair,t:'Sair',dgr:true,f:()=>document.getElementById('btnLogout').click()}
@@ -8351,6 +8443,15 @@ $('#btnBackup').onclick=()=>{
       const f=e.target.files[0]; if(!f)return; const r=new FileReader();
       r.onload=async ()=>{ try{ const d=JSON.parse(r.result);
         if(!confirm('Substituir os dados atuais do sistema pelos do arquivo? Isso vale para todos os usuários.'))return;
+        /* backup exportado por membro vem com os modulos restritos VAZIOS (RLS) — restaurar
+           um desses zeraria financeiro, clientes, recebimentos e folha. Confere antes. */
+        const dNorm=normalizeDB(d);
+        const zerando=[['financeiro','financeiro'],['clientes','clientes'],['recebimentos','recebimentos'],['folha','folha'],['folha_fixos','folhaFixos'],['senhas','senhas']]
+          .filter(([m,k])=>((DB[k]||[]).length>0)&&((dNorm[k]||[]).length===0)).map(([m])=>m);
+        if(zerando.length){
+          const dig=prompt('ATENÇÃO: este arquivo vem com '+zerando.join(', ')+' VAZIO(S), mas o sistema tem dados neles — restaurar APAGA esses módulos (backup feito por um usuário sem acesso a eles?).\n\nDigite APAGAR para continuar mesmo assim:');
+          if((dig||'').trim().toUpperCase()!=='APAGAR'){ toast('Restauração cancelada.'); return; }
+        }
         DB=normalizeDB(d);
         await saveDB(); document.querySelector('.overlay').remove(); render(currentView); toast('Dados restaurados na nuvem.');
       }catch(err){toast('Arquivo inválido.');} };
