@@ -7259,29 +7259,44 @@ window.openCliModal=(id)=>{
       const probDoc=ctConfereDocs(v.contrato.cnpj,v.contrato.rep_cpf,v.contrato.cep);
       if(probDoc){ toast(probDoc); return false; }
       if(!ctConfereDV(v.contrato.cnpj,v.contrato.rep_cpf)) return false;
-      /* Regra do Gabriel: cada mes e um mes. Valor mudou? Pergunta se e pontual do mes
-         filtrado ou recorrente — a ficha e a semente dos meses FUTUROS, entao mexer nela
-         sem perguntar vazava o valor novo pra setembro (caso SO PRIME, ago/2026). */
-      if(id && v.valor!==(Number(it.valor)||0)){
-        const de=Number(it.valor)||0, para=v.valor;
-        const modo=await escolher('Mudar o valor de '+(it.nome||'cliente')+'?',
-          'De '+brl(de)+' para '+brl(para)+'.',
+      /* Regra do Gabriel: cada mes e um mes. Mudou a COBRANCA (valor ou dia de
+         vencimento)? Pergunta se e pontual do mes filtrado ou recorrente — a ficha e a
+         semente dos meses FUTUROS, entao mexer nela sem perguntar vazava a mudanca pra
+         setembro (caso SO PRIME, ago/2026). */
+      const vAntigo=Number(it.valor)||0, dAntigo=(it.diaVenc>=1&&it.diaVenc<=31)?it.diaVenc:null;
+      const valorMudou=id&&v.valor!==vAntigo;
+      const diaMudou=id&&v.diaVenc!==dAntigo;
+      if(valorMudou||diaMudou){
+        const muds=[];
+        if(valorMudou) muds.push('valor: '+brl(vAntigo)+' → '+brl(v.valor));
+        if(diaMudou) muds.push('vencimento: dia '+(dAntigo||'—')+' → dia '+(v.diaVenc||'—'));
+        const modo=await escolher('Mudar a cobrança de '+(it.nome||'cliente')+'?', muds.join('  ·  '),
           [{v:'mes',rot:'Só '+fmtComp(cliComp)},{v:'rec',rot:'Recorrente — de '+fmtComp(cliComp)+' em diante'}]);
         if(!modo) return false;                       /* cancelou: modal fica aberto */
+        const vNovo=v.valor, dNovo=v.diaVenc;
         if(modo==='mes'){
-          v.valor=de;                                  /* a ficha (semente do futuro) nao muda */
+          /* a ficha (semente do futuro) nao muda em nada de cobranca */
+          v.valor=vAntigo; v.diaVenc=dAntigo;
           let r=DB.recebimentos.find(x=>x.comp===cliComp&&x.clienteId===id);
           if(!r){
-            r={id:uid(),comp:cliComp,clienteId:id,nome:v.nome,resp:v.resp,tel:v.tel,valor:para,
-               venc:(v.diaVenc>=1&&v.diaVenc<=31)?vencOf(cliComp,v.diaVenc):null,recebido:false,recebidoEm:null,status:null};
+            r={id:uid(),comp:cliComp,clienteId:id,nome:v.nome,resp:v.resp,tel:v.tel,
+               valor:(valorMudou?vNovo:vAntigo),
+               venc:((diaMudou?dNovo:dAntigo)>=1)?vencOf(cliComp,(diaMudou?dNovo:dAntigo)):null,
+               recebido:false,recebidoEm:null,status:null};
             DB.recebimentos.push(r);
-          } else r.valor=para;                         /* o mes vira snapshot com o valor novo */
+          } else {
+            if(valorMudou) r.valor=vNovo;
+            if(diaMudou&&dNovo>=1&&dNovo<=31) r.venc=vencOf(cliComp,dNovo);
+          }
         } else {
           /* recorrente: congela o passado que ainda herdava da ficha... */
-          DB.recebimentos.forEach(x=>{ if(x.clienteId===id&&x.comp<cliComp&&(x.valor==null||x.valor==='')) x.valor=de; });
-          /* ...e o mes filtrado ja entra com o valor novo */
+          DB.recebimentos.forEach(x=>{ if(x.clienteId===id&&x.comp<cliComp){
+            if(valorMudou&&(x.valor==null||x.valor==='')) x.valor=vAntigo;
+            if(diaMudou&&!x.venc&&dAntigo) x.venc=vencOf(x.comp,dAntigo);
+          }});
+          /* ...e o mes filtrado ja entra com a cobranca nova */
           const r=DB.recebimentos.find(x=>x.comp===cliComp&&x.clienteId===id);
-          if(r) r.valor=para;
+          if(r){ if(valorMudou) r.valor=vNovo; if(diaMudou&&dNovo>=1&&dNovo<=31) r.venc=vencOf(cliComp,dNovo); }
         }
       }
       let alvo;
