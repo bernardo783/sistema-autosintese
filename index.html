@@ -7259,6 +7259,31 @@ window.openCliModal=(id)=>{
       const probDoc=ctConfereDocs(v.contrato.cnpj,v.contrato.rep_cpf,v.contrato.cep);
       if(probDoc){ toast(probDoc); return false; }
       if(!ctConfereDV(v.contrato.cnpj,v.contrato.rep_cpf)) return false;
+      /* Regra do Gabriel: cada mes e um mes. Valor mudou? Pergunta se e pontual do mes
+         filtrado ou recorrente — a ficha e a semente dos meses FUTUROS, entao mexer nela
+         sem perguntar vazava o valor novo pra setembro (caso SO PRIME, ago/2026). */
+      if(id && v.valor!==(Number(it.valor)||0)){
+        const de=Number(it.valor)||0, para=v.valor;
+        const modo=await escolher('Mudar o valor de '+(it.nome||'cliente')+'?',
+          'De '+brl(de)+' para '+brl(para)+'.',
+          [{v:'mes',rot:'Só '+fmtComp(cliComp)},{v:'rec',rot:'Recorrente — de '+fmtComp(cliComp)+' em diante'}]);
+        if(!modo) return false;                       /* cancelou: modal fica aberto */
+        if(modo==='mes'){
+          v.valor=de;                                  /* a ficha (semente do futuro) nao muda */
+          let r=DB.recebimentos.find(x=>x.comp===cliComp&&x.clienteId===id);
+          if(!r){
+            r={id:uid(),comp:cliComp,clienteId:id,nome:v.nome,resp:v.resp,tel:v.tel,valor:para,
+               venc:(v.diaVenc>=1&&v.diaVenc<=31)?vencOf(cliComp,v.diaVenc):null,recebido:false,recebidoEm:null,status:null};
+            DB.recebimentos.push(r);
+          } else r.valor=para;                         /* o mes vira snapshot com o valor novo */
+        } else {
+          /* recorrente: congela o passado que ainda herdava da ficha... */
+          DB.recebimentos.forEach(x=>{ if(x.clienteId===id&&x.comp<cliComp&&(x.valor==null||x.valor==='')) x.valor=de; });
+          /* ...e o mes filtrado ja entra com o valor novo */
+          const r=DB.recebimentos.find(x=>x.comp===cliComp&&x.clienteId===id);
+          if(r) r.valor=para;
+        }
+      }
       let alvo;
       if(id){ Object.assign(it,v); alvo=it; } else { alvo={id:uid(),...v}; DB.clientes.push(alvo); }
       syncProjetoCliente(alvo);
@@ -8404,6 +8429,25 @@ function confirmar(titulo, texto, op){
     o.onclick=(e)=>{ if(e.target===o) fim(false); };
     document.addEventListener('keydown',tecla);
     setTimeout(()=>{ const b=o.querySelector('.cf-s'); if(b) b.focus(); },30);
+  });
+}
+/* Pergunta com escolhas nomeadas — devolve o valor da opcao, ou null se cancelar. */
+function escolher(titulo,texto,ops){
+  return new Promise((ok)=>{
+    const o=document.createElement('div'); o.className='overlay';
+    o.innerHTML=`<div class="modal cf-m"><div class="mbody" style="padding-top:22px">
+        <div class="cf-t">${esc(titulo)}</div>${texto?`<p class="cf-x">${esc(texto)}</p>`:''}</div>
+      <div class="mfoot" style="flex-wrap:wrap;gap:8px">
+        <button class="btn secondary small" data-x="1">Cancelar</button>
+        ${ops.map(b=>`<button class="btn small" data-v="${esc(b.v)}">${esc(b.rot)}</button>`).join('')}
+      </div></div>`;
+    document.body.appendChild(o);
+    const fim=(v)=>{ document.removeEventListener('keydown',tecla); o.remove(); ok(v); };
+    const tecla=(e)=>{ if(e.key==='Escape'){ e.preventDefault(); fim(null); } };
+    o.querySelector('[data-x]').onclick=()=>fim(null);
+    o.querySelectorAll('button[data-v]').forEach(b=>{ b.onclick=()=>fim(b.dataset.v); });
+    o.onclick=(e)=>{ if(e.target===o) fim(null); };
+    document.addEventListener('keydown',tecla);
   });
 }
 function modal(title, bodyHTML, onSave){
