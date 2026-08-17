@@ -19,6 +19,8 @@
     --cardh:#2a2a31; --fraco:#4a4a55;
   
     --info:#60a5fa; --info2:#2dd4bf;
+  
+    --tit1:#ffffff; --tit2:#cbb4f7;
   }
   /* Tema claro. Só os tokens mudam — os 421 usos no CSS acompanham sozinhos.
      O roxo da marca é o mesmo nos dois, escurecido só onde precisa de contraste. */
@@ -34,6 +36,8 @@
     color-scheme:light;
   
     --info:#1d64d8; --info2:#0d7f74;
+  
+    --tit1:#14141a; --tit2:#5b34cf;
   }
   /* Preto puro: nada de cinza no fundo. Painel sobe um degrau só para a borda
      existir — em OLED o preto absoluto some junto com a hierarquia. */
@@ -46,6 +50,8 @@
     color-scheme:dark;
   
     --info:#7db0ff; --info2:#2dd4bf;
+  
+    --tit1:#ffffff; --tit2:#c9b0ff;
   }
   /* Branco puro: fundo #fff. O painel escurece um fio, ao contrário do escuro,
      senão card e página viram a mesma superfície e a borda faz todo o trabalho. */
@@ -58,6 +64,8 @@
     color-scheme:light;
   
     --info:#1550c0; --info2:#0a6d64;
+  
+    --tit1:#0d0d11; --tit2:#4a25c9;
   }
   :root[data-tema="claro"] body,:root[data-tema="branco"] body,
   :root[data-tema="preto"] body{background:var(--bg)}
@@ -487,7 +495,7 @@
   .ws-head:hover .ws-av{box-shadow:inset 0 0 0 1px rgba(168,85,247,.7),0 8px 28px rgba(168,85,247,.55);transform:translateY(-1px)}
   .ws-av svg{width:23px;height:23px;filter:drop-shadow(0 0 7px rgba(168,85,247,.85))}
   .ws-head .ws-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    background:linear-gradient(92deg,#fff 20%,#c9a6ff 90%);-webkit-background-clip:text;background-clip:text;
+    background:linear-gradient(92deg,var(--tit1) 20%,var(--tit2) 90%);-webkit-background-clip:text;background-clip:text;
     -webkit-text-fill-color:transparent;text-shadow:0 0 22px rgba(168,85,247,.28)}
   .ws-head .ws-cv{margin-left:auto;color:var(--muted);font-size:10px;opacity:.65}
   .sp-busca{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
@@ -1138,7 +1146,10 @@
   .search:focus,.field input:focus,.field select:focus,.field textarea:focus{box-shadow:0 0 0 3px rgba(124,58,237,.22)}
   .stSel{transition:all .15s ease}
   .stSel:hover{transform:scale(1.03)}
-  .page-head h2{letter-spacing:-.4px;background:linear-gradient(90deg,#fff,#cbb4f7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  /* Título com gradiente recortado no texto. As duas pontas são token: com #fff
+     fixo, no tema branco isto virava texto branco sobre fundo branco. */
+  .page-head h2{letter-spacing:-.4px;background:linear-gradient(90deg,var(--tit1),var(--tit2));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
   .modal{border:1px solid rgba(168,85,247,.35);box-shadow:0 30px 80px rgba(0,0,0,.6)}
   #toast{background:linear-gradient(135deg,#232327,#1b1b1e);border:1px solid rgba(168,85,247,.45)}
   .fin-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}

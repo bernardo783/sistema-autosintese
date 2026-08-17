@@ -221,6 +221,23 @@ grupo('Temas (escuro, preto, claro, branco)');
   ['claro','preto','branco'].forEach(n=>ok('tema '+n+' define --info',
     new RegExp('data-tema="'+n+'"\\]\\{[^}]*--info\\s*:').test(HTML)));
 
+  secao('texto recortado em gradiente');
+  /* Título da página usa background-clip:text. Com a ponta em #fff fixo, o tema
+     branco dava texto branco sobre branco — foi o 'tudo apagado' de 17/08. */
+  ok('o gradiente do título usa token', /linear-gradient\(90deg,var\(--tit1\),var\(--tit2\)\)/.test(HTML));
+  ok('nenhum #fff fixo em gradiente de texto',
+     !/linear-gradient\([^)]*#fff[^)]*\)[^{}]*background-clip:text/.test(HTML));
+  ['claro','branco'].forEach(n=>{
+    const m=HTML.match(new RegExp('data-tema="'+n+'"\\]\\{[^}]*--tit1:\\s*(#[0-9a-fA-F]{6})'));
+    ok('tema '+n+' tem título escuro', !!m && (parseInt(m[1].slice(1,3),16)<0x60));
+  });
+  ['escuro','preto'].forEach(n=>{
+    const bloco = n==='escuro' ? HTML.slice(HTML.indexOf(':root{'),HTML.indexOf('}',HTML.indexOf(':root{')))
+                               : (HTML.match(new RegExp('data-tema="'+n+'"\\]\\{[^}]*'))||[''])[0];
+    const m=bloco.match(/--tit1:\s*(#[0-9a-fA-F]{6})/);
+    ok('tema '+n+' tem título claro', !!m && (parseInt(m[1].slice(1,3),16)>0xc0));
+  });
+
   secao('hover não pode desaparecer no claro');
   ok('hover virou token', css.indexOf('var(--hov1)')>0);
   ['claro','branco'].forEach(n=>ok(n+' escurece no hover em vez de clarear',
