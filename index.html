@@ -3175,21 +3175,30 @@ window.wsNovo=()=>{
       Serve para demanda particular que não é da agência. Quem cuida do trabalho do time é o
       workspace <strong>${esc(WS_NOME)}</strong>.</p>`,
     async ()=>{
+      /* Trava de clique duplo: sem ela, dois cliques no Salvar criaram dois
+         workspaces com 1,1s de diferença (aconteceu em 17/08). */
+      if(window.__wsCriando) return false;
       const nm=($('#ws_nm').value||'').trim();
       if(!nm){ toast('Dê um nome.'); return false; }
-      const uid=(currentUser||{}).id;
-      const r=await sb.from('workspaces')
-        .insert({nome:nm,tipo:'pessoal',dono:uid,ordem:(TK.ws||[]).length}).select().single();
-      if(r.error){ toast('Erro: '+r.error.message); return false; }
-      TK.ws.push(r.data);
-      const e=await sb.from('espacos')
-        .insert({nome:'Geral',cor:'#7b68ee',ordem:0,workspace_id:r.data.id}).select().single();
-      if(e.error){ toast('Erro ao criar o espaço: '+e.error.message); return false; }
-      TK.espacos.push(e.data);
-      const l=await sb.from('listas').insert({espaco_id:e.data.id,nome:'Tarefas',ordem:0}).select().single();
-      if(!l.error) TK.listas.push(l.data);
-      wsTrocar(r.data.id);
-      return true;
+      if(wsMinhas().some(w=>String(w.nome||'').trim().toLowerCase()===nm.toLowerCase())){
+        toast('Você já tem um workspace com esse nome.'); return false; }
+      window.__wsCriando=true;
+      try{
+        const uid=(currentUser||{}).id;
+        const w=await sb.from('workspaces')
+          .insert({nome:nm,tipo:'pessoal',dono:uid,ordem:(TK.ws||[]).length}).select().single();
+        if(w.error||!w.data){ toast('Erro ao criar: '+((w.error&&w.error.message)||'sem resposta')); return false; }
+        const e=await sb.from('espacos')
+          .insert({nome:'Geral',cor:'#7b68ee',ordem:0,workspace_id:w.data.id}).select().single();
+        if(e.error||!e.data){ toast('Workspace criado, mas o espaço falhou: '+((e.error&&e.error.message)||'sem resposta')); return false; }
+        /* sem .select() aqui: o retorno depende da RLS de leitura e chegou a falhar
+           calado, deixando o workspace sem lista nenhuma. Recarrego do banco. */
+        const l=await sb.from('listas').insert({espaco_id:e.data.id,nome:'Tarefas',ordem:0});
+        if(l.error){ toast('Espaço criado, mas a lista falhou: '+l.error.message); }
+        try{ await tkCarregar(); }catch(_){}
+        wsTrocar(w.data.id);
+        return true;
+      } finally { window.__wsCriando=false; }
     });
 };
 /* Listas que o sistema usa como tela propria: renomear ate pode, apagar nao (levaria as tarefas junto). */
