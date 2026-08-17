@@ -20,6 +20,9 @@
   }
   /* Tema claro. Só os tokens mudam — os 421 usos no CSS acompanham sozinhos.
      O roxo da marca é o mesmo nos dois, escurecido só onde precisa de contraste. */
+  /* Quatro temas. Só os tokens mudam — os 421 usos no CSS acompanham sozinhos.
+     escuro = grafite (padrão) · preto = preto puro
+     claro  = branco quebrado   · branco = branco puro */
   :root[data-tema="claro"]{
     --bg:#f4f4f6; --panel:#ffffff; --panel2:#ececef; --line:#d9d9e0;
     --txt:#1a1a1f; --muted:#6b6b76; --brand:#6d4aff; --brand2:#8b5cf6;
@@ -28,7 +31,28 @@
     --cardh:#e4e4ea; --fraco:#a0a0ac;
     color-scheme:light;
   }
-  :root[data-tema="claro"] body{background:var(--bg)}
+  /* Preto puro: nada de cinza no fundo. Painel sobe um degrau só para a borda
+     existir — em OLED o preto absoluto some junto com a hierarquia. */
+  :root[data-tema="preto"]{
+    --bg:#000000; --panel:#0b0b0d; --panel2:#16161a; --line:#2a2a30;
+    --txt:#f2f2f5; --muted:#8e8e99; --brand:#8b74ff; --brand2:#b79bff;
+    --danger:#ff6b7a; --ok:#3fcf8e; --warn:#f0c04a; --shadow:0 8px 28px rgba(0,0,0,.7);
+    --hov1:rgba(255,255,255,.05); --hov2:rgba(255,255,255,.08); --hov3:rgba(255,255,255,.14);
+    --cardh:#1e1e24; --fraco:#55555f;
+    color-scheme:dark;
+  }
+  /* Branco puro: fundo #fff. O painel escurece um fio, ao contrário do escuro,
+     senão card e página viram a mesma superfície e a borda faz todo o trabalho. */
+  :root[data-tema="branco"]{
+    --bg:#ffffff; --panel:#ffffff; --panel2:#f2f2f5; --line:#e2e2e8;
+    --txt:#111114; --muted:#65656f; --brand:#5b34ff; --brand2:#7c4dff;
+    --danger:#c81e34; --ok:#0b7d52; --warn:#8a5a04; --shadow:0 4px 16px rgba(17,17,20,.10);
+    --hov1:rgba(17,17,20,.03); --hov2:rgba(17,17,20,.05); --hov3:rgba(17,17,20,.09);
+    --cardh:#eeeef2; --fraco:#a8a8b2;
+    color-scheme:light;
+  }
+  :root[data-tema="claro"] body,:root[data-tema="branco"] body,
+  :root[data-tema="preto"] body{background:var(--bg)}
   /* Diz ao navegador que a página é escura: sem isto o calendário nativo, o seletor
      de hora e as barras de rolagem saem brancos no meio do sistema escuro. */
   :root{color-scheme:dark}
@@ -3163,20 +3187,31 @@ const WS_NOME='AutoSíntese';
    privado apareceria junto do trabalho e não seria separação nenhuma. */
 /* ---------- TEMA ----------
    Aplicado o quanto antes: se esperasse o login, o claro piscaria escuro primeiro. */
+const TEMAS=[
+  {k:'escuro',n:'Escuro',ic:'\u25D3',cor:'#141416'},
+  {k:'preto', n:'Preto', ic:'\u25CF',cor:'#000000'},
+  {k:'claro', n:'Claro', ic:'\u25D4',cor:'#f4f4f6'},
+  {k:'branco',n:'Branco',ic:'\u25CB',cor:'#ffffff'}];
 let TEMA='escuro'; try{ TEMA=localStorage.getItem('tema')||'escuro'; }catch(_){}
+if(!TEMAS.some(t=>t.k===TEMA)) TEMA='escuro';
+const temaEhClaro=()=>TEMA==='claro'||TEMA==='branco';
 function temaAplicar(){
   const r=document.documentElement;
-  if(TEMA==='claro') r.setAttribute('data-tema','claro'); else r.removeAttribute('data-tema');
+  if(TEMA==='escuro') r.removeAttribute('data-tema'); else r.setAttribute('data-tema',TEMA);
   const mt=document.querySelector('meta[name="theme-color"]');
-  if(mt) mt.setAttribute('content',TEMA==='claro'?'#f4f4f6':'#7c3aed');
+  if(mt){ const t=TEMAS.find(x=>x.k===TEMA); mt.setAttribute('content',t?t.cor:'#141416'); }
 }
-window.temaVirar=()=>{
-  TEMA=(TEMA==='claro')?'escuro':'claro';
-  try{ localStorage.setItem('tema',TEMA); }catch(_){}
+window.temaPor=(k)=>{
+  if(!TEMAS.some(t=>t.k===k)) return;
+  TEMA=k; try{ localStorage.setItem('tema',k); }catch(_){}
   temaAplicar();
   try{ spDesenhar(); }catch(_){}
-  toast(TEMA==='claro'?'Tema claro.':'Tema escuro.');
+  const t=TEMAS.find(x=>x.k===k);
+  toast('Tema: '+(t?t.n:k)+'.');
 };
+/* itens de tema para os menus, com o ativo marcado */
+const temaItens=()=>TEMAS.map(t=>({ic:t.k===TEMA?'\u25CF':'\u25CB',
+  t:'Tema '+t.n.toLowerCase(), f:()=>temaPor(t.k)}));
 temaAplicar();
 let WS_SEL=''; try{ WS_SEL=localStorage.getItem('ws_sel')||''; }catch(_){}
 const wsEmpresa=()=>(TK.ws||[]).find(w=>w.tipo==='empresa')||null;
@@ -3364,7 +3399,8 @@ window.wsMenu=(ev)=>{
     {sep:true},
     {ic:MICO.backup,t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click(),so:m},
     {ic:MICO.senha,t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
-    {ic:TEMA==='claro'?'\u263E':'\u2600',t:TEMA==='claro'?'Tema escuro':'Tema claro',f:()=>temaVirar()},
+    {sep:true},
+    ...temaItens(),
     {sep:true},
     {ic:MICO.sair,t:'Sair',dgr:true,f:()=>document.getElementById('btnLogout').click()}
   ]);
@@ -3521,7 +3557,8 @@ window.menuUsuario=(ev)=>{
     {cab:currentUser.nome||'Meu perfil'},
     {ic:MICO.perfil,t:'Meu perfil',f:()=>meuPerfil()},
     {ic:MICO.senha,t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
-    {ic:TEMA==='claro'?'\u263E':'\u2600',t:TEMA==='claro'?'Tema escuro':'Tema claro',f:()=>temaVirar()},
+    {sep:true},
+    ...temaItens(),
     {sep:true},
     {ic:MICO.sair,t:'Sair',dgr:true,f:()=>document.getElementById('btnLogout').click()}
   ]);
