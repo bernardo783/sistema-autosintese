@@ -1206,7 +1206,7 @@
   <aside class="sidebar">
     <button class="ws-head" id="wsHead" title="AutoSíntese — menu do workspace" onclick="wsMenu(event)" oncontextmenu="wsMenu(event)">
       <span class="ws-av"><svg viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="#a855f7"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="#a855f7"/></svg></span>
-      <span class="ws-nm">AutoSíntese</span>
+      <span class="ws-nm" id="wsNm">AutoSíntese</span>
       <span class="ws-cv">▼</span>
     </button>
     <input class="sp-busca" id="spBusca" placeholder="Buscar espaço, pasta ou lista…" autocomplete="off" oninput="spFiltrar(this.value)">
@@ -3142,6 +3142,56 @@ sbIniciar();
 window.spExpandir=(eid)=>{ SP_MINI=false; try{ localStorage.setItem('sp_mini','0'); }catch(_){} TK.fechadas['e'+eid]=false; spSalvarArvore(); spDesenhar(); };
 /* ======= NAVEGACAO ESTILO CLICKUP: workspace > espaco > pasta > lista > tarefa ======= */
 const WS_NOME='AutoSíntese';
+/* ---------- WORKSPACES ----------
+   Além do da empresa, cada um pode ter os seus, do tipo 'pessoal' — a RLS entrega
+   somente ao dono. Trocar de workspace troca a árvore de espaços: sem isso o
+   privado apareceria junto do trabalho e não seria separação nenhuma. */
+let WS_SEL=''; try{ WS_SEL=localStorage.getItem('ws_sel')||''; }catch(_){}
+const wsEmpresa=()=>(TK.ws||[]).find(w=>w.tipo==='empresa')||null;
+const wsMinhas=()=>{ const u=(currentUser||{}).id;
+  return (TK.ws||[]).filter(w=>w.tipo==='pessoal'&&String(w.dono)===String(u)); };
+const wsTodas=()=>[wsEmpresa()].filter(Boolean).concat(wsMinhas());
+function wsAtual(){
+  const t=wsTodas();
+  return t.find(w=>String(w.id)===String(WS_SEL)) || wsEmpresa() || t[0] || null;
+}
+const wsNome=()=>{ const w=wsAtual(); return (w&&w.nome)||WS_NOME; };
+/* espaço sem workspace_id é da empresa: o campo nasceu depois dos espaços */
+const espacoDaAtual=(e)=>{ const w=wsAtual(); if(!w) return true;
+  if(!e.workspace_id) return w.tipo==='empresa';
+  return String(e.workspace_id)===String(w.id); };
+window.wsTrocar=(id)=>{ WS_SEL=String(id||'');
+  try{ localStorage.setItem('ws_sel',WS_SEL); }catch(_){}
+  TK.listaSel=''; TK.arqVista=false;
+  const l=(TK.listas||[]).find(x=>{ const e=(TK.espacos||[]).find(y=>y.id===x.espaco_id); return e&&espacoDaAtual(e); });
+  spDesenhar();
+  if(l) spSelLista(l.id); else render('inicio');
+  toast('Workspace: '+wsNome());
+};
+window.wsNovo=()=>{
+  modal('Novo workspace',`
+    <div class="field"><label>Nome</label><input id="ws_nm" placeholder="Ex: Privado, Pessoal, Estudos"></div>
+    <p class="hint" style="margin:0">Workspace novo é <strong>seu</strong>: ninguém mais enxerga, nem os masters.
+      Serve para demanda particular que não é da agência. Quem cuida do trabalho do time é o
+      workspace <strong>${esc(WS_NOME)}</strong>.</p>`,
+    async ()=>{
+      const nm=($('#ws_nm').value||'').trim();
+      if(!nm){ toast('Dê um nome.'); return false; }
+      const uid=(currentUser||{}).id;
+      const r=await sb.from('workspaces')
+        .insert({nome:nm,tipo:'pessoal',dono:uid,ordem:(TK.ws||[]).length}).select().single();
+      if(r.error){ toast('Erro: '+r.error.message); return false; }
+      TK.ws.push(r.data);
+      const e=await sb.from('espacos')
+        .insert({nome:'Geral',cor:'#7b68ee',ordem:0,workspace_id:r.data.id}).select().single();
+      if(e.error){ toast('Erro ao criar o espaço: '+e.error.message); return false; }
+      TK.espacos.push(e.data);
+      const l=await sb.from('listas').insert({espaco_id:e.data.id,nome:'Tarefas',ordem:0}).select().single();
+      if(!l.error) TK.listas.push(l.data);
+      wsTrocar(r.data.id);
+      return true;
+    });
+};
 /* Listas que o sistema usa como tela propria: renomear ate pode, apagar nao (levaria as tarefas junto). */
 const spFixas=()=>[LC_ID,LF_ID,LCT_ID,NC_LISTA,'7381fb45-8d78-458d-b432-77dd88972338'].concat(Object.keys(LFIN));
 const spProtegido=(tipo,id)=>(tipo==='lista'&&spFixas().indexOf(id)>=0)||(tipo==='pasta'&&id===PASTA_FIN);
@@ -3258,7 +3308,12 @@ window.addEventListener('resize',ctxFechar);
 window.wsMenu=(ev)=>{
   const m=!!(currentUser&&currentUser.role==='master');
   ctxAbrir(ev,[
-    {cab:WS_NOME},
+    {cab:'Workspaces'},
+    ...wsTodas().map(w=>({ic:String(w.id)===String((wsAtual()||{}).id)?'●':'○',
+      t:w.nome+(w.tipo==='pessoal'?' (só seu)':''), f:()=>wsTrocar(w.id)})),
+    {ic:MICO.mais,t:'Novo workspace',f:()=>wsNovo()},
+    {sep:true},
+    {cab:wsNome()},
     {ic:MICO.inbox,t:'Minhas tarefas',f:()=>spCaixa()},
     {ic:MICO.pessoas,t:'Clientes',f:()=>spAbrirClientes()},
     {sep:true},
@@ -4442,6 +4497,7 @@ window.ncEnviar=async ()=>{
 };
 function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
+  const wn=document.getElementById('wsNm'); if(wn) wn.textContent=wsNome();
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
   /* Um aceso por vez: o realce diz ONDE VOCÊ ESTÁ, não que a árvore está aberta.
      Antes o Espaços acendia só por estar aberta, e ficava aceso junto com o Início. */
@@ -4479,7 +4535,7 @@ function spDesenhar(){
   /* Favoritos: atalho direto para as listas que voce marcou com estrela. */
   const favs=SP_FAV.map(id=>TK.listas.find(l=>l.id===id)).filter(l=>l&&(!ehFin(l.id)||mst)&&lVis(l));
   const secFav=favs.length?`<div class="sp-sec">FAVORITOS</div><div class="tk-tree" style="margin-bottom:6px">${favs.map(l=>item(l,true)).join('')}</div>`:'';
-  const esps=TK.espacos.filter(eVis);
+  const esps=TK.espacos.filter(espacoDaAtual).filter(eVis);
   const secEsp=`<div class="sp-sec">ESPAÇOS<button title="Novo espaço" onclick="tkNovoEspaco()">+</button></div>`;
   const corpo=esps.length?esps.map(e=>{
     const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id&&lVis(l));

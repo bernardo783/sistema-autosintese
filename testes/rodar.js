@@ -163,6 +163,31 @@ grupo('Só minhas (tarefas individuais)');
   ok('quem nao tem workspace nao ve nada', g.meuPessoalLista()===null && g.minhasPessoais().length===0);
 }
 
+/* ---------------- workspaces ---------------- */
+grupo('Workspaces (empresa + os seus)');
+{
+  const loja={};
+  const g=rodar(bloco("const WS_NOME='AutoSíntese';",'window.wsTrocar='),{
+    localStorage:{getItem:k=>loja[k]||null,setItem:(k,v)=>{loja[k]=v;}},
+    currentUser:{id:'u1'},
+    TK:{ws:[{id:'W0',nome:'AutoSíntese',tipo:'empresa',dono:null},
+            {id:'W1',nome:'Privado',tipo:'pessoal',dono:'u1'},
+            {id:'W2',nome:'Do outro',tipo:'pessoal',dono:'u2'}]},
+    esc:s=>String(s==null?'':s)},
+    ['wsEmpresa','wsMinhas','wsTodas','wsAtual','wsNome','espacoDaAtual','WS_SEL']);
+  ok('acha o da empresa', (g.wsEmpresa()||{}).nome==='AutoSíntese');
+  ok('lista so os meus pessoais', g.wsMinhas().map(w=>w.nome).join(',')==='Privado');
+  ok('nao mostra o pessoal de outro', g.wsTodas().every(w=>w.id!=='W2'));
+  ok('empresa vem primeiro', g.wsTodas()[0].tipo==='empresa');
+  secao('qual esta ativo');
+  ok('sem escolha, cai no da empresa', (g.wsAtual()||{}).id==='W0');
+  ok('o nome acompanha', g.wsNome()==='AutoSíntese');
+  secao('a arvore filtra por workspace');
+  ok('espaco sem workspace conta como da empresa', g.espacoDaAtual({})===true);
+  ok('espaco da empresa aparece', g.espacoDaAtual({workspace_id:'W0'})===true);
+  ok('espaco do privado nao aparece no da empresa', g.espacoDaAtual({workspace_id:'W1'})===false);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
