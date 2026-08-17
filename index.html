@@ -773,6 +773,19 @@
   .sq-todos{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:3px 10px}
   .sq-todos.master{color:var(--muted);background:var(--panel2);border:1px solid var(--line)}
   .sq-todos.aberto{color:#f0cb7d;background:rgba(230,177,63,.12);border:1px solid rgba(230,177,63,.3)}
+  .pes-novo{display:flex;gap:8px;padding:4px 14px 12px}
+  .pes-novo input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:8px 11px;font-size:13.5px;font-family:inherit;outline:none}
+  .pes-novo input:focus{border-color:var(--brand2)}
+  .pes-it{display:flex;align-items:center;gap:10px;padding:7px 14px;border-top:1px solid var(--line)}
+  .pes-t{flex:1;min-width:0;font-size:13.5px}
+  .pes-it.feita .pes-t{text-decoration:line-through;color:var(--muted)}
+  .pes-it.feita{opacity:.6}
+  .pes-x{background:transparent;border:none;color:#4a4a55;cursor:pointer;font-size:12px;padding:2px 5px;border-radius:5px}
+  .pes-it:hover .pes-x{color:var(--muted)}
+  .pes-x:hover{background:rgba(239,91,107,.14);color:#ff9aa5}
+  .pes-sep{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+    font-weight:800;padding:10px 14px 4px;border-top:1px solid var(--line)}
   .ini-prog{font-size:11.5px;color:var(--muted);font-weight:600;padding:9px 14px 2px}
   .ini-tit{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ini-sub{color:var(--muted);font-size:11.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -3700,6 +3713,7 @@ async function tkCarregar(){
   TK.espacos=e.data||[]; TK.pastas=pa.data||[]; TK.listas=l.data||[]; TK.tarefas=t.data||[];
   const mm=await sb.from('no_membros').select('*'); TK.membros=(mm&&mm.data)||[];
   const tp=await sb.from('tipos_tarefa').select('*').order('ordem'); TK.tipos=(tp&&tp.data)||[];
+  const ws=await sb.from('workspaces').select('*'); TK.ws=(ws&&ws.data)||[];
   const tt=await sb.from('tarefa_tempos').select('*'); TK.tempos=(tt&&tt.data)||[];
   TK.equipe=alfab(q.data); TK.status=st.data||[]; TK.campos=cp.data||[];
   if(!TK.listaSel||!TK.listas.some(x=>x.id===TK.listaSel)) TK.listaSel=(TK.listas[0]||{}).id||'';
@@ -4546,6 +4560,104 @@ function faseDe(t){
   return t.status==='feito'?'feito':t.status==='fazendo'?'ativo':'nao_iniciado';
 }
 const minhasTarefas=()=>{ const u=(currentUser||{}).id; return u?(TK.tarefas||[]).filter(t=>ehMinha(t,u)&&!arquivada(t)):[]; };
+/* ---------- SÓ MINHAS: tarefas individuais ----------
+   Cada pessoa tem um workspace próprio (tipo 'pessoal'), que a RLS já entregava
+   somente ao dono — o mecanismo existia e nunca tinha sido usado. Aqui ele ganha
+   porta de entrada: um campo no Início onde você escreve e dá Enter.
+   Nasce sob demanda: quem nunca usou não tem workspace nenhum criado à toa. */
+const meuPessoalWs=()=>{ const u=(currentUser||{}).id;
+  return (TK.ws||[]).find(w=>w.tipo==='pessoal'&&String(w.dono)===String(u))||null; };
+function meuPessoalLista(){
+  const ws=meuPessoalWs(); if(!ws) return null;
+  const esp=(TK.espacos||[]).find(e=>String(e.workspace_id)===String(ws.id)); if(!esp) return null;
+  return (TK.listas||[]).filter(l=>String(l.espaco_id)===String(esp.id)).sort((a,b)=>(a.ordem||0)-(b.ordem||0))[0]||null;
+}
+async function pessoalGarantir(){
+  const uid=(currentUser||{}).id; if(!uid) return null;
+  let ws=meuPessoalWs();
+  if(!ws){
+    const r=await sb.from('workspaces').insert({nome:'Pessoal',tipo:'pessoal',dono:uid,ordem:99}).select().single();
+    if(r.error){ toast('Erro ao criar seu espaço: '+r.error.message); return null; }
+    TK.ws.push(r.data); ws=r.data;
+  }
+  let esp=(TK.espacos||[]).find(e=>String(e.workspace_id)===String(ws.id));
+  if(!esp){
+    const r=await sb.from('espacos').insert({nome:'Só minhas',cor:'#7b68ee',ordem:0,workspace_id:ws.id}).select().single();
+    if(r.error){ toast('Erro: '+r.error.message); return null; }
+    TK.espacos.push(r.data); esp=r.data;
+  }
+  let lst=meuPessoalLista();
+  if(!lst){
+    const r=await sb.from('listas').insert({espaco_id:esp.id,nome:'Minhas tarefas',ordem:0}).select().single();
+    if(r.error){ toast('Erro: '+r.error.message); return null; }
+    TK.listas.push(r.data); lst=r.data;
+  }
+  return lst;
+}
+const ehPessoal=(t)=>{ const l=meuPessoalLista(); return !!l&&String(t&&t.lista_id)===String(l.id); };
+const minhasPessoais=()=>{ const l=meuPessoalLista(); if(!l) return [];
+  return (TK.tarefas||[]).filter(t=>String(t.lista_id)===String(l.id)&&!arquivada(t)); };
+
+window.pessoalEnter=(ev,el)=>{ if(ev.key==='Enter'){ ev.preventDefault(); pessoalAdd(el); } };
+window.pessoalAdd=async (el)=>{
+  const txt=String((el&&el.value)||'').trim(); if(!txt) return;
+  el.disabled=true;
+  const l=await pessoalGarantir();
+  if(!l){ el.disabled=false; return; }
+  const uid=(currentUser||{}).id;
+  const {data,error}=await sb.from('tarefas').insert({
+    lista_id:l.id, titulo:txt, status:'todo', prioridade:'med',
+    responsavel_id:uid, responsaveis:[uid], ordem:(TK.tarefas||[]).length, criado_por:uid
+  }).select().single();
+  el.disabled=false;
+  if(error){ toast('Erro: '+error.message); return; }
+  TK.tarefas.push(data); el.value='';
+  renderInicio($('#content')); spDesenhar();
+  const b=document.getElementById('pes_novo'); if(b) b.focus();
+};
+window.pessoalVirar=async (id)=>{
+  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
+  const feito=t.status!=='feito';
+  const patch=feito?{status:'feito',concluida_em:new Date().toISOString()}:{status:'todo',concluida_em:null};
+  const {error}=await sb.from('tarefas').update(patch).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  Object.assign(t,patch); renderInicio($('#content')); spDesenhar();
+};
+window.pessoalApagar=async (id)=>{
+  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
+  if(!confirm('Apagar "'+t.titulo+'"?')) return;
+  const {error}=await sb.from('tarefas').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  TK.tarefas=TK.tarefas.filter(x=>String(x.id)!==String(id));
+  renderInicio($('#content')); spDesenhar();
+};
+/* Bloco do Início. Anotação pessoal não entra nos outros blocos — ela mora aqui. */
+function pessoalBloco(){
+  const its=minhasPessoais();
+  const abertas=its.filter(t=>t.status!=='feito');
+  const feitas=its.filter(t=>t.status==='feito');
+  const linha=(t)=>`<div class="pes-it${t.status==='feito'?' feita':''}">
+      <button type="button" class="ini-ok${t.status==='feito'?' feito':''}" style="--bol:#8b8b95"
+        title="${t.status==='feito'?'Desmarcar':'Concluir'}" onclick="pessoalVirar('${t.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+          stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>
+      <span class="pes-t">${esc(t.titulo)}</span>
+      <button type="button" class="pes-x" title="Apagar" onclick="pessoalApagar('${t.id}')">&#10005;</button>
+    </div>`;
+  return `<div class="ini-box">
+     <div class="ini-h">✎ Só minhas
+       <span class="hint" style="margin:0;font-weight:600">anotações suas, ninguém mais vê</span></div>
+     <div class="pes-novo">
+       <input id="pes_novo" placeholder="Escreva e dê Enter" autocomplete="off"
+         onkeydown="pessoalEnter(event,this)">
+       <button class="btn ghost small" onclick="pessoalAdd(document.getElementById('pes_novo'))">Adicionar</button>
+     </div>
+     ${abertas.map(linha).join('')}
+     ${feitas.length?`<div class="pes-sep">${feitas.length} concluída${feitas.length>1?'s':''}</div>`+feitas.map(linha).join(''):''}
+     ${!its.length?'<div class="hint" style="padding:4px 14px 10px">Nada aqui ainda. Serve para o que é seu e não vira demanda de ninguém.</div>':''}
+   </div>`;
+}
+
 /* Concluir sem sair do Início: usa o status "feito" da própria lista quando ela
    tem status próprios, senão cai no status simples. */
 /* Desmarcar: volta para o primeiro status não-concluído da lista. Marcar sem
@@ -4595,13 +4707,13 @@ function renderInicio(c){
   const ate= inicioPer==='per'?(inicioAte||hoje) : hoje;
   const noPeriodo=(d)=>!!d && String(d).slice(0,10)>=de && String(d).slice(0,10)<=ate;
   const todas=minhasTarefas();
-  const abertas=todas.filter(t=>faseDe(t)!=='feito'&&faseDe(t)!=='fechado');
+  const abertas=todas.filter(t=>faseDe(t)!=='feito'&&faseDe(t)!=='fechado'&&!ehPessoal(t));
   const pendentes=abertas.filter(t=>noPeriodo(t.prazo));
   const andamento=abertas.filter(t=>faseDe(t)==='ativo');
   /* aberta, sem prazo e sem ter comecado: nao cai em nenhum outro bloco.
      Sem isto, esconder o atalho Tarefas faria a demanda sumir da vista. */
   const semPrazo=abertas.filter(t=>!t.prazo&&faseDe(t)!=='ativo');
-  const feitas=todas.filter(t=>faseDe(t)==='feito'&&(noPeriodo(t.concluida_em)||noPeriodo(t.prazo)));
+  const feitas=todas.filter(t=>faseDe(t)==='feito'&&!ehPessoal(t)&&(noPeriodo(t.concluida_em)||noPeriodo(t.prazo)));
   /* média só do que dá para medir: precisa de abertura e conclusão com hora */
   const comTempo=feitas.filter(t=>t.criado_em&&t.concluida_em);
   const medUteis=comTempo.length?comTempo.reduce((s,t)=>s+minUteis(t.criado_em,t.concluida_em),0)/comTempo.length:0;
@@ -4679,6 +4791,7 @@ function renderInicio(c){
      ${semPrazo.slice(0,10).map(t=>item(t,'')).join('')}
      ${semPrazo.length>10?`<div class="hint" style="margin:8px 0 0">e mais ${semPrazo.length-10}…</div>`:''}
    </div>`:''}
+   ${pessoalBloco()}
    <p class="hint" style="margin-top:14px">Clique numa demanda para abrir. Tudo que aparece aqui está atribuído a você.</p>`;
   spDesenhar();   /* sem isto o realce do rail nao acompanha o clique em Inicio */
 }

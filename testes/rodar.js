@@ -139,6 +139,30 @@ grupo('Cada lista lembra da própria visão');
   ok('gravou no navegador', /L1/.test(loja['tk_visao_lista']||''));
 }
 
+/* ---------------- só minhas ---------------- */
+grupo('Só minhas (tarefas individuais)');
+{
+  const g=rodar(bloco('const meuPessoalWs=','window.pessoalEnter='),{
+    currentUser:{id:'u1'},
+    TK:{ws:[{id:'W1',tipo:'pessoal',dono:'u1'},{id:'W0',tipo:'empresa',dono:null},
+            {id:'W2',tipo:'pessoal',dono:'u2'}],
+        espacos:[{id:'E1',workspace_id:'W1'},{id:'E2',workspace_id:'W2'},{id:'E0',workspace_id:'W0'}],
+        listas:[{id:'L1',espaco_id:'E1',ordem:1},{id:'L0',espaco_id:'E1',ordem:0},{id:'LX',espaco_id:'E2'}],
+        tarefas:[{id:'T1',lista_id:'L0',status:'todo'},{id:'T2',lista_id:'L0',status:'feito'},
+                 {id:'T3',lista_id:'E0',status:'todo'},{id:'T4',lista_id:'L0',status:'todo',arquivada_em:'2026-08-01'}]},
+    arquivada:t=>!!(t&&t.arquivada_em), esc:s=>String(s==null?'':s), toast:()=>{}},
+    ['meuPessoalWs','meuPessoalLista','ehPessoal','minhasPessoais']);
+  ok('acha o meu workspace pessoal', (g.meuPessoalWs()||{}).id==='W1');
+  ok('ignora o de outra pessoa', (g.meuPessoalWs()||{}).dono==='u1');
+  ok('pega a primeira lista pela ordem', (g.meuPessoalLista()||{}).id==='L0');
+  ok('reconhece tarefa pessoal', g.ehPessoal({lista_id:'L0'})===true);
+  ok('nao confunde com tarefa da empresa', g.ehPessoal({lista_id:'E0'})===false);
+  ok('lista as minhas', g.minhasPessoais().map(t=>t.id).join(',')==='T1,T2');
+  ok('arquivada fica de fora', g.minhasPessoais().every(t=>t.id!=='T4'));
+  g.currentUser={id:'u9'};
+  ok('quem nao tem workspace nao ve nada', g.meuPessoalLista()===null && g.minhasPessoais().length===0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
