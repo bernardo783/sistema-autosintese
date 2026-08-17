@@ -17,6 +17,8 @@
        Estavam como rgba(255,255,255,x) espalhados e não invertiam. */
     --hov1:rgba(255,255,255,.04); --hov2:rgba(255,255,255,.06); --hov3:rgba(255,255,255,.11);
     --cardh:#2a2a31; --fraco:#4a4a55;
+  
+    --info:#60a5fa; --info2:#2dd4bf;
   }
   /* Tema claro. Só os tokens mudam — os 421 usos no CSS acompanham sozinhos.
      O roxo da marca é o mesmo nos dois, escurecido só onde precisa de contraste. */
@@ -30,6 +32,8 @@
     --hov1:rgba(20,20,30,.035); --hov2:rgba(20,20,30,.055); --hov3:rgba(20,20,30,.1);
     --cardh:#e4e4ea; --fraco:#a0a0ac;
     color-scheme:light;
+  
+    --info:#1d64d8; --info2:#0d7f74;
   }
   /* Preto puro: nada de cinza no fundo. Painel sobe um degrau só para a borda
      existir — em OLED o preto absoluto some junto com a hierarquia. */
@@ -40,6 +44,8 @@
     --hov1:rgba(255,255,255,.05); --hov2:rgba(255,255,255,.08); --hov3:rgba(255,255,255,.14);
     --cardh:#1e1e24; --fraco:#55555f;
     color-scheme:dark;
+  
+    --info:#7db0ff; --info2:#2dd4bf;
   }
   /* Branco puro: fundo #fff. O painel escurece um fio, ao contrário do escuro,
      senão card e página viram a mesma superfície e a borda faz todo o trabalho. */
@@ -50,6 +56,8 @@
     --hov1:rgba(17,17,20,.03); --hov2:rgba(17,17,20,.05); --hov3:rgba(17,17,20,.09);
     --cardh:#eeeef2; --fraco:#a8a8b2;
     color-scheme:light;
+  
+    --info:#1550c0; --info2:#0a6d64;
   }
   :root[data-tema="claro"] body,:root[data-tema="branco"] body,
   :root[data-tema="preto"] body{background:var(--bg)}
@@ -427,8 +435,8 @@
   .cx-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
   .cx-h h3{font-size:17px;font-weight:800}
   .cx-ok{display:inline-block;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:7px;
-    background:rgba(52,211,153,.14);color:#34d399}
-  .cx-off{background:rgba(248,113,113,.14);color:#f87171}
+    background:rgba(52,211,153,.14);color:var(--ok)}
+  .cx-off{background:rgba(248,113,113,.14);color:var(--danger)}
   .cx-n{color:var(--muted);font-size:12.5px;margin-bottom:10px}
   .cx-list{max-height:420px;overflow-y:auto;padding-right:4px;margin:0 -2px}
   .cx-item{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid transparent;
@@ -437,9 +445,9 @@
   .cx-item .nm{font-weight:700;font-size:13.5px;letter-spacing:.2px}
   .cx-item .id{color:var(--muted);font-size:11.5px;margin-top:2px;font-family:ui-monospace,monospace}
   .cx-tag{font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;white-space:nowrap;
-    background:rgba(52,211,153,.14);color:#34d399}
-  .cx-tag.warn{background:rgba(251,191,36,.14);color:#fbbf24}
-  .cx-tag.off{background:rgba(248,113,113,.14);color:#f87171}
+    background:rgba(52,211,153,.14);color:var(--ok)}
+  .cx-tag.warn{background:rgba(251,191,36,.14);color:var(--warn)}
+  .cx-tag.off{background:rgba(248,113,113,.14);color:var(--danger)}
   .cx-num{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
   .cx-num > div{background:var(--panel2);border-radius:10px;padding:12px 14px}
   .cx-num .k{font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
@@ -706,17 +714,17 @@
   .tag.receita{background:rgba(62,196,109,.15);color:var(--ok)}
   .tag.despesa{background:rgba(229,72,77,.15);color:var(--danger)}
   .tag.st{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
-  .tag.andamento{background:rgba(47,124,246,.15);color:#7db0ff}
+  .tag.andamento{background:rgba(47,124,246,.15);color:var(--info)}
   .tag.concluido{background:rgba(62,196,109,.15);color:var(--ok)}
   .tag.pausado{background:rgba(224,166,59,.15);color:var(--warn)}
   .tag.planejado{background:rgba(139,152,172,.15);color:var(--muted)}
-  .tag.novo{background:rgba(47,124,246,.15);color:#7db0ff}
+  .tag.novo{background:rgba(47,124,246,.15);color:var(--info)}
   .tag.onboarding{background:rgba(224,166,59,.15);color:var(--warn)}
   .tag.ativo{background:rgba(62,196,109,.15);color:var(--ok)}
   .tag.churn{background:rgba(229,72,77,.15);color:var(--danger)}
-  .tag.cat-trafego{background:rgba(47,124,246,.18);color:#7db0ff}
-  .tag.cat-ia{background:rgba(45,212,191,.15);color:#2dd4bf}
-  .tag.cat-full{background:rgba(245,158,11,.18);color:#fbbf24}
+  .tag.cat-trafego{background:rgba(47,124,246,.18);color:var(--info)}
+  .tag.cat-ia{background:rgba(45,212,191,.15);color:var(--info2)}
+  .tag.cat-full{background:rgba(245,158,11,.18);color:var(--warn)}
   .avt{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;font-size:11px;font-weight:800;color:#fff;border:2px solid var(--panel);flex:none;letter-spacing:.5px}
   .avts{display:inline-flex;align-items:center}
   .avts .avt+.avt{margin-left:-9px}
@@ -725,7 +733,7 @@
   .stSel.recebido{background:rgba(62,196,109,.15);color:var(--ok);border-color:rgba(62,196,109,.4)}
   .stSel.inadimplente{background:rgba(229,72,77,.15);color:var(--danger);border-color:rgba(229,72,77,.4)}
   .stSel.areceber{background:rgba(224,166,59,.15);color:var(--warn);border-color:rgba(224,166,59,.4)}
-  .stSel.sinal{background:rgba(47,124,246,.15);color:#7db0ff;border-color:rgba(47,124,246,.4)}
+  .stSel.sinal{background:rgba(47,124,246,.15);color:var(--info);border-color:rgba(47,124,246,.4)}
   .stSel.churn{background:rgba(229,72,77,.22);color:var(--danger);border-color:rgba(229,72,77,.55)}
   .tk-wrap{display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:start}
   .tk-lista{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--txt);padding:7px 9px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit}
@@ -992,7 +1000,7 @@
   .iconbtn.del:hover{color:var(--danger);border-color:var(--danger)}
   .money{font-variant-numeric:tabular-nums;font-weight:700}
   .empty{padding:44px;text-align:center;color:var(--muted);font-size:14px}
-  a.link{color:#7db0ff;text-decoration:none}
+  a.link{color:var(--info);text-decoration:none}
   a.link:hover{text-decoration:underline}
   .pw-cell{display:flex;align-items:center;gap:8px}
   .pw-dots{font-family:monospace;letter-spacing:2px}
@@ -1741,7 +1749,7 @@ function risco(c){
   }else if(saldoConta(c).parou){ nivel='atencao'; motivo='parou de gastar'; }
   return {nivel,motivo,pg,f,saldo,md,orcSem,dias,pct,pctAviso};
 }
-const RISCO_COR={critico:'#f87171',atencao:'#fbbf24',ok:'#34d399'};
+const RISCO_COR={critico:'var(--danger)',atencao:'var(--warn)',ok:'var(--ok)'};
 const RISCO_TXT={critico:'Crítico',atencao:'Em atenção',ok:'Saldo ok'};
 /* custo por conversa/lead da conta no período */
 function custoConversa(c){
@@ -1836,7 +1844,7 @@ function abaConexao(){
       </div>
       <div class="cx-num">
         <div><div class="k">Ligadas</div><div class="v">${ligadas.length}</div></div>
-        <div><div class="k">Prontas p/ relatório</div><div class="v" style="color:${prontas===ligadas.length&&prontas?'#34d399':'#fbbf24'}">${prontas}</div></div>
+        <div><div class="k">Prontas p/ relatório</div><div class="v" style="color:${prontas===ligadas.length&&prontas?'var(--ok)':'var(--warn)'}">${prontas}</div></div>
       </div>
       ${soltas.length?`<div class="cx-n" style="margin-bottom:6px">Sem cliente</div>
         <div class="cx-list" style="max-height:170px;margin-bottom:12px">${soltas.map(pendente).join('')}</div>`:''}
@@ -1863,7 +1871,7 @@ function abaEquipes(){
   const nomes=Object.keys(grupos).sort();
   const pend = semDono.length?`<div style="border:1px solid #7a5c17;background:rgba(251,191,36,.07);border-radius:12px;padding:14px;margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <div style="font-weight:800;font-size:14.5px;color:#fbbf24">⚠️ ${semDono.length} conta${semDono.length===1?'':'s'} sem squad</div>
+        <div style="font-weight:800;font-size:14.5px;color:var(--warn)">⚠️ ${semDono.length} conta${semDono.length===1?'':'s'} sem squad</div>
         <button class="btn small" style="margin-left:auto" onclick="atribuirSquads()">Atribuir responsável</button>
       </div>
       <div style="font-size:12.5px;color:var(--muted)">${semDono.map(x=>esc(x.f.nome)).join(' · ')}</div>
@@ -1882,7 +1890,7 @@ function abaEquipes(){
           <div style="font-weight:800;color:var(--brand2)">${brl(g.gasto)}</div></div>
       </div>
       <div style="height:7px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-bottom:8px">
-        <div style="width:${pctRisco}%;height:100%;background:${pctRisco>30?'#f87171':pctRisco>0?'#fbbf24':'#34d399'}"></div>
+        <div style="width:${pctRisco}%;height:100%;background:${pctRisco>30?'var(--danger)':pctRisco>0?'var(--warn)':'var(--ok)'}"></div>
       </div>
       <div style="font-size:11.5px;color:var(--muted)">${pctRisco}% das contas pedindo atenção · gestores: ${Object.entries(g.gestores).map(([k,v])=>esc(k)+' ('+v+')').join(' · ')}</div>
     </div>`;
@@ -1907,8 +1915,8 @@ function abaCentral(){
   return `
     <div class="cards" style="margin-bottom:18px">
       <div class="card"><div class="k">Contas acompanhadas</div><div class="v">${dados.length}</div><div class="sub">${brl(gasto)} no período</div></div>
-      <div class="card"><div class="k">Críticas</div><div class="v" style="color:${crit.length?'#f87171':''}">${crit.length}</div><div class="sub">sem saldo ou travadas</div></div>
-      <div class="card"><div class="k">Em atenção</div><div class="v" style="color:${aten.length?'#fbbf24':''}">${aten.length}</div><div class="sub">saldo curto ou parado</div></div>
+      <div class="card"><div class="k">Críticas</div><div class="v" style="color:${crit.length?'var(--danger)':''}">${crit.length}</div><div class="sub">sem saldo ou travadas</div></div>
+      <div class="card"><div class="k">Em atenção</div><div class="v" style="color:${aten.length?'var(--warn)':''}">${aten.length}</div><div class="sub">saldo curto ou parado</div></div>
       <div class="card"><div class="k">Custo por conversa</div><div class="v">${mediana?brl(mediana):'—'}</div><div class="sub">mediana da carteira</div></div>
     </div>
     ${crit.length||aten.length?`<div style="font-size:13px;font-weight:800;margin:4px 0 4px">🔴 Contas em risco</div>
@@ -1916,7 +1924,7 @@ function abaCentral(){
       :'<div class="empty" style="padding:18px">Nenhuma conta em risco agora. 🎉</div>'}
     ${caros.length?`<div style="font-size:13px;font-weight:800;margin:20px 0 4px">💸 Custo por conversa acima da média</div>
       <div class="hint" style="margin:0 0 6px">Mais de 50% acima da mediana da carteira (${brl(mediana)}).</div>
-      ${caros.map(x=>linha(x,`<strong style="color:#fbbf24">${brl(x.cpc)}</strong><div style="color:var(--muted);font-size:11px">mediana ${brl(mediana)}</div>`)).join('')}`:''}`;
+      ${caros.map(x=>linha(x,`<strong style="color:var(--warn)">${brl(x.cpc)}</strong><div style="color:var(--muted);font-size:11px">mediana ${brl(mediana)}</div>`)).join('')}`:''}`;
 }
 function renderTrafego(c){
   c.innerHTML=`
@@ -2306,43 +2314,43 @@ window.metaDesenhar=()=>{
     if(!pg) col1=`<div style="min-width:132px"><div style="font-size:10.5px;text-transform:uppercase;color:var(--muted)">Pagamento</div><div style="color:var(--muted);font-size:12.5px">—</div></div>`;
     else if(pg.problema) col1=`<div style="min-width:132px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="tag" style="background:rgba(248,113,113,.18);color:#f87171;font-size:10px;font-weight:800;letter-spacing:.5px">${pg.prepago?'⚡ PIX':'💳 CARTÃO'}</span>
+          <span class="tag" style="background:rgba(248,113,113,.18);color:var(--danger);font-size:10px;font-weight:800;letter-spacing:.5px">${pg.prepago?'⚡ PIX':'💳 CARTÃO'}</span>
         </div>
-        <div style="font-weight:800;font-size:14px;color:#f87171">${esc(pg.statusTxt)}</div>
-        <div style="font-size:10.5px;color:#f87171">${pg.motivoTxt?esc(pg.motivoTxt)+' · ':''}anúncios parados</div>
+        <div style="font-weight:800;font-size:14px;color:var(--danger)">${esc(pg.statusTxt)}</div>
+        <div style="font-size:10.5px;color:var(--danger)">${pg.motivoTxt?esc(pg.motivoTxt)+' · ':''}anúncios parados</div>
       </div>`;
     else if(pg.prepago){
       const s=pg.saldo, zero=s!=null&&s<1, baixo=s!=null&&s>=1&&s<50;
       col1=`<div style="min-width:132px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="tag" style="background:rgba(52,211,153,.16);color:#34d399;font-size:10px;font-weight:800;letter-spacing:.5px">⚡ PIX</span>
+          <span class="tag" style="background:rgba(52,211,153,.16);color:var(--ok);font-size:10px;font-weight:800;letter-spacing:.5px">⚡ PIX</span>
           <span style="font-size:10px;color:var(--muted);text-transform:uppercase">saldo</span>
         </div>
-        <div style="font-weight:800;font-size:16px;color:${zero?'#f87171':baixo?'#fbbf24':'#34d399'}">${s!=null?brl(s):'—'}</div>
-        ${zero?'<div style="font-size:10.5px;color:#f87171">precisa recarregar</div>':baixo?'<div style="font-size:10.5px;color:#fbbf24">saldo baixo</div>':''}
+        <div style="font-weight:800;font-size:16px;color:${zero?'var(--danger)':baixo?'var(--warn)':'var(--ok)'}">${s!=null?brl(s):'—'}</div>
+        ${zero?'<div style="font-size:10.5px;color:var(--danger)">precisa recarregar</div>':baixo?'<div style="font-size:10.5px;color:var(--warn)">saldo baixo</div>':''}
       </div>`;
     }else{
       const f=pg.falta, perto=f!=null&&pg.limite&&f<pg.limite*0.15;
       col1=`<div style="min-width:132px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="tag" style="background:rgba(96,165,250,.16);color:#60a5fa;font-size:10px;font-weight:800;letter-spacing:.5px">💳 CARTÃO</span>
+          <span class="tag" style="background:rgba(96,165,250,.16);color:var(--info);font-size:10px;font-weight:800;letter-spacing:.5px">💳 CARTÃO</span>
           <span style="font-size:10px;color:var(--muted)">${esc(pg.cartao||'')}</span>
         </div>
         ${f!=null
-          ? `<div style="font-weight:800;font-size:16px;color:${perto?'#fbbf24':'#60a5fa'}">${brl(f)}</div>
-             <div style="font-size:10.5px;color:var(--muted)">falta p/ cobrar${pg.limiteEstimado?' <span title="Limite estimado observando as cobranças. Informe o valor exato em 🎨 Marca." style="color:#fbbf24;cursor:help">~</span>':''} · limite ${brl(pg.limite)}</div>`
-          : `<div style="font-weight:800;font-size:16px;color:#60a5fa">${pg.acumulado!=null?brl(pg.acumulado):'—'}</div>
-             <div style="font-size:10.5px;color:var(--muted)">acumulado · <span style="color:#fbbf24">informe o limite</span></div>`}
+          ? `<div style="font-weight:800;font-size:16px;color:${perto?'var(--warn)':'var(--info)'}">${brl(f)}</div>
+             <div style="font-size:10.5px;color:var(--muted)">falta p/ cobrar${pg.limiteEstimado?' <span title="Limite estimado observando as cobranças. Informe o valor exato em 🎨 Marca." style="color:var(--warn);cursor:help">~</span>':''} · limite ${brl(pg.limite)}</div>`
+          : `<div style="font-weight:800;font-size:16px;color:var(--info)">${pg.acumulado!=null?brl(pg.acumulado):'—'}</div>
+             <div style="font-size:10.5px;color:var(--muted)">acumulado · <span style="color:var(--warn)">informe o limite</span></div>`}
       </div>`;
     }
-    return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid ${pg&&pg.problema?'#7f1d1d':'var(--border)'};border-radius:12px;padding:12px 14px;margin-bottom:10px;background:${pg&&pg.problema?'rgba(248,113,113,.07)':'rgba(255,255,255,.02)'}">
+    return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid ${pg&&pg.problema?'var(--danger)':'var(--border)'};border-radius:12px;padding:12px 14px;margin-bottom:10px;background:${pg&&pg.problema?'rgba(248,113,113,.07)':'rgba(255,255,255,.02)'}">
       ${logo}
       <div style="flex:1;min-width:170px">
-        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sn&&sn.nivel==='zero'?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${sd.parou?' <span class="tag" style="font-size:11px;background:rgba(251,191,36,.18);color:#fbbf24">parou de gastar</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px">⚠ ${esc(pg.statusTxt)}</span>`:''}</div>
-        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:#fbbf24">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&m.logo?'':` · <span style="color:#fbbf24;cursor:pointer;text-decoration:underline" onclick="openMarcaModal('${esc(c.id)}')">➕ adicionar logo</span>`}</div>
+        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sn&&sn.nivel==='zero'?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${sd.parou?' <span class="tag" style="font-size:11px;background:rgba(251,191,36,.18);color:var(--warn)">parou de gastar</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px">⚠ ${esc(pg.statusTxt)}</span>`:''}</div>
+        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:var(--warn)">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&m.logo?'':` · <span style="color:var(--warn);cursor:pointer;text-decoration:underline" onclick="openMarcaModal('${esc(c.id)}')">➕ adicionar logo</span>`}</div>
         <div style="font-size:12px;margin-top:3px">${(()=>{const f=fichaDaConta(c.id);
           return f?`<a class="link" style="cursor:pointer" onclick="abrirCliente('${f.id}')">🤝 ${esc(f.nome)}</a>`
-                  :`<span style="color:#fbbf24;cursor:pointer" onclick="abrirVinculos('${esc(c.id)}')">🔗 vincular a um cliente</span>`;})()}</div>
+                  :`<span style="color:var(--warn);cursor:pointer" onclick="abrirVinculos('${esc(c.id)}')">🔗 vincular a um cliente</span>`;})()}</div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap">
         ${col1}
@@ -2387,11 +2395,11 @@ window.metaDesenhar=()=>{
   const elA=$('#mtAtivos'); if(elA) elA.textContent=ativos.length||'—';
   const elAs=$('#mtAtivosSub'); if(elAs) elAs.textContent=todas.length?`de ${todas.length} conta${todas.length===1?'':'s'} no gerenciador`:'contas habilitadas no Meta';
   const elS=$('#mtSemSaldo');
-  if(elS){ elS.textContent=semSaldo.length||'0'; elS.style.color=semSaldo.length?'#f87171':''; }
+  if(elS){ elS.textContent=semSaldo.length||'0'; elS.style.color=semSaldo.length?'var(--danger)':''; }
   const elSs=$('#mtSemSaldoSub');
   if(elSs) elSs.innerHTML=semSaldo.length?nomesDe(semSaldo):'saldo ok em todas';
   const elP=$('#mtParou');
-  if(elP){ elP.textContent=parados.length||'0'; elP.style.color=parados.length?'#fbbf24':''; }
+  if(elP){ elP.textContent=parados.length||'0'; elP.style.color=parados.length?'var(--warn)':''; }
   const elPs=$('#mtParouSub');
   if(elPs) elPs.innerHTML=parados.length?nomesDe(parados):'todas gastando normalmente';
   mtAlertas(todas);
@@ -2495,7 +2503,7 @@ window.abrirVinculos=(soEsta)=>{
         <div style="font-weight:700;font-size:13.5px">${esc(l.c.nome)}</div>
         <div style="color:var(--muted);font-size:11.5px;margin-bottom:7px">${esc(l.c.id)}</div>
         <input class="search" list="dlFichas" autocomplete="off" data-acc="${esc(l.c.id)}" value="${esc(nomeDaFicha(l.atual||l.sug))}" placeholder="digite o nome do cliente..." style="width:100%">
-        ${!l.atual&&l.sug?`<div style="font-size:11.5px;color:#34d399;margin-top:5px">✨ sugerido: ${esc(l.sugNome)}${l.score<0.8?' (confira)':''}</div>`:''}
+        ${!l.atual&&l.sug?`<div style="font-size:11.5px;color:var(--ok);margin-top:5px">✨ sugerido: ${esc(l.sugNome)}${l.score<0.8?' (confira)':''}</div>`:''}
         ${l.atual?`<div style="font-size:11.5px;color:var(--muted);margin-top:5px">já vinculada</div>`:''}
       </div>`).join('')}
     ${nPal?`<p class="hint" style="margin:2px 0 0">As sugestões já vêm selecionadas — é só salvar.</p>`:''}`,
@@ -2903,7 +2911,7 @@ function abrirEditorRelatorio(rel){
      <div style="width:290px;flex:none;overflow:auto;border-right:1px solid var(--border);background:var(--panel);padding:14px">
        <div style="font-weight:800;font-size:13px;margin-bottom:4px">Anúncios no relatório</div>
        <div class="hint" style="margin:0 0 10px">Desmarque para ocultar do relatório — atualiza na hora. Os totais das outras páginas continuam considerando todos os anúncios; ajuste os textos manualmente se precisar.</div>
-       ${rel.adsErro?`<div class="hint" style="margin:0 0 10px;color:#fbbf24">⚠️ Não foi possível carregar os anúncios do Meta (${esc(rel.adsErro)}). O relatório saiu sem a página de anúncios.</div>`:''}
+       ${rel.adsErro?`<div class="hint" style="margin:0 0 10px;color:var(--warn)">⚠️ Não foi possível carregar os anúncios do Meta (${esc(rel.adsErro)}). O relatório saiu sem a página de anúncios.</div>`:''}
        <div id="edAds"></div>
        <div style="margin-top:12px;display:flex;gap:8px">
          <button class="iconbtn" id="edAll" style="flex:1">Marcar todos</button>
@@ -4862,7 +4870,7 @@ function renderInicio(c){
     const dias=t.prazo?Math.round((new Date(hoje)-new Date(String(t.prazo).slice(0,10)))/86400000):0;
     return `<div class="ini-it${tipo==='ok'?' feita':''}" onclick="tkAbrir('${t.id}')">
       <button type="button" class="ini-ok${tipo==='ok'?' feito':''}" title="${tipo==='ok'?'Desmarcar':'Marcar como concluída'}"
-        style="--bol:${tipo==='atraso'?'#f87171':faseDe(t)==='ativo'?'#60a5fa':'#8b8b95'}"
+        style="--bol:${tipo==='atraso'?'var(--danger)':faseDe(t)==='ativo'?'var(--info)':'#8b8b95'}"
         onclick="${tipo==='ok'?`iniDesfazer(event,'${t.id}')`:`iniConcluir(event,'${t.id}')`}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>
       <div style="flex:1;min-width:0">
@@ -4891,7 +4899,7 @@ function renderInicio(c){
      <div class="card"><div class="k">Demandas ${inicioPer==='hoje'?'de hoje':'do período'}</div>
        <div class="v">${pendentes.length}</div><div class="sub">${pendentes.length?'esperando você':'nada pendente 🎉'}</div></div>
      <div class="card"><div class="k">Em andamento</div>
-       <div class="v" style="color:#60a5fa">${andamento.length}</div><div class="sub">já começadas</div></div>
+       <div class="v" style="color:var(--info)">${andamento.length}</div><div class="sub">já começadas</div></div>
      <div class="card"><div class="k">Concluídas</div>
        <div class="v pos">${feitas.length}</div><div class="sub">${inicioPer==='hoje'?'hoje':inicioPer==='7d'?'nos últimos 7 dias':'no período'}</div></div>
      <div class="card"><div class="k">Tempo médio por demanda</div>
@@ -4966,7 +4974,7 @@ function lcAtalhos(){
 window.lcGestorF=(g)=>{ TK.lcGestor=g; TK.lcVista=''; tkDesenhar($('#content')); };
 window.lcVerGerentes=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
 const LC_NIVEL={promotor:{rot:'Promotor',cor:'#3fcf8e'},neutro:{rot:'Neutro',cor:'#8b95a5'},detrator:{rot:'Detrator',cor:'#ef5b6b'}};
-const LC_PG={recebido:{rot:'OK',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'#60a5fa'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},churn:{rot:'CHURN',cor:'#8b95a5'}};
+const LC_PG={recebido:{rot:'OK',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},churn:{rot:'CHURN',cor:'#8b95a5'}};
 function lcVistaGerentes(){
   const por={};
   tkFiltradas().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
@@ -6540,9 +6548,9 @@ function renderDash(c){
    </div>
    <h2 style="font-size:16px;margin:4px 0 10px">Receita por serviço — ${fmtCompExt(compRef)}</h2>
    <div class="cards">
-     <div class="card"><div class="k">Tráfego Pago</div><div class="v" style="color:#7db0ff">${brl(RS.trafego)}</div><div class="sub">${RSn.trafego} cliente${RSn.trafego===1?'':'s'}</div></div>
-     <div class="card"><div class="k">Agent IA</div><div class="v" style="color:#2dd4bf">${brl(RS.ia)}</div><div class="sub">${RSn.ia} cliente${RSn.ia===1?'':'s'}</div></div>
-     <div class="card"><div class="k">Tráfego + Agent IA</div><div class="v" style="color:#fbbf24">${brl(RS.full)}</div><div class="sub">${RSn.full} cliente${RSn.full===1?'':'s'}</div></div>
+     <div class="card"><div class="k">Tráfego Pago</div><div class="v" style="color:var(--info)">${brl(RS.trafego)}</div><div class="sub">${RSn.trafego} cliente${RSn.trafego===1?'':'s'}</div></div>
+     <div class="card"><div class="k">Agent IA</div><div class="v" style="color:var(--info2)">${brl(RS.ia)}</div><div class="sub">${RSn.ia} cliente${RSn.ia===1?'':'s'}</div></div>
+     <div class="card"><div class="k">Tráfego + Agent IA</div><div class="v" style="color:var(--warn)">${brl(RS.full)}</div><div class="sub">${RSn.full} cliente${RSn.full===1?'':'s'}</div></div>
      ${RSn.outro?`<div class="card"><div class="k">Outros serviços</div><div class="v">${brl(RS.outro)}</div><div class="sub">${RSn.outro} cliente${RSn.outro===1?'':'s'}</div></div>`:''}
    </div>`;
   $('#dashCompInp').onchange=e=>{ dashComp=e.target.value||compNow(); dashDe=''; dashAte=''; render('dash'); };
@@ -6907,7 +6915,7 @@ const nichoDe=(p,c)=>{ if(p.nicho&&NICHOS.includes(p.nicho)) return p.nicho;
   if(/odonto|dent/.test(s)) return 'Clínica Odontológica';
   if(s.trim()) return 'Diversos';
   return ''; };
-const NICHO_CSS={'Loja de Carro':'background:rgba(248,113,113,.16);color:#f87171','Loja de Moto':'background:rgba(163,230,53,.16);color:#a3e635','Repasse':'background:rgba(251,191,36,.16);color:#fbbf24','Clínica Odontológica':'background:rgba(103,232,249,.16);color:#67e8f9','Diversos':'background:rgba(156,163,175,.18);color:#c3c8d1'};
+const NICHO_CSS={'Loja de Carro':'background:rgba(248,113,113,.16);color:var(--danger)','Loja de Moto':'background:rgba(163,230,53,.16);color:#a3e635','Repasse':'background:rgba(251,191,36,.16);color:var(--warn)','Clínica Odontológica':'background:rgba(103,232,249,.16);color:#67e8f9','Diversos':'background:rgba(156,163,175,.18);color:#c3c8d1'};
 const FICHA_REQ=[['grupoWpp','Grupo WhatsApp'],['produtos','Produtos/serviços'],['instagram','Instagram'],['drive','Drive']];
 const fichaVal=(p,c,k)=>String((p&&p[k])||(c&&c[k])||'').trim();
 const fichaFalta=(p,c)=>{ const f=[];
@@ -7042,18 +7050,18 @@ function renderProjetos(c){
      <div class="toolbar"><input class="search" id="pSearch" placeholder="Buscar..."><button class="btn small" onclick="openProjModal()">+ Cliente</button></div>
    </div>
    <div class="cards">
-     <div class="card"><div class="k">Tráfego Pago</div><div class="v" style="color:#7db0ff">${contCat.trafego}</div><div class="sub">clientes só de tráfego</div></div>
-     <div class="card"><div class="k">Agent IA</div><div class="v" style="color:#2dd4bf">${contCat.ia}</div><div class="sub">clientes só de IA</div></div>
-     <div class="card"><div class="k">Tráfego + Agent IA</div><div class="v" style="color:#fbbf24">${contCat.full}</div><div class="sub">pacote completo</div></div>
+     <div class="card"><div class="k">Tráfego Pago</div><div class="v" style="color:var(--info)">${contCat.trafego}</div><div class="sub">clientes só de tráfego</div></div>
+     <div class="card"><div class="k">Agent IA</div><div class="v" style="color:var(--info2)">${contCat.ia}</div><div class="sub">clientes só de IA</div></div>
+     <div class="card"><div class="k">Tráfego + Agent IA</div><div class="v" style="color:var(--warn)">${contCat.full}</div><div class="sub">pacote completo</div></div>
      ${contCat.outro?`<div class="card"><div class="k">Outros serviços</div><div class="v">${contCat.outro}</div><div class="sub">social media etc.</div></div>`:''}
    </div>
    <div class="cards" style="margin-top:10px">
-     <div class="card"><div class="k">Loja de Carro</div><div class="v" style="color:#f87171">${contNi['Loja de Carro']||0}</div><div class="sub">clientes do nicho</div></div>
+     <div class="card"><div class="k">Loja de Carro</div><div class="v" style="color:var(--danger)">${contNi['Loja de Carro']||0}</div><div class="sub">clientes do nicho</div></div>
      <div class="card"><div class="k">Loja de Moto</div><div class="v" style="color:#a3e635">${contNi['Loja de Moto']||0}</div><div class="sub">clientes do nicho</div></div>
-     <div class="card"><div class="k">Repasse</div><div class="v" style="color:#fbbf24">${contNi['Repasse']||0}</div><div class="sub">clientes do nicho</div></div>
+     <div class="card"><div class="k">Repasse</div><div class="v" style="color:var(--warn)">${contNi['Repasse']||0}</div><div class="sub">clientes do nicho</div></div>
      <div class="card"><div class="k">Clínica Odontológica</div><div class="v" style="color:#67e8f9">${contNi['Clínica Odontológica']||0}</div><div class="sub">clientes do nicho</div></div>
      <div class="card"><div class="k">Diversos</div><div class="v" style="color:#c3c8d1">${contNi['Diversos']||0}</div><div class="sub">outros nichos</div></div>
-     <div class="card"><div class="k">Fichas incompletas</div><div class="v" style="color:#fbbf24">${DB.projetos.filter(p=>fichaFalta(p,DB.clientes.find(x=>x.id===p.clienteId)).length).length}</div><div class="sub">falta preencher dados</div></div>
+     <div class="card"><div class="k">Fichas incompletas</div><div class="v" style="color:var(--warn)">${DB.projetos.filter(p=>fichaFalta(p,DB.clientes.find(x=>x.id===p.clienteId)).length).length}</div><div class="sub">falta preencher dados</div></div>
    </div>
    <div id="prjLists"></div>
    <p class="hint" style="margin-top:12px">Clique no cliente para abrir a ficha com tudo que está ligado a ele: contas de anúncio do Meta, acessos e — para usuários master — o financeiro. Contas de anúncio se ligam em <strong>Tráfego Pago → 🔗 Vincular a clientes</strong>.</p>`;
@@ -7127,7 +7135,7 @@ function abaContasCliente(f){
      const gasto=+(i.spend||0);
      const leads=(i.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
      const pg=viva?pagConta(viva):null;
-     return `<div style="border:1px solid ${pg&&pg.problema?'#7f1d1d':'var(--border)'};border-radius:10px;padding:11px 13px;margin-bottom:8px">
+     return `<div style="border:1px solid ${pg&&pg.problema?'var(--danger)':'var(--border)'};border-radius:10px;padding:11px 13px;margin-bottom:8px">
        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
          ${m.logo?`<img src="${esc(m.logo)}" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;flex:none">`:''}
          <div style="flex:1;min-width:140px">
@@ -7138,7 +7146,7 @@ function abaContasCliente(f){
          <div style="text-align:right"><div style="font-size:10px;color:var(--muted);text-transform:uppercase">leads</div><div style="font-weight:800">${leads||'—'}</div></div>`
          :'<div style="color:var(--muted);font-size:12px">abra Tráfego Pago p/ ver métricas</div>'}
        </div>
-       ${pg&&pg.problema?`<div style="margin-top:7px;font-size:12px;color:#f87171">⚠ ${esc(pg.statusTxt)} — anúncios parados</div>`:''}
+       ${pg&&pg.problema?`<div style="margin-top:7px;font-size:12px;color:var(--danger)">⚠ ${esc(pg.statusTxt)} — anúncios parados</div>`:''}
        <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap">
          ${viva?`<button class="btn small" onclick="document.querySelector('.overlay').remove();openRelatorioModal('${esc(m.id)}')">📄 Gerar relatório</button>`:''}
          <button class="iconbtn" onclick="openMarcaModal('${esc(m.id)}')">🎨 Marca</button>
@@ -8164,7 +8172,7 @@ function renderFolha(c){
    <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>Escritório / DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
    <tbody>${(()=>{ const g=agrupar(fixos,f=>(f.esc||'').trim());
      const linha=(f)=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.esc?`<span class="tag st">🏢 ${esc(f.esc)}</span>`:(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:#7db0ff">📅 próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
+     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.esc?`<span class="tag st">🏢 ${esc(f.esc)}</span>`:(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:var(--info)">📅 próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
      <td class="money" style="text-align:right">${brl(f.valor)}</td>
      <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
      <td><div class="rowact">

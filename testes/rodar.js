@@ -211,6 +211,16 @@ grupo('Temas (escuro, preto, claro, branco)');
   ['claro','branco'].forEach(n=>ok(n+' declara color-scheme light',
     new RegExp('data-tema="'+n+'"\\]\\{[^}]*color-scheme\\s*:\\s*light').test(css)));
   ok('preto declara color-scheme dark', /data-tema="preto"\]\{[^}]*color-scheme\s*:\s*dark/.test(css));
+  secao('nenhuma cor de fundo escuro escapou');
+  /* Pastel claro como cor de TEXTO só funciona sobre fundo escuro: no tema branco
+     ele lava e fica ilegível. Foi o que quebrou o branco na primeira versão. */
+  const semPaleta=HTML.replace(/:root(?:\[data-tema="[a-z]+"\])?\{[^}]*\}/g,'');
+  const pasteis=['#fbbf24','#f87171','#34d399','#60a5fa','#7db0ff','#2dd4bf'];
+  pasteis.forEach(c=>ok('nenhum '+c+' fora da paleta', semPaleta.indexOf(c)<0));
+  ok('existe token --info para o azul', /--info\s*:/.test(HTML));
+  ['claro','preto','branco'].forEach(n=>ok('tema '+n+' define --info',
+    new RegExp('data-tema="'+n+'"\\]\\{[^}]*--info\\s*:').test(HTML)));
+
   secao('hover não pode desaparecer no claro');
   ok('hover virou token', css.indexOf('var(--hov1)')>0);
   ['claro','branco'].forEach(n=>ok(n+' escurece no hover em vez de clarear',
