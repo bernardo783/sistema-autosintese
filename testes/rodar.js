@@ -169,6 +169,7 @@ grupo('Workspaces (empresa + os seus)');
   const loja={};
   const g=rodar(bloco("const WS_NOME='AutoSíntese';",'window.wsTrocar='),{
     localStorage:{getItem:k=>loja[k]||null,setItem:(k,v)=>{loja[k]=v;}},
+    document:{documentElement:{setAttribute(){},removeAttribute(){}},querySelector:()=>null},
     currentUser:{id:'u1'},
     TK:{ws:[{id:'W0',nome:'AutoSíntese',tipo:'empresa',dono:null},
             {id:'W1',nome:'Privado',tipo:'pessoal',dono:'u1'},
@@ -186,6 +187,29 @@ grupo('Workspaces (empresa + os seus)');
   ok('espaco sem workspace conta como da empresa', g.espacoDaAtual({})===true);
   ok('espaco da empresa aparece', g.espacoDaAtual({workspace_id:'W0'})===true);
   ok('espaco do privado nao aparece no da empresa', g.espacoDaAtual({workspace_id:'W1'})===false);
+}
+
+/* ---------------- tema claro ---------------- */
+grupo('Tema claro e escuro');
+{
+  const css=HTML.slice(HTML.indexOf('<style>'),HTML.indexOf('</style>'));
+  const pega=(sel)=>{ const i=css.indexOf(sel); if(i<0) return null;
+    return css.slice(i,css.indexOf('}',i)); };
+  const toks=(bloco)=>(bloco||'').match(/--[a-z0-9]+(?=\s*:)/g)||[];
+  const escuro=toks(pega(':root{')), claro=toks(pega(':root[data-tema="claro"]{'));
+  ok('o tema escuro define os tokens', escuro.length>10);
+  ok('o tema claro existe', claro.length>10);
+  const faltando=escuro.filter(x=>claro.indexOf(x)<0);
+  ok('todo token do escuro tem par no claro', faltando.length===0);
+  if(faltando.length) console.log('      sem par: '+faltando.join(', '));
+  secao('nada de cor crua que não inverte');
+  const corpo=css.slice(css.indexOf(':root[data-tema="claro"]'));
+  const brancos=(corpo.match(/rgba\(255,255,255,\.0[0-9]+\)/g)||[]);
+  ok('sobrou pouco branco translúcido de fundo', brancos.length<=4);
+  ok('hover virou token', css.indexOf('var(--hov1)')>0);
+  secao('o claro precisa avisar o navegador');
+  ok('declara color-scheme light', /data-tema="claro"\]\{[^}]*color-scheme\s*:\s*light/.test(css));
+  ok('o escuro segue com color-scheme dark', /:root\{color-scheme:dark\}/.test(css)||css.indexOf('color-scheme:dark')>0);
 }
 
 console.log('\n'+(falhas
