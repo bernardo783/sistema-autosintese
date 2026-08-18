@@ -304,6 +304,29 @@ grupo('Leads do Yay Forms no funil');
   ok('nulo não quebra', g.fnFormsResumo(null).total===0);
 }
 
+/* ---------------- fechamento: squad -> gerente e gestor ---------------- */
+grupo('Fechamento: o squad decide gerente e gestor');
+{
+  const g=rodar(bloco('function fcSquads(){','window.fcSquadMudou='),{
+    TK:{equipe:[
+      {id:'a',nome:'Luiz',cargo:'gerente',squads:['01']},
+      {id:'b',nome:'Luan Santiago',cargo:'gestor de trafego',squads:['01']},
+      {id:'c',nome:'João',cargo:'gerente',squads:['02']},
+      {id:'d',nome:'Yghor',cargo:'gestor de trafego',squads:['02']},
+      {id:'e',nome:'Maria',cargo:'editora de video',squads:[]},
+      {id:'f',nome:'Bernardo',cargo:'gerente de projetos',squads:[]}]},
+    SQUADS:()=>['01','02','03']},['fcSquads']);
+  const s=g.fcSquads();
+  ok('lista os squads em ordem', s.map(x=>x.squad).join(',')==='01,02,03');
+  ok('squad 01: gerente Luiz', s[0].gerente==='Luiz');
+  ok('squad 01: gestor Luan', s[0].gestor==='Luan Santiago');
+  ok('squad 02: gerente João', s[1].gerente==='João');
+  ok('squad 02: gestor Yghor', s[1].gestor==='Yghor');
+  ok('squad sem gente vem vazio, não quebra', s[2].gerente===''&&s[2].gestor==='');
+  ok('gerente de projetos não é confundido com gerente', !s.some(x=>x.gerente==='Bernardo'));
+  ok('editora não entra', !s.some(x=>x.gestor==='Maria'));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
