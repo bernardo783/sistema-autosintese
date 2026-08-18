@@ -672,6 +672,22 @@
     font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);padding:8px 12px}
   .fp-faixa .fp-sub{margin-left:8px;font-weight:600;letter-spacing:0;text-transform:none;opacity:.65}
   .tk-sec-n{color:var(--muted);font-weight:700;font-size:11px;margin-left:5px}
+  /* ---------- RELACIONAMENTOS (formato ClickUp) ---------- */
+  .rel-sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .rel-sec{margin-bottom:16px}
+  .rel-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;margin-bottom:6px}
+  .rel-i{width:18px;text-align:center;color:var(--brand2)}
+  .rel-n{color:var(--muted);font-weight:700;font-size:11.5px}
+  .rel-body{border-left:2px solid var(--line);margin-left:8px;padding-left:12px}
+  .rel-item{display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:8px;cursor:pointer;min-width:0}
+  .rel-item:hover{background:var(--panel2)}
+  .rel-doc{color:var(--muted);flex:none;width:16px;text-align:center}
+  .rel-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:600}
+  .rel-st{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px;flex:none;letter-spacing:.3px}
+  .rel-q{color:var(--muted);font-size:11.5px;flex:none}
+  .rel-add{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--muted);
+    font-family:inherit;font-size:13px;font-weight:600;padding:8px 8px;border-radius:8px}
+  .rel-add:hover{background:var(--panel2);color:var(--txt)}
   /* ---------- NOTIFICAÇÕES ---------- */
   .ntf{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);
     border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
@@ -5834,6 +5850,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       render('tarefas'); toast('Salvo.'); return true;
     });
   ckPintar();
+  window.__tkmTarefaId=t?t.id:'';
   setTimeout(()=>{ if(t){ tkmAtvCarregar(t.id); tkmAnxCarregar(t.id); } tkmRelPintar();
     const sel=document.getElementById('tk_ficha'); if(sel) sel.addEventListener('change',tkmRelPintar); },40);
 };
@@ -5980,21 +5997,83 @@ window.tkmApagar=async (id,tid)=>{
 };
 /* O vinculo ja existe no dado (tarefas.ficha_id) — aqui ele finalmente aparece como
    relacionamento: cartao do cliente, com atalho pra ficha e o historico dele. */
+/* Relacionamentos no formato do ClickUp: secoes nomeadas com icone, cada item uma linha
+   clicavel com avatar, e "+ Adicionar" no fim. Tres secoes: o Projeto (ficha do cliente),
+   o Financeiro daquele cliente (mes corrente + a receber) e as Demandas em aberto dele. */
+const relIco={proj:'⇄',fin:'💰',dem:'◔',ok:'✔',aviso:'⚠'};
 window.tkmRelPintar=()=>{
   const box=document.getElementById('tkmRelBox'); if(!box) return;
   const fid=((document.getElementById('tk_ficha')||{}).value)||'';
   const f=fid?fichaDe(fid):null;
-  const b=document.getElementById('tkmBRel'); if(b) b.textContent=f?'1':'';
-  if(!f){ box.innerHTML='<p class="hint">Nenhum projeto ligado. Escolha o cliente em Detalhes e ele aparece aqui como relacionamento.</p>'; return; }
-  const outras=(TK.tarefas||[]).filter(x=>String(x.ficha_id||'')===String(fid));
-  box.innerHTML=`<div class="tkm-rel">
-      <div class="tkm-relh">${esc(f.nome||'Cliente')}</div>
-      <div class="hint" style="margin:2px 0 10px">${esc(PRJ_NORM(f.status)||'')}${f.squad?(' · Squad '+esc(f.squad)):''}</div>
-      <button class="btn secondary small" type="button" onclick="abrirCliente('${fid}')">Abrir ficha do cliente</button>
+  const tid=(window.__tkmTarefaId||'');
+  const b=document.getElementById('tkmBRel');
+  if(!f){
+    if(b) b.textContent='';
+    box.innerHTML=`<p class="rel-sub">Veja do que esta tarefa faz parte: o projeto, o financeiro do cliente e as outras demandas dele.</p>
+      <div class="rel-sec"><div class="rel-h"><span class="rel-i">${relIco.proj}</span>Projeto</div>
+        <div class="rel-body"><button class="rel-add" type="button" onclick="tkmAba('Det');setTimeout(()=>{const s=document.getElementById('tk_ficha'); if(s) s.focus();},60)">+ Vincular a um projeto</button></div></div>`;
+    return;
+  }
+  const master=!!(currentUser&&currentUser.role==='master');
+  const cli=finDaFicha(f);
+  const comp=compNow();
+  const recs=(DB.recebimentos||[]).filter(r=>cli&&r.clienteId===cli.id);
+  const rMes=recs.find(r=>r.comp===comp);
+  const status=(rMes&&rMes.status)||(rMes&&rMes.recebido?'recebido':'areceber');
+  const st=LC_PG[status]||LC_PG.areceber;
+  const valorMes=rMes&&rMes.valor!=null?Number(rMes.valor):(cli?Number(cli.valor)||0:0);
+  const abertos=recs.filter(r=>r.comp<=comp&&!r.recebido&&r.status!=='churn').length;
+  const demandas=(TK.tarefas||[]).filter(x=>String(x.ficha_id||'')===String(fid)&&x.id!==tid&&x.status!=='feito'&&!arquivada(x));
+  const total=1+(master&&cli?1:0)+demandas.length;
+  if(b) b.textContent=total;
+  const av=(uid,nome)=>uid?avatar(uid,nome,'sm'):`<span class="av sm">${esc(inicial(nome))}</span>`;
+  const linhaTarefa=(x)=>{ const s=x.status_id?tkStatus1(x.status_id):null;
+    return `<div class="rel-item" onclick="tkAbrir('${x.id}')">
+      <span class="rel-doc">▤</span>
+      <span class="rel-t">${esc(x.titulo||'')}</span>
+      ${s?`<span class="rel-st" style="color:${esc(s.cor)};background:${esc(s.cor)}1f">${esc(s.nome)}</span>`:''}
+      ${x.prazo?`<span class="rel-q">${esc(fmtDate(x.prazo))}</span>`:''}
+      ${av(x.responsavel_id,tkNomeUser(x.responsavel_id))}
+    </div>`; };
+  box.innerHTML=`
+    <p class="rel-sub">Veja do que esta tarefa faz parte: o projeto, o financeiro do cliente e as outras demandas dele.</p>
+    <div class="rel-sec">
+      <div class="rel-h"><span class="rel-i">${relIco.proj}</span>Projeto</div>
+      <div class="rel-body">
+        <div class="rel-item" onclick="abrirCliente('${fid}')">
+          <span class="rel-doc">⧉</span>
+          <span class="rel-t">${esc(f.nome||'Cliente')}</span>
+          <span class="rel-q">${esc(PRJ_NORM(f.status)||'')}${f.squad?(' · Squad '+esc(f.squad)):''}</span>
+          ${av(null,f.gerente||f.responsavel||f.nome)}
+        </div>
+      </div>
     </div>
-    <div class="hint" style="margin:14px 0 6px">Histórico deste projeto — ${outras.length} tarefa(s)</div>
-    ${outras.slice(0,12).map(x=>`<div class="tkm-hist"><span>${esc(x.titulo||'')}</span>
-       <span class="hint" style="margin:0">${esc(tkCaminho(x.lista_id))}</span></div>`).join('')||'<p class="hint">Esta é a primeira.</p>'}`;
+    ${master?`<div class="rel-sec">
+      <div class="rel-h"><span class="rel-i">${relIco.fin}</span>Financeiro</div>
+      <div class="rel-body">
+        ${cli?`<div class="rel-item" onclick="abrirCliente('${fid}','fin')">
+          <span class="rel-doc" style="color:${st.cor}">${status==='recebido'?relIco.ok:relIco.aviso}</span>
+          <span class="rel-t">${esc(fmtComp(comp))} · ${brl(valorMes)}</span>
+          <span class="rel-st" style="color:${st.cor};background:${st.cor}1f">${esc(st.rot)}</span>
+          ${abertos>1?`<span class="rel-q">${abertos} em aberto</span>`:''}
+        </div>
+        <button class="rel-add" type="button" onclick="cliComp='${comp}';render('recebimentos');const o=document.querySelector('.overlay');if(o)o.remove();">Ver recebimentos deste mês</button>`
+        :`<button class="rel-add" type="button" onclick="abrirCliente('${fid}','fin')">+ Cadastrar financeiro deste cliente</button>`}
+      </div>
+    </div>`:''}
+    <div class="rel-sec">
+      <div class="rel-h"><span class="rel-i">${relIco.dem}</span>Demandas em aberto <span class="rel-n">${demandas.length}</span></div>
+      <div class="rel-body">
+        ${demandas.slice(0,15).map(linhaTarefa).join('')}
+        ${demandas.length>15?`<div class="rel-q" style="padding:4px 0 2px">+ ${demandas.length-15} mais…</div>`:''}
+        <button class="rel-add" type="button" onclick="tkmNovaDemanda('${fid}')">+ Adicionar demanda para este cliente</button>
+      </div>
+    </div>`;
+};
+/* Nova demanda ja amarrada ao mesmo cliente, na lista atual. */
+window.tkmNovaDemanda=(fid)=>{
+  const o=document.querySelector('.overlay'); if(o) o.remove();
+  setTimeout(()=>{ tkAbrir(); setTimeout(()=>{ const s=document.getElementById('tk_ficha'); if(s){ s.value=fid; tkmRelPintar(); } },80); },40);
 };
 /* ---------- ARQUIVAR E EXCLUIR (fluxo do Trello) ----------
    Arquivar tira o cartão da vista sem destruir nada; excluir de vez só acontece
