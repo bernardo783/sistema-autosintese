@@ -244,6 +244,53 @@ grupo('Temas (escuro, preto, claro, branco)');
     new RegExp('data-tema="'+n+'"\\]\\{[^}]*--hov1:\\s*rgba\\((?!255)').test(css)));
 }
 
+/* ---------------- funil de captação ---------------- */
+grupo('Funil de captação (métricas puras, sem rede)');
+{
+  const g=rodar(bloco('const DT_MES=','let DT={')+bloco('const FN_ACT=','async function fnBuscar('),{
+    MT_LEADS:['lead','leadgen_grouped','onsite_conversion.lead_grouped','offsite_conversion.fb_pixel_lead','onsite_conversion.messaging_conversation_started_7d'],
+    esc:s=>String(s==null?'':s)},
+    ['fnMetricas','fnVar','fnSerie','fnJanelaAnterior','fnPresetJanela','fnLeads','FN']);
+  const ins={spend:'812.50',impressions:'40000',reach:'25000',clicks:'950',frequency:'1.6',
+    actions:[{action_type:'lead',value:'12'},{action_type:'onsite_conversion.messaging_conversation_started_7d',value:'7'},
+             {action_type:'link_click',value:'900'}]};
+  secao('métricas do período');
+  const m=g.fnMetricas(ins);
+  ok('leads soma formulário e WhatsApp', m.leads===19);
+  ok('só o WhatsApp separado', m.zap===7);
+  ok('CPL = gasto ÷ leads', Math.round(m.cpl*100)/100===42.76);
+  ok('CTR em %', m.ctr===2.4);
+  ok('CPC', Math.round(m.cpc*1000)/1000===0.855);
+  ok('CPM por mil', Math.round(m.cpm*100)/100===20.31);
+  ok('clique→lead em %', m.txLead===2);
+  ok('sem insight devolve null', g.fnMetricas(null)===null);
+  ok('sem lead não divide por zero', g.fnMetricas({spend:'10',clicks:'0'}).cpl===0);
+  secao('comparação com o período anterior');
+  const ant=g.fnMetricas({spend:'700',impressions:'30000',clicks:'800',actions:[{action_type:'lead',value:'20'}]});
+  const v=g.fnVar(m,ant);
+  ok('gasto subiu ~16%', v.gasto===16.1);
+  ok('leads caíram 5%', v.leads===-5);
+  ok('CPL subiu (custo pior)', v.cpl>0);
+  ok('sem anterior, sem variação', Object.keys(g.fnVar(m,null)).length===0);
+  ok('anterior zerado vira 100%', g.fnVar({leads:5},{leads:0}).leads===100);
+  secao('janela do período anterior');
+  const j=g.fnJanelaAnterior('2026-08-08','2026-08-14');
+  ok('7 dias antes de 8–14/08 é 1–7/08', j.de==='2026-08-01'&&j.ate==='2026-08-07');
+  const j1=g.fnJanelaAnterior('2026-08-10','2026-08-10');
+  ok('um dia só compara com o dia anterior', j1.de==='2026-08-09'&&j1.ate==='2026-08-09');
+  ok('vira o mês', g.fnJanelaAnterior('2026-09-01','2026-09-03').de==='2026-08-29');
+  ok('data inválida não quebra', g.fnJanelaAnterior('','')===null);
+  secao('série diária');
+  const s=g.fnSerie([{d:'2026-08-10',s:'100',acts:[{action_type:'lead',value:'3'}]},{d:'2026-08-11',s:'50',acts:[]}]);
+  ok('gasto por dia', s[0].gasto===100&&s[1].gasto===50);
+  ok('leads por dia', s[0].leads===3&&s[1].leads===0);
+  ok('vazio não quebra', g.fnSerie(null).length===0);
+  secao('presets');
+  ok('hoje é hoje', g.fnPresetJanela('today').de===g.fnPresetJanela('today').ate);
+  ok('7 dias termina ontem', g.fnPresetJanela('last_7d').ate<g.fnPresetJanela('today').de);
+  ok('este mês começa no dia 1', /-01$/.test(g.fnPresetJanela('this_month').de));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));

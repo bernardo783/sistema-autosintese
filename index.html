@@ -235,6 +235,31 @@
     padding:10px 13px;margin:0 0 14px;font-size:12.5px;line-height:1.55;color:var(--txt)}
   .nc-dica strong{font-weight:700}
   /* ---------- DAILY DOS SQUADS ---------- */
+  /* ---------- FUNIL ---------- */
+  .fn-topo{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .fn-card .v{font-variant-numeric:tabular-nums}
+  .fn-var{display:inline-block;margin-left:8px;font-size:11px;font-weight:800;border-radius:999px;padding:1px 7px}
+  .fn-var.bom{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+  .fn-var.ruim{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
+  .fn-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;margin-bottom:14px}
+  @media(max-width:1000px){.fn-grid{grid-template-columns:1fr}}
+  .fn-etapas{padding:14px 16px 6px}
+  .fn-et{margin-bottom:12px}
+  .fn-etl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;font-size:12.5px}
+  .fn-etl b{font-weight:700} .fn-etl span{color:var(--muted);font-size:11.5px}
+  .fn-bar{position:relative;height:26px;background:var(--panel2);border-radius:7px;overflow:hidden}
+  .fn-bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--brand),var(--brand2));border-radius:7px}
+  .fn-bar em{position:absolute;left:10px;top:0;bottom:0;display:flex;align-items:center;font-style:normal;
+    font-weight:800;font-size:12.5px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);font-variant-numeric:tabular-nums}
+  .fn-conv{font-size:11px;color:var(--muted);margin-top:4px;min-height:14px}
+  .fn-serie{display:flex;align-items:flex-end;gap:5px;padding:18px 14px 8px;height:190px;overflow-x:auto}
+  .fn-dia{flex:1;min-width:22px;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%}
+  .fn-col{position:relative;flex:1;width:100%;display:flex;align-items:flex-end}
+  .fn-col i{display:block;width:100%;background:var(--panel2);border:1px solid var(--line);border-bottom:none;border-radius:5px 5px 0 0;min-height:2px}
+  .fn-col b{position:absolute;left:50%;transform:translate(-50%,50%);width:18px;height:18px;border-radius:50%;
+    background:var(--brand);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px var(--panel)}
+  .fn-dia span{font-size:9.5px;color:var(--muted);white-space:nowrap}
+  .fn-melhor{color:var(--ok);font-weight:800}
   .dl-wrap{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
   @media(max-width:1150px){.dl-wrap{grid-template-columns:1fr}}
   .dl-clock{display:flex;flex-direction:column;align-items:flex-end;background:var(--panel);
@@ -1247,6 +1272,8 @@
       <span class="t">Avisos</span><span class="bdg" id="ntfBdg"></span></button>
     <button class="rl" id="rlInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg><span class="t">Tarefas</span><span class="bdg" id="spInboxN"></span></button>
+    <button class="rl navlink hidden" data-view="funil" id="navFunil" title="Funil de captação da AutoSíntese">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg><span class="t">Funil</span></button>
     <button class="rl navlink hidden" data-view="daily" id="navDaily" title="Reunião diária do squad">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="t">Daily</span></button>
     <div class="sep"></div>
@@ -1589,7 +1616,7 @@ async function enterApp(){
   catch(e){ $('#loginErr').textContent='Erro ao carregar dados: '+(e.message||e); show($('#loginView')); return; }
   hide($('#login')); show($('#app'));
   pintarWhoami();
-  if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); } else { hide($('#navUsuarios')); hide($('#navFin')); }
+  if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); show($('#navFunil')); } else { hide($('#navUsuarios')); hide($('#navFin')); hide($('#navFunil')); }
   tlAplicar();   /* tira da barra as telas que essa pessoa não tem */
   if(souGerente()){ show($('#navDaily')); } else { hide($('#navDaily')); } /* Daily: só master e gerentes (regra do Gabriel, 10/08) */
   try{ await tkCarregar(); }catch(e){}
@@ -1718,6 +1745,10 @@ function render(view){
   if(tlBloqueada(view)){ c.innerHTML='<div class="empty">Esta tela não faz parte do seu acesso.</div>'; return; }
   if(view==='acessos') return renderAcessos(c);
   if(view==='fichas') return renderProjetos(c);
+  if(view==='funil'){
+    if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+    return renderFunil(c);
+  }
   if(view==='daily'){ if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito aos gerentes e ao master.</div>'; return; } return renderDaily(c); }
   if(view==='trafego') return renderTrafego(c);
   if(view==='lista') return renderTarefas(c);
@@ -6501,6 +6532,160 @@ async function dlContar(ids){
   return m;
 }
 
+/* ======================= FUNIL DE CAPTAÇÃO =======================
+   A conta de anúncios da própria AutoSíntese, olhada todo dia. É a tela que o
+   Gabriel abre de manhã: quanto está custando trazer um lead, se está piorando
+   ou melhorando, e qual campanha está puxando o número. Master-only: é o
+   funil comercial da casa, não de cliente. */
+const FN_ACT='act_1784945562132417';
+let FN={preset:'last_7d',de:'',ate:'',dados:null,quando:0,carregando:false,erro:''};
+
+const fnSoma=(acts,lista)=>(acts||[]).filter(a=>lista.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
+const fnLeads=(ins)=>fnSoma(ins&&ins.actions,MT_LEADS);
+const fnZap=(ins)=>fnSoma(ins&&ins.actions,['onsite_conversion.messaging_conversation_started_7d']);
+const fnCliques=(ins)=>+((ins&&ins.clicks)||0);
+const fnGasto=(ins)=>+((ins&&ins.spend)||0);
+const fnDiv=(a,b)=>b?a/b:0;
+const fnPct=(a,b)=>b?Math.round(a/b*1000)/10:0;
+
+/* Métricas do funil a partir do agregado do período. Uma função pura para dar
+   pra testar sem rede. */
+function fnMetricas(r){
+  if(!r) return null;
+  const gasto=fnGasto(r), imp=+(r.impressions||0), alc=+(r.reach||0), clk=fnCliques(r);
+  const leads=fnLeads(r), zap=fnZap(r);
+  return {gasto:gasto, impressoes:imp, alcance:alc, cliques:clk, leads:leads, zap:zap,
+    ctr:fnPct(clk,imp), cpc:fnDiv(gasto,clk), cpm:fnDiv(gasto,imp)*1000, cpl:fnDiv(gasto,leads),
+    txLead:fnPct(leads,clk), freq:+(r.frequency||0)};
+}
+/* Compara dois períodos iguais: variação em % de cada métrica. Positivo = subiu. */
+function fnVar(atual,anterior){
+  if(!atual||!anterior) return {};
+  const v=(k)=>{ const a=+atual[k]||0, b=+anterior[k]||0; return b?Math.round((a-b)/b*1000)/10:(a?100:0); };
+  return {gasto:v('gasto'),leads:v('leads'),cpl:v('cpl'),cliques:v('cliques'),ctr:v('ctr'),cpc:v('cpc')};
+}
+/* Série diária: gasto e leads por dia, para o gráfico e para saber quantos dias tem. */
+function fnSerie(dias){
+  return (dias||[]).map(d=>({d:d.d, gasto:+d.s||0, leads:fnSoma(d.acts,MT_LEADS)}));
+}
+/* Janela do período anterior com o mesmo tamanho, para comparar */
+function fnJanelaAnterior(de,ate){
+  const a=dtDe(de), b=dtDe(ate); if(!a||!b) return null;
+  const n=Math.round((b-a)/86400000)+1;
+  const ate2=new Date(a); ate2.setDate(ate2.getDate()-1);
+  const de2=new Date(ate2); de2.setDate(de2.getDate()-(n-1));
+  return {de:dtISO(de2), ate:dtISO(ate2)};
+}
+const FN_PRESETS=[['today','Hoje'],['yesterday','Ontem'],['last_7d','7 dias'],['last_14d','14 dias'],['last_30d','30 dias'],['this_month','Este mês'],['per','Personalizado']];
+function fnPresetJanela(p){
+  const hoje=dtISO(new Date()), m=(n)=>{ const d=new Date(); d.setDate(d.getDate()+n); return dtISO(d); };
+  if(p==='today') return {de:hoje,ate:hoje};
+  if(p==='yesterday') return {de:m(-1),ate:m(-1)};
+  if(p==='last_7d') return {de:m(-7),ate:m(-1)};
+  if(p==='last_14d') return {de:m(-14),ate:m(-1)};
+  if(p==='last_30d') return {de:m(-30),ate:m(-1)};
+  if(p==='this_month'){ const d=new Date(); return {de:dtISO(new Date(d.getFullYear(),d.getMonth(),1)),ate:hoje}; }
+  return {de:FN.de||m(-7),ate:FN.ate||m(-1)};
+}
+async function fnBuscar(){
+  if(!SESSION||!SESSION.access_token) return;
+  FN.carregando=true; FN.erro=''; fnPintarEstado();
+  const H={headers:{authorization:'Bearer '+SESSION.access_token}};
+  const jan=fnPresetJanela(FN.preset), ant=fnJanelaAnterior(jan.de,jan.ate);
+  const q=(j)=>`?since=${j.de}&until=${j.ate}&v=${Date.now()}`;
+  try{
+    const [rA,rB]=await Promise.all([
+      fetch(`${META_URL}/funil/${FN_ACT}${q(jan)}`,H).then(r=>r.json()),
+      ant?fetch(`${META_URL}/insights/${FN_ACT}${q(ant)}`,H).then(r=>r.json()):Promise.resolve({ok:true,dados:[]})]);
+    if(!rA.ok){ FN.erro=rA.erro||'falha ao buscar'; FN.carregando=false; fnPintarEstado(); return; }
+    FN.dados={atual:rA.resumo, dias:rA.dias||[], campanhas:rA.campanhas||[],
+      anterior:(rB&&rB.ok&&rB.dados&&rB.dados[0])||null, jan:jan, ant:ant};
+    FN.quando=Date.now();
+  }catch(e){ FN.erro='Sem conexão com o Meta.'; }
+  FN.carregando=false;
+  const c=$('#content'); if(currentView==='funil'&&c) renderFunil(c);
+}
+function fnPintarEstado(){ const el=document.getElementById('fnEstado'); if(!el) return;
+  el.textContent=FN.carregando?'Buscando no Meta…':(FN.erro?('Erro: '+FN.erro):(FN.quando?('atualizado '+new Date(FN.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})):'')); }
+window.fnPreset=(p)=>{ FN.preset=p; if(p==='per'&&!FN.de){ const j=fnPresetJanela('last_7d'); FN.de=j.de; FN.ate=j.ate; } renderFunil($('#content')); fnBuscar(); };
+window.fnData=()=>{ const a=$('#fnDe'), b=$('#fnAte'); FN.de=(a&&a.value)||FN.de; FN.ate=(b&&b.value)||FN.ate;
+  if(FN.de&&FN.ate&&FN.de>FN.ate){ const t=FN.de; FN.de=FN.ate; FN.ate=t; } fnBuscar(); };
+
+function renderFunil(c){
+  if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+  const d=FN.dados, m=d?fnMetricas(d.atual):null, ma=d?fnMetricas(d.anterior):null, v=fnVar(m,ma);
+  const serie=d?fnSerie(d.dias):[];
+  const jan=fnPresetJanela(FN.preset);
+  const seta=(k,inv)=>{ const x=v[k]; if(x===undefined||x===0) return '';
+    const bom=inv?x<0:x>0;   /* pra CPL e CPC, cair é bom */
+    return `<span class="fn-var ${bom?'bom':'ruim'}">${x>0?'▲':'▼'} ${Math.abs(x)}%</span>`; };
+  const card=(k,lab,val,sub,inv)=>`<div class="card fn-card">
+      <div class="k">${lab}</div><div class="v">${val}</div>
+      <div class="sub">${sub||''}${seta(k,inv)}</div></div>`;
+  const maxG=Math.max(1,...serie.map(x=>x.gasto)), maxL=Math.max(1,...serie.map(x=>x.leads));
+  const camps=(d?d.campanhas:[]).map(cp=>{ const i=(cp.insights&&cp.insights.data&&cp.insights.data[0])||null;
+    const mm=fnMetricas(i)||{gasto:0,leads:0,cpl:0,cliques:0};
+    return {nome:cp.name,status:cp.effective_status,obj:cp.objective,orc:+(cp.daily_budget||0)/100,m:mm}; })
+    .filter(x=>x.m.gasto>0||x.status==='ACTIVE').sort((a,b)=>b.m.gasto-a.m.gasto);
+  const melhorCPL=Math.min(...camps.filter(x=>x.m.leads>0).map(x=>x.m.cpl),Infinity);
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Funil de captação</h2>
+       <div class="desc">Conta Auto Síntese · ${esc(fmtDate(jan.de))} a ${esc(fmtDate(jan.ate))} · <span id="fnEstado">${FN.carregando?'Buscando no Meta…':(FN.erro?'Erro: '+esc(FN.erro):'')}</span></div></div>
+     <div class="toolbar">
+       <div class="fin-tabs" style="margin:0">${FN_PRESETS.map(p=>`<button class="ftab${FN.preset===p[0]?' active':''}" onclick="fnPreset('${p[0]}')">${p[1]}</button>`).join('')}</div>
+       ${FN.preset==='per'?`${dtCampo('fnDe',FN.de,' onchange="fnData()"')}<span class="hint" style="margin:0">até</span>${dtCampo('fnAte',FN.ate,' onchange="fnData()"')}`:''}
+       <button class="btn ghost small" onclick="fnBuscar()" title="Buscar de novo">↻</button>
+     </div>
+   </div>
+   ${!m?`<div class="empty">${FN.carregando?'Buscando os números no Meta…':(FN.erro?'Não deu para carregar: '+esc(FN.erro):'Sem dados no período.')}</div>`:`
+   <div class="cards fn-topo">
+     ${card('leads','Leads',m.leads,'formulário + WhatsApp')}
+     ${card('cpl','Custo por lead',m.leads?brl(m.cpl):'—',m.leads?'':'sem lead no período',true)}
+     ${card('gasto','Investido',brl(m.gasto),'')}
+     ${card('cliques','Cliques',m.cliques,'CTR '+m.ctr+'%')}
+     ${card('cpc','Custo por clique',brl(m.cpc),'',true)}
+     ${card('txLead','Clique → lead',m.txLead+'%','conversão da página')}
+   </div>
+   <div class="fn-grid">
+     <div class="dl-box">
+       <div class="dl-grp"><h4>Etapas do funil</h4><span class="n">de cima para baixo</span></div>
+       <div class="fn-etapas">
+         ${[['Alcance',m.alcance,null],['Impressões',m.impressoes,m.alcance?('freq. '+m.freq.toFixed(1)):''],
+            ['Cliques',m.cliques,'CTR '+m.ctr+'%'],['Leads',m.leads,m.leads?('CPL '+brl(m.cpl)):'']].map((e,i,arr)=>{
+           const topo=+arr[0][1]||1, larg=Math.max(6,Math.round((+e[1]||0)/topo*100));
+           const ant=i?(+arr[i-1][1]||0):0, conv=i&&ant?fnPct(+e[1],ant):null;
+           return `<div class="fn-et"><div class="fn-etl"><b>${esc(e[0])}</b><span>${e[2]?esc(e[2]):''}</span></div>
+             <div class="fn-bar"><i style="width:${larg}%"></i><em>${(+e[1]||0).toLocaleString('pt-BR')}</em></div>
+             ${conv!==null?`<div class="fn-conv">${conv}% da etapa anterior</div>`:'<div class="fn-conv"></div>'}</div>`; }).join('')}
+       </div>
+     </div>
+     <div class="dl-box">
+       <div class="dl-grp"><h4>Dia a dia</h4><span class="n">gasto (barra) · leads (ponto)</span></div>
+       ${serie.length?`<div class="fn-serie">
+         ${serie.map(x=>`<div class="fn-dia" title="${esc(fmtDate(x.d))} · ${esc(brl(x.gasto))} · ${x.leads} lead${x.leads===1?'':'s'}">
+            <div class="fn-col"><i style="height:${Math.round(x.gasto/maxG*100)}%"></i>
+              ${x.leads?`<b style="bottom:${Math.round(x.leads/maxL*100)}%">${x.leads}</b>`:''}</div>
+            <span>${esc(fmtDate(x.d).slice(0,5))}</span></div>`).join('')}
+       </div>`:'<div class="hint" style="padding:16px">Sem série diária para o período.</div>'}
+     </div>
+   </div>
+   <div class="dl-box">
+     <div class="dl-grp"><h4>Campanhas</h4><span class="n">${camps.length} com gasto ou ativas · ordenadas por investimento</span></div>
+     ${camps.length?`<div class="tablewrap"><table><thead><tr><th>Campanha</th><th>Situação</th><th style="text-align:right">Investido</th><th style="text-align:right">Cliques</th><th style="text-align:right">Leads</th><th style="text-align:right">CPL</th></tr></thead>
+     <tbody>${camps.map(x=>`<tr>
+       <td><strong>${esc(x.nome)}</strong>${x.orc?`<div class="hint" style="margin:2px 0 0">orçamento ${esc(brl(x.orc))}/dia</div>`:''}</td>
+       <td><span class="tag ${x.status==='ACTIVE'?'andamento':'st'}">${x.status==='ACTIVE'?'Ativa':x.status==='PAUSED'?'Pausada':esc(x.status||'')}</span></td>
+       <td style="text-align:right">${esc(brl(x.m.gasto))}</td>
+       <td style="text-align:right">${x.m.cliques}</td>
+       <td style="text-align:right"><strong>${x.m.leads}</strong></td>
+       <td style="text-align:right">${x.m.leads?`<span class="${x.m.cpl===melhorCPL?'fn-melhor':''}">${esc(brl(x.m.cpl))}</span>`:'—'}</td>
+     </tr>`).join('')}</tbody></table></div>`:'<div class="hint" style="padding:16px">Nenhuma campanha com gasto no período.</div>'}
+   </div>
+   <p class="hint" style="margin-top:12px">Comparação (▲▼) contra o período imediatamente anterior de mesmo tamanho. Em custo por lead e custo por clique, cair é bom.</p>`}`;
+  if(!FN.dados&&!FN.carregando&&!FN.erro) fnBuscar();
+}
+
 function renderDash(c){
   if(!currentUser||currentUser.role!=='master'){
     c.innerHTML=`
@@ -8455,7 +8640,7 @@ window.inSet=async (uid,campo,v)=>{
 const TL_RAIL=[{v:'tarefas',nome:'Tarefas (as suas)',el:'rlInbox'}];
 const tlLista=()=>Array.from(document.querySelectorAll('.navlink[data-view]'))
   .map(b=>({v:b.dataset.view,nome:(b.getAttribute('title')||b.dataset.view),
-            master:['financeiro','usuarios'].indexOf(b.dataset.view)>=0}))
+            master:['financeiro','usuarios','funil'].indexOf(b.dataset.view)>=0}))
   .concat(TL_RAIL.filter(r=>document.getElementById(r.el)).map(r=>({v:r.v,nome:r.nome,master:false})));
 const tlOff=(u)=>((u&&u.telas_off)||[]);
 const tlBloqueada=(v)=>tlOff(currentUser).indexOf(String(v))>=0;
