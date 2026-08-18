@@ -260,6 +260,11 @@
     background:var(--brand);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px var(--panel)}
   .fn-dia span{font-size:9.5px;color:var(--muted);white-space:nowrap}
   .fn-melhor{color:var(--ok);font-weight:800}
+  .fn-forms{margin-top:-4px}
+  .fn-qbox{display:inline-flex;gap:5px}
+  .fn-qbox .btn.on{border-color:var(--brand2);color:var(--txt);background:var(--hov2)}
+  tr.fn-q td:first-child{box-shadow:inset 3px 0 0 var(--ok)}
+  tr.fn-nq{opacity:.55}
   .dl-wrap{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
   @media(max-width:1150px){.dl-wrap{grid-template-columns:1fr}}
   .dl-clock{display:flex;flex-direction:column;align-items:flex-end;background:var(--panel);
@@ -6587,6 +6592,25 @@ function fnPresetJanela(p){
   if(p==='this_month'){ const d=new Date(); return {de:dtISO(new Date(d.getFullYear(),d.getMonth(),1)),ate:hoje}; }
   return {de:FN.de||m(-7),ate:FN.ate||m(-1)};
 }
+/* Leads reais que chegaram pelo formulario, no periodo. Coluna qualificado:
+   true = qualificado, false = desqualificado, nulo = ninguem avaliou ainda. */
+async function fnLeadsPeriodo(jan){
+  try{
+    const r=await sb.from('leads').select('id,enviado_em,recebido_em,qualificado,nome,telefone,email,empresa,utm_campaign,utm_source,form_nome,respostas')
+      .gte('recebido_em',jan.de+'T00:00:00').lte('recebido_em',jan.ate+'T23:59:59').order('recebido_em',{ascending:false});
+    return (r&&r.data)||[];
+  }catch(_){ return []; }
+}
+const fnFormsResumo=(arr)=>({total:(arr||[]).length,
+  qual:(arr||[]).filter(l=>l.qualificado===true).length,
+  desq:(arr||[]).filter(l=>l.qualificado===false).length,
+  pend:(arr||[]).filter(l=>l.qualificado===null||l.qualificado===undefined).length});
+window.fnQualificar=async (id,v)=>{
+  const {error}=await sb.from('leads').update({qualificado:v}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const l=(FN.dados&&FN.dados.forms||[]).find(x=>x.id===id); if(l) l.qualificado=v;
+  renderFunil($('#content'));
+};
 async function fnBuscar(){
   if(!SESSION||!SESSION.access_token) return;
   FN.carregando=true; FN.erro=''; fnPintarEstado();
@@ -6598,8 +6622,11 @@ async function fnBuscar(){
       fetch(`${META_URL}/funil/${FN_ACT}${q(jan)}`,H).then(r=>r.json()),
       ant?fetch(`${META_URL}/insights/${FN_ACT}${q(ant)}`,H).then(r=>r.json()):Promise.resolve({ok:true,dados:[]})]);
     if(!rA.ok){ FN.erro=rA.erro||'falha ao buscar'; FN.carregando=false; fnPintarEstado(); return; }
+    /* formularios do Yay: os leads reais do periodo e do periodo anterior */
+    const ldA=await fnLeadsPeriodo(jan), ldB=ant?await fnLeadsPeriodo(ant):[];
     FN.dados={atual:rA.resumo, dias:rA.dias||[], campanhas:rA.campanhas||[],
-      anterior:(rB&&rB.ok&&rB.dados&&rB.dados[0])||null, jan:jan, ant:ant};
+      anterior:(rB&&rB.ok&&rB.dados&&rB.dados[0])||null, jan:jan, ant:ant,
+      forms:ldA, formsAnt:ldB};
     FN.quando=Date.now();
   }catch(e){ FN.erro='Sem conexão com o Meta.'; }
   FN.carregando=false;
@@ -6622,6 +6649,12 @@ function renderFunil(c){
   const card=(k,lab,val,sub,inv)=>`<div class="card fn-card">
       <div class="k">${lab}</div><div class="v">${val}</div>
       <div class="sub">${sub||''}${seta(k,inv)}</div></div>`;
+  const fr=fnFormsResumo(d?d.forms:[]), frA=fnFormsResumo(d?d.formsAnt:[]);
+  const vf=(a,b)=>b?Math.round((a-b)/b*1000)/10:(a?100:0);
+  const setaF=(x,inv)=>{ if(!x) return ''; const bom=inv?x<0:x>0;
+    return `<span class="fn-var ${bom?'bom':'ruim'}">${x>0?'▲':'▼'} ${Math.abs(x)}%</span>`; };
+  const cplReal=(m&&fr.total)?m.gasto/fr.total:0, cplQual=(m&&fr.qual)?m.gasto/fr.qual:0;
+  const cplRealAnt=(ma&&frA.total)?ma.gasto/frA.total:0;
   const maxG=Math.max(1,...serie.map(x=>x.gasto)), maxL=Math.max(1,...serie.map(x=>x.leads));
   const camps=(d?d.campanhas:[]).map(cp=>{ const i=(cp.insights&&cp.insights.data&&cp.insights.data[0])||null;
     const mm=fnMetricas(i)||{gasto:0,leads:0,cpl:0,cliques:0};
@@ -6647,12 +6680,24 @@ function renderFunil(c){
      ${card('cpc','Custo por clique',brl(m.cpc),'',true)}
      ${card('txLead','Clique → lead',m.txLead+'%','conversão da página')}
    </div>
+   <div class="cards fn-topo fn-forms">
+     <div class="card fn-card"><div class="k">Formulários enviados</div><div class="v">${fr.total}</div>
+       <div class="sub">pelo Yay Forms${setaF(vf(fr.total,frA.total))}</div></div>
+     <div class="card fn-card"><div class="k">Custo por formulário</div><div class="v">${fr.total?esc(brl(cplReal)):'—'}</div>
+       <div class="sub">${fr.total?'investido ÷ enviados':'nenhum no período'}${fr.total&&frA.total?setaF(vf(cplReal,cplRealAnt),true):''}</div></div>
+     <div class="card fn-card"><div class="k">Qualificados</div><div class="v" style="color:var(--ok)">${fr.qual}</div>
+       <div class="sub">${fr.total?Math.round(fr.qual/fr.total*100)+'% dos enviados':''}${fr.pend?' · '+fr.pend+' sem avaliar':''}</div></div>
+     <div class="card fn-card"><div class="k">Custo por qualificado</div><div class="v">${fr.qual?esc(brl(cplQual)):'—'}</div>
+       <div class="sub">${fr.qual?'o número que importa':'avalie os leads abaixo'}</div></div>
+   </div>
    <div class="fn-grid">
      <div class="dl-box">
        <div class="dl-grp"><h4>Etapas do funil</h4><span class="n">de cima para baixo</span></div>
        <div class="fn-etapas">
          ${[['Alcance',m.alcance,null],['Impressões',m.impressoes,m.alcance?('freq. '+m.freq.toFixed(1)):''],
-            ['Cliques',m.cliques,'CTR '+m.ctr+'%'],['Leads',m.leads,m.leads?('CPL '+brl(m.cpl)):'']].map((e,i,arr)=>{
+            ['Cliques',m.cliques,'CTR '+m.ctr+'%'],['Leads (Meta)',m.leads,m.leads?('CPL '+brl(m.cpl)):''],
+            ['Formulários',fr.total,fr.total?('custo '+brl(cplReal)):''],
+            ['Qualificados',fr.qual,fr.qual?('custo '+brl(cplQual)):'']].map((e,i,arr)=>{
            const topo=+arr[0][1]||1, larg=Math.max(6,Math.round((+e[1]||0)/topo*100));
            const ant=i?(+arr[i-1][1]||0):0, conv=i&&ant?fnPct(+e[1],ant):null;
            return `<div class="fn-et"><div class="fn-etl"><b>${esc(e[0])}</b><span>${e[2]?esc(e[2]):''}</span></div>
@@ -6682,7 +6727,24 @@ function renderFunil(c){
        <td style="text-align:right">${x.m.leads?`<span class="${x.m.cpl===melhorCPL?'fn-melhor':''}">${esc(brl(x.m.cpl))}</span>`:'—'}</td>
      </tr>`).join('')}</tbody></table></div>`:'<div class="hint" style="padding:16px">Nenhuma campanha com gasto no período.</div>'}
    </div>
-   <p class="hint" style="margin-top:12px">Comparação (▲▼) contra o período imediatamente anterior de mesmo tamanho. Em custo por lead e custo por clique, cair é bom.</p>`}`;
+   <div class="dl-box" style="margin-top:14px">
+     <div class="dl-grp"><h4>Leads do período</h4><span class="n">${fr.total} · marque quem é qualificado</span></div>
+     ${(d.forms||[]).length?`<div class="tablewrap"><table><thead><tr><th>Quando</th><th>Quem</th><th>Contato</th><th>Origem</th><th style="width:210px">Qualificação</th></tr></thead>
+     <tbody>${d.forms.map(l=>{ const q=l.qualificado;
+       const dt=new Date(l.recebido_em);
+       return `<tr class="${q===true?'fn-q':q===false?'fn-nq':''}">
+       <td style="white-space:nowrap">${esc(fmtDate(l.recebido_em.slice(0,10)))} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td>
+       <td><strong>${esc(l.nome||'(sem nome)')}</strong>${l.empresa?`<div class="hint" style="margin:2px 0 0">${esc(l.empresa)}</div>`:''}</td>
+       <td>${l.telefone?`<a class="link" href="https://wa.me/55${esc(String(l.telefone).replace(/\D/g,''))}" target="_blank" rel="noopener">${esc(l.telefone)}</a>`:''}${l.email?`<div class="hint" style="margin:2px 0 0">${esc(l.email)}</div>`:''}</td>
+       <td class="hint" style="margin:0">${esc(l.utm_campaign||l.utm_source||l.form_nome||'—')}</td>
+       <td><span class="fn-qbox">
+         <button class="btn ghost small${q===true?' on':''}" onclick="fnQualificar('${l.id}',true)">✓ Qualificado</button>
+         <button class="btn ghost small${q===false?' on':''}" onclick="fnQualificar('${l.id}',false)">✕ Não</button>
+         ${q!==null&&q!==undefined?`<button class="btn ghost small" title="Voltar a sem avaliação" onclick="fnQualificar('${l.id}',null)">·</button>`:''}
+       </span></td></tr>`; }).join('')}</tbody></table></div>`
+     :'<div class="hint" style="padding:16px">Nenhum formulário chegou no período. Quando o webhook do Yay Forms estiver ligado, eles aparecem aqui sozinhos.</div>'}
+   </div>
+   <p class="hint" style="margin-top:12px">Comparação (▲▼) contra o período imediatamente anterior de mesmo tamanho. Em custos, cair é bom. <strong>Leads (Meta)</strong> é o que o pixel contou; <strong>Formulários</strong> é o que chegou de verdade pelo Yay Forms.</p>`}`;
   if(!FN.dados&&!FN.carregando&&!FN.erro) fnBuscar();
 }
 

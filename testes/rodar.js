@@ -291,6 +291,19 @@ grupo('Funil de captação (métricas puras, sem rede)');
   ok('este mês começa no dia 1', /-01$/.test(g.fnPresetJanela('this_month').de));
 }
 
+/* ---------------- leads do formulário ---------------- */
+grupo('Leads do Yay Forms no funil');
+{
+  const g=rodar(bloco('const fnFormsResumo=','window.fnQualificar='),null,['fnFormsResumo']);
+  const r=g.fnFormsResumo([{qualificado:true},{qualificado:true},{qualificado:false},{qualificado:null},{}]);
+  ok('conta o total', r.total===5);
+  ok('separa qualificados', r.qual===2);
+  ok('separa desqualificados', r.desq===1);
+  ok('sem avaliação inclui nulo e ausente', r.pend===2);
+  ok('lista vazia não quebra', g.fnFormsResumo([]).total===0);
+  ok('nulo não quebra', g.fnFormsResumo(null).total===0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
