@@ -164,7 +164,8 @@
   .pr-chip:hover{color:var(--txt);border-color:#41414b;transform:translateY(-1px)}
   .pr-chip.on{font-weight:800;transform:none}
   .pr-chip svg{flex:none}
-  .rp-box{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+  .rp-box{display:flex;gap:5px;flex-wrap:wrap;align-items:center;max-height:112px;overflow-y:auto;
+    padding:2px;scrollbar-width:thin;overscroll-behavior:contain}
   .rp-add{width:26px;height:26px;border-radius:7px;border:1.5px dashed var(--line);background:transparent;color:var(--muted);display:grid;place-items:center}
   .rp-add:hover{border-color:var(--brand2);color:var(--txt);border-style:solid}
   .uf-av{width:30px;height:30px;border-radius:50%;overflow:hidden;display:inline-grid;place-items:center;
@@ -263,6 +264,9 @@
     background:var(--brand);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px var(--panel)}
   .fn-dia span{font-size:9.5px;color:var(--muted);white-space:nowrap}
   .fn-melhor{color:var(--ok);font-weight:800}
+  .tkm-auto{margin-right:auto;font-size:12px;color:var(--muted);align-self:center}
+  .tkm-auto.salvando{color:var(--info)}
+  .tkm-auto.falta{color:var(--warn)}
   .fn-forms{margin-top:-4px}
   /* ---- funil de WhatsApp ---- */
   .wa-board{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;align-items:flex-start}
@@ -3174,6 +3178,7 @@ function prioChips(atual){
 window.prioEscolher=(k)=>{
   const el=document.getElementById('tk_prio'); if(el) el.value=k;
   const box=document.getElementById('tk_priobox'); if(box) box.innerHTML=prioChips(k);
+  if(window.__tkmAgendar) window.__tkmAgendar(true);
 };
 const TK_ST={todo:'A fazer',fazendo:'Em progresso',feito:'Concluído'};
 const TK_STC={todo:'st',fazendo:'onboarding',feito:'ativo'};
@@ -3932,11 +3937,15 @@ let TK_CK=[];
 function ckLer(){ TK_CK.forEach((x,i)=>{ const e=document.getElementById('ck_t'+i), k=document.getElementById('ck_k'+i); if(e) x.t=e.value; if(k) x.ok=k.checked; }); }
 function ckPintar(){
   const el=document.getElementById('ck_lista'); if(!el) return;
+  /* itens novos do checklist entram depois do painel abrir: religa o autosave neles */
+  setTimeout(()=>{ if(!window.__tkmAgendar) return;
+    el.querySelectorAll('input').forEach(i=>{ if(i.dataset.auto) return; i.dataset.auto='1';
+      i.addEventListener(i.type==='checkbox'?'change':'input',()=>window.__tkmAgendar(i.type==='checkbox')); }); },0);
   el.innerHTML=TK_CK.map((x,i)=>`<div class="ck-l"><input type="checkbox" id="ck_k${i}" ${x.ok?'checked':''} onchange="ckLer();ckPintar()"><input class="ck-t${x.ok?' ok':''}" id="ck_t${i}" value="${esc(x.t)}" placeholder="o que precisa ser feito"><button class="iconbtn del" title="Remover" onclick="ckDel(${i})">✕</button></div>`).join('')||'<div class="hint" style="margin:0">nenhum item ainda</div>';
   const p=document.getElementById('ck_prog'); if(p){ const f=TK_CK.filter(x=>x.ok).length; p.textContent=TK_CK.length?(f+'/'+TK_CK.length):''; }
 }
 window.ckAdd=()=>{ ckLer(); TK_CK.push({t:'',ok:false}); ckPintar(); const e=document.getElementById('ck_t'+(TK_CK.length-1)); if(e) e.focus(); };
-window.ckDel=(i)=>{ ckLer(); TK_CK.splice(i,1); ckPintar(); };
+window.ckDel=(i)=>{ ckLer(); TK_CK.splice(i,1); ckPintar(); if(window.__tkmAgendar) window.__tkmAgendar(true); };
 const ckResumo=(t)=>{ const c=Array.isArray(t.checklist)?t.checklist:[]; return c.length?('☑ '+c.filter(x=>x&&x.ok).length+'/'+c.length):''; };
 const LC_MAPA={'0bf15583-b686-4287-896f-36ff97fa8f80':'novo','4486322a-cb8f-4c01-bcac-8efcf87a5a9d':'novo','52b897a0-a225-4030-b886-c51344b2204c':'onboarding','3678558d-9582-43a4-8d81-951e9a8959cf':'onboarding','32a9a89c-92b7-494c-ba40-0a5671d80b78':'ativo','d3f281df-f769-4ab4-b37e-7d3f59523a57':'ativo','6f912d13-9479-4ee3-aaf0-d5f54d7d9b01':'ativo','a5613240-68a7-40ec-a2a7-9bb46b135177':'churn'};
 const tkCamposDe=(lid)=>TK.campos.filter(k=>k.lista_id===lid&&!TK.colsOff[k.id]);
@@ -5688,6 +5697,7 @@ window.tkRespToggle=(uid)=>{
   if(i>=0) atual.splice(i,1); else atual.push(String(uid));
   el.value=atual.join(',');
   const box=document.getElementById('tk_respbox'); if(box) box.innerHTML=tkRespChips(atual);
+  if(window.__tkmAgendar) window.__tkmAgendar(true);
 };
 function tkRespChips(ids){
   /* estilo ClickUp (pedido do Gabriel 10/08): mostra só quem está atribuído + quadradinho pra escolher */
@@ -5917,7 +5927,43 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
         <span class="tkm-b" id="tkmBRel"></span></button>
     </div></div>`,
-    async ()=>{
+    async ()=>{ return await tkmSalvar(t,lid,cps,false); });
+  /* ---------- AUTOSAVE, estilo ClickUp ----------
+     Tarefa existente: cada mudanca grava sozinha (debounce de 600ms no texto,
+     imediato em select/data/checkbox). Tarefa nova: o primeiro campo preenchido
+     cria a tarefa e dai em diante e autosave tambem — sem botao Salvar. */
+  const ov=document.querySelector('.overlay.folha');
+  if(ov){
+    const foot=ov.querySelector('.mfoot'); if(foot) foot.innerHTML='<span class="tkm-auto" id="tkmAuto">'+(t?'Salvo':'Rascunho — começa a salvar quando tiver título')+'</span><button class="btn secondary small mcancel">Fechar</button>';
+    const fechar=()=>{ if(window.__tkmTimer){ clearTimeout(window.__tkmTimer); window.__tkmTimer=null; tkmSalvar(window.__tkmT||t,lid,cps,true); } ov.remove(); };
+    const mc=ov.querySelector('.mcancel'); if(mc) mc.onclick=fechar;
+    const x=ov.querySelector('.x'); if(x) x.onclick=fechar;
+    ov.onclick=e=>{ if(e.target===ov) fechar(); };
+    window.__tkmT=t||null;
+    const agendar=(rapido)=>{ clearTimeout(window.__tkmTimer);
+      const st=document.getElementById('tkmAuto'); if(st){ st.textContent='Salvando…'; st.className='tkm-auto salvando'; }
+      window.__tkmTimer=setTimeout(()=>{ window.__tkmTimer=null; tkmSalvar(window.__tkmT,lid,cps,true); }, rapido?80:600); };
+    ov.querySelectorAll('input,select,textarea').forEach(el=>{
+      const tipo=(el.tagName==='SELECT'||el.type==='checkbox'||el.type==='date'||el.type==='hidden')?'change':'input';
+      el.addEventListener(tipo,()=>agendar(tipo==='change'));
+      if(tipo==='input') el.addEventListener('change',()=>agendar(true));
+    });
+    /* campos que mudam por JS (chips de responsavel, prioridade, calendario proprio)
+       disparam 'change' no hidden — o listener acima pega. Checklist salva ao editar. */
+    window.__tkmAgendar=agendar;
+  }
+  ckPintar();
+  window.__tkmTarefaId=t?t.id:'';
+  setTimeout(()=>{ if(t){ tkmAtvCarregar(t.id); tkmAnxCarregar(t.id); } tkmRelPintar();
+    const sel=document.getElementById('tk_ficha'); if(sel) sel.addEventListener('change',tkmRelPintar); },40);
+};
+/* Le o formulario, valida e grava. silencioso=true e o autosave: nao fecha, nao
+   reabre a lista inteira, e o que falta vira aviso discreto em vez de bloqueio. */
+async function tkmSalvar(t,lid,cps,silencioso){
+  const st=document.getElementById('tkmAuto');
+  const aviso=(m)=>{ if(silencioso){ if(st){ st.textContent=m; st.className='tkm-auto falta'; } } else toast(m); };
+  if(!$('#tk_tit')) return false;   /* painel ja fechou */
+  {
       const v={titulo:$('#tk_tit').value.trim(), lista_id:$('#tk_lista').value, ficha_id:$('#tk_ficha').value||null,
         prioridade:$('#tk_prio').value, prazo:$('#tk_prazo').value||null,
         iniciada_em:($('#tk_ini')&&$('#tk_ini').value)||null,
@@ -5927,20 +5973,20 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       v.responsaveis=_rs; v.responsavel_id=_rs[0]||null;
       v.tipo_id=($('#tk_tipo')&&$('#tk_tipo').value)||null;
       if(v.iniciada_em&&v.prazo&&v.iniciada_em>v.prazo){ const x=v.iniciada_em; v.iniciada_em=v.prazo; v.prazo=x; }
-      if(!v.titulo){ toast('Informe o título.'); return false; }
+      if(!v.titulo){ aviso(silencioso?'Sem título ainda':'Informe o título.'); return false; }
       v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
-      if(exigeSquad(v.lista_id)&&!v.squad){ toast('Esta lista exige o squad — escolha um.'); return false; }
+      if(exigeSquad(v.lista_id)&&!v.squad){ aviso('Falta o squad'); if(!silencioso) return false; }
       const exig=exigeDaLista(v.lista_id);
-      if(exig.indexOf('cliente')>=0&&!v.ficha_id){ toast('Esta lista exige o cliente.'); const e0=$('#tk_ficha'); if(e0) e0.focus(); return false; }
-      if(exig.indexOf('responsavel')>=0&&!(v.responsaveis||[]).length){ toast('Esta lista exige ao menos um responsável.'); return false; }
+      if(exig.indexOf('cliente')>=0&&!v.ficha_id){ aviso('Falta o cliente'); if(!silencioso){ const e0=$('#tk_ficha'); if(e0) e0.focus(); return false; } }
+      if(exig.indexOf('responsavel')>=0&&!(v.responsaveis||[]).length){ aviso('Falta o responsável'); if(!silencioso) return false; }
       if(exig.indexOf('entrega')>=0){
         const ce=(TK.campos||[]).find(c=>c.lista_id===v.lista_id&&c.nome==='Entrega');
         const ve=ce?String((($('#cp_'+ce.id)||{}).value)||'').trim():'';
-        if(!ve){ toast('Esta lista exige a data de entrega.'); const e1=ce?$('#cp_'+ce.id):null; if(e1) e1.focus(); return false; }
+        if(!ve){ aviso('Falta a data de entrega'); if(!silencioso){ const e1=ce?$('#cp_'+ce.id):null; if(e1) e1.focus(); return false; } }
       }
       const faltam=cpFaltando(v.lista_id);
-      if(faltam.length){ toast(faltam.length===1?('Falta preencher: '+faltam[0].nome+'.'):('Faltam '+faltam.length+' campos: '+faltam.map(x=>x.nome).join(', ')+'.'));
-        const e0=$('#cp_'+faltam[0].id); if(e0) e0.focus(); return false; }
+      if(faltam.length){ aviso(faltam.length===1?('Falta '+faltam[0].nome):('Faltam '+faltam.length+' campos'));
+        if(!silencioso){ const e0=$('#cp_'+faltam[0].id); if(e0) e0.focus(); return false; } }
       ckLer(); v.checklist=TK_CK.filter(x=>(x.t||'').trim()).map(x=>({t:x.t.trim(),ok:!!x.ok}));
       const el=$('#tk_stid');
       if(el){ const s=el.value?tkStatus1(el.value):null; v.status_id=el.value||null; v.status=s?TK_G2ST[s.grupo]:'todo'; }
@@ -5954,18 +6000,23 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         val[c.id]=x; });
       v.valores=(v.lista_id!==lid)?{}:val;
       v.concluida_em = v.status==='feito' ? ((t&&t.concluida_em)||new Date().toISOString()) : null;
-      const {error} = t ? await sb.from('tarefas').update(v).eq('id',t.id)
-                        : await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length}));
-      if(error){ toast('Erro: '+error.message); return false; }
+      let error=null, criada=null;
+      if(t){ ({error}=await sb.from('tarefas').update(v).eq('id',t.id)); }
+      else { const r=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
+             error=r.error; criada=r.data||null; }
+      if(error){ aviso('Erro ao salvar: '+error.message); if(!silencioso) toast('Erro: '+error.message); return false; }
       /* so avisa se a tarefa CONTINUA na mesma lista — trocou de lista junto, nao vale */
       if(t && v.status_id!==t.status_id && v.lista_id===t.lista_id) ntfVideoPronto(t, v.status_id);
-      render('tarefas'); toast('Salvo.'); return true;
-    });
-  ckPintar();
-  window.__tkmTarefaId=t?t.id:'';
-  setTimeout(()=>{ if(t){ tkmAtvCarregar(t.id); tkmAnxCarregar(t.id); } tkmRelPintar();
-    const sel=document.getElementById('tk_ficha'); if(sel) sel.addEventListener('change',tkmRelPintar); },40);
-};
+      if(criada){
+        /* tarefa nova acabou de nascer: daqui pra frente o autosave atualiza ela */
+        TK.tarefas.push(criada); window.__tkmT=criada; window.__tkmTarefaId=criada.id;
+      } else if(t){ Object.assign(t,v); }
+      if(st){ st.textContent='Salvo'; st.className='tkm-auto'; }
+      if(!silencioso){ render('tarefas'); toast('Salvo.'); }
+      else { try{ tkDesenhar($('#content')); }catch(_){} }
+      return true;
+  }
+}
 /* ---------- PAINEL DA TAREFA: Detalhes | Atividade | Relacionamentos ----------
    A barra de icones fica na direita, como no ClickUp, e o contador aparece no proprio
    icone — o vinculo com o cliente deixa de ser um campo perdido no meio do formulario. */

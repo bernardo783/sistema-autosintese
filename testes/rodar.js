@@ -360,6 +360,26 @@ grupo('Funil de WhatsApp (o telefone é a chave)');
   ok('sem período conta tudo', g.waResumo(L,'','').entraram===5);
 }
 
+/* ---------------- autosave da tarefa ---------------- */
+grupo('Autosave da tarefa (sem botão Salvar)');
+{
+  /* O que dá pra testar sem DOM real: a regra de que obrigatório AVISA no silencioso
+     e BLOQUEIA no explícito, e que a validação de título vem antes de qualquer gravação. */
+  const src=bloco('async function tkmSalvar(t,lid,cps,silencioso){','/* ---------- PAINEL DA TAREFA');
+  ok('existe', src.length>500);
+  ok('no silencioso, obrigatório não trava', /aviso\('Falta o cliente'\); if\(!silencioso\)/.test(src));
+  ok('no silencioso, squad não trava', /aviso\('Falta o squad'\); if\(!silencioso\)/.test(src));
+  ok('mas título vazio nunca grava', /if\(!v\.titulo\)\{ aviso\([^)]*\); return false; \}/.test(src));
+  ok('tarefa nova usa insert com retorno', /\.insert\(Object\.assign\([\s\S]*?\)\)\.select\(\)\.single\(\)/.test(src));
+  ok('e daí em diante vira update', /window\.__tkmT=criada/.test(src));
+  ok('painel fechado não tenta salvar', /if\(!\$\('#tk_tit'\)\) return false/.test(src));
+  ok('silencioso não reabre a lista inteira', /if\(!silencioso\)\{ render\('tarefas'\)/.test(src));
+  const abrir=bloco('window.tkAbrir=(id,prazoPre,grupoPre)=>{','async function tkmSalvar(');
+  ok('rodapé sem botão Salvar', abrir.indexOf('tkmAuto')>0 && abrir.indexOf("class=\"btn small msave\"")<0);
+  ok('texto salva com debounce, select na hora', /rapido\?80:600/.test(abrir));
+  ok('fechar o painel grava o que ficou pendente', /const fechar=\(\)=>\{ if\(window\.__tkmTimer\)/.test(abrir));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
