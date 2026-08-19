@@ -5044,7 +5044,10 @@ window.spAbrirClientes=()=>{
    Quem tem recorte ja recebe do banco somente o proprio squad — pra ele o filtro seria decorativo. */
 function tkBarraSquad(){
   if(TK.escopo!=='lista'||!exigeSquad(TK.listaSel)) return '';
-  const sqs=vejoTudo()?SQUADS_TK():meusSquads();
+  /* As pilulas listam os squads que a pessoa REALMENTE recebe nesta lista — o recorte de
+     verdade e do banco (gerente ve os dois squads na Edicao de Video, gestor so o seu). */
+  const naLista=Array.from(new Set((TK.tarefas||[]).filter(t=>t.lista_id===TK.listaSel).map(t=>String(t.squad||'')).filter(Boolean)));
+  const sqs=vejoTudo()?SQUADS_TK():Array.from(new Set(meusSquads().concat(naLista))).sort();
   if(sqs.length<2) return '';
   const pil=(v,r)=>`<button class="ftab ${TK.squadF===v?'active':''}" onclick="tkSquadF('${v}')">${esc(r)}</button>`;
   return `<span class="tk-sqs">${pil('','Todos')}${sqs.map(s=>pil(s,'Squad '+s)).join('')}${pil('(sem)','Sem squad')}</span>`;
