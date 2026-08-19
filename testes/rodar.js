@@ -327,6 +327,39 @@ grupo('Fechamento: o squad decide gerente e gestor');
   ok('editora não entra', !s.some(x=>x.gestor==='Maria'));
 }
 
+/* ---------------- funil de WhatsApp ---------------- */
+grupo('Funil de WhatsApp (o telefone é a chave)');
+{
+  const g=rodar(bloco('let WA={','async function waCarregar('),{Date},['waFone','waFoneBonito','waResumo','waEst','waAbertos','WA']);
+  secao('telefone vira chave');
+  ok('com máscara', g.waFone('(17) 99999-0000')==='5517999990000');
+  ok('sem DDI ganha 55', g.waFone('17999990000')==='5517999990000');
+  ok('fixo com 10 dígitos', g.waFone('1733334444')==='551733334444');
+  ok('já com 55 não duplica', g.waFone('5517999990000')==='5517999990000');
+  ok('zero na frente sai', g.waFone('017999990000')==='5517999990000');
+  ok('bonito de volta', g.waFoneBonito('5517999990000')==='(17) 99999-0000');
+  ok('vazio não quebra', g.waFone('')==='');
+  secao('resumo do funil');
+  g.WA.estagios=[{chave:'novo',fim:null},{chave:'reuniao',fim:null},{chave:'ganho',fim:'ganho'},{chave:'perdido',fim:'perdido'}];
+  const L=[{estagio:'novo',criado_em:'2026-08-10',utm_campaign:'Camp A'},
+           {estagio:'ganho',criado_em:'2026-08-11',valor:1500,campanha:'Camp A'},
+           {estagio:'ganho',criado_em:'2026-08-12',valor:2500,origem:'indicacao'},
+           {estagio:'perdido',criado_em:'2026-08-12'},
+           {estagio:'reuniao',criado_em:'2026-07-01'}];
+  const r=g.waResumo(L,'2026-08-10','2026-08-31');
+  ok('conta só quem entrou no período', r.entraram===4);
+  ok('ganhos', r.ganhos===2);
+  ok('perdidos', r.perdidos===1);
+  ok('em aberto = entraram − ganhos − perdidos', r.emAberto===1);
+  ok('taxa de fechamento', r.txGanho===50);
+  ok('receita soma os fechados', r.valor===4000);
+  ok('ticket médio', r.ticket===2000);
+  ok('origem agrupa campanha e utm', r.origem['Camp A']===2);
+  ok('sem origem cai em indicação/organico', r.origem['indicacao']===1);
+  ok('em aberto (geral) ignora ganho e perdido', g.waAbertos(L).length===2);
+  ok('sem período conta tudo', g.waResumo(L,'','').entraram===5);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));

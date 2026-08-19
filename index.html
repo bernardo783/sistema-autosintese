@@ -264,6 +264,23 @@
   .fn-dia span{font-size:9.5px;color:var(--muted);white-space:nowrap}
   .fn-melhor{color:var(--ok);font-weight:800}
   .fn-forms{margin-top:-4px}
+  /* ---- funil de WhatsApp ---- */
+  .wa-board{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;align-items:flex-start}
+  .wa-col{flex:0 0 220px;background:var(--panel);border:1px solid var(--line);border-radius:12px;min-height:120px}
+  .wa-col.hover{border-color:var(--brand2);background:var(--hov1)}
+  .wa-colh{display:flex;align-items:center;gap:7px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:11.5px}
+  .wa-colh i{width:8px;height:8px;border-radius:50%;flex:none}
+  .wa-colh b{font-weight:800;letter-spacing:.04em;text-transform:uppercase;font-size:10.5px;color:var(--muted)}
+  .wa-colh span{margin-left:auto;background:var(--panel2);border-radius:999px;padding:1px 8px;font-weight:700;font-size:11px}
+  .wa-cards{padding:8px;display:flex;flex-direction:column;gap:7px;min-height:60px}
+  .wa-card{background:var(--panel2);border:1px solid transparent;border-radius:9px;padding:9px 10px;cursor:pointer}
+  .wa-card:hover{border-color:var(--line);background:var(--cardh)}
+  .wa-nm{font-weight:600;font-size:13px}
+  .wa-sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .wa-foot{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+  .wa-dias{font-size:10.5px;font-weight:700;color:var(--muted);background:var(--panel);border-radius:999px;padding:1px 7px}
+  .wa-zap{text-decoration:none;font-size:14px;opacity:.7} .wa-zap:hover{opacity:1}
+  .wa-vazio{font-size:11.5px;color:var(--fraco);text-align:center;padding:14px 6px;border:1px dashed var(--line);border-radius:8px}
   .fn-qbox{display:inline-flex;gap:5px}
   .fn-qbox .btn.on{border-color:var(--brand2);color:var(--txt);background:var(--hov2)}
   tr.fn-q td:first-child{box-shadow:inset 3px 0 0 var(--ok)}
@@ -6723,6 +6740,154 @@ window.fnPreset=(p)=>{ FN.preset=p; if(p==='per'&&!FN.de){ const j=fnPresetJanel
 window.fnData=()=>{ const a=$('#fnDe'), b=$('#fnAte'); FN.de=(a&&a.value)||FN.de; FN.ate=(b&&b.value)||FN.ate;
   if(FN.de&&FN.ate&&FN.de>FN.ate){ const t=FN.de; FN.de=FN.ate; FN.ate=t; } fnBuscar(); };
 
+/* ======================= FUNIL DE WHATSAPP (estilo Tintim) =======================
+   Cada conversa é um lead com telefone como chave. Anda por estágios num Kanban;
+   toda mudança vira evento no banco (gatilho), então dá pra medir tempo por etapa
+   e reconstruir o funil de qualquer período. Sub-aba do Funil, master-only. */
+let WA={aba:'meta',leads:[],eventos:[],estagios:[],carregou:false,sel:'',busca:''};
+
+const waFone=(s)=>{ let d=String(s||'').replace(/\D/g,''); if(d.startsWith('0')) d=d.replace(/^0+/,'');
+  if(d.length===10||d.length===11) d='55'+d; return d; };
+const waFoneBonito=(d)=>{ d=String(d||''); const n=d.startsWith('55')?d.slice(2):d;
+  if(n.length===11) return '('+n.slice(0,2)+') '+n.slice(2,7)+'-'+n.slice(7);
+  if(n.length===10) return '('+n.slice(0,2)+') '+n.slice(2,6)+'-'+n.slice(6);
+  return d; };
+const waEst=(k)=>(WA.estagios||[]).find(e=>e.chave===k)||null;
+const waAbertos=(arr)=>(arr||[]).filter(l=>{ const e=waEst(l.estagio); return !e||!e.fim; });
+/* horas úteis-ish: só a diferença bruta em dias, arredondada. Tempo em estágio
+   é medido em dias corridos porque o cliente responde de noite e fim de semana. */
+const waDias=(iso)=>iso?Math.max(0,Math.round((Date.now()-new Date(iso))/86400000)):0;
+
+/* Resumo do funil no período: quantos entraram, quantos estão em cada estágio,
+   conversão até ganho, e de onde vieram. Função pura, testável. */
+function waResumo(leads,de,ate){
+  const noPer=(l)=>{ const d=String(l.criado_em||'').slice(0,10); return (!de||d>=de)&&(!ate||d<=ate); };
+  const ent=(leads||[]).filter(noPer);
+  const porEst={}; (leads||[]).forEach(l=>{ porEst[l.estagio]=(porEst[l.estagio]||0)+1; });
+  const ganhos=ent.filter(l=>{ const e=waEst(l.estagio); return e&&e.fim==='ganho'; });
+  const perdidos=ent.filter(l=>{ const e=waEst(l.estagio); return e&&e.fim==='perdido'; });
+  const origem={}; ent.forEach(l=>{ const k=l.utm_campaign||l.campanha||l.origem||'sem origem'; origem[k]=(origem[k]||0)+1; });
+  const valor=ganhos.reduce((s,l)=>s+(+l.valor||0),0);
+  return {entraram:ent.length, porEstagio:porEst, ganhos:ganhos.length, perdidos:perdidos.length,
+    emAberto:ent.length-ganhos.length-perdidos.length,
+    txGanho:ent.length?Math.round(ganhos.length/ent.length*1000)/10:0,
+    valor:valor, ticket:ganhos.length?valor/ganhos.length:0, origem:origem};
+}
+async function waCarregar(){
+  const [e,l,v]=await Promise.all([
+    sb.from('wa_estagios').select('*').order('ordem'),
+    sb.from('wa_leads').select('*').order('criado_em',{ascending:false}).limit(1000),
+    sb.from('wa_eventos').select('*').order('quando',{ascending:false}).limit(3000)]);
+  WA.estagios=(e&&e.data)||[]; WA.leads=(l&&l.data)||[]; WA.eventos=(v&&v.data)||[];
+  WA.carregou=true;
+}
+window.waAba=(a)=>{ FN.sub=a; renderFunil($('#content')); };
+window.waMover=async (id,est)=>{
+  const {error}=await sb.from('wa_leads').update({estagio:est}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const l=WA.leads.find(x=>x.id===id); if(l){ l.estagio=est; l.estagio_em=new Date().toISOString(); }
+  const e=waEst(est); toast((e?e.nome:est)+'.');
+  await waCarregar(); renderFunil($('#content'));
+};
+window.waSoltar=async (ev,est)=>{ ev.preventDefault(); const id=WA.arrastando; WA.arrastando=null; if(id) await waMover(id,est); };
+window.waNovo=()=>{
+  modal('Novo lead do WhatsApp',`
+    <div class="row2">
+      <div class="field"><label>Telefone *</label><input id="wa_tel" placeholder="(17) 99999-0000"></div>
+      <div class="field"><label>Nome</label><input id="wa_nome" placeholder="como a pessoa se apresentou"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>De onde veio</label><select id="wa_orig"><option value="whatsapp">Anúncio (clique no WhatsApp)</option><option value="formulario">Formulário</option><option value="indicacao">Indicação</option><option value="organico">Orgânico / veio sozinho</option></select></div>
+      <div class="field"><label>Campanha (se souber)</label><input id="wa_camp" placeholder="nome no Meta"></div>
+    </div>
+    <div class="field"><label>Primeira mensagem</label><textarea id="wa_msg" rows="2" placeholder="o que a pessoa escreveu"></textarea></div>`,
+    async ()=>{
+      const tel=waFone(($('#wa_tel')||{}).value); if(tel.length<12){ toast('Telefone com DDD.'); return false; }
+      const {data,error}=await sb.from('wa_leads').upsert({telefone:tel,nome:(($('#wa_nome')||{}).value||'').trim()||null,
+        origem:($('#wa_orig')||{}).value||'whatsapp',campanha:(($('#wa_camp')||{}).value||'').trim()||null,
+        primeira_msg:(($('#wa_msg')||{}).value||'').trim()||null,responsavel_id:(currentUser||{}).id},{onConflict:'telefone'}).select().single();
+      if(error){ toast('Erro: '+error.message); return false; }
+      await waCarregar(); renderFunil($('#content')); toast('Lead no funil.'); return true;
+    });
+};
+window.waAbrir=(id)=>{ WA.sel=id; renderFunil($('#content')); };
+window.waNota=async (id)=>{
+  const t=prompt('Anotação sobre essa conversa:'); if(!t) return;
+  await sb.from('wa_eventos').insert({lead_id:id,tipo:'nota',texto:t,por:(currentUser||{}).id});
+  await waCarregar(); renderFunil($('#content'));
+};
+window.waFechar=async (id)=>{
+  const v=prompt('Fechou! Valor mensal (R$):'); if(v===null) return;
+  const {error}=await sb.from('wa_leads').update({estagio:'ganho',valor:Number(String(v).replace(',','.'))||null}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  await waCarregar(); renderFunil($('#content')); toast('🎉 Fechado.');
+};
+window.waPerder=async (id)=>{
+  const m=prompt('Perdido. Motivo (preço, sumiu, não era o perfil…):'); if(m===null) return;
+  const {error}=await sb.from('wa_leads').update({estagio:'perdido',motivo_perda:m||null}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  await waCarregar(); renderFunil($('#content'));
+};
+window.waBusca=(v)=>{ WA.busca=v; renderFunil($('#content')); };
+
+function waHTML(){
+  if(!WA.carregou){ waCarregar().then(()=>renderFunil($('#content'))); return '<div class="empty">Carregando o funil…</div>'; }
+  const jan=fnPresetJanela(FN.preset), r=waResumo(WA.leads,jan.de,jan.ate);
+  const q=String(WA.busca||'').toLowerCase();
+  const vis=WA.leads.filter(l=>!q||String(l.nome||'').toLowerCase().includes(q)||String(l.telefone||'').includes(q.replace(/\D/g,''))||String(l.campanha||l.utm_campaign||'').toLowerCase().includes(q));
+  const abertos=waAbertos(WA.leads);
+  const cols=WA.estagios.map(e=>({e:e,its:vis.filter(l=>l.estagio===e.chave)}));
+  const orig=Object.entries(r.origem).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const sel=WA.sel?WA.leads.find(l=>l.id===WA.sel):null;
+  const evs=sel?WA.eventos.filter(v=>v.lead_id===sel.id):[];
+  const card=(l)=>`<div class="wa-card" draggable="true" ondragstart="WA.arrastando='${l.id}'" onclick="waAbrir('${l.id}')">
+      <div class="wa-nm">${esc(l.nome||waFoneBonito(l.telefone))}</div>
+      <div class="wa-sub">${l.nome?esc(waFoneBonito(l.telefone)):''}${(l.campanha||l.utm_campaign)?` · <span title="campanha">${esc(l.campanha||l.utm_campaign)}</span>`:''}</div>
+      <div class="wa-foot"><span class="wa-dias" title="dias neste estágio">${waDias(l.estagio_em)}d</span>
+        <a class="wa-zap" href="https://wa.me/${esc(l.telefone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Abrir no WhatsApp">💬</a></div>
+    </div>`;
+  return `
+   <div class="cards fn-topo">
+     <div class="card fn-card"><div class="k">Entraram no período</div><div class="v">${r.entraram}</div><div class="sub">conversas novas</div></div>
+     <div class="card fn-card"><div class="k">Em aberto</div><div class="v" style="color:var(--info)">${abertos.length}</div><div class="sub">no funil agora</div></div>
+     <div class="card fn-card"><div class="k">Fecharam</div><div class="v" style="color:var(--ok)">${r.ganhos}</div><div class="sub">${r.txGanho}% dos que entraram</div></div>
+     <div class="card fn-card"><div class="k">Perdidos</div><div class="v" style="color:var(--danger)">${r.perdidos}</div><div class="sub">no período</div></div>
+     <div class="card fn-card"><div class="k">Receita fechada</div><div class="v">${r.valor?esc(brl(r.valor)):'—'}</div><div class="sub">${r.ganhos?'ticket '+esc(brl(r.ticket)):''}</div></div>
+   </div>
+   <div class="toolbar" style="margin:0 0 12px">
+     <input class="search" placeholder="Buscar nome, telefone ou campanha…" value="${esc(WA.busca)}" oninput="waBusca(this.value)" style="width:260px">
+     <span class="hint" style="margin:0">${orig.length?'Origem: '+orig.map(o=>esc(o[0])+' <b>'+o[1]+'</b>').join(' · '):''}</span>
+     <span style="margin-left:auto"></span>
+     <button class="btn small" onclick="waNovo()">+ Lead</button>
+   </div>
+   <div class="wa-board">
+     ${cols.map(c=>`<div class="wa-col" ondragover="event.preventDefault();this.classList.add('hover')" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');waSoltar(event,'${c.e.chave}')">
+        <div class="wa-colh"><i style="background:${esc(c.e.cor)}"></i><b>${esc(c.e.nome)}</b><span>${c.its.length}</span></div>
+        <div class="wa-cards">${c.its.map(card).join('')||'<div class="wa-vazio">arraste para cá</div>'}</div>
+      </div>`).join('')}
+   </div>
+   ${sel?`<div class="dl-box" style="margin-top:14px">
+     <div class="dl-grp"><h4>${esc(sel.nome||waFoneBonito(sel.telefone))}</h4>
+       <span class="n">${esc(waFoneBonito(sel.telefone))} · entrou ${esc(fmtDate(String(sel.criado_em).slice(0,10)))} · ${esc(sel.origem||'')}${sel.campanha||sel.utm_campaign?' · '+esc(sel.campanha||sel.utm_campaign):''}</span>
+       <button class="btn ghost small" style="margin-left:auto" onclick="waAbrir('')">fechar</button></div>
+     <div style="padding:14px 16px">
+       <div class="toolbar" style="margin-bottom:12px">
+         ${WA.estagios.filter(e=>!e.fim).map(e=>`<button class="btn ghost small${sel.estagio===e.chave?' on':''}" onclick="waMover('${sel.id}','${e.chave}')">${esc(e.nome)}</button>`).join('')}
+         <span style="margin-left:auto"></span>
+         <button class="btn small" onclick="waFechar('${sel.id}')">🎉 Fechou</button>
+         <button class="btn ghost small tk-del" onclick="waPerder('${sel.id}')">Perdido</button>
+         <button class="btn ghost small" onclick="waNota('${sel.id}')">+ nota</button>
+       </div>
+       ${sel.primeira_msg?`<div class="hint" style="margin:0 0 10px">Primeira mensagem: “${esc(sel.primeira_msg)}”</div>`:''}
+       ${sel.motivo_perda?`<div class="hint" style="margin:0 0 10px;color:var(--danger)">Perdido: ${esc(sel.motivo_perda)}</div>`:''}
+       <div class="dl-sec">Linha do tempo</div>
+       ${evs.length?evs.map(v=>`<div class="dl-hist"><b>${esc(fmtDate(String(v.quando).slice(0,10)))} ${new Date(v.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</b><br>
+         ${v.tipo==='criado'?'Entrou no funil':v.tipo==='estagio'?(esc((waEst(v.de)||{}).nome||v.de||'')+' → <strong>'+esc((waEst(v.para)||{}).nome||v.para||'')+'</strong>'):v.tipo==='msg'?('💬 '+esc(v.texto||'')):esc(v.texto||v.tipo)}</div>`).join('')
+       :'<div class="hint">Nada registrado ainda.</div>'}
+     </div></div>`:''}
+   <p class="hint" style="margin-top:12px">Arraste o cartão entre colunas ou abra e escolha o estágio. Toda mudança fica na linha do tempo, então dá pra medir quanto tempo cada lead passa em cada etapa. O telefone é a chave: a mesma pessoa nunca vira dois leads.</p>`;
+}
+
 function renderFunil(c){
   if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
   const d=FN.dados, m=d?fnMetricas(d.atual):null, ma=d?fnMetricas(d.anterior):null, v=fnVar(m,ma);
@@ -6746,6 +6911,18 @@ function renderFunil(c){
     return {nome:cp.name,status:cp.effective_status,obj:cp.objective,orc:+(cp.daily_budget||0)/100,m:mm}; })
     .filter(x=>x.m.gasto>0||x.status==='ACTIVE').sort((a,b)=>b.m.gasto-a.m.gasto);
   const melhorCPL=Math.min(...camps.filter(x=>x.m.leads>0).map(x=>x.m.cpl),Infinity);
+  FN.sub=FN.sub||'meta';
+  const subAbas=`<div class="fin-tabs" style="margin:0 0 14px">
+      <button class="ftab${FN.sub==='meta'?' active':''}" onclick="waAba('meta')">📊 Anúncios (Meta)</button>
+      <button class="ftab${FN.sub==='wa'?' active':''}" onclick="waAba('wa')">💬 WhatsApp</button></div>`;
+  if(FN.sub==='wa'){
+    const jan=fnPresetJanela(FN.preset);
+    c.innerHTML=`<div class="page-head">
+       <div><h2>Funil de captação</h2><div class="desc">Conversas do WhatsApp · ${esc(fmtDate(jan.de))} a ${esc(fmtDate(jan.ate))}</div></div>
+       <div class="toolbar"><div class="fin-tabs" style="margin:0">${FN_PRESETS.filter(p=>p[0]!=='per').map(p=>`<button class="ftab${FN.preset===p[0]?' active':''}" onclick="FN.preset='${p[0]}';renderFunil($('#content'))">${p[1]}</button>`).join('')}</div></div>
+     </div>${subAbas}${waHTML()}`;
+    return;
+  }
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Funil de captação</h2>
@@ -6756,6 +6933,7 @@ function renderFunil(c){
        <button class="btn ghost small" onclick="fnBuscar()" title="Buscar de novo">↻</button>
      </div>
    </div>
+   ${subAbas}
    ${!m?`<div class="empty">${FN.carregando?'Buscando os números no Meta…':(FN.erro?'Não deu para carregar: '+esc(FN.erro):'Sem dados no período.')}</div>`:`
    <div class="cards fn-topo">
      ${card('leads','Leads',m.leads,'formulário + WhatsApp')}
