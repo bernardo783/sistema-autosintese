@@ -701,6 +701,12 @@
     font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);padding:8px 12px}
   .fp-faixa .fp-sub{margin-left:8px;font-weight:600;letter-spacing:0;text-transform:none;opacity:.65}
   .tk-sec-n{color:var(--muted);font-weight:700;font-size:11px;margin-left:5px}
+  /* ---------- TIPOS DE TAREFA ---------- */
+  .tk-tp{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;letter-spacing:.2px;white-space:nowrap}
+  .tk-tp.sm{font-size:10px;padding:1px 7px}
+  .tk-tpl{margin-bottom:6px}
+  .tp-l{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+  .tp-l:first-of-type{border-top:none}
   /* ---------- RELACIONAMENTOS (formato ClickUp) ---------- */
   .rel-sub{color:var(--muted);font-size:13px;margin:0 0 14px}
   .rel-sec{margin-bottom:16px}
@@ -3625,6 +3631,7 @@ window.spNoMenu=(ev,tipo,id)=>{
   it.push({sep:true});
   it.push({ic:MICO.pessoas,t:'Compartilhar',f:()=>spCompartilhar(tipo,id)});
   it.push({ic:MICO.link,t:'Copiar link',f:()=>lkCopiar({espaco:'e',pasta:'p',lista:'l'}[tipo],id)});
+  if(tipo==='lista'&&souGerente()) it.push({ic:'◈',t:'Tipos de tarefa',f:()=>tkTipos()});
   it.push({ic:MICO.lapis,t:'Renomear',f:()=>spRenomear(tipo,id)});
   it.push({ic:MICO.cor,t:tipo==='espaco'?'Aparência — foto, cor e ícone':'Cor e ícone',f:()=>spCorIcone(tipo,id)});
   it.push({ic:MICO.dup,t:'Duplicar',f:()=>spDuplicar(tipo,id),so:m});
@@ -4052,6 +4059,7 @@ function tkCard(t){
       <button class="tk-qab" title="Cliente / projeto" onclick="tkQaCli(event,'${t.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg></button>
     </span>`;
   return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')" oncontextmenu="tkCardMenu(event,'${t.id}')">
+    ${t.tipo_id?`<div class="tk-tpl">${tipoChip(t.tipo_id,'sm')}</div>`:''}
     <div class="tk-tit">${FLAG}${esc(t.titulo)}</div>
     <div class="tk-foot">
       ${t.prazo?`<span class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}">${CAL}${dtRel(t.prazo,hoje)}</span>`:''}
@@ -4149,7 +4157,7 @@ function tkViewBoard(){
   } else {
     cols=['todo','fazendo','feito'].map(k=>({key:k,rot:TK_ST[k],cor:k==='feito'?'#3ec46d':k==='fazendo'?'#2f7cf6':'#8b95a5',drop:"tkSoltar(event,'"+k+"')",its:arr.filter(t=>t.status===k)}));
   }
-  return `<div class="tk-cols">${cols.map(c=>`
+  return `${(TK.escopo==='lista'&&souGerente()&&(TK.tipos||[]).length)?`<div class="tk-bar" style="margin-bottom:8px"><span class="hint" style="margin:0">Tipo padrão desta lista: ${(TK.tipos||[]).filter(t=>String(t.lista_padrao||'')===TK.listaSel).map(t=>tipoChip(t.id,'sm')).join(' ')||'nenhum'}</span><button class="btn ghost small" style="margin-left:auto" onclick="tkTipos()">◈ Tipos</button></div>`:''}<div class="tk-cols">${cols.map(c=>`
     <div class="tk-col" ondragover="event.preventDefault();this.classList.add('hover');tkOrdenaDrag(event,this);tkAutoRolar(event)" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');${c.drop}">
       <div class="tk-colh"><span class="tk-selo" style="color:${esc(c.cor)};background:${esc(c.cor)}1f">${esc(c.rot)}</span><span class="tk-n">${c.its.length}</span>${lc?'':`<button class="tk-mais" title="Nova tarefa nesta coluna" onclick="tkAbrirSt('${esc(c.key)}')">+</button>`}</div>
       <div class="tk-colb">${c.its.map(tkCard).join('')||'<div class="tk-vazio">arraste uma tarefa para cá</div>'}</div>
@@ -4202,7 +4210,7 @@ window.tkAddKey=async (ev,key)=>{
   if(ev.key!=='Enter') return;
   const tit=ev.target.value.trim(); if(!tit) return;
   ev.target.disabled=true;
-  const v={titulo:tit,lista_id:TK.listaSel,prioridade:'med',valores:{}};
+  const v={titulo:tit,lista_id:TK.listaSel,prioridade:'med',valores:{},tipo_id:tipoPadraoDe(TK.listaSel)};
   if(tkStatus1(key)){ v.status_id=key; v.status='todo'; } else { v.status=key||'todo'; v.status_id=null; }
   if(TK.listaSel===LISTA_EDICAO){ v.checklist=CK_EDICAO.map(x=>({t:x,ok:false})); v.responsavel_id=EDITORA_PADRAO; v.responsaveis=[EDITORA_PADRAO]; }
   const {data,error}=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
@@ -4283,7 +4291,7 @@ function tkViewLista(){
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
-  const nome=(t)=>`<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
+  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
@@ -4315,7 +4323,7 @@ function tkViewLista(){
   return `<div class="tk-bar">${tkBarraSquad()}
     <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
     <button class="btn ghost small" onclick="tkMenuCols()">&#9707; Colunas</button>
-    ${(TK.escopo==='lista'&&estruturaEditavel(TK.listaSel))?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>`
+    ${(TK.escopo==='lista'&&estruturaEditavel(TK.listaSel))?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>${souGerente()?`<button class="btn ghost small" onclick="tkTipos()">◈ Tipos</button>`:''}`
       :(TK.escopo==='lista'?`<span class="hint" style="margin:0">&#128274; colunas fixas — só master e gerente mudam</span>`:'')}
     <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
   </div>${grupos.length
@@ -5379,6 +5387,67 @@ window.ntfTodasLidas=async ()=>{
   try{ await sb.from('notificacoes').update({lida_em:new Date().toISOString()}).is('lida_em',null); }catch(_){}
   ntfBadge(); render('notificacoes');
 };
+/* ---------- TIPOS DE TAREFA: gerenciar (gerente para cima) ----------
+   Icone + cor + grupo (por espaco, como no ClickUp) + lista onde ele e o padrao. */
+const TP_ICONES=['◻','▶','◈','▤','◉','▣','◎','⌘','⚒','⟲','✦','⧉','⚠','★','●','◆','▲','✎','☎','✉','⚑','♻','⌁','⊕'];
+window.tkTipos=()=>{
+  if(!souGerente()){ toast('Só gerente e master mexem nos tipos.'); return; }
+  const ts=(TK.tipos||[]).slice().sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+  const grupos=[]; ts.forEach(t=>{ const g=t.grupo||'Geral'; if(grupos.indexOf(g)<0) grupos.push(g); });
+  const nomeLista=(id)=>{ const l=(TK.listas||[]).find(x=>x.id===id); return l?spNome(l):''; };
+  modal('Tipos de tarefa',`
+    <p class="hint" style="margin-top:0">Ícone e cor aparecem no cartão e na lista. A <strong>lista padrão</strong> faz toda tarefa nova daquela lista já nascer com o tipo — quem quiser troca.</p>
+    ${grupos.map(g=>`<div class="k" style="margin:12px 0 6px">${esc(g)}</div>
+      ${ts.filter(t=>(t.grupo||'Geral')===g).map(t=>`<div class="tp-l">
+        ${tipoChip(t.id)}
+        <span class="hint" style="margin:0;flex:1">${t.lista_padrao?('padrão em '+esc(nomeLista(t.lista_padrao))):''}</span>
+        <button class="iconbtn" onclick="tkTipoEditar('${t.id}')" title="Editar">✎</button>
+      </div>`).join('')}`).join('')}
+    <button class="btn secondary small" type="button" style="margin-top:12px" onclick="tkTipoEditar()">+ Novo tipo</button>`,
+    async ()=>true);
+  setTimeout(()=>{ const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Fechar'; const c=document.querySelector('.overlay .mcancel'); if(c) c.style.display='none'; },30);
+};
+window.tkTipoEditar=(id)=>{
+  const t=id?tipoDe(id):null;
+  const it=t||{nome:'',icone:'◻',cor:'#8b95a5',grupo:'Geral',lista_padrao:null,ordem:((TK.tipos||[]).length+1)*10};
+  const gruposExist=Array.from(new Set((TK.tipos||[]).map(x=>x.grupo||'Geral').concat((TK.espacos||[]).map(e=>spNome(e)))));
+  const listasOpc=(TK.listas||[]).map(l=>`<option value="${l.id}"${String(it.lista_padrao||'')===l.id?' selected':''}>${esc(tkCaminho(l.id))}</option>`).join('');
+  const ov0=document.querySelector('.overlay'); if(ov0) ov0.remove();
+  modal(t?'Editar tipo':'Novo tipo',`
+    <div class="row2">
+      <div class="field"><label>Nome</label><input id="tp_nome" value="${esc(it.nome)}" placeholder="Ex: Estáticos"></div>
+      <div class="field"><label>Grupo</label><input id="tp_grupo" list="tp_gr" value="${esc(it.grupo||'Geral')}"><datalist id="tp_gr">${gruposExist.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
+    </div>
+    <div class="field"><label>Ícone</label>
+      <div class="emo-g" id="tp_ig" style="grid-template-columns:repeat(12,1fr)">${TP_ICONES.map(i=>`<button type="button" class="${i===it.icone?'on':''}" onclick="tpPick(this,'${i}')" style="font-size:15px">${i}</button>`).join('')}</div>
+      <input type="hidden" id="tp_icone" value="${esc(it.icone||'◻')}"></div>
+    <div class="row2">
+      <div class="field"><label>Cor</label><input type="color" id="tp_cor" value="${esc(it.cor||'#8b95a5')}" style="height:38px;padding:3px"></div>
+      <div class="field"><label>Lista padrão (opcional)</label><select id="tp_lista"><option value="">— nenhuma —</option>${listasOpc}</select></div>
+    </div>
+    ${t?`<button class="btn ghost small" type="button" onclick="tkTipoExcluir('${t.id}')">Excluir tipo</button>`:''}`,
+    async ()=>{
+      const v={nome:$('#tp_nome').value.trim(),icone:$('#tp_icone').value||'◻',cor:$('#tp_cor').value,
+        grupo:$('#tp_grupo').value.trim()||'Geral',lista_padrao:$('#tp_lista').value||null};
+      if(!v.nome){ toast('Informe o nome.'); return false; }
+      const {error}=t?await sb.from('tipos_tarefa').update(v).eq('id',t.id)
+                     :await sb.from('tipos_tarefa').insert(Object.assign(v,{ordem:it.ordem}));
+      if(error){ toast('Erro: '+error.message); return false; }
+      const tp=await sb.from('tipos_tarefa').select('*').order('ordem'); TK.tipos=(tp&&tp.data)||[];
+      toast('Salvo.'); tkDesenhar($('#content')); setTimeout(tkTipos,60); return true; });
+};
+window.tpPick=(b,i)=>{ $('#tp_icone').value=i; document.querySelectorAll('#tp_ig button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
+window.tkTipoExcluir=async (id)=>{
+  const t=tipoDe(id); if(!t) return;
+  const usando=(TK.tarefas||[]).filter(x=>String(x.tipo_id)===String(id)).length;
+  const ok=await confirmar('Excluir o tipo "'+t.nome+'"?', usando?(usando+' tarefa(s) usam este tipo — elas ficam sem tipo, nada é apagado.'):'',{sim:'Excluir',nao:'Cancelar',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('tipos_tarefa').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const tp=await sb.from('tipos_tarefa').select('*').order('ordem'); TK.tipos=(tp&&tp.data)||[];
+  const o=document.querySelector('.overlay'); if(o) o.remove();
+  toast('Tipo excluído.'); tkDesenhar($('#content')); setTimeout(tkTipos,60);
+};
 window.tkSetStatus=async (id,sid)=>{
   const s=sid?tkStatus1(sid):null, st=s?TK_G2ST[s.grupo]:'todo';
   const antes=Object.assign({},TK.tarefas.find(x=>x.id===id)||{});
@@ -5645,12 +5714,20 @@ const primeiroNome=(s)=>String(s||'').trim().split(/\s+/)[0]||'';
 
 /* ---- tipo da tarefa ---- */
 const tipoDe=(id)=>(TK.tipos||[]).find(x=>String(x.id)===String(id))||null;
+/* Tipo padrao da lista: o que a pessoa faz nela quase sempre e o mesmo (Edicao de Video =
+   Video, Campanhas = Campanhas, Correcoes = Correcoes CRM...). Vale pra tarefa NOVA; quem
+   quiser troca no seletor. */
+const tipoPadraoDe=(lid)=>{ const t=(TK.tipos||[]).find(x=>String(x.lista_padrao||'')===String(lid)); return t?t.id:null; };
+const tipoChip=(id,cls)=>{ const t=tipoDe(id); if(!t) return '';
+  return `<span class="tk-tp ${cls||''}" style="color:${esc(t.cor||'#8b95a5')};background:${esc(t.cor||'#8b95a5')}1f" title="${esc(t.nome)}">${esc(t.icone||'◻')} ${esc(t.nome)}</span>`; };
 function tkTipoSel(atual){
   const ts=TK.tipos||[];
   if(!ts.length) return '';
+  const grupos=[]; ts.forEach(t=>{ const g=t.grupo||'Geral'; if(grupos.indexOf(g)<0) grupos.push(g); });
+  const opt=(t)=>`<option value="${t.id}"${String(atual||'')===String(t.id)?' selected':''}>${esc((t.icone||'')+' '+t.nome)}</option>`;
   return `<select id="tk_tipo" class="tk-tipo">
     <option value="">◻ Sem tipo</option>
-    ${ts.map(t=>`<option value="${t.id}"${String(atual||'')===String(t.id)?' selected':''}>${esc((t.icone||'')+' '+t.nome)}</option>`).join('')}
+    ${grupos.map(g=>`<optgroup label="${esc(g)}">${ts.filter(t=>(t.grupo||'Geral')===g).map(opt).join('')}</optgroup>`).join('')}
   </select>`;
 }
 
@@ -5755,7 +5832,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
     return `<input type="${tp}" id="cp_${c.id}" value="${esc(v==null?'':String(v))}" placeholder="${c.tipo==='moeda'?'R$':''}">`; };
   modal(t?'Editar tarefa':'Nova tarefa',`<div class="tkm"><div class="tkm-painel" id="tkmDet">
-    ${tkTipoSel(it.tipo_id)}
+    ${tkTipoSel(it.tipo_id||(t?null:tipoPadraoDe(it.lista_id)))}
     <input class="tk-tit" id="tk_tit" value="${esc(it.titulo)}" placeholder="Nome da tarefa">
     <div class="tk-props">
       <div class="tk-p"><span class="tk-pl">${SVG_P.status} Status</span><span class="tk-pv">
