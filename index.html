@@ -280,6 +280,15 @@
   .wa-foot{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
   .wa-dias{font-size:10.5px;font-weight:700;color:var(--muted);background:var(--panel);border-radius:999px;padding:1px 7px}
   .wa-zap{text-decoration:none;font-size:14px;opacity:.7} .wa-zap:hover{opacity:1}
+  .wa-ref{display:inline-block;margin-top:5px;font-size:10px;font-weight:800;letter-spacing:.03em;color:#c4b8ff;
+    background:color-mix(in srgb,var(--brand) 18%,transparent);border-radius:999px;padding:1px 8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wa-msg{margin-top:6px;font-size:11.5px;color:var(--muted);line-height:1.4;font-style:italic;
+    border-left:2px solid var(--line);padding-left:7px}
+  .wa-msg.minha{border-left-color:var(--brand2);font-style:normal}
+  .wa-dele{color:var(--txt)} .wa-minha{color:var(--muted)}
+  .wa-origens{display:inline-flex;gap:6px;flex-wrap:wrap}
+  .wa-orig{font-size:11.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+  .wa-orig b{color:var(--txt);margin-right:3px}
   .wa-vazio{font-size:11.5px;color:var(--fraco);text-align:center;padding:14px 6px;border:1px dashed var(--line);border-radius:8px}
   .fn-qbox{display:inline-flex;gap:5px}
   .fn-qbox .btn.on{border-color:var(--brand2);color:var(--txt);background:var(--hov2)}
@@ -6840,12 +6849,15 @@ function waHTML(){
   const orig=Object.entries(r.origem).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const sel=WA.sel?WA.leads.find(l=>l.id===WA.sel):null;
   const evs=sel?WA.eventos.filter(v=>v.lead_id===sel.id):[];
-  const card=(l)=>`<div class="wa-card" draggable="true" ondragstart="WA.arrastando='${l.id}'" onclick="waAbrir('${l.id}')">
+  const ultMsg=(l)=>{ const m=WA.eventos.find(v=>v.lead_id===l.id&&(v.tipo==='msg'||v.tipo==='msg_minha')); return m?m:null; };
+  const card=(l)=>{ const um=ultMsg(l); return `<div class="wa-card" draggable="true" ondragstart="WA.arrastando='${l.id}'" onclick="waAbrir('${l.id}')">
       <div class="wa-nm">${esc(l.nome||waFoneBonito(l.telefone))}</div>
-      <div class="wa-sub">${l.nome?esc(waFoneBonito(l.telefone)):''}${(l.campanha||l.utm_campaign)?` · <span title="campanha">${esc(l.campanha||l.utm_campaign)}</span>`:''}</div>
+      <div class="wa-sub">${l.nome?esc(waFoneBonito(l.telefone)):''}</div>
+      ${(l.utm_campaign||l.campanha)?`<div class="wa-ref" title="de onde veio">${esc(l.utm_campaign||l.campanha)}</div>`:''}
+      ${um?`<div class="wa-msg ${um.tipo==='msg_minha'?'minha':''}">${um.tipo==='msg_minha'?'↩ ':''}${esc(String(um.texto||'').slice(0,90))}${String(um.texto||'').length>90?'…':''}</div>`:''}
       <div class="wa-foot"><span class="wa-dias" title="dias neste estágio">${waDias(l.estagio_em)}d</span>
         <a class="wa-zap" href="https://wa.me/${esc(l.telefone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Abrir no WhatsApp">💬</a></div>
-    </div>`;
+    </div>`; };
   return `
    <div class="cards fn-topo">
      <div class="card fn-card"><div class="k">Entraram no período</div><div class="v">${r.entraram}</div><div class="sub">conversas novas</div></div>
@@ -6856,7 +6868,7 @@ function waHTML(){
    </div>
    <div class="toolbar" style="margin:0 0 12px">
      <input class="search" placeholder="Buscar nome, telefone ou campanha…" value="${esc(WA.busca)}" oninput="waBusca(this.value)" style="width:260px">
-     <span class="hint" style="margin:0">${orig.length?'Origem: '+orig.map(o=>esc(o[0])+' <b>'+o[1]+'</b>').join(' · '):''}</span>
+     <span class="wa-origens">${orig.length?orig.map(o=>`<span class="wa-orig"><b>${o[1]}</b> ${esc(o[0])}</span>`).join(''):'<span class="hint" style="margin:0">sem origem marcada ainda</span>'}</span>
      <span style="margin-left:auto"></span>
      <button class="btn small" onclick="waNovo()">+ Lead</button>
    </div>
@@ -6882,7 +6894,7 @@ function waHTML(){
        ${sel.motivo_perda?`<div class="hint" style="margin:0 0 10px;color:var(--danger)">Perdido: ${esc(sel.motivo_perda)}</div>`:''}
        <div class="dl-sec">Linha do tempo</div>
        ${evs.length?evs.map(v=>`<div class="dl-hist"><b>${esc(fmtDate(String(v.quando).slice(0,10)))} ${new Date(v.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</b><br>
-         ${v.tipo==='criado'?'Entrou no funil':v.tipo==='estagio'?(esc((waEst(v.de)||{}).nome||v.de||'')+' → <strong>'+esc((waEst(v.para)||{}).nome||v.para||'')+'</strong>'):v.tipo==='msg'?('💬 '+esc(v.texto||'')):esc(v.texto||v.tipo)}</div>`).join('')
+         ${v.tipo==='criado'?'Entrou no funil':v.tipo==='estagio'?(esc((waEst(v.de)||{}).nome||v.de||'')+' → <strong>'+esc((waEst(v.para)||{}).nome||v.para||'')+'</strong>'):v.tipo==='msg'?('💬 <span class="wa-dele">'+esc(v.texto||'')+'</span>'):v.tipo==='msg_minha'?('↩ <span class="wa-minha">'+esc(v.texto||'')+'</span>'):esc(v.texto||v.tipo)}</div>`).join('')
        :'<div class="hint">Nada registrado ainda.</div>'}
      </div></div>`:''}
    <p class="hint" style="margin-top:12px">Arraste o cartão entre colunas ou abra e escolha o estágio. Toda mudança fica na linha do tempo, então dá pra medir quanto tempo cada lead passa em cada etapa. O telefone é a chave: a mesma pessoa nunca vira dois leads.</p>`;
