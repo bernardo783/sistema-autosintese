@@ -1449,6 +1449,10 @@
 .mp-agc .o.on{background:var(--ok);border-color:var(--ok);color:#fff}
 .mp-agc .x{color:var(--muted);cursor:pointer;background:none;border:0;font-size:14px;padding:0 2px;flex:none}
 .mp-agc .x:hover{color:var(--danger)}
+.mp-trw .tt.abre{cursor:pointer}
+.mp-trw .tt.abre:hover{color:var(--brand2)}
+.mp-tprog{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;flex:none;font-variant-numeric:tabular-nums}
+#mtc_ds{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--txt);font:inherit;font-size:13px;padding:9px 11px;resize:vertical;min-height:84px}
 .mp-ics,.mp-cors{display:flex;gap:6px;flex-wrap:wrap}
 .mp-icb{width:38px;height:38px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer}
 .mp-icb.on{background:var(--hov2);border-color:var(--brand2)}
@@ -5179,7 +5183,8 @@ async function pessoalGarantir(){
 }
 const ehPessoal=(t)=>{ const l=meuPessoalLista(); return !!l&&String(t&&t.lista_id)===String(l.id); };
 const minhasPessoais=()=>{ const l=meuPessoalLista(); if(!l) return [];
-  return (TK.tarefas||[]).filter(t=>String(t.lista_id)===String(l.id)&&!arquivada(t)); };
+  /* subtarefas vivem dentro do cartão da mãe */
+  return (TK.tarefas||[]).filter(t=>!t.pai_id&&(String(t.lista_id))===String(l.id)&&!arquivada(t)); };
 
 window.pessoalEnter=(ev,el)=>{ if(ev.key==='Enter'){ ev.preventDefault(); pessoalAdd(el); } };
 window.pessoalAdd=async (el)=>{
@@ -9912,7 +9917,8 @@ function mpListaIds(){
   return (TK.listas||[]).filter(l=>eids.indexOf(String(l.espaco_id))>=0).map(l=>String(l.id));
 }
 const mpTarefas=()=>{ const ids=mpListaIds();
-  return (TK.tarefas||[]).filter(t=>!t.arquivada_em&&ids.indexOf(String(t.lista_id))>=0); };
+  return (TK.tarefas||[]).filter(t=>!t.arquivada_em&&!t.pai_id&&ids.indexOf(String(t.lista_id))>=0); };
+const mpSubsDe=(id)=>(TK.tarefas||[]).filter(x=>String(x.pai_id||'')===String(id)&&!x.arquivada_em);
 const mpTarDia=(iso)=>mpTarefas().filter(t=>String(t.prazo||'').slice(0,10)===iso);
 const mpTarSemData=()=>mpTarefas().filter(t=>!t.prazo);
 const mpFeita=(t)=>t.status==='feito'||!!t.concluida_em;
@@ -10207,8 +10213,11 @@ function mpStrip(){
     '</div><button class="mp-nav" onclick="mpDiaNav(7)">›</button></div>';
 }
 function mpTarRow(t){ const f=mpFeita(t);
+  const L=Array.isArray(t.checklist)?t.checklist:[], S=mpSubsDe(t.id);
+  const tot=L.length+S.length, okn=L.filter(i=>i&&i.ok).length+S.filter(mpFeita).length;
   return '<div class="mp-trw'+(f?' done':'')+'"><button class="o'+(f?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button>'+
-  '<span class="tt">'+esc(t.titulo||'')+'</span>'+
+  '<span class="tt abre" title="Abrir cartão" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'</span>'+
+  (tot?'<span class="mp-tprog">'+okn+'/'+tot+'</span>':'')+
   '<button class="x" title="Apagar" onclick="mpTarDel(\''+t.id+'\')">×</button></div>'; }
 function mpEvtRow(e){
   return '<div class="mp-trw'+(e.feito?' done':'')+'"><button class="o'+(e.feito?' on':'')+'" onclick="mpEvtVirar(\''+e.id+'\')">'+svgIco('check',11)+'</button>'+
@@ -10279,6 +10288,69 @@ window.mpTarPraDia=async(id)=>{
   if(error){ toast('Erro: '+error.message); return; }
   const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(t) t.prazo=MP.dia;
   mpPintar();
+};
+
+/* ---------- cartão da tarefa (descrição, checklist, subtarefas) ---------- */
+const mpTcT=()=>(TK.tarefas||[]).find(x=>String(x.id)===String(window.__mpTc||''));
+window.mpTarCard=(id)=>{
+  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
+  window.__mpTc=String(id);
+  modal('Tarefa',
+    '<div class="field"><label>Título</label><input id="mtc_tt" value="'+esc(t.titulo||'')+'"/></div>'+
+    '<div class="field"><label>Dia</label><input type="date" id="mtc_dt" value="'+esc(String(t.prazo||'').slice(0,10))+'"/></div>'+
+    '<div class="field"><label>Descrição</label><textarea id="mtc_ds" placeholder="Anota aqui o que precisar…">'+esc(t.descricao||'')+'</textarea></div>'+
+    '<div class="field"><label>Checklist</label><div id="mtc_ck"></div>'+
+      '<div class="mp-trw"><input type="text" id="mtc_ckn" placeholder="Novo item…" onkeydown="if(event.key===\'Enter\')mpTcCkAdd()"><button class="btn small" onclick="mpTcCkAdd()">'+svgIco('check',12)+'</button></div></div>'+
+    '<div class="field"><label>Subtarefas</label><div id="mtc_sub"></div>'+
+      '<div class="mp-trw"><input type="text" id="mtc_subn" placeholder="Nova subtarefa…" onkeydown="if(event.key===\'Enter\')mpTcSubAdd()"><button class="btn small" onclick="mpTcSubAdd()">'+svgIco('check',12)+'</button></div></div>'+
+    '<button class="btn danger small" onclick="mpTcApagar()" style="margin-top:4px">Apagar tarefa</button>',
+    async ()=>{
+      const tt=(($('#mtc_tt')||{}).value||'').trim();
+      const patch={titulo:tt||t.titulo,prazo:(($('#mtc_dt')||{}).value||'')||null,descricao:(($('#mtc_ds')||{}).value||'')||null};
+      const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
+      if(error){ toast('Erro: '+error.message); return false; }
+      Object.assign(t,patch); mpPintar();
+    });
+  mpTcPintar();
+};
+function mpTcPintar(){
+  const t=mpTcT(); if(!t) return;
+  const ck=$('#mtc_ck');
+  if(ck){ const L=Array.isArray(t.checklist)?t.checklist:[];
+    ck.innerHTML=L.map((i,ix)=>'<div class="mp-trw'+(i&&i.ok?' done':'')+'"><button class="o'+(i&&i.ok?' on':'')+'" onclick="mpTcCkT('+ix+')">'+svgIco('check',11)+'</button><span class="tt">'+esc((i&&i.t)||'')+'</span><button class="x" onclick="mpTcCkDel('+ix+')">×</button></div>').join(''); }
+  const su=$('#mtc_sub');
+  if(su){ const S=mpSubsDe(t.id);
+    su.innerHTML=S.map(sx=>'<div class="mp-trw'+(mpFeita(sx)?' done':'')+'"><button class="o'+(mpFeita(sx)?' on':'')+'" onclick="mpTcSubT(\''+sx.id+'\')">'+svgIco('check',11)+'</button><span class="tt">'+esc(sx.titulo||'')+'</span><button class="x" onclick="mpTcSubDel(\''+sx.id+'\')">×</button></div>').join(''); }
+}
+async function mpTcCkSalva(t){ const {error}=await sb.from('tarefas').update({checklist:t.checklist}).eq('id',t.id); if(error) toast('Erro: '+error.message); }
+window.mpTcCkAdd=()=>{ const t=mpTcT(), el=$('#mtc_ckn'), v=((el&&el.value)||'').trim(); if(!t||!v) return;
+  t.checklist=(Array.isArray(t.checklist)?t.checklist:[]).concat([{t:v,ok:false}]); el.value=''; mpTcPintar(); mpTcCkSalva(t); el.focus(); };
+window.mpTcCkT=(ix)=>{ const t=mpTcT(); if(!t||!Array.isArray(t.checklist)||!t.checklist[ix]) return;
+  t.checklist[ix].ok=!t.checklist[ix].ok; mpTcPintar(); mpTcCkSalva(t); };
+window.mpTcCkDel=(ix)=>{ const t=mpTcT(); if(!t||!Array.isArray(t.checklist)) return;
+  t.checklist.splice(ix,1); mpTcPintar(); mpTcCkSalva(t); };
+window.mpTcSubAdd=async()=>{ const t=mpTcT(), el=$('#mtc_subn'), v=((el&&el.value)||'').trim(); if(!t||!v) return;
+  el.value='';
+  const uid=currentUser.id;
+  const r=await sb.from('tarefas').insert({titulo:v,lista_id:t.lista_id,status:'todo',pai_id:t.id,responsavel_id:uid,responsaveis:[uid],criado_por:uid}).select().single();
+  if(r.error){ toast('Erro: '+r.error.message); return; }
+  TK.tarefas.push(r.data); mpTcPintar(); el.focus(); };
+window.mpTcSubT=async(id)=>{ const sx=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!sx) return;
+  const f=!mpFeita(sx), patch={status:f?'feito':'todo',concluida_em:f?new Date().toISOString():null};
+  const {error}=await sb.from('tarefas').update(patch).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  Object.assign(sx,patch); mpTcPintar(); };
+window.mpTcSubDel=async(id)=>{ const {error}=await sb.from('tarefas').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  TK.tarefas=TK.tarefas.filter(x=>String(x.id)!==String(id)); mpTcPintar(); };
+window.mpTcApagar=async()=>{ const t=mpTcT(); if(!t) return;
+  const ok=await confirmar('Apagar tarefa','Apaga "'+(t.titulo||'')+'" com checklist e subtarefas. Sem volta.',{sim:'Apagar',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('tarefas').delete().eq('id',t.id);
+  if(error){ toast('Erro: '+error.message); return; }
+  TK.tarefas=TK.tarefas.filter(x=>String(x.id)!==String(t.id)&&String(x.pai_id||'')!==String(t.id));
+  document.querySelectorAll('.overlay').forEach(o=>o.remove());
+  mpPintar(); toast('Tarefa apagada.');
 };
 
 /* ---------- agenda ---------- */
