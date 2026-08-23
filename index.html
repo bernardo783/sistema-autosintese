@@ -5435,25 +5435,6 @@ async function ntfCriar(rows){
   if(!rows.length) return;
   try{ await sb.from('notificacoes').insert(rows); ntfBadge(); }catch(_){}
 }
-async function ntfVideoPronto(t, sidNovo){
-  try{
-    if(!t || t.lista_id!==LISTA_EDICAO) return;
-    const s=sidNovo?tkStatus1(sidNovo):null;
-    if(!s || s.grupo!=='feito') return;
-    const sAntes=t.status_id?tkStatus1(t.status_id):null;
-    if(sAntes && sAntes.grupo==='feito') return;              /* ja estava pronto: nao repete */
-    const sq=String(t.squad||((fichaDe(t.ficha_id)||{}).squad)||'').trim();
-    if(!sq) return;
-    const eu=(currentUser||{}).id;
-    const dest=(TK.equipe||[]).filter(u=>Array.isArray(u.squads)&&u.squads.indexOf(sq)>=0&&u.id!==eu);
-    if(!dest.length) return;
-    const cli=tkNomeFicha(t.ficha_id);
-    await ntfCriar(dest.map(u=>({para:u.id,
-      titulo:'🎬 Vídeo pronto: '+(t.titulo||''),
-      texto:(cli?('Cliente '+cli+' · '):'')+'Squad '+sq+' · finalizado por '+((currentUser||{}).nome||'alguém'),
-      tarefa_id:t.id, criado_por:eu||null})));
-  }catch(_){}
-}
 /* badge do sino: conta as nao lidas; roda no boot e a cada 2 minutos */
 window.__ntfN=0;
 async function ntfBadge(){
@@ -5566,7 +5547,7 @@ window.tkSetStatus=async (id,sid)=>{
   const s=sid?tkStatus1(sid):null, st=s?TK_G2ST[s.grupo]:'todo';
   const antes=Object.assign({},TK.tarefas.find(x=>x.id===id)||{});
   const ok=await tkPatch(id,{status_id:sid||null,status:st,concluida_em:st==='feito'?new Date().toISOString():null}, s?s.nome:'Sem status');
-  if(ok) ntfVideoPronto(antes,sid);
+  /* aviso agora nasce no banco (trg_ntf_tarefas): qualquer caminho conta, sem duplicar */
   if(ok) await lcSincronizarFicha(id,sid);
   if(ok&&sid===LC_CHURN) chPerguntarChurn(id);
 };
@@ -6111,7 +6092,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
              error=r.error; criada=r.data||null; }
       if(error){ aviso('Erro ao salvar: '+error.message); if(!silencioso) toast('Erro: '+error.message); return false; }
       /* so avisa se a tarefa CONTINUA na mesma lista — trocou de lista junto, nao vale */
-      if(t && v.status_id!==t.status_id && v.lista_id===t.lista_id) ntfVideoPronto(t, v.status_id);
+      /* aviso agora nasce no banco (trg_ntf_tarefas) */
       if(criada){
         /* tarefa nova acabou de nascer: daqui pra frente o autosave atualiza ela */
         TK.tarefas.push(criada); window.__tkmT=criada; window.__tkmTarefaId=criada.id;
