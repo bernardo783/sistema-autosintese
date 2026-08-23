@@ -1386,7 +1386,7 @@
       <span class="ws-nm" id="wsNm">AutoSíntese</span>
       <span class="ws-cv">▼</span>
     </button>
-    <input class="sp-busca" id="spBusca" placeholder="Buscar em tudo…  ⌘K" autocomplete="off" oninput="spFiltrar(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();gsAbrir(this.value);}" onfocus="this.select()">
+    <input class="sp-busca" id="spBusca" placeholder="Buscar em tudo…  ⌘" autocomplete="off" oninput="spFiltrar(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();gsAbrir(this.value);}" onfocus="this.select()">
     
     <div class="sp-tree" id="spTree"><div class="hint" style="margin:0;padding:8px 6px">carregando espaços…</div></div>
     <div class="foot">
@@ -1402,7 +1402,7 @@
   <div class="topbar" id="topbar">
     <button class="tb-busca" onclick="gsAbrir('')" title="Buscar em tudo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <span>Pesquisar</span><kbd>&#8984;K</kbd>
+      <span>Pesquisar</span><kbd>&#8984;</kbd>
     </button>
     <button class="uav" id="uavBtn" title="Meu perfil" onclick="menuUsuario(event)"></button>
   </div>
@@ -3553,9 +3553,23 @@ function gsPintar(q){
 function gsMarcar(){ document.querySelectorAll('.gs-it').forEach(el=>el.classList.toggle('on',Number(el.dataset.i)===GS.sel));
   const on=document.querySelector('.gs-it.on'); if(on) on.scrollIntoView({block:'nearest'}); }
 document.addEventListener('keydown',(e)=>{
-  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault();
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); __gsTap=false;
     if(document.getElementById('app')&&!document.getElementById('app').classList.contains('hidden')) gsAbrir(''); }
 });
+/* Toque seco no ⌘ abre a busca (pedido do Gabriel): arma no keydown do Meta e só dispara
+   no keyup se NENHUMA outra tecla entrou no meio (⌘C, ⌘R etc. não abrem). */
+let __gsTap=false;
+document.addEventListener('keydown',(e)=>{ if(e.key==='Meta') __gsTap=true; else __gsTap=false; });
+document.addEventListener('keyup',(e)=>{
+  if(e.key!=='Meta'||!__gsTap) return;
+  __gsTap=false;
+  const app=document.getElementById('app');
+  if(!app||app.classList.contains('hidden')) return;
+  const gs=document.getElementById('gsOv');
+  if(gs){ gsFechar&&gsFechar(); return; } /* segundo toque fecha */
+  gsAbrir('');
+});
+window.addEventListener('blur',()=>{ __gsTap=false; }); /* ⌘Tab troca de app sem abrir */
 /* ---------- menu de contexto reaproveitavel (botao direito e o "..." ) ---------- */
 function ctxFechar(){ const e=document.getElementById('ctxm'); if(e) e.remove(); }
 /* Ícones de traço dos menus de contexto — no lugar dos emojis */
