@@ -1404,6 +1404,8 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg><span class="t">Tarefas</span><span class="bdg" id="spInboxN"></span></button>
     <button class="rl navlink" data-view="fechamento" title="Fechamento de contrato — cliente novo entra por aqui">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span class="t">Fechamento</span></button>
+    <button class="rl navlink" data-view="respostas" title="Respostas do formulário contratual">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span class="t">Respostas</span></button>
     <button class="rl navlink hidden" data-view="funil" id="navFunil" title="Funil de captação da AutoSíntese">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg><span class="t">Funil</span></button>
     <button class="rl navlink hidden" data-view="daily" id="navDaily" title="Reunião diária do squad">
@@ -1881,6 +1883,7 @@ function render(view){
     return renderContratos(c);
   }
   if(tlBloqueada(view)){ c.innerHTML='<div class="empty">Esta tela não faz parte do seu acesso.</div>'; return; }
+  if(view==='respostas') return renderRespostas(c);
   if(view==='acessos') return renderAcessos(c);
   if(view==='fichas') return renderProjetos(c);
   if(view==='funil'){
@@ -3667,6 +3670,7 @@ window.wsMenu=(ev)=>{
     {ic:MICO.inbox,t:'Minhas tarefas',f:()=>spCaixa()},
     {ic:MICO.pessoas,t:'Clientes',f:()=>spAbrirClientes()},
     {ic:'✍',t:'Fechamento de contrato',f:()=>render('fechamento')},
+    {ic:'📑',t:'Respostas — formulário contratual',f:()=>render('respostas')},
     {sep:true},
     {ic:MICO.mais,t:'Novo espaço',f:()=>tkNovoEspaco()},
     {ic:MICO.pessoas,t:'Usuários',f:()=>render('usuarios'),so:m},
@@ -8064,6 +8068,86 @@ function renderFechamento(c){
   fcPlanoMuda();
   const nEl=$('#fc_nome'); if(nEl){ nEl.oninput=fcChecaNome; }
 }
+/* ---------- ABA RESPOSTAS — espelho do "Resultados > Respostas" do Yay ----------
+   O formulário público autosintese.app.br/contrato grava em contratos_form:
+   cada OK válido vira resposta PARCIAL; o envio final vira COMPLETA e o gatilho
+   do banco avisa masters + comercial no sininho. */
+const CF_LINK='https://autosintese.app.br/contrato';
+const CF_COLS=[['razao_social','Nome da Empresa (Razão Social)'],['representante','Nome Completo do Representante Legal'],
+ ['cnpj','CNPJ da Empresa'],['rg','RG do Representante Legal'],['cpf','CPF do Representante Legal'],
+ ['nascimento','Data de Nascimento'],['endereco','Endereço da Empresa'],['email','Email para contrato'],
+ ['resp_financeiro','Nome do Responsável Financeiro'],['telefone','Telefone do Responsável Financeiro']];
+const cfData=d=>{ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d||''); return m?`${m[3]}/${m[2]}/${m[1]}`:''; };
+const cfHora=ts=>ts?new Date(ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+let cfBusca='';
+function renderRespostas(c){
+  cfBusca='';
+  c.innerHTML=`<div class="page-head" style="margin-bottom:14px">
+    <div><h2>📑 Respostas</h2>
+    <p class="hint" style="margin:4px 0 0">Formulário de informações Contratuais — o cliente preenche em <strong>autosintese.app.br/contrato</strong> e cai aqui na hora. Parcial = começou e não terminou.</p></div></div>
+  <div class="toolbar" style="margin-bottom:12px">
+    <input class="search" id="cfBusca" placeholder="Pesquisar nas respostas..." style="width:260px" oninput="cfFiltrar(this.value)">
+    <span class="hint" id="cfConta" style="margin:0"></span>
+    <span style="flex:1"></span>
+    <button class="btn" style="font-size:12.5px;padding:8px 14px;background:transparent;color:inherit;border:1px solid var(--line)" onclick="cfCSV()">⬇ Baixar CSV</button>
+    <button class="btn" style="font-size:12.5px;padding:8px 14px" onclick="cfCopiarLink(this)">🔗 Copiar link do formulário</button>
+  </div>
+  <div class="tablewrap"><table style="min-width:1500px"><thead><tr>
+    <th>Status</th><th>Começou às</th><th>Enviado às</th>${CF_COLS.map(x=>`<th>${x[1]}</th>`).join('')}<th></th>
+  </tr></thead><tbody id="cfCorpo"><tr><td colspan="14" class="hint">Carregando…</td></tr></tbody></table></div>`;
+  cfCarregar();
+}
+async function cfCarregar(){
+  const q=await sb.from('contratos_form').select('*').order('criado_em',{ascending:false}).limit(500);
+  if(q.error){ const b=$('#cfCorpo'); if(b) b.innerHTML='<tr><td colspan="14" class="hint">Não consegui carregar as respostas agora.</td></tr>'; return; }
+  window.__cfDados=q.data||[]; cfDesenhar();
+}
+window.cfFiltrar=(v)=>{ cfBusca=String(v||'').toLowerCase(); cfDesenhar(); };
+function cfDesenhar(){
+  const b=$('#cfCorpo'); if(!b) return;
+  let ds=window.__cfDados||[];
+  if(cfBusca) ds=ds.filter(r=>CF_COLS.some(x=>String(r[x[0]]||'').toLowerCase().includes(cfBusca)));
+  const n=$('#cfConta'); if(n) n.textContent=ds.length+' resposta(s)';
+  b.innerHTML=ds.length?ds.map(cfLinha).join(''):`<tr><td colspan="14" class="hint">Nenhuma resposta${cfBusca?' com essa busca.':' ainda. Envie o link pro cliente e ela aparece aqui.'}</td></tr>`;
+}
+function cfLinha(r){
+  const completa=!!r.enviado_em, novo=completa&&!r.visto_em;
+  const st=completa?'<span style="background:rgba(34,197,94,.14);color:var(--ok);font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:99px;white-space:nowrap">✓ COMPLETA</span>'
+                   :'<span style="background:rgba(245,158,11,.14);color:var(--warn);font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:99px;white-space:nowrap">◐ PARCIAL</span>';
+  return `<tr${novo?' style="font-weight:700"':''}>
+    <td style="white-space:nowrap">${st}${novo?' <span style="background:var(--brand);color:#fff;font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:99px">NOVO</span>':''}</td>
+    <td style="white-space:nowrap">${cfHora(r.criado_em)}</td><td style="white-space:nowrap">${cfHora(r.enviado_em)||'—'}</td>
+    ${CF_COLS.map(x=>`<td>${esc(x[0]==='nascimento'?cfData(r[x[0]]):(r[x[0]]||''))||'<span class="hint" style="margin:0">—</span>'}</td>`).join('')}
+    <td style="white-space:nowrap"><button class="btn" style="font-size:11px;padding:5px 9px" title="Copiar os dados dessa resposta" onclick="cfCopiarDados('${r.id}',this)">📋</button>
+    ${novo?`<button class="btn" style="font-size:11px;padding:5px 9px;background:transparent;color:inherit;border:1px solid var(--line)" onclick="cfVisto('${r.id}')">✓ visto</button>`:''}</td></tr>`;
+}
+window.cfCSV=()=>{
+  const ds=window.__cfDados||[];
+  const cab=['Status','Começou às','Enviado às'].concat(CF_COLS.map(x=>x[1]));
+  /* célula começando com = + - @ viraria fórmula no Excel — apóstrofo neutraliza */
+  const cel=v=>{ let s=String(v==null?'':v); if(/^[=+\-@\t]/.test(s)) s="'"+s; return '"'+s.replace(/"/g,'""')+'"'; };
+  const linhas=[cab.map(cel).join(';')].concat(ds.map(r=>[r.enviado_em?'COMPLETA':'PARCIAL',cfHora(r.criado_em),cfHora(r.enviado_em)]
+    .concat(CF_COLS.map(x=>x[0]==='nascimento'?cfData(r[x[0]]):(r[x[0]]||''))).map(cel).join(';')));
+  const blob=new Blob(['\ufeff'+linhas.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='respostas-contrato.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+};
+window.cfCopiarLink=async(b)=>{
+  try{ await navigator.clipboard.writeText(CF_LINK); const t=b.textContent; b.textContent='✓ Link copiado'; setTimeout(()=>b.textContent=t,1600); }
+  catch(_){ prompt('Copie o link:',CF_LINK); }
+};
+window.cfVisto=async(id)=>{
+  const {error}=await sb.from('contratos_form').update({visto_em:new Date().toISOString(),visto_por:(window.currentUser&&currentUser.id)||null}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  cfCarregar();
+};
+window.cfCopiarDados=async(id,b)=>{
+  const r=(window.__cfDados||[]).find(x=>x.id===id); if(!r) return;
+  const tx=['FORMULÁRIO CONTRATUAL — '+(r.razao_social||'(sem nome)')]
+    .concat(CF_COLS.map(x=>x[1]+': '+((x[0]==='nascimento'?cfData(r[x[0]]):r[x[0]])||'—')))
+    .concat(['Recebido em: '+(cfHora(r.enviado_em)||cfHora(r.criado_em)+' (parcial)')]).join('\n');
+  try{ await navigator.clipboard.writeText(tx); const t=b.textContent; b.textContent='✓'; setTimeout(()=>b.textContent=t,1600); }catch(_){ prompt('Copie:',tx); }
+};
 /* REGRA DE NEGÓCIO (Gabriel, 11/08): projeto/cliente não pode duplicar. Compara o nome
    normalizado (sem acento, pontuação, espaços e termos genéricos) com as fichas existentes
    e com os fechamentos ainda na fila de Novos Contratos. "LealMotos" == "Leal Motos". */

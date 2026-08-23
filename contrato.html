@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Formulário de informações Contratuais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Facebook Pixel (o mesmo do formulário original) -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','2022021961964985');fbq('track','PageView');
+</script>
+<style>
+:root{--campo:#000000;--resposta:#333333;--btn-bg:#000000;--btn-tx:#FFFFFF;--pagina:#FFFFFF;--erro:#d92d20}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:'Roboto',system-ui,sans-serif;background:var(--pagina);color:var(--campo);-webkit-font-smoothing:antialiased}
+#barra{position:fixed;top:0;left:0;right:0;height:4px;background:rgba(0,0,0,.08);z-index:10}
+#barra i{display:block;height:100%;width:0;background:var(--btn-bg);transition:width .4s ease}
+.tela{min-height:100%;display:none;flex-direction:column}
+.tela.ativa{display:flex;animation:sobe .35s ease}
+@keyframes sobe{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.banner{width:100%;max-height:38vh;object-fit:cover;display:block}
+.miolo{flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;max-width:720px;margin:0 auto;padding:40px 24px 96px}
+.abre h1{font-size:26px;font-weight:700;line-height:1.35;color:var(--campo)}
+.abre p{margin-top:14px;font-size:17px;line-height:1.6;color:var(--resposta)}
+.num{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--resposta);margin-bottom:10px}
+.num svg{width:14px;height:14px}
+.perg h2{font-size:24px;font-weight:500;line-height:1.4;color:var(--campo)}
+.resp{margin-top:26px}
+.linha{display:flex;align-items:flex-end;gap:10px}
+.prefixo{font-size:26px;color:var(--resposta);white-space:nowrap;padding-bottom:8px}
+input{border:none;border-bottom:2px solid rgba(0,0,0,.25);background:transparent;font:inherit;font-size:26px;color:var(--resposta);padding:6px 2px 8px;border-radius:0;outline:none;transition:border-color .2s;width:100%}
+input:focus{border-bottom-color:var(--btn-bg)}
+input::placeholder{color:rgba(51,51,51,.35)}
+.dtp{display:flex;align-items:flex-end;gap:12px}
+.dtp input{text-align:left}
+.dtp .d,.dtp .m{width:86px}
+.dtp .a{width:130px}
+.dtp .sep{font-size:26px;color:var(--resposta);padding-bottom:8px}
+.acao{display:flex;align-items:center;gap:14px;margin-top:26px}
+.btn{font:inherit;font-weight:700;font-size:17px;background:var(--btn-bg);color:var(--btn-tx);border:none;border-radius:6px;padding:12px 26px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.5;cursor:default}
+.abre .btn{font-size:18px;padding:16px 30px}
+.dica{font-size:12.5px;color:var(--resposta)}
+.dica b{font-weight:700}
+.erro{display:none;margin-top:14px;background:rgba(217,45,32,.08);color:var(--erro);font-size:14px;font-weight:500;padding:8px 12px;border-radius:6px}
+.erro.on{display:inline-block}
+#nav[hidden]{display:none}
+#nav{position:fixed;right:18px;bottom:18px;display:flex;gap:2px;z-index:10}
+#nav button{width:38px;height:38px;border:none;background:var(--btn-bg);color:var(--btn-tx);cursor:pointer;display:flex;align-items:center;justify-content:center}
+#nav button:first-child{border-radius:6px 0 0 6px}
+#nav button:last-child{border-radius:0 6px 6px 0}
+#nav button:disabled{opacity:.4;cursor:default}
+#nav svg{width:16px;height:16px}
+.fim h1{font-size:24px;font-weight:700;line-height:1.5;color:var(--campo)}
+.fim p{margin-top:12px;font-size:17px;line-height:1.6;color:var(--resposta)}
+.hp{position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden}
+@media(max-width:640px){
+  .miolo{padding:28px 18px 110px;justify-content:flex-start;padding-top:34px}
+  .abre h1{font-size:21px}.perg h2{font-size:20px}
+  input,.prefixo,.dtp .sep{font-size:19px}
+  .dtp .d,.dtp .m{width:64px}.dtp .a{width:96px}
+  .banner{max-height:30vh}
+}
+</style>
+</head>
+<body>
+<div id="barra" role="progressbar" aria-label="0% concluído"><i></i></div>
+
+<!-- Abertura -->
+<section class="tela abre ativa" id="t-abre">
+  <img class="banner" src="https://yayforms.nyc3.cdn.digitaloceanspaces.com/medias/workspaces/681914cbf2865ab39704b975/1759851189_default.webp" alt="">
+  <div class="miolo">
+    <h1>Primeiramente, parabéns pela decisão de evoluir e escalar os resultados da sua Loja de Veículos🚀</h1>
+    <p>Dando sequência à formalização do projeto, é necessário o preenchimento do Formulário de informações Contratuais!</p>
+    <p>Clique no botão abaixo para iniciar!</p>
+    <div class="acao"><button class="btn" onclick="irPara(0)">CLIQUE AQUI PARA ACELERAR</button>
+      <span class="dica">Pressione <b>Enter ↵</b></span></div>
+  </div>
+</section>
+
+<!-- Perguntas (montadas pelo script) -->
+<div id="perguntas"></div>
+
+<!-- Encerramento -->
+<section class="tela fim" id="t-fim">
+  <img class="banner" src="https://yayforms.nyc3.cdn.digitaloceanspaces.com/medias/workspaces/681914cbf2865ab39704b975/1759851344_default.webp" alt="">
+  <div class="miolo">
+    <h1>Obrigado por preencher o formulário!</h1>
+    <p>Com esses dados conseguiremos elaborar seu contrato e organizar o faturamento de forma segura e rápida.</p>
+    <p>Em caso de dúvidas, nossa equipe está à disposição para ajudar.</p>
+  </div>
+</section>
+
+<div id="nav" hidden>
+  <button id="navAnt" title="Passo anterior" aria-label="Passo anterior" onclick="voltar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button>
+  <button id="navProx" title="Próxima Etapa" aria-label="Próxima Etapa" onclick="avancar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></button>
+</div>
+
+<form class="hp" aria-hidden="true"><input type="text" id="hp_site" name="site" tabindex="-1" autocomplete="off"></form>
+
+<script>
+'use strict';
+/* A página só conversa com a edge function 'contrato' — nunca com a tabela direto.
+   A função valida, limita por IP e grava com a chave de serviço (que fica só no
+   servidor). A chave publicável abaixo é pública por definição — não é segredo. */
+const SUPA_URL='https://fuieonexmdupupcsyowg.supabase.co';
+const SUPA_KEY='sb_publishable_2M_nKV965uoo-o0-rP3UmQ_o5mJBgfL';
+const ENDPOINT=SUPA_URL+'/functions/v1/contrato';
+const GUARDA='contrato-form-v3';
+
+/* uuid v4 de verdade: randomUUID quando existe, senão getRandomValues, senão Math.random.
+   O id é gerado no navegador e é o que amarra as respostas parciais à mesma ficha. */
+function uuidv4(){
+  try{ if(crypto&&crypto.randomUUID) return crypto.randomUUID(); }catch(_){}
+  const b=new Uint8Array(16);
+  try{ crypto.getRandomValues(b); }catch(_){ for(let i=0;i<16;i++) b[i]=Math.floor(Math.random()*256); }
+  b[6]=(b[6]&0x0f)|0x40; b[8]=(b[8]&0x3f)|0x80;
+  const h=[...b].map(x=>x.toString(16).padStart(2,'0'));
+  return h[0]+h[1]+h[2]+h[3]+'-'+h[4]+h[5]+'-'+h[6]+h[7]+'-'+h[8]+h[9]+'-'+h[10]+h[11]+h[12]+h[13]+h[14]+h[15];
+}
+
+/* ---------- validação ---------- */
+const dig=s=>String(s||'').replace(/\D/g,'');
+function cpfValido(v){
+  const c=dig(v); if(c.length!==11||/^(\d)\1{10}$/.test(c)) return false;
+  let s=0; for(let i=0;i<9;i++) s+=+c[i]*(10-i);
+  let r=(s*10)%11; if(r===10)r=0; if(r!==+c[9]) return false;
+  s=0; for(let i=0;i<10;i++) s+=+c[i]*(11-i);
+  r=(s*10)%11; if(r===10)r=0; return r===+c[10];
+}
+function cnpjValido(v){
+  const c=dig(v); if(c.length!==14||/^(\d)\1{13}$/.test(c)) return false;
+  const dv=(n)=>{let p=n-7,s=0;for(let i=0;i<n;i++){s+=+c[i]*p;p=p<3?9:p-1;}const r=s%11;return r<2?0:11-r;};
+  return dv(12)===+c[12]&&dv(13)===+c[13];
+}
+function dataValida(v){
+  const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v); if(!m) return false;
+  const d=+m[1],mo=+m[2],a=+m[3];
+  if(a<1900||a>new Date().getFullYear()) return false;
+  const dt=new Date(a,mo-1,d);
+  return dt.getFullYear()===a&&dt.getMonth()===mo-1&&dt.getDate()===d&&dt<=new Date();
+}
+const emailValido=v=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v||'').trim());
+const foneValido=v=>{const c=dig(v);return c.length===10||c.length===11;};
+const dataISO=v=>{const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);return m?`${m[3]}-${m[2]}-${m[1]}`:null;};
+
+/* ---------- máscaras ---------- */
+const mCNPJ=v=>dig(v).slice(0,14).replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2');
+const mCPF=v=>dig(v).slice(0,11).replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2');
+/* colar "+55 (17) 98123-4567" traria 13 dígitos e viraria um número errado — tira o DDI 55 antes */
+function mFone(v){ let c=dig(v); if(c.length>11&&c.slice(0,2)==='55') c=c.slice(2);
+  c=c.slice(0,11); return c.length<=10?c.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{4})(\d{1,4})$/,'$1-$2'):c.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3'); }
+
+/* ---------- as 10 perguntas, na ordem exata do formulário original ---------- */
+const PERGUNTAS=[
+ {id:'razao_social',  t:'Nome da Empresa (Razão Social)',            tipo:'texto', max:300},
+ {id:'representante', t:'Nome Completo do Representante Legal',      tipo:'texto', max:300},
+ {id:'cnpj',          t:'CNPJ da Empresa',                           tipo:'cnpj',  ph:'00.000.000/0000-00', tec:'numeric'},
+ {id:'rg',            t:'RG do Representante Legal',                 tipo:'texto', max:40},
+ {id:'cpf',           t:'CPF do Representante Legal',                tipo:'cpf',   ph:'000.000.000-00', tec:'numeric'},
+ {id:'nascimento',    t:'Data de Nascimento do Representante Legal', tipo:'data'},
+ {id:'endereco',      t:'Endereço da Empresa',                       tipo:'texto', max:500},
+ {id:'email',         t:'Email para contrato',                       tipo:'email', ph:'nome@exemplo.com', tec:'email', max:200},
+ {id:'resp_financeiro',t:'Nome do Responsável Financeiro',           tipo:'texto', max:300},
+ {id:'telefone',      t:'Telefone do Responsável Financeiro',        tipo:'fone',  ph:'(00) 00000-0000', tec:'tel', prefixo:'🇧🇷 +55'}
+];
+const REGRAS={
+ texto:{ok:v=>String(v||'').trim().length>=2, msg:'Por favor, preencha o campo corretamente'},
+ cnpj: {ok:cnpjValido,  msg:'Por favor, insira um CNPJ válido', mask:mCNPJ},
+ cpf:  {ok:cpfValido,   msg:'Por favor, insira um CPF válido',  mask:mCPF},
+ data: {ok:dataValida,  msg:'Por favor, insira uma data válida no formato DD/MM/AAAA.'},
+ email:{ok:emailValido, msg:'Por favor insira um endereço de e-mail válido'},
+ fone: {ok:foneValido,  msg:'Por favor insira um número de telefone válido', mask:mFone}
+};
+
+/* ---------- montagem ---------- */
+const $=s=>document.querySelector(s);
+const salvo=(()=>{try{return JSON.parse(localStorage.getItem(GUARDA))||{}}catch(_){return {}}})();
+const respostas=salvo.respostas||{};
+const RID=salvo.rid||uuidv4();
+let atual=-1;        // -1 = abertura
+let finalizado=false; // depois do envio, guardar() vira no-op e a próxima visita começa nova
+const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+
+document.getElementById('perguntas').innerHTML=PERGUNTAS.map((p,i)=>`
+ <section class="tela perg" id="t-${i}">
+  <div class="miolo">
+   <div class="num">${i+1}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div>
+   <h2>${p.t}</h2>
+   <div class="resp">${p.tipo==='data'?`
+    <div class="dtp">
+      <input class="d" id="c-${p.id}-d" inputmode="numeric" maxlength="2" placeholder="Dia" autocomplete="off">
+      <span class="sep">/</span>
+      <input class="m" id="c-${p.id}-m" inputmode="numeric" maxlength="2" placeholder="Mês" autocomplete="off">
+      <span class="sep">/</span>
+      <input class="a" id="c-${p.id}-a" inputmode="numeric" maxlength="4" placeholder="Ano" autocomplete="off">
+    </div>`:`
+    <div class="linha">${p.prefixo?`<span class="prefixo">${p.prefixo}</span>`:''}
+    <input id="c-${p.id}" type="text" ${p.tec?`inputmode="${p.tec}"`:''} ${p.max?`maxlength="${p.max}"`:''} placeholder="${p.ph||'Digite sua resposta aqui...'}"
+      autocomplete="off" value="${esc(respostas[p.id])}">
+   </div>`}</div>
+   <div class="erro" id="e-${i}"></div>
+   <div class="acao">
+    <button class="btn" onclick="avancar()">OK <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M2.5 8.5 6 12l7.5-8"/></svg></button>
+    <span class="dica">Pressione <b>Enter ↵</b></span>
+   </div>
+  </div>
+ </section>`).join('');
+
+/* valor atual de uma pergunta (a data junta os 3 campos) */
+function valorDe(p){
+  if(p.tipo!=='data') return (($('#c-'+p.id)||{}).value||'').trim();
+  const d=dig(($('#c-'+p.id+'-d')||{}).value).padStart(2,'0'), m=dig(($('#c-'+p.id+'-m')||{}).value).padStart(2,'0'), a=dig(($('#c-'+p.id+'-a')||{}).value);
+  if(!+d&&!+m&&!a) return '';
+  return d+'/'+m+'/'+a;
+}
+/* colar "12/07/1985" num dos 3 campos preenche os três de uma vez */
+function espalharData(p,txt){
+  const m=/(\d{1,2})\D+(\d{1,2})\D+(\d{2,4})/.exec(txt); if(!m) return false;
+  $('#c-'+p.id+'-d').value=m[1].padStart(2,'0'); $('#c-'+p.id+'-m').value=m[2].padStart(2,'0');
+  $('#c-'+p.id+'-a').value=m[3].length===2?'19'+m[3]:m[3];
+  respostas[p.id]=valorDe(p); guardar(); return true;
+}
+PERGUNTAS.forEach((p,i)=>{
+  if(p.tipo==='data'){
+    const partes=['d','m','a'].map(x=>$('#c-'+p.id+'-'+x));
+    const v=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(respostas[p.id]||'');
+    if(v){ partes[0].value=v[1]; partes[1].value=v[2]; partes[2].value=v[3]; }
+    partes.forEach((el,jx)=>{
+      el.addEventListener('paste',ev=>{ const t=(ev.clipboardData||window.clipboardData).getData('text');
+        if(/\d\D+\d/.test(t)&&espalharData(p,t)){ ev.preventDefault(); $('#e-'+i).classList.remove('on'); partes[2].focus(); } });
+      el.addEventListener('input',()=>{ el.value=dig(el.value).slice(0,jx===2?4:2);
+        if(el.value.length===(jx===2?4:2)&&jx<2) partes[jx+1].focus();
+        respostas[p.id]=valorDe(p); guardar(); $('#e-'+i).classList.remove('on'); });
+      el.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); avancar(); } });
+    });
+    return;
+  }
+  const el=$('#c-'+p.id), r=REGRAS[p.tipo];
+  el.addEventListener('input',()=>{ if(r.mask) el.value=r.mask(el.value); respostas[p.id]=el.value; guardar(); $('#e-'+i).classList.remove('on'); });
+  el.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); avancar(); } });
+});
+document.addEventListener('keydown',ev=>{ if(ev.key==='Enter'&&atual===-1&&$('#t-abre').classList.contains('ativa')){ ev.preventDefault(); irPara(0); } });
+function guardar(){ if(finalizado) return; try{localStorage.setItem(GUARDA,JSON.stringify({respostas,atual,rid:RID}))}catch(_){} }
+
+/* ---------- envio pra edge function ---------- */
+function corpoValido(){
+  const corpo={};
+  PERGUNTAS.forEach(p=>{
+    const v=valorDe(p);
+    if(v&&REGRAS[p.tipo].ok(v)) corpo[p.id]=p.tipo==='data'?dataISO(v):v;
+  });
+  return corpo;
+}
+async function enviarEdge(final){
+  if(($('#hp_site')||{}).value) return {ok:true}; // robô: nem chama a rede
+  const corpo=Object.assign(corpoValido(),{id:RID,final:!!final,ua:navigator.userAgent.slice(0,300)});
+  const r=await fetch(ENDPOINT,{method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
+    body:JSON.stringify(corpo)});
+  let d={}; try{ d=await r.json(); }catch(_){}
+  return {ok:r.ok&&d.ok!==false,status:r.status,d};
+}
+/* parcial: dispara sem travar a navegação */
+function sincronizar(){ enviarEdge(false).catch(()=>{}); }
+
+/* ---------- navegação ---------- */
+function mostrar(i){
+  document.querySelectorAll('.tela').forEach(t=>t.classList.remove('ativa'));
+  const alvo=i<0?$('#t-abre'):(i>=PERGUNTAS.length?$('#t-fim'):$('#t-'+i));
+  alvo.classList.add('ativa'); atual=i; guardar();
+  const done=i<0?0:Math.min(i,PERGUNTAS.length);
+  const pct=Math.round(done/PERGUNTAS.length*100);
+  $('#barra i').style.width=pct+'%';
+  $('#barra').setAttribute('aria-label',pct+'% concluído');
+  $('#nav').hidden=!(i>=0&&i<PERGUNTAS.length);
+  $('#navAnt').disabled=i<=0;
+  window.scrollTo(0,0);
+  if(i>=0&&i<PERGUNTAS.length){
+    const p=PERGUNTAS[i];
+    setTimeout(()=>{const el=$('#c-'+p.id)||$('#c-'+p.id+'-d'); if(el) el.focus();},60);
+  }
+}
+function irPara(i){ mostrar(i); }
+function voltar(){ if(atual>0) mostrar(atual-1); }
+function avancar(){
+  if(atual<0){ mostrar(0); return; }
+  const p=PERGUNTAS[atual], r=REGRAS[p.tipo], v=valorDe(p);
+  if(!v||!r.ok(v)){ const e=$('#e-'+atual); e.textContent=r.msg; e.classList.add('on'); const el=$('#c-'+p.id)||$('#c-'+p.id+'-d'); if(el) el.focus(); return; }
+  if(atual===PERGUNTAS.length-1){ enviar(); return; }
+  sincronizar(); // resposta parcial: já vai pro banco, como no Yay
+  mostrar(atual+1);
+}
+
+/* ---------- envio final ---------- */
+let enviando=false;
+async function enviar(){
+  if(enviando) return; enviando=true;
+  const btns=document.querySelectorAll('#t-'+(PERGUNTAS.length-1)+' .btn, #nav button');
+  btns.forEach(b=>b.disabled=true);
+  let res; try{ res=await enviarEdge(true); }catch(_){ res={ok:false}; }
+  if(res.ok){
+    finalizado=true;                 // trava o guardar() e limpa: a próxima visita é uma ficha nova
+    try{localStorage.removeItem(GUARDA)}catch(_){}
+    if(window.fbq) fbq('track','Lead');
+    mostrar(PERGUNTAS.length);
+    return;
+  }
+  enviando=false; btns.forEach(b=>b.disabled=false);
+  const e=$('#e-'+(PERGUNTAS.length-1));
+  e.textContent=(res.status===429)
+    ? 'Recebemos muitos envios agora há pouco. Aguarde um minuto e pressione OK de novo.'
+    : 'Não foi possível enviar agora. Verifique sua conexão e pressione OK de novo — suas respostas estão guardadas.';
+  e.classList.add('on');
+}
+
+/* retoma de onde parou (progresso salvo, igual ao original) */
+if(typeof salvo.atual==='number'&&salvo.atual>=0&&salvo.atual<PERGUNTAS.length&&Object.keys(respostas).length) mostrar(salvo.atual);
+</script>
+</body>
+</html>

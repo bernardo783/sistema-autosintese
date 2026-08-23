@@ -380,6 +380,31 @@ grupo('Autosave da tarefa (sem botão Salvar)');
   ok('fechar o painel grava o que ficou pendente', /const fechar=\(\)=>\{ if\(window\.__tkmTimer\)/.test(abrir));
 }
 
+/* ---------------- aba Respostas ---------------- */
+grupo('Aba Respostas (formulário contratual)');
+{
+  secao('a aba existe de ponta a ponta');
+  ok('botão no rail', HTML.indexOf('data-view="respostas"')>0);
+  ok('rota no roteador', HTML.indexOf("if(view==='respostas') return renderRespostas(c);")>0);
+  ok('atalho na busca (⌘K)', HTML.indexOf("t:'Respostas — formulário contratual'")>0);
+  ok('rota vem DEPOIS da trava de telas por usuário',
+     HTML.indexOf('if(tlBloqueada(view))')<HTML.indexOf("if(view==='respostas')"));
+  secao('a tabela espelha o Resultados do Yay');
+  const g=rodar(bloco('const CF_LINK','function renderRespostas'),null,['CF_COLS','cfData','cfHora']);
+  ok('uma coluna por pergunta (10)', g.CF_COLS.length===10);
+  ok('colunas na ordem do formulário', g.CF_COLS[0][0]==='razao_social'&&g.CF_COLS[9][0]==='telefone');
+  ok('nascimento vira DD/MM/AAAA', g.cfData('1985-07-12')==='12/07/1985');
+  ok('sem data não quebra', g.cfData(null)==='');
+  ok('status COMPLETA e PARCIAL', HTML.indexOf('✓ COMPLETA')>0&&HTML.indexOf('◐ PARCIAL')>0);
+  ok('download CSV com BOM pro Excel', HTML.indexOf("'\\ufeff'+linhas.join")>0);
+  ok('busca nas respostas', HTML.indexOf('cfFiltrar')>0);
+  ok('tabela rola dentro de tablewrap', HTML.indexOf('<div class="tablewrap"><table style="min-width:1500px">')>0);
+  ok('link do formulário pra copiar', HTML.indexOf("CF_LINK='https://autosintese.app.br/contrato'")>0);
+  secao('o Fechamento voltou ao que era');
+  ok('sem lista embutida no Fechamento', HTML.indexOf('id="cfLista"')<0);
+  ok('fechamento não chama mais cfCarregar', HTML.indexOf('fcChecaNome; }\n  cfCarregar')<0);
+}
+
 /* ---------------- camada mobile ---------------- */
 grupo('Camada mobile (720px)');
 {
