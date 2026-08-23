@@ -8089,7 +8089,11 @@ const catDe=(p)=>{ if(p.categoria&&CAT_LABEL[p.categoria]) return p.categoria;
 /* Drive é entrega de Marketing: cliente só de Agent IA/CRM não precisa (Gabriel, ago/2026) */
 const precisaDrive=(p)=>{ const k=catDe(p); return k==='trafego'||k==='full'; };
 /* ---------- FECHAMENTO: formulário de novo contrato ---------- */
-const FC_PLANOS=['Tráfego Pago + Agent IA','Tráfego Pago','Agent IA','Outro'];
+const FC_SERVICOS=['Tráfego Pago','Agent IA','CRM','Treinamento Comercial'];
+window.fcServToggle=(btn,s)=>{ btn.classList.toggle('on');
+  const marcados=[...document.querySelectorAll('#fc_servs .tkp-chip.on')].map(b=>b.dataset.s);
+  const el=$('#fc_plano'); if(el) el.value=marcados.join(' + ');
+  fcPlanoMuda(); };
 const FC_CONTRATOS=['Mensal','Trimestral','Semestral','Anual'];
 const FC_PAGTOS=['Pix','Boleto','Cartão de crédito'];
 /* Squads e sua equipe, a partir de TK.equipe (view equipe_nomes traz cargo). */
@@ -8132,7 +8136,9 @@ function renderFechamento(c){
     </div>
     <div class="card" style="margin-bottom:14px"><h2 style="font-size:15px;margin-bottom:12px">📋 Plano e contrato</h2>
       <div class="row2">
-        <div class="field"><label>Plano *</label><select id="fc_plano" onchange="fcPlanoMuda()">${FC_PLANOS.map(p=>`<option>${p}</option>`).join('')}</select></div>
+        <div class="field"><label data-dica="NOVO: marque todos os serviços fechados com esse cliente — qualquer combinação. Fica roxo o que está selecionado, e é isso que vai pro contrato e pra ficha.">Serviços prestados *</label>
+          <input type="hidden" id="fc_plano" value="">
+          <div class="tkp-chips" id="fc_servs" style="margin-top:2px">${FC_SERVICOS.map(s=>`<button type="button" class="tkp-chip" data-s="${s}" onclick="fcServToggle(this,'${s}')">${s}</button>`).join('')}</div></div>
         <div class="field"><label>Tipo de contrato *</label><select id="fc_contrato">${FC_CONTRATOS.map(p=>`<option>${p}</option>`).join('')}</select></div></div>
       <div class="field"><label>Integrações</label><textarea id="fc_integra" rows="2" placeholder="Portais, sistemas e integrações necessárias para o Agente IA"></textarea></div>
       <div class="field"><label>Especificidades do contrato (o que foge do escopo padrão)</label><textarea id="fc_espec" rows="2" placeholder="Deixe vazio se não houver"></textarea></div>
@@ -8145,7 +8151,8 @@ function renderFechamento(c){
         <div class="field"><label>Forma de pagamento *</label><select id="fc_forma">${FC_PAGTOS.map(p=>`<option>${p}</option>`).join('')}</select></div></div>
       <div class="row2">
         <div class="field"><label>Data de pagamento da 1ª parcela *</label><input id="fc_data" type="date"></div>
-        <div class="field"><label>Status do pagamento *</label><select id="fc_status"><option value="aguardando">Aguardando pagamento</option><option value="pago">Pago</option></select></div></div>
+        <div class="field"><label>Status do pagamento *</label><select id="fc_status" onchange="var w=document.getElementById('fc_sw');if(w)w.style.display=this.value==='sinal'?'':'none'" data-dica="NOVO: 'Sinal pago' registra a entrada agora e deixa o restante como a receber — o financeiro enxerga as duas partes certinhas."><option value="aguardando">Aguardando pagamento</option><option value="pago">Pago</option><option value="sinal">Sinal pago (entrada)</option></select></div></div>
+      <div class="row2"><div class="field" id="fc_sw" style="display:none"><label>Valor do sinal (R$) *</label><input type="number" step="0.01" id="fc_sinal" placeholder="ex: 1500"></div><div class="field"></div></div>
       <p class="hint">O dia dessa data vira o dia de vencimento recorrente do cliente.</p>
     </div>
     <div class="card" style="margin-bottom:14px"><h2 style="font-size:15px;margin-bottom:12px">👥 Responsáveis · comercial x projetos</h2>
@@ -8282,12 +8289,16 @@ window.fechEnviar=async ()=>{
   const body={nome:V('fc_nome'),nicho:V('fc_nicho'),razaoSocial:V('fc_razao'),cnpj:V('fc_cnpj'),dono:V('fc_dono'),cpf:V('fc_cpf'),rg:V('fc_rg'),
     plano:V('fc_plano'),tipoContrato:V('fc_contrato'),integracoes:V('fc_integra'),especificidades:V('fc_espec'),
     respFin:V('fc_respfin'),telFin:V('fc_telfin'),email:V('fc_email'),endereco:V('fc_end'),
-    valor:V('fc_valor'),formaPagamento:V('fc_forma'),dataPagamento:V('fc_data'),statusPagamento:V('fc_status'),
+    valor:V('fc_valor'),formaPagamento:V('fc_forma'),dataPagamento:V('fc_data'),statusPagamento:V('fc_status'),sinalValor:V('fc_sinal'),
     sdr:V('fc_sdr'),closer:V('fc_closer'),squad:V('fc_squad'),gestor:V('fc_gestor'),linkCall:V('fc_call'),resumo:V('fc_resumo')};
   const dup=fcDuplicado(body.nome);
   if(dup){ fcChecaNome(); toast('Esse projeto já está cadastrado: '+dup.nome+'. Não dá pra duplicar.'); const n=$('#fc_nome'); if(n){ n.focus(); n.scrollIntoView({block:'center',behavior:'smooth'}); } return; }
   const falta=[];
   if(body.nome.length<2) falta.push('nome da empresa');
+  if(!body.plano) falta.push('serviços prestados (marque os chips)');
+  if(body.statusPagamento==='sinal'){ const sv=parseFloat(body.sinalValor)||0, vt=parseFloat(body.valor)||0;
+    if(!(sv>0)) falta.push('valor do sinal');
+    else if(sv>=vt) { toast('O sinal precisa ser MENOR que a mensalidade ('+brl(vt)+').'); return; } }
   if(!(parseFloat(body.valor)>0)) falta.push('mensalidade');
   if(!body.dataPagamento) falta.push('data da 1ª parcela');
   if(!body.sdr) falta.push('SDR');
