@@ -1450,6 +1450,8 @@
       <p class="sub">Entre com as credenciais da sua conta interna.</p>
       <div class="field"><label>Email</label><input type="email" id="loginUser" placeholder="voce@autosintese.com.br" autocomplete="username"></div>
       <div class="field"><label>Senha</label><input type="password" id="loginPw" placeholder="senha" autocomplete="current-password"></div>
+      <label style="display:flex;align-items:center;gap:8px;margin:2px 0 14px;font-size:13px;color:var(--muted);cursor:pointer" data-dica="Marcado, você continua logado mesmo fechando o navegador. Desmarcado, ao fechar o navegador o sistema pede a senha de novo — bom pra computador compartilhado.">
+        <input type="checkbox" id="loginManter" checked style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer"> Permanecer conectado</label>
       <button class="btn" id="btnLogin">Entrar</button>
       <div class="err" id="loginErr"></div>
       <p class="hint" style="text-align:center;margin-top:16px;font-size:13px"><a href="#" id="goRec" class="link">Esqueci minha senha</a></p>
@@ -1574,7 +1576,16 @@ async function decryptData(key, blob){
 /* ======================= ESTADO (v3.0 — Supabase) ======================= */
 const SUPA_URL='https://fuieonexmdupupcsyowg.supabase.co';
 const SUPA_KEY='sb_publishable_2M_nKV965uoo-o0-rP3UmQ_o5mJBgfL';
-const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+/* "Permanecer conectado": marcado = sessão no localStorage (sobrevive a fechar o navegador);
+   desmarcado = sessionStorage (fechou, deslogou). Padrão: permanecer (comportamento de sempre). */
+const __mem={};
+const authStore={
+  _s(){ try{ return localStorage.getItem('sb_manter')==='0'?sessionStorage:localStorage; }catch(_){ return null; } },
+  getItem(k){ const s=this._s(); return s?s.getItem(k):(__mem[k]??null); },
+  setItem(k,v){ const s=this._s(); if(s) s.setItem(k,v); else __mem[k]=v; },
+  removeItem(k){ try{ sessionStorage.removeItem(k); localStorage.removeItem(k); }catch(_){ delete __mem[k]; } }
+};
+const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {auth:{storage:authStore}});
 
 let cryptoKey=null, DB=null, USERS=null, VAULT_RAW=null, currentUser=null, SESSION=null;
 const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -1763,6 +1774,7 @@ async function doLogin(){
   if(!email||!pw){ e.textContent='Informe email e senha.'; return; }
   const btn=$('#btnLogin'); btn.disabled=true; btn.textContent='Entrando...';
   try{
+    try{ localStorage.setItem('sb_manter', ($('#loginManter')&&!$('#loginManter').checked)?'0':'1'); }catch(_){}
     const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
     if(error){
       e.textContent=/confirm/i.test(error.message)?'Confirme seu email antes de entrar (veja sua caixa de entrada).':'Email ou senha incorretos.';
