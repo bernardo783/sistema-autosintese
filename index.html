@@ -502,6 +502,8 @@
   .railbar .bot{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%}
   .railbar .bot .av{width:30px;height:30px;cursor:pointer}
   .railbar .rl{position:relative}
+  .railbar.ws-pessoal .rl,.railbar.ws-pessoal .sep{display:none}
+  .railbar.ws-pessoal #rlInicio,.railbar.ws-pessoal #rlBuscar,.railbar.ws-pessoal #rlNtf,.railbar.ws-pessoal #rlInbox{display:flex}
   .railbar .rl .bdg{position:absolute;top:2px;right:7px;background:var(--brand);color:#fff;border-radius:999px;
     font-size:8.5px;font-weight:800;padding:1px 4px;min-width:15px;line-height:1.35}
   .railbar .rl .bdg:empty{display:none}
@@ -4071,6 +4073,7 @@ const spBate=(s)=>String(s||'').toLowerCase().indexOf(SP_Q)>=0;
 
 /* ---------- caixa de entrada: o que esta atribuido a mim ---------- */
 window.spCaixa=()=>{
+  if((wsAtual()||{}).tipo==='pessoal'){ MP.aba='tarefas'; return render('pessoal'); }
   if(tlBloqueada('tarefas')) return spInicio();   /* sem esse atalho, cai no Inicio */
   TK.escopo='minhas'; TK.listaSel=''; TK.visao='lista'; currentView='lista'; searchTerm='';
   spMarcarAtalho('');
@@ -4960,6 +4963,7 @@ window.ncEnviar=async ()=>{
 function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
   const wn=document.getElementById('wsNm'); if(wn) wn.textContent=wsNome();
+  const rb=document.querySelector('.railbar'); if(rb) rb.classList.toggle('ws-pessoal',(wsAtual()||{}).tipo==='pessoal');
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
   /* Um aceso por vez: o realce diz ONDE VOCÊ ESTÁ, não que a árvore está aberta.
      Antes o Espaços acendia só por estar aberta, e ficava aceso junto com o Início. */
@@ -10264,8 +10268,7 @@ window.mpGChecar=async()=>{
 /* ============================ fim modo pessoal ============================ */
 
 window.spInicio=(quieto)=>{
-  if((wsAtual()||{}).tipo==='pessoal'){ const we=wsEmpresa();
-    if(we){ WS_SEL=String(we.id); try{ localStorage.setItem('ws_sel',WS_SEL); }catch(_){} spDesenhar(); } }
+  if((wsAtual()||{}).tipo==='pessoal'){ MP.aba='inicio'; return render('pessoal'); }
   const v=String((currentUser||{}).inicio||'');
   if(v==='dash') return render('dash');
   if(v==='clientes'&&TK.listas.some(l=>l.id===LC_ID)) return spSelLista(LC_ID,quieto);
