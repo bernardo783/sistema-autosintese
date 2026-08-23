@@ -20,7 +20,7 @@ const logica=principal.slice(0,principal.indexOf('/* ---------- montagem'));
 const crypto={getRandomValues:a=>{for(let i=0;i<a.length;i++)a[i]=(i*97+37)%256;return a;}};
 const g={console,Date,Math,JSON,String,Number,Array,Object,Boolean,RegExp,parseInt,parseFloat,isNaN,Uint8Array,crypto};
 g.window=g; vm.createContext(g);
-vm.runInContext(logica+'\n;Object.assign(window,{dig,cpfValido,cnpjValido,dataValida,emailValido,foneValido,dataISO,mCNPJ,mCPF,mFone,uuidv4,PERGUNTAS,REGRAS});',g);
+vm.runInContext(logica+'\n;Object.assign(window,{dig,cpfValido,cnpjValido,dataValida,emailValido,foneValido,dataISO,mCNPJ,mCPF,mFone,mRG,rgValido,mCEP,uuidv4,PERGUNTAS,REGRAS});',g);
 
 grupo('A página carrega');
 {
@@ -105,6 +105,28 @@ grupo('Validação de verdade (melhor que o original)');
   ok('fixo ganha parênteses', g.mFone('1731234567')==='(17) 3123-4567');
 }
 
+grupo('RG com máscara e limite');
+{
+  ok('RG deixou de ser texto livre de 40', (g.PERGUNTAS.find(p=>p.id==='rg')||{}).tipo==='rg');
+  ok('RG formata 00.000.000-0', g.mRG('123456789')==='12.345.678-9');
+  ok('RG aceita X no verificador', g.mRG('12345678X')==='12.345.678-X');
+  ok('RG corta excesso de dígitos', g.mRG('123456789012345').replace(/\D/g,'').length<=10);
+  ok('RG válido passa', g.rgValido('12.345.678-9'));
+  ok('RG curto demais reprova', !g.rgValido('123'));
+  ok('X só no fim (meio reprova)', !g.rgValido('12X45678'));
+}
+
+grupo('Endereço na ordem certa (subcampos + auto-CEP)');
+{
+  ok('campos na ordem: CEP, rua, número, compl, bairro, cidade, UF',
+     /id="c-\$\{p\.id\}-cep"[\s\S]*-rua"[\s\S]*-num"[\s\S]*-compl"[\s\S]*-bairro"[\s\S]*-cidade"[\s\S]*-uf"/.test(HTML));
+  ok('máscara de CEP', g.mCEP('15025000')==='15025-000');
+  ok('auto-preenchimento por CEP (ViaCEP)', HTML.indexOf('viacep.com.br/ws/')>0);
+  ok('monta a string do endereço na validação', HTML.indexOf('function enderecoOk')>0);
+  ok('junta rua/número/bairro/cidade/UF/CEP', HTML.indexOf("s+=', nº '+num")>0&&HTML.indexOf("s+=' - CEP '+cep")>0);
+  ok('UF vira maiúscula, só letras', HTML.indexOf("toUpperCase().replace(/[^A-Z]/g,'').slice(0,2)")>0);
+}
+
 grupo('Envio pela edge function (tabela fechada pro público)');
 {
   ok('não fala com a tabela direto', principal.indexOf('/rest/v1/contratos_form')<0);
@@ -128,7 +150,7 @@ grupo('Envio pela edge function (tabela fechada pro público)');
   ok('espalha data colada nos 3 campos', HTML.indexOf('function espalharData')>0);
   secao('limites espelham o banco');
   ok('perguntas de texto carregam limite (max)', g.PERGUNTAS.filter(p=>p.tipo==='texto'||p.tipo==='email').every(p=>p.max>0));
-  ok('endereço vai até 500 (como o banco)', (g.PERGUNTAS.find(p=>p.id==='endereco')||{}).max===500);
+  ok('endereço agora é estruturado (subcampos)', (g.PERGUNTAS.find(p=>p.id==='endereco')||{}).tipo==='endereco');
   ok('o template aplica maxlength nos inputs', HTML.indexOf('maxlength="${p.max}"')>0);
 }
 

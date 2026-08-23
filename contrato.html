@@ -70,6 +70,17 @@ body:has(#t-abre.ativa) .marca-topo,body:has(#t-fim.ativa) .marca-topo{opacity:0
 input{border:none;border-bottom:2px solid var(--linha);background:transparent;font:inherit;font-size:25px;color:var(--tinta);padding:6px 2px 8px;border-radius:0;outline:none;transition:border-color .2s;width:100%}
 input:focus{border-bottom-color:var(--brand)}
 input::placeholder{color:#B9B1CC}
+/* endereço estruturado */
+.end{display:flex;flex-direction:column}
+.end .el{font-size:12px;font-weight:600;color:var(--resposta);margin:13px 0 4px;letter-spacing:.02em}
+.end .el:first-child{margin-top:0}
+.end .opt{font-weight:400;color:#9a93a8}
+.end input{border:1px solid var(--linha);border-radius:10px;background:#fff;font-size:16px;color:var(--tinta);padding:11px 13px;width:100%;transition:border-color .15s}
+.end input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(110,10,214,.10)}
+.end input::placeholder{color:#B9B1CC}
+.end .erow{display:flex;gap:12px}
+.end .erow>div{display:flex;flex-direction:column;min-width:0}
+.end .cepst{font-size:11.5px;color:var(--brand);min-height:15px;margin-top:5px;font-weight:500}
 .dtp{display:flex;align-items:flex-end;gap:12px}
 .dtp input{text-align:left}
 .dtp .d,.dtp .m{width:86px}
@@ -102,6 +113,8 @@ input::placeholder{color:#B9B1CC}
   .dtp .d,.dtp .m{width:64px}.dtp .a{width:96px}
   .hero{padding:46px 18px 38px}.hero .s{width:62px;height:75px}.hero .wm{font-size:24px}
   .marca-topo{top:10px;left:10px;padding:5px 12px 5px 9px}.marca-topo .wm{font-size:11px}.marca-topo .s{width:19px;height:23px}
+  .end .erow{flex-direction:column;gap:0}
+  .end input{font-size:16px}
   .perg .miolo{padding-top:64px}
 }
 </style>
@@ -194,16 +207,21 @@ const mCPF=v=>dig(v).slice(0,11).replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})
 /* colar "+55 (17) 98123-4567" traria 13 dígitos e viraria um número errado — tira o DDI 55 antes */
 function mFone(v){ let c=dig(v); if(c.length>11&&c.slice(0,2)==='55') c=c.slice(2);
   c=c.slice(0,11); return c.length<=10?c.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{4})(\d{1,4})$/,'$1-$2'):c.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3'); }
+/* RG: dígitos + X final (verificador de alguns estados). Formata 00.000.000-0. */
+const mRG=v=>{ let c=String(v||'').toUpperCase().replace(/[^0-9X]/g,'').replace(/X(?=.)/g,'').slice(0,10);
+  return c.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})([0-9X])/,'.$1-$2'); };
+const rgValido=v=>{ const c=String(v||'').toUpperCase().replace(/[^0-9X]/g,''); return c.length>=5&&c.length<=10&&!/X./.test(c); };
+const mCEP=v=>dig(v).slice(0,8).replace(/^(\d{5})(\d)/,'$1-$2');
 
 /* ---------- as 10 perguntas, na ordem exata do formulário original ---------- */
 const PERGUNTAS=[
  {id:'razao_social',  t:'Nome da Empresa (Razão Social)',            tipo:'texto', max:300},
  {id:'representante', t:'Nome Completo do Representante Legal',      tipo:'texto', max:300},
  {id:'cnpj',          t:'CNPJ da Empresa',                           tipo:'cnpj',  ph:'00.000.000/0000-00', tec:'numeric'},
- {id:'rg',            t:'RG do Representante Legal',                 tipo:'texto', max:40},
+ {id:'rg',            t:'RG do Representante Legal',                 tipo:'rg',    ph:'00.000.000-0', max:14},
  {id:'cpf',           t:'CPF do Representante Legal',                tipo:'cpf',   ph:'000.000.000-00', tec:'numeric'},
  {id:'nascimento',    t:'Data de Nascimento do Representante Legal', tipo:'data'},
- {id:'endereco',      t:'Endereço da Empresa',                       tipo:'texto', max:500},
+ {id:'endereco',      t:'Endereço da Empresa',                       tipo:'endereco'},
  {id:'email',         t:'Email para contrato',                       tipo:'email', ph:'nome@exemplo.com', tec:'email', max:200},
  {id:'resp_financeiro',t:'Nome do Responsável Financeiro',           tipo:'texto', max:300},
  {id:'telefone',      t:'Telefone do Responsável Financeiro',        tipo:'fone',  ph:'(00) 00000-0000', tec:'tel', prefixo:'🇧🇷 +55'}
@@ -214,7 +232,9 @@ const REGRAS={
  cpf:  {ok:cpfValido,   msg:'Por favor, insira um CPF válido',  mask:mCPF},
  data: {ok:dataValida,  msg:'Por favor, insira uma data válida no formato DD/MM/AAAA.'},
  email:{ok:emailValido, msg:'Por favor insira um endereço de e-mail válido'},
- fone: {ok:foneValido,  msg:'Por favor insira um número de telefone válido', mask:mFone}
+ fone: {ok:foneValido,  msg:'Por favor insira um número de telefone válido', mask:mFone},
+ rg:   {ok:rgValido,    msg:'Por favor, insira um RG válido', mask:mRG},
+ endereco:{ok:()=>enderecoOk(), msg:'Preencha o endereço completo: CEP, rua, número, bairro, cidade e UF.'}
 };
 
 /* ---------- montagem ---------- */
@@ -231,7 +251,24 @@ document.getElementById('perguntas').innerHTML=PERGUNTAS.map((p,i)=>`
   <div class="miolo">
    <div class="num">${i+1}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div>
    <h2>${p.t}</h2>
-   <div class="resp">${p.tipo==='data'?`
+   <div class="resp">${p.tipo==='endereco'?`
+    <div class="end">
+      <label class="el">CEP</label>
+      <input class="ecep" id="c-${p.id}-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="off">
+      <div class="cepst" id="c-${p.id}-cepst"></div>
+      <label class="el">Rua / Logradouro</label>
+      <input id="c-${p.id}-rua" maxlength="120" placeholder="ex: Av. Bady Bassitt" autocomplete="off">
+      <div class="erow">
+        <div style="flex:0 0 34%"><label class="el">Número</label><input id="c-${p.id}-num" inputmode="numeric" maxlength="12" placeholder="1500" autocomplete="off"></div>
+        <div><label class="el">Complemento <span class="opt">(opcional)</span></label><input id="c-${p.id}-compl" maxlength="60" placeholder="Sala 3" autocomplete="off"></div>
+      </div>
+      <label class="el">Bairro</label>
+      <input id="c-${p.id}-bairro" maxlength="80" placeholder="ex: Centro" autocomplete="off">
+      <div class="erow">
+        <div style="flex:1"><label class="el">Cidade</label><input id="c-${p.id}-cidade" maxlength="80" placeholder="ex: São José do Rio Preto" autocomplete="off"></div>
+        <div style="flex:0 0 78px"><label class="el">UF</label><input id="c-${p.id}-uf" maxlength="2" placeholder="SP" autocomplete="off"></div>
+      </div>
+    </div>`:p.tipo==='data'?`
     <div class="dtp">
       <input class="d" id="c-${p.id}-d" inputmode="numeric" maxlength="2" placeholder="Dia" autocomplete="off">
       <span class="sep">/</span>
@@ -251,8 +288,20 @@ document.getElementById('perguntas').innerHTML=PERGUNTAS.map((p,i)=>`
   </div>
  </section>`).join('');
 
-/* valor atual de uma pergunta (a data junta os 3 campos) */
+/* lê um subcampo do endereço */
+function endGet(s){ return (($('#c-endereco-'+s)||{}).value||'').trim(); }
+/* endereço completo? (o banco recebe uma string; aqui validamos os pedaços) */
+function enderecoOk(){ return endGet('rua').length>=3 && endGet('num').length>=1 && endGet('bairro').length>=2
+  && endGet('cidade').length>=2 && endGet('uf').length===2 && dig(endGet('cep')).length===8; }
+/* valor atual de uma pergunta (data junta 3 campos; endereço junta os 7 na ordem certa) */
 function valorDe(p){
+  if(p.tipo==='endereco'){
+    const rua=endGet('rua'),num=endGet('num'),compl=endGet('compl'),bairro=endGet('bairro'),cidade=endGet('cidade'),uf=endGet('uf').toUpperCase(),cep=mCEP(endGet('cep'));
+    if(!(rua||num||compl||bairro||cidade||uf||cep)) return '';
+    let s=rua; if(num) s+=', nº '+num; if(compl) s+=' - '+compl;
+    if(bairro) s+=' - '+bairro; if(cidade) s+=', '+cidade; if(uf) s+='/'+uf; if(cep) s+=' - CEP '+cep;
+    return s.trim();
+  }
   if(p.tipo!=='data') return (($('#c-'+p.id)||{}).value||'').trim();
   const d=dig(($('#c-'+p.id+'-d')||{}).value).padStart(2,'0'), m=dig(($('#c-'+p.id+'-m')||{}).value).padStart(2,'0'), a=dig(($('#c-'+p.id+'-a')||{}).value);
   if(!+d&&!+m&&!a) return '';
@@ -265,7 +314,38 @@ function espalharData(p,txt){
   $('#c-'+p.id+'-a').value=m[3].length===2?'19'+m[3]:m[3];
   respostas[p.id]=valorDe(p); guardar(); return true;
 }
+/* busca o endereço pelo CEP (ViaCEP). Falhou/offline? o cliente preenche na mão. */
+async function buscaCEP(p,cep){
+  const st=$('#c-'+p.id+'-cepst'); if(st) st.textContent='Buscando endereço…';
+  try{
+    const r=await fetch('https://viacep.com.br/ws/'+cep+'/json/'); const d=await r.json();
+    if(d&&!d.erro){
+      const set=(k,val)=>{ const el=$('#c-'+p.id+'-'+k); if(el&&val&&!el.value.trim()) el.value=val; };
+      set('rua',d.logradouro); set('bairro',d.bairro); set('cidade',d.localidade);
+      const uf=$('#c-'+p.id+'-uf'); if(uf&&d.uf&&!uf.value.trim()) uf.value=d.uf;
+      respostas[p.id]=valorDe(p); guardar();
+      if(st) st.textContent='';
+      const num=$('#c-'+p.id+'-num'); if(num&&!num.value.trim()) num.focus();
+    } else if(st){ st.textContent='CEP não encontrado — pode preencher manualmente.'; }
+  }catch(_){ if(st) st.textContent=''; }
+}
 PERGUNTAS.forEach((p,i)=>{
+  if(p.tipo==='endereco'){
+    const campos=['cep','rua','num','compl','bairro','cidade','uf'];
+    const sv=respostas.__endereco||{};
+    campos.forEach(k=>{ const el=$('#c-'+p.id+'-'+k); if(el&&sv[k]) el.value=sv[k]; });
+    const salvarEnd=()=>{ const o={}; campos.forEach(k=>o[k]=(($('#c-'+p.id+'-'+k)||{}).value||'')); respostas.__endereco=o; respostas[p.id]=valorDe(p); guardar(); $('#e-'+i).classList.remove('on'); };
+    campos.forEach(k=>{ const el=$('#c-'+p.id+'-'+k); if(!el) return;
+      el.addEventListener('input',()=>{
+        if(k==='cep') el.value=mCEP(el.value);
+        if(k==='uf') el.value=el.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,2);
+        salvarEnd();
+        if(k==='cep'&&dig(el.value).length===8) buscaCEP(p,dig(el.value));
+      });
+      el.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); avancar(); } });
+    });
+    return;
+  }
   if(p.tipo==='data'){
     const partes=['d','m','a'].map(x=>$('#c-'+p.id+'-'+x));
     const v=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(respostas[p.id]||'');
