@@ -380,6 +380,30 @@ grupo('Autosave da tarefa (sem botão Salvar)');
   ok('fechar o painel grava o que ficou pendente', /const fechar=\(\)=>\{ if\(window\.__tkmTimer\)/.test(abrir));
 }
 
+/* ---------------- camada mobile ---------------- */
+grupo('Camada mobile (720px)');
+{
+  const css=HTML.slice(HTML.indexOf('<style>'),HTML.indexOf('</style>'));
+  const i=css.indexOf('@media(max-width:720px');
+  let depth=0, j=css.indexOf('{',i), k=j;
+  for(k=j;k<css.length;k++){ if(css[k]==='{')depth++; else if(css[k]==='}'){depth--; if(!depth)break; } }
+  const bloco720=css.slice(i,k+1);
+  ok('o breakpoint de celular existe', i>0);
+  ok('viewport meta presente', HTML.indexOf('width=device-width')>0);
+  secao('o que quebrava no celular');
+  ok('tabela rola de lado em vez de esmagar', /\.tablewrap\{[^}]*overflow-x:auto/.test(css));
+  ok('formulário de duas colunas vira uma', bloco720.indexOf('.row2{grid-template-columns:1fr}')>0);
+  ok('painel da tarefa em tela cheia', bloco720.indexOf('.overlay.folha .modal{width:100vw')>0);
+  ok('coluna do board cabe no dedo', /\.tk-col\{flex:0 0 84vw/.test(bloco720));
+  ok('iOS não dá zoom no campo focado', /input,select,textarea\{font-size:16px/.test(bloco720));
+  ok('calendário não vaza da tela', /\.dtpop\{width:min\(246px/.test(bloco720));
+  ok('pílulas de período rolam', /\.fin-tabs\{flex-wrap:nowrap;overflow-x:auto/.test(bloco720));
+  secao('nada disso vaza pro desktop');
+  const antes=css.slice(0,i);
+  ok('fora do breakpoint, tk-col segue 282px', /\.tk-col\{flex:0 0 282px/.test(antes));
+  ok('fora do breakpoint, row2 segue 2 colunas', /\.row2\{display:grid;grid-template-columns:1fr 1fr/.test(antes));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
