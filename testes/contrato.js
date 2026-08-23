@@ -36,12 +36,12 @@ grupo('Fidelidade ao formulário original do Yay');
   ok('texto da formalização do projeto', HTML.indexOf('Dando sequência à formalização do projeto, é necessário o preenchimento do Formulário de informações Contratuais!')>0);
   ok('chamada pra iniciar', HTML.indexOf('Clique no botão abaixo para iniciar!')>0);
   ok('botão CLIQUE AQUI PARA ACELERAR', HTML.indexOf('CLIQUE AQUI PARA ACELERAR')>0);
-  ok('banner de abertura (imagem original)', HTML.indexOf('1759851189_default.webp')>0);
+  ok('sem imagem do Yay (agora é a marca AutoSíntese)', HTML.indexOf('yayforms.nyc3')<0);
   secao('tela de encerramento');
   ok('agradecimento', HTML.indexOf('Obrigado por preencher o formulário!')>0);
   ok('contrato e faturamento', HTML.indexOf('Com esses dados conseguiremos elaborar seu contrato e organizar o faturamento de forma segura e rápida.')>0);
   ok('equipe à disposição', HTML.indexOf('Em caso de dúvidas, nossa equipe está à disposição para ajudar.')>0);
-  ok('banner de encerramento (imagem original)', HTML.indexOf('1759851344_default.webp')>0);
+  ok('encerramento traz a marca, não imagem do Yay', HTML.match(/class="hero"/g).length===2);
   secao('as 10 perguntas, na ordem exata');
   const esperado=['Nome da Empresa (Razão Social)','Nome Completo do Representante Legal','CNPJ da Empresa',
     'RG do Representante Legal','CPF do Representante Legal','Data de Nascimento do Representante Legal',
@@ -54,9 +54,21 @@ grupo('Fidelidade ao formulário original do Yay');
   ok('telefone com prefixo +55 (país BR)', HTML.indexOf('+55')>0);
   ok('dica "Pressione Enter ↵"', HTML.indexOf('Pressione <b>Enter ↵</b>')>0&&HTML.indexOf('pressione <b>')<0);
   ok('barra de progresso presente', HTML.indexOf('id="barra"')>0);
-  ok('fonte Roboto e botão preto do tema', HTML.indexOf('Roboto')>0&&HTML.indexOf('--btn-bg:#000000')>0);
+  ok('fonte Roboto e roxo AutoSíntese no tema', HTML.indexOf('Roboto')>0&&HTML.indexOf('--brand:#6E0AD6')>0);
   ok('pixel do Facebook do original', HTML.indexOf("fbq('init','2022021961964985')")>0);
   ok('progresso salvo pra retomar depois', HTML.indexOf('localStorage.setItem(GUARDA')>0);
+}
+
+grupo('Identidade visual AutoSíntese');
+{
+  ok('paleta roxa da marca (--brand)', HTML.indexOf('--brand:#6E0AD6')>0);
+  ok('botão e navegação em roxo, não preto', HTML.indexOf('--btn-bg:var(--brand)')>0&&HTML.indexOf('#000000')<0);
+  ok('símbolo S vetorial da marca (viewBox oficial)', (HTML.match(/viewBox="0 0 500 621"/g)||[]).length>=3);
+  ok('wordmark AUTO bold + SÍNTESE fino', (HTML.match(/AUTO<span>SÍNTESE<\/span>/g)||[]).length>=2);
+  ok('tagline INTELIGÊNCIA UNIDA À RESULTADOS', HTML.indexOf('INTELIGÊNC<b>IA</b> UNIDA À RESULTADOS')>0);
+  ok('chip de marca fixo em todas as telas', HTML.indexOf('class="marca-topo"')>0);
+  ok('hero roxo nas telas de abertura e fim', (HTML.match(/class="hero"/g)||[]).length===2);
+  ok('logo é vetorial inline (self-contained, sem CDN)', HTML.indexOf('<img')<0);
 }
 
 grupo('Validação de verdade (melhor que o original)');

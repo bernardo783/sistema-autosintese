@@ -18,67 +18,99 @@ document,'script','https://connect.facebook.net/en_US/fbevents.js');
 fbq('init','2022021961964985');fbq('track','PageView');
 </script>
 <style>
-:root{--campo:#000000;--resposta:#333333;--btn-bg:#000000;--btn-tx:#FFFFFF;--pagina:#FFFFFF;--erro:#d92d20}
+:root{
+  --brand:#6E0AD6; --brand-2:#9A4DFF; --brand-esc:#2C0870;
+  --tinta:#161320; --resposta:#4C4660; --linha:#E7E0F5;
+  --pagina:#FFFFFF; --erro:#d92d20; --btn-bg:var(--brand); --btn-tx:#FFFFFF;
+}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
-body{font-family:'Roboto',system-ui,sans-serif;background:var(--pagina);color:var(--campo);-webkit-font-smoothing:antialiased}
-#barra{position:fixed;top:0;left:0;right:0;height:4px;background:rgba(0,0,0,.08);z-index:10}
-#barra i{display:block;height:100%;width:0;background:var(--btn-bg);transition:width .4s ease}
+body{font-family:'Roboto',system-ui,sans-serif;background:var(--pagina);color:var(--tinta);-webkit-font-smoothing:antialiased}
+#barra{position:fixed;top:0;left:0;right:0;height:4px;background:#EEE7FA;z-index:30}
+#barra i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--brand-2));transition:width .4s ease}
+
+/* chip de marca sempre presente (fundo branco: legível em qualquer tela) */
+.marca-topo{position:fixed;top:16px;left:16px;z-index:25;display:flex;align-items:center;gap:9px;
+  background:#fff;border:1px solid var(--linha);border-radius:999px;padding:7px 15px 7px 11px;
+  box-shadow:0 4px 18px rgba(46,8,112,.10);transition:opacity .3s}
+.marca-topo .s{width:19px;height:24px;color:var(--brand);flex:none}
+.marca-topo .wm{font-size:13px;font-weight:800;letter-spacing:.05em;line-height:1;color:var(--brand)}
+.marca-topo .wm span{font-weight:300;color:var(--tinta)}
+/* onde há hero, o logo grande já aparece — some com o chip (fallback: fica no canto, legível) */
+body:has(#t-abre.ativa) .marca-topo,body:has(#t-fim.ativa) .marca-topo{opacity:0;pointer-events:none}
+
 .tela{min-height:100%;display:none;flex-direction:column}
 .tela.ativa{display:flex;animation:sobe .35s ease}
 @keyframes sobe{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
-.banner{width:100%;max-height:38vh;object-fit:cover;display:block}
-.miolo{flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;max-width:720px;margin:0 auto;padding:40px 24px 96px}
-.abre h1{font-size:26px;font-weight:700;line-height:1.35;color:var(--campo)}
-.abre p{margin-top:14px;font-size:17px;line-height:1.6;color:var(--resposta)}
-.num{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--resposta);margin-bottom:10px}
+
+/* hero roxo — substitui o banner de imagem do formulário original */
+.hero{position:relative;width:100%;padding:58px 24px 48px;overflow:hidden;color:#fff;text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--brand-esc) 0%,var(--brand) 82%)}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(58% 120% at 82% -10%,rgba(255,255,255,.18),transparent 60%)}
+.hero .s{width:72px;height:90px;color:#fff;filter:drop-shadow(0 8px 22px rgba(0,0,0,.28));position:relative}
+.hero .wm{margin-top:16px;font-size:30px;font-weight:800;letter-spacing:.04em;line-height:1;color:#fff;position:relative}
+.hero .wm span{font-weight:300}
+.hero .tag{margin-top:9px;font-size:11px;letter-spacing:.18em;font-weight:500;color:rgba(255,255,255,.82);position:relative}
+.hero .tag b{color:#fff;font-weight:800}
+
+.miolo{flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;max-width:640px;margin:0 auto;padding:44px 24px 96px}
+.perg .miolo{justify-content:flex-start;padding-top:84px}
+.abre h1{font-size:25px;font-weight:800;line-height:1.32;letter-spacing:-.01em;color:var(--tinta)}
+.abre p{margin-top:14px;font-size:16.5px;line-height:1.6;color:var(--resposta)}
+.num{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--brand);margin-bottom:10px}
 .num svg{width:14px;height:14px}
-.perg h2{font-size:24px;font-weight:500;line-height:1.4;color:var(--campo)}
+.perg h2{font-size:24px;font-weight:600;line-height:1.4;color:var(--tinta)}
 .resp{margin-top:26px}
 .linha{display:flex;align-items:flex-end;gap:10px}
-.prefixo{font-size:26px;color:var(--resposta);white-space:nowrap;padding-bottom:8px}
-input{border:none;border-bottom:2px solid rgba(0,0,0,.25);background:transparent;font:inherit;font-size:26px;color:var(--resposta);padding:6px 2px 8px;border-radius:0;outline:none;transition:border-color .2s;width:100%}
-input:focus{border-bottom-color:var(--btn-bg)}
-input::placeholder{color:rgba(51,51,51,.35)}
+.prefixo{font-size:24px;color:var(--resposta);white-space:nowrap;padding-bottom:8px}
+input{border:none;border-bottom:2px solid var(--linha);background:transparent;font:inherit;font-size:25px;color:var(--tinta);padding:6px 2px 8px;border-radius:0;outline:none;transition:border-color .2s;width:100%}
+input:focus{border-bottom-color:var(--brand)}
+input::placeholder{color:#B9B1CC}
 .dtp{display:flex;align-items:flex-end;gap:12px}
 .dtp input{text-align:left}
 .dtp .d,.dtp .m{width:86px}
 .dtp .a{width:130px}
-.dtp .sep{font-size:26px;color:var(--resposta);padding-bottom:8px}
+.dtp .sep{font-size:24px;color:var(--resposta);padding-bottom:8px}
 .acao{display:flex;align-items:center;gap:14px;margin-top:26px}
-.btn{font:inherit;font-weight:700;font-size:17px;background:var(--btn-bg);color:var(--btn-tx);border:none;border-radius:6px;padding:12px 26px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
-.btn:hover{opacity:.85}
-.btn:disabled{opacity:.5;cursor:default}
-.abre .btn{font-size:18px;padding:16px 30px}
+.btn{font:inherit;font-weight:700;font-size:16px;background:var(--btn-bg);color:var(--btn-tx);border:none;border-radius:9px;padding:12px 26px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(110,10,214,.28);transition:opacity .2s,box-shadow .2s,transform .1s}
+.btn:hover{opacity:.93;box-shadow:0 8px 22px rgba(110,10,214,.34)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:default;box-shadow:none}
+.abre .btn{font-size:17px;padding:15px 30px}
 .dica{font-size:12.5px;color:var(--resposta)}
-.dica b{font-weight:700}
-.erro{display:none;margin-top:14px;background:rgba(217,45,32,.08);color:var(--erro);font-size:14px;font-weight:500;padding:8px 12px;border-radius:6px}
+.dica b{font-weight:700;color:var(--tinta)}
+.erro{display:none;margin-top:14px;background:rgba(217,45,32,.08);color:var(--erro);font-size:14px;font-weight:500;padding:8px 12px;border-radius:8px}
 .erro.on{display:inline-block}
 #nav[hidden]{display:none}
-#nav{position:fixed;right:18px;bottom:18px;display:flex;gap:2px;z-index:10}
-#nav button{width:38px;height:38px;border:none;background:var(--btn-bg);color:var(--btn-tx);cursor:pointer;display:flex;align-items:center;justify-content:center}
-#nav button:first-child{border-radius:6px 0 0 6px}
-#nav button:last-child{border-radius:0 6px 6px 0}
+#nav{position:fixed;right:18px;bottom:18px;display:flex;gap:2px;z-index:25}
+#nav button{width:38px;height:38px;border:none;background:var(--brand);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(110,10,214,.3)}
+#nav button:first-child{border-radius:9px 0 0 9px}
+#nav button:last-child{border-radius:0 9px 9px 0}
 #nav button:disabled{opacity:.4;cursor:default}
 #nav svg{width:16px;height:16px}
-.fim h1{font-size:24px;font-weight:700;line-height:1.5;color:var(--campo)}
-.fim p{margin-top:12px;font-size:17px;line-height:1.6;color:var(--resposta)}
+.fim h1{font-size:24px;font-weight:800;line-height:1.5;color:var(--tinta)}
+.fim p{margin-top:12px;font-size:16.5px;line-height:1.6;color:var(--resposta)}
 .hp{position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden}
 @media(max-width:640px){
-  .miolo{padding:28px 18px 110px;justify-content:flex-start;padding-top:34px}
+  .miolo{padding:28px 18px 110px;justify-content:flex-start;padding-top:30px}
   .abre h1{font-size:21px}.perg h2{font-size:20px}
   input,.prefixo,.dtp .sep{font-size:19px}
   .dtp .d,.dtp .m{width:64px}.dtp .a{width:96px}
-  .banner{max-height:30vh}
+  .hero{padding:46px 18px 38px}.hero .s{width:58px;height:72px}.hero .wm{font-size:24px}
+  .marca-topo{top:10px;left:10px;padding:5px 12px 5px 9px}.marca-topo .wm{font-size:11px}
+  .perg .miolo{padding-top:64px}
 }
 </style>
 </head>
 <body>
 <div id="barra" role="progressbar" aria-label="0% concluído"><i></i></div>
+<div class="marca-topo" aria-hidden="true"><svg class="s" viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="currentColor"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="currentColor"/></svg><span class="wm">AUTO<span>SÍNTESE</span></span></div>
 
 <!-- Abertura -->
 <section class="tela abre ativa" id="t-abre">
-  <img class="banner" src="https://yayforms.nyc3.cdn.digitaloceanspaces.com/medias/workspaces/681914cbf2865ab39704b975/1759851189_default.webp" alt="">
+  <div class="hero"><svg class="s" viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="currentColor"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="currentColor"/></svg><div class="wm">AUTO<span>SÍNTESE</span></div><div class="tag">INTELIGÊNC<b>IA</b> UNIDA À RESULTADOS</div></div>
   <div class="miolo">
     <h1>Primeiramente, parabéns pela decisão de evoluir e escalar os resultados da sua Loja de Veículos🚀</h1>
     <p>Dando sequência à formalização do projeto, é necessário o preenchimento do Formulário de informações Contratuais!</p>
@@ -93,7 +125,7 @@ input::placeholder{color:rgba(51,51,51,.35)}
 
 <!-- Encerramento -->
 <section class="tela fim" id="t-fim">
-  <img class="banner" src="https://yayforms.nyc3.cdn.digitaloceanspaces.com/medias/workspaces/681914cbf2865ab39704b975/1759851344_default.webp" alt="">
+  <div class="hero"><svg class="s" viewBox="0 0 500 621" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.0551 215.146C5.20626 231.627 0 250.529 0 269.861C0 289.194 5.20627 308.129 15.0882 324.61C18.1058 329.617 21.5214 334.393 25.3349 338.869C33.2272 348.154 42.8107 355.881 53.3227 362.016L142.592 414.211L144.018 413.382L248.574 352.266L107.64 269.894L356.977 124.185V0.296265L53.3559 177.74C41.9485 184.406 31.6687 192.928 23.3784 203.241C20.3276 207.021 17.5753 211.034 15.0882 215.179L15.0551 215.146Z" fill="currentColor"/><path d="M484.945 405.224C494.794 388.743 500 369.842 500 350.509C500 331.176 494.794 312.241 484.912 295.76C481.894 290.753 478.478 285.977 474.665 281.501C466.773 272.216 457.189 264.49 446.678 258.355L357.408 206.159L355.982 206.988L251.426 268.104L392.36 350.476L143.023 496.184V620.074L446.644 442.63C458.051 435.964 468.331 427.442 476.621 417.129C479.672 413.349 482.425 409.336 484.912 405.191L484.945 405.224Z" fill="currentColor"/></svg><div class="wm">AUTO<span>SÍNTESE</span></div><div class="tag">INTELIGÊNC<b>IA</b> UNIDA À RESULTADOS</div></div>
   <div class="miolo">
     <h1>Obrigado por preencher o formulário!</h1>
     <p>Com esses dados conseguiremos elaborar seu contrato e organizar o faturamento de forma segura e rápida.</p>
