@@ -7493,13 +7493,18 @@ const apgStatus=(p)=>{ const hj=hojeISO();
   if(p.vencimento<=d7) return ['avencer','A vencer','apg-avencer'];
   return ['prog','Programada','apg-prog']; };
 async function apgCarregar(){
-  const [pc,ct,cats,forns]=await Promise.all([
-    sb.from('fin_parcelas').select('*').or(`competencia.eq.${APG.comp},and(status.eq.a_pagar,vencimento.lt.${APG.comp}-01)`).order('vencimento'),
+  const [ct,cats,forns]=await Promise.all([
     sb.from('fin_contas').select('*').eq('recorrente',true).order('descricao'),
     sb.from('categorias').select('*').eq('ativa',true).order('ordem'),
     sb.from('fornecedores').select('*').eq('ativo',true).order('nome')]);
+  APG.contas=ct.data||[]; APG.cats=cats.data||[]; APG.forns=forns.data||[];
+  /* Recorrências do mês entram SOZINHAS (pedido do Gabriel, 11/08): abrir o mês já materializa.
+     Só do mês atual pra frente — mês passado é história, não se inventa. A trava única no banco
+     (conta_id+competência) garante que abrir dez vezes não duplica nada. */
+  if(APG.comp>=compNow()){ try{ await apgGerarMes(true); }catch(_){ } }
+  const pc=await sb.from('fin_parcelas').select('*').or(`competencia.eq.${APG.comp},and(status.eq.a_pagar,vencimento.lt.${APG.comp}-01)`).order('vencimento');
   if(pc.error) throw pc.error;
-  APG.parcelas=pc.data||[]; APG.contas=ct.data||[]; APG.cats=cats.data||[]; APG.forns=forns.data||[]; APG.carregou=true;
+  APG.parcelas=pc.data||[]; APG.carregou=true;
 }
 async function renderFinAPagar(c){
   c.innerHTML='<div class="empty">Carregando contas…</div>';
@@ -7529,8 +7534,7 @@ async function renderFinAPagar(c){
      <div><h2>Contas a Pagar</h2><div class="desc">avulsas, parceladas e recorrentes — status automático, sem duplicar caixa</div></div>
      <div class="toolbar">
        <input type="month" class="search" id="apgComp" value="${APG.comp}" data-dica="Mês de competência: a que mês a despesa pertence (não necessariamente quando é paga).">
-       <button class="btn secondary small" onclick="apgGerarMes()" data-dica="Materializa as recorrências ativas neste mês (aluguel, softwares…). Pode clicar quantas vezes quiser: nunca duplica.">⚡ Gerar mês</button>
-       <button class="btn ghost small" onclick="apgModalRec()" data-dica="Cadastra um modelo de despesa que se repete (dia do vencimento, valor padrão). O modelo não é a conta: cada mês nasce como uma conta própria.">↻ Recorrências (${APG.contas.filter(x=>x.ativa).length})</button>
+       <button class="btn ghost small" onclick="apgModalRec()" data-dica="Modelos de despesa que se repetem. Ao abrir cada mês, as contas deles já nascem sozinhas — sem botão, sem duplicar. Editar um modelo não mexe nos meses que já nasceram.">↻ Recorrências (${APG.contas.filter(x=>x.ativa).length})</button>
        <button class="btn small" onclick="apgModalDespesa()" data-dica="Despesa avulsa ou parcelada. Parcelou em 12x? Nascem 12 contas independentes, uma por mês.">+ Despesa</button>
      </div>
    </div>
@@ -7543,7 +7547,7 @@ async function renderFinAPagar(c){
    ${atrasadasAntigas.length?`<p class="hint" style="color:#ff8b97">⚠ ${atrasadasAntigas.length} conta(s) vencida(s) de meses anteriores aparecem na lista abaixo.</p>`:''}
    <div class="tablewrap"><table><thead><tr><th>Descrição</th><th>Departamento</th><th>Categoria</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
    <tbody>${atrasadasAntigas.map(p=>linha(p,true)).join('')}${doMes.map(p=>linha(p,false)).join('')}</tbody></table>
-   ${(doMes.length+atrasadasAntigas.length)?'':'<div class="empty">Nenhuma conta em '+fmtComp(APG.comp)+'. Use “⚡ Gerar mês” para materializar as recorrências ou “+ Despesa”.</div>'}</div>
+   ${(doMes.length+atrasadasAntigas.length)?'':'<div class="empty">Nenhuma conta em '+fmtComp(APG.comp)+'. As recorrências ativas entram sozinhas ao abrir o mês; avulsas e parceladas nascem no “+ Despesa”.</div>'}</div>
    <p class="hint" style="margin-top:12px">Pagar aqui lança a despesa nos <strong>Lançamentos</strong> automaticamente (competência + data real do pagamento) — nunca em dobro. Cancelamento preserva o histórico.</p>`;
   const m=$('#apgComp'); if(m) m.onchange=e=>{ APG.comp=e.target.value||compNow(); renderFinAPagar($('#finSub')); };
 }
@@ -7629,7 +7633,7 @@ window.apgModalRec=()=>{
 window.apgRecToggle=async (id,ativa)=>{ const {error}=await sb.from('fin_contas').update({ativa}).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; } toast(ativa?'Recorrência reativada.':'Recorrência pausada — meses já gerados ficam.'); renderFinAPagar($('#finSub')); };
 const PER_MESES={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12};
-window.apgGerarMes=async ()=>{
+window.apgGerarMes=async (silencioso)=>{
   const comp=APG.comp, [y,m]=comp.split('-').map(Number);
   const alvo=APG.contas.filter(x=>x.ativa&&x.recorrente).filter(x=>{
     const ini=String(x.inicio||'').slice(0,7); if(ini&&comp<ini) return false;
@@ -7637,13 +7641,13 @@ window.apgGerarMes=async ()=>{
     const passo=PER_MESES[x.periodicidade]||1;
     if(passo>1&&ini){ const [iy,im]=ini.split('-').map(Number); const diff=(y-iy)*12+(m-im); if(diff%passo!==0) return false; }
     return true; });
-  if(!alvo.length){ toast('Nenhuma recorrência ativa cai neste mês.'); return; }
+  if(!alvo.length){ if(!silencioso) toast('Nenhuma recorrência ativa cai neste mês.'); return; }
   const linhas=alvo.map(x=>({conta_id:x.id,origem:'conta',competencia:comp,descricao:x.descricao,fornecedor:x.fornecedor,
     departamento:x.departamento,forma_pagamento:x.forma_pagamento,valor:x.valor_padrao,
     vencimento:vencOf(comp,x.dia_vencimento),parcela_num:1,parcela_de:1,observacoes:x.observacoes,criado_por:currentUser.id}));
   const {error}=await sb.from('fin_parcelas').upsert(linhas,{onConflict:'conta_id,competencia',ignoreDuplicates:true});
-  if(error){ toast('Erro: '+error.message); return; }
-  toast('Mês gerado — recorrências já existentes não duplicam.'); renderFinAPagar($('#finSub'));
+  if(error){ if(!silencioso) toast('Erro: '+error.message); return; }
+  if(!silencioso){ toast('Mês gerado.'); renderFinAPagar($('#finSub')); }
 };
 window.apgPagar=async (id)=>{
   const p=APG.parcelas.find(x=>x.id===id); if(!p) return;
@@ -9326,10 +9330,9 @@ const DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 const folhaView=()=>'folha';
 /* Motor de geração da folha — ressuscitado na Fase 1 (11/08). A regressão de 09/08 tinha
    removido todo caminho template→ocorrência; recuperado do desenho de 71c83de. */
-window.gerarFolha=async ()=>{
-  const comp=folhaComp;
+function gerarFolhaCore(comp){
   const ativos=DB.folhaFixos.filter(f=>f.ativo);
-  if(!ativos.length){ toast('Cadastre os fixos mensais primeiro.'); return; }
+  if(!ativos.length) return 0;
   const doComp=DB.folha.filter(p=>p.comp===comp&&p.fixoId);
   const temMensal=new Set(doComp.map(p=>p.fixoId));
   const temData=new Set(doComp.map(p=>p.fixoId+'|'+p.venc));
@@ -9359,11 +9362,14 @@ window.gerarFolha=async ()=>{
       n++;
     }
   });
-  if(!n){ toast('A folha de '+fmtComp(comp)+' já está gerada.'); return; }
-  await saveDB(); render('folha'); toast(n+' pagamento(s) gerado(s) para '+fmtComp(comp)+'.');
-};
+  return n;
+}
 function renderFolha(c){
   const comp=folhaComp;
+  /* Folha do mês nasce sozinha ao abrir (pedido do Gabriel, 11/08) — só mês atual pra frente,
+     idempotente (dedup por fixo/mês), e o salvamento segue em segundo plano na fila normal. */
+  if(comp>=compNow()){ const nAuto=gerarFolhaCore(comp);
+    if(nAuto){ saveDB(); toast(nAuto+' pagamento(s) do mês entraram sozinhos.'); } }
   const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
   /* Uma tela so (Gabriel, 10/08/2026): equipe primeiro, depois a faixa "Gastos de Escritório"
      com um sub-grupo por escritório. O que separa continua sendo o campo esc do fixo. */
@@ -9394,8 +9400,7 @@ function renderFolha(c){
      <div><h2>Folha de Pagamento</h2><div class="desc">Equipe e gastos de escritório na mesma tela</div></div>
      <div class="toolbar">
        <input type="month" class="search" id="fpComp" value="${comp}" style="min-width:150px">
-       <button class="btn secondary small" onclick="gerarFolha()" data-dica="NOVO (consertado): cria os pagamentos do mês a partir dos fixos ativos. Idempotente — clicar de novo não duplica ninguém. Pós-pago ganha a referência do mês anterior na descrição.">⚡ Gerar mês</button>
-       <button class="btn small" onclick="openFpModal()">+ Pagamento</button>
+       <button class="btn small" onclick="openFpModal()" data-dica="Pagamento avulso. Os fixos do mês (equipe e escritórios) entram sozinhos ao abrir a tela — sem botão, sem duplicar.">+ Pagamento</button>
      </div>
    </div>
    <div class="cards">
