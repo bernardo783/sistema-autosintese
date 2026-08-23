@@ -9292,7 +9292,7 @@ window.ctEdBaixar=async ()=>{
 
 /* ---- tela ---- */
 let ctModelo='full'; let ctCliSel=''; let ctSignatario='bernardo'; let ctRasc={}; let ctLeads=[];
-const CT_LINK=SUPA_URL+'/functions/v1/formulario/sintese';
+const CT_LINK='https://autosintese.app.br/contrato';
 
 function ctDoCliente(cliId){
   const c=DB.clientes.find(x=>x.id===cliId); if(!c) return {};
@@ -9306,9 +9306,15 @@ function ctDoCliente(cliId){
     contratante_tel:k.tel||c.tel||'',contratante_email:k.email||'',
     valor_mensal:c.valor?ctMoeda(c.valor):''};
 }
+/* Os formulários que o cliente preencheu (autosintese.app.br/contrato -> contratos_form)
+   entram aqui já mapeados para o formato que o gerador de .docx espera. Só os concluídos
+   (enviado_em) e ainda 'novo'. Um clique em "Usar" puxa tudo; falta só valor e prazo. */
 async function ctCarregarLeads(){
-  const {data}=await sb.from('contrato_leads').select('*').eq('status','novo').order('criado_em',{ascending:false});
-  ctLeads=data||[];
+  const {data}=await sb.from('contratos_form').select('*').not('enviado_em','is',null).eq('status','novo').order('criado_em',{ascending:false});
+  ctLeads=(data||[]).map(r=>({id:r.id,criado_em:r.criado_em,status:r.status,dados:{
+    contratante_razao:r.razao_social||'', contratante_cnpj:r.cnpj||'', contratante_endereco:r.endereco||'',
+    rep_cargo:'', rep_nome:r.representante||'', rep_rg:r.rg||'', rep_cpf:r.cpf||'', rep_nascimento:r.nascimento||'',
+    contratante_tel:r.telefone||'', contratante_email:r.email||''}}));
 }
 function renderContratos(c){
   if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
@@ -9371,7 +9377,7 @@ window.ctUsarLead=async (id)=>{
 };
 window.ctArquivarLead=async (id)=>{
   if(!confirm('Arquivar este formulário? Ele sai da lista.')) return;
-  await sb.from('contrato_leads').update({status:'arquivado'}).eq('id',id);
+  await sb.from('contratos_form').update({status:'arquivado'}).eq('id',id);
   render('contratos');
 };
 
@@ -9404,7 +9410,7 @@ window.ctForm=()=>{
       const nome=(d.contratante_razao||'Contrato').replace(/[^\w\sÀ-ÿ-]/g,'').trim().slice(0,60);
       /* nao baixa direto: abre o editor pro closer conferir e corrigir antes */
       await ctEditor(ctModelo,d,'Contrato-'+ctModelo+'-'+nome);
-      if(ctRasc._lead){ await sb.from('contrato_leads').update({status:'usado'}).eq('id',ctRasc._lead); }
+      if(ctRasc._lead){ await sb.from('contratos_form').update({status:'usado'}).eq('id',ctRasc._lead); }
       ctRasc={};
     }catch(e){ toast(e.message); return false; }
     return true;
