@@ -7724,7 +7724,7 @@ function renderFechamento(c){
     </div>
     <div id="fcForm">
     <div class="card" style="margin-bottom:14px"><h2 style="font-size:15px;margin-bottom:12px">🏢 Empresa</h2>
-      <div class="row2">${fcField('Nome da empresa *','fc_nome','ex: Select Motors')}
+      <div class="row2"><div>${fcField('Nome da empresa *','fc_nome','ex: Select Motors')}<div id="fc_dup"></div></div>
         <div class="field"><label>Nicho *</label><select id="fc_nicho">${NICHOS.map(n=>`<option>${n}</option>`).join('')}</select></div></div>
       <div class="row2">${fcField('Razão social','fc_razao','ex: S F OLIVEIRA LTDA')}${fcField('CNPJ','fc_cnpj','ex: 12.345.321/0001-23')}</div>
       <div class="row2">${fcField('Nome do responsável (dono)','fc_dono','ex: Luiz Marcelo da Silveira Couto')}${fcField('CPF do responsável','fc_cpf','ex: 123.456.789-00')}</div>
@@ -7767,7 +7767,27 @@ function renderFechamento(c){
     <div id="fcOk" style="display:none"></div>
   </div>`;
   fcPlanoMuda();
+  const nEl=$('#fc_nome'); if(nEl){ nEl.oninput=fcChecaNome; }
 }
+/* REGRA DE NEGÓCIO (Gabriel, 11/08): projeto/cliente não pode duplicar. Compara o nome
+   normalizado (sem acento, pontuação, espaços e termos genéricos) com as fichas existentes
+   e com os fechamentos ainda na fila de Novos Contratos. "LealMotos" == "Leal Motos". */
+const nomeChave=(s)=>chaveNome(s).replace(/\s+/g,'');
+function fcDuplicado(nome){
+  const k=nomeChave(nome); if(k.length<3) return null;
+  const f=(DB.projetos||[]).find(p=>nomeChave(p.nome)===k);
+  if(f) return {tipo:'ficha',nome:f.nome,id:f.id};
+  const t=(TK.tarefas||[]).find(x=>x.lista_id===LF_ID&&nomeChave(x.titulo)===k);
+  if(t) return {tipo:'fila',nome:t.titulo,id:t.id};
+  return null;
+}
+window.fcChecaNome=()=>{
+  const box=$('#fc_dup'), v=(($('#fc_nome')||{}).value||'').trim();
+  if(!box) return; const d=fcDuplicado(v);
+  if(!d){ box.innerHTML=''; return; }
+  box.innerHTML=`<div style="margin:6px 0 10px;padding:9px 12px;border-radius:9px;background:rgba(239,91,107,.12);border:1px solid rgba(239,91,107,.35);color:#ff9aa5;font-size:12.5px;font-weight:600">
+    Esse projeto já está cadastrado: <strong>${esc(d.nome)}</strong>${d.tipo==='ficha'?` — <a class="link" style="cursor:pointer" onclick="abrirCliente('${d.id}')">abrir a ficha</a>`:' (já está na fila de Novos Contratos)'}</div>`;
+};
 /* Todo fechamento nasce como card em "0. NAO ATIVO" na lista Base de Clientes. */
 async function lcCriarCard(fichaId,nome){
   if(!fichaId) return;
@@ -7784,6 +7804,8 @@ window.fechEnviar=async ()=>{
     respFin:V('fc_respfin'),telFin:V('fc_telfin'),email:V('fc_email'),endereco:V('fc_end'),
     valor:V('fc_valor'),formaPagamento:V('fc_forma'),dataPagamento:V('fc_data'),statusPagamento:V('fc_status'),
     sdr:V('fc_sdr'),closer:V('fc_closer'),squad:V('fc_squad'),gestor:V('fc_gestor'),linkCall:V('fc_call'),resumo:V('fc_resumo')};
+  const dup=fcDuplicado(body.nome);
+  if(dup){ fcChecaNome(); toast('Esse projeto já está cadastrado: '+dup.nome+'. Não dá pra duplicar.'); const n=$('#fc_nome'); if(n){ n.focus(); n.scrollIntoView({block:'center',behavior:'smooth'}); } return; }
   const falta=[];
   if(body.nome.length<2) falta.push('nome da empresa');
   if(!(parseFloat(body.valor)>0)) falta.push('mensalidade');
