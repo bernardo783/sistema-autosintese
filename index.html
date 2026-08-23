@@ -971,6 +971,20 @@
   .tk-card .tk-qa .tk-qab{opacity:.55;transition:opacity .12s}
   .tk-card:hover .tk-qa .tk-qab{opacity:1}
   .tk-vazio{border:1.5px dashed var(--line);border-radius:10px;color:var(--muted);font-size:12px;text-align:center;padding:18px 8px;margin:0 0 8px}
+  /* tutorial no hover: qualquer elemento com data-dica explica a si mesmo (pedido do Gabriel, 11/08) */
+  [data-dica]{position:relative}
+  [data-dica]:hover::after{content:attr(data-dica);position:absolute;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%);
+    width:max-content;max-width:290px;white-space:normal;background:#0e0d12;color:var(--txt);border:1px solid var(--brand2);
+    border-radius:10px;padding:9px 13px;font-size:12px;font-weight:500;line-height:1.55;z-index:4000;pointer-events:none;
+    box-shadow:0 12px 34px rgba(0,0,0,.55);text-transform:none;letter-spacing:0;text-align:left}
+  [data-dica]:hover::before{content:'';position:absolute;left:50%;bottom:calc(100% + 3px);transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:var(--brand2);z-index:4000;pointer-events:none}
+  .apg-st{font-family:var(--mono,ui-monospace);font-size:10px;font-weight:800;letter-spacing:.05em;border-radius:999px;padding:2.5px 10px;white-space:nowrap}
+  .apg-venc{background:rgba(239,91,107,.15);color:#ff8b97}
+  .apg-avencer{background:rgba(230,177,63,.14);color:#f0c869}
+  .apg-prog{background:rgba(139,149,165,.15);color:#9aa4b2}
+  .apg-paga{background:rgba(63,207,142,.15);color:#5fd9a4}
+  .apg-canc{background:var(--panel2);color:var(--muted);text-decoration:line-through}
   /* popovers de filtro (Responsavel / Filtros) estilo ClickUp */
   .tkpop{position:fixed;z-index:1500;width:330px;max-height:70vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow);scrollbar-width:thin}
   .tkp-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -1474,11 +1488,13 @@ function blankDB(){ return normalizeDB({}); }
 
 /* Dados da empresa: uma linha por módulo na tabela `itens` (jsonb) */
 const MODMAP=[['financeiro','financeiro'],['senhas','senhas'],['links','links'],['projetos','projetos'],['folha_fixos','folhaFixos'],['folha','folha'],['clientes','clientes'],['recebimentos','recebimentos'],['trafego','trafego'],['contas_meta','contasMeta']];
+function curarInicio(){ (DB.clientes||[]).forEach(c=>{ if(c&&typeof c.inicio==='string'&&c.inicio.length>7) c.inicio=c.inicio.slice(0,7); }); }
 async function loadDBImpl(){
   const {data,error}=await sb.from('itens').select('modulo,dados,atualizado_em');
   if(error) throw error;
   const map={}, revs={}; (data||[]).forEach(r=>{ map[r.modulo]=r.dados; revs[r.modulo]=r.atualizado_em; });
   DB=normalizeDB({financeiro:map.financeiro,senhas:map.senhas,links:map.links,projetos:map.projetos,folhaFixos:map.folha_fixos,folha:map.folha,clientes:map.clientes,recebimentos:map.recebimentos,trafego:map.trafego,contasMeta:map.contas_meta});
+  curarInicio(); /* fase1: inicio sempre YYYY-MM */
   /* autocura: todo cliente sempre tem um projeto — roda ANTES da fotografia, senao
      "projetos" nasce eternamente sujo e fabrica conflito falso em toda gravacao */
   DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:c.nome,responsavel:'',status:'novo',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
@@ -7385,7 +7401,7 @@ window.calRender=()=>{
 /* ---------- FINANCEIRO (central) ---------- */
 /* Toda aba do Financeiro tem que ter rota aqui — sem isso o clique na pilula nao redesenha nada. */
 const FIN_TAB={financeiro:'lanc',lanc:'lanc',recebimentos:'recebimentos',
-  folha:'folha',escritorios:'folha',painel:'painel'};  /* escritorios virou secao da folha */
+  folha:'folha',escritorios:'folha',painel:'painel',apagar:'apagar'};  /* escritorios virou secao da folha */
 let finTab='lanc';
 let lancComp=compNow();
 let lancDe=''; let lancAte='';
@@ -7395,16 +7411,207 @@ function renderFinanceiro(c){
    <div class="fin-tabs">
      <button class="ftab ${finTab==='lanc'?'active':''}" onclick="finGo('lanc')">💰 Lançamentos</button>
      <button class="ftab ${finTab==='recebimentos'?'active':''}" onclick="finGo('recebimentos')">🤝 Recebimentos</button>
+     <button class="ftab ${finTab==='apagar'?'active':''}" onclick="finGo('apagar')" data-dica="NOVO: todas as despesas a pagar num lugar só — avulsas, parceladas e recorrentes, com status automático de vencida.">📥 Contas a Pagar</button>
      <button class="ftab ${finTab==='folha'?'active':''}" onclick="finGo('folha')">🧾 Folha de Pagamento</button>
      <button class="ftab ${finTab==='painel'?'active':''}" onclick="finGo('painel')">📊 Painel</button>
    </div>
    <div id="finSub"></div>`;
   const sub=$('#finSub');
   if(finTab==='painel') return renderDash(sub);
+  if(finTab==='apagar') return renderFinAPagar(sub);
   if(finTab==='recebimentos') return renderRecebimentos(sub);
   if(finTab==='folha') return renderFolha(sub);
   return renderLanc(sub);
 }
+/* ================= CONTAS A PAGAR — Fase 1 do financeiro gerencial (11/08) =================
+   Espinha: tabelas fin_contas (modelo/recorrência/parcelamento) e fin_parcelas (ocorrência com
+   status individual). Pagar espelha em DB.financeiro com id 'fpar_'+parcela (nunca duplica). */
+const APG={comp:compNow(),parcelas:[],contas:[],cats:[],forns:[],carregou:false};
+const DEP_ROT={marketing:'Marketing',tecnologia:'Tecnologia',comercial:'Comercial',administrativo:'Administrativo'};
+const apgStatus=(p)=>{ const hj=hojeISO();
+  if(p.status==='pago') return ['paga','Paga','apg-paga'];
+  if(p.status==='cancelado') return ['canc','Cancelada','apg-canc'];
+  if(p.vencimento<hj) return ['venc','Vencida','apg-venc'];
+  const d7=tkDiaMais(hj,7);
+  if(p.vencimento<=d7) return ['avencer','A vencer','apg-avencer'];
+  return ['prog','Programada','apg-prog']; };
+async function apgCarregar(){
+  const [pc,ct,cats,forns]=await Promise.all([
+    sb.from('fin_parcelas').select('*').or(`competencia.eq.${APG.comp},and(status.eq.a_pagar,vencimento.lt.${APG.comp}-01)`).order('vencimento'),
+    sb.from('fin_contas').select('*').eq('recorrente',true).order('descricao'),
+    sb.from('categorias').select('*').eq('ativa',true).order('ordem'),
+    sb.from('fornecedores').select('*').eq('ativo',true).order('nome')]);
+  if(pc.error) throw pc.error;
+  APG.parcelas=pc.data||[]; APG.contas=ct.data||[]; APG.cats=cats.data||[]; APG.forns=forns.data||[]; APG.carregou=true;
+}
+async function renderFinAPagar(c){
+  c.innerHTML='<div class="empty">Carregando contas…</div>';
+  try{ await apgCarregar(); }catch(e){ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(e.message)+'</div>'; return; }
+  const doMes=APG.parcelas.filter(p=>p.competencia===APG.comp);
+  const atrasadasAntigas=APG.parcelas.filter(p=>p.competencia!==APG.comp&&p.status==='a_pagar');
+  const soma=a=>a.reduce((s,p)=>s+Number(p.valor||0),0);
+  const abertas=doMes.filter(p=>p.status==='a_pagar');
+  const vencidas=abertas.filter(p=>apgStatus(p)[0]==='venc').concat(atrasadasAntigas);
+  const pagas=doMes.filter(p=>p.status==='pago');
+  const linha=(p,antiga)=>{ const [k,rot,cls]=apgStatus(p);
+    return `<tr${antiga?' style="opacity:.85"':''}>
+    <td><strong>${esc(p.descricao)}</strong>${p.parcela_de>1?` <span class="tag st" style="font-size:10px" data-dica="Parcela ${p.parcela_num} de ${p.parcela_de} — cada uma tem vida própria: pagar esta não mexe nas outras.">${p.parcela_num}/${p.parcela_de}</span>`:''}
+      <div class="hint" style="margin:2px 0 0">${esc(p.fornecedor||'')}${antiga?' · comp. '+esc(p.competencia||'—'):''}</div></td>
+    <td>${p.departamento?`<span class="tag st">${DEP_ROT[p.departamento]||esc(p.departamento)}</span>`:'—'}</td>
+    <td>${esc(p.observacoes&&p.observacoes.indexOf('cat:')===0?p.observacoes.slice(4):(p.motivo||'—'))}</td>
+    <td>${fmtDate(p.vencimento)}</td>
+    <td class="money" style="text-align:right">${brl(p.valor)}</td>
+    <td><span class="apg-st ${cls}" data-dica="${k==='venc'?'Passou do vencimento sem pagamento — o status vira Vencida sozinho.':k==='avencer'?'Vence nos próximos 7 dias.':k==='prog'?'Programada: vence mais pra frente no mês.':k==='paga'?'Paga em '+fmtDate(p.pago_em||''):'Cancelada — fica no histórico, fora dos totais.'}">${rot}</span></td>
+    <td><div class="rowact">
+      ${p.status==='a_pagar'?`<button class="iconbtn" onclick="apgPagar('${p.id}')" data-dica="Marca como paga hoje e lança a despesa no caixa (Lançamentos) — uma vez só, sem duplicar.">✓ Pagar</button>`:''}
+      ${p.status==='pago'?`<button class="iconbtn" onclick="apgDesfazer('${p.id}')" data-dica="Volta para a fila e remove o lançamento do caixa.">Desfazer</button>`:''}
+      ${p.status==='a_pagar'?`<button class="iconbtn del" onclick="apgCancelar('${p.id}')" data-dica="Cancela sem apagar: o registro fica no histórico para auditoria.">Cancelar</button>`:''}
+    </div></td></tr>`; };
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Contas a Pagar</h2><div class="desc">avulsas, parceladas e recorrentes — status automático, sem duplicar caixa</div></div>
+     <div class="toolbar">
+       <input type="month" class="search" id="apgComp" value="${APG.comp}" data-dica="Mês de competência: a que mês a despesa pertence (não necessariamente quando é paga).">
+       <button class="btn secondary small" onclick="apgGerarMes()" data-dica="Materializa as recorrências ativas neste mês (aluguel, softwares…). Pode clicar quantas vezes quiser: nunca duplica.">⚡ Gerar mês</button>
+       <button class="btn ghost small" onclick="apgModalRec()" data-dica="Cadastra um modelo de despesa que se repete (dia do vencimento, valor padrão). O modelo não é a conta: cada mês nasce como uma conta própria.">↻ Recorrências (${APG.contas.filter(x=>x.ativa).length})</button>
+       <button class="btn small" onclick="apgModalDespesa()" data-dica="Despesa avulsa ou parcelada. Parcelou em 12x? Nascem 12 contas independentes, uma por mês.">+ Despesa</button>
+     </div>
+   </div>
+   <div class="cards">
+     <div class="card" data-dica="Soma de tudo que ainda está em aberto na competência ${esc(APG.comp)}."><div class="k">A pagar no mês</div><div class="v ${abertas.length?'neg':''}">${brl(soma(abertas))}</div><div class="sub">${abertas.length} conta(s)</div></div>
+     <div class="card" data-dica="Contas que passaram do vencimento sem pagamento — inclui atrasos de meses anteriores."><div class="k">Vencidas</div><div class="v ${vencidas.length?'neg':''}">${brl(soma(vencidas))}</div><div class="sub">${vencidas.length} conta(s)</div></div>
+     <div class="card" data-dica="O que já foi liquidado nesta competência."><div class="k">Pagas no mês</div><div class="v pos">${brl(soma(pagas))}</div><div class="sub">${pagas.length} conta(s)</div></div>
+     <div class="card" data-dica="Compromisso fixo mensal: soma dos modelos de recorrência ativos."><div class="k">Fixas mensais</div><div class="v">${brl(APG.contas.filter(x=>x.ativa&&x.periodicidade==='mensal').reduce((s,x)=>s+Number(x.valor_padrao||0),0))}</div><div class="sub">${APG.contas.filter(x=>x.ativa).length} recorrência(s)</div></div>
+   </div>
+   ${atrasadasAntigas.length?`<p class="hint" style="color:#ff8b97">⚠ ${atrasadasAntigas.length} conta(s) vencida(s) de meses anteriores aparecem na lista abaixo.</p>`:''}
+   <div class="tablewrap"><table><thead><tr><th>Descrição</th><th>Departamento</th><th>Categoria</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
+   <tbody>${atrasadasAntigas.map(p=>linha(p,true)).join('')}${doMes.map(p=>linha(p,false)).join('')}</tbody></table>
+   ${(doMes.length+atrasadasAntigas.length)?'':'<div class="empty">Nenhuma conta em '+fmtComp(APG.comp)+'. Use “⚡ Gerar mês” para materializar as recorrências ou “+ Despesa”.</div>'}</div>
+   <p class="hint" style="margin-top:12px">Pagar aqui lança a despesa nos <strong>Lançamentos</strong> automaticamente (competência + data real do pagamento) — nunca em dobro. Cancelamento preserva o histórico.</p>`;
+  const m=$('#apgComp'); if(m) m.onchange=e=>{ APG.comp=e.target.value||compNow(); renderFinAPagar($('#finSub')); };
+}
+const apgSelCat=(id,val)=>`<select id="${id}"><option value="">— categoria —</option>${APG.cats.map(x=>`<option value="${x.id}"${val===x.id?' selected':''} data-dep="${esc(x.departamento_padrao||'')}">${esc(x.nome)}</option>`).join('')}</select>`;
+const apgSelDep=(id,val)=>`<select id="${id}"><option value="">— departamento —</option>${Object.entries(DEP_ROT).map(([k,v])=>`<option value="${k}"${val===k?' selected':''}>${v}</option>`).join('')}</select>`;
+window.apgModalDespesa=()=>{
+  modal('Nova despesa',`
+    <div class="field"><label>Descrição *</label><input id="ap_desc" placeholder="ex: Cadeiras do escritório"></div>
+    <div class="row2">
+      <div class="field"><label>Fornecedor</label><input id="ap_forn" list="ap_fornlist" placeholder="digite ou escolha"><datalist id="ap_fornlist">${APG.forns.map(f=>`<option value="${esc(f.nome)}">`).join('')}</datalist></div>
+      <div class="field"><label data-dica="Categoria organiza o relatório de despesas. Dá pra criar novas em Configurações depois.">Categoria</label>${apgSelCat('ap_cat','')}</div>
+    </div>
+    <div class="row2">
+      <div class="field"><label data-dica="Centro de resultado que carrega essa despesa. É ele que alimenta a margem por área.">Departamento *</label>${apgSelDep('ap_dep','')}</div>
+      <div class="field"><label>Forma</label><select id="ap_forma"><option value="pix">Pix</option><option value="boleto">Boleto</option><option value="credito">Crédito</option><option value="debito">Débito</option><option value="dinheiro">Dinheiro</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Valor total (R$) *</label><input type="number" step="0.01" id="ap_valor"></div>
+      <div class="field"><label>1º vencimento *</label><input type="date" id="ap_venc"></div>
+    </div>
+    <div class="field"><label data-dica="1x = despesa avulsa. Acima disso, cada parcela nasce como conta independente, um mês após a outra — pagar uma não mexe nas demais.">Parcelas</label>
+      <select id="ap_parc">${Array.from({length:24},(_,i)=>`<option value="${i+1}">${i+1}x</option>`).join('')}</select></div>`,
+    async ()=>{
+      const desc=$('#ap_desc').value.trim(), dep=$('#ap_dep').value, tot=parseFloat($('#ap_valor').value)||0, venc=$('#ap_venc').value, n=parseInt($('#ap_parc').value)||1;
+      const catId=$('#ap_cat').value, cat=APG.cats.find(x=>x.id===catId), forn=$('#ap_forn').value.trim();
+      if(!desc||!dep||!(tot>0)||!venc){ toast('Preencha descrição, departamento, valor e vencimento.'); return false; }
+      let contaId=null;
+      if(n>1){ const r=await sb.from('fin_contas').insert({descricao:desc,fornecedor:forn||null,departamento:dep,forma_pagamento:$('#ap_forma').value,recorrente:false,valor_padrao:tot,inicio:venc,observacoes:cat?('cat:'+cat.nome):null,criado_por:currentUser.id}).select().single();
+        if(r.error){ toast('Erro: '+r.error.message); return false; } contaId=r.data.id; }
+      const vp=Math.round((tot/n)*100)/100;
+      const linhas=[];
+      const baseD=new Date(venc+'T12:00:00');
+      for(let i=0;i<n;i++){
+        const m0=baseD.getMonth()+i, y=baseD.getFullYear()+Math.floor(m0/12), m=m0%12;
+        const last=new Date(y,m+1,0).getDate();
+        const vi=y+'-'+String(m+1).padStart(2,'0')+'-'+String(Math.min(baseD.getDate(),last)).padStart(2,'0');
+        linhas.push({conta_id:contaId,origem:'conta',competencia:vi.slice(0,7),descricao:desc,fornecedor:forn||null,departamento:dep,
+          forma_pagamento:$('#ap_forma').value,valor:(i===n-1?Math.round((tot-vp*(n-1))*100)/100:vp),vencimento:vi,
+          parcela_num:i+1,parcela_de:n,observacoes:cat?('cat:'+cat.nome):null,criado_por:currentUser.id}); }
+      const r2=await sb.from('fin_parcelas').insert(linhas);
+      if(r2.error){ toast('Erro: '+r2.error.message); return false; }
+      toast(n>1?n+' parcelas criadas.':'Despesa criada.'); renderFinAPagar($('#finSub')); return true; });
+  const c=$('#ap_cat'); if(c) c.onchange=()=>{ const o=c.selectedOptions[0]; const d=o&&o.dataset.dep; if(d&&!$('#ap_dep').value) $('#ap_dep').value=d; };
+};
+window.apgModalRec=()=>{
+  modal('Recorrências — modelos de despesa fixa',`
+    <p class="hint" style="margin-top:0" data-dica="O modelo é só a régua. Todo mês o botão Gerar mês cria a conta daquele mês a partir dele — e editar o modelo nunca mexe nos meses que já nasceram.">Cada modelo gera uma conta por mês no “⚡ Gerar mês”. Editar o modelo não altera meses já gerados.</p>
+    ${APG.contas.map(x=>`<div style="display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:7px">
+      <div style="flex:1;min-width:0"><strong>${esc(x.descricao)}</strong><div class="hint" style="margin:1px 0 0">${esc(x.fornecedor||'')} · dia ${x.dia_vencimento} · ${DEP_ROT[x.departamento]||'—'}</div></div>
+      <span class="money">${brl(x.valor_padrao)}</span>
+      <span class="tag ${x.ativa?'concluido':'st'}">${x.ativa?'Ativa':'Pausada'}</span>
+      <button class="iconbtn" onclick="apgRecToggle('${x.id}',${x.ativa?'false':'true'})" data-dica="${x.ativa?'Pausar: os próximos meses deixam de ser gerados. Os já criados ficam como estão.':'Reativar a geração mensal.'}">${x.ativa?'Pausar':'Ativar'}</button>
+    </div>`).join('')||'<div class="empty">Nenhuma recorrência ainda.</div>'}
+    <div class="tk-sec" style="margin-top:14px">Nova recorrência</div>
+    <div class="field"><label>Descrição *</label><input id="ar_desc" placeholder="ex: Aluguel escritório Itajubá"></div>
+    <div class="row2">
+      <div class="field"><label>Fornecedor</label><input id="ar_forn" list="ap_fornlist2" placeholder="digite ou escolha"><datalist id="ap_fornlist2">${APG.forns.map(f=>`<option value="${esc(f.nome)}">`).join('')}</datalist></div>
+      <div class="field"><label>Categoria</label>${apgSelCat('ar_cat','')}</div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Departamento *</label>${apgSelDep('ar_dep','')}</div>
+      <div class="field"><label>Periodicidade</label><select id="ar_per"><option value="mensal">Mensal</option><option value="bimestral">Bimestral</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Valor padrão (R$) *</label><input type="number" step="0.01" id="ar_valor"></div>
+      <div class="field"><label>Dia do vencimento *</label><input type="number" min="1" max="31" id="ar_dia" value="10"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label data-dica="Primeiro mês em que a recorrência vale. Nada é gerado antes disso.">Início</label><input type="month" id="ar_ini" value="${APG.comp}"></div>
+      <div class="field"><label data-dica="Opcional: último mês. Vazio = sem prazo pra acabar.">Fim (opcional)</label><input type="month" id="ar_fim"></div>
+    </div>`,
+    async ()=>{
+      const desc=$('#ar_desc').value.trim(), dep=$('#ar_dep').value, val=parseFloat($('#ar_valor').value)||0, dia=parseInt($('#ar_dia').value)||0;
+      if(!desc||!dep||!(val>0)||!(dia>=1&&dia<=31)){ toast('Preencha descrição, departamento, valor e dia.'); return false; }
+      const catId=$('#ar_cat').value, cat=APG.cats.find(x=>x.id===catId);
+      const r=await sb.from('fin_contas').insert({descricao:desc,fornecedor:$('#ar_forn').value.trim()||null,departamento:dep,
+        recorrente:true,periodicidade:$('#ar_per').value,dia_vencimento:dia,valor_padrao:val,
+        inicio:($('#ar_ini').value||APG.comp)+'-01',fim:$('#ar_fim').value?($('#ar_fim').value+'-28'):null,
+        observacoes:cat?('cat:'+cat.nome):null,criado_por:currentUser.id});
+      if(r.error){ toast('Erro: '+r.error.message); return false; }
+      toast('Recorrência criada — use “⚡ Gerar mês”.'); renderFinAPagar($('#finSub')); return true; });
+};
+window.apgRecToggle=async (id,ativa)=>{ const {error}=await sb.from('fin_contas').update({ativa}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; } toast(ativa?'Recorrência reativada.':'Recorrência pausada — meses já gerados ficam.'); renderFinAPagar($('#finSub')); };
+const PER_MESES={mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12};
+window.apgGerarMes=async ()=>{
+  const comp=APG.comp, [y,m]=comp.split('-').map(Number);
+  const alvo=APG.contas.filter(x=>x.ativa&&x.recorrente).filter(x=>{
+    const ini=String(x.inicio||'').slice(0,7); if(ini&&comp<ini) return false;
+    const fim=String(x.fim||'').slice(0,7); if(fim&&comp>fim) return false;
+    const passo=PER_MESES[x.periodicidade]||1;
+    if(passo>1&&ini){ const [iy,im]=ini.split('-').map(Number); const diff=(y-iy)*12+(m-im); if(diff%passo!==0) return false; }
+    return true; });
+  if(!alvo.length){ toast('Nenhuma recorrência ativa cai neste mês.'); return; }
+  const linhas=alvo.map(x=>({conta_id:x.id,origem:'conta',competencia:comp,descricao:x.descricao,fornecedor:x.fornecedor,
+    departamento:x.departamento,forma_pagamento:x.forma_pagamento,valor:x.valor_padrao,
+    vencimento:vencOf(comp,x.dia_vencimento),parcela_num:1,parcela_de:1,observacoes:x.observacoes,criado_por:currentUser.id}));
+  const {error}=await sb.from('fin_parcelas').upsert(linhas,{onConflict:'conta_id,competencia',ignoreDuplicates:true});
+  if(error){ toast('Erro: '+error.message); return; }
+  toast('Mês gerado — recorrências já existentes não duplicam.'); renderFinAPagar($('#finSub'));
+};
+window.apgPagar=async (id)=>{
+  const p=APG.parcelas.find(x=>x.id===id); if(!p) return;
+  const hoje=hojeISO();
+  const {error}=await sb.from('fin_parcelas').update({status:'pago',pago_em:hoje,valor_pago:p.valor}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const cat=(p.observacoes&&p.observacoes.indexOf('cat:')===0)?p.observacoes.slice(4):(DEP_ROT[p.departamento]||'Administrativo');
+  DB.financeiro=DB.financeiro.filter(x=>x.id!=='fpar_'+id);
+  DB.financeiro.push({id:'fpar_'+id,data:p.vencimento,comp:p.competencia,pagoEm:hoje,tipo:'despesa',
+    descricao:'Conta: '+p.descricao+(p.fornecedor?' — '+p.fornecedor:'')+(p.parcela_de>1?' ('+p.parcela_num+'/'+p.parcela_de+')':''),
+    categoria:DEP_ROT[p.departamento]||cat,valor:Number(p.valor)||0});
+  await saveDB(); toast('Paga e lançada no caixa.'); renderFinAPagar($('#finSub'));
+};
+window.apgDesfazer=async (id)=>{
+  const {error}=await sb.from('fin_parcelas').update({status:'a_pagar',pago_em:null,valor_pago:null}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  DB.financeiro=DB.financeiro.filter(x=>x.id!=='fpar_'+id);
+  await saveDB(); toast('Desfeito — saiu do caixa.'); renderFinAPagar($('#finSub'));
+};
+window.apgCancelar=async (id)=>{
+  if(!confirm('Cancelar esta conta? Ela fica no histórico como cancelada (não é apagada).')) return;
+  const {error}=await sb.from('fin_parcelas').update({status:'cancelado'}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  toast('Cancelada — preservada no histórico.'); renderFinAPagar($('#finSub'));
+};
 function renderLanc(c){
   const lrange=!!(lancDe&&lancAte);
   const base=lrange?DB.financeiro.filter(x=>{const d=x.data||''; return d>=lancDe&&d<=lancAte;}):(lancComp?DB.financeiro.filter(x=>(x.data||'').slice(0,7)===lancComp):[...DB.financeiro]);
@@ -8273,7 +8480,7 @@ function renderRecebimentos(c){
       <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
       <td class="money" style="text-align:right">${s==='churn'?(R.churnMes(r)?`<span style="color:var(--danger)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">perdido</div>`:`<span style="color:var(--muted)">—</span>`):`${brl(R.val(r))}${R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:''}`}</td>
       <td>${selHtml}</td>
-      <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('clientes','${r.id}')">Excluir</button></div></td>
+      <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="cliExcluirSeguro('${r.id}')" data-dica="NOVO: excluir o cliente agora limpa junto as cobranças, os lançamentos e o projeto ligados a ele — nada fica órfão.">Excluir</button></div></td>
     </tr>`;}).join('');
     $('#cEmpty').innerHTML=rows.length?'':'<div class="empty">Nenhum cliente. Clique em "+ Cliente".</div>';
   };
@@ -8936,6 +9143,44 @@ const DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 /* Folha e Escritórios dividem o mesmo motor: fixo com campo `esc` (nome do escritório)
    pertence à aba Escritórios; sem `esc` é equipe. Pagamento avulso carrega `esc` próprio. */
 const folhaView=()=>'folha';
+/* Motor de geração da folha — ressuscitado na Fase 1 (11/08). A regressão de 09/08 tinha
+   removido todo caminho template→ocorrência; recuperado do desenho de 71c83de. */
+window.gerarFolha=async ()=>{
+  const comp=folhaComp;
+  const ativos=DB.folhaFixos.filter(f=>f.ativo);
+  if(!ativos.length){ toast('Cadastre os fixos mensais primeiro.'); return; }
+  const doComp=DB.folha.filter(p=>p.comp===comp&&p.fixoId);
+  const temMensal=new Set(doComp.map(p=>p.fixoId));
+  const temData=new Set(doComp.map(p=>p.fixoId+'|'+p.venc));
+  const [y,m]=comp.split('-').map(Number);
+  const last=new Date(y,m,0).getDate();
+  const dAnt=new Date(y,m-2,1); const mesAnt=dAnt.getFullYear()+'-'+String(dAnt.getMonth()+1).padStart(2,'0');
+  let n=0;
+  ativos.forEach(f=>{
+    if(f.inicioComp && comp<f.inicioComp) return;
+    if(f.recorrente===false){
+      if(!f.proxData||f.proxData.slice(0,7)!==comp) return;
+      if(temData.has(f.id+'|'+f.proxData)||temMensal.has(f.id)) return;
+      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,esc:f.esc||'',descricao:((f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):'')+' · único').trim(),valor:Number(f.valor)||0,venc:f.proxData,pago:false,pagoEm:null});
+      n++; return;
+    }
+    if(f.freq==='semanal'){
+      for(let d=1;d<=last;d++){
+        if(new Date(y,m-1,d).getDay()!==(Number(f.diaSemana)||0)) continue;
+        const venc=comp+'-'+String(d).padStart(2,'0');
+        if(temData.has(f.id+'|'+venc)) continue;
+        DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,esc:f.esc||'',descricao:(f.descricao?f.descricao+' — ':'')+'semanal'+(f.posPago?' · pós-pago':''),valor:Number(f.valor)||0,venc,pago:false,pagoEm:null});
+        n++;
+      }
+    } else {
+      if(temMensal.has(f.id)) return;
+      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,esc:f.esc||'',descricao:(f.descricao||'')+(f.posPago?((f.descricao?' — ':'')+'ref. '+fmtComp(mesAnt)):''),valor:Number(f.valor)||0,venc:vencOf(comp,f.dia),pago:false,pagoEm:null});
+      n++;
+    }
+  });
+  if(!n){ toast('A folha de '+fmtComp(comp)+' já está gerada.'); return; }
+  await saveDB(); render('folha'); toast(n+' pagamento(s) gerado(s) para '+fmtComp(comp)+'.');
+};
 function renderFolha(c){
   const comp=folhaComp;
   const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
@@ -8968,6 +9213,7 @@ function renderFolha(c){
      <div><h2>Folha de Pagamento</h2><div class="desc">Equipe e gastos de escritório na mesma tela</div></div>
      <div class="toolbar">
        <input type="month" class="search" id="fpComp" value="${comp}" style="min-width:150px">
+       <button class="btn secondary small" onclick="gerarFolha()" data-dica="NOVO (consertado): cria os pagamentos do mês a partir dos fixos ativos. Idempotente — clicar de novo não duplica ninguém. Pós-pago ganha a referência do mês anterior na descrição.">⚡ Gerar mês</button>
        <button class="btn small" onclick="openFpModal()">+ Pagamento</button>
      </div>
    </div>
@@ -9568,6 +9814,21 @@ function modal(title, bodyHTML, onSave){
   o.onclick=e=>{if(e.target===o)close();};
   o.querySelector('.msave').onclick=async ()=>{ const ok=await onSave(); if(ok!==false)close(); };
 }
+/* Exclusão de cliente sem órfãos (P0 da Fase 1): leva junto recebimentos, lançamentos rc_/rcs_ e o projeto espelho */
+window.cliExcluirSeguro=async (id)=>{
+  const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
+  const recs=(DB.recebimentos||[]).filter(r=>r.clienteId===id);
+  const recIds=new Set(recs.map(r=>String(r.id)));
+  const lancs=(DB.financeiro||[]).filter(x=>{ const s=String(x.id||''); return (s.indexOf('rc_')===0&&recIds.has(s.slice(3)))||(s.indexOf('rcs_')===0&&recIds.has(s.slice(4))); });
+  const prj=(DB.projetos||[]).find(p=>p.clienteId===id);
+  if(!confirm('Excluir '+(c.nome||'este cliente')+'?\n\nVão junto: '+recs.length+' cobrança(s), '+lancs.length+' lançamento(s) no financeiro'+(prj?' e a ficha do projeto':'')+'.')) return;
+  DB.clientes=DB.clientes.filter(x=>x.id!==id);
+  DB.recebimentos=DB.recebimentos.filter(r=>r.clienteId!==id);
+  DB.financeiro=DB.financeiro.filter(x=>{ const s=String(x.id||''); return !((s.indexOf('rc_')===0&&recIds.has(s.slice(3)))||(s.indexOf('rcs_')===0&&recIds.has(s.slice(4)))); });
+  if(prj){ DB.projetos=DB.projetos.filter(p=>p.id!==prj.id);
+    try{ await sb.from('tarefas').delete().eq('ficha_id',prj.id).eq('lista_id',LC_ID); }catch(_){}}
+  await saveDB(); render(currentView); toast('Cliente e vínculos excluídos.');
+};
 window.delItem=async (col,id)=>{ if(!confirm('Excluir este item?'))return;
   DB[col]=DB[col].filter(x=>x.id!==id); await saveDB(); render(currentView); toast('Excluído.'); };
 window.copyTxt=(t)=>{ navigator.clipboard.writeText(t).then(()=>toast('Copiado.')); };
