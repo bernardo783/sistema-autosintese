@@ -1343,7 +1343,7 @@
 .mp-anel .xp{font-size:11px;color:var(--brand2);margin-top:3px}
 .mp-perf{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:12px;font-weight:800;color:var(--warn)}
 .mp-sech{font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
-.mp-sech .mp-add{margin-left:auto;color:var(--brand2);letter-spacing:0;text-transform:none;font-size:12px;font-weight:700;cursor:pointer;background:none;border:0;font-family:inherit}
+.mp-add{margin-left:auto;color:var(--brand2);letter-spacing:0;text-transform:none;font-size:12px;font-weight:700;cursor:pointer;background:none;border:0;font-family:inherit}
 .mp-hab{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
 .mp-hab:first-of-type{border-top:none}
 .mp-hab.off{opacity:.55}
@@ -1410,6 +1410,27 @@
 .mp-gtag{font-size:9.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1.5px 7px;flex:none;letter-spacing:.4px}
 .mp-sync{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);margin:-2px 0 10px;flex-wrap:wrap}
 .mp-sync svg{width:12px;height:12px;color:var(--ok)}
+.mp-saud{font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
+.mp-saud small{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+.mp-topo{display:flex;align-items:center;gap:26px;margin:6px 0 20px;flex-wrap:wrap}
+.mp-topo .mp-anel{width:118px;height:118px;margin:0}
+.mp-topo .mp-anel::after{inset:9px}
+.mp-topo .mp-anel .nv{font-size:26px}
+.mp-cantos{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:24px;align-items:start}
+@media(max-width:1150px){.mp-cantos{grid-template-columns:1fr}}
+.mp-canto{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-height:120px}
+.mp-canto .mp-hab{padding:9px 0}
+.mp-canto .mp-trw{background:var(--panel2)}
+.mp-agr{display:flex;gap:10px;margin-bottom:7px}
+.mp-agh{width:42px;text-align:right;color:var(--muted);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;padding-top:11px;flex:none}
+.mp-agc{flex:1;display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:4px 11px 11px 4px;padding:9px 12px;font-size:13px;min-width:0}
+.mp-agr.done .mp-agc{opacity:.55}
+.mp-agr.done .tt{text-decoration:line-through}
+.mp-agc .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-agc .o{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--muted);flex:none;background:none;cursor:pointer;display:grid;place-items:center;color:transparent}
+.mp-agc .o.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.mp-agc .x{color:var(--muted);cursor:pointer;background:none;border:0;font-size:14px;padding:0 2px;flex:none}
+.mp-agc .x:hover{color:var(--danger)}
 .mp-ics,.mp-cors{display:flex;gap:6px;flex-wrap:wrap}
 .mp-icb{width:38px;height:38px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer}
 .mp-icb.on{background:var(--hov2);border-color:var(--brand2)}
@@ -9921,7 +9942,7 @@ function mpPintar(){
     '<div class="fin-tabs">'+abas.map(a=>'<button class="ftab '+(MP.aba===a[0]?'active':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
     '<div id="mpCorpo"></div>';
   const b=$('#mpCorpo');
-  if(MP.aba==='inicio') b.innerHTML=mpInicioHTML();
+  if(MP.aba==='inicio'){ b.innerHTML=mpInicioHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
   else if(MP.aba==='progresso') b.innerHTML=mpProgHTML();
   else{ b.innerHTML=mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
   Object.keys(mem).forEach(id=>{ const el=document.getElementById(id);
@@ -9941,23 +9962,44 @@ function mpHabRow(h,iso,podeCheck){
     '</div>';
 }
 function mpInicioHTML(){
-  const hoje=tkHoje(), n=mpNotaDia(hoje);
+  const dia=MP.dia, hoje=tkHoje(), n=mpNotaDia(dia);
   const deg=n.nota==null?0:Math.round(n.nota*36);
-  const doHoje=MP.habitos.filter(h=>mpProg(h,hoje));
-  const outros=MP.habitos.filter(h=>!mpProg(h,hoje));
-  const ts=mpTarDia(hoje), pend=ts.filter(t=>!mpFeita(t)).length;
-  return '<div class="mp-ini"><div>'+
-    '<div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
-      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota do dia</div><div class="xp">'+n.feit+'/'+n.prev+' feitos</div></div></div>'+
-    (n.nota===10&&n.prev>0?'<div class="mp-perf">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+
-    '</div><div>'+
-    '<div class="mp-sech">Hábitos de hoje · '+doHoje.length+'</div>'+
-    (doHoje.length?doHoje.map(h=>mpHabRow(h,hoje,true)).join(''):'<div class="hint">Nenhum hábito programado pra hoje.</div>')+
-    (outros.length?'<div class="mp-sech" style="margin-top:20px">Outros dias · '+outros.length+'</div>'+outros.map(h=>mpHabRow(h,hoje,false)).join(''):'')+
-    (!MP.habitos.length?'<div class="hint" style="margin-top:8px">Crie o primeiro hábito no botão lá em cima — ícone, dias da semana e meta.</div>':'')+
-    '<div class="mp-sech" style="margin-top:20px">Tarefas de hoje</div>'+
-    '<div class="hint" style="cursor:pointer" onclick="mpAba(\'tarefas\')">'+(ts.length?(pend?pend+' pendente'+(pend>1?'s':'')+' de '+ts.length:'todas as '+ts.length+' concluídas'):'nada agendado pra hoje')+' →</div>'+
-    '</div></div>';
+  const hs=MP.habitos.filter(h=>mpProg(h,dia));
+  const ts=mpTarDia(dia), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
+  const evts=mpEvtsOrd(dia), semHora=evts.filter(e=>!e.hora), comHora=evts.filter(e=>!!e.hora);
+  const hAgora=new Date().getHours();
+  const saud=hAgora<12?'Bom dia':(hAgora<18?'Boa tarde':'Boa noite');
+  const nome=String((currentUser||{}).nome||'').split(' ')[0]||'';
+  const ehHoje=dia===hoje;
+  return '<div class="mp-topo">'+
+    '<div><div class="mp-saud">'+saud+', '+esc(nome)+'.<small>'+mpDataExt(dia)+(ehHoje?'':' — você está vendo outro dia')+'</small></div>'+
+    (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:8px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+'</div>'+
+    '<div style="margin-left:auto"><div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
+      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota</div><div class="xp">'+n.feit+'/'+n.prev+'</div></div></div></div>'+
+    '</div>'+
+    mpStrip()+
+    '<div class="mp-cantos">'+
+    '<div class="mp-canto"><div class="mp-sech" style="margin-top:0">Hábitos'+(ehHoje?' de hoje':'')+' · '+hs.length+'<button class="mp-add" onclick="mpHabitoModal()">+ Novo</button></div>'+
+      (hs.length?hs.map(h=>mpHabRow(h,dia,true)).join(''):'<div class="hint">Nenhum hábito programado pra este dia.</div>')+
+      (!MP.habitos.length?'<div class="hint" style="margin-top:8px">Crie o primeiro — ícone, dias da semana e meta.</div>':'')+
+    '</div>'+
+    '<div class="mp-canto"><div class="mp-sech" style="margin-top:0">Tarefas · '+ts.length+'<button class="mp-add" onclick="mpTarNovaTgl()">+ Nova</button></div>'+
+      (MP.tarNova?'<div class="mp-trw"><input type="text" id="mpTarNm" placeholder="Nome da tarefa…" onkeydown="if(event.key===\'Enter\')mpTarAdd()"><button class="btn small" onclick="mpTarAdd()">'+svgIco('check',12)+'</button></div>':'')+
+      (pend.length?pend.map(mpTarRow).join(''):(MP.tarNova||feitas.length?'':'<div class="hint">Nada pra este dia.</div>'))+
+      (feitas.length?feitas.map(mpTarRow).join(''):'')+
+    '</div>'+
+    '<div class="mp-canto"><div class="mp-sech" style="margin-top:0">Agenda · '+evts.length+'<button class="mp-add" onclick="mpEvtNovoTgl()">+ Evento</button></div>'+
+      (MP.g?'':'<div class="mp-sync"><button class="mp-add" style="margin-left:0" onclick="mpGConectar()">Conectar Google Agenda</button><button class="mp-add" style="margin-left:0" onclick="mpGChecar()">já conectei</button></div>')+
+      (MP.evtNovo?'<div class="mp-trw"><input type="text" id="mpEvtNm" placeholder="Nome do evento…" onkeydown="if(event.key===\'Enter\')mpEvtAdd()"><input type="time" id="mpEvtHr"><button class="btn small" onclick="mpEvtAdd()">'+svgIco('check',12)+'</button></div>':'')+
+      semHora.map(mpEvtRow).join('')+
+      comHora.map(e=>'<div class="mp-agr'+(e.feito?' done':'')+'"><span class="mp-agh">'+esc(String(e.hora).slice(0,5))+'</span>'+
+        '<div class="mp-agc"><button class="o'+(e.feito?' on':'')+'" onclick="mpEvtVirar(\''+e.id+'\')">'+svgIco('check',11)+'</button>'+
+        '<span class="tt">'+esc(e.titulo||'')+'</span>'+(e.gcal_id?'<span class="mp-gtag">Google</span>':'')+
+        '<button class="x" title="Apagar" onclick="mpEvtDel(\''+e.id+'\')">×</button></div></div>').join('')+
+      (!evts.length&&!MP.evtNovo?'<div class="hint">Nenhum evento neste dia'+(MP.g?'':' — conecte o Google pra puxar as reuniões')+'.</div>':'')+
+      (MP.g?'<div class="mp-sync" style="margin:8px 0 0">'+svgIco('calendario',12)+esc(MP.g.google_email||'Google')+' · <button class="mp-add" style="margin-left:0" onclick="mpGAtualizar()">atualizar</button></div>':'')+
+    '</div>'+
+    '</div>';
 }
 
 /* ---------- aba Progresso ---------- */
@@ -10129,26 +10171,33 @@ window.mpHCor=(c)=>{ window.__mpH.cor=c; mpHPintar(); };
 window.mpHDia=(i)=>{ const d=window.__mpH.dias, p=d.indexOf(i); if(p>=0) d.splice(p,1); else d.push(i); mpHPintar(); mpHCalc(); };
 window.mpHTipo=(t)=>{ window.__mpH.tipo=t; mpHPintar(); mpHCalc(); };
 
-/* ---------- aba Tarefas (dia + agenda) ---------- */
-function mpTarHTML(){
+/* ---------- pedacos compartilhados (Inicio e aba Tarefas) ---------- */
+function mpStrip(){
   const dia=MP.dia, seg=mpSegDa(dia), ds=mpDias7(seg), hoje=tkHoje();
-  const ts=mpTarDia(dia), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
-  const semData=mpTarSemData();
-  const evts=(MP.evtsPorDia[dia]||[]).slice().sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
-  const strip='<div class="mp-diasrow"><button class="mp-nav" onclick="mpDiaNav(-7)">‹</button><div class="mp-dias">'+
+  return '<div class="mp-diasrow"><button class="mp-nav" onclick="mpDiaNav(-7)">‹</button><div class="mp-dias">'+
     ds.map(d=>'<button class="mp-dia'+(d===dia?' on':'')+(d===hoje?' hj':'')+'" onclick="mpDiaSel(\''+d+'\')"><small>'+MP_SEMD[mpDow(d)].toUpperCase()+'</small><b>'+Number(d.slice(8,10))+'</b></button>').join('')+
     '</div><button class="mp-nav" onclick="mpDiaNav(7)">›</button></div>';
-  const tarRow=(t)=>{ const f=mpFeita(t);
-    return '<div class="mp-trw'+(f?' done':'')+'"><button class="o'+(f?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button>'+
-    '<span class="tt">'+esc(t.titulo||'')+'</span>'+
-    '<button class="x" title="Apagar" onclick="mpTarDel(\''+t.id+'\')">×</button></div>'; };
-  const evtRow=(e)=>{ 
-    return '<div class="mp-trw'+(e.feito?' done':'')+'"><button class="o'+(e.feito?' on':'')+'" onclick="mpEvtVirar(\''+e.id+'\')">'+svgIco('check',11)+'</button>'+
-    '<span class="tt">'+esc(e.titulo||'')+'</span>'+
-    (e.hora?'<span class="mp-hora">'+esc(String(e.hora).slice(0,5))+'</span>':'')+
-    (e.gcal_id?'<span class="mp-gtag">Google</span>':'')+
-    '<button class="x" title="Apagar" onclick="mpEvtDel(\''+e.id+'\')">×</button></div>'; };
-  return strip+
+}
+function mpTarRow(t){ const f=mpFeita(t);
+  return '<div class="mp-trw'+(f?' done':'')+'"><button class="o'+(f?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button>'+
+  '<span class="tt">'+esc(t.titulo||'')+'</span>'+
+  '<button class="x" title="Apagar" onclick="mpTarDel(\''+t.id+'\')">×</button></div>'; }
+function mpEvtRow(e){
+  return '<div class="mp-trw'+(e.feito?' done':'')+'"><button class="o'+(e.feito?' on':'')+'" onclick="mpEvtVirar(\''+e.id+'\')">'+svgIco('check',11)+'</button>'+
+  '<span class="tt">'+esc(e.titulo||'')+'</span>'+
+  (e.hora?'<span class="mp-hora">'+esc(String(e.hora).slice(0,5))+'</span>':'')+
+  (e.gcal_id?'<span class="mp-gtag">Google</span>':'')+
+  '<button class="x" title="Apagar" onclick="mpEvtDel(\''+e.id+'\')">×</button></div>'; }
+const mpEvtsOrd=(dia)=>(MP.evtsPorDia[dia]||[]).slice().sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+
+/* ---------- aba Tarefas (dia + agenda) ---------- */
+function mpTarHTML(){
+  const dia=MP.dia;
+  const ts=mpTarDia(dia), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
+  const semData=mpTarSemData();
+  const evts=mpEvtsOrd(dia);
+  const tarRow=mpTarRow, evtRow=mpEvtRow;
+  return mpStrip()+
     '<div class="mp-psub" style="margin-bottom:14px">'+(ts.length?feitas.length+' de '+ts.length+' concluída'+(ts.length>1?'s':''):'')+'</div>'+
     '<div class="mp-sech">Pendentes · '+pend.length+'<button class="mp-add" onclick="mpTarNovaTgl()">+ Nova tarefa</button></div>'+
     (MP.tarNova?'<div class="mp-trw"><input type="text" id="mpTarNm" placeholder="Nome da tarefa…" onkeydown="if(event.key===\'Enter\')mpTarAdd()"><button class="btn small" onclick="mpTarAdd()">'+svgIco('check',12)+'</button></div>':'')+
@@ -10217,7 +10266,7 @@ async function mpAgendaSync(force){
     if(MP.g){ try{ await mpGFn('dia',{dia:iso}); }catch(e){ if(force) toast('Google: '+e.message); } }
     await mpEvtsDia(iso);
   }finally{ MP.__sync=false; }
-  if(currentView==='pessoal'&&MP.aba==='tarefas'&&MP.dia===iso) mpPintar();
+  if(currentView==='pessoal'&&(MP.aba==='tarefas'||MP.aba==='inicio')&&MP.dia===iso) mpPintar();
 }
 window.mpGAtualizar=()=>{ toast('Atualizando…'); mpAgendaSync(true); };
 window.mpEvtAdd=async()=>{
