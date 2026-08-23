@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema Autosíntese</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Síntese">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#7c3aed">
@@ -1326,6 +1329,93 @@
   .pm-it:hover:not([disabled]){background:rgba(168,85,247,.15)!important}
   .prj-nome{cursor:pointer;transition:color .12s ease}
   .prj-nome:hover{color:#c9a4fb;text-decoration:underline}
+
+/* ===== modo pessoal ===== */
+.mp-ini{display:grid;grid-template-columns:210px 1fr;gap:26px;align-items:start}
+@media(max-width:860px){.mp-ini{grid-template-columns:1fr}}
+.mp-anel{width:158px;height:158px;border-radius:50%;display:grid;place-items:center;margin:6px auto 0;position:relative}
+.mp-anel::after{content:'';position:absolute;inset:12px;background:var(--bg);border-radius:50%}
+.mp-anel>div{position:relative;z-index:1;text-align:center}
+.mp-anel .nv{font-size:34px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.mp-anel .lb{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.mp-anel .xp{font-size:11px;color:var(--brand2);margin-top:3px}
+.mp-perf{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:12px;font-weight:800;color:var(--warn)}
+.mp-sech{font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.mp-sech .mp-add{margin-left:auto;color:var(--brand2);letter-spacing:0;text-transform:none;font-size:12px;font-weight:700;cursor:pointer;background:none;border:0;font-family:inherit}
+.mp-hab{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
+.mp-hab:first-of-type{border-top:none}
+.mp-hab.off{opacity:.55}
+.mp-hic{width:36px;height:36px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;flex:none}
+.mp-hmain{flex:1;min-width:0}
+.mp-hnm{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.mp-hmenu{color:var(--muted);cursor:pointer;padding:0 4px;border-radius:6px}
+.mp-hmenu:hover{background:var(--hov1);color:var(--txt)}
+.mp-hsub{font-size:11px;color:var(--muted)}
+.mp-hbar{height:4px;border-radius:99px;background:var(--panel2);margin-top:6px;overflow:hidden}
+.mp-hbar i{display:block;height:100%;border-radius:99px}
+.mp-hchk{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;flex:none;color:transparent;background:none;cursor:pointer}
+.mp-hchk.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.mp-hchk:disabled{cursor:default;opacity:.4}
+.mp-per{display:flex;align-items:center;gap:12px;margin:4px 0 16px;flex-wrap:wrap}
+.mp-nav{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--muted);display:grid;place-items:center;font-size:15px;cursor:pointer;flex:none}
+.mp-nav:hover{background:var(--hov1);color:var(--txt)}
+.mp-pttl{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15}
+.mp-psub{font-size:9.5px;color:var(--muted);letter-spacing:1.6px;text-transform:uppercase}
+.mp-pnota{margin-left:auto;font-size:12px;color:var(--muted)}
+.mp-pnota b{color:var(--brand2);font-size:16px}
+.mp-gradewrap{overflow-x:auto}
+.mp-grade{width:100%;border-collapse:collapse;font-size:11.5px}
+.mp-grade th{color:var(--muted);font-weight:700;padding:6px 4px;text-align:center;font-size:10px;letter-spacing:.5px}
+.mp-grade th.hj{color:var(--brand2)}
+.mp-grade th:first-child,.mp-grade td:first-child{text-align:left;width:170px;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-grade td{padding:5px 4px;border-top:1px solid var(--line)}
+.mp-gnm{font-weight:600;font-size:12px}
+.mp-gnm svg{width:13px;height:13px;vertical-align:-2px;margin-right:5px}
+.mp-cel{width:26px;height:18px;border-radius:5px;background:var(--panel2);margin:0 auto;cursor:pointer}
+.mp-cel.ok{background:var(--brand)}
+.mp-cel.miss{background:var(--panel2);box-shadow:inset 0 0 0 1px var(--danger);opacity:.55}
+.mp-cel.off{opacity:.22;cursor:default}
+.mp-cel.fut{opacity:.5;cursor:default}
+.mp-pills{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
+.mp-pill{padding:6px 13px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit}
+.mp-pill.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.mp-cmp{display:flex;gap:14px;align-items:flex-end;height:150px;padding:8px 2px 0}
+.mp-cmp .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+.mp-cmp .bar{width:100%;max-width:56px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,var(--brand2),var(--brand));min-height:3px}
+.mp-cmp .bar.lo{opacity:.45}
+.mp-cmp .nv{font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.mp-cmp .lb2{font-size:9px;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.mp-delta{font-size:12px;color:var(--muted);margin-top:10px}
+.mp-delta b{color:var(--ok)}
+.mp-diasrow{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.mp-dias{display:flex;gap:8px;flex:1}
+.mp-dia{flex:1;text-align:center;padding:8px 0;border-radius:11px;border:1px solid transparent;color:var(--muted);cursor:pointer;background:none;font-family:inherit}
+.mp-dia b{display:block;font-size:15px;color:var(--txt)}
+.mp-dia small{font-size:9px;letter-spacing:1px}
+.mp-dia.on{background:var(--hov2);border-color:var(--brand)}
+.mp-dia.hj{box-shadow:inset 0 -2px 0 var(--brand2)}
+.mp-trw{display:flex;align-items:center;gap:11px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 14px;margin-bottom:7px;font-size:13.5px}
+.mp-trw .o{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--muted);flex:none;background:none;cursor:pointer;display:grid;place-items:center;color:transparent}
+.mp-trw .o.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.mp-trw.done{opacity:.55}
+.mp-trw.done .tt{text-decoration:line-through}
+.mp-trw .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-trw .x{color:var(--muted);cursor:pointer;background:none;border:0;font-size:15px;padding:0 2px;flex:none}
+.mp-trw .x:hover{color:var(--danger)}
+.mp-trw input[type=text]{flex:1;background:none;border:0;outline:0;color:var(--txt);font:inherit}
+.mp-trw input[type=time]{background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--txt);font:inherit;font-size:12px;padding:3px 6px}
+.mp-hora{font-size:11px;font-weight:700;color:var(--brand2);background:var(--hov2);border:1px solid var(--brand);border-radius:7px;padding:2px 8px;font-variant-numeric:tabular-nums;flex:none}
+.mp-gtag{font-size:9.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1.5px 7px;flex:none;letter-spacing:.4px}
+.mp-sync{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);margin:-2px 0 10px;flex-wrap:wrap}
+.mp-sync svg{width:12px;height:12px;color:var(--ok)}
+.mp-ics,.mp-cors{display:flex;gap:6px;flex-wrap:wrap}
+.mp-icb{width:38px;height:38px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer}
+.mp-icb.on{background:var(--hov2);border-color:var(--brand2)}
+.mp-corb{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+.mp-corb.on{border-color:var(--txt)}
+.mp-metain{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 14px;margin-top:8px}
+.mp-metain input{width:64px;background:none;border:0;outline:0;color:var(--txt);font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;border-right:1px solid var(--line);padding-right:12px}
+.mp-metain span{color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
@@ -1410,6 +1500,8 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg><span class="t">Funil</span></button>
     <button class="rl navlink hidden" data-view="daily" id="navDaily" title="Reunião diária do squad">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="t">Daily</span></button>
+    <button class="rl navlink" data-view="pessoal" id="navPessoal" title="Modo Pessoal — seus hábitos e tarefas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12h.01"/></svg><span class="t">Pessoal</span></button>
     <div class="sep"></div>
     <button class="rl navlink" data-view="acessos" title="Acessos e senhas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.3-8.3M17 6l3 3M14 9l3 3"/></svg><span class="t">Acessos</span></button>
@@ -1894,6 +1986,7 @@ function render(view){
   if(view==='trafego') return renderTrafego(c);
   if(view==='lista') return renderTarefas(c);
   if(view==='notificacoes') return renderNotificacoes(c);
+  if(view==='pessoal') return renderPessoal(c);
   if(view==='reembolsos') return renderReembolsos(c);
   if(view==='processos') return renderProcessos(c);
   if(view==='usuarios'){
@@ -3422,9 +3515,13 @@ const espacoDaAtual=(e)=>{ const w=wsAtual(); if(!w) return true;
 window.wsTrocar=(id)=>{ WS_SEL=String(id||'');
   try{ localStorage.setItem('ws_sel',WS_SEL); }catch(_){}
   TK.listaSel=''; TK.arqVista=false;
-  const l=(TK.listas||[]).find(x=>{ const e=(TK.espacos||[]).find(y=>y.id===x.espaco_id); return e&&espacoDaAtual(e); });
   spDesenhar();
-  if(l) spSelLista(l.id); else render('inicio');
+  const wsw=wsAtual();
+  if(wsw&&wsw.tipo==='pessoal'){ render('pessoal'); }
+  else{
+    const l=(TK.listas||[]).find(x=>{ const e=(TK.espacos||[]).find(y=>y.id===x.espaco_id); return e&&espacoDaAtual(e); });
+    if(l) spSelLista(l.id); else spInicio(true);
+  }
   toast('Workspace: '+wsNome());
 };
 window.wsNovo=()=>{
@@ -9649,7 +9746,483 @@ function drawUsuarios(c){
    Clientes) ou o id de uma lista. perfis.lista_inicial é o atalho do botão Espaços,
    pra quem trabalha o dia inteiro na mesma lista e não quer caçar na árvore. */
 const inUUID=(s)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||''));
+
+/* ============================== MODO PESSOAL ============================== */
+/* Tela do workspace pessoal: hábitos (tabelas habitos/habito_checks), tarefas do
+   dia (tabela tarefas, listas do ws pessoal) e agenda (agenda_eventos + Google).
+   Tudo privado do dono via RLS — nada aqui encosta no DB/itens da empresa.
+   Nota 0–10 (regra do Gabriel): feitos ÷ previstos × 10, sempre proporcional. */
+
+const MP_ICO={sono:'<path d="M20 13.5A8.5 8.5 0 0 1 10.5 4a8.5 8.5 0 1 0 9.5 9.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="6" r="1.6" fill="currentColor"/>',alvorada:'<path d="M4 18h16M6.5 14a5.5 5.5 0 0 1 11 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 3v3M5 6.5 7 8.5M19 6.5 17 8.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/>',treino:'<path d="M7.5 8v8M16.5 8v8M4.5 10v4M19.5 10v4M7.5 12h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>',prato:'<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5a4.5 4.5 0 0 1 4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/>',livro:'<path d="M12 6c-1.8-1.4-4.2-2-8-2v14c3.8 0 6.2.6 8 2 1.8-1.4 4.2-2 8-2V4c-3.8 0-6.2.6-8 2zM12 6v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="9" r="1.4" fill="currentColor"/>',capsula:'<rect x="3.5" y="9" width="17" height="6.5" rx="3.25" transform="rotate(-30 12 12.2)" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9.2 8.4l4 6.9" stroke="currentColor" stroke-width="1.8"/><circle cx="15.6" cy="8" r="1.5" fill="currentColor"/>',gota:'<path d="M12 3.5S6 10 6 14a6 6 0 0 0 12 0c0-4-6-10.5-6-10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="9.8" cy="14.5" r="1.5" fill="currentColor"/>',raio:'<path d="M13.5 3 5.5 13.5h5L10.5 21l8-10.5h-5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12.2" r="1.4" fill="currentColor"/>',folha:'<path d="M5 19C5 9 12 4 20 4c0 8-5 15-15 15zM5 19c2-5 6-9 11-11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="14.5" r="1.4" fill="currentColor"/>',cal:'<rect x="4" y="5.5" width="16" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.5v4M16 3.5v4M4 10.5h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="15.5" r="1.6" fill="currentColor"/>'};
+const mpIco=(k,s)=>'<svg width="'+(s||18)+'" height="'+(s||18)+'" viewBox="0 0 24 24">'+(MP_ICO[k]||MP_ICO.raio)+'</svg>';
+const MP_CORES=['#a78bfa','#3fcf8e','#38bdf8','#f97316','#ec4899','#22b8a6','#84cc16','#e6b13f'];
+const MP_SEMD=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+let MP={aba:'inicio',dia:'',sem:'',per:'7d',perIni:'',perFim:'',cmp:'sem',
+        habitos:[],checks:[],evtsPorDia:{},g:null,carregado:false,tarNova:false,evtNovo:false};
+
+const mpDe=(iso)=>new Date(iso+'T12:00:00');
+const mpDow=(iso)=>mpDe(iso).getDay();
+const mpSegDa=(iso)=>{ const d=mpDe(iso); d.setDate(d.getDate()-((d.getDay()+6)%7)); return tkISO(d); };
+const mpDias7=(seg)=>[0,1,2,3,4,5,6].map(i=>tkDiaMais(seg,i));
+const mpCurto=(iso)=>iso.slice(8,10)+'/'+iso.slice(5,7);
+const mpDataExt=(iso)=>{ const d=mpDe(iso), sm=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  return sm[d.getDay()]+', '+d.getDate()+' de '+DT_MES[d.getMonth()]; };
+const mpNotaFmt=(n)=>n==null?'—':n.toFixed(1).replace('.',',');
+
+async function mpCarregar(force){
+  if(MP.carregado&&!force) return;
+  const [h,c,g]=await Promise.all([
+    sb.from('habitos').select('*').eq('arquivado',false).order('ordem').order('criado_em'),
+    sb.from('habito_checks').select('habito_id,dia').limit(20000),
+    sb.from('agenda_google').select('dono,google_email,conectado_em').maybeSingle()
+  ]);
+  if(h.error) throw new Error(h.error.message);
+  MP.habitos=h.data||[]; MP.checks=(c.data)||[]; MP.g=(g&&g.data)||null;
+  if(c.error) toast('Checks: '+c.error.message);
+  MP.carregado=true;
+}
+
+const mpCk=(hid,iso)=>MP.checks.some(k=>String(k.habito_id)===String(hid)&&k.dia===iso);
+const mpProg=(h,iso)=>((h.dias||[]).map(Number).indexOf(mpDow(iso))>=0)&&(h.criado_em?tkISO(new Date(h.criado_em)):'0')<=iso;
+const mpChecksFaixa=(hid,ini,fim)=>MP.checks.filter(k=>String(k.habito_id)===String(hid)&&k.dia>=ini&&k.dia<=fim).length;
+
+function mpWsAtivo(){
+  const w=wsAtual();
+  if(w&&w.tipo==='pessoal'&&String(w.dono)===String((currentUser||{}).id)) return w;
+  return meuPessoalWs();
+}
+function mpListaIds(){
+  const ws=mpWsAtivo(); if(!ws) return [];
+  const eids=(TK.espacos||[]).filter(e=>String(e.workspace_id)===String(ws.id)).map(e=>String(e.id));
+  return (TK.listas||[]).filter(l=>eids.indexOf(String(l.espaco_id))>=0).map(l=>String(l.id));
+}
+const mpTarefas=()=>{ const ids=mpListaIds();
+  return (TK.tarefas||[]).filter(t=>!t.arquivada_em&&ids.indexOf(String(t.lista_id))>=0); };
+const mpTarDia=(iso)=>mpTarefas().filter(t=>String(t.prazo||'').slice(0,10)===iso);
+const mpTarSemData=()=>mpTarefas().filter(t=>!t.prazo);
+const mpFeita=(t)=>t.status==='feito'||!!t.concluida_em;
+
+function mpNotaDia(iso){
+  const hs=MP.habitos.filter(h=>mpProg(h,iso)), ts=mpTarDia(iso);
+  const prev=hs.length+ts.length;
+  const feit=hs.filter(h=>mpCk(h.id,iso)).length+ts.filter(mpFeita).length;
+  return {prev,feit,nota:prev?Math.round(feit/prev*100)/10:null};
+}
+function mpNotaFaixa(ini,fim){
+  const hoje=tkHoje(); if(fim>hoje) fim=hoje;
+  let prev=0,feit=0,d=ini,guard=0;
+  while(d<=fim&&guard++<1100){ const n=mpNotaDia(d); prev+=n.prev; feit+=n.feit; d=tkDiaMais(d,1); }
+  return {prev,feit,nota:prev?Math.round(feit/prev*100)/10:null};
+}
+function mpMetaProg(h){
+  const hoje=tkHoje();
+  if(h.meta_tipo==='mes'){ const ini=hoje.slice(0,8)+'01';
+    const fim=tkISO(new Date(Number(hoje.slice(0,4)),Number(hoje.slice(5,7)),0));
+    return {n:mpChecksFaixa(h.id,ini,fim),m:h.meta_qtd,rot:'este mês'}; }
+  if(h.meta_tipo==='ano') return {n:mpChecksFaixa(h.id,hoje.slice(0,4)+'-01-01',hoje.slice(0,4)+'-12-31'),m:h.meta_qtd,rot:'este ano'};
+  const seg=mpSegDa(hoje);
+  return {n:mpChecksFaixa(h.id,seg,tkDiaMais(seg,6)),m:h.meta_qtd,rot:'esta semana'};
+}
+
+/* ---------- tela ---------- */
+async function renderPessoal(c){
+  if(!currentUser) return;
+  const ws=mpWsAtivo();
+  if(!ws){
+    c.innerHTML='<div class="page-head"><div><h2>Modo Pessoal</h2><div class="desc">Seus hábitos, tarefas e agenda — privados, nem o administrador vê.</div></div></div>'+
+      '<div class="empty">Você ainda não tem um workspace pessoal.<br><br><button class="btn" onclick="mpCriarWs()">Criar meu workspace pessoal</button></div>';
+    return;
+  }
+  if(String(WS_SEL)!==String(ws.id)){ WS_SEL=String(ws.id); try{ localStorage.setItem('ws_sel',WS_SEL); }catch(_){} spDesenhar(); }
+  if(!MP.dia) MP.dia=tkHoje();
+  if(!MP.sem) MP.sem=mpSegDa(tkHoje());
+  if(!MP.carregado){
+    c.innerHTML='<div class="empty">Carregando seu Modo Pessoal…</div>';
+    try{ await mpCarregar(); }catch(e){ if(currentView==='pessoal') c.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
+  }
+  mpPintar();
+}
+window.mpCriarWs=async()=>{ const l=await pessoalGarantir(); if(l){ spDesenhar(); render('pessoal'); } };
+
+function mpPintar(){
+  if(currentView!=='pessoal') return;
+  const c=$('#content'); if(!c) return;
+  const mem={}; ['mpTarNm','mpEvtNm','mpEvtHr'].forEach(id=>{ const el=document.getElementById(id);
+    if(el){ mem[id]={v:el.value,f:document.activeElement===el}; } });
+  const abas=[['inicio','Início'],['progresso','Progresso'],['tarefas','Tarefas']];
+  c.innerHTML='<div class="page-head"><div><h2>'+esc(wsNome())+'</h2><div class="desc">'+mpDataExt(tkHoje())+'</div></div>'+
+    '<div class="toolbar"><button class="btn small" onclick="mpHabitoModal()">+ Novo hábito</button></div></div>'+
+    '<div class="fin-tabs">'+abas.map(a=>'<button class="ftab '+(MP.aba===a[0]?'active':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
+    '<div id="mpCorpo"></div>';
+  const b=$('#mpCorpo');
+  if(MP.aba==='inicio') b.innerHTML=mpInicioHTML();
+  else if(MP.aba==='progresso') b.innerHTML=mpProgHTML();
+  else{ b.innerHTML=mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
+  Object.keys(mem).forEach(id=>{ const el=document.getElementById(id);
+    if(el){ el.value=mem[id].v; if(mem[id].f){ el.focus(); try{ el.setSelectionRange(el.value.length,el.value.length); }catch(_){} } } });
+}
+window.mpAba=(a)=>{ MP.aba=a; MP.tarNova=false; MP.evtNovo=false; mpPintar(); };
+
+/* ---------- aba Início ---------- */
+function mpHabRow(h,iso,podeCheck){
+  const p=mpMetaProg(h), pct=Math.min(100,Math.round(p.n/Math.max(1,p.m)*100)), ck=mpCk(h.id,iso);
+  return '<div class="mp-hab'+(podeCheck?'':' off')+'">'+
+    '<div class="mp-hic" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,18)+'</div>'+
+    '<div class="mp-hmain"><div class="mp-hnm">'+esc(h.nome)+'<span class="mp-hmenu" onclick="mpHabMenu(event,\''+h.id+'\')">⋯</span></div>'+
+    '<div class="mp-hsub">'+p.n+'/'+p.m+' '+p.rot+(podeCheck?'':' · sem programação pra hoje')+'</div>'+
+    '<div class="mp-hbar"><i style="width:'+pct+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div></div>'+
+    (podeCheck?'<button class="mp-hchk'+(ck?' on':'')+'" title="'+(ck?'Feito — toque pra desfazer':'Marcar como feito')+'" onclick="mpCheck(\''+h.id+'\',\''+iso+'\')">'+svgIco('check',13)+'</button>':'')+
+    '</div>';
+}
+function mpInicioHTML(){
+  const hoje=tkHoje(), n=mpNotaDia(hoje);
+  const deg=n.nota==null?0:Math.round(n.nota*36);
+  const doHoje=MP.habitos.filter(h=>mpProg(h,hoje));
+  const outros=MP.habitos.filter(h=>!mpProg(h,hoje));
+  const ts=mpTarDia(hoje), pend=ts.filter(t=>!mpFeita(t)).length;
+  return '<div class="mp-ini"><div>'+
+    '<div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
+      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota do dia</div><div class="xp">'+n.feit+'/'+n.prev+' feitos</div></div></div>'+
+    (n.nota===10&&n.prev>0?'<div class="mp-perf">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+
+    '</div><div>'+
+    '<div class="mp-sech">Hábitos de hoje · '+doHoje.length+'</div>'+
+    (doHoje.length?doHoje.map(h=>mpHabRow(h,hoje,true)).join(''):'<div class="hint">Nenhum hábito programado pra hoje.</div>')+
+    (outros.length?'<div class="mp-sech" style="margin-top:20px">Outros dias · '+outros.length+'</div>'+outros.map(h=>mpHabRow(h,hoje,false)).join(''):'')+
+    (!MP.habitos.length?'<div class="hint" style="margin-top:8px">Crie o primeiro hábito no botão lá em cima — ícone, dias da semana e meta.</div>':'')+
+    '<div class="mp-sech" style="margin-top:20px">Tarefas de hoje</div>'+
+    '<div class="hint" style="cursor:pointer" onclick="mpAba(\'tarefas\')">'+(ts.length?(pend?pend+' pendente'+(pend>1?'s':'')+' de '+ts.length:'todas as '+ts.length+' concluídas'):'nada agendado pra hoje')+' →</div>'+
+    '</div></div>';
+}
+
+/* ---------- aba Progresso ---------- */
+function mpFaixaAtual(){
+  const hoje=tkHoje();
+  if(MP.per==='hoje') return [hoje,hoje];
+  if(MP.per==='mes') return [hoje.slice(0,8)+'01',hoje];
+  if(MP.per==='pers'){ let i=MP.perIni||tkDiaMais(hoje,-6), f=MP.perFim||hoje;
+    if(i>f){ const t=i; i=f; f=t; } return [i,f]; }
+  return [tkDiaMais(hoje,-6),hoje];
+}
+function mpRotSem(seg){
+  const atual=mpSegDa(tkHoje());
+  if(seg===atual) return 'esta semana';
+  const dif=Math.round((mpDe(seg)-mpDe(atual))/6048e5);
+  if(dif===-1) return 'semana passada';
+  if(dif===1) return 'semana que vem';
+  return dif<0?(-dif)+' semanas atrás':'daqui a '+dif+' semanas';
+}
+function mpProgHTML(){
+  const seg=MP.sem, ds=mpDias7(seg), hoje=tkHoje();
+  const ns=mpNotaFaixa(seg,ds[6]);
+  const ordem=[1,2,3,4,5,6,0];
+  let g='<div class="mp-gradewrap"><table class="mp-grade"><tr><th></th>'+
+    ordem.map(i=>{ const d=ds.filter(x=>mpDow(x)===i)[0];
+      return '<th class="'+(d===hoje?'hj':'')+'">'+MP_SEMD[i].toUpperCase()+'</th>'; }).join('')+'</tr>';
+  MP.habitos.forEach(h=>{
+    g+='<tr><td class="mp-gnm"><span style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,13)+'</span>'+esc(h.nome)+'</td>';
+    ordem.forEach(i=>{
+      const d=ds.filter(x=>mpDow(x)===i)[0];
+      let cls='off',clk='',tit=esc(h.nome)+' · '+mpCurto(d);
+      if(mpProg(h,d)){
+        if(mpCk(h.id,d)){ cls='ok'; clk=' onclick="mpCheck(\''+h.id+'\',\''+d+'\')"'; tit+=' — feito'; }
+        else if(d>hoje){ cls='fut'; tit+=' — programado'; }
+        else{ cls='miss'; clk=' onclick="mpCheck(\''+h.id+'\',\''+d+'\')"'; tit+=(d===hoje?' — marcar':' — ficou pra trás'); }
+      }
+      g+='<td><div class="mp-cel '+cls+'" title="'+tit+'"'+clk+'></div></td>';
+    });
+    g+='</tr>';
+  });
+  g+='</table></div>';
+  if(!MP.habitos.length) g='<div class="empty">Sem hábitos ainda — crie o primeiro no botão lá em cima.</div>';
+  const fx=mpFaixaAtual(), np=mpNotaFaixa(fx[0],fx[1]);
+  const pers=MP.per==='pers';
+  let comp='';
+  if(MP.cmp==='mes'){
+    const base=mpDe(hoje);
+    comp=[4,3,2,1,0].map(i=>{
+      const d=new Date(base.getFullYear(),base.getMonth()-i,1);
+      const ini=tkISO(d), fim=tkISO(new Date(d.getFullYear(),d.getMonth()+1,0));
+      const n=mpNotaFaixa(ini,fim);
+      const lb=i===0?'ESTE MÊS':DT_MES[d.getMonth()].slice(0,3).toUpperCase()+(d.getFullYear()!==base.getFullYear()?'/'+String(d.getFullYear()).slice(2):'');
+      return {n,lb};
+    }).map(x=>'<div class="col"><span class="nv">'+mpNotaFmt(x.n.nota)+'</span><div class="bar'+((x.n.nota||0)<7?' lo':'')+'" style="height:'+Math.max(3,(x.n.nota||0)*10)+'%"></div><span class="lb2">'+x.lb+'</span></div>').join('');
+  }else{
+    const segA=mpSegDa(hoje);
+    comp=[4,3,2,1,0].map(i=>{
+      const sg=tkDiaMais(segA,-7*i), n=mpNotaFaixa(sg,tkDiaMais(sg,6));
+      return {n,lb:i===0?'ESTA SEMANA':'SEM '+mpCurto(sg)};
+    }).map(x=>'<div class="col"><span class="nv">'+mpNotaFmt(x.n.nota)+'</span><div class="bar'+((x.n.nota||0)<7?' lo':'')+'" style="height:'+Math.max(3,(x.n.nota||0)*10)+'%"></div><span class="lb2">'+x.lb+'</span></div>').join('');
+  }
+  return '<div class="mp-per"><button class="mp-nav" onclick="mpSemNav(-1)">‹</button>'+
+    '<div><div class="mp-pttl">'+mpCurto(seg)+' – '+mpCurto(ds[6])+'</div><div class="mp-psub">'+mpRotSem(seg)+'</div></div>'+
+    '<button class="mp-nav" onclick="mpSemNav(1)">›</button>'+
+    '<span class="mp-pnota">Nota da semana: <b>'+mpNotaFmt(ns.nota)+'</b> · '+ns.feit+'/'+ns.prev+'</span></div>'+g+
+    '<div class="mp-sech" style="margin-top:26px">Nota por período</div>'+
+    '<div class="mp-pills">'+[['hoje','Hoje'],['7d','7 dias'],['mes','Mês'],['pers','Personalizado']].map(p=>'<button class="mp-pill '+(MP.per===p[0]?'on':'')+'" onclick="mpPer(\''+p[0]+'\')">'+p[1]+'</button>').join('')+
+    (pers?'<input type="date" class="ini-dt" value="'+esc(fx[0])+'" onchange="mpPerIni(this.value)"><span style="color:var(--muted)">até</span><input type="date" class="ini-dt" value="'+esc(fx[1])+'" onchange="mpPerFim(this.value)">':'')+
+    '<span class="mp-pnota"><b>'+mpNotaFmt(np.nota)+'</b> · '+np.feit+'/'+np.prev+'</span></div>'+
+    '<div class="mp-sech" style="margin-top:24px">Comparativo <span class="mp-add"></span>'+
+    '<span style="margin-left:auto;display:flex;gap:6px"><button class="mp-pill '+(MP.cmp==='sem'?'on':'')+'" onclick="mpCmp(\'sem\')">Semanas</button><button class="mp-pill '+(MP.cmp==='mes'?'on':'')+'" onclick="mpCmp(\'mes\')">Meses</button></span></div>'+
+    '<div class="mp-cmp">'+comp+'</div>';
+}
+window.mpSemNav=(n)=>{ MP.sem=tkDiaMais(MP.sem,n*7); mpPintar(); };
+window.mpPer=(p)=>{ MP.per=p; mpPintar(); };
+window.mpPerIni=(v)=>{ MP.perIni=v; mpPintar(); };
+window.mpPerFim=(v)=>{ MP.perFim=v; mpPintar(); };
+window.mpCmp=(m)=>{ MP.cmp=m; mpPintar(); };
+
+/* ---------- checks ---------- */
+window.mpCheck=async(hid,iso)=>{
+  if(iso>tkHoje()){ toast('Esse dia ainda não chegou.'); return; }
+  if(MP.__ck) return; MP.__ck=true; setTimeout(()=>{ MP.__ck=false; },400);
+  const i=MP.checks.findIndex(k=>String(k.habito_id)===String(hid)&&k.dia===iso);
+  if(i>=0){
+    const {error}=await sb.from('habito_checks').delete().eq('habito_id',hid).eq('dia',iso);
+    if(error){ toast('Erro: '+error.message); return; }
+    MP.checks.splice(i,1);
+  }else{
+    const {error}=await sb.from('habito_checks').insert({habito_id:hid,dono:currentUser.id,dia:iso});
+    if(error){ toast('Erro: '+error.message); return; }
+    MP.checks.push({habito_id:hid,dia:iso});
+  }
+  mpPintar();
+};
+
+/* ---------- criar/editar hábito ---------- */
+window.mpHabMenu=(ev,id)=>{ ev.stopPropagation(); ctxAbrir(ev,[
+  {ic:MICO.lapis,t:'Editar',f:()=>mpHabitoModal(id)},
+  {ic:MICO.backup,t:'Arquivar',f:()=>mpHabArquivar(id)},
+  {sep:true},
+  {ic:MICO.lixo,t:'Apagar',dgr:true,f:()=>mpHabApagar(id)}]); };
+window.mpHabArquivar=async(id)=>{
+  const {error}=await sb.from('habitos').update({arquivado:true}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  MP.habitos=MP.habitos.filter(h=>String(h.id)!==String(id)); mpPintar(); toast('Hábito arquivado.');
+};
+window.mpHabApagar=async(id)=>{
+  const h=MP.habitos.find(x=>String(x.id)===String(id));
+  const ok=await confirmar('Apagar hábito','Apaga "'+((h||{}).nome||'')+'" e todo o histórico de checks. Sem volta.',{sim:'Apagar',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('habitos').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  MP.habitos=MP.habitos.filter(x=>String(x.id)!==String(id));
+  MP.checks=MP.checks.filter(k=>String(k.habito_id)!==String(id));
+  mpPintar(); toast('Hábito apagado.');
+};
+window.mpHabitoModal=(id)=>{
+  const h=id?MP.habitos.find(x=>String(x.id)===String(id)):null;
+  window.__mpH={id:id||null,ic:h?h.icone:'raio',cor:h?(h.cor||MP_CORES[0]):MP_CORES[0],
+    dias:h?(h.dias||[]).map(Number):[1,2,3,4,5],tipo:h?h.meta_tipo:'sem',qtd:h?h.meta_qtd:5};
+  modal(h?'Editar hábito':'Novo hábito',
+    '<div class="field"><label>Nome</label><input id="mph_nm" value="'+esc(h?h.nome:'')+'" placeholder="ex.: Academia"/></div>'+
+    '<div class="field"><label>Ícone</label><div class="mp-ics" id="mph_ic"></div></div>'+
+    '<div class="field"><label>Cor</label><div class="mp-cors" id="mph_cor"></div></div>'+
+    '<div class="field"><label>Frequência</label><div class="mp-pills" id="mph_dias" style="margin:0"></div></div>'+
+    '<div class="field"><label>Meta</label><div class="mp-pills" id="mph_mt" style="margin:0"></div>'+
+    '<div class="mp-metain"><input id="mph_qtd" type="number" min="1" value="'+Number(window.__mpH.qtd)+'"/><span id="mph_suf"></span></div>'+
+    '<div class="hint">o número vem dos dias marcados — pode escrever outro por cima</div></div>',
+    async ()=>{
+      const st=window.__mpH, nome=($('#mph_nm').value||'').trim();
+      if(!nome){ toast('Dá um nome pro hábito.'); return false; }
+      if(!st.dias.length){ toast('Marca pelo menos um dia da semana.'); return false; }
+      let qtd=parseInt($('#mph_qtd').value||'0',10)||0;
+      const teto=st.tipo==='sem'?7:(st.tipo==='mes'?31:366);
+      if(qtd<1){ toast('Meta precisa ser pelo menos 1.'); return false; }
+      if(qtd>teto){ toast('Meta máxima '+(st.tipo==='sem'?'semanal é 7':(st.tipo==='mes'?'mensal é 31':'anual é 366'))+'.'); return false; }
+      const pay={nome,icone:st.ic,cor:st.cor,dias:st.dias.slice().sort(),meta_tipo:st.tipo,meta_qtd:qtd};
+      if(st.id){
+        const {error}=await sb.from('habitos').update(pay).eq('id',st.id);
+        if(error){ toast('Erro: '+error.message); return false; }
+        Object.assign(MP.habitos.find(x=>String(x.id)===String(st.id))||{},pay);
+      }else{
+        const ws=mpWsAtivo(); if(!ws){ toast('Sem workspace pessoal.'); return false; }
+        const r=await sb.from('habitos').insert(Object.assign({dono:currentUser.id,workspace_id:ws.id,ordem:MP.habitos.length},pay)).select().single();
+        if(error_or(r)){ toast('Erro: '+r.error.message); return false; }
+        MP.habitos.push(r.data);
+      }
+      mpPintar();
+    });
+  mpHPintar();
+};
+const error_or=(r)=>!!(r&&r.error);
+function mpHPintar(){
+  const st=window.__mpH;
+  const ic=$('#mph_ic'); if(ic) ic.innerHTML=Object.keys(MP_ICO).map(k=>'<div class="mp-icb'+(st.ic===k?' on':'')+'" style="color:'+esc(st.cor)+'" onclick="mpHIc(\''+k+'\')">'+mpIco(k,18)+'</div>').join('');
+  const co=$('#mph_cor'); if(co) co.innerHTML=MP_CORES.map(c=>'<div class="mp-corb'+(st.cor===c?' on':'')+'" style="background:'+c+'" onclick="mpHCor(\''+c+'\')"></div>').join('');
+  const di=$('#mph_dias'); if(di) di.innerHTML=[0,1,2,3,4,5,6].map(i=>'<button type="button" class="mp-pill'+(st.dias.indexOf(i)>=0?' on':'')+'" onclick="mpHDia('+i+')">'+MP_SEMD[i]+'</button>').join('');
+  const mt=$('#mph_mt'); if(mt) mt.innerHTML=[['sem','Semanal'],['mes','Mensal'],['ano','Anual']].map(p=>'<button type="button" class="mp-pill'+(st.tipo===p[0]?' on':'')+'" onclick="mpHTipo(\''+p[0]+'\')">'+p[1]+'</button>').join('');
+  const su=$('#mph_suf'); if(su) su.textContent='vezes / '+(st.tipo==='sem'?'semana':(st.tipo==='mes'?'mês':'ano'));
+}
+function mpHCalc(){
+  const st=window.__mpH, n=st.dias.length||1;
+  const v=st.tipo==='sem'?n:(st.tipo==='mes'?Math.round(n*52/12):n*52);
+  const el=$('#mph_qtd'); if(el) el.value=v;
+}
+window.mpHIc=(k)=>{ window.__mpH.ic=k; mpHPintar(); };
+window.mpHCor=(c)=>{ window.__mpH.cor=c; mpHPintar(); };
+window.mpHDia=(i)=>{ const d=window.__mpH.dias, p=d.indexOf(i); if(p>=0) d.splice(p,1); else d.push(i); mpHPintar(); mpHCalc(); };
+window.mpHTipo=(t)=>{ window.__mpH.tipo=t; mpHPintar(); mpHCalc(); };
+
+/* ---------- aba Tarefas (dia + agenda) ---------- */
+function mpTarHTML(){
+  const dia=MP.dia, seg=mpSegDa(dia), ds=mpDias7(seg), hoje=tkHoje();
+  const ts=mpTarDia(dia), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
+  const semData=mpTarSemData();
+  const evts=(MP.evtsPorDia[dia]||[]).slice().sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+  const strip='<div class="mp-diasrow"><button class="mp-nav" onclick="mpDiaNav(-7)">‹</button><div class="mp-dias">'+
+    ds.map(d=>'<button class="mp-dia'+(d===dia?' on':'')+(d===hoje?' hj':'')+'" onclick="mpDiaSel(\''+d+'\')"><small>'+MP_SEMD[mpDow(d)].toUpperCase()+'</small><b>'+Number(d.slice(8,10))+'</b></button>').join('')+
+    '</div><button class="mp-nav" onclick="mpDiaNav(7)">›</button></div>';
+  const tarRow=(t)=>{ const f=mpFeita(t);
+    return '<div class="mp-trw'+(f?' done':'')+'"><button class="o'+(f?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button>'+
+    '<span class="tt">'+esc(t.titulo||'')+'</span>'+
+    '<button class="x" title="Apagar" onclick="mpTarDel(\''+t.id+'\')">×</button></div>'; };
+  const evtRow=(e)=>{ 
+    return '<div class="mp-trw'+(e.feito?' done':'')+'"><button class="o'+(e.feito?' on':'')+'" onclick="mpEvtVirar(\''+e.id+'\')">'+svgIco('check',11)+'</button>'+
+    '<span class="tt">'+esc(e.titulo||'')+'</span>'+
+    (e.hora?'<span class="mp-hora">'+esc(String(e.hora).slice(0,5))+'</span>':'')+
+    (e.gcal_id?'<span class="mp-gtag">Google</span>':'')+
+    '<button class="x" title="Apagar" onclick="mpEvtDel(\''+e.id+'\')">×</button></div>'; };
+  return strip+
+    '<div class="mp-psub" style="margin-bottom:14px">'+(ts.length?feitas.length+' de '+ts.length+' concluída'+(ts.length>1?'s':''):'')+'</div>'+
+    '<div class="mp-sech">Pendentes · '+pend.length+'<button class="mp-add" onclick="mpTarNovaTgl()">+ Nova tarefa</button></div>'+
+    (MP.tarNova?'<div class="mp-trw"><input type="text" id="mpTarNm" placeholder="Nome da tarefa…" onkeydown="if(event.key===\'Enter\')mpTarAdd()"><button class="btn small" onclick="mpTarAdd()">'+svgIco('check',12)+'</button></div>':'')+
+    (pend.length?pend.map(tarRow).join(''):(MP.tarNova?'':'<div class="hint" style="margin-bottom:8px">Nada pra este dia.</div>'))+
+    (feitas.length?feitas.map(tarRow).join(''):'')+
+    (semData.length?'<div class="mp-sech" style="margin-top:18px">Sem data · '+semData.length+'</div>'+
+      semData.map(t=>'<div class="mp-trw"><button class="o'+(mpFeita(t)?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button><span class="tt">'+esc(t.titulo||'')+'</span>'+
+      '<button class="x" title="Agendar pra '+mpCurto(dia)+'" style="font-size:12px" onclick="mpTarPraDia(\''+t.id+'\')">'+svgIco('calendario',13)+'</button></div>').join(''):'')+
+    '<div class="mp-sech" style="margin-top:18px">Agenda · '+evts.length+'<button class="mp-add" onclick="mpEvtNovoTgl()">+ Novo evento</button></div>'+
+    (MP.g?'<div class="mp-sync">'+svgIco('calendario',12)+'sincronizada com o Google Calendar'+(MP.g.google_email?' · '+esc(MP.g.google_email):'')+
+      ' <button class="mp-add" style="margin-left:0" onclick="mpGAtualizar()">atualizar</button></div>'
+      :'<div class="mp-sync"><button class="mp-add" style="margin-left:0" onclick="mpGConectar()">Conectar Google Agenda</button>'+
+       '<button class="mp-add" style="margin-left:0" onclick="mpGChecar()">já conectei</button></div>')+
+    (MP.evtNovo?'<div class="mp-trw"><input type="text" id="mpEvtNm" placeholder="Nome do evento…" onkeydown="if(event.key===\'Enter\')mpEvtAdd()"><input type="time" id="mpEvtHr"><button class="btn small" onclick="mpEvtAdd()">'+svgIco('check',12)+'</button></div>':'')+
+    (evts.length?evts.map(evtRow).join(''):(MP.evtNovo?'':'<div class="hint">Nenhum evento neste dia.</div>'));
+}
+window.mpDiaSel=(iso)=>{ MP.dia=iso; MP.evtNovo=false; mpPintar(); };
+window.mpDiaNav=(n)=>{ MP.dia=tkDiaMais(MP.dia,n); mpPintar(); };
+window.mpTarNovaTgl=()=>{ MP.tarNova=!MP.tarNova; mpPintar(); };
+window.mpEvtNovoTgl=()=>{ MP.evtNovo=!MP.evtNovo; mpPintar(); const e=$('#mpEvtNm'); if(e) e.focus(); };
+
+window.mpTarAdd=async()=>{
+  const el=$('#mpTarNm'), nome=((el&&el.value)||'').trim(); if(!nome) return;
+  const dia=MP.dia;
+  if(el) el.value='';
+  const l=await pessoalGarantir(); if(!l) return;
+  const uid=currentUser.id;
+  const r=await sb.from('tarefas').insert({titulo:nome,lista_id:l.id,status:'todo',prazo:dia,
+    responsavel_id:uid,responsaveis:[uid],criado_por:uid}).select().single();
+  if(r.error){ toast('Erro: '+r.error.message); return; }
+  TK.tarefas.push(r.data); mpPintar(); const ni=$('#mpTarNm'); if(ni) ni.focus();
+};
+window.mpTarVirar=async(id)=>{
+  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
+  const f=!mpFeita(t);
+  const patch={status:f?'feito':'todo',concluida_em:f?new Date().toISOString():null};
+  const {error}=await sb.from('tarefas').update(patch).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  Object.assign(t,patch); mpPintar();
+};
+window.mpTarDel=async(id)=>{
+  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id));
+  const ok=await confirmar('Apagar tarefa','Apaga "'+((t||{}).titulo||'')+'". Sem volta.',{sim:'Apagar',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('tarefas').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  TK.tarefas=TK.tarefas.filter(x=>String(x.id)!==String(id)); mpPintar();
+};
+window.mpTarPraDia=async(id)=>{
+  const {error}=await sb.from('tarefas').update({prazo:MP.dia}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(t) t.prazo=MP.dia;
+  mpPintar();
+};
+
+/* ---------- agenda ---------- */
+async function mpEvtsDia(iso){
+  const r=await sb.from('agenda_eventos').select('*').eq('dia',iso);
+  if(r.error){ MP.evtsPorDia[iso]=MP.evtsPorDia[iso]||[]; toast('Agenda: '+r.error.message); return; }
+  MP.evtsPorDia[iso]=r.data||[];
+}
+async function mpAgendaSync(force){
+  if(MP.__sync) return; MP.__sync=true;
+  const iso=MP.dia;
+  try{
+    if(MP.g){ try{ await mpGFn('dia',{dia:iso}); }catch(e){ if(force) toast('Google: '+e.message); } }
+    await mpEvtsDia(iso);
+  }finally{ MP.__sync=false; }
+  if(currentView==='pessoal'&&MP.aba==='tarefas'&&MP.dia===iso) mpPintar();
+}
+window.mpGAtualizar=()=>{ toast('Atualizando…'); mpAgendaSync(true); };
+window.mpEvtAdd=async()=>{
+  const nEl=$('#mpEvtNm'), nome=((nEl&&nEl.value)||'').trim(); if(!nome) return;
+  const hora=(($('#mpEvtHr')||{}).value||'')||null;
+  const dia=MP.dia;
+  const ws=mpWsAtivo(); if(!ws) return;
+  if(nEl) nEl.value='';
+  const r=await sb.from('agenda_eventos').insert({dono:currentUser.id,workspace_id:ws.id,titulo:nome,dia,hora,gcal_id:null}).select().single();
+  if(r.error){ toast('Erro: '+r.error.message); return; }
+  (MP.evtsPorDia[dia]=MP.evtsPorDia[dia]||[]).push(r.data); mpPintar();
+  if(MP.g){
+    try{
+      const g=await mpGFn('criar',{titulo:nome,dia,hora});
+      const gid=(g&&g.gcal_id)||null;
+      if(gid){ await sb.from('agenda_eventos').update({gcal_id:gid}).eq('id',r.data.id);
+        const ev=(MP.evtsPorDia[dia]||[]).find(x=>String(x.id)===String(r.data.id)); if(ev) ev.gcal_id=gid; mpPintar(); }
+    }catch(e){ toast('Não deu pra criar no Google — fica salvo só aqui.'); }
+  }
+};
+window.mpEvtVirar=async(id)=>{
+  const evs=MP.evtsPorDia[MP.dia]||[], e=evs.find(x=>String(x.id)===String(id)); if(!e) return;
+  const {error}=await sb.from('agenda_eventos').update({feito:!e.feito}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  e.feito=!e.feito; mpPintar();
+};
+window.mpEvtDel=async(id)=>{
+  const evs=MP.evtsPorDia[MP.dia]||[], e=evs.find(x=>String(x.id)===String(id));
+  const ok=await confirmar('Apagar evento','Apaga "'+((e||{}).titulo||'')+'" do sistema'+((e&&e.gcal_id)?' (no Google ele continua)':'')+'.',{sim:'Apagar',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('agenda_eventos').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  MP.evtsPorDia[MP.dia]=evs.filter(x=>String(x.id)!==String(id)); mpPintar();
+};
+
+/* ---------- google ---------- */
+async function mpGFn(acao,corpo){
+  const t=(SESSION&&SESSION.access_token)||'';
+  const r=await fetch(SUPA_URL+'/functions/v1/google-agenda',{method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+t,'apikey':SUPA_KEY},
+    body:JSON.stringify(Object.assign({acao:acao},corpo||{}))});
+  let j={}; try{ j=await r.json(); }catch(_){}
+  if(!r.ok) throw new Error(j.erro||('HTTP '+r.status));
+  return j;
+}
+window.mpGConectar=async()=>{
+  const jan=window.open('about:blank','_blank');
+  try{
+    const j=await mpGFn('authurl',{});
+    if(j&&j.url){ if(jan) jan.location=j.url; else window.open(j.url,'_blank');
+      avisoModal('Conectar Google Agenda','Autorize na aba que abriu. Quando terminar, volte aqui e toque em "já conectei".'); }
+    else if(jan) jan.close();
+  }catch(e){
+    if(jan) jan.close();
+    if(String(e.message).indexOf('sem_credencial')>=0)
+      avisoModal('Falta a credencial do Google','O GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET ainda não está nos secrets do Supabase. Cadastre lá e tente de novo.');
+    else toast('Erro: '+e.message);
+  }
+};
+window.mpGChecar=async()=>{
+  const g=await sb.from('agenda_google').select('dono,google_email,conectado_em').maybeSingle();
+  MP.g=(g&&g.data)||null;
+  toast(MP.g?'Google Agenda conectado.':'Ainda não apareceu — autorizou mesmo?');
+  delete MP.evtsPorDia[MP.dia]; mpPintar();
+};
+/* ============================ fim modo pessoal ============================ */
+
 window.spInicio=(quieto)=>{
+  if((wsAtual()||{}).tipo==='pessoal'){ const we=wsEmpresa();
+    if(we){ WS_SEL=String(we.id); try{ localStorage.setItem('ws_sel',WS_SEL); }catch(_){} spDesenhar(); } }
   const v=String((currentUser||{}).inicio||'');
   if(v==='dash') return render('dash');
   if(v==='clientes'&&TK.listas.some(l=>l.id===LC_ID)) return spSelLista(LC_ID,quieto);

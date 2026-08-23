@@ -1,0 +1,28 @@
+{
+ "name": "Sistema Autosíntese",
+ "short_name": "Síntese",
+ "start_url": "/",
+ "display": "standalone",
+ "background_color": "#141416",
+ "theme_color": "#141416",
+ "icons": [
+  {
+   "src": "icone-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icone-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icone-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
