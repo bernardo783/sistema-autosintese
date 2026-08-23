@@ -5579,6 +5579,34 @@ window.tkSetVal=async (id,campoId,v)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
   const c=tkCampo1(campoId)||{};
   if(v===''||v===undefined) v=null; else if(c.tipo==='numero'||c.tipo==='moeda') v=Number(v);
+  /* REGRA DO GABRIEL (cada mês é um mês): mexer na coluna Mensalidade do Controle de
+     Clientes é mexer na COBRANÇA — pergunta se vale só neste mês ou daqui em diante,
+     igual à ficha. A célula é espelho do cadastro, não um número solto. */
+  if(ehLC(t.lista_id)&&/mensalidade/i.test(c.nome||'')&&t.ficha_id){
+    const f=fichaDe(t.ficha_id), cli=f&&f.clienteId?DB.clientes.find(x=>x.id===f.clienteId):null;
+    if(cli&&v!=null&&Number(v)!==Number(cli.valor||0)){
+      const comp=compNow();
+      const modo=await escolher('Mudar a mensalidade de '+(cli.nome||'cliente')+'?',
+        brl(cli.valor||0)+' → '+brl(v),
+        [{v:'mes',rot:'Só '+fmtComp(comp)},{v:'rec',rot:'Recorrente — de '+fmtComp(comp)+' em diante'}]);
+      if(!modo){ tkDesenhar($('#content')); return; } /* cancelou: célula volta */
+      if(modo==='mes'){
+        let r=DB.recebimentos.find(x=>x.comp===comp&&x.clienteId===cli.id);
+        if(!r){ r={id:uid(),comp,clienteId:cli.id,nome:cli.nome,resp:cli.resp||'',tel:cli.tel||'',
+          valor:Number(v),venc:(cli.diaVenc>=1)?vencOf(comp,cli.diaVenc):null,recebido:false,recebidoEm:null,status:null};
+          DB.recebimentos.push(r); }
+        else r.valor=Number(v);
+        await saveDB(); tkDesenhar($('#content'));
+        toast('Só '+fmtComp(comp)+' mudou — o cadastro segue '+brl(cli.valor||0)+'.');
+        return; /* célula NÃO muda: ela espelha o cadastro */
+      }
+      /* recorrente: congela o passado que herdava da ficha e atualiza o cadastro */
+      DB.recebimentos.forEach(x=>{ if(x.clienteId===cli.id&&x.comp<comp&&(x.valor==null||x.valor==='')) x.valor=Number(cli.valor)||0; });
+      cli.valor=Number(v);
+      await saveDB();
+      toast('Mensalidade recorrente atualizada: '+brl(v)+'.');
+    }
+  }
   const val=Object.assign({},t.valores||{});
   if(v===null||v===false) delete val[campoId]; else val[campoId]=v;
   await tkPatch(id,{valores:val});
