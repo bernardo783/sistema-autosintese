@@ -63,12 +63,15 @@ grupo('Identidade visual AutoSíntese');
 {
   ok('paleta roxa da marca (--brand)', HTML.indexOf('--brand:#6E0AD6')>0);
   ok('botão e navegação em roxo, não preto', HTML.indexOf('--btn-bg:var(--brand)')>0&&HTML.indexOf('#000000')<0);
-  ok('símbolo S vetorial da marca (viewBox oficial)', (HTML.match(/viewBox="0 0 500 621"/g)||[]).length>=3);
+  ok('logo real (linhas de trilha) embutido como máscara', HTML.indexOf('--logo:url(data:image/png;base64,')>0);
+  ok('símbolo aplicado nas 3 marcas (chip + 2 heros)', (HTML.match(/<span class="s"><\/span>/g)||[]).length===3);
+  ok('máscara pintável por currentColor', /\.s\{[^}]*mask:var\(--logo\)/.test(HTML));
+  ok('não usa mais o S sólido do sistema', HTML.indexOf('viewBox="0 0 500 621"')<0);
   ok('wordmark AUTO bold + SÍNTESE fino', (HTML.match(/AUTO<span>SÍNTESE<\/span>/g)||[]).length>=2);
   ok('tagline INTELIGÊNCIA UNIDA À RESULTADOS', HTML.indexOf('INTELIGÊNC<b>IA</b> UNIDA À RESULTADOS')>0);
   ok('chip de marca fixo em todas as telas', HTML.indexOf('class="marca-topo"')>0);
   ok('hero roxo nas telas de abertura e fim', (HTML.match(/class="hero"/g)||[]).length===2);
-  ok('logo é vetorial inline (self-contained, sem CDN)', HTML.indexOf('<img')<0);
+  ok('logo self-contained (data URI, sem CDN)', HTML.indexOf('<img')<0&&HTML.indexOf('http')<HTML.indexOf('fonts.googleapis'));
 }
 
 grupo('Validação de verdade (melhor que o original)');
