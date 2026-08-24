@@ -1455,6 +1455,10 @@
 /* hábito de folga NÃO fica apagado (pedido do Gabriel 23/08) — o aviso 'hoje não tem' já diz tudo */
 .mp-hab2.off .mp-hic,.mp-hab2.off .mp-hnm,.mp-hab2.off .mp-hsub{opacity:1}
 .mp-h2pct{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:800}
+.mp-hab2{cursor:grab}
+.mp-hab2.arrasta{opacity:.35}
+.mp-hab2.alvo{box-shadow:inset 0 2px 0 var(--brand2)}
+.mp-hab2.alvo2{box-shadow:inset 0 -2px 0 var(--brand2)}
 .mp-h2bar{grid-column:1/-1;height:6px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:12px}
 .mp-h2bar i{display:block;height:100%;border-radius:99px}
 .mp-addrow{display:inline-block;padding:8px 2px;border:0;background:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;margin-top:8px;opacity:.75}
@@ -9993,7 +9997,9 @@ function mpHabCards(){
   const rows=MP.habitos.map(h=>{
     const p=mpMetaProg(h), pct=Math.min(100,Math.round(p.n/Math.max(1,p.m)*1000)/10);
     const prog=mpProg(h,hoje), ck=prog&&mpCk(h.id,hoje);
-    return '<div class="mp-hab2'+(prog?'':' off')+'">'+
+    return '<div class="mp-hab2'+(prog?'':' off')+'" draggable="true" data-hid="'+h.id+'"'+
+      ' ondragstart="mpHDragIni(event,\''+h.id+'\')" ondragover="mpHDragSobre(event,\''+h.id+'\')"'+
+      ' ondragleave="mpHDragSai(event,\''+h.id+'\')" ondrop="mpHDrop(event,\''+h.id+'\')" ondragend="mpHDragFim()">'+
       '<div class="mp-hic" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,18)+'</div>'+
       '<div><div class="mp-hnm">'+esc(h.nome)+'<span class="mp-hmenu" onclick="mpHabMenu(event,\''+h.id+'\')">⋯</span></div>'+
       '<div class="mp-hsub">'+(p.futuro?mpComeca(p.ini):(p.n+' / '+p.m+' vezes '+p.rot+(prog?'':' · hoje não tem')))+'</div></div>'+
@@ -10129,9 +10135,56 @@ window.mpCheck=async(hid,iso)=>{
 /* ---------- criar/editar hábito ---------- */
 window.mpHabMenu=(ev,id)=>{ ev.stopPropagation(); ctxAbrir(ev,[
   {ic:MICO.lapis,t:'Editar',f:()=>mpHabitoModal(id)},
+  {ic:MI('<path d="M12 19V5M5 12l7-7 7 7"/>'),t:'Subir',f:()=>mpHabPos(id,'cima')},
+  {ic:MI('<path d="M12 5v14M19 12l-7 7-7-7"/>'),t:'Descer',f:()=>mpHabPos(id,'baixo')},
+  {ic:MI('<path d="M12 19V9M5 12l7-7 7 7M5 3h14"/>'),t:'Mover pro topo',f:()=>mpHabPos(id,'topo')},
   {ic:MICO.backup,t:'Arquivar',f:()=>mpHabArquivar(id)},
   {sep:true},
   {ic:MICO.lixo,t:'Apagar',dgr:true,f:()=>mpHabApagar(id)}]); };
+function mpHabOrdemSalvar(){
+  const muda=[];
+  MP.habitos.forEach((h,ix)=>{ if(h.ordem!==ix){ h.ordem=ix; muda.push(h); } });
+  if(!muda.length) return;
+  (async()=>{
+    for(const h of muda){
+      const {error}=await sb.from('habitos').update({ordem:h.ordem}).eq('id',h.id);
+      if(error){ toast('Erro ao salvar a ordem: '+error.message); return; }
+    }
+  })();
+}
+window.mpHabPos=(id,onde)=>{
+  const arr=MP.habitos, i=arr.findIndex(h=>String(h.id)===String(id));
+  if(i<0) return;
+  const j=onde==='topo'?0:(onde==='cima'?i-1:i+1);
+  if(j<0||j>=arr.length||j===i) return;
+  const [h]=arr.splice(i,1); arr.splice(j,0,h);
+  mpPintar(); mpHabOrdemSalvar();
+};
+window.mpHDragIni=(ev,id)=>{ MP.__drag=id;
+  try{ ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',String(id)); }catch(_){}
+  setTimeout(()=>{ const el=document.querySelector('.mp-hab2[data-hid="'+id+'"]'); if(el) el.classList.add('arrasta'); },0); };
+window.mpHDragSobre=(ev,id)=>{ if(!MP.__drag||String(MP.__drag)===String(id)) return;
+  ev.preventDefault(); try{ ev.dataTransfer.dropEffect='move'; }catch(_){}
+  const el=document.querySelector('.mp-hab2[data-hid="'+id+'"]'); if(!el) return;
+  const r=el.getBoundingClientRect(), sob=ev.clientY>r.top+r.height/2;
+  el.classList.toggle('alvo',!sob); el.classList.toggle('alvo2',sob); };
+window.mpHDragSai=(ev,id)=>{ const el=document.querySelector('.mp-hab2[data-hid="'+id+'"]'); if(el) el.classList.remove('alvo','alvo2'); };
+window.mpHDrop=(ev,id)=>{ ev.preventDefault();
+  const de=MP.__drag; MP.__drag=null;
+  const el=document.querySelector('.mp-hab2[data-hid="'+id+'"]');
+  let sob=false;
+  if(el){ const r=el.getBoundingClientRect(); sob=ev.clientY>r.top+r.height/2; }
+  document.querySelectorAll('.mp-hab2').forEach(e=>e.classList.remove('arrasta','alvo','alvo2'));
+  if(!de||String(de)===String(id)) return;
+  const arr=MP.habitos, i=arr.findIndex(h=>String(h.id)===String(de));
+  if(i<0) return;
+  const [h]=arr.splice(i,1);
+  const j=arr.findIndex(x=>String(x.id)===String(id));
+  if(j<0){ arr.splice(i,0,h); return; }
+  arr.splice(sob?j+1:j,0,h);
+  mpPintar(); mpHabOrdemSalvar(); };
+window.mpHDragFim=()=>{ MP.__drag=null;
+  document.querySelectorAll('.mp-hab2').forEach(e=>e.classList.remove('arrasta','alvo','alvo2')); };
 window.mpHabArquivar=async(id)=>{
   const {error}=await sb.from('habitos').update({arquivado:true}).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
