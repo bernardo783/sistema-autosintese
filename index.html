@@ -517,7 +517,7 @@
   .railbar .bot .av{width:30px;height:30px;cursor:pointer}
   .railbar .rl{position:relative}
   .railbar.ws-pessoal .rl,.railbar.ws-pessoal .sep{display:none}
-  .railbar.ws-pessoal #rlInicio,.railbar.ws-pessoal #rlBuscar,.railbar.ws-pessoal #rlNtf,.railbar.ws-pessoal #rlInbox,.railbar.ws-pessoal #rlAgenda{display:flex}
+  .railbar.ws-pessoal #rlInicio,.railbar.ws-pessoal #rlBuscar,.railbar.ws-pessoal #rlNtf,.railbar.ws-pessoal #rlInbox,.railbar.ws-pessoal #rlAgenda,.railbar.ws-pessoal #rlKpi{display:flex}
   .railbar .rl .bdg{position:absolute;top:2px;right:7px;background:var(--brand);color:#fff;border-radius:999px;
     font-size:8.5px;font-weight:800;padding:1px 4px;min-width:15px;line-height:1.35}
   .railbar .rl .bdg:empty{display:none}
@@ -1434,9 +1434,10 @@
 .mp-topo{display:block;margin:10px 0 30px}
 .mp-topo .mp-anel{width:170px;height:170px;margin:20px 0 0}
 .mp-topo .mp-anel::after{inset:12px}
-.mp-topo .mp-anel .nv{font-size:38px}
-.mp-topo .mp-anel .lb{font-size:10px}
-.mp-topo .mp-anel .xp{font-size:12px}
+.mp-topo .mp-anel .nv{font-size:36px;line-height:1.2}
+.mp-topo .mp-anel .lb{font-size:10px;margin-top:4px}
+.mp-topo .mp-anel .xp{font-size:12px;margin-top:4px}
+@media(max-width:720px){.mp-topo .mp-anel{margin:16px 0 0 auto}}
 .mp-cantos{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:24px;align-items:start}
 @media(max-width:1150px){.mp-cantos{grid-template-columns:1fr}}
 .mp-canto{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-height:120px}
@@ -1486,7 +1487,7 @@
 .gc-ev .x:hover{color:var(--danger)}
 .gc-now{position:absolute;left:50px;right:0;height:2px;background:var(--danger);z-index:3;border-radius:2px}
 .gc-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--danger)}
-#rlAgenda{display:none}
+#rlAgenda,#rlKpi{display:none}
 .mp-trw .tt.abre{cursor:pointer}
 .mp-trw .tt.abre:hover{color:var(--brand2)}
 .mp-tprog{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;flex:none;font-variant-numeric:tabular-nums}
@@ -1579,6 +1580,8 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg><span class="t">Tarefas</span><span class="bdg" id="spInboxN"></span></button>
     <button class="rl" id="rlAgenda" title="Agenda do dia" onclick="mpIrAgenda()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M16 2v4M8 2v4M3 9h18"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg><span class="t">Agenda</span></button>
+    <button class="rl" id="rlKpi" title="KPI — suas notas e progresso" onclick="mpIrKpi()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/><circle cx="19" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg><span class="t">KPI</span></button>
     <button class="rl navlink" data-view="fechamento" title="Fechamento de contrato — cliente novo entra por aqui">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span class="t">Fechamento</span></button>
     <button class="rl navlink hidden" data-view="contratos" id="navContratos" title="Contratos — puxa o formulário do cliente e gera o .docx">
@@ -9965,7 +9968,7 @@ function mpPintar(){
   const c=$('#content'); if(!c) return;
   const mem={}; ['mpTarNm','mpEvtNm','mpEvtHr'].forEach(id=>{ const el=document.getElementById(id);
     if(el){ mem[id]={v:el.value,f:document.activeElement===el}; } });
-  const abas=[['inicio','Início'],['habitos','Hábitos'],['tarefas','Tarefas'],['agenda','Agenda'],['progresso','Progresso']];
+  const abas=[['inicio','Início'],['habitos','Hábitos'],['tarefas','Tarefas'],['agenda','Agenda']];
   const ac=MP_ACAO[MP.aba]||MP_ACAO.inicio;
   c.innerHTML='<div class="page-head"><div></div>'+
     '<div class="toolbar"><button class="btn small" onclick="'+ac[1]+'">'+ac[0]+'</button></div></div>'+
@@ -9982,6 +9985,7 @@ function mpPintar(){
 }
 window.mpAba=(a)=>{ MP.aba=a; MP.tarNova=false; MP.evtNovo=false; mpPintar(); };
 window.mpIrAgenda=()=>{ MP.aba='agenda'; render('pessoal'); };
+window.mpIrKpi=()=>{ MP.aba='progresso'; render('pessoal'); };
 
 /* ---------- aba Início ---------- */
 function mpHabRow(h,iso,podeCheck){
