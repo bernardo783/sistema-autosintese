@@ -9994,10 +9994,6 @@ function mpInicioHTML(){
         return '<td><div class="mp-cel '+cls+'" title="'+tit+'"'+clk+'></div></td>'; }).join('')+'</tr>').join('')+
     '</table></div>':'';
   const semT=mpNotaFaixa(d7[0],hoje);
-  const tar7=d7.map(d=>{ const ts=mpTarDia(d), f=ts.filter(mpFeita).length;
-    return '<div class="mp-t7'+(d===hoje?' hj':'')+'"><small>'+MP_SEMD[mpDow(d)].toUpperCase()+' '+Number(d.slice(8,10))+'</small>'+
-      '<b>'+(ts.length?f+'/'+ts.length:'—')+'</b>'+
-      '<div class="mp-h2bar" style="margin-top:0"><i style="width:'+(ts.length?Math.round(f/ts.length*100):0)+'%;background:var(--brand)"></i></div></div>'; }).join('');
   return '<div class="mp-topo">'+
     '<div><div class="mp-saud">'+saud+', '+esc(nome)+'.<small>'+mpDataExt(hoje)+'</small></div>'+
     (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:8px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+'</div>'+
@@ -10009,8 +10005,7 @@ function mpInicioHTML(){
     '<button class="mp-addrow" onclick="mpHabitoModal()">+ Adicionar hábito</button>'+
     '<div class="mp-sech" style="margin-top:26px">Hábitos · últimos 7 dias<span style="margin-left:auto;letter-spacing:0;text-transform:none">nota da semana: <b style="color:var(--brand2)">'+mpNotaFmt(semT.nota)+'</b></span></div>'+
     (habGrid||'<div class="hint">Aparece quando houver hábito.</div>')+
-    '<div class="mp-sech" style="margin-top:26px">Tarefas · últimos 7 dias</div>'+
-    '<div class="mp-t7g">'+tar7+'</div>';
+    '';
 }
 
 /* ---------- aba Progresso ---------- */
