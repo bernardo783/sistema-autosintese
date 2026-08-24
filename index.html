@@ -9938,13 +9938,14 @@ function mpPintar(){
   const c=$('#content'); if(!c) return;
   const mem={}; ['mpTarNm','mpEvtNm','mpEvtHr'].forEach(id=>{ const el=document.getElementById(id);
     if(el){ mem[id]={v:el.value,f:document.activeElement===el}; } });
-  const abas=[['inicio','Início'],['progresso','Progresso'],['tarefas','Tarefas'],['agenda','Agenda']];
+  const abas=[['inicio','Início'],['habitos','Hábitos'],['tarefas','Tarefas'],['agenda','Agenda'],['progresso','Progresso']];
   c.innerHTML='<div class="page-head"><div></div>'+
     '<div class="toolbar"><button class="btn small" onclick="mpHabitoModal()">+ Novo hábito</button></div></div>'+
     '<div class="fin-tabs">'+abas.map(a=>'<button class="ftab '+(MP.aba===a[0]?'active':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
     '<div id="mpCorpo"></div>';
   const b=$('#mpCorpo');
   if(MP.aba==='inicio') b.innerHTML=mpInicioHTML();
+  else if(MP.aba==='habitos') b.innerHTML=mpHabsHTML();
   else if(MP.aba==='progresso') b.innerHTML=mpProgHTML();
   else if(MP.aba==='agenda'){ b.innerHTML=mpAgendaHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
   else{ b.innerHTML=mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
@@ -9965,12 +9966,8 @@ function mpHabRow(h,iso,podeCheck){
     (podeCheck?'<button class="mp-hchk'+(ck?' on':'')+'" title="'+(ck?'Feito — toque pra desfazer':'Marcar como feito')+'" onclick="mpCheck(\''+h.id+'\',\''+iso+'\')">'+svgIco('check',13)+'</button>':'')+
     '</div>';
 }
-function mpInicioHTML(){
-  const hoje=tkHoje(), n=mpNotaDia(hoje);
-  const deg=n.nota==null?0:Math.round(n.nota*36);
-  const hAgora=new Date().getHours();
-  const saud=hAgora<12?'Bom dia':(hAgora<18?'Boa tarde':'Boa noite');
-  const nome=String((currentUser||{}).nome||'').split(' ')[0]||'';
+function mpHabCards(){
+  const hoje=tkHoje();
   const rows=MP.habitos.map(h=>{
     const p=mpMetaProg(h), pct=Math.min(100,Math.round(p.n/Math.max(1,p.m)*1000)/10);
     const prog=mpProg(h,hoje), ck=prog&&mpCk(h.id,hoje);
@@ -9983,16 +9980,29 @@ function mpInicioHTML(){
       '<div class="mp-h2bar"><i style="width:'+pct+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div>'+
       '</div>';
   }).join('');
+  return '<div class="mp-sech">Hábitos · '+MP.habitos.length+'</div>'+
+    (rows||'<div class="hint">Nenhum hábito ainda.</div>')+
+    '<button class="mp-addrow" onclick="mpHabitoModal()">+ Adicionar hábito</button>';
+}
+function mpHabsHTML(){ return mpHabCards(); }
+window.mpIrTarNova=()=>{ MP.aba='tarefas'; MP.tarNova=true; MP.evtNovo=false; mpPintar();
+  setTimeout(()=>{ const e=$('#mpTarNm'); if(e) e.focus(); },60); };
+function mpInicioHTML(){
+  const hoje=tkHoje(), n=mpNotaDia(hoje);
+  const deg=n.nota==null?0:Math.round(n.nota*36);
+  const hAgora=new Date().getHours();
+  const saud=hAgora<12?'Bom dia':(hAgora<18?'Boa tarde':'Boa noite');
+  const nome=String((currentUser||{}).nome||'').split(' ')[0]||'';
+  const ts=mpTarDia(hoje), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
   return '<div class="mp-topo">'+
     '<div><div class="mp-saud">'+saud+', '+esc(nome)+'.<small>'+mpDataExt(hoje)+'</small></div>'+
     (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:8px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+'</div>'+
     (n.prev>0?'<div style="margin-left:auto"><div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
       '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota</div><div class="xp">'+n.feit+'/'+n.prev+'</div></div></div></div>':'')+
     '</div>'+
-    '<div class="mp-sech">Hábitos · '+MP.habitos.length+'</div>'+
-    (rows||'<div class="hint">Nenhum hábito ainda.</div>')+
-    '<button class="mp-addrow" onclick="mpHabitoModal()">+ Adicionar hábito</button>'+
-    '';
+    mpHabCards()+
+    '<div class="mp-sech" style="margin-top:26px">Tarefas de hoje · '+ts.length+'<button class="mp-add" onclick="mpIrTarNova()">+ Nova tarefa</button></div>'+
+    (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>');
 }
 
 /* ---------- aba Progresso ---------- */
@@ -10201,7 +10211,8 @@ function mpTarHTML(){
     (feitas.length?feitas.map(tarRow).join(''):'')+
     (semData.length?'<div class="mp-sech" style="margin-top:18px">Sem data · '+semData.length+'</div>'+
       semData.map(t=>'<div class="mp-trw"><button class="o'+(mpFeita(t)?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button><span class="tt">'+esc(t.titulo||'')+'</span>'+
-      '<button class="x" title="Agendar pra '+mpCurto(dia)+'" style="font-size:12px" onclick="mpTarPraDia(\''+t.id+'\')">'+svgIco('calendario',13)+'</button></div>').join(''):'')+
+      '<button class="x" title="Agendar pra '+mpCurto(dia)+'" style="font-size:12px" onclick="mpTarPraDia(\''+t.id+'\')">'+svgIco('calendario',13)+'</button>'+
+      '<button class="x" title="Apagar" onclick="mpTarDel(\''+t.id+'\')">×</button></div>').join(''):'')+
     '<div class="mp-sech" style="margin-top:18px">Agenda · '+evts.length+'<button class="mp-add" onclick="mpEvtNovoTgl()">+ Novo evento</button></div>'+
     (MP.g?'<div class="mp-sync">'+svgIco('calendario',12)+'sincronizada com o Google Calendar'+(MP.g.google_email?' · '+esc(MP.g.google_email):'')+
       ' <button class="mp-add" style="margin-left:0" onclick="mpGAtualizar()">atualizar</button></div>'
