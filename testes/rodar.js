@@ -380,6 +380,63 @@ grupo('Autosave da tarefa (sem botão Salvar)');
   ok('fechar o painel grava o que ficou pendente', /const fechar=\(\)=>\{ if\(window\.__tkmTimer\)/.test(abrir));
 }
 
+/* ---------------- hábito: data de início ---------------- */
+grupo('Hábito: a partir de quando começa');
+{
+  /* 2026-08-23 é um DOMINGO — o cenário do Gabriel: monta no domingo, começa segunda. */
+  const TK="const tkISO=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');\n"
+    +"function tkDiaMais(base,n){ const d=new Date(base+'T12:00:00'); d.setDate(d.getDate()+n); return tkISO(d); }\n"
+    +"const tkHoje=()=>'2026-08-23';\nlet MP={habitos:[],checks:[]};\n";
+  const g=rodar(TK
+    +bloco('const mpDe=(iso)=>','async function mpCarregar')
+    +bloco('const mpCk=(hid,iso)=>','function mpWsAtivo')
+    +bloco('function mpMetaProg(h){','\n/* ---------- tela ---------- */')
+    +bloco('function mpHIniOps(){','window.mpHIniSet'),
+    null,['mpIni','mpProg','mpComeca','mpSegDa','MP']);
+
+  secao('a semana vai de segunda a domingo');
+  ok('domingo 23/08 pertence à semana que abriu 17/08', g.mpSegDa('2026-08-23')==='2026-08-17');
+  ok('segunda 24/08 abre a semana seguinte', g.mpSegDa('2026-08-24')==='2026-08-24');
+  ok('essa semana fecha no domingo 30/08', tkDiaMaisT(g.mpSegDa('2026-08-24'),6)==='2026-08-30');
+
+  secao('antes do início o hábito não é previsto');
+  const academia={dias:[1,2,3,4,5],inicio:'2026-08-24'};      // seg a sex, começando segunda
+  ok('sexta passada (21/08) não conta', g.mpProg(academia,'2026-08-21')===false);
+  ok('segunda 24/08 conta', g.mpProg(academia,'2026-08-24')===true);
+  ok('sexta 28/08 conta', g.mpProg(academia,'2026-08-28')===true);
+  const leitura={dias:[0,1,2,3,4,5,6],inicio:'2026-08-24'};   // todo dia, começando segunda
+  ok('o domingo de hoje NÃO conta (é o pedido dele)', g.mpProg(leitura,'2026-08-23')===false);
+  ok('mas o domingo 30/08, dentro da 1ª semana, conta', g.mpProg(leitura,'2026-08-30')===true);
+
+  secao('o dia da semana continua mandando');
+  const sabadao={dias:[6],inicio:'2026-08-24'};
+  ok('só sábado: segunda não conta', g.mpProg(sabadao,'2026-08-24')===false);
+  ok('só sábado: sábado 29/08 conta', g.mpProg(sabadao,'2026-08-29')===true);
+
+  secao('hábito antigo sem data cai no dia da criação');
+  ok('usa criado_em quando inicio é nulo', g.mpIni({criado_em:'2026-08-10T15:00:00-03:00'}).slice(0,4)==='2026');
+  ok('inicio explícito ganha do criado_em', g.mpIni({inicio:'2026-08-24',criado_em:'2026-08-01T12:00:00Z'})==='2026-08-24');
+
+  secao('o que a tela mostra enquanto não começou');
+  ok('amanhã vira "começa amanhã"', g.mpComeca('2026-08-24')==='começa amanhã');
+  ok('depois vira "começa terça, 25/08"', g.mpComeca('2026-08-25')==='começa terça, 25/08');
+  ok('meta avisa que ainda não começou', g.mpMetaProg({id:'x',meta_tipo:'sem',meta_qtd:5,inicio:'2026-08-24'}).futuro===true);
+  ok('hábito já valendo não fica marcado como futuro', g.mpMetaProg({id:'x',meta_tipo:'sem',meta_qtd:5,inicio:'2026-08-01'}).futuro===false);
+
+  secao('atalhos do modal, montando num domingo');
+  const ops=Object.fromEntries(g.mpHIniOps());
+  ok('Hoje = domingo 23/08', ops['Hoje']==='2026-08-23');
+  ok('Amanhã = segunda 24/08', ops['Amanhã']==='2026-08-24');
+  ok('Próxima segunda = 24/08 (mesmo dia, de propósito)', ops['Próxima segunda']==='2026-08-24');
+
+  secao('o campo existe no modal e vai pro banco');
+  ok('campo "Começa em" no formulário', HTML.indexOf('<label>Começa em</label>')>0);
+  ok('grava a coluna inicio', HTML.indexOf('inicio:st.ini||tkHoje()')>0);
+  ok('modal abre com o início do hábito ao editar', HTML.indexOf('ini:h?mpIni(h):tkHoje()')>0);
+}
+function tkDiaMaisT(base,n){ const d=new Date(base+'T12:00:00'); d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
 /* ---------------- gerador de contrato liga no formulário ---------------- */
 grupo('Contratos: formulário novo alimenta o gerador de .docx');
 {

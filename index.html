@@ -9871,7 +9871,15 @@ async function mpCarregar(force){
 }
 
 const mpCk=(hid,iso)=>MP.checks.some(k=>String(k.habito_id)===String(hid)&&k.dia===iso);
-const mpProg=(h,iso)=>((h.dias||[]).map(Number).indexOf(mpDow(iso))>=0)&&(h.criado_em?tkISO(new Date(h.criado_em)):'0')<=iso;
+/* A partir de quando o hábito vale. Antes disso ele não é previsto: não entra na
+   nota nem na grade. Cai no dia da criação pros hábitos antigos, sem data. */
+const mpIni=(h)=>String(h.inicio||'').slice(0,10)||(h.criado_em?tkISO(new Date(h.criado_em)):'0');
+const mpProg=(h,iso)=>((h.dias||[]).map(Number).indexOf(mpDow(iso))>=0)&&mpIni(h)<=iso;
+/* "começa amanhã" / "começa segunda, 24/08" — pra linha do hábito que ainda não valeu */
+function mpComeca(iso){ const hj=tkHoje();
+  if(iso===tkDiaMais(hj,1)) return 'começa amanhã';
+  const sm=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  return 'começa '+sm[mpDow(iso)]+', '+mpCurto(iso); }
 const mpChecksFaixa=(hid,ini,fim)=>MP.checks.filter(k=>String(k.habito_id)===String(hid)&&k.dia>=ini&&k.dia<=fim).length;
 
 function mpWsAtivo(){
@@ -9904,13 +9912,13 @@ function mpNotaFaixa(ini,fim){
   return {prev,feit,nota:prev?Math.round(feit/prev*100)/10:null};
 }
 function mpMetaProg(h){
-  const hoje=tkHoje();
-  if(h.meta_tipo==='mes'){ const ini=hoje.slice(0,8)+'01';
+  const hoje=tkHoje(), ini=mpIni(h), futuro=ini>hoje;
+  if(h.meta_tipo==='mes'){ const a=hoje.slice(0,8)+'01';
     const fim=tkISO(new Date(Number(hoje.slice(0,4)),Number(hoje.slice(5,7)),0));
-    return {n:mpChecksFaixa(h.id,ini,fim),m:h.meta_qtd,rot:'este mês'}; }
-  if(h.meta_tipo==='ano') return {n:mpChecksFaixa(h.id,hoje.slice(0,4)+'-01-01',hoje.slice(0,4)+'-12-31'),m:h.meta_qtd,rot:'este ano'};
+    return {n:mpChecksFaixa(h.id,a,fim),m:h.meta_qtd,rot:'este mês',ini,futuro}; }
+  if(h.meta_tipo==='ano') return {n:mpChecksFaixa(h.id,hoje.slice(0,4)+'-01-01',hoje.slice(0,4)+'-12-31'),m:h.meta_qtd,rot:'este ano',ini,futuro};
   const seg=mpSegDa(hoje);
-  return {n:mpChecksFaixa(h.id,seg,tkDiaMais(seg,6)),m:h.meta_qtd,rot:'esta semana'};
+  return {n:mpChecksFaixa(h.id,seg,tkDiaMais(seg,6)),m:h.meta_qtd,rot:'esta semana',ini,futuro};
 }
 
 /* ---------- tela ---------- */
@@ -9961,7 +9969,7 @@ function mpHabRow(h,iso,podeCheck){
   return '<div class="mp-hab'+(podeCheck?'':' off')+'">'+
     '<div class="mp-hic" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,18)+'</div>'+
     '<div class="mp-hmain"><div class="mp-hnm">'+esc(h.nome)+'<span class="mp-hmenu" onclick="mpHabMenu(event,\''+h.id+'\')">⋯</span></div>'+
-    '<div class="mp-hsub">'+p.n+'/'+p.m+' '+p.rot+(podeCheck?'':' · sem programação pra hoje')+'</div>'+
+    '<div class="mp-hsub">'+(p.futuro?mpComeca(p.ini):(p.n+'/'+p.m+' '+p.rot+(podeCheck?'':' · sem programação pra hoje')))+'</div>'+
     '<div class="mp-hbar"><i style="width:'+pct+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div></div>'+
     (podeCheck?'<button class="mp-hchk'+(ck?' on':'')+'" title="'+(ck?'Feito — toque pra desfazer':'Marcar como feito')+'" onclick="mpCheck(\''+h.id+'\',\''+iso+'\')">'+svgIco('check',13)+'</button>':'')+
     '</div>';
@@ -9974,7 +9982,7 @@ function mpHabCards(){
     return '<div class="mp-hab2'+(prog?'':' off')+'">'+
       '<div class="mp-hic" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,18)+'</div>'+
       '<div><div class="mp-hnm">'+esc(h.nome)+'<span class="mp-hmenu" onclick="mpHabMenu(event,\''+h.id+'\')">⋯</span></div>'+
-      '<div class="mp-hsub">'+p.n+' / '+p.m+' vezes '+p.rot+(prog?'':' · hoje não tem')+'</div></div>'+
+      '<div class="mp-hsub">'+(p.futuro?mpComeca(p.ini):(p.n+' / '+p.m+' vezes '+p.rot+(prog?'':' · hoje não tem')))+'</div></div>'+
       '<div class="mp-h2pct">'+String(pct).replace('.',',')+'%</div>'+
       (prog?'<button class="mp-hchk'+(ck?' on':'')+'" title="'+(ck?'Feito hoje — toque pra desfazer':'Marcar hoje')+'" onclick="mpCheck(\''+h.id+'\',\''+hoje+'\')">'+svgIco('check',13)+'</button>':'<span></span>')+
       '<div class="mp-h2bar"><i style="width:'+pct+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div>'+
@@ -10034,6 +10042,7 @@ function mpProgHTML(){
     ordem.forEach(i=>{
       const d=ds.filter(x=>mpDow(x)===i)[0];
       let cls='off',clk='',tit=esc(h.nome)+' · '+mpCurto(d);
+      if(d<mpIni(h)) tit+=' — antes do início do hábito';
       if(mpProg(h,d)){
         if(mpCk(h.id,d)){ cls='ok'; clk=' onclick="mpCheck(\''+h.id+'\',\''+d+'\')"'; tit+=' — feito'; }
         else if(d>hoje){ cls='fut'; tit+=' — programado'; }
@@ -10085,6 +10094,10 @@ window.mpCmp=(m)=>{ MP.cmp=m; mpPintar(); };
 /* ---------- checks ---------- */
 window.mpCheck=async(hid,iso)=>{
   if(iso>tkHoje()){ toast('Esse dia ainda não chegou.'); return; }
+  /* a tela nem oferece a célula, mas se ela estiver velha (o início mudou depois de
+     pintar) o clique chegaria aqui — o dia antes do início não pode virar check */
+  const hh=MP.habitos.find(x=>String(x.id)===String(hid));
+  if(hh&&iso<mpIni(hh)){ toast('Esse dia é anterior ao início do hábito.'); return; }
   if(MP.__ck) return; MP.__ck=true; setTimeout(()=>{ MP.__ck=false; },400);
   const i=MP.checks.findIndex(k=>String(k.habito_id)===String(hid)&&k.dia===iso);
   if(i>=0){
@@ -10123,12 +10136,16 @@ window.mpHabApagar=async(id)=>{
 window.mpHabitoModal=(id)=>{
   const h=id?MP.habitos.find(x=>String(x.id)===String(id)):null;
   window.__mpH={id:id||null,ic:h?h.icone:'raio',cor:h?(h.cor||MP_CORES[0]):MP_CORES[0],
-    dias:h?(h.dias||[]).map(Number):[1,2,3,4,5],tipo:h?h.meta_tipo:'sem',qtd:h?h.meta_qtd:5};
+    dias:h?(h.dias||[]).map(Number):[1,2,3,4,5],tipo:h?h.meta_tipo:'sem',qtd:h?h.meta_qtd:5,
+    ini:h?mpIni(h):tkHoje()};
   modal(h?'Editar hábito':'Novo hábito',
     '<div class="field"><label>Nome</label><input id="mph_nm" value="'+esc(h?h.nome:'')+'" placeholder="ex.: Academia"/></div>'+
     '<div class="field"><label>Ícone</label><div class="mp-ics" id="mph_ic"></div></div>'+
     '<div class="field"><label>Cor</label><div class="mp-cors" id="mph_cor"></div></div>'+
     '<div class="field"><label>Frequência</label><div class="mp-pills" id="mph_dias" style="margin:0"></div></div>'+
+    '<div class="field"><label>Começa em</label><div class="mp-pills" id="mph_qini" style="margin:0 0 8px"></div>'+
+    '<input id="mph_ini" type="date" value="'+esc(window.__mpH.ini)+'" onchange="mpHIniIn(this.value)"/>'+
+    '<div class="hint">antes dessa data o hábito não conta na nota nem na grade</div></div>'+
     '<div class="field"><label>Meta</label><div class="mp-pills" id="mph_mt" style="margin:0"></div>'+
     '<div class="mp-metain"><input id="mph_qtd" type="number" min="1" value="'+Number(window.__mpH.qtd)+'"/><span id="mph_suf"></span></div>'+
     '<div class="hint">o número vem dos dias marcados — pode escrever outro por cima</div></div>',
@@ -10140,7 +10157,7 @@ window.mpHabitoModal=(id)=>{
       const teto=st.tipo==='sem'?7:(st.tipo==='mes'?31:366);
       if(qtd<1){ toast('Meta precisa ser pelo menos 1.'); return false; }
       if(qtd>teto){ toast('Meta máxima '+(st.tipo==='sem'?'semanal é 7':(st.tipo==='mes'?'mensal é 31':'anual é 366'))+'.'); return false; }
-      const pay={nome,icone:st.ic,cor:st.cor,dias:st.dias.slice().sort(),meta_tipo:st.tipo,meta_qtd:qtd};
+      const pay={nome,icone:st.ic,cor:st.cor,dias:st.dias.slice().sort(),meta_tipo:st.tipo,meta_qtd:qtd,inicio:st.ini||tkHoje()};
       if(st.id){
         const {error}=await sb.from('habitos').update(pay).eq('id',st.id);
         if(error){ toast('Erro: '+error.message); return false; }
@@ -10163,7 +10180,15 @@ function mpHPintar(){
   const di=$('#mph_dias'); if(di) di.innerHTML=[0,1,2,3,4,5,6].map(i=>'<button type="button" class="mp-pill'+(st.dias.indexOf(i)>=0?' on':'')+'" onclick="mpHDia('+i+')">'+MP_SEMD[i]+'</button>').join('');
   const mt=$('#mph_mt'); if(mt) mt.innerHTML=[['sem','Semanal'],['mes','Mensal'],['ano','Anual']].map(p=>'<button type="button" class="mp-pill'+(st.tipo===p[0]?' on':'')+'" onclick="mpHTipo(\''+p[0]+'\')">'+p[1]+'</button>').join('');
   const su=$('#mph_suf'); if(su) su.textContent='vezes / '+(st.tipo==='sem'?'semana':(st.tipo==='mes'?'mês':'ano'));
+  const qi=$('#mph_qini'); if(qi) qi.innerHTML=mpHIniOps().map(o=>'<button type="button" class="mp-pill'+(st.ini===o[1]?' on':'')+'" onclick="mpHIniSet(\''+o[1]+'\')">'+o[0]+'</button>').join('');
+  const ii=$('#mph_ini'); if(ii&&ii.value!==st.ini) ii.value=st.ini;
 }
+/* Atalhos de início. Montando no domingo, "Amanhã" e "Próxima segunda" dão o mesmo
+   dia — de propósito: é o caso do Gabriel, que quer a semana cheia de seg a dom. */
+function mpHIniOps(){ const hj=tkHoje();
+  return [['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Próxima segunda',tkDiaMais(mpSegDa(hj),7)]]; }
+window.mpHIniSet=(iso)=>{ window.__mpH.ini=iso; mpHPintar(); };
+window.mpHIniIn=(v)=>{ if(v) window.__mpH.ini=v; mpHPintar(); };
 function mpHCalc(){
   const st=window.__mpH, n=st.dias.length||1;
   const v=st.tipo==='sem'?n:(st.tipo==='mes'?Math.round(n*52/12):n*52);
