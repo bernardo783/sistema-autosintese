@@ -1431,8 +1431,9 @@
 .mp-sync svg{width:12px;height:12px;color:var(--ok)}
 .mp-saud{font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
 .mp-saud small{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
-.mp-topo{display:flex;align-items:center;gap:26px;margin:6px 0 20px;flex-wrap:wrap}
-.mp-topo .mp-anel{width:118px;height:118px;margin:0}
+.mp-topo{display:flex;align-items:center;gap:26px;margin:6px 0 8px;flex-wrap:wrap}
+.mp-anelrow{display:flex;margin:14px 0 26px}
+.mp-anelrow .mp-anel{width:126px;height:126px;margin:0}
 .mp-topo .mp-anel::after{inset:9px}
 .mp-topo .mp-anel .nv{font-size:26px}
 .mp-cantos{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:24px;align-items:start}
@@ -10000,9 +10001,9 @@ function mpInicioHTML(){
   return '<div class="mp-topo">'+
     '<div><div class="mp-saud">'+saud+', '+esc(nome)+'.<small>'+mpDataExt(hoje)+'</small></div>'+
     (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:8px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+'</div>'+
-    '<div style="margin-left:auto"><div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
-      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota</div><div class="xp">'+n.feit+'/'+n.prev+'</div></div></div></div>'+
     '</div>'+
+    '<div class="mp-anelrow"><div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
+      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota</div><div class="xp">'+n.feit+'/'+n.prev+'</div></div></div></div>'+
     '<div class="mp-sech">Hábitos · '+MP.habitos.length+'</div>'+
     (rows||'<div class="hint">Nenhum hábito ainda.</div>')+
     '<button class="mp-addrow" onclick="mpHabitoModal()">+ Adicionar hábito</button>'+
