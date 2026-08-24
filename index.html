@@ -1431,10 +1431,12 @@
 .mp-sync svg{width:12px;height:12px;color:var(--ok)}
 .mp-saud{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
 .mp-saud small{display:block;font-size:13.5px;color:var(--muted);font-weight:600;margin-top:5px}
-.mp-topo{display:flex;align-items:center;gap:26px;margin:10px 0 30px;flex-wrap:wrap}
-.mp-topo .mp-anel{width:122px;height:122px;margin:0}
-.mp-topo .mp-anel::after{inset:9px}
-.mp-topo .mp-anel .nv{font-size:26px}
+.mp-topo{display:block;margin:10px 0 30px}
+.mp-topo .mp-anel{width:170px;height:170px;margin:20px 0 0}
+.mp-topo .mp-anel::after{inset:12px}
+.mp-topo .mp-anel .nv{font-size:38px}
+.mp-topo .mp-anel .lb{font-size:10px}
+.mp-topo .mp-anel .xp{font-size:12px}
 .mp-cantos{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:24px;align-items:start}
 @media(max-width:1150px){.mp-cantos{grid-template-columns:1fr}}
 .mp-canto{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-height:120px}
@@ -10023,10 +10025,10 @@ function mpInicioHTML(){
   const nome=String((currentUser||{}).nome||'').split(' ')[0]||'';
   const ts=mpTarDia(hoje), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
   return '<div class="mp-topo">'+
-    '<div><div class="mp-saud">'+saud+', '+esc(nome)+'.<small>'+mpDataExt(hoje)+'</small></div>'+
-    (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:8px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+'</div>'+
-    (n.prev>0?'<div style="margin-left:auto"><div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
-      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota</div><div class="xp">'+n.feit+'/'+n.prev+'</div></div></div></div>':'')+
+    '<div class="mp-saud">'+saud+', '+esc(nome)+'.<small>'+mpDataExt(hoje)+'</small></div>'+
+    (n.prev>0?'<div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
+      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota do dia</div><div class="xp">'+n.feit+'/'+n.prev+' feitos</div></div></div>':'')+
+    (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:10px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+
     '</div>'+
     mpHabCards()+
     '<div class="mp-sech" style="margin-top:26px">Tarefas de hoje · '+ts.length+'<button class="mp-add" onclick="mpIrTarNova()">+ Nova tarefa</button></div>'+
