@@ -380,6 +380,31 @@ grupo('Autosave da tarefa (sem botão Salvar)');
   ok('fechar o painel grava o que ficou pendente', /const fechar=\(\)=>\{ if\(window\.__tkmTimer\)/.test(abrir));
 }
 
+/* ---------------- botão do topo por aba ---------------- */
+grupo('Modo Pessoal: o botão do topo acompanha a aba');
+{
+  const g=rodar(bloco('const MP_ACAO={','function mpPintar()'),
+    {tkHoje:()=>'2026-08-23',MP:{dia:'2026-09-01'}},['MP_ACAO']);   /* dia aberto ≠ hoje */
+  ok('em Tarefas o botão cria TAREFA', g.MP_ACAO.tarefas[0]==='+ Nova tarefa'&&/mpIrTarNova/.test(g.MP_ACAO.tarefas[1]));
+  ok('em Agenda o botão cria EVENTO', g.MP_ACAO.agenda[0]==='+ Novo evento'&&/mpEvtSlot/.test(g.MP_ACAO.agenda[1]));
+  ok('nas abas de hábito segue criando hábito',
+     ['inicio','habitos','progresso'].every(k=>g.MP_ACAO[k][0]==='+ Novo hábito'&&/mpHabitoModal/.test(g.MP_ACAO[k][1])));
+  ok('o botão lê a tabela, não é mais fixo',
+     HTML.indexOf("'<div class=\"toolbar\"><button class=\"btn small\" onclick=\"'+ac[1]+'\">'+ac[0]+'</button></div></div>'")>0
+     && HTML.indexOf('onclick="mpHabitoModal()">+ Novo hábito</button></div></div>')<0);
+  secao('nenhuma aba fica sem ação própria');
+  const lista=(HTML.match(/const abas=\[[\s\S]*?\];/)||[''])[0];
+  const chaves=(lista.match(/\['([a-z]+)',/g)||[]).map(s=>s.slice(2,-2));
+  ok('achou as abas no código', chaves.length===5);
+  chaves.forEach(k=>ok('aba "'+k+'" tem ação própria', !!g.MP_ACAO[k]));
+  secao('hora que já vem preenchida no evento');
+  ok('vendo outro dia, sugere 9h', g.mpEvtHoraSug()===9);
+  const gh=rodar(bloco('const MP_ACAO={','function mpPintar()'),
+    {tkHoje:()=>'2026-08-23',MP:{dia:'2026-08-23'}},['MP_ACAO']);   /* dia aberto = hoje */
+  ok('vendo hoje, sugere a próxima hora cheia', gh.mpEvtHoraSug()===Math.min(23,new Date().getHours()+1));
+  ok('nunca passa das 23h', gh.mpEvtHoraSug()<=23&&gh.mpEvtHoraSug()>=1);
+}
+
 /* ---------------- hábito: data de início ---------------- */
 grupo('Hábito: a partir de quando começa');
 {

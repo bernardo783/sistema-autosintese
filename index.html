@@ -9941,14 +9941,28 @@ async function renderPessoal(c){
 }
 window.mpCriarWs=async()=>{ const l=await pessoalGarantir(); if(l){ spDesenhar(); render('pessoal'); } };
 
+/* O botão do topo muda com a aba: em Tarefas cria tarefa, em Agenda cria evento.
+   Nas abas de hábito (Início, Hábitos, Progresso) segue criando hábito. */
+const MP_ACAO={
+  inicio:   ['+ Novo hábito','mpHabitoModal()'],
+  habitos:  ['+ Novo hábito','mpHabitoModal()'],
+  progresso:['+ Novo hábito','mpHabitoModal()'],
+  tarefas:  ['+ Nova tarefa','mpIrTarNova()'],
+  agenda:   ['+ Novo evento','mpEvtSlot(mpEvtHoraSug())']
+};
+/* hora que já vem preenchida: a próxima hora cheia se o dia aberto é hoje, senão 9h */
+function mpEvtHoraSug(){ if(MP.dia!==tkHoje()) return 9;
+  return Math.min(23,new Date().getHours()+1); }
+
 function mpPintar(){
   if(currentView!=='pessoal') return;
   const c=$('#content'); if(!c) return;
   const mem={}; ['mpTarNm','mpEvtNm','mpEvtHr'].forEach(id=>{ const el=document.getElementById(id);
     if(el){ mem[id]={v:el.value,f:document.activeElement===el}; } });
   const abas=[['inicio','Início'],['habitos','Hábitos'],['tarefas','Tarefas'],['agenda','Agenda'],['progresso','Progresso']];
+  const ac=MP_ACAO[MP.aba]||MP_ACAO.inicio;
   c.innerHTML='<div class="page-head"><div></div>'+
-    '<div class="toolbar"><button class="btn small" onclick="mpHabitoModal()">+ Novo hábito</button></div></div>'+
+    '<div class="toolbar"><button class="btn small" onclick="'+ac[1]+'">'+ac[0]+'</button></div></div>'+
     '<div class="fin-tabs">'+abas.map(a=>'<button class="ftab '+(MP.aba===a[0]?'active':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
     '<div id="mpCorpo"></div>';
   const b=$('#mpCorpo');
