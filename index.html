@@ -1433,7 +1433,6 @@
 .mp-saud small{display:block;font-size:13.5px;color:var(--muted);font-weight:600;margin-top:5px}
 .mp-topo{display:flex;align-items:center;gap:26px;margin:10px 0 30px;flex-wrap:wrap}
 .mp-topo .mp-anel{width:122px;height:122px;margin:0}
-.mp-coluna{max-width:900px;margin:0 auto}
 .mp-topo .mp-anel::after{inset:9px}
 .mp-topo .mp-anel .nv{font-size:26px}
 .mp-cantos{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:24px;align-items:start}
@@ -1458,8 +1457,8 @@
 .mp-h2pct{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:800}
 .mp-h2bar{grid-column:1/-1;height:6px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:12px}
 .mp-h2bar i{display:block;height:100%;border-radius:99px}
-.mp-addrow{display:block;width:100%;text-align:center;padding:11px;border:1px dashed var(--line);border-radius:11px;background:none;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-top:12px}
-.mp-addrow:hover{color:var(--brand2);border-color:var(--brand)}
+.mp-addrow{display:inline-block;padding:8px 2px;border:0;background:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;margin-top:8px;opacity:.75}
+.mp-addrow:hover{color:var(--brand2);opacity:1}
 .mp-t7g{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 .mp-t7{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 6px;text-align:center}
 .mp-t7.hj{border-color:var(--brand)}
@@ -9940,10 +9939,10 @@ function mpPintar(){
   const mem={}; ['mpTarNm','mpEvtNm','mpEvtHr'].forEach(id=>{ const el=document.getElementById(id);
     if(el){ mem[id]={v:el.value,f:document.activeElement===el}; } });
   const abas=[['inicio','Início'],['progresso','Progresso'],['tarefas','Tarefas'],['agenda','Agenda']];
-  c.innerHTML='<div class="page-head"><div><h2>'+esc(wsNome())+'</h2><div class="desc">'+mpDataExt(tkHoje())+'</div></div>'+
+  c.innerHTML='<div class="page-head"><div></div>'+
     '<div class="toolbar"><button class="btn small" onclick="mpHabitoModal()">+ Novo hábito</button></div></div>'+
     '<div class="fin-tabs">'+abas.map(a=>'<button class="ftab '+(MP.aba===a[0]?'active':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
-    '<div id="mpCorpo" class="mp-coluna"></div>';
+    '<div id="mpCorpo"></div>';
   const b=$('#mpCorpo');
   if(MP.aba==='inicio') b.innerHTML=mpInicioHTML();
   else if(MP.aba==='progresso') b.innerHTML=mpProgHTML();
@@ -9984,27 +9983,15 @@ function mpInicioHTML(){
       '<div class="mp-h2bar"><i style="width:'+pct+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div>'+
       '</div>';
   }).join('');
-  const d7=[0,1,2,3,4,5,6].map(i=>tkDiaMais(hoje,i-6));
-  const habGrid=MP.habitos.length?'<div class="mp-gradewrap"><table class="mp-grade"><tr><th></th>'+
-    d7.map(d=>'<th class="'+(d===hoje?'hj':'')+'">'+MP_SEMD[mpDow(d)].toUpperCase()+'<br>'+Number(d.slice(8,10))+'</th>').join('')+'</tr>'+
-    MP.habitos.map(h=>'<tr><td class="mp-gnm"><span style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,13)+'</span>'+esc(h.nome)+'</td>'+
-      d7.map(d=>{ let cls='off',tit=esc(h.nome)+' · '+mpCurto(d),clk='';
-        if(mpProg(h,d)){ if(mpCk(h.id,d)){ cls='ok'; tit+=' — feito'; }else{ cls='miss'; tit+=' — não feito'; }
-          clk=' onclick="mpCheck(\''+h.id+'\',\''+d+'\')"'; }
-        return '<td><div class="mp-cel '+cls+'" title="'+tit+'"'+clk+'></div></td>'; }).join('')+'</tr>').join('')+
-    '</table></div>':'';
-  const semT=mpNotaFaixa(d7[0],hoje);
   return '<div class="mp-topo">'+
     '<div><div class="mp-saud">'+saud+', '+esc(nome)+'.<small>'+mpDataExt(hoje)+'</small></div>'+
     (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:8px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+'</div>'+
-    '<div style="margin-left:auto"><div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
-      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota</div><div class="xp">'+n.feit+'/'+n.prev+'</div></div></div></div>'+
+    (n.prev>0?'<div style="margin-left:auto"><div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
+      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota</div><div class="xp">'+n.feit+'/'+n.prev+'</div></div></div></div>':'')+
     '</div>'+
     '<div class="mp-sech">Hábitos · '+MP.habitos.length+'</div>'+
     (rows||'<div class="hint">Nenhum hábito ainda.</div>')+
     '<button class="mp-addrow" onclick="mpHabitoModal()">+ Adicionar hábito</button>'+
-    '<div class="mp-sech" style="margin-top:26px">Hábitos · últimos 7 dias<span style="margin-left:auto;letter-spacing:0;text-transform:none">nota da semana: <b style="color:var(--brand2)">'+mpNotaFmt(semT.nota)+'</b></span></div>'+
-    (habGrid||'<div class="hint">Aparece quando houver hábito.</div>')+
     '';
 }
 
