@@ -517,7 +517,9 @@
   .railbar .bot .av{width:30px;height:30px;cursor:pointer}
   .railbar .rl{position:relative}
   .railbar.ws-pessoal .rl,.railbar.ws-pessoal .sep{display:none}
-  .railbar.ws-pessoal #rlInicio,.railbar.ws-pessoal #rlBuscar,.railbar.ws-pessoal #rlNtf,.railbar.ws-pessoal #rlInbox,.railbar.ws-pessoal #rlAgenda,.railbar.ws-pessoal #rlKpi{display:flex}
+  .railbar.ws-pessoal #rlInicio,.railbar.ws-pessoal #rlBuscar,.railbar.ws-pessoal #rlNtf,.railbar.ws-pessoal #rlInbox,.railbar.ws-pessoal #rlAgenda,.railbar.ws-pessoal #rlKpi,.railbar.ws-pessoal #rlVoltar{display:flex}
+  .railbar #rlVoltar{color:var(--brand2)}
+  .railbar #rlVoltar:hover{background:var(--hov2)}
   .railbar .rl .bdg{position:absolute;top:2px;right:7px;background:var(--brand);color:#fff;border-radius:999px;
     font-size:8.5px;font-weight:800;padding:1px 4px;min-width:15px;line-height:1.35}
   .railbar .rl .bdg:empty{display:none}
@@ -1487,7 +1489,7 @@
 .gc-ev .x:hover{color:var(--danger)}
 .gc-now{position:absolute;left:50px;right:0;height:2px;background:var(--danger);z-index:3;border-radius:2px}
 .gc-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--danger)}
-#rlAgenda,#rlKpi{display:none}
+#rlAgenda,#rlKpi,#rlVoltar{display:none}
 .mp-trw .tt.abre{cursor:pointer}
 .mp-trw .tt.abre:hover{color:var(--brand2)}
 .mp-tprog{font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;flex:none;font-variant-numeric:tabular-nums}
@@ -1567,6 +1569,8 @@
 <!-- ============ APP ============ -->
 <div id="app" class="hidden">
   <nav class="railbar" id="railbar">
+    <button class="rl" id="rlVoltar" title="Voltar para o workspace da AutoSíntese" onclick="wsVoltarEmpresa()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 19l-7-7 7-7"/><path d="M3 12h11a6 6 0 0 1 6 6v2"/></svg><span class="t">Síntese</span></button>
     <button class="rl" id="rlInicio" title="Início — suas demandas do dia" onclick="spInicio()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="t">Início</span></button>
     <button class="rl" id="rlBuscar" title="Buscar em tudo (⌘K)" onclick="gsAbrir('')">
@@ -3635,6 +3639,11 @@ const wsNome=()=>{ const w=wsAtual(); return (w&&w.nome)||WS_NOME; };
 const espacoDaAtual=(e)=>{ const w=wsAtual(); if(!w) return true;
   if(!e.workspace_id) return w.tipo==='empresa';
   return String(e.workspace_id)===String(w.id); };
+window.wsVoltarEmpresa=()=>{
+  const we=wsEmpresa();
+  if(!we){ toast('Workspace da empresa não encontrado.'); return; }
+  wsTrocar(we.id);
+};
 window.wsTrocar=(id)=>{ WS_SEL=String(id||'');
   try{ localStorage.setItem('ws_sel',WS_SEL); }catch(_){}
   TK.listaSel=''; TK.arqVista=false;
