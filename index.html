@@ -1582,6 +1582,8 @@
       <span class="t">Avisos</span><span class="bdg" id="ntfBdg"></span></button>
     <button class="rl" id="rlInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg><span class="t">Tarefas</span><span class="bdg" id="spInboxN"></span></button>
+    <button class="rl navlink" data-view="pessoal" id="navPessoal" title="Modo Pessoal — seus hábitos e tarefas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12h.01"/></svg><span class="t">Pessoal</span></button>
     <button class="rl" id="rlAgenda" title="Agenda do dia" onclick="mpIrAgenda()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M16 2v4M8 2v4M3 9h18"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg><span class="t">Agenda</span></button>
     <button class="rl" id="rlKpi" title="KPI — suas notas e progresso" onclick="mpIrKpi()">
@@ -1594,8 +1596,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg><span class="t">Funil</span></button>
     <button class="rl navlink hidden" data-view="daily" id="navDaily" title="Reunião diária do squad">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="t">Daily</span></button>
-    <button class="rl navlink" data-view="pessoal" id="navPessoal" title="Modo Pessoal — seus hábitos e tarefas">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12h.01"/></svg><span class="t">Pessoal</span></button>
     <div class="sep"></div>
     <button class="rl navlink" data-view="acessos" title="Acessos e senhas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.3-8.3M17 6l3 3M14 9l3 3"/></svg><span class="t">Acessos</span></button>
@@ -5093,6 +5093,8 @@ function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
   const wn=document.getElementById('wsNm'); if(wn) wn.textContent=wsNome();
   const rb=document.querySelector('.railbar'); if(rb) rb.classList.toggle('ws-pessoal',(wsAtual()||{}).tipo==='pessoal');
+  const bp=document.querySelector('#navPessoal .t');
+  if(bp){ const mw=(wsMinhas()||[])[0]; bp.textContent=mw?String(mw.nome).split(' ')[0].slice(0,10):'Pessoal'; }
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
   /* Um aceso por vez: o realce diz ONDE VOCÊ ESTÁ, não que a árvore está aberta.
      Antes o Espaços acendia só por estar aberta, e ficava aceso junto com o Início. */
