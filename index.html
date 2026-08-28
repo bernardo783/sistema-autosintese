@@ -1122,6 +1122,14 @@
   /* valor vazio fica discreto para o olho ir no que está preenchido */
   .tk-cel.vazio{color:var(--muted);opacity:.55}
   tr:hover .tk-cel.vazio{opacity:.9}
+  /* Coluna de pessoa: só a foto (pedido do Gabriel 28/08). Clica e escolhe no popup. */
+  .tk-pcel{display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border-radius:9px;
+    border:1px solid transparent;background:transparent;cursor:pointer;transition:background .12s,border-color .12s}
+  .tk-pcel:hover{border-color:var(--brand2);background-color:var(--panel2)}
+  .tk-pcel .av{width:22px;height:22px;font-size:9.5px}
+  .tk-pcel .av.ph{background:var(--panel2);color:var(--muted);border:1px dashed var(--line);font-size:11px}
+  .tk-pcel.vazio{opacity:.45}
+  tr:hover .tk-pcel.vazio{opacity:1}
   /* dinheiro: alinhado à direita, sem quebrar linha e com dígitos de largura fixa */
   .tk-money{display:flex;align-items:center;justify-content:flex-end;gap:2px;white-space:nowrap}
   .tk-money .tk-cel{width:78px;flex:none;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;
@@ -1138,11 +1146,26 @@
     background-position:calc(100% - 13px) calc(50% + 1px),calc(100% - 9px) calc(50% + 1px);
     background-size:4px 4px,4px 4px;background-repeat:no-repeat}
   .tk-stsel:focus{outline:2px solid var(--brand2);outline-offset:1px}
-  /* lista mais densa e com o nome do cliente em destaque */
-  .tk-tab td{padding:9px 14px}
+  /* Coluna de lista de opcoes: tambem vira pilula colorida (Gabriel 28/08, opcao B).
+     Vazio continua so o traco, pra o olho ir no que esta preenchido. */
+  .tk-stsel.opc{text-transform:none;font-size:11.5px;letter-spacing:0}
+  /* LINHA-CARTAO (Gabriel 28/08, opcao D): cada linha e um bloco com respiro e uma
+     barra da cor do status na borda esquerda. Exige border-collapse:separate. */
+  .tk-tab{border-collapse:separate;border-spacing:0 6px}
+  .tk-tab td{padding:9px 14px;border-bottom:none}
   .tk-tab th{padding:10px 14px;position:sticky;top:0;z-index:2}
-  .tk-tab tbody tr+tr td{border-top:1px solid var(--line)}
+  .tk-tab tbody tr+tr td{border-top:none}
   .tk-tab td:first-child{font-weight:700;font-size:13.5px}
+  .tk-tab tbody tr:not(.tk-faixa) > td{background:var(--panel);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .tk-tab tbody tr:not(.tk-faixa) > td:first-child{border-left:1px solid var(--line);
+    border-top-left-radius:11px;border-bottom-left-radius:11px;
+    box-shadow:inset 3px 0 0 0 var(--bar,transparent)}
+  .tk-tab tbody tr:not(.tk-faixa) > td:last-child{border-right:1px solid var(--line);
+    border-top-right-radius:11px;border-bottom-right-radius:11px}
+  .tk-tab tbody tr:not(.tk-faixa):hover > td{background:var(--panel2)}
+  .tk-tab tbody tr:last-child > td{border-bottom:1px solid var(--line)}
+  .tk-tab .tk-faixa > td{border-radius:9px;border-bottom:none;padding:9px 14px!important}
   .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
   .tk-cpbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:var(--panel2)}
   .tk-cptit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px}
@@ -4597,6 +4620,24 @@ window.tkQaResp=(ev,id)=>{ ev.stopPropagation();
 };
 window.tkQaSetResp=(id,uid)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
   tkPatch(id,{responsavel_id:uid||null},'Responsável atualizado.'); };
+/* Coluna do tipo Pessoa na tabela: mostra so o avatar; o nome vira este popup. */
+window.tkQaCampoPessoa=(ev,id,campoId)=>{ ev.stopPropagation();
+  const chave='cp'+id+campoId;
+  const vel=document.getElementById('tkQaMenu'); if(vel){ const ja=vel.dataset.id===chave; vel.remove(); if(ja) return; }
+  const r=ev.currentTarget.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='tkQaMenu'; el.className='tkpop'; el.dataset.id=chave;
+  el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-266))+'px'; el.style.top=(r.bottom+6)+'px'; el.style.width='260px';
+  el.style.maxHeight='340px'; el.style.overflowY='auto';
+  const t=TK.tarefas.find(x=>x.id===id)||{}, c=tkCampo1(campoId)||{}, at=(t.valores||{})[campoId]||'';
+  el.innerHTML=`<div class="tkp-sec">${esc(c.nome||'Pessoa')}</div>
+    <label class="tkp-row" onclick="tkQaSetCampoPessoa('${id}','${campoId}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span><span class="tkp-nm">Ninguém</span>${!at?'<span class="tkp-n">•</span>':''}</label>
+    ${equipeDe(t.lista_id,at).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
+      <label class="tkp-row" onclick="tkQaSetCampoPessoa('${id}','${campoId}','${u.id}')">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span>${at===u.id?'<span class="tkp-n">•</span>':''}</label>`).join('')}`;
+  document.body.appendChild(el);
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.tkQaSetCampoPessoa=(id,campoId,uid)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
+  tkSetVal(id,campoId,uid||''); };
 /* etiqueta de cliente pesquisando (pedido do Gabriel 10/08): digita e acha, sem lista gigante */
 window.tkQaCli=(ev,id)=>{ ev.stopPropagation();
   const vel=document.getElementById('tkQaMenu'); if(vel){ vel.remove(); if(vel.dataset.id==='cli'+id) return; }
@@ -4741,11 +4782,30 @@ function tkGrupos(){
   return gs;
 }
 const ementarCor=(s)=>{ let h=0; for(let i=0;i<String(s).length;i++) h=(h*31+String(s).charCodeAt(i))%360; return 'hsl('+h+',55%,55%)'; };
+/* Cor de uma opcao de coluna. Palavra conhecida ganha semantica (verde/amarelo/vermelho);
+   o resto pega um tom estavel da paleta pelo texto — mesma palavra, mesma cor sempre. */
+const OPC_SEM={ok:'#3fcf8e',sim:'#3fcf8e',bom:'#3fcf8e',otimo:'#3fcf8e',promotor:'#3fcf8e',ativo:'#3fcf8e',feito:'#3fcf8e',concluido:'#3fcf8e',aprovado:'#3fcf8e',pago:'#3fcf8e',
+  neutro:'#e6b13f',medio:'#e6b13f',atencao:'#e6b13f',pendente:'#e6b13f','em andamento':'#e6b13f',parcial:'#e6b13f',aguardando:'#e6b13f',
+  detrator:'#ef5b6b',ruim:'#ef5b6b',nao:'#ef5b6b',critico:'#ef5b6b',atrasado:'#ef5b6b',cancelado:'#ef5b6b',risco:'#ef5b6b',churn:'#ef5b6b',reprovado:'#ef5b6b',parado:'#ef5b6b'};
+const OPC_PAL=['#7b68ee','#60a5fa','#2dd4bf','#f59e0b','#f472b6','#a78bfa','#34d399','#fb923c','#38bdf8','#c084fc'];
+const semAcento=(x)=>String(x==null?'':x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const corOpcao=(txt)=>{ const k=semAcento(txt); if(!k) return '#8e8e99';
+  if(OPC_SEM[k]) return OPC_SEM[k];
+  let h=0; for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))%OPC_PAL.length;
+  return OPC_PAL[h]; };
+/* Cor da barra do cartao: a mesma do status da linha. */
+const tkCorLinha=(t)=>{ const s=tkStatus1(t.status_id); return (s&&s.cor)||'#8e8e99'; };
 const tkCelula=(t,c)=>{
   const v=(t.valores||{})[c.id];
   const vazio=(v==null||v==='')?' vazio':'';
-  if(c.tipo==='select') return `<select class="tk-cel sel${vazio}" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
-  if(c.tipo==='pessoa') return `<select class="tk-cel sel${vazio}" onchange="tkSetVal('${t.id}','${c.id}',this.value)"><option value="">—</option>${equipeDe(t.lista_id,v).map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
+  if(c.tipo==='select'){
+    const ops=`<option value="">—</option>`+(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('');
+    if(vazio) return `<select class="tk-cel sel vazio" onchange="tkSetVal('${t.id}','${c.id}',this.value)">${ops}</select>`;
+    const cor=corOpcao(v);
+    return `<select class="tk-stsel opc" style="color:${esc(cor)};border-color:${esc(cor)}66;background:${esc(cor)}1a" onchange="tkSetVal('${t.id}','${c.id}',this.value)">${ops}</select>`;
+  }
+  if(c.tipo==='pessoa'){ const nm=v?tkNomeUser(v):'';
+    return `<button type="button" class="tk-pcel${vazio}" title="${v?esc(nm):('Definir '+esc(c.nome||'pessoa'))}" onclick="tkQaCampoPessoa(event,'${t.id}','${c.id}')">${v?avatar(v,nm,'sm'):'<span class="av sm ph">+</span>'}</button>`; }
   if(c.tipo==='checkbox') return `<input type="checkbox" ${v?'checked':''} onchange="tkSetVal('${t.id}','${c.id}',this.checked)">`;
   const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
   if(c.tipo==='moeda') return `<span class="tk-money"><span class="tk-pre">R$</span><input class="tk-cel moeda${vazio}" type="number" value="${esc(v==null?'':String(v))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)" placeholder="—"></span>`;
@@ -4771,9 +4831,9 @@ function tkViewLista(){
   const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
-    if(lc) return `<tr draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
+    if(lc) return `<tr style="--bar:${esc(tkCorLinha(t))}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
     const manual=!TK.ord;
-    return `<tr${manual?` draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"`:''} class="${manual?'arrastavel':''}">
+    return `<tr style="--bar:${esc(tkCorLinha(t))}"${manual?` draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"`:''} class="${manual?'arrastavel':''}">
       <td class="tk-pega"><span class="tk-grip" title="${manual?'Arraste para mudar a posição':'Volte para a ordem manual para poder arrastar'}">⠿</span><input type="checkbox" class="tk-chk" ${t.status==='feito'?'checked':''} onclick="tkConcluir('${t.id}',this.checked)"></td>
       <td>${nome(t)}</td>
       <td>${tkSelo(t)}</td>
