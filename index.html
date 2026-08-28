@@ -1710,6 +1710,7 @@ const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {auth:{storage:authS
 let cryptoKey=null, DB=null, USERS=null, VAULT_RAW=null, currentUser=null, SESSION=null;
 const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
+const MAIUS=(s)=>String(s==null?'':s).toLocaleUpperCase('pt-BR');
 function normalizeDB(d){ return {financeiro:d.financeiro||[], senhas:d.senhas||[], links:d.links||[], projetos:d.projetos||[], folhaFixos:d.folhaFixos||[], folha:d.folha||[], clientes:d.clientes||[], recebimentos:d.recebimentos||[], trafego:d.trafego||[], contasMeta:d.contasMeta||[]}; }
 function blankDB(){ return normalizeDB({}); }
 
@@ -1751,7 +1752,10 @@ async function loadDBImpl(){
   curarInicio(); /* fase1: inicio sempre YYYY-MM */
   /* autocura: todo cliente sempre tem um projeto — roda ANTES da fotografia, senao
      "projetos" nasce eternamente sujo e fabrica conflito falso em toda gravacao */
-  DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:c.nome,responsavel:'',status:'novo',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
+  DB.clientes.forEach(c=>{ if(!DB.projetos.some(p=>p.clienteId===c.id)) DB.projetos.push({id:'prj_'+c.id,clienteId:c.id,nome:MAIUS(c.nome),responsavel:'',status:'novo',prazo:'',notas:(c.servico||'')+(c.nicho?(' · '+c.nicho):'')}); });
+  /* nome de projeto e sempre CAIXA ALTA — normaliza aqui, antes da fotografia,
+     entao nao marca o modulo como sujo nem fabrica conflito falso */
+  DB.projetos.forEach(p=>{ p.nome=MAIUS(p.nome); });
   /* carimbo e fotografia por modulo: o saveDB usa pra so gravar o que mudou,
      e pra detectar quando alguem salvou por baixo (lock otimista) */
   DB.__rev=revs;
@@ -8843,7 +8847,7 @@ window.openProjModal=(id)=>{
   const it=id?DB.projetos.find(x=>x.id===id):{status:'novo'};
   const opts=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${PRJ_NORM(it.status)===k?' selected':''}>${v}</option>`).join('');
   modal(id?'Editar projeto':'Novo projeto',`
-    <div class="field"><label>Nome do projeto</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Novo site"></div>
+    <div class="field"><label>Nome do projeto</label><input id="m_nome" style="text-transform:uppercase" value="${esc(it.nome)}" placeholder="EX: NOVO SITE"></div>
     <div class="row2">
       <div class="field"><label>Gestor de tráfego</label><input id="m_resp" value="${esc(it.responsavel)}" placeholder="Ex.: Luan"></div>
       <div class="field"><label>Gerente *</label><input id="m_ger" value="${esc(it.gerente||'')}" placeholder="Nome do gerente"></div>
@@ -8863,7 +8867,7 @@ window.openProjModal=(id)=>{
       <button class="btn ghost small" style="margin-top:10px" onclick="document.querySelector('.overlay').remove();projFin('${it.clienteId}')">Ver lançamentos deste cliente →</button>
     </div>`;})():''}`,
     async ()=>{
-      const v={nome:$('#m_nome').value.trim(),responsavel:$('#m_resp').value.trim(),gerente:$('#m_ger').value.trim(),status:$('#m_status').value,
+      const v={nome:MAIUS($('#m_nome').value.trim()),responsavel:$('#m_resp').value.trim(),gerente:$('#m_ger').value.trim(),status:$('#m_status').value,
         squad:$('#m_squad').value.trim(),notas:$('#m_notas').value.trim()};
       if(!v.nome){toast('Informe o nome.');return false;}
       const probDoc=ctConfereDocs(v.contrato.cnpj,v.contrato.rep_cpf,v.contrato.cep);
@@ -8976,8 +8980,8 @@ function renderRecebimentos(c){
 }
 function syncProjetoCliente(cli){
   let p=DB.projetos.find(x=>x.clienteId===cli.id);
-  if(!p){ DB.projetos.push({id:uid(),clienteId:cli.id,nome:cli.nome,responsavel:'',status:'novo',prazo:'',notas:(cli.servico||'')+(cli.nicho?(' · '+cli.nicho):'')}); }
-  else { p.nome=cli.nome; }
+  if(!p){ DB.projetos.push({id:uid(),clienteId:cli.id,nome:MAIUS(cli.nome),responsavel:'',status:'novo',prazo:'',notas:(cli.servico||'')+(cli.nicho?(' · '+cli.nicho):'')}); }
+  else { p.nome=MAIUS(cli.nome); }
 }
 window.projFin=(cliId)=>{
   const cli=DB.clientes.find(c=>c.id===cliId); if(!cli) return;
