@@ -904,6 +904,7 @@
   .stSel.areceber{background:rgba(224,166,59,.15);color:var(--warn);border-color:rgba(224,166,59,.4)}
   .stSel.sinal{background:rgba(47,124,246,.15);color:var(--info);border-color:rgba(47,124,246,.4)}
   .stSel.churn{background:rgba(229,72,77,.22);color:var(--danger);border-color:rgba(229,72,77,.55)}
+  .stSel.carencia{background:rgba(167,139,250,.16);color:var(--brand2);border-color:rgba(167,139,250,.45)}
   .tk-wrap{display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:start}
   .tk-lista{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--txt);padding:7px 9px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit}
   .tk-lista:hover{background:var(--panel2)}
@@ -8854,7 +8855,7 @@ function calcRecebimentos(comp){
     if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
     if(comp>compNow()) return 'areceber';
     return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
-  const g={recebido:[],sinal:[],inadimplente:[],areceber:[],churn:[],semdia:[]};
+  const g={recebido:[],sinal:[],inadimplente:[],areceber:[],carencia:[],churn:[],semdia:[]};
   DB.clientes.forEach(c=>{ const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
   const val=(c)=>{ const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; }; /* valor congelado do mês, se houver registro */
   const soma=a=>a.reduce((s,x)=>s+val(x),0);
@@ -8862,7 +8863,8 @@ function calcRecebimentos(comp){
   const sinaisRestante=g.sinal.reduce((s,c)=>s+Math.max(0,val(c)-(Number((byCli[c.id]||{}).sinal)||0)),0);
   const churnMes=(c)=>{ const r=byCli[c.id]; return !!(r&&r.status==='churn'); };
   const perdaChurn=g.churn.reduce((s,c)=>s+(churnMes(c)?val(c):0),0);
-  return {byCli, st, g, soma, val, sinaisPagos, sinaisRestante, churnMes, perdaChurn};
+  const isentoCarencia=g.carencia.reduce((s,x)=>s+val(x),0);
+  return {byCli, st, g, soma, val, sinaisPagos, sinaisRestante, churnMes, perdaChurn, isentoCarencia};
 }
 function renderRecebimentos(c){
   const comp=cliComp;
@@ -8882,6 +8884,7 @@ function renderRecebimentos(c){
          <option value="sinal"${statusFiltro==='sinal'?' selected':''}>🔵 Sinal pago</option>
          <option value="inadimplente"${statusFiltro==='inadimplente'?' selected':''}>🔴 Inadimplente</option>
          <option value="areceber"${statusFiltro==='areceber'?' selected':''}>🟡 A receber</option>
+         <option value="carencia"${statusFiltro==='carencia'?' selected':''}>🟣 Carência</option>
          <option value="churn"${statusFiltro==='churn'?' selected':''}>⚫ Churn</option>
        </select>
        <button class="btn small" onclick="openCliModal()">+ Cliente</button>
@@ -8892,12 +8895,13 @@ function renderRecebimentos(c){
      <div class="card"><div class="k">🔵 Sinais</div><div class="v">${brl(R.sinaisPagos)}</div><div class="sub">${R.g.sinal.length} cliente${R.g.sinal.length===1?'':'s'} · resta ${brl(R.sinaisRestante)}</div></div>
      <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${R.g.inadimplente.length?'neg':''}">${brl(R.soma(R.g.inadimplente))}</div><div class="sub">${R.g.inadimplente.length} cliente${R.g.inadimplente.length===1?'':'s'} em atraso</div></div>
      <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(R.soma(R.g.areceber)+R.sinaisRestante)}</div><div class="sub">${R.g.areceber.length} cliente${R.g.areceber.length===1?'':'s'} no prazo</div></div>
+     <div class="card"><div class="k">🟣 Carência</div><div class="v">${brl(R.isentoCarencia)}</div><div class="sub">${R.g.carencia.length} cliente${R.g.carencia.length===1?'':'s'} · isento no mês</div></div>
      <div class="card"><div class="k">⚫ Churn</div><div class="v ${R.g.churn.length?'neg':''}">${brl(R.perdaChurn)}</div><div class="sub">${R.g.churn.length} cliente${R.g.churn.length===1?'':'s'} · receita perdida</div></div>
      <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)}</div><div class="sub">${ativos.length} clientes ativos</div></div>
    </div>
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: 🟡 A receber, 🔴 Inadimplente, 🟢 Recebido — escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong>⚫ Churn</strong> marca perda definitiva: o valor do mês vira receita perdida e, a partir do mês seguinte, o cliente aparece zerado no grupo Churn e sai da carteira.</p>`;
+   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: 🟡 A receber, 🔴 Inadimplente, 🟢 Recebido — escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong>🟣 Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong>⚫ Churn</strong> marca perda definitiva: o valor do mês vira receita perdida e, a partir do mês seguinte, o cliente aparece zerado no grupo Churn e sai da carteira.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const vencDe=(r)=>{ const rc=R.byCli[r.id]; if(rc&&rc.venc) return rc.venc; return (r.diaVenc>=1&&r.diaVenc<=31)?vencOf(comp,r.diaVenc):null; };
@@ -8911,6 +8915,7 @@ function renderRecebimentos(c){
         <option value="sinal"${s==='sinal'?' selected':''}>🔵 Sinal pago</option>
         <option value="inadimplente"${s==='inadimplente'?' selected':''}>🔴 Inadimplente</option>
         <option value="recebido"${s==='recebido'?' selected':''}>🟢 Recebido</option>
+        <option value="carencia"${s==='carencia'?' selected':''}>🟣 Carência (isento no mês)</option>
         <option value="churn"${s==='churn'?' selected':''}>⚫ Churn (não vai pagar)</option>
       </select>${s==='recebido'&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${s==='sinal'&&rec?`<div style="color:var(--muted);font-size:11px;margin-top:3px">sinal ${brl(rec.sinal)} em ${fmtDate(rec.sinalEm)} · resta ${brl(Math.max(0,R.val(r)-(Number(rec.sinal)||0)))}</div>`:''}`:'<span class="tag st">defina o dia</span>';
       return `<tr>
@@ -8919,7 +8924,7 @@ function renderRecebimentos(c){
       <td>${esc(r.servico)||'—'}</td>
       <td>${r.diaVenc?('dia '+r.diaVenc):'<span class="tag pausado">a definir</span>'}</td>
       <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
-      <td class="money" style="text-align:right">${s==='churn'?(R.churnMes(r)?`<span style="color:var(--danger)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">perdido</div>`:`<span style="color:var(--muted)">—</span>`):`${brl(R.val(r))}${R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:''}`}</td>
+      <td class="money" style="text-align:right">${s==='carencia'?`<span style="color:var(--muted);text-decoration:line-through">${brl(R.val(r))}</span><div style="color:var(--brand2);font-size:11px">carência</div>`:s==='churn'?(R.churnMes(r)?`<span style="color:var(--danger)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">perdido</div>`:`<span style="color:var(--muted)">—</span>`):`${brl(R.val(r))}${R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:''}`}</td>
       <td>${selHtml}</td>
       <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="cliExcluirSeguro('${r.id}')" data-dica="NOVO: excluir o cliente agora limpa junto as cobranças, os lançamentos e o projeto ligados a ele — nada fica órfão.">Excluir</button></div></td>
     </tr>`;}).join('');
@@ -9120,12 +9125,17 @@ window.rcStatusCli=async (cliId,novo)=>{
       const restante=Math.max(0,(Number(r.valor)||0)-(Number(r.sinal)||0));
       DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id);
       DB.financeiro.push({id:'rc_'+r.id,data:(r.venc||vencOf(comp,c.diaVenc)),comp:comp,pagoEm:r.recebidoEm,tipo:'receita',descricao:(r.sinal?'Restante: ':'Mensalidade: ')+r.nome,categoria:'Mensalidade Clientes',valor:(r.sinal?restante:(Number(r.valor)||0))}); }
+  } else if(novo==='carencia'){
+    if(!confirm('Marcar '+c.nome+' em CARENCIA em '+fmtComp(comp)+'?\n\nO cliente continua ativo, mas o mes nao gera receita e nao conta como inadimplencia nem como churn.')){ render('recebimentos'); return; }
+    r.status='carencia'; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.churnEm=null; r.carenciaEm=hojeISO();
+    DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
+    const pjc=DB.projetos.find(x=>x.clienteId===c.id); if(pjc&&pjc.status==='churn') pjc.status='ativo';
   } else {
     r.status=novo; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null;
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
   }
   if(novo!=='churn' && c.churnComp && comp>=c.churnComp){ c.churnComp=null; c.fim=''; }
-  await saveDB(); render('recebimentos'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='sinal'?'🔵 Sinal pago':novo==='inadimplente'?'🔴 Inadimplente':novo==='churn'?'⚫ Churn — receita perdida':'🟡 A receber'));
+  await saveDB(); render('recebimentos'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='sinal'?'🔵 Sinal pago':novo==='inadimplente'?'🔴 Inadimplente':novo==='churn'?'⚫ Churn — receita perdida':novo==='carencia'?'🟣 Carência — isento no mês':'🟡 A receber'));
 };
 
 /* ======================= CONTRATOS (minutas) ======================= */
