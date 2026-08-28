@@ -1035,6 +1035,24 @@
   .apg-paga{background:rgba(63,207,142,.15);color:#5fd9a4}
   .apg-canc{background:var(--panel2);color:var(--muted);text-decoration:line-through}
   /* popovers de filtro (Responsavel / Filtros) estilo ClickUp */
+  /* ===== MENU DE OPCOES (Gabriel 28/08) =====
+     O popup nativo do <select> e desenhado pelo sistema operacional e destoa de tudo.
+     Este menu cobre TODO <select> da tela com o visual do app. */
+  .selmenu{position:fixed;z-index:10050;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:5px;box-shadow:var(--shadow);max-height:min(58vh,340px);
+    overflow-y:auto;scrollbar-width:thin;min-width:190px;max-width:min(340px,92vw);
+    animation:selmenuIn .11s ease-out}
+  @keyframes selmenuIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .selmenu-i{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;
+    border:none;border-radius:8px;padding:7px 9px;color:var(--txt);font-family:inherit;font-size:13px;
+    font-weight:600;cursor:pointer;line-height:1.35}
+  .selmenu-i:hover{background:var(--panel2)}
+  .selmenu-i.on{background:var(--hov2)}
+  .selmenu-i.off{opacity:.4;cursor:not-allowed}
+  .selmenu-d{width:9px;height:9px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.25)}
+  .selmenu-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .selmenu-c{flex:none;color:var(--brand2);font-size:12px;font-weight:800;width:11px;text-align:right}
+  select.aberto{border-color:var(--brand2)!important;filter:brightness(1.1)}
   .tkpop{position:fixed;z-index:1500;width:330px;max-height:70vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow);scrollbar-width:thin}
   .tkp-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
   .tkp-h strong{font-size:14px}
@@ -1116,9 +1134,12 @@
   .tk-selo{font-size:11px;font-weight:800;padding:3px 9px;border-radius:6px;border:1px solid;letter-spacing:.3px;white-space:nowrap}
   .tk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
   /* Célula editável: parece texto na lista; vira campo só quando a linha recebe o mouse. */
-  .tk-cel{width:100%;background:transparent;border:1px solid transparent;border-radius:7px;padding:5px 7px;
+  /* Uma altura so pra tudo que mora numa celula: pilula, campo, avatar e tag ficam
+     na mesma linha de base, sem degrau (pedido do Gabriel 28/08 — "igual ClickUp"). */
+  :root{--celh:28px}
+  .tk-cel{width:100%;height:var(--celh);background:transparent;border:1px solid transparent;border-radius:7px;padding:0 7px;
     color:var(--txt);font-family:inherit;font-size:13px;appearance:none;-webkit-appearance:none;
-    text-overflow:ellipsis;transition:background .12s,border-color .12s}
+    vertical-align:middle;text-overflow:ellipsis;transition:background .12s,border-color .12s}
   .tk-cel.sel{cursor:pointer;padding-right:20px;background-image:none}
   tr:hover .tk-cel.sel,.tk-cel.sel:focus{
     background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
@@ -1130,8 +1151,9 @@
   .tk-cel.vazio{color:var(--muted);opacity:.55}
   tr:hover .tk-cel.vazio{opacity:.9}
   /* Coluna de pessoa: só a foto (pedido do Gabriel 28/08). Clica e escolhe no popup. */
-  .tk-pcel{display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border-radius:9px;
-    border:1px solid transparent;background:transparent;cursor:pointer;transition:background .12s,border-color .12s}
+  .tk-pcel{display:inline-flex;align-items:center;justify-content:flex-start;height:var(--celh);
+    padding:0 7px;border-radius:7px;border:1px solid transparent;background:transparent;cursor:pointer;
+    vertical-align:middle;transition:background .12s,border-color .12s}
   .tk-pcel:hover{border-color:var(--brand2);background-color:var(--panel2)}
   .tk-pcel .av{width:22px;height:22px;font-size:9.5px}
   .tk-pcel .av.ph{background:var(--panel2);color:var(--muted);border:1px dashed var(--line);font-size:11px}
@@ -1139,15 +1161,16 @@
   tr:hover .tk-pcel.vazio{opacity:1}
   /* dinheiro: alinhado à direita, sem quebrar linha e com dígitos de largura fixa */
   .tk-money{display:flex;align-items:center;justify-content:flex-end;gap:2px;white-space:nowrap}
+  .tk-money{height:var(--celh)}
   .tk-money .tk-cel{width:78px;flex:none;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;
     field-sizing:content;min-width:52px;max-width:104px}
   .tk-money .tk-cel::-webkit-outer-spin-button,.tk-money .tk-cel::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   .tk-tab td.money,.tk-tab th.money{text-align:right}
   .tk-pre{color:var(--muted);font-size:11px;margin-right:1px}
   /* Status = pílula colorida; a seta só aparece quando o mouse passa na linha */
-  .tk-stsel{border:1px solid;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:800;font-family:inherit;
+  .tk-stsel{border:1px solid;border-radius:999px;height:var(--celh);padding:0 12px;font-size:11px;font-weight:800;font-family:inherit;
     cursor:pointer;max-width:100%;letter-spacing:.3px;appearance:none;-webkit-appearance:none;
-    text-transform:uppercase;transition:filter .12s}
+    vertical-align:middle;text-transform:uppercase;transition:filter .12s}
   tr:hover .tk-stsel{padding-right:22px;filter:brightness(1.12);
     background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
     background-position:calc(100% - 13px) calc(50% + 1px),calc(100% - 9px) calc(50% + 1px);
@@ -1159,7 +1182,9 @@
   /* LINHA-CARTAO (Gabriel 28/08, opcao D): cada linha e um bloco com respiro e uma
      barra da cor do status na borda esquerda. Exige border-collapse:separate. */
   .tk-tab{border-collapse:separate;border-spacing:0 6px}
-  .tk-tab td{padding:9px 14px;border-bottom:none}
+  .tk-tab td{padding:9px 14px;border-bottom:none;vertical-align:middle}
+  .tk-tab td .av,.tk-tab td .tag,.tk-tab td .hint,.tk-tab td input[type=checkbox]{vertical-align:middle}
+  .tk-tab td .tag{display:inline-flex;align-items:center;height:22px}
   .tk-tab th{padding:10px 14px;position:sticky;top:0;z-index:2}
   .tk-tab tbody tr+tr td{border-top:none}
   .tk-tab td:first-child{font-weight:700;font-size:13.5px}
@@ -4625,6 +4650,68 @@ window.tkQaResp=(ev,id)=>{ ev.stopPropagation();
   document.body.appendChild(el);
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
+/* ================== MENU DE OPCOES ==================
+   Um menu so, com o visual do app, para todo <select> do sistema: intercepta o clique,
+   monta a lista a partir das <option> do proprio campo e devolve o valor disparando
+   'change'. Quem ja usa <select> ganha o visual novo sem precisar ser reescrito.
+   Escapes: atributo data-nativo no campo, ou select multiplo/desabilitado. */
+let SELMENU=null;
+function selMenuFechar(){ if(!SELMENU) return;
+  SELMENU.el.remove(); if(SELMENU.sel) SELMENU.sel.classList.remove('aberto'); SELMENU=null;
+  document.removeEventListener('mousedown',selMenuFora,true);
+  document.removeEventListener('keydown',selMenuTecla,true);
+  window.removeEventListener('resize',selMenuFechar);
+  window.removeEventListener('scroll',selMenuRolou,true); }
+function selMenuRolou(e){ if(SELMENU&&SELMENU.el.contains(e.target)) return; selMenuFechar(); }
+function selMenuFora(e){ if(SELMENU&&!SELMENU.el.contains(e.target)&&e.target!==SELMENU.sel) selMenuFechar(); }
+function selMenuTecla(e){ if(SELMENU&&e.key==='Escape'){ e.preventDefault(); selMenuFechar(); } }
+/* Bolinha de cor: no campo de status ela sai do status; nas listas de opcao, da cor da palavra. */
+function selMenuCor(sel,txt){
+  const t=String(txt||'').trim();
+  if(!t||/^(—|-)$/.test(t)) return '';
+  if(sel.classList.contains('tk-stsel')){
+    try{ const st=(TK.status||[]).find(x=>String(x.nome||'').trim()===t); if(st&&st.cor) return st.cor; }catch(_){}
+    if(/^sem status$/i.test(t)) return '';
+  } else if(!sel.classList.contains('opc')) return '';
+  try{ return corOpcao(t); }catch(_){ return ''; }
+}
+function selMenuAbrir(sel){
+  const ja=SELMENU&&SELMENU.sel===sel; selMenuFechar(); if(ja) return;
+  const ops=Array.prototype.slice.call(sel.options);
+  if(!ops.length) return;
+  const r=sel.getBoundingClientRect();
+  const el=document.createElement('div'); el.className='selmenu';
+  el.innerHTML=ops.map((o,i)=>{ const rot=(o.textContent||'').trim()||'—', cor=selMenuCor(sel,rot);
+    return `<button type="button" class="selmenu-i${o.selected?' on':''}${o.disabled?' off':''}" data-i="${i}">`
+      +(cor?`<span class="selmenu-d" style="background:${esc(cor)}"></span>`:'')
+      +`<span class="selmenu-t">${esc(rot)}</span><span class="selmenu-c">${o.selected?'&#10003;':''}</span></button>`; }).join('');
+  el.style.minWidth=Math.max(r.width,190)+'px';
+  el.style.visibility='hidden'; el.style.left='0px'; el.style.top='0px';
+  document.body.appendChild(el);
+  const lg=el.offsetWidth, al=el.offsetHeight, sobra=window.innerHeight-r.bottom-8;
+  el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-lg-8))+'px';
+  el.style.top=((al<=sobra)||(r.top<al+8)?(r.bottom+5):(r.top-al-5))+'px';
+  el.style.visibility='';
+  el.addEventListener('click',function(e){
+    const b=e.target.closest('.selmenu-i'); if(!b) return;
+    const i=Number(b.dataset.i), o=sel.options[i]; if(!o||o.disabled) return;
+    selMenuFechar();
+    if(sel.selectedIndex!==i){ sel.selectedIndex=i; sel.dispatchEvent(new Event('change',{bubbles:true})); }
+  });
+  sel.classList.add('aberto'); SELMENU={el:el,sel:sel};
+  const at=el.querySelector('.selmenu-i.on'); if(at&&at.scrollIntoView) at.scrollIntoView({block:'nearest'});
+  setTimeout(function(){ document.addEventListener('mousedown',selMenuFora,true);
+    document.addEventListener('keydown',selMenuTecla,true);
+    window.addEventListener('resize',selMenuFechar);
+    window.addEventListener('scroll',selMenuRolou,true); },0);
+}
+document.addEventListener('mousedown',function(e){
+  const s=e.target&&e.target.closest?e.target.closest('select'):null;
+  if(!s||s.multiple||s.size>1||s.disabled||s.hasAttribute('data-nativo')) return;
+  e.preventDefault();
+  try{ s.focus({preventScroll:true}); }catch(_){ }
+  selMenuAbrir(s);
+},true);
 window.tkQaSetResp=(id,uid)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
   tkPatch(id,{responsavel_id:uid||null},'Responsável atualizado.'); };
 /* Coluna do tipo Pessoa na tabela: mostra so o avatar; o nome vira este popup. */
