@@ -1716,6 +1716,33 @@ function blankDB(){ return normalizeDB({}); }
 /* Dados da empresa: uma linha por módulo na tabela `itens` (jsonb) */
 const MODMAP=[['financeiro','financeiro'],['senhas','senhas'],['links','links'],['projetos','projetos'],['folha_fixos','folhaFixos'],['folha','folha'],['clientes','clientes'],['recebimentos','recebimentos'],['trafego','trafego'],['contas_meta','contasMeta']];
 function curarInicio(){ (DB.clientes||[]).forEach(c=>{ if(c&&typeof c.inicio==='string'&&c.inicio.length>7) c.inicio=c.inicio.slice(0,7); }); }
+/* ---------- Logos das contas Meta ----------
+   Ficam na tabela conta_logos, NAO dentro de itens.contas_meta. Eram 3,1 MB de base64
+   que o loadDB baixava em toda troca de aba (GET de ~6 s) e o saveDB reenviava.
+   Aqui: DB.contasMeta[].logo fica sempre vazio, o base64 mora no cache LOGOS_META e
+   e buscado uma unica vez por sessao, em segundo plano, sem travar a tela. */
+let LOGOS_META=null; let __logosPend=null;
+function logoDe(m){ const id=(m&&m.id)||m; if(!id) return ''; return (LOGOS_META&&LOGOS_META[id])||((m&&m.logo)||''); }
+function logosCarregar(){
+  if(LOGOS_META) return Promise.resolve();
+  if(__logosPend) return __logosPend;
+  __logosPend=(async()=>{
+    try{
+      const {data}=await sb.from('conta_logos').select('conta_id,logo');
+      LOGOS_META={}; (data||[]).forEach(r=>{ if(r.logo) LOGOS_META[r.conta_id]=r.logo; });
+    }catch(_){ LOGOS_META=LOGOS_META||{}; }
+    __logosPend=null;
+    try{ if($('#mtLista')) metaDesenhar(); }catch(_){}
+  })();
+  return __logosPend;
+}
+async function logoSalvar(contaId, dataUrl){
+  const v=dataUrl||'';
+  const {error}=await sb.from('conta_logos').upsert([{conta_id:contaId,logo:v,atualizado:new Date().toISOString()}],{onConflict:'conta_id'});
+  if(error) throw error;
+  LOGOS_META=LOGOS_META||{};
+  if(v) LOGOS_META[contaId]=v; else delete LOGOS_META[contaId];
+}
 async function loadDBImpl(){
   const {data,error}=await sb.from('itens').select('modulo,dados,atualizado_em');
   if(error) throw error;
@@ -1729,6 +1756,7 @@ async function loadDBImpl(){
      e pra detectar quando alguem salvou por baixo (lock otimista) */
   DB.__rev=revs;
   DB.__snap={}; MODMAP.forEach(([m,k])=>{ DB.__snap[m]=JSON.stringify(DB[k]||[]); });
+  logosCarregar(); /* segundo plano: nao bloqueia a tela, e so acontece uma vez por sessao */
   await loadSenhasPriv();
 }
 async function loadSenhasPriv(){ try{ const {data}=await sb.from('senhas_privadas').select('id,dados'); DB.senhasPriv=(data||[]).map(r=>({...(r.dados||{}),id:r.id,__priv:true})); }catch(_){ DB.senhasPriv=[]; } }
@@ -2238,7 +2266,7 @@ function abaConexao(){
   const linhas=dados.map(c=>({c,f:fichaDaConta(c.id),m:contaMarca(c.id)}))
                     .sort((a,b)=>(a.c.nome||'').localeCompare(b.c.nome||''));
   const ligadas=linhas.filter(x=>x.f), soltas=linhas.filter(x=>!x.f);
-  const prontas=ligadas.filter(x=>x.m&&x.m.logo).length;
+  const prontas=ligadas.filter(x=>x.m&&logoDe(x.m)).length;
   const conta=(x)=>`<div class="cx-item">
       <div style="flex:1;min-width:0">
         <div class="nm">${esc(x.c.nome)}</div>
@@ -2258,7 +2286,7 @@ function abaConexao(){
         <div class="nm"><a class="link" style="cursor:pointer" onclick="abrirCliente('${x.f.id}')">${esc(x.f.nome)}</a></div>
         <div class="id">${esc(x.c.nome)}</div>
       </div>
-      ${x.m&&x.m.logo?'<span class="cx-tag">Pronta</span>':`<span class="cx-tag warn" style="cursor:pointer" title="Adicionar a logo do cliente" onclick="openMarcaModal('${esc(x.c.id)}')">➕ Sem logo</span>`}
+      ${x.m&&logoDe(x.m)?'<span class="cx-tag">Pronta</span>':`<span class="cx-tag warn" style="cursor:pointer" title="Adicionar a logo do cliente" onclick="openMarcaModal('${esc(x.c.id)}')">➕ Sem logo</span>`}
     </div>`;
   return `<div class="cx-grid">
     <div class="cx-card">
@@ -2735,7 +2763,7 @@ window.metaDesenhar=()=>{
     const gasto=+(i.spend||0); G+=gasto; I+=(+i.impressions||0); C+=(+i.clicks||0); L+=leads;
     const m=contaMarca(c.id);
     const sd=saldoConta(c);
-    const logo=m&&m.logo?`<img src="${m.logo}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--border);flex:none">`
+    const __lg=m?logoDe(m):''; const logo=__lg?`<img src="${__lg}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--border);flex:none">`
       :`<div onclick="openMarcaModal('${esc(c.id)}')" title="Adicionar a logo do cliente" style="width:44px;height:44px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;background:${m&&m.cor2?m.cor2:'rgba(168,85,247,.18)'};color:#fff;cursor:pointer;border:1px dashed rgba(255,255,255,.45)">${esc((c.nome||'?').trim().charAt(0).toUpperCase())}</div>`;
     const met=(k,v,hl)=>`<div style="min-width:74px"><div style="font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)">${k}</div><div style="font-weight:700;font-size:13.5px${hl?';color:var(--brand2)':''}">${v}</div></div>`;
     /* 1ª coluna: saldo (Pix) ou quanto falta pro limite de cobrança (cartão) */
@@ -2778,7 +2806,7 @@ window.metaDesenhar=()=>{
       ${logo}
       <div style="flex:1;min-width:170px">
         <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sn&&sn.nivel==='zero'?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${sd.parou?' <span class="tag" style="font-size:11px;background:rgba(251,191,36,.18);color:var(--warn)">parou de gastar</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px">⚠ ${esc(pg.statusTxt)}</span>`:''}</div>
-        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:var(--warn)">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&m.logo?'':` · <span style="color:var(--warn);cursor:pointer;text-decoration:underline" onclick="openMarcaModal('${esc(c.id)}')">➕ adicionar logo</span>`}</div>
+        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:var(--warn)">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&logoDe(m)?'':` · <span style="color:var(--warn);cursor:pointer;text-decoration:underline" onclick="openMarcaModal('${esc(c.id)}')">➕ adicionar logo</span>`}</div>
         <div style="font-size:12px;margin-top:3px">${(()=>{const f=fichaDaConta(c.id);
           return f?`<a class="link" style="cursor:pointer" onclick="abrirCliente('${f.id}')">🤝 ${esc(f.nome)}</a>`
                   :`<span style="color:var(--warn);cursor:pointer" onclick="abrirVinculos('${esc(c.id)}')">🔗 vincular a um cliente</span>`;})()}</div>
@@ -2948,7 +2976,7 @@ window.abrirVinculos=(soEsta)=>{
         const acc=(window.__mtDados||[]).find(x=>x.id===accId)||{};
         if(!m){ if(!fid) return; m={id:accId,nome:acc.nome||accId,logo:'',cor1:'#14100b',cor2:'#b08d3e',fundo:'#f5f0e8'}; DB.contasMeta.push(m); }
         const antes=m.fichaId||'';
-        if(fid!==antes){ n++; if(fid){ m.fichaId=fid; const f=fichaDe(fid); if(f&&f.nome&&!m.logo) m.nome=f.nome; } else delete m.fichaId; }
+        if(fid!==antes){ n++; if(fid){ m.fichaId=fid; const f=fichaDe(fid); if(f&&f.nome&&!logoDe(m)) m.nome=f.nome; } else delete m.fichaId; }
       });
       if(ruins.length){ toast('Cliente nao encontrado: '+ruins.slice(0,2).join(' / ')+(ruins.length>2?'...':'')); return false; }
       if(n){ await saveDB(); toast(n===1?'1 conta vinculada.':n+' contas vinculadas.'); }
@@ -2965,7 +2993,7 @@ window.openMarcaModal=(accId)=>{
     <div class="field"><label>Nome do cliente (como aparece no relatório)</label><input id="mk_nome" value="${esc(cur.nome||acc.nome)}"></div>
     <div class="field"><label>Logo do cliente</label><input type="file" id="mk_file" accept="image/*">
       <div style="display:flex;align-items:center;gap:12px;margin-top:10px">
-        <div id="mk_prev" style="width:74px;height:74px;border-radius:12px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;flex:none">${cur.logo?`<img src="${cur.logo}" style="max-width:100%;max-height:100%;object-fit:contain">`:'<span style="color:var(--muted);font-size:11px">sem logo</span>'}</div>
+        <div id="mk_prev" style="width:74px;height:74px;border-radius:12px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;flex:none">${logoDe(cur)?`<img src="${logoDe(cur)}" style="max-width:100%;max-height:100%;object-fit:contain">`:'<span style="color:var(--muted);font-size:11px">sem logo</span>'}</div>
         <div class="hint" style="margin:0">Ao escolher a logo, a <strong>paleta de cores da marca</strong> é detectada automaticamente — ajuste abaixo se quiser.</div>
       </div></div>
     <div class="row2">
@@ -2979,8 +3007,13 @@ window.openMarcaModal=(accId)=>{
         <p class="hint" style="margin:6px 0 0">O Meta não informa esse limite pela API. Veja em <em>Gerenciador → Cobrança → Configurações de pagamento</em> e informe aqui para o sistema mostrar quanto falta para a próxima cobrança.${cur.limiteVisto?` Enquanto isso, estimamos <strong>${brl(cur.limiteVisto)}</strong> observando as cobranças.`:''}</p></div>`;})()}`,
     async ()=>{
       const li=$('#mk_lim');
-      const v={id:accId,nome:$('#mk_nome').value.trim()||acc.nome,logo:window.__mkLogo!==undefined?window.__mkLogo:(cur.logo||''),cor1:$('#mk_cor1').value,cor2:$('#mk_cor2').value,fundo:$('#mk_fundo').value,ultRel:cur.ultRel||null,
+      /* logo NUNCA entra no itens: vai pra tabela conta_logos */
+      const v={id:accId,nome:$('#mk_nome').value.trim()||acc.nome,logo:'',cor1:$('#mk_cor1').value,cor2:$('#mk_cor2').value,fundo:$('#mk_fundo').value,ultRel:cur.ultRel||null,
         limiteCartao:li?(parseFloat(String(li.value).replace(',','.'))||0):(cur.limiteCartao||0), limiteVisto:cur.limiteVisto||0};
+      if(window.__mkLogo!==undefined){
+        try{ await logoSalvar(accId, window.__mkLogo||''); }
+        catch(e){ toast('Erro ao salvar a logo: '+(e.message||e)); return false; }
+      }
       const ex=contaMarca(accId);
       if(ex) Object.assign(ex,v); else DB.contasMeta.push(v);
       await saveDB(); metaDesenhar(); toast('Marca salva.'); return true;
@@ -3023,7 +3056,7 @@ window.openRelatorioModal=(accId)=>{
   const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10);};
   const mm=String(hoje.getMonth()+1).padStart(2,'0');
   modal('Gerar relatório — '+esc((m&&m.nome)||acc.nome),`
-    ${m&&m.logo?'':'<p class="hint" style="margin:0 0 12px">💡 Esta conta ainda não tem <strong>logo/cores</strong> configuradas (botão 🎨 Marca). O relatório sai com a identidade padrão.</p>'}
+    ${m&&logoDe(m)?'':'<p class="hint" style="margin:0 0 12px">💡 Esta conta ainda não tem <strong>logo/cores</strong> configuradas (botão 🎨 Marca). O relatório sai com a identidade padrão.</p>'}
     <div class="row2">
       <div class="field"><label>Período — de</label><input type="date" id="rl_de" value="${iso(de)}"></div>
       <div class="field"><label>Período — até</label><input type="date" id="rl_ate" value="${iso(hoje)}"></div>
@@ -3231,7 +3264,7 @@ async function montarRelatorio(accId,cfg){
 <div class="page">
   <div class="frame"><div class="cor tl"></div><div class="cor br"></div>
     <div class="chead">
-      <div class="clogo">${m.logo?`<img src="${esc(m.logo)}" alt="logo">`:`<div class="noimg">${esc(cliente.charAt(0).toUpperCase())}</div>`}</div>
+      <div class="clogo">${logoDe(m)?`<img src="${esc(logoDe(m))}" alt="logo">`:`<div class="noimg">${esc(cliente.charAt(0).toUpperCase())}</div>`}</div>
       <div class="cmeta mono">DOCUMENTO <b>Nº ${esc(cfg.doc)}</b><br>CLIENTE: <b>${esc(cliente.toUpperCase())}</b><br>EMITIDO EM <b>${String(new Date().getDate()).padStart(2,'0')}/${eMes}/${eAno}</b></div>
     </div>
     <h1>RELATÓRIO DE<br>PERFORMANCE<span class="dot">.</span></h1>
@@ -8620,7 +8653,7 @@ function abaContasCliente(f){
      const pg=viva?pagConta(viva):null;
      return `<div style="border:1px solid ${pg&&pg.problema?'var(--danger)':'var(--border)'};border-radius:10px;padding:11px 13px;margin-bottom:8px">
        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-         ${m.logo?`<img src="${esc(m.logo)}" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;flex:none">`:''}
+         ${logoDe(m)?`<img src="${esc(logoDe(m))}" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;flex:none">`:''}
          <div style="flex:1;min-width:140px">
            <div style="font-weight:700;font-size:13px">${esc(m.nome||m.id)}</div>
            <div style="color:var(--muted);font-size:11.5px">${esc(m.id)}${pg?' · '+(pg.prepago?'⚡ Pix':'💳 '+esc(pg.cartao||'cartão')):''}</div>
