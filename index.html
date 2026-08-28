@@ -1091,16 +1091,23 @@
   .tk-grupo{margin-bottom:16px}
   .tk-grupoh{display:flex;align-items:center;gap:9px;padding:5px 2px;cursor:pointer}
   /* faixa de grupo dentro da tabela única */
-  .tk-faixa > td{background:var(--panel2);padding:7px 14px!important;cursor:pointer;border-bottom:1px solid var(--line)}
-  .tk-faixa:hover > td{background:var(--cardh)}
+  .tk-faixa > td{background:transparent;cursor:pointer;border:none;
+    padding:30px 4px 12px!important;box-shadow:inset 0 -1px 0 0 var(--line)}
+  .tk-faixa:first-child > td{padding-top:4px!important}
+  .tk-faixa:hover > td{background:transparent}
   .tk-faixa > td > *{vertical-align:middle}
-  .tk-faixa .tk-cv{display:inline-block;transition:transform .15s;color:var(--muted);font-size:11px;margin-right:7px}
+  .tk-faixa .tk-cv{display:inline-block;transition:transform .15s,color .12s;color:var(--muted);
+    font-size:11px;margin-right:10px;opacity:.65}
+  .tk-faixa:hover .tk-cv{opacity:1;color:var(--txt)}
   .tk-faixa .tk-cv.ab{transform:rotate(90deg)}
-  .tk-faixa .tk-selo{margin-right:8px}
-  .tk-faixa .tk-n{color:var(--muted);font-size:11.5px;font-weight:700}
-  .tk-faixa .tk-add{margin-left:10px;opacity:0;transition:opacity .12s}
+  .tk-faixa .tk-selo{margin-right:10px;padding:5px 13px;border-radius:999px;
+    font-size:11px;letter-spacing:.7px;transition:filter .12s}
+  .tk-faixa:hover .tk-selo{filter:brightness(1.18)}
+  .tk-faixa .tk-n{color:var(--muted);font-size:11px;font-weight:800;
+    background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+  .tk-faixa .tk-add{margin-left:12px;opacity:0;transition:opacity .12s}
   .tk-faixa:hover .tk-add{opacity:1}
-  .tk-faixa.vazio > td{opacity:.5}
+  .tk-faixa.vazio > td{opacity:.45}
   .tk-faixa.vazio:hover > td{opacity:1}
   /* linha de tarefa: mais enxuta e com o excluir só no hover */
   .tk-tab tbody tr:not(.tk-faixa) > td{padding:8px 14px}
@@ -1165,7 +1172,7 @@
     border-top-right-radius:11px;border-bottom-right-radius:11px}
   .tk-tab tbody tr:not(.tk-faixa):hover > td{background:var(--panel2)}
   .tk-tab tbody tr:last-child > td{border-bottom:1px solid var(--line)}
-  .tk-tab .tk-faixa > td{border-radius:9px;border-bottom:none;padding:9px 14px!important}
+  .tk-tab .tk-faixa > td{border-radius:0;border-bottom:none}
   .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
   .tk-cpbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:var(--panel2)}
   .tk-cptit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px}
