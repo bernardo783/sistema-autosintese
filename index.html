@@ -1118,8 +1118,8 @@
     font-size:11px;margin-right:10px;opacity:.65}
   .tk-faixa:hover .tk-cv{opacity:1;color:var(--txt)}
   .tk-faixa .tk-cv.ab{transform:rotate(90deg)}
-  .tk-faixa .tk-selo{margin-right:10px;padding:5px 13px;border-radius:999px;
-    font-size:11px;letter-spacing:.7px;transition:filter .12s}
+  .tk-faixa .tk-selo{margin-right:10px;padding:0 12px;height:26px;display:inline-flex;align-items:center;
+    border-radius:6px;font-size:12px;font-weight:600;letter-spacing:0;transition:filter .12s}
   .tk-faixa:hover .tk-selo{filter:brightness(1.18)}
   .tk-faixa .tk-n{color:var(--muted);font-size:11px;font-weight:800;
     background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
@@ -1131,12 +1131,12 @@
   .tk-tab tbody tr:not(.tk-faixa) > td{padding:8px 14px}
   .tk-tab tbody tr:not(.tk-faixa) .iconbtn.del{opacity:0;transition:opacity .12s}
   .tk-tab tbody tr:not(.tk-faixa):hover .iconbtn.del{opacity:1}
-  .tk-selo{font-size:11px;font-weight:800;padding:3px 9px;border-radius:6px;border:1px solid;letter-spacing:.3px;white-space:nowrap}
+  .tk-selo{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;letter-spacing:.2px;white-space:nowrap}
   .tk-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
   /* Célula editável: parece texto na lista; vira campo só quando a linha recebe o mouse. */
   /* Uma altura so pra tudo que mora numa celula: pilula, campo, avatar e tag ficam
      na mesma linha de base, sem degrau (pedido do Gabriel 28/08 — "igual ClickUp"). */
-  :root{--celh:28px}
+  :root{--celh:26px}
   .tk-cel{width:100%;height:var(--celh);background:transparent;border:1px solid transparent;border-radius:7px;padding:0 7px;
     color:var(--txt);font-family:inherit;font-size:13px;appearance:none;-webkit-appearance:none;
     vertical-align:middle;text-overflow:ellipsis;transition:background .12s,border-color .12s}
@@ -1156,9 +1156,9 @@
     vertical-align:middle;transition:background .12s,border-color .12s}
   .tk-pcel:hover{border-color:var(--brand2);background-color:var(--panel2)}
   .tk-pcel .av{width:22px;height:22px;font-size:9.5px}
-  .tk-pcel .av.ph{background:var(--panel2);color:var(--muted);border:1px dashed var(--line);font-size:11px}
-  .tk-pcel.vazio{opacity:.45}
-  tr:hover .tk-pcel.vazio{opacity:1}
+  .tk-pcel .pcel-add{color:var(--muted);display:block}
+  .tk-pcel.vazio{opacity:.5}
+  .tk-pcel.vazio:hover,tr:hover .tk-pcel.vazio{opacity:1}
   /* dinheiro: alinhado à direita, sem quebrar linha e com dígitos de largura fixa */
   .tk-money{display:flex;align-items:center;justify-content:flex-end;gap:2px;white-space:nowrap}
   .tk-money{height:var(--celh)}
@@ -1167,37 +1167,30 @@
   .tk-money .tk-cel::-webkit-outer-spin-button,.tk-money .tk-cel::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   .tk-tab td.money,.tk-tab th.money{text-align:right}
   .tk-pre{color:var(--muted);font-size:11px;margin-right:1px}
-  /* Status = pílula colorida; a seta só aparece quando o mouse passa na linha */
-  .tk-stsel{border:1px solid;border-radius:999px;height:var(--celh);padding:0 12px;font-size:11px;font-weight:800;font-family:inherit;
-    cursor:pointer;max-width:100%;letter-spacing:.3px;appearance:none;-webkit-appearance:none;
-    vertical-align:middle;text-transform:uppercase;transition:filter .12s}
-  tr:hover .tk-stsel{padding-right:22px;filter:brightness(1.12);
-    background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
-    background-position:calc(100% - 13px) calc(50% + 1px),calc(100% - 9px) calc(50% + 1px);
-    background-size:4px 4px,4px 4px;background-repeat:no-repeat}
-  .tk-stsel:focus{outline:2px solid var(--brand2);outline-offset:1px}
-  /* Coluna de lista de opcoes: tambem vira pilula colorida (Gabriel 28/08, opcao B).
-     Vazio continua so o traco, pra o olho ir no que esta preenchido. */
-  .tk-stsel.opc{text-transform:none;font-size:11.5px;letter-spacing:0}
-  /* LINHA-CARTAO (Gabriel 28/08, opcao D): cada linha e um bloco com respiro e uma
-     barra da cor do status na borda esquerda. Exige border-collapse:separate. */
-  .tk-tab{border-collapse:separate;border-spacing:0 6px}
-  .tk-tab td{padding:9px 14px;border-bottom:none;vertical-align:middle}
+  /* PILULA (Gabriel 28/08 — "igual ClickUp"): preenchimento solido, sem borda, sem
+     CAIXA ALTA e sem seta. O texto escurece sozinho quando a cor de fundo e clara.
+     Status ganha uma bolinha a esquerda; as colunas de opcao ficam so com o texto. */
+  .tk-stsel{border:none;border-radius:6px;height:var(--celh);padding:0 11px 0 26px;
+    font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;max-width:100%;
+    letter-spacing:0;appearance:none;-webkit-appearance:none;vertical-align:middle;
+    text-overflow:ellipsis;transition:filter .12s;
+    background-image:radial-gradient(circle at 13px 50%,currentColor 4.5px,transparent 5px);
+    background-repeat:no-repeat}
+  .tk-stsel:hover{filter:brightness(1.1)}
+  .tk-stsel:focus{outline:2px solid var(--brand2);outline-offset:2px}
+  .tk-stsel.opc{padding:0 11px;background-image:none}
+  /* LINHA PLANA (Gabriel 28/08): o cartao com respiro nao tinha a harmonia do ClickUp.
+     Aqui a grade e continua: altura fixa, uma divisoria fina e realce so no hover. */
+  .tk-tab{border-collapse:collapse}
+  .tk-tab td{padding:0 14px;height:44px;vertical-align:middle;
+    border-bottom:1px solid var(--line);background:transparent}
   .tk-tab td .av,.tk-tab td .tag,.tk-tab td .hint,.tk-tab td input[type=checkbox]{vertical-align:middle}
   .tk-tab td .tag{display:inline-flex;align-items:center;height:22px}
   .tk-tab th{padding:10px 14px;position:sticky;top:0;z-index:2}
   .tk-tab tbody tr+tr td{border-top:none}
-  .tk-tab td:first-child{font-weight:700;font-size:13.5px}
-  .tk-tab tbody tr:not(.tk-faixa) > td{background:var(--panel);
-    border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-  .tk-tab tbody tr:not(.tk-faixa) > td:first-child{border-left:1px solid var(--line);
-    border-top-left-radius:11px;border-bottom-left-radius:11px;
-    box-shadow:inset 3px 0 0 0 var(--bar,transparent)}
-  .tk-tab tbody tr:not(.tk-faixa) > td:last-child{border-right:1px solid var(--line);
-    border-top-right-radius:11px;border-bottom-right-radius:11px}
-  .tk-tab tbody tr:not(.tk-faixa):hover > td{background:var(--panel2)}
-  .tk-tab tbody tr:last-child > td{border-bottom:1px solid var(--line)}
-  .tk-tab .tk-faixa > td{border-radius:0;border-bottom:none}
+  .tk-tab td:first-child{font-weight:600;font-size:13.5px}
+  .tk-tab tbody tr:not(.tk-faixa):hover > td{background:var(--hov1)}
+  .tk-tab .tk-faixa > td{height:auto;border-bottom:none}
   .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
   .tk-cpbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:var(--panel2)}
   .tk-cptit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px}
@@ -4882,6 +4875,11 @@ const OPC_SEM={ok:'#3fcf8e',sim:'#3fcf8e',bom:'#3fcf8e',otimo:'#3fcf8e',promotor
   neutro:'#e6b13f',medio:'#e6b13f',atencao:'#e6b13f',pendente:'#e6b13f','em andamento':'#e6b13f',parcial:'#e6b13f',aguardando:'#e6b13f',
   detrator:'#ef5b6b',ruim:'#ef5b6b',nao:'#ef5b6b',critico:'#ef5b6b',atrasado:'#ef5b6b',cancelado:'#ef5b6b',risco:'#ef5b6b',churn:'#ef5b6b',reprovado:'#ef5b6b',parado:'#ef5b6b'};
 const OPC_PAL=['#7b68ee','#60a5fa','#2dd4bf','#f59e0b','#f472b6','#a78bfa','#34d399','#fb923c','#38bdf8','#c084fc'];
+/* Texto que le bem em cima de uma cor cheia: claro no fundo escuro, escuro no fundo claro. */
+const corTexto=(hex)=>{ const h=String(hex||'').replace('#',''), v=h.length===3?h.split('').map(c=>c+c).join(''):h;
+  if(!/^[0-9a-fA-F]{6}$/.test(v)) return '#ffffff';
+  const r=parseInt(v.slice(0,2),16), g=parseInt(v.slice(2,4),16), b=parseInt(v.slice(4,6),16);
+  return ((r*299+g*587+b*114)/1000)>152?'#16161c':'#ffffff'; };
 const semAcento=(x)=>String(x==null?'':x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 const corOpcao=(txt)=>{ const k=semAcento(txt); if(!k) return '#8e8e99';
   if(OPC_SEM[k]) return OPC_SEM[k];
@@ -4896,10 +4894,10 @@ const tkCelula=(t,c)=>{
     const ops=`<option value="">—</option>`+(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('');
     if(vazio) return `<select class="tk-cel sel vazio" onchange="tkSetVal('${t.id}','${c.id}',this.value)">${ops}</select>`;
     const cor=corOpcao(v);
-    return `<select class="tk-stsel opc" style="color:${esc(cor)};border-color:${esc(cor)}66;background:${esc(cor)}1a" onchange="tkSetVal('${t.id}','${c.id}',this.value)">${ops}</select>`;
+    return `<select class="tk-stsel opc" style="background-color:${esc(cor)};color:${esc(corTexto(cor))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)">${ops}</select>`;
   }
   if(c.tipo==='pessoa'){ const nm=v?tkNomeUser(v):'';
-    return `<button type="button" class="tk-pcel${vazio}" title="${v?esc(nm):('Definir '+esc(c.nome||'pessoa'))}" onclick="tkQaCampoPessoa(event,'${t.id}','${c.id}')">${v?avatar(v,nm,'sm'):'<span class="av sm ph">+</span>'}</button>`; }
+    return `<button type="button" class="tk-pcel${vazio}" title="${v?esc(nm):('Definir '+esc(c.nome||'pessoa'))}" onclick="tkQaCampoPessoa(event,'${t.id}','${c.id}')">${v?avatar(v,nm,'sm'):'<svg class="pcel-add" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 20v-1.6a3.6 3.6 0 0 0-3.6-3.6H6.6A3.6 3.6 0 0 0 3 18.4V20"/><circle cx="9" cy="8" r="3.6"/><path d="M18.5 8.5v5M21 11h-5"/></svg>'}</button>`; }
   if(c.tipo==='checkbox') return `<input type="checkbox" ${v?'checked':''} onchange="tkSetVal('${t.id}','${c.id}',this.checked)">`;
   const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
   if(c.tipo==='moeda') return `<span class="tk-money"><span class="tk-pre">R$</span><input class="tk-cel moeda${vazio}" type="number" value="${esc(v==null?'':String(v))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)" placeholder="—"></span>`;
@@ -4909,7 +4907,7 @@ const tkSelo=(t)=>{
   const sts=tkStatusDe(t.lista_id);
   if(!sts.length) return `<select class="stSel" onchange="tkStatus('${t.id}',this.value)">${Object.keys(TK_ST).map(k=>`<option value="${k}"${t.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`;
   const s=tkStatus1(t.status_id), cor=s?s.cor:'#64748b';
-  return `<select class="tk-stsel" style="color:${esc(cor)};border-color:${esc(cor)}66;background:${esc(cor)}1a" onchange="tkSetStatus('${t.id}',this.value)"><option value="">Sem status</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
+  return `<select class="tk-stsel" style="background-color:${esc(cor)};color:${esc(corTexto(cor))}" onchange="tkSetStatus('${t.id}',this.value)"><option value="">Sem status</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
 };
 function tkViewLista(){
   const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
@@ -4944,7 +4942,7 @@ function tkViewLista(){
     const fech=TK.fechadas['g'+g.k];
     const faixa=`<tr class="tk-faixa${g.its.length?'':' vazio'}" onclick="tkToggle('g','${g.k}')"><td colspan="${ncols}">
         <span class="tk-cv${fech?'':' ab'}">&#9656;</span>
-        <span class="tk-selo" style="color:${esc(g.cor)};border-color:${esc(g.cor)}66;background:${esc(g.cor)}1a">${esc(g.rot)}</span>
+        <span class="tk-selo" style="background-color:${esc(g.cor)};color:${esc(corTexto(g.cor))}">${esc(g.rot)}</span>
         <span class="tk-n">${g.its.length}</span>
         ${lc?'':`<button class="iconbtn tk-add" title="Nova tarefa aqui" onclick="event.stopPropagation();tkAbrir(null,null,'${g.k}')">+</button>`}
       </td></tr>`;
