@@ -3605,6 +3605,9 @@ const tkStatusDe=(lid)=>TK.status.filter(s=>s.lista_id===lid);
 const LC_ID='a0009b64-6847-4477-be46-3dade84d5409';
 const LC_NAOATIVO='0bf15583-b686-4287-896f-36ff97fa8f80';
 const ehLC=(lid)=>lid===LC_ID;
+/* Listas cujo card E um cliente/projeto: o titulo e nome proprio, entao vive em CAIXA ALTA. */
+const ehListaCli=(lid)=>lid===LC_ID||lid===CH_ID||lid===LF_ID;
+const TIT_CLI=(lid,t)=>ehListaCli(lid)?MAIUS(t):t;
 /* "Novos Contratos" e uma lista com UX propria: em vez de board, abre o formulario de Fechamento. */
 const LF_ID='f1e2d3c4-0000-4a00-8b00-000000000001';
 /* Financeiro mora na arvore: Administrativo > Financeiro > tres listas que abrem as telas do modulo. */
@@ -4429,6 +4432,7 @@ async function tkCarregar(){
   const err=e.error||pa.error||l.error||t.error||st.error||cp.error;
   if(err) throw new Error(err.message);
   TK.espacos=e.data||[]; TK.pastas=pa.data||[]; TK.listas=l.data||[]; TK.tarefas=t.data||[];
+  TK.tarefas.forEach(x=>{ if(ehListaCli(x.lista_id)) x.titulo=MAIUS(x.titulo); });
   const mm=await sb.from('no_membros').select('*'); TK.membros=(mm&&mm.data)||[];
   const tp=await sb.from('tipos_tarefa').select('*').order('ordem'); TK.tipos=(tp&&tp.data)||[];
   const ws=await sb.from('workspaces').select('*'); TK.ws=(ws&&ws.data)||[];
@@ -4683,7 +4687,7 @@ window.tkAddKey=async (ev,key)=>{
   if(ev.key!=='Enter') return;
   const tit=ev.target.value.trim(); if(!tit) return;
   ev.target.disabled=true;
-  const v={titulo:tit,lista_id:TK.listaSel,prioridade:'med',valores:{},tipo_id:tipoPadraoDe(TK.listaSel)};
+  const v={titulo:TIT_CLI(TK.listaSel,tit),lista_id:TK.listaSel,prioridade:'med',valores:{},tipo_id:tipoPadraoDe(TK.listaSel)};
   if(tkStatus1(key)){ v.status_id=key; v.status='todo'; } else { v.status=key||'todo'; v.status_id=null; }
   if(TK.listaSel===LISTA_EDICAO){ v.checklist=CK_EDICAO.map(x=>({t:x,ok:false})); v.responsavel_id=EDITORA_PADRAO; v.responsaveis=[EDITORA_PADRAO]; }
   const {data,error}=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
@@ -6441,7 +6445,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
   const aviso=(m)=>{ if(silencioso){ if(st){ st.textContent=m; st.className='tkm-auto falta'; } } else toast(m); };
   if(!$('#tk_tit')) return false;   /* painel ja fechou */
   {
-      const v={titulo:$('#tk_tit').value.trim(), lista_id:$('#tk_lista').value, ficha_id:$('#tk_ficha').value||null,
+      const v={titulo:TIT_CLI($('#tk_lista').value,$('#tk_tit').value.trim()), lista_id:$('#tk_lista').value, ficha_id:$('#tk_ficha').value||null,
         prioridade:$('#tk_prio').value, prazo:$('#tk_prazo').value||null,
         iniciada_em:($('#tk_ini')&&$('#tk_ini').value)||null,
         tags:($('#tk_tags')?$('#tk_tags').value:'').split(',').map(s=>s.trim()).filter(Boolean),
@@ -8514,7 +8518,7 @@ async function lcCriarCard(fichaId,nome){
   if(!fichaId) return;
   const q=await sb.from('tarefas').select('id').eq('lista_id',LC_ID).eq('ficha_id',String(fichaId)).limit(1);
   if(q.data&&q.data.length) return;
-  const {error}=await sb.from('tarefas').insert({lista_id:LC_ID,ficha_id:String(fichaId),titulo:nome||'Novo cliente',status:'todo',status_id:LC_NAOATIVO,prioridade:'med'});
+  const {error}=await sb.from('tarefas').insert({lista_id:LC_ID,ficha_id:String(fichaId),titulo:TIT_CLI(LC_ID,nome||'Novo cliente'),status:'todo',status_id:LC_NAOATIVO,prioridade:'med'});
   if(error){ toast('Cliente criado, mas o card falhou: '+error.message); return; }
   try{ await tkCarregar(); spDesenhar(); }catch(_){}
 }
@@ -10541,7 +10545,7 @@ window.mpTarCard=(id)=>{
     '<button class="btn danger small" onclick="mpTcApagar()" style="margin-top:4px">Apagar tarefa</button>',
     async ()=>{
       const tt=(($('#mtc_tt')||{}).value||'').trim();
-      const patch={titulo:tt||t.titulo,prazo:(($('#mtc_dt')||{}).value||'')||null,descricao:(($('#mtc_ds')||{}).value||'')||null};
+      const patch={titulo:TIT_CLI(t.lista_id,tt||t.titulo),prazo:(($('#mtc_dt')||{}).value||'')||null,descricao:(($('#mtc_ds')||{}).value||'')||null};
       const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
       if(error){ toast('Erro: '+error.message); return false; }
       Object.assign(t,patch); mpPintar();
