@@ -2129,6 +2129,9 @@ document.addEventListener('click',(e)=>{
   if(dentro&&e.target.closest('.tk-lista')) setTimeout(()=>document.body.classList.remove('sb-aberta'),120);
 });
 function render(view){
+  /* a tela pedida, antes das reescritas internas (senhas/links viram acessos etc.):
+     e ela que vai pra barra de enderecos, pra F5 e link colado voltarem no mesmo lugar */
+  const __telaPedida=view;
   if(window.tkPopFechar) tkPopFechar();
   document.body.classList.remove('sb-aberta');
   /* Senhas e Links são a mesma tela, separadas por filtro */
@@ -2137,7 +2140,9 @@ function render(view){
   if(view==='projetos'||view==='clientes') return spAbrirClientes();
   if(view==='tarefas') view='lista';
   currentView=view; searchTerm='';
-  if(view==='pessoal') lkMarcar('v','pessoal');
+  /* 'lista'/'tarefas' nao carimbam: quem manda ali e o #l/<id> que o spSelLista ja pos,
+     senao o F5 perderia QUAL lista estava aberta e cairia numa generica */
+  if(__telaPedida!=='lista'&&__telaPedida!=='tarefas') lkMarcar('v',__telaPedida);
   if(view==='fechamento'&&TK.listas.some(l=>l.id===LF_ID)) TK.listaSel=LF_ID;
   if(FIN_LISTA[view]&&TK.listas.some(l=>l.id===FIN_LISTA[view])) TK.listaSel=FIN_LISTA[view];
   spMarcarAtalho(view); spDesenhar();
