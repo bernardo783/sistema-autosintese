@@ -254,6 +254,110 @@
     padding:10px 13px;margin:0 0 14px;font-size:12.5px;line-height:1.55;color:var(--txt)}
   .nc-dica strong{font-weight:700}
   /* ---------- DAILY DOS SQUADS ---------- */
+  /* ---------- FECHAMENTO DE CONTRATO ----------
+     Tela de entrada do cliente novo: e a primeira coisa que um closer ve depois de
+     vender. Vale o capricho. Cartao de capa, trilha numerada, barra de progresso
+     grudada no topo e barra de envio que diz o que ainda falta. */
+  .fc-wrap{max-width:920px;margin:0 auto;padding-bottom:20px}
+  .fc-hero{position:relative;overflow:hidden;border-radius:22px;padding:32px 34px 26px;margin-bottom:14px;
+    background:
+      radial-gradient(120% 150% at 10% -25%,rgba(168,85,247,.55) 0%,transparent 58%),
+      radial-gradient(85% 120% at 102% 0%,rgba(45,212,191,.16) 0%,transparent 55%),
+      linear-gradient(135deg,#3d1c8a 0%,#25105c 46%,#160a3c 100%);
+    border:1px solid rgba(168,85,247,.34);
+    box-shadow:0 26px 64px rgba(76,29,149,.40),inset 0 1px 0 rgba(255,255,255,.15)}
+  /* malha fina: textura sem imagem, sem peso e sem rede */
+  .fc-hero::before{content:'';position:absolute;inset:0;opacity:.5;pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);
+    background-size:46px 46px;
+    -webkit-mask-image:radial-gradient(80% 95% at 18% 0%,#000 0%,transparent 74%);
+            mask-image:radial-gradient(80% 95% at 18% 0%,#000 0%,transparent 74%)}
+  .fc-hero>*{position:relative}
+  .fc-kick{display:inline-flex;align-items:center;gap:8px;font-size:10px;font-weight:800;letter-spacing:.2em;
+    text-transform:uppercase;color:#ecdfff;background:rgba(255,255,255,.10);
+    border:1px solid rgba(255,255,255,.20);border-radius:999px;padding:5px 13px}
+  .fc-kick .pt{width:6px;height:6px;border-radius:50%;background:#4ad991;box-shadow:0 0 0 3px rgba(74,217,145,.22)}
+  .fc-hero h1{font-size:31px;font-weight:900;letter-spacing:-.032em;margin:15px 0 9px;color:#fff;line-height:1.1}
+  .fc-hero .sub{font-size:14px;line-height:1.6;color:rgba(255,255,255,.78);max-width:60ch;margin:0}
+  .fc-fluxo{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin-top:22px}
+  .fc-passo{display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.15);border-radius:13px;padding:10px 14px;min-width:0}
+  .fc-passo i{font-style:normal;font-size:16px;line-height:1;opacity:.95;flex:none}
+  .fc-passo b{display:block;font-size:12.5px;font-weight:800;color:#fff;letter-spacing:-.01em;line-height:1.2}
+  .fc-passo em{font-style:normal;display:block;font-size:11px;color:rgba(255,255,255,.62);margin-top:2px;line-height:1.3}
+  .fc-liga{display:flex;align-items:center;color:rgba(255,255,255,.32);font-size:14px;padding:0 1px}
+  .fc-nota{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:12.5px;color:rgba(255,255,255,.72);
+    background:rgba(74,217,145,.10);border:1px solid rgba(74,217,145,.26);border-radius:11px;padding:9px 13px}
+  .fc-nota b{color:#a8f0cd;font-weight:800}
+
+  /* progresso: gruda no topo enquanto o closer desce o formulario */
+  .fc-prog{position:sticky;top:0;z-index:14;display:flex;align-items:center;gap:15px;
+    background:rgba(27,27,30,.90);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:1px solid var(--line);border-radius:14px;padding:11px 17px;margin-bottom:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.32)}
+  :root[data-tema="claro"] .fc-prog,:root[data-tema="branco"] .fc-prog{background:rgba(255,255,255,.90)}
+  :root[data-tema="preto"] .fc-prog{background:rgba(11,11,13,.90)}
+  .fc-prog-b{flex:1;min-width:70px;height:6px;border-radius:999px;background:var(--panel2);overflow:hidden}
+  .fc-prog-f{display:block;height:100%;width:0;border-radius:999px;
+    background:linear-gradient(90deg,var(--brand),var(--brand2));transition:width .4s cubic-bezier(.4,0,.2,1)}
+  .fc-prog-t{font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+  .fc-prog-t b{color:var(--txt);font-weight:800}
+  .fc-prog.ok .fc-prog-f{background:linear-gradient(90deg,var(--ok),#7fe4bb)}
+  .fc-prog.ok .fc-prog-t b{color:var(--ok)}
+
+  /* trilha numerada: cada bloco e uma etapa, nao um cartao solto */
+  .fc-sec{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    padding:22px 24px 18px;margin-bottom:14px;overflow:hidden;
+    transition:border-color .18s ease,box-shadow .18s ease}
+  .fc-sec::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:linear-gradient(180deg,var(--brand),var(--brand2));opacity:.5}
+  .fc-sec:focus-within{border-color:rgba(168,85,247,.42);box-shadow:0 10px 30px rgba(76,29,149,.18)}
+  .fc-sech{display:flex;align-items:flex-start;gap:13px;margin-bottom:18px}
+  .fc-num{flex:none;width:31px;height:31px;border-radius:10px;display:grid;place-items:center;
+    font-size:11.5px;font-weight:900;color:#d9c9ff;font-family:ui-monospace,Menlo,monospace;
+    background:rgba(124,104,238,.16);border:1px solid rgba(124,104,238,.42)}
+  .fc-sech h2{font-size:15.5px;font-weight:800;letter-spacing:-.012em;margin:0;line-height:1.25}
+  .fc-sech .d{font-size:12px;color:var(--muted);margin:3px 0 0;line-height:1.45}
+
+  /* campos do formulario: rotulo curto em caixa alta, campo com moldura de verdade */
+  #fcForm .field{margin-bottom:15px}
+  #fcForm .field label{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:7px}
+  #fcForm .field input,#fcForm .field select,#fcForm .field textarea{border-radius:11px;padding:11px 13px;font-size:13.5px}
+  #fcForm .field input:hover,#fcForm .field select:hover,#fcForm .field textarea:hover{border-color:var(--fraco)}
+  #fc_servs{gap:8px;margin-top:2px}
+  #fc_servs .tkp-chip{padding:10px 16px;font-size:12.5px;border-radius:12px;transition:.16s}
+  #fc_servs .tkp-chip:hover{transform:translateY(-1px)}
+  #fc_servs .tkp-chip.on{box-shadow:0 8px 20px rgba(124,58,237,.38)}
+
+  /* envio: o botao diz o que falta em vez de so recusar depois do clique */
+  .fc-envio{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--panel);
+    border:1px solid var(--line);border-radius:18px;padding:17px 20px;margin-top:4px;
+    box-shadow:0 12px 32px rgba(0,0,0,.22)}
+  .fc-envio-i{flex:1;min-width:180px;font-size:12px;color:var(--muted);line-height:1.5}
+  .fc-envio-i b{color:var(--txt);font-weight:800}
+  .fc-envio .btn{width:auto;flex:none;padding:14px 28px;font-size:14.5px;border-radius:12px}
+  .fc-envio .btn[disabled]{opacity:.55;cursor:not-allowed;box-shadow:none;transform:none}
+
+  /* fim de fluxo */
+  .fc-ok{text-align:center;padding:46px 26px}
+  .fc-ok-anel{width:78px;height:78px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;
+    font-size:34px;background:radial-gradient(circle at 50% 35%,rgba(74,217,145,.28),rgba(74,217,145,.06));
+    border:1px solid rgba(74,217,145,.42);box-shadow:0 0 0 10px rgba(74,217,145,.07)}
+  .fc-ok h2{font-size:22px;font-weight:900;letter-spacing:-.02em;margin:0 0 8px}
+  .fc-resumo{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:18px 0 22px}
+  .fc-resumo span{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
+    border-radius:999px;padding:6px 13px}
+  .fc-resumo span b{color:var(--txt);font-weight:800;margin-left:5px}
+  .fc-ok .btn{width:auto;padding:13px 24px}
+  .fc-ok::before{display:none}
+  @media(max-width:760px){
+    .fc-hero{padding:24px 20px 20px;border-radius:18px}
+    .fc-hero h1{font-size:24px}
+    .fc-sec{padding:18px 16px 14px}
+    .fc-envio .btn{width:100%}
+  }
   .fc-equipe{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 12px}
   .fc-eq{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 11px}
   .fc-eq b{color:var(--txt);font-weight:700;margin-right:5px}
@@ -9112,7 +9216,7 @@ const FC_SERVICOS=['Tráfego Pago','Agent IA','CRM','Treinamento Comercial'];
 window.fcServToggle=(btn,s)=>{ btn.classList.toggle('on');
   const marcados=[...document.querySelectorAll('#fc_servs .tkp-chip.on')].map(b=>b.dataset.s);
   const el=$('#fc_plano'); if(el) el.value=marcados.join(' + ');
-  fcPlanoMuda(); };
+  fcPlanoMuda(); if(window.fcProgresso) fcProgresso(); };
 const FC_CONTRATOS=['Mensal','Trimestral','Semestral','Anual'];
 /* Origem do lead (Gabriel 31/08): objetiva, tres opcoes. A chave vai pro banco,
    o rotulo fica na tela — assim relatorio agrupa sem tropecar em acento. */
@@ -9164,38 +9268,74 @@ window.fcSquadMudou=()=>{
   fcNotaRodizio();
   if(!info){ if(el) el.innerHTML=''; return; }
   if(gi&&info.gestor) gi.value=info.gestor;   /* preenche, mas deixa trocar */
+  if(window.fcProgresso) fcProgresso();
   if(el) el.innerHTML=`<span class="fc-eq"><b>Gerente</b> ${esc(info.gerente||'ninguém com esse cargo no squad')}</span>
     <span class="fc-eq"><b>Gestor de tráfego</b> ${esc(info.gestor||'ninguém com esse cargo no squad')}</span>`;
 };
 const fcTemTrafego=()=>/tr[aá]fego/i.test(($('#fc_plano')||{}).value||'');
 window.fcPlanoMuda=()=>{ const w=$('#fc_gw'); if(w) w.style.display=fcTemTrafego()?'':'none'; };
 function fcField(lbl,id,ph,val){ return `<div class="field"><label>${lbl}</label><input id="${id}" placeholder="${ph||''}" value="${esc(val||'')}"></div>`; }
+/* O que o fechEnviar realmente barra. A barra do topo e o rodape de envio leem daqui,
+   entao a tela nunca promete um envio que a validacao vai recusar depois do clique. */
+function fcObrig(){
+  const L=[['fc_nome','nome da empresa'],['fc_plano','serviços'],['fc_valor','mensalidade'],
+    ['fc_data','data da 1ª parcela'],['fc_origem','origem do lead'],['fc_sdr','SDR'],
+    ['fc_closer','closer'],['fc_squad','squad'],['fc_resumo','resumo da venda']];
+  if(fcTemTrafego()) L.push(['fc_gestor','gestor de tráfego']);
+  if((($('#fc_status')||{}).value||'')==='sinal'){ L.push(['fc_sinal','valor do sinal'],['fc_sinaldata','data do sinal']); }
+  return L;
+}
+window.fcProgresso=()=>{
+  const L=fcObrig(), falta=L.filter(p=>!String((($('#'+p[0])||{}).value||'')).trim());
+  const tot=L.length, ok=tot-falta.length, pct=tot?Math.round(ok/tot*100):0;
+  const f=$('#fc_progf'), t=$('#fc_progt'), box=$('#fc_prog'), i=$('#fc_envioi');
+  if(f) f.style.width=pct+'%';
+  if(t) t.innerHTML=falta.length?`<b>${ok}</b> de ${tot} campos obrigatórios`:`<b>Tudo preenchido</b> · pode enviar`;
+  if(box) box.classList.toggle('ok',!falta.length);
+  if(i) i.innerHTML=falta.length
+    ? `Ainda falta: <b>${esc(falta.map(x=>x[1]).join(' · '))}</b>`
+    : `Pronto. <b>${esc(((($('#fc_nome')||{}).value||'').trim())||'O cliente')}</b> nasce na coluna 0. NÃO ATIVO e a 1ª cobrança já entra no financeiro.`;
+};
 function renderFechamento(c){
   const gestores=Array.from(new Set((DB.projetos||[]).map(p=>(p.responsavel||'').trim()).filter(Boolean))).sort();
+  const sec=(n,tit,desc,corpo)=>`<div class="fc-sec">
+      <div class="fc-sech"><div class="fc-num">${n}</div><div><h2>${tit}</h2><div class="d">${desc}</div></div></div>
+      ${corpo}</div>`;
   c.innerHTML=`
-  <div style="max-width:860px;margin:0 auto">
-    <div class="card" style="background:linear-gradient(135deg,var(--brand) 0%,#4c1d95 100%);border:none;padding:26px 28px;border-radius:18px;margin-bottom:18px">
-      <h1 style="font-size:22px;font-weight:900">🖊️ Fechamento de contrato</h1>
-      <p style="margin-top:8px;font-size:13.5px;opacity:.92;line-height:1.55">Preencha com o máximo de detalhes. Ao enviar: o <strong>jurídico</strong> prepara o contrato, o <strong>financeiro</strong> cria as cobranças no Asaas e o <strong>time operacional</strong> recebe o projeto. O onboarding acontece <strong>no dia seguinte à venda</strong> (responsáveis: Pavão e Pitbull).</p>
+  <div class="fc-wrap">
+    <div class="fc-hero">
+      <span class="fc-kick"><span class="pt"></span>Novo contrato · passagem de bastão</span>
+      <h1>Fechamento de contrato</h1>
+      <p class="sub">Quanto mais detalhe entrar aqui, menos ida e volta depois. É deste formulário que saem o contrato, as cobranças e o briefing de quem vai tocar a conta.</p>
+      <div class="fc-fluxo">
+        <div class="fc-passo"><i>⚖️</i><div><b>Jurídico</b><em>prepara o contrato</em></div></div>
+        <div class="fc-liga">→</div>
+        <div class="fc-passo"><i>💳</i><div><b>Financeiro</b><em>cria as cobranças no Asaas</em></div></div>
+        <div class="fc-liga">→</div>
+        <div class="fc-passo"><i>🚀</i><div><b>Operação</b><em>recebe o projeto</em></div></div>
+      </div>
+      <div class="fc-nota"><span>📅</span><span>Onboarding <b>no dia seguinte à venda</b> — responsáveis: Pavão e Pitbull.</span></div>
     </div>
     <div id="fcForm">
-    <div class="card" style="margin-bottom:14px"><h2 style="font-size:15px;margin-bottom:12px">🏢 Empresa</h2>
+    <div class="fc-prog" id="fc_prog">
+      <span class="fc-prog-t" id="fc_progt">—</span>
+      <span class="fc-prog-b"><span class="fc-prog-f" id="fc_progf"></span></span>
+    </div>
+    ${sec('01','🏢 Empresa','Quem é o cliente e quem assina o contrato.',`
       <div class="row2"><div>${fcField('Nome da empresa *','fc_nome','ex: Select Motors')}<div id="fc_dup"></div></div>
         <div class="field"><label>Nicho *</label><select id="fc_nicho">${NICHOS.map(n=>`<option>${n}</option>`).join('')}</select></div></div>
       <div class="row2">${fcField('Razão social','fc_razao','ex: S F OLIVEIRA LTDA')}${fcField('CNPJ','fc_cnpj','ex: 12.345.321/0001-23')}</div>
       <div class="row2">${fcField('Nome do responsável (dono)','fc_dono','ex: Luiz Marcelo da Silveira Couto')}${fcField('CPF do responsável','fc_cpf','ex: 123.456.789-00')}</div>
-      <div class="row2">${fcField('RG','fc_rg','ex: 12.321.213-1')}<div class="field"></div></div>
-    </div>
-    <div class="card" style="margin-bottom:14px"><h2 style="font-size:15px;margin-bottom:12px">📋 Plano e contrato</h2>
+      <div class="row2">${fcField('RG','fc_rg','ex: 12.321.213-1')}<div class="field"></div></div>`)}
+    ${sec('02','📋 Plano e contrato','O que foi vendido, em que combinação e por quanto tempo.',`
       <div class="row2">
-        <div class="field"><label data-dica="NOVO: marque todos os serviços fechados com esse cliente — qualquer combinação. Fica roxo o que está selecionado, e é isso que vai pro contrato e pra ficha.">Serviços prestados *</label>
+        <div class="field"><label data-dica="Marque todos os serviços fechados com esse cliente — qualquer combinação. Fica roxo o que está selecionado, e é isso que vai pro contrato e pra ficha.">Serviços prestados *</label>
           <input type="hidden" id="fc_plano" value="">
-          <div class="tkp-chips" id="fc_servs" style="margin-top:2px">${FC_SERVICOS.map(s=>`<button type="button" class="tkp-chip" data-s="${s}" onclick="fcServToggle(this,'${s}')">${s}</button>`).join('')}</div></div>
+          <div class="tkp-chips" id="fc_servs">${FC_SERVICOS.map(x=>`<button type="button" class="tkp-chip" data-s="${x}" onclick="fcServToggle(this,'${x}')">${x}</button>`).join('')}</div></div>
         <div class="field"><label>Tipo de contrato *</label><select id="fc_contrato">${FC_CONTRATOS.map(p=>`<option>${p}</option>`).join('')}</select></div></div>
       <div class="field"><label>Integrações</label><textarea id="fc_integra" rows="2" placeholder="Portais, sistemas e integrações necessárias para o Agente IA"></textarea></div>
-      <div class="field"><label>Especificidades do contrato (o que foge do escopo padrão)</label><textarea id="fc_espec" rows="2" placeholder="Deixe vazio se não houver"></textarea></div>
-    </div>
-    <div class="card" style="margin-bottom:14px"><h2 style="font-size:15px;margin-bottom:12px">💳 Financeiro · cadastro no Asaas</h2>
+      <div class="field"><label>Especificidades do contrato (o que foge do escopo padrão)</label><textarea id="fc_espec" rows="2" placeholder="Deixe vazio se não houver"></textarea></div>`)}
+    ${sec('03','💳 Financeiro · cadastro no Asaas','Como e quando o dinheiro entra. O dia da 1ª parcela vira o vencimento recorrente.',`
       <div class="row2">${fcField('Responsável financeiro','fc_respfin','Se vazio, uso o dono')}${fcField('Telefone financeiro *','fc_telfin','ex: (24) 99847-1592')}</div>
       <div class="row2">${fcField('E-mail','fc_email','ex: financeiro@empresa.com')}${fcField('Endereço','fc_end','Rua, número - Bairro, Cidade - UF, CEP')}</div>
       <div class="row2">
@@ -9203,14 +9343,12 @@ function renderFechamento(c){
         <div class="field"><label>Forma de pagamento *</label><select id="fc_forma">${FC_PAGTOS.map(p=>`<option>${p}</option>`).join('')}</select></div></div>
       <div class="row2">
         <div class="field"><label id="fc_lbl_data" data-dica="No fluxo normal: quando a 1ª mensalidade é paga (o DIA vira o vencimento recorrente). Com sinal: quando o RESTANTE será acertado.">Data da 1ª parcela *</label><input id="fc_data" type="date"></div>
-        <div class="field"><label>Status do pagamento *</label><select id="fc_status" onchange="var w=document.getElementById('fc_sw');if(w)w.style.display=this.value==='sinal'?'':'none';var d=document.getElementById('fc_sinaldata');if(d&&!d.value)d.value=hojeISO();var l=document.getElementById('fc_lbl_data');if(l)l.textContent=this.value==='sinal'?'Data do acerto do restante *':'Data da 1ª parcela *'" data-dica="NOVO: 'Sinal pago' registra a entrada agora e deixa o restante como a receber — o financeiro enxerga as duas partes certinhas."><option value="aguardando">Aguardando pagamento</option><option value="pago">Pago</option><option value="sinal">Sinal pago (entrada)</option></select></div></div>
+        <div class="field"><label>Status do pagamento *</label><select id="fc_status" onchange="var w=document.getElementById('fc_sw');if(w)w.style.display=this.value==='sinal'?'':'none';var d=document.getElementById('fc_sinaldata');if(d&&!d.value)d.value=hojeISO();var l=document.getElementById('fc_lbl_data');if(l)l.textContent=this.value==='sinal'?'Data do acerto do restante *':'Data da 1ª parcela *';fcProgresso()" data-dica="'Sinal pago' registra a entrada agora e deixa o restante como a receber — o financeiro enxerga as duas partes certinhas."><option value="aguardando">Aguardando pagamento</option><option value="pago">Pago</option><option value="sinal">Sinal pago (entrada)</option></select></div></div>
       <div class="row2" id="fc_sw" style="display:none">
         <div class="field"><label>Valor do sinal (R$) *</label><input type="number" step="0.01" id="fc_sinal" placeholder="ex: 500"></div>
         <div class="field"><label data-dica="Quando o dinheiro do sinal ENTROU de verdade — pode ser dias atrás. É essa data que vai pro caixa.">Quando o sinal entrou *</label><input type="date" id="fc_sinaldata"></div>
-      </div>
-      <p class="hint">O dia dessa data vira o dia de vencimento recorrente do cliente.</p>
-    </div>
-    <div class="card" style="margin-bottom:14px"><h2 style="font-size:15px;margin-bottom:12px">👥 Responsáveis · comercial x projetos</h2>
+      </div>`)}
+    ${sec('04','👥 Responsáveis · comercial e operação','Quem vendeu, de onde veio o lead e qual squad assume a conta.',`
       <div class="row2">${fcField('SDR responsável *','fc_sdr','')}${fcField('Closer responsável *','fc_closer','',(currentUser&&currentUser.nome)||'')}</div>
       <div class="row2">
         <div class="field"><label data-dica="De onde veio esse lead. Inbound: chegou sozinho (anúncio, indicação do site, redes). Outbound: prospecção ativa nossa. Indicação: veio por alguém.">Origem do lead *</label>
@@ -9219,17 +9357,17 @@ function renderFechamento(c){
       </div>
       <div class="row2">
         <div class="field"><label>Squad responsável *</label>
-          <select id="fc_squad" onchange="fcSquadMudou()"><option value="">Selecione</option>${fcSquads().map(s=>`<option value="${esc(s.squad)}">Squad ${esc(s.squad)} · ${esc(s.gerente||'sem gerente')}</option>`).join('')}</select>
-          <p class="hint" style="margin:6px 0 0"><span id="fc_rodizio"></span>O gerente e o gestor de tráfego vêm do squad. Quem é de qual squad se define em Usuários.</p></div>
+          <select id="fc_squad" onchange="fcSquadMudou()"><option value="">Selecione</option>${fcSquads().map(x=>`<option value="${esc(x.squad)}">Squad ${esc(x.squad)} · ${esc(x.gerente||'sem gerente')}</option>`).join('')}</select>
+          <p class="hint" style="margin:7px 0 0"><span id="fc_rodizio"></span>O gerente e o gestor de tráfego vêm do squad. Quem é de qual squad se define em Usuários.</p></div>
         <div class="field" id="fc_gw"><label>Gestor de tráfego *</label><input id="fc_gestor" list="dlFcGestores" placeholder="preenchido pelo squad, pode trocar"><datalist id="dlFcGestores">${gestores.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div></div>
       <div id="fc_equipe" class="fc-equipe"></div>
-      ${fcField('Link da call de vendas','fc_call','https://...')}
+      ${fcField('Link da call de vendas','fc_call','https://...')}`)}
+    ${sec('05','🤝 Passagem de bastão','O que a operação precisa saber antes da primeira conversa com o cliente.',`
+      <div class="field" style="margin-bottom:2px"><label>Resumo operacional da venda *</label><textarea id="fc_resumo" rows="4" placeholder="O que foi vendido, expectativas do cliente, o que ele quer melhorar, informações cruciais..."></textarea></div>`)}
+    <div class="fc-envio">
+      <div class="fc-envio-i" id="fc_envioi"></div>
+      <button class="btn" id="fc_enviar" onclick="fechEnviar()">Enviar fechamento →</button>
     </div>
-    <div class="card" style="margin-bottom:16px"><h2 style="font-size:15px;margin-bottom:12px">🤝 Passagem de bastão</h2>
-      <div class="field"><label>Resumo operacional da venda *</label><textarea id="fc_resumo" rows="4" placeholder="O que foi vendido, expectativas do cliente, o que ele quer melhorar, informações cruciais..."></textarea></div>
-    </div>
-    <button class="btn" id="fc_enviar" style="width:100%;padding:14px;font-size:15px" onclick="fechEnviar()">Enviar fechamento →</button>
-    <p class="hint" style="text-align:center;margin-top:10px">Ao enviar, o cliente vira um card na coluna <strong>0. NÃO ATIVO</strong> da lista Base de Clientes e a 1ª cobrança já aparece no financeiro.</p>
     </div>
     <div id="fcOk" style="display:none"></div>
   </div>`;
@@ -9240,6 +9378,10 @@ function renderFechamento(c){
   if(selSq&&FC_SQ_VEZ&&[...selSq.options].some(o=>o.value===FC_SQ_VEZ)){ selSq.value=FC_SQ_VEZ; }
   fcSquadMudou();
   const nEl=$('#fc_nome'); if(nEl){ nEl.oninput=fcChecaNome; }
+  /* um ouvinte no formulário inteiro em vez de um por campo */
+  const form=$('#fcForm');
+  if(form){ form.addEventListener('input',fcProgresso); form.addEventListener('change',fcProgresso); }
+  fcProgresso();
 }
 /* REGRA DE NEGÓCIO (Gabriel, 11/08): projeto/cliente não pode duplicar. Compara o nome
    normalizado (sem acento, pontuação, espaços e termos genéricos) com as fichas existentes
@@ -9305,10 +9447,16 @@ window.fechEnviar=async ()=>{
     try{ await loadDB(); }catch(_){}
     $('#fcForm').style.display='none';
     const okEl=$('#fcOk'); okEl.style.display='';
-    okEl.innerHTML=`<div class="card" style="text-align:center;padding:40px 24px">
-      <div style="font-size:44px">🎉</div>
-      <h2 style="margin:12px 0 6px">Fechamento registrado!</h2>
-      <p class="hint" style="margin-bottom:18px">${esc(body.nome)} já entrou na Base de Clientes, na coluna 0. NÃO ATIVO, com ficha de projeto “novo” e a 1ª cobrança lançada${body.statusPagamento==='pago'?' como recebida':''}.</p>
+    okEl.innerHTML=`<div class="fc-sec fc-ok">
+      <div class="fc-ok-anel">✓</div>
+      <h2>${esc(MAIUS(body.nome))} está dentro.</h2>
+      <p class="hint" style="margin:0 auto;max-width:52ch">Entrou na Base de Clientes na coluna <strong>0. NÃO ATIVO</strong>, com ficha de projeto “novo” e a 1ª cobrança lançada${body.statusPagamento==='pago'?' como recebida':body.statusPagamento==='sinal'?' com o sinal registrado':''}.</p>
+      <div class="fc-resumo">
+        <span>Mensalidade<b>${brl(parseFloat(body.valor)||0)}</b></span>
+        <span>Contrato<b>${esc(body.tipoContrato||'—')}</b></span>
+        <span>Squad<b>${esc(body.squad||'—')}</b></span>
+        <span>Closer<b>${esc(body.closer||'—')}</b></span>
+      </div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button class="btn" onclick="render('clientes');setTimeout(()=>abrirCliente('${data.projetoId}'),500)">Ver o cliente →</button>
         <button class="btn ghost" onclick="render('fechamento')">+ Novo fechamento</button>
