@@ -186,32 +186,48 @@
   .tt-comp{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px}
   .tt-comp.ok{background:rgba(63,207,142,.15);color:#7fe4bb}
   .tt-comp.passou{background:rgba(239,91,107,.16);color:#ff9aa5}
-  .tk-tit{width:100%;background:transparent;border:none;color:var(--txt);font-size:21px;font-weight:700;
-    letter-spacing:-.015em;padding:2px 0 12px;outline:none;font-family:inherit}
+  .tk-tit{width:100%;background:transparent;border:none;color:var(--txt);font-size:24px;font-weight:800;
+    letter-spacing:-.02em;padding:4px 0 14px;outline:none;font-family:inherit}
   .tk-tit::placeholder{color:var(--muted)}
   .tk-props{display:flex;flex-direction:column;margin-bottom:6px}
-  /* faixa cinza separando o título das propriedades */
-  .tk-props::before{content:'';display:block;height:7px;background:var(--panel2);
-    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
-    border-radius:4px;margin:2px 0 14px}
-  .tk-p{display:flex;align-items:center;gap:12px;padding:7px 0;min-height:38px}
-  .tk-pl{display:flex;align-items:center;gap:6px;row-gap:3px;flex-wrap:wrap;width:152px;flex:none;color:var(--muted);
-    font-size:12.5px;font-weight:600}
-  .tk-pl svg{width:15px;height:15px;flex:none;opacity:.8}
+  /* Um fio separando o titulo das propriedades. Antes era uma faixa de 7px que
+     parecia barra de progresso pela metade — a primeira coisa que o olho pegava. */
+  .tk-props::before{content:'';display:block;height:1px;background:var(--line);margin:0 0 8px}
+  .tk-p{display:flex;align-items:center;gap:12px;padding:5px 10px;min-height:36px;
+    margin:0 -10px;border-radius:9px;transition:background .12s}
+  .tk-p:hover{background:var(--hov1)}
+  /* nowrap no container: o icone fica fixo na esquerda e so o texto quebra ao lado.
+     Antes "Remuneracao por Contrato" jogava o icone pra uma linha sozinha. */
+  .tk-pl{display:flex;align-items:center;gap:7px;flex-wrap:nowrap;width:154px;flex:none;color:var(--muted);
+    font-size:12.5px;font-weight:600;line-height:1.32}
+  .tk-pl svg{width:15px;height:15px;flex:none;opacity:.6}
   .tk-pv{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  /* Campo vazio antes era so um traco solto no meio do nada: sem borda ate o hover,
+     nada dizia onde clicar. Agora a moldura existe sempre e o hover so a acende. */
   .tk-pv select,.tk-pv input[type=text],.tk-pv input:not([type]),.tk-pv input[type=date],.tk-pv input[type=number]{
-    background:transparent;border:1px solid transparent;border-radius:7px;color:var(--txt);
-    padding:5px 8px;font-size:13.5px;font-family:inherit;max-width:100%;color-scheme:dark}
+    background:transparent;border:1px solid var(--line);border-radius:8px;color:var(--txt);
+    padding:6px 9px;font-size:13.5px;font-family:inherit;max-width:100%;color-scheme:dark;
+    transition:background .12s,border-color .12s}
   .tk-pv select{min-width:210px}
-  .tk-pv select:hover,.tk-pv input:hover{background:var(--panel2);border-color:var(--line)}
-  .tk-pv select:focus,.tk-pv input:focus{background:var(--panel2);border-color:var(--brand2);outline:none}
+  .tk-pv select:hover,.tk-pv input:hover{background:var(--panel2);border-color:var(--fraco)}
+  .tk-pv select:focus,.tk-pv input:focus{background:var(--panel2);border-color:var(--brand2);outline:none;
+    box-shadow:0 0 0 3px rgba(124,104,238,.16)}
+  .tk-pv input::placeholder{color:var(--fraco)}
+  /* Colunas da lista em duas por linha: eram 8 linhas de campo curto num painel de
+     1040px, com dois tercos da largura vazios e rolagem a toa. */
+  .tk-cps{display:grid;grid-template-columns:1fr 1fr;gap:0 30px;margin:0 0 2px}
+  .tk-cps .tk-pl{width:136px}
+  .tk-cps .tk-pv select,.tk-cps .tk-pv input{min-width:0;width:100%}
+  .tk-cps .tk-pv{min-width:0}
+  @media(max-width:920px){ .tk-cps{grid-template-columns:1fr} }
   .tk-pv input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2)}
   .tk-datas{gap:4px;flex-wrap:nowrap}
   .tk-datas input[type=date]{width:122px;flex:none}
   .tk-seta{color:var(--muted);font-size:12px}
   .tk-curto{width:110px}
-  .tk-sec{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
-    font-weight:800;margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--line)}
+  .tk-sec{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+    font-weight:800;margin:18px 0 10px;padding-top:16px;border-top:1px solid var(--line)}
+  .tk-sec.sub{margin:16px 0 6px;padding-top:14px}
   .tk-desc{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
     border-radius:9px;padding:10px 11px;font-size:13.5px;font-family:inherit;resize:vertical}
   .tk-desc:focus{border-color:var(--brand2);outline:none}
@@ -694,11 +710,11 @@
   .tkm-tit{font-size:14px;font-weight:800;margin:0 0 12px}
   .tkm-rail{display:flex;flex-direction:column;gap:4px;padding:0 0 0 12px;margin-left:12px;
     border-left:1px solid var(--line);flex:none}
-  .tkm-i{position:relative;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;
-    background:transparent;border:none;color:var(--muted)}
+  .tkm-i{position:relative;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;
+    background:transparent;border:1px solid transparent;color:var(--muted);transition:.12s}
   .tkm-i svg{width:17px;height:17px}
   .tkm-i:hover{background:var(--panel2);color:var(--txt)}
-  .tkm-i.on{background:var(--panel2);color:#c4b5fd}
+  .tkm-i.on{background:rgba(124,104,238,.16);border-color:rgba(124,104,238,.45);color:#c4b5fd}
   .tkm-b{position:absolute;top:-2px;right:-2px;background:var(--brand);color:#fff;border-radius:999px;
     font-size:8.5px;font-weight:800;padding:1px 4px;min-width:14px;line-height:1.35}
   .tkm-b:empty{display:none}
@@ -7046,10 +7062,11 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <!-- A lista saiu das propriedades: você já está dentro dela e ela aparece no caminho
            lá em cima. Fica só como valor, para o salvamento e para mover por arrastar. -->
       <input type="hidden" id="tk_lista" value="${esc(it.lista_id||'')}">
-      ${cps.filter(c=>!c.origem).map(c=>`<div class="tk-p"><span class="tk-pl">${SVG_P.campo} ${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr" title="Obrigatório">*</span>':''}</span><span class="tk-pv">
-        ${campoHtml(c)}
-      </span></div>`).join('')}
     </div>
+    ${cps.filter(c=>!c.origem).length?`<div class="tk-sec sub">Campos desta lista</div>
+    <div class="tk-cps">${cps.filter(c=>!c.origem).map(c=>`<div class="tk-p"><span class="tk-pl">${SVG_P.campo} ${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr" title="Obrigatório">*</span>':''}</span><span class="tk-pv">
+        ${campoHtml(c)}
+      </span></div>`).join('')}</div>`:''}
     <div class="tk-sec">Descrição</div>
     <textarea id="tk_desc" rows="3" class="tk-desc" placeholder="detalhes...">${esc(it.descricao)}</textarea>
     <div class="tk-sec">Checklist <span id="ck_prog"></span></div>
