@@ -1202,6 +1202,17 @@
   /* ===== AGENDA DE WHATSAPP DO CLIENTE (Gabriel 31/08) =====
      O cliente deixa de ter "um telefone" e passa a ter uma lista etiquetada:
      numero da IA, do vendedor, do dono, link do grupo. */
+  /* WhatsApp na linha: verde da marca, mesma altura dos outros valores — nada de caixa cheia */
+  .zp-lk{display:inline-flex;align-items:center;gap:8px;background:transparent;border:none;padding:0;
+    color:#4ade80;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;line-height:1.45}
+  .zp-lk svg{flex:none}
+  .zp-lk:hover{text-decoration:underline;text-underline-offset:3px}
+  .zp-lk.vz{color:var(--fraco);font-weight:500;font-size:13.5px}
+  .zp-lk.vz:hover{color:#4ade80}
+  .pc-dl .v.vz .zp-lk.vz{color:var(--fraco)}
+  /* o ícone de cima também assume o verde quando há número cadastrado */
+  .pc-ic.wa.tem{color:#4ade80;border-color:rgba(37,211,102,.32)}
+  .pc-ic.wa .pc-bdg{background:#25d366;color:#04231a}
   .zp-btn{display:inline-flex;align-items:center;gap:9px;background:var(--panel2);
     border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 13px;
     font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:.13s;width:100%}
@@ -9461,6 +9472,19 @@ function zapPintar(fid,abrirForm,editando){
     ${(abrirForm||ed)?form:`<div class="zp-f"><button class="zp-add" onclick="zapPintar('${esc(fid)}',true)">＋ Adicionar número</button></div>`}`;
   if(abrirForm||ed) setTimeout(()=>{ const n=document.getElementById('zp_nome'); if(n) n.focus(); },30);
 }
+/* mantem o texto verde da linha e a bolinha do icone em dia sem redesenhar o card */
+function zapContador(f){
+  const n=zapsDe(f).length;
+  const b=document.getElementById('zpBtnN');
+  if(b){ b.textContent=n?(n+' número'+(n===1?'':'s')):'adicionar';
+    const bt=b.closest('.zp-lk'); if(bt) bt.classList.toggle('vz',!n);
+    const cel=b.closest('.v'); if(cel) cel.classList.toggle('vz',!n); }
+  const ic=document.querySelector('.pc-ic.wa');
+  if(ic){ ic.classList.toggle('tem',!!n);
+    let bd=ic.querySelector('.pc-bdg');
+    if(n){ if(!bd){ bd=document.createElement('span'); bd.className='pc-bdg'; ic.appendChild(bd); } bd.textContent=n; }
+    else if(bd) bd.remove(); }
+}
 window.zapEtNova=(sel)=>{ const inp=document.getElementById('zp_etnova'); if(!inp) return;
   const nova=sel.value==='__nova'; inp.style.display=nova?'':'none'; if(nova) inp.focus(); };
 window.zapIr=(zid,fid)=>{
@@ -9484,7 +9508,7 @@ window.zapSalvar=async (fid,zid)=>{
   else f.zaps.push({id:uid(),et:et.trim(),nome:nome.trim(),num:num.trim()});
   await saveDB();
   zapPintar(fid);
-  const b=document.getElementById('zpBtnN'); if(b) b.textContent=f.zaps.length+' cadastrado'+(f.zaps.length===1?'':'s');
+  zapContador(f);
   toast(zid?'Contato atualizado.':'Número adicionado.');
 };
 window.zapRemover=async (fid,zid)=>{
@@ -9495,7 +9519,7 @@ window.zapRemover=async (fid,zid)=>{
   if(!ok) return;
   f.zaps=zapsDe(f).filter(x=>String(x.id)!==String(zid));
   await saveDB(); zapPintar(fid);
-  const b=document.getElementById('zpBtnN'); if(b) b.textContent=f.zaps.length+' cadastrado'+(f.zaps.length===1?'':'s');
+  zapContador(f);
   toast('Contato removido.');
 };
 window.openProjCard=(id)=>{
@@ -9560,7 +9584,7 @@ window.openProjCard=(id)=>{
     </div>
 
     <div class="pc-icos">
-      <button type="button" class="pc-ic wa" data-t="WhatsApp${nZaps?' · '+nZaps+' número'+(nZaps===1?'':'s'):' — nenhum número'}" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}${nZaps?`<span class="pc-bdg">${nZaps}</span>`:''}</button>
+      <button type="button" class="pc-ic wa${nZaps?' tem':''}" data-t="WhatsApp${nZaps?' · '+nZaps+' número'+(nZaps===1?'':'s'):' — nenhum número'}" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}${nZaps?`<span class="pc-bdg">${nZaps}</span>`:''}</button>
       ${icoLk('ig','Instagram',igLk,I_IG)}
       ${icoLk('dr','Drive',drLk,I_DR)}
       <span class="pc-div"></span>
@@ -9597,7 +9621,8 @@ window.openProjCard=(id)=>{
       ${cat('Contato')}
       <div class="pc-dl">
         ${li('Dono', esc((cli&&cli.resp)||'definir'), `<input value="${esc((cli&&cli.resp)||'')}" disabled style="opacity:.6">`, !(cli&&cli.resp))}
-        ${li('WhatsApp', `<button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}Números<span class="zn-n" id="zpBtnN">${nZaps} cadastrado${nZaps===1?'':'s'}</span></button>`, `<button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}Números<span class="zn-n">${nZaps} cadastrado${nZaps===1?'':'s'}</span></button>`)}
+        ${(()=>{ const zl=`<button type="button" class="zp-lk${nZaps?'':' vz'}" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}<span id="zpBtnN">${nZaps?(nZaps+' número'+(nZaps===1?'':'s')):'adicionar'}</span></button>`;
+          return li('WhatsApp', zl, zl, !nZaps); })()}
         ${li('Instagram', igLk?`<a href="${esc(igLk)}" target="_blank" rel="noopener">${esc(it.instagram||(cli&&cli.instagram))}</a>`:'definir', `<input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link">`, !igLk)}
         ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk)}
       </div>
