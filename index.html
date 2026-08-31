@@ -2813,25 +2813,39 @@ const avatarDoNome=(nome,classe,titulo)=>{
   return f?`<span class="${cl}" title="${tit}"><img src="${esc(f)}" alt=""></span>`
           :`<span class="${cl}" style="background:${corDoNome(t)}" title="${tit}">${esc(inicial(t))}</span>`;
 };
+/* Quem pode ocupar cada papel sai do CARGO do perfil (Gabriel 31/08): gestor de
+   trafego so lista quem tem esse cargo — hoje Luan e Yghor. Entrou gestor novo?
+   basta preencher o cargo dele em Usuarios que ele aparece, sem mexer no codigo. */
+/* Coluna chamada "Gestor de Tráfego" ou "Gerente" herda a mesma regra de papel. */
+const papelDaColuna=(nome)=>{ const n=semAcento(nome);
+  if(/trafego/.test(n)) return 'trafego';
+  if(/gerente/.test(n)) return 'gerente';
+  return ''; };
+const PAPEL_FILTRO={
+  trafego:(u)=>/trafego/.test(semAcento(u&&u.cargo)),
+  gerente:(u)=>!!(u&&u.gerente)||/^gerente/.test(semAcento(u&&u.cargo))
+};
+/* Aplica o papel sem deixar a lista vazia: se ninguem tem o cargo preenchido,
+   melhor mostrar todo mundo do que travar o campo. Quem ja esta no campo nunca sai. */
+const filtraPapel=(gente,papel,manter)=>{
+  const f=PAPEL_FILTRO[papel]; if(!f) return gente;
+  const so=gente.filter(u=>f(u)||(manter&&String(u.id)===String(manter)));
+  return so.length?so:gente;
+};
 /* Seletor de pessoa para os campos da ficha (gestor e gerente). Guarda o NOME, igual
    a antes — entao nada precisa migrar — mas escolhido da lista real, o que acaba com
    "Luan" x "Luan Santiago". Se o valor atual nao casa com ninguem, ele fica na lista
    como opcao pra nao se perder. `soGerentes` limita aos gerentes e masters. */
-const selPessoa=(id,atual,soGerentes)=>{
+const selPessoa=(id,atual,papel)=>{
   const at=String(atual||'').trim();
   let gente=((typeof TK!=='undefined'&&TK.equipe)?TK.equipe:[]).slice();
-  if(soGerentes){
-    /* a view equipe_nomes ja traz `gerente` e `role`; PERFIS so existe pro master */
-    const ehG=(u)=>{ if(u.gerente||u.role==='master') return true;
-      const p=(typeof PERFIS!=='undefined'&&PERFIS)?PERFIS.find(x=>String(x.id)===String(u.id)):null;
-      return !!(p&&(p.gerente||p.role==='master')); };
-    const so=gente.filter(ehG); if(so.length) gente=so;
-  }
+  /* a view equipe_nomes ja traz cargo, gerente e role — nao precisa do PERFIS */
+  gente=filtraPapel(gente,papel);
   gente=gente.slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));
   const nomes=gente.map(u=>String(u.nome||'').trim());
   const solto=at&&nomes.indexOf(at)<0;   /* nome antigo que nao bate com ninguem */
   return `<select id="${id}"><option value="">— ninguém —</option>`
-    +(solto?`<option value="${esc(at)}" selected>${esc(at)} (fora da equipe)</option>`:'')
+    +(solto?`<option value="${esc(at)}" selected>${esc(at)}${userPorNome(at)?' (outro cargo)':' (fora da equipe)'}</option>`:'')
     +nomes.map(n=>`<option value="${esc(n)}"${n===at?' selected':''}>${esc(n)}</option>`).join('')
     +`</select>`;
 };
@@ -4950,7 +4964,7 @@ window.tkQaCampoPessoa=(ev,id,campoId)=>{ ev.stopPropagation();
   const t=TK.tarefas.find(x=>x.id===id)||{}, c=tkCampo1(campoId)||{}, at=(t.valores||{})[campoId]||'';
   el.innerHTML=`<div class="tkp-sec">${esc(c.nome||'Pessoa')}</div>
     <label class="tkp-row" onclick="tkQaSetCampoPessoa('${id}','${campoId}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span><span class="tkp-nm">Ninguém</span>${!at?'<span class="tkp-n">•</span>':''}</label>
-    ${equipeDe(t.lista_id,at).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
+    ${filtraPapel(equipeDe(t.lista_id,at),papelDaColuna(c.nome),at).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
       <label class="tkp-row" onclick="tkQaSetCampoPessoa('${id}','${campoId}','${u.id}')">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span>${at===u.id?'<span class="tkp-n">•</span>':''}</label>`).join('')}`;
   document.body.appendChild(el);
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
@@ -9156,8 +9170,8 @@ window.openProjCard=(id)=>{
         <div class="field" style="margin:0"><label>Categoria</label><select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select></div>
       </div>
       <div class="row2" style="margin-bottom:12px">
-        <div class="field" id="pc_gw" style="margin:0${soIA(it)&&!it.responsavel?';display:none':''}"><label>Gestor de tráfego (Autosíntese)</label>${selPessoa('pc_resp',it.responsavel)}</div>
-        <div class="field" style="margin:0"><label>Gerente * (Autosíntese)</label>${selPessoa('pc_ger',it.gerente,true)}</div>
+        <div class="field" id="pc_gw" style="margin:0${soIA(it)&&!it.responsavel?';display:none':''}"><label>Gestor de tráfego (Autosíntese)</label>${selPessoa('pc_resp',it.responsavel,'trafego')}</div>
+        <div class="field" style="margin:0"><label>Gerente * (Autosíntese)</label>${selPessoa('pc_ger',it.gerente,'gerente')}</div>
       </div>
       <div class="row2" style="margin-bottom:12px">
         <div class="field" style="margin:0"><label>Squad *</label><input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
