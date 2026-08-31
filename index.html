@@ -14,16 +14,16 @@
 <style>
   :root{
     --bg:#141416; --panel:#1b1b1e; --panel2:#232327; --line:#2e2e34;
-    --txt:#e9e9ec; --muted:#8e8e99; --brand:#7b68ee; --brand2:#a78bfa;
+    --txt:#ffffff; --muted:#c8c8d2; --brand:#7b68ee; --brand2:#a78bfa;
     --danger:#ef5b6b; --ok:#3fcf8e; --warn:#e6b13f; --shadow:0 8px 24px rgba(0,0,0,.34);
     /* realces de passar o mouse: no escuro clareiam, no claro escurecem.
        Estavam como rgba(255,255,255,x) espalhados e não invertiam. */
     --hov1:rgba(255,255,255,.04); --hov2:rgba(255,255,255,.06); --hov3:rgba(255,255,255,.11);
-    --cardh:#2a2a31; --fraco:#4a4a55;
+    --cardh:#2a2a31; --fraco:#8a8a96;
   
     --info:#60a5fa; --info2:#2dd4bf;
   
-    --tit1:#ffffff; --tit2:#cbb4f7;
+    --tit1:#ffffff; --tit2:#e0d2ff;
   }
   /* Tema claro. Só os tokens mudam — os 421 usos no CSS acompanham sozinhos.
      O roxo da marca é o mesmo nos dois, escurecido só onde precisa de contraste. */
@@ -32,43 +32,43 @@
      claro  = branco quebrado   · branco = branco puro */
   :root[data-tema="claro"]{
     --bg:#f4f4f6; --panel:#ffffff; --panel2:#ececef; --line:#d9d9e0;
-    --txt:#1a1a1f; --muted:#6b6b76; --brand:#6d4aff; --brand2:#8b5cf6;
+    --txt:#000000; --muted:#3d3d48; --brand:#6d4aff; --brand2:#8b5cf6;
     --danger:#d92d43; --ok:#0f8f5f; --warn:#a06a06; --shadow:0 6px 20px rgba(20,20,30,.12);
     --hov1:rgba(20,20,30,.035); --hov2:rgba(20,20,30,.055); --hov3:rgba(20,20,30,.1);
-    --cardh:#e4e4ea; --fraco:#a0a0ac;
+    --cardh:#e4e4ea; --fraco:#6e6e7a;
     color-scheme:light;
   
     --info:#1d64d8; --info2:#0d7f74;
   
-    --tit1:#14141a; --tit2:#5b34cf;
+    --tit1:#000000; --tit2:#5b34cf;
   }
   /* Preto puro: nada de cinza no fundo. Painel sobe um degrau só para a borda
      existir — em OLED o preto absoluto some junto com a hierarquia. */
   :root[data-tema="preto"]{
     --bg:#000000; --panel:#0b0b0d; --panel2:#16161a; --line:#2a2a30;
-    --txt:#f2f2f5; --muted:#8e8e99; --brand:#8b74ff; --brand2:#b79bff;
+    --txt:#ffffff; --muted:#cdcdd6; --brand:#8b74ff; --brand2:#b79bff;
     --danger:#ff6b7a; --ok:#3fcf8e; --warn:#f0c04a; --shadow:0 8px 28px rgba(0,0,0,.7);
     --hov1:rgba(255,255,255,.05); --hov2:rgba(255,255,255,.08); --hov3:rgba(255,255,255,.14);
-    --cardh:#1e1e24; --fraco:#55555f;
+    --cardh:#1e1e24; --fraco:#909099;
     color-scheme:dark;
   
     --info:#7db0ff; --info2:#2dd4bf;
   
-    --tit1:#ffffff; --tit2:#c9b0ff;
+    --tit1:#ffffff; --tit2:#e6dcff;
   }
   /* Branco puro: fundo #fff. O painel escurece um fio, ao contrário do escuro,
      senão card e página viram a mesma superfície e a borda faz todo o trabalho. */
   :root[data-tema="branco"]{
     --bg:#ffffff; --panel:#ffffff; --panel2:#f2f2f5; --line:#e2e2e8;
-    --txt:#111114; --muted:#65656f; --brand:#5b34ff; --brand2:#7c4dff;
+    --txt:#000000; --muted:#3a3a45; --brand:#5b34ff; --brand2:#7c4dff;
     --danger:#c81e34; --ok:#0b7d52; --warn:#8a5a04; --shadow:0 4px 16px rgba(17,17,20,.10);
     --hov1:rgba(17,17,20,.03); --hov2:rgba(17,17,20,.05); --hov3:rgba(17,17,20,.09);
-    --cardh:#eeeef2; --fraco:#a8a8b2;
+    --cardh:#eeeef2; --fraco:#6c6c78;
     color-scheme:light;
   
     --info:#1550c0; --info2:#0a6d64;
   
-    --tit1:#0d0d11; --tit2:#4a25c9;
+    --tit1:#000000; --tit2:#4a25c9;
   }
   :root[data-tema="claro"] body,:root[data-tema="branco"] body,
   :root[data-tema="preto"] body{background:var(--bg)}
@@ -890,7 +890,7 @@
   .tag.onboarding{background:rgba(224,166,59,.15);color:var(--warn)}
   .tag.ativo{background:rgba(62,196,109,.15);color:var(--ok)}
   .tag.churn{background:rgba(229,72,77,.15);color:var(--danger)}
-  .tag.churnpago{background:rgba(139,149,165,.18);color:#9aa4b2}
+  .tag.churnpago{background:rgba(139,149,165,.18);color:#b8c2d0}
   .tag.cat-trafego{background:rgba(47,124,246,.18);color:var(--info)}
   .tag.cat-ia{background:rgba(45,212,191,.15);color:var(--info2)}
   .tag.cat-full{background:rgba(245,158,11,.18);color:var(--warn)}
@@ -905,7 +905,7 @@
   .stSel.areceber{background:rgba(224,166,59,.15);color:var(--warn);border-color:rgba(224,166,59,.4)}
   .stSel.sinal{background:rgba(47,124,246,.15);color:var(--info);border-color:rgba(47,124,246,.4)}
   .stSel.churn{background:rgba(229,72,77,.22);color:var(--danger);border-color:rgba(229,72,77,.55)}
-  .stSel.churnpago{background:rgba(139,149,165,.20);color:#aab3c0;border-color:rgba(139,149,165,.55)}
+  .stSel.churnpago{background:rgba(139,149,165,.20);color:#c4cdd9;border-color:rgba(139,149,165,.55)}
   .stSel.carencia{background:rgba(167,139,250,.16);color:var(--brand2);border-color:rgba(167,139,250,.45)}
   .tk-wrap{display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:start}
   .tk-lista{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--txt);padding:7px 9px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit}
@@ -1056,7 +1056,7 @@
   .apg-st{font-family:var(--mono,ui-monospace);font-size:10px;font-weight:800;letter-spacing:.05em;border-radius:999px;padding:2.5px 10px;white-space:nowrap}
   .apg-venc{background:rgba(239,91,107,.15);color:#ff8b97}
   .apg-avencer{background:rgba(230,177,63,.14);color:#f0c869}
-  .apg-prog{background:rgba(139,149,165,.15);color:#9aa4b2}
+  .apg-prog{background:rgba(139,149,165,.15);color:#b8c2d0}
   .apg-paga{background:rgba(63,207,142,.15);color:#5fd9a4}
   .apg-canc{background:var(--panel2);color:var(--muted);text-decoration:line-through}
   /* popovers de filtro (Responsavel / Filtros) estilo ClickUp */
