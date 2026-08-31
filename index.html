@@ -9597,7 +9597,7 @@ window.openProjCard=(id)=>{
       ${cat('Contato')}
       <div class="pc-dl">
         ${li('Dono', esc((cli&&cli.resp)||'definir'), `<input value="${esc((cli&&cli.resp)||'')}" disabled style="opacity:.6">`, !(cli&&cli.resp))}
-        ${li('WhatsApp', `<button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}Números e etiquetas<span class="zn-n" id="zpBtnN">${nZaps} cadastrado${nZaps===1?'':'s'}</span></button>`, `<button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}Números e etiquetas<span class="zn-n">${nZaps} cadastrado${nZaps===1?'':'s'}</span></button>`)}
+        ${li('WhatsApp', `<button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}Números<span class="zn-n" id="zpBtnN">${nZaps} cadastrado${nZaps===1?'':'s'}</span></button>`, `<button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}Números<span class="zn-n">${nZaps} cadastrado${nZaps===1?'':'s'}</span></button>`)}
         ${li('Instagram', igLk?`<a href="${esc(igLk)}" target="_blank" rel="noopener">${esc(it.instagram||(cli&&cli.instagram))}</a>`:'definir', `<input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link">`, !igLk)}
         ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk)}
       </div>
