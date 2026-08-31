@@ -2813,6 +2813,28 @@ const avatarDoNome=(nome,classe,titulo)=>{
   return f?`<span class="${cl}" title="${tit}"><img src="${esc(f)}" alt=""></span>`
           :`<span class="${cl}" style="background:${corDoNome(t)}" title="${tit}">${esc(inicial(t))}</span>`;
 };
+/* Seletor de pessoa para os campos da ficha (gestor e gerente). Guarda o NOME, igual
+   a antes — entao nada precisa migrar — mas escolhido da lista real, o que acaba com
+   "Luan" x "Luan Santiago". Se o valor atual nao casa com ninguem, ele fica na lista
+   como opcao pra nao se perder. `soGerentes` limita aos gerentes e masters. */
+const selPessoa=(id,atual,soGerentes)=>{
+  const at=String(atual||'').trim();
+  let gente=((typeof TK!=='undefined'&&TK.equipe)?TK.equipe:[]).slice();
+  if(soGerentes){
+    /* a view equipe_nomes ja traz `gerente` e `role`; PERFIS so existe pro master */
+    const ehG=(u)=>{ if(u.gerente||u.role==='master') return true;
+      const p=(typeof PERFIS!=='undefined'&&PERFIS)?PERFIS.find(x=>String(x.id)===String(u.id)):null;
+      return !!(p&&(p.gerente||p.role==='master')); };
+    const so=gente.filter(ehG); if(so.length) gente=so;
+  }
+  gente=gente.slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));
+  const nomes=gente.map(u=>String(u.nome||'').trim());
+  const solto=at&&nomes.indexOf(at)<0;   /* nome antigo que nao bate com ninguem */
+  return `<select id="${id}"><option value="">— ninguém —</option>`
+    +(solto?`<option value="${esc(at)}" selected>${esc(at)} (fora da equipe)</option>`:'')
+    +nomes.map(n=>`<option value="${esc(n)}"${n===at?' selected':''}>${esc(n)}</option>`).join('')
+    +`</select>`;
+};
 /* Icone do espaco: foto ganha do emoji, que ganha da inicial colorida. */
 const espIcone=(e)=>e&&e.foto
   ? `<span class="sp-ic ft"><img src="${esc(e.foto)}" alt=""></span>`
@@ -4726,7 +4748,12 @@ function tkFiltradas(){
       const g=String(f.responsavel||'').trim();
       return TK.lcGestor==='(sem)'?!g:g===TK.lcGestor; });
   }
-  const F=TK.filtro||{};
+  /* BUG que sumiu com os clientes do João (31/08): o Controle de Clientes esconde os
+     botoes Filtro e Responsavel, mas o filtro guardado no localStorage continuava
+     valendo aqui. Um filtro de prazo posto em OUTRA lista zerava o quadro inteiro —
+     cliente nao tem prazo — e nao havia botao nenhum pra descobrir e limpar.
+     Onde o filtro nao aparece, ele nao vale. */
+  const F=(ehLC(TK.listaSel)&&TK.escopo==='lista')?{}:(TK.filtro||{});
   if(F.resps&&F.resps.length) arr=arr.filter(t=>F.resps.includes(t.responsavel_id)||(F.resps.includes('(sem)')&&!t.responsavel_id));
   if(F.prios&&F.prios.length) arr=arr.filter(t=>F.prios.includes(t.prioridade||'med'));
   if(F.de||F.ate) arr=arr.filter(t=>t.prazo&&(!F.de||t.prazo>=F.de)&&(!F.ate||t.prazo<=F.ate));
@@ -9129,8 +9156,8 @@ window.openProjCard=(id)=>{
         <div class="field" style="margin:0"><label>Categoria</label><select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select></div>
       </div>
       <div class="row2" style="margin-bottom:12px">
-        <div class="field" id="pc_gw" style="margin:0${soIA(it)&&!it.responsavel?';display:none':''}"><label>Gestor de tráfego (Autosíntese)</label><input id="pc_resp" value="${esc(it.responsavel)}" placeholder="Ex.: Luan, Yghor, Vitor"></div>
-        <div class="field" style="margin:0"><label>Gerente * (Autosíntese)</label><input id="pc_ger" value="${esc(it.gerente||'')}" placeholder="Nome do gerente"></div>
+        <div class="field" id="pc_gw" style="margin:0${soIA(it)&&!it.responsavel?';display:none':''}"><label>Gestor de tráfego (Autosíntese)</label>${selPessoa('pc_resp',it.responsavel)}</div>
+        <div class="field" style="margin:0"><label>Gerente * (Autosíntese)</label>${selPessoa('pc_ger',it.gerente,true)}</div>
       </div>
       <div class="row2" style="margin-bottom:12px">
         <div class="field" style="margin:0"><label>Squad *</label><input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
