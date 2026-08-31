@@ -1090,6 +1090,41 @@
   .fbad{display:inline-grid;place-items:center;min-width:16px;height:16px;border-radius:8px;background:var(--brand);color:#fff;font-size:10px;font-weight:800;padding:0 4px;margin-left:5px}
   .avstack{display:inline-flex;margin-left:7px}
   .avstack .av{margin-left:-6px;box-shadow:0 0 0 2px var(--panel)}
+  /* Entradas em aberto (Gabriel 31/08) */
+  .rc-bloco{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:15px 17px;margin:0 0 14px}
+  .rc-bloco.alerta{border-color:rgba(230,177,63,.42);
+    background:linear-gradient(180deg,rgba(230,177,63,.06),transparent 62%)}
+  .rc-bh{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;
+    margin-bottom:12px;flex-wrap:wrap}
+  .rc-cnt{color:var(--muted);font-weight:700;font-size:11.5px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+  .rc-ent{display:flex;align-items:center;gap:14px;padding:12px 0;flex-wrap:wrap}
+  .rc-ent+.rc-ent{border-top:1px solid var(--line)}
+  .rc-who{min-width:150px;flex:1}
+  .rc-who strong{font-size:13.5px}
+  .rc-who div{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .rc-barra{flex:1;min-width:170px}
+  .rc-trilho{height:7px;border-radius:99px;background:var(--panel2);overflow:hidden}
+  .rc-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--brand2))}
+  .rc-leg{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);
+    margin-top:5px;font-variant-numeric:tabular-nums;gap:10px}
+  .rc-leg b{color:var(--txt);font-weight:700}
+  .rc-prazo{text-align:right;min-width:130px}
+  .rc-prazo .d{font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums}
+  .rc-prazo .q{font-size:11px;margin-top:2px}
+  /* Linha do tempo do combinado, na ficha do cliente */
+  .rc-tl{display:flex;flex-wrap:wrap;margin:4px 0 0}
+  .rc-et{flex:1;min-width:140px;position:relative;padding-right:4px}
+  .rc-et .bola{width:14px;height:14px;border-radius:50%;border:3px solid var(--panel);
+    background:var(--panel2);position:relative;z-index:1;margin-bottom:10px}
+  .rc-et .lin{position:absolute;left:7px;right:0;top:5.5px;height:3px;background:var(--panel2);z-index:0}
+  .rc-et:last-child .lin{display:none}
+  .rc-et.ok .bola{background:var(--ok)} .rc-et.ok .lin{background:var(--ok)}
+  .rc-et.agora .bola{background:var(--warn);box-shadow:0 0 0 4px rgba(230,177,63,.18)}
+  .rc-et .qd{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .rc-et .vl{font-size:14.5px;font-weight:800;margin:3px 0 2px;font-variant-numeric:tabular-nums}
+  .rc-et .dt{font-size:11.5px;color:var(--muted)}
   .lc-av{width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;font-size:9px;font-weight:800;color:#fff;margin-right:6px;flex:none;vertical-align:-3px;overflow:hidden}
   .lc-av img{width:100%;height:100%;object-fit:cover;display:block}
   .lc-av.g{width:22px;height:22px;font-size:10px;vertical-align:-5px}
@@ -9114,12 +9149,39 @@ function abaAcessosCliente(f){
     </div>`).join(''):'<div style="color:var(--muted);font-size:12.5px">Nenhum link ligado a este cliente.</div>'}
    <p class="hint" style="margin-top:12px">Aparecem aqui os acessos cujo nome combina com o do cliente.</p>`;
 }
+/* Linha do tempo do combinado: entrada -> restante -> 1a mensalidade -> recorrente.
+   So aparece enquanto o restante nao entrou; depois disso o combinado virou rotina. */
+function rcLinhaTempo(cli){
+  const r=(DB.recebimentos||[]).filter(x=>x.clienteId===cli.id&&x.status==='sinal')
+    .sort((a,b)=>String(b.comp||'').localeCompare(String(a.comp||'')))[0];
+  if(!r) return '';
+  const resta=rcRestante(r), venc=rcRestVenc(r), pz=rcPrazoTexto(venc);
+  /* a 1a mensalidade cheia cai um mes depois do acerto do restante */
+  let prox='';
+  if(venc){ const d=new Date(venc+'T12:00:00'); d.setMonth(d.getMonth()+1);
+    prox=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  const et=(cls,qd,vl,dt,cor)=>`<div class="rc-et ${cls}"><span class="lin"></span><div class="bola"></div>
+    <div class="qd">${esc(qd)}</div><div class="vl">${vl}</div>
+    <div class="dt"${cor?` style="color:${cor};font-weight:600"`:''}>${esc(dt)}</div></div>`;
+  return `<div class="rc-bloco" style="margin-bottom:14px">
+    <div class="rc-bh">📅 Combinado de pagamento</div>
+    <div class="rc-tl">
+      ${et('ok','Entrada',brl(r.sinal),'pago em '+fmtDate(r.sinalEm))}
+      ${et('agora','Restante',brl(resta),(venc?fmtDate(venc)+' · ':'')+pz.txt,pz.cor)}
+      ${et('','1ª mensalidade',brl(r.valor),prox?fmtDate(prox):'após o restante')}
+      ${et('','Depois',brl(cli.valor),prox?('todo dia '+prox.slice(8)):'mensal')}
+    </div>
+    <p class="hint" style="margin:12px 0 0">Quando o restante for marcado como recebido, o dia daquele
+      pagamento vira o dia de vencimento do cliente. Hoje o cadastro está no dia ${cli.diaVenc||'—'}.</p>
+  </div>`;
+}
 function abaFinCliente(f){
   const cli=finDaFicha(f);
   if(!cli) return '<div class="empty" style="padding:18px">Este cliente ainda não tem cadastro financeiro.</div>';
   const recs=(DB.recebimentos||[]).filter(x=>x.clienteId===cli.id).sort((a,b)=>(b.comp||'').localeCompare(a.comp||''));
   const tot=recs.reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0);
   return `
+   ${rcLinhaTempo(cli)}
    <div class="cards" style="margin-bottom:14px">
      <div class="card"><div class="k">Honorário mensal</div><div class="v">${brl(cli.valor)}</div></div>
      <div class="card"><div class="k">Recebido (total)</div><div class="v pos">${brl(tot)}</div></div>
@@ -9297,6 +9359,25 @@ window.openProjModal=(id)=>{
 let cliComp = compNow();
 let diaFiltro='';
 let statusFiltro='';
+/* ===== ENTRADA PARCELADA (Gabriel 31/08) =====
+   Venda com sinal: entrada agora, restante numa data combinada e so entao a mensalidade
+   comeca a correr. O sistema ja guardava o sinal, mas o restante nao tinha data propria,
+   nunca ficava vermelho, e o dia de vencimento do cliente continuava sendo o do SINAL —
+   entao o mes seguinte nascia cobrando na data errada (caso DL Repasse).
+   `restanteVenc` e a data combinada; sem ela, cai no vencimento da cobranca. */
+const rcRestante=(r)=>Math.max(0,(Number((r||{}).valor)||0)-(Number((r||{}).sinal)||0));
+const rcRestVenc=(r)=>String((r&&(r.restanteVenc||r.venc))||'');
+const rcAtrasado=(r)=>{ const v=rcRestVenc(r); return !!(v&&v<hojeISO()); };
+/* "vence amanha", "4 dias em atraso" — o prazo em palavra, nao em data crua. */
+function rcPrazoTexto(iso){
+  if(!iso) return {txt:'sem data combinada',cor:'var(--muted)'};
+  const d=Math.round((new Date(iso+'T12:00:00')-new Date(hojeISO()+'T12:00:00'))/86400000);
+  if(d<0) return {txt:(-d)+(d===-1?' dia em atraso':' dias em atraso'),cor:'#ff8b97'};
+  if(d===0) return {txt:'vence hoje',cor:'#f0c869'};
+  if(d===1) return {txt:'vence amanhã',cor:'#f0c869'};
+  if(d<=5) return {txt:'em '+d+' dias',cor:'#f0c869'};
+  return {txt:'em '+d+' dias',cor:'var(--muted)'};
+}
 function calcRecebimentos(comp){
   const hoje=hojeISO();
   const byCli={}; DB.recebimentos.filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
@@ -9319,6 +9400,39 @@ function calcRecebimentos(comp){
   const perdaChurn=g.churn.reduce((s,c)=>s+(churnMes(c)?val(c):0),0);
   const isentoCarencia=g.carencia.reduce((s,x)=>s+val(x),0);
   return {byCli, st, g, soma, val, sinaisPagos, sinaisRestante, churnMes, perdaChurn, isentoCarencia};
+}
+/* Bloco B: quem tem entrada parcelada sobe pro topo do Recebimentos, com barra de
+   progresso e prazo. Some sozinho quando nao ha ninguem nessa situacao. */
+function rcBlocoEntradas(R,comp){
+  const lista=R.g.sinal.map(c=>({c,r:R.byCli[c.id]})).filter(x=>x.r);
+  if(!lista.length) return '';
+  lista.sort((a,b)=>String(rcRestVenc(a.r)||'9999').localeCompare(String(rcRestVenc(b.r)||'9999')));
+  const totalResta=lista.reduce((s,x)=>s+rcRestante(x.r),0);
+  const algumAtrasado=lista.some(x=>rcAtrasado(x.r));
+  const linha=(x)=>{
+    const r=x.r, cli=x.c, resta=rcRestante(r), pago=Number(r.sinal)||0, tot=Number(r.valor)||0;
+    const pc=tot>0?Math.round(pago/tot*100):0;
+    const pz=rcPrazoTexto(rcRestVenc(r));
+    const f=(DB.projetos||[]).find(p=>p.clienteId===cli.id)||{};
+    const sub=[f.responsavel,f.squad?('squad '+f.squad):''].filter(Boolean).join(' · ');
+    return `<div class="rc-ent">
+      <div class="rc-who"><strong>${esc(cli.nome||'')}</strong><div>${esc(sub||'sem gestor definido')}</div></div>
+      <div class="rc-barra">
+        <div class="rc-trilho"><div class="rc-fill" style="width:${pc}%"></div></div>
+        <div class="rc-leg"><span><b>${brl(pago)}</b> em ${fmtDate(r.sinalEm)}</span><span>de ${brl(tot)}</span></div>
+      </div>
+      <div class="rc-prazo"><div class="d" style="color:${pz.cor}">${brl(resta)}</div>
+        <div class="q" style="color:${pz.cor}">${esc(pz.txt)}${rcRestVenc(r)?' · '+fmtDate(rcRestVenc(r)):''}</div></div>
+      <button class="btn small" onclick="rcStatusCli('${cli.id}','recebido')">Recebi o restante</button>
+    </div>`;
+  };
+  return `<div class="rc-bloco${algumAtrasado?' alerta':''}">
+    <div class="rc-bh">💰 Entradas em aberto
+      <span class="rc-cnt">${lista.length} cliente${lista.length===1?'':'s'} · ${brl(totalResta)} a receber</span></div>
+    ${lista.map(linha).join('')}
+    <p class="hint" style="margin:12px 0 0">Ao marcar o restante como recebido, o dia daquele pagamento
+      vira o dia de vencimento do cliente e a mensalidade cheia passa a correr do mês seguinte.</p>
+  </div>`;
 }
 function renderRecebimentos(c){
   const comp=cliComp;
@@ -9353,6 +9467,7 @@ function renderRecebimentos(c){
      <div class="card"><div class="k">⚫ Churn</div><div class="v ${R.g.churn.length?'neg':''}">${brl(R.perdaChurn)}</div><div class="sub">${R.g.churn.length} cliente${R.g.churn.length===1?'':'s'} · receita perdida</div></div>
      <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)}</div><div class="sub">${ativos.length} clientes ativos</div></div>
    </div>
+   ${rcBlocoEntradas(R,comp)}
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
    <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: 🟡 A receber, 🔴 Inadimplente, 🟢 Recebido — escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong>🟣 Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong>⚫ Churn</strong> marca perda definitiva: o valor do mês vira receita perdida e, a partir do mês seguinte, o cliente aparece zerado no grupo Churn e sai da carteira.</p>`;
@@ -9371,7 +9486,9 @@ function renderRecebimentos(c){
         <option value="recebido"${s==='recebido'?' selected':''}>🟢 Recebido</option>
         <option value="carencia"${s==='carencia'?' selected':''}>🟣 Carência (isento no mês)</option>
         <option value="churn"${s==='churn'?' selected':''}>⚫ Churn (não vai pagar)</option>
-      </select>${s==='recebido'&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${s==='sinal'&&rec?`<div style="color:var(--muted);font-size:11px;margin-top:3px">sinal ${brl(rec.sinal)} em ${fmtDate(rec.sinalEm)} · resta ${brl(Math.max(0,R.val(r)-(Number(rec.sinal)||0)))}</div>`:''}`:'<span class="tag st">defina o dia</span>';
+      </select>${s==='recebido'&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${s==='sinal'&&rec?(()=>{ const pz=rcPrazoTexto(rcRestVenc(rec));
+        return `<div style="color:var(--muted);font-size:11px;margin-top:3px">entrada ${brl(rec.sinal)} em ${fmtDate(rec.sinalEm)}</div>
+        <div style="font-size:11px;margin-top:2px;color:${pz.cor};font-weight:600">resta ${brl(rcRestante(rec))} · ${esc(pz.txt)}</div>`; })():''}`:'<span class="tag st">defina o dia</span>';
       return `<tr>
       <td><strong>${esc(r.nome)}</strong></td>
       <td><span class="tag st">${esc(r.nicho)||'—'}</span></td>
@@ -9574,11 +9691,24 @@ window.rcStatusCli=async (cliId,novo)=>{
     c.churnComp=comp; c.fim=comp;
     const pj=DB.projetos.find(x=>x.clienteId===c.id); if(pj) pj.status='churn';
   } else if(novo==='recebido'){
+    const eraSinal=!!r.sinal && r.status==='sinal';
     r.status='recebido';
     if(!r.recebido){ r.recebido=true; r.recebidoEm=hojeISO();
       const restante=Math.max(0,(Number(r.valor)||0)-(Number(r.sinal)||0));
       DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id);
       DB.financeiro.push({id:'rc_'+r.id,data:(r.venc||vencOf(comp,c.diaVenc)),comp:comp,pagoEm:r.recebidoEm,tipo:'receita',descricao:(r.sinal?'Restante: ':'Mensalidade: ')+r.nome,categoria:'Mensalidade Clientes',valor:(r.sinal?restante:(Number(r.valor)||0))}); }
+    /* REGRA (Gabriel 31/08): fechou a entrada, a recorrencia passa a contar DALI.
+       Antes o cadastro ficava com o dia do SINAL e o mes seguinte cobrava na data errada. */
+    if(eraSinal){
+      const dia=Number(String(r.recebidoEm).slice(8,10))||0;
+      if(dia>=1&&dia!==Number(c.diaVenc||0)){
+        const trocar=await confirmar('A mensalidade de '+(c.nome||'cliente')+' passa a vencer dia '+dia+'?',
+          'A entrada fechou hoje ('+fmtDate(r.recebidoEm)+'). O cadastro está no dia '+(c.diaVenc||'—')+
+          ', que é a data do sinal — se ficar assim, a próxima cobrança nasce no dia errado.',
+          {sim:'Sim, passar para o dia '+dia,nao:'Manter o dia '+(c.diaVenc||'atual')});
+        if(trocar){ c.diaVenc=dia; toast('Mensalidade de '+(c.nome||'cliente')+': vence todo dia '+dia+'.'); }
+      }
+    }
   } else if(novo==='carencia'){
     if(!confirm('Marcar '+c.nome+' em CARENCIA em '+fmtComp(comp)+'?\n\nO cliente continua ativo, mas o mes nao gera receita e nao conta como inadimplencia nem como churn.')){ render('recebimentos'); return; }
     r.status='carencia'; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.churnEm=null; r.carenciaEm=hojeISO();
