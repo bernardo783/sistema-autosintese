@@ -822,6 +822,131 @@
   .tk-grupo .tk-vazio:hover{color:var(--txt);opacity:1;background:none}
   .tk-sqs{display:inline-flex;gap:5px;align-items:center;margin-right:8px}
   .tk-sqs .ftab{padding:5px 10px;font-size:12px}
+  /* ---------- FOLHA DA TAREFA (redesenho 31/08) ----------
+     A folha sai do formato "lista de 16 propriedades e a descricao no rodape".
+     Capa com caminho e trilha de status, faixa de meta com o que muda todo dia,
+     e duas colunas: conteudo a esquerda, propriedades numa barra a direita. */
+  .overlay.folha .mbody{padding:0}
+  .tkm-rail{padding:22px 15px;margin-left:0}
+  .tkf-capa{position:relative;overflow:hidden;padding:20px 30px 18px;border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(90% 220% at 4% -60%,rgba(167,139,250,.28) 0%,transparent 62%),
+      radial-gradient(70% 160% at 96% -30%,rgba(45,212,191,.09) 0%,transparent 60%),
+      linear-gradient(180deg,#221244 0%,#181029 55%,var(--panel) 100%)}
+  :root[data-tema="claro"] .tkf-capa,:root[data-tema="branco"] .tkf-capa{
+    background:linear-gradient(180deg,#efe9ff 0%,#f6f3ff 55%,var(--panel) 100%)}
+  /* malha fina: textura sem imagem e sem peso */
+  .tkf-capa::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.45;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:40px 40px;
+    -webkit-mask-image:radial-gradient(70% 120% at 8% 0%,#000,transparent 72%);
+            mask-image:radial-gradient(70% 120% at 8% 0%,#000,transparent 72%)}
+  :root[data-tema="claro"] .tkf-capa::before,:root[data-tema="branco"] .tkf-capa::before{display:none}
+  .tkf-capa>*{position:relative}
+  .tkf-crumb{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;
+    color:var(--muted);flex-wrap:wrap}
+  .tkf-crumb b{color:var(--txt);font-weight:700}
+  .tkf-crumb .s{opacity:.35}
+  .tkf-capa .tk-tit{padding:9px 0 0;font-size:26px;letter-spacing:-.032em}
+  .tkf-sub{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:9px;
+    font-size:12.5px;color:var(--muted)}
+  .tkf-sub b{color:var(--txt);font-weight:700}
+  .tkf-sub .pt{width:3px;height:3px;border-radius:50%;background:var(--fraco);flex:none}
+  .tkf-sub .money{font-family:ui-monospace,Menlo,monospace;font-weight:700;
+    font-variant-numeric:tabular-nums;color:var(--txt)}
+  .tkf-sub .tk-tipo{background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:8px;
+    color:var(--muted);font-size:11.5px;font-weight:700;padding:4px 9px;font-family:inherit}
+
+  /* trilha de status: as colunas da lista viram barra */
+  .tkf-trilha{margin-top:17px}
+  .tkf-steps{display:flex;gap:4px}
+  .tkf-step{flex:1;height:5px;border-radius:99px;background:var(--panel3,rgba(255,255,255,.11));position:relative}
+  .tkf-step.done{background:linear-gradient(90deg,rgba(167,139,250,.7),rgba(167,139,250,.95))}
+  .tkf-step.now{background:linear-gradient(90deg,var(--brand),var(--brand2));
+    box-shadow:0 0 14px rgba(167,139,250,.6)}
+  .tkf-step.now::after{content:'';position:absolute;right:0;top:50%;width:9px;height:9px;margin-top:-4.5px;
+    border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(167,139,250,.45)}
+  .tkf-stlab{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:11px}
+  .tkf-stnow{display:inline-flex;align-items:center;background:rgba(255,255,255,.09);
+    border:1px solid var(--line2,rgba(255,255,255,.2));border-radius:10px;padding:2px}
+  .tkf-stnow select{background:transparent;border:none;color:var(--txt);font-family:inherit;
+    font-size:12.5px;font-weight:800;padding:6px 10px;outline:none;max-width:340px;cursor:pointer}
+  .tkf-stprox{font-size:11.5px;color:var(--fraco)}
+  .tkf-stprox b{color:var(--muted);font-weight:700}
+
+  /* faixa de meta: o que muda todo dia, em compartimentos */
+  .tkf-meta{display:flex;align-items:stretch;flex-wrap:wrap;padding:0 30px;
+    border-bottom:1px solid var(--line);background:var(--panel)}
+  .tkf-mb{display:flex;flex-direction:column;justify-content:center;gap:5px;
+    padding:12px 22px 12px 0;margin-right:22px;border-right:1px solid var(--line);min-height:62px}
+  .tkf-mb:last-child{border-right:none;margin-right:0;padding-right:0}
+  .tkf-mb .k{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--fraco);font-weight:800}
+  .tkf-mb .v{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700}
+  .tkf-mb .v .dtf{font-size:12.5px}
+
+  /* duas colunas */
+  .tkf-split{display:flex;align-items:stretch}
+  .tkf-main{flex:1;min-width:0;padding:22px 28px 26px}
+  .tkf-side{flex:none;width:318px;border-left:1px solid var(--line);padding:20px 20px 28px;
+    background:linear-gradient(180deg,var(--hov1),transparent 40%)}
+  .tkf-sec{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--fraco);font-weight:800;margin:0 0 12px}
+  .tkf-sec .ln{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+  .tkf-sec .n{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0;color:var(--fraco)}
+  .tkf-sec.mt{margin-top:24px}
+  .tkf-main .tk-desc{min-height:120px;line-height:1.7}
+  .tkf-addi{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--muted);
+    border:1px dashed var(--line2,var(--line));border-radius:9px;padding:8px 13px;margin-top:8px;
+    background:transparent;font-family:inherit;cursor:pointer}
+  .tkf-addi:hover{border-color:var(--brand2);color:var(--txt)}
+
+  /* propriedades da barra lateral */
+  .tkf-p{padding:8px 10px;margin:0 -10px 2px;border-radius:10px}
+  .tkf-p:hover{background:var(--hov1)}
+  .tkf-pl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);
+    font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .tkf-pl svg{width:13px;height:13px;flex:none;opacity:.6}
+  .tkf-pv{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tkf-pv select,.tkf-pv input[type=text],.tkf-pv input:not([type]),.tkf-pv input[type=date],
+  .tkf-pv input[type=number]{width:100%;min-width:0;background:transparent;border:1px solid var(--line);
+    border-radius:9px;color:var(--txt);padding:7px 10px;font-size:12.5px;font-family:inherit;color-scheme:dark;
+    transition:background .12s,border-color .12s}
+  :root[data-tema="claro"] .tkf-pv select,:root[data-tema="branco"] .tkf-pv select,
+  :root[data-tema="claro"] .tkf-pv input,:root[data-tema="branco"] .tkf-pv input{color-scheme:light}
+  .tkf-pv select:hover,.tkf-pv input:hover{background:var(--panel2);border-color:var(--fraco)}
+  .tkf-pv select:focus,.tkf-pv input:focus{background:var(--panel2);border-color:var(--brand2);outline:none;
+    box-shadow:0 0 0 3px rgba(124,104,238,.16)}
+  .tkf-pv input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2)}
+  .tkf-divi{height:1px;background:linear-gradient(90deg,var(--line),transparent);margin:18px 0 14px}
+
+  /* cartao comercial: o dinheiro para de se perder entre Canal e Situacao */
+  .tkf-fin{border:1px solid rgba(230,177,63,.26);border-radius:13px;padding:13px 14px 9px;margin:2px 0 6px;
+    background:linear-gradient(160deg,rgba(230,177,63,.075),rgba(230,177,63,.012))}
+  .tkf-fin .ft{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:#f0cb7d;font-weight:800;
+    display:flex;align-items:center;gap:7px;margin-bottom:10px}
+  .tkf-fin .fr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0}
+  .tkf-fin .fr .k{font-size:11.5px;color:var(--muted);font-weight:600;flex:1;min-width:0}
+  .tkf-fin .fr .v{flex:none;width:118px}
+  .tkf-fin input{width:100%;background:transparent;border:1px solid transparent;border-radius:8px;
+    color:var(--txt);padding:5px 8px;font-size:12.5px;font-weight:700;text-align:right;
+    font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;color-scheme:dark}
+  .tkf-fin input::placeholder{color:var(--fraco);font-weight:500}
+  .tkf-fin input:hover{border-color:rgba(230,177,63,.4)}
+  .tkf-fin input:focus{border-color:rgba(230,177,63,.7);outline:none;background:rgba(230,177,63,.07)}
+
+  /* datas moram na faixa de meta: nao podem quebrar linha nem espacar como chip */
+  .tkf-mb .v.tk-datas{gap:4px;flex-wrap:nowrap}
+  /* Atividade e Relacionamentos perderam o padding do mbody junto com a folha */
+  #tkmAtv,#tkmRel{padding:22px 26px}
+  @media(max-width:900px){
+    .tkf-split{display:block}
+    .tkf-side{width:auto;border-left:none;border-top:1px solid var(--line)}
+    .tkf-capa,.tkf-meta{padding-left:18px;padding-right:18px}
+    .tkf-main{padding:18px}
+    .tkf-mb{border-right:none;margin-right:16px;padding-right:0;min-height:54px}
+    .tkf-capa .tk-tit{font-size:21px}
+  }
   /* ---------- PAINEL DA TAREFA (rail de icones na direita, estilo ClickUp) ---------- */
   .tkm{display:flex;gap:0;align-items:stretch}
   .tkm-painel{flex:1;min-width:0}
@@ -7122,6 +7247,18 @@ const estTexto=(min)=>{
   const hs=Math.floor(n/60), ms=n%60;
   return hs?(hs+'h'+(ms?String(ms).padStart(2,'0'):'')):(ms+'min');
 };
+/* Trilha de status: repinta so as barrinhas e o "proximo". O <select id=tk_stid> NAO
+   e recriado — o autosave amarrou o ouvinte nele quando a folha abriu. */
+window.tkfPintarTrilha=()=>{
+  const sel=document.getElementById('tk_stid'); if(!sel) return;
+  const lid=((document.getElementById('tk_lista')||{}).value)||'';
+  const sts=tkStatusDe(lid);
+  const i=sts.findIndex(x=>String(x.id)===String(sel.value||''));
+  const barra=document.getElementById('tkfSteps');
+  if(barra) barra.innerHTML=sts.map((x,k)=>`<span class="tkf-step${k<i?' done':(k===i?' now':'')}" title="${esc(x.nome)}"></span>`).join('');
+  const px=document.getElementById('tkfProx');
+  if(px) px.innerHTML=(i>=0&&sts[i+1])?`próximo: <b>${esc(sts[i+1].nome)}</b>`:(i>=0?'<b>última etapa</b>':'sem status definido');
+};
 window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const t=id?TK.tarefas.find(x=>x.id===id):null;
   window.TK_ABERTA=t?String(t.id):'';   /* F5 reabre a mesma tarefa */
@@ -7145,70 +7282,104 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     if(c.tipo==='checkbox') return `<input type="checkbox" id="cp_${c.id}" ${v?'checked':''} style="width:auto">`;
     const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
     return `<input type="${tp}" id="cp_${c.id}" value="${esc(v==null?'':String(v))}" placeholder="${c.tipo==='moeda'?'R$':''}">`; };
+  /* ---- peças da capa: caminho, resumo e trilha de status ---- */
+  const _l=TK.listas.find(x=>x.id===lid)||{},
+        _e=TK.espacos.find(x=>x.id===_l.espaco_id)||null,
+        _pa=TK.pastas.find(x=>x.id===_l.pasta_id)||null;
+  const iSt=sts.findIndex(x=>String(x.id)===String(it.status_id||''));
+  const cpsV=cps.filter(x=>!x.origem);
+  const cpsMoeda=cpsV.filter(x=>x.tipo==='moeda');
+  const cpsResto=cpsV.filter(x=>x.tipo!=='moeda');
+  const _fic=(DB.projetos||[]).find(x=>String(x.id)===String(it.ficha_id||''));
+  const _dest=(()=>{ for(let k=0;k<cpsMoeda.length;k++){ const v=(it.valores||{})[cpsMoeda[k].id];
+    if(v) return {n:cpsMoeda[k].nome,v:brl(Number(v)||0)}; } return null; })();
+  const _pes=(()=>{ const c=cpsV.find(x=>x.tipo==='pessoa'&&(it.valores||{})[x.id]);
+    if(!c) return null; const u=(TK.equipe||[]).find(y=>String(y.id)===String((it.valores||{})[c.id]));
+    return u?{n:c.nome,v:primeiroNome(u.nome)}:null; })();
+  const campoLinha=(c)=>`<div class="tkf-p"><div class="tkf-pl">${SVG_P.campo} ${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr" title="Obrigatório">*</span>':''}</div>
+        <div class="tkf-pv">${campoHtml(c)}</div></div>`;
   modal(t?'Editar tarefa':'Nova tarefa',`<div class="tkm"><div class="tkm-painel" id="tkmDet">
-    ${tkTipoSel(it.tipo_id||(t?null:tipoPadraoDe(it.lista_id)))}
-    <input class="tk-tit" id="tk_tit" value="${esc(it.titulo)}" placeholder="Nome da tarefa">
-    <div class="tk-props">
-      <div class="tk-p"><span class="tk-pl">${SVG_P.status} Status</span><span class="tk-pv">
-        ${sts.length?`<select id="tk_stid"><option value="">Sem status</option>${sts.map(s=>`<option value="${s.id}"${it.status_id===s.id?' selected':''}>${esc(s.nome)}</option>`).join('')}</select>`
-                    :`<select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`}
-      </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.pessoa} Responsáveis${exigeDaLista(lid).indexOf('responsavel')>=0?'<span class="cp-obr">obrigatório</span>':''}</span><span class="tk-pv">
-        <input type="hidden" id="tk_resps" value="${esc(respDe(it).join(','))}">
-        <span class="rp-box" id="tk_respbox">${tkRespChips(respDe(it))}</span>
-      </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.data} Datas</span><span class="tk-pv tk-datas">
-        ${dtCampo('tk_ini',it.iniciada_em||'')}
-        <span class="tk-seta">→</span>
-        ${dtCampo('tk_prazo',it.prazo||'')}
-      </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.flag} Prioridade</span><span class="tk-pv">
-        <input type="hidden" id="tk_prio" value="${esc(it.prioridade||'med')}">
-        <span class="pr-box" id="tk_priobox">${prioChips(it.prioridade||'med')}</span>
-      </span></div>
-      ${t?`<div class="tk-p"><span class="tk-pl">${SVG_P.cron} Rastrear tempo</span>
-        <span class="tk-pv" id="tk_tempo">${ttLinha(t.id)}</span></div>`:''}
-      <div class="tk-p"><span class="tk-pl">${SVG_P.tag} Etiquetas</span><span class="tk-pv">
-        <input id="tk_tags" value="${esc((it.tags||[]).join(', '))}" placeholder="separadas por vírgula">
-      </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.cliente} Cliente${exigeDaLista(lid).indexOf('cliente')>=0?'<span class="cp-obr">obrigatório</span>':''}</span><span class="tk-pv">
-        ${selFicha('tk_ficha',it.ficha_id||'',"tkPuxaCliente()")}
-      </span></div>
-      <div class="tk-p"><span class="tk-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</span><span class="tk-pv">
-        <select id="tk_squad"><option value="">Todo o time vê</option>${sqOpc.map(s=>`<option value="${esc(s)}"${sqAtual===s?' selected':''}>Squad ${esc(s)}</option>`).join('')}</select>
-      </span></div>
-      <!-- A lista saiu das propriedades: você já está dentro dela e ela aparece no caminho
-           lá em cima. Fica só como valor, para o salvamento e para mover por arrastar. -->
+
+    <div class="tkf-capa">
+      <div class="tkf-crumb">${_e?`<span>${esc(spNome(_e))}</span><span class="s">/</span>`:''}${_pa?`<span>${esc(spNome(_pa))}</span><span class="s">/</span>`:''}<b>${esc(spNome(_l)||'Lista')}</b></div>
+      <input class="tk-tit" id="tk_tit" value="${esc(it.titulo)}" placeholder="Nome da tarefa">
+      <div class="tkf-sub">
+        ${tkTipoSel(it.tipo_id||(t?null:tipoPadraoDe(it.lista_id)))||''}
+        ${_fic?`<span class="pt"></span><span>Cliente <b>${esc(_fic.nome)}</b></span>`:''}
+        ${it.squad?`<span class="pt"></span><span>Squad <b>${esc(it.squad)}</b></span>`:''}
+        ${_pes?`<span class="pt"></span><span>${esc(_pes.n)} <b>${esc(_pes.v)}</b></span>`:''}
+        ${_dest?`<span class="pt"></span><span>${esc(_dest.n)} <span class="money">${esc(_dest.v)}</span></span>`:''}
+        ${(t&&t.atualizado_em)?`<span class="pt"></span><span>atualizada ${esc(dtRel(String(t.atualizado_em).slice(0,10))||'hoje').toLowerCase()}</span>`:''}
+      </div>
+      ${sts.length?`<div class="tkf-trilha">
+        <div class="tkf-steps" id="tkfSteps">${sts.map((x,k)=>`<span class="tkf-step${k<iSt?' done':(k===iSt?' now':'')}" title="${esc(x.nome)}"></span>`).join('')}</div>
+        <div class="tkf-stlab">
+          <span class="tkf-stnow"><select id="tk_stid" onchange="tkfPintarTrilha()"><option value="">Sem status</option>${sts.map(x=>`<option value="${x.id}"${it.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select></span>
+          <span class="tkf-stprox" id="tkfProx">${(iSt>=0&&sts[iSt+1])?`próximo: <b>${esc(sts[iSt+1].nome)}</b>`:(iSt>=0?'<b>última etapa</b>':'sem status definido')}</span>
+        </div></div>`
+      :`<div class="tkf-trilha"><div class="tkf-stlab"><span class="tkf-stnow"><select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select></span></div></div>`}
       <input type="hidden" id="tk_lista" value="${esc(it.lista_id||'')}">
     </div>
-    ${cps.filter(c=>!c.origem).length?`<div class="tk-sec sub">Campos desta lista</div>
-    <div class="tk-cps">${cps.filter(c=>!c.origem).map(c=>`<div class="tk-p"><span class="tk-pl">${SVG_P.campo} ${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr" title="Obrigatório">*</span>':''}</span><span class="tk-pv">
-        ${campoHtml(c)}
-      </span></div>`).join('')}</div>`:''}
-    <div class="tk-sec">Descrição</div>
-    <textarea id="tk_desc" rows="3" class="tk-desc" placeholder="detalhes...">${esc(it.descricao)}</textarea>
-    <div class="tk-sec">Checklist <span id="ck_prog"></span></div>
-    <div id="ck_lista"></div>
-    <button class="btn ghost small" onclick="ckAdd()" style="margin-top:6px">+ item</button>
-    <div class="tk-sec">Anexos <span id="tkmBAnx" class="tk-sec-n"></span></div>
-    ${t?`<div class="tkm-drop" id="tkmDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="tkmAnxDrop(event,'${t.id}')" onclick="document.getElementById('tkmFile').click()">
-          Arraste arquivos aqui ou <u>clique para escolher</u>
-          <div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar — até 50 MB por arquivo</div>
-        </div>
-        <input type="file" id="tkmFile" multiple class="hidden" onchange="tkmAnxUpload('${t.id}',this.files)">
-        <div class="tkm-lnk">
-          <input id="tkmUrl" placeholder="ou cole um link (Drive, YouTube, site...)" onkeydown="if(event.key==='Enter'){event.preventDefault();tkmAnxLink('${t.id}');}">
-          <button class="btn secondary small" type="button" onclick="tkmAnxLink('${t.id}')">Anexar link</button>
-        </div>
-        <div id="tkmAnxLista"><div class="hint">carregando…</div></div>`
-       :`<p class="hint">Salve a tarefa primeiro — aí os anexos ficam guardados aqui.</p>`}
-    <div class="tk-rodape">
-      ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
-      ${t?(arquivada(t)
-        ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
-           ${(currentUser&&currentUser.role==='master')?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:'<span class="hint" style="margin:0">só master exclui de vez</span>'}`
-        : `<button class="btn ghost small" onclick="tkArquivar('${t.id}')">Arquivar</button>`):''}
+
+    <div class="tkf-meta">
+      <div class="tkf-mb"><span class="k">Responsáveis${exigeDaLista(lid).indexOf('responsavel')>=0?' *':''}</span>
+        <span class="v"><input type="hidden" id="tk_resps" value="${esc(respDe(it).join(','))}">
+        <span class="rp-box" id="tk_respbox">${tkRespChips(respDe(it))}</span></span></div>
+      <div class="tkf-mb"><span class="k">Datas</span>
+        <span class="v tk-datas">${dtCampo('tk_ini',it.iniciada_em||'')}<span class="tk-seta">→</span>${dtCampo('tk_prazo',it.prazo||'')}</span></div>
+      <div class="tkf-mb"><span class="k">Prioridade</span>
+        <span class="v"><input type="hidden" id="tk_prio" value="${esc(it.prioridade||'med')}">
+        <span class="pr-box" id="tk_priobox">${prioChips(it.prioridade||'med')}</span></span></div>
+      ${t?`<div class="tkf-mb"><span class="k">Rastrear tempo</span><span class="v" id="tk_tempo">${ttLinha(t.id)}</span></div>`:''}
     </div>
+
+    <div class="tkf-split">
+      <div class="tkf-main">
+        <div class="tkf-sec">Descrição<span class="ln"></span></div>
+        <textarea id="tk_desc" rows="5" class="tk-desc" placeholder="Contexto da conta, o que foi combinado com o cliente, links de referência…">${esc(it.descricao)}</textarea>
+
+        <div class="tkf-sec mt">Checklist<span class="ln"></span><span class="n" id="ck_prog"></span></div>
+        <div id="ck_lista"></div>
+        <button class="tkf-addi" type="button" onclick="ckAdd()">+ item</button>
+
+        <div class="tkf-sec mt">Anexos<span class="ln"></span><span class="n" id="tkmBAnx"></span></div>
+        ${t?`<div class="tkm-drop" id="tkmDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="tkmAnxDrop(event,'${t.id}')" onclick="document.getElementById('tkmFile').click()">
+              Arraste arquivos aqui ou <u>clique para escolher</u>
+              <div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar — até 50 MB por arquivo</div>
+            </div>
+            <input type="file" id="tkmFile" multiple class="hidden" onchange="tkmAnxUpload('${t.id}',this.files)">
+            <div class="tkm-lnk">
+              <input id="tkmUrl" placeholder="ou cole um link (Drive, YouTube, site...)" onkeydown="if(event.key==='Enter'){event.preventDefault();tkmAnxLink('${t.id}');}">
+              <button class="btn secondary small" type="button" onclick="tkmAnxLink('${t.id}')">Anexar link</button>
+            </div>
+            <div id="tkmAnxLista"><div class="hint">carregando…</div></div>`
+           :`<p class="hint">Salve a tarefa primeiro — aí os anexos ficam guardados aqui.</p>`}
+
+        <div class="tk-rodape">
+          ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
+          ${t?(arquivada(t)
+            ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
+               ${(currentUser&&currentUser.role==='master')?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:'<span class="hint" style="margin:0">só master exclui de vez</span>'}`
+            : `<button class="btn ghost small" onclick="tkArquivar('${t.id}')">Arquivar</button>`):''}
+        </div>
+      </div>
+
+      <div class="tkf-side">
+        <div class="tkf-sec">Propriedades<span class="ln"></span></div>
+        <div class="tkf-p"><div class="tkf-pl">${SVG_P.cliente} Cliente${exigeDaLista(lid).indexOf('cliente')>=0?'<span class="cp-obr">obrigatório</span>':''}</div>
+          <div class="tkf-pv">${selFicha('tk_ficha',it.ficha_id||'',"tkPuxaCliente()")}</div></div>
+        <div class="tkf-p"><div class="tkf-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</div>
+          <div class="tkf-pv"><select id="tk_squad"><option value="">Todo o time vê</option>${sqOpc.map(x=>`<option value="${esc(x)}"${sqAtual===x?' selected':''}>Squad ${esc(x)}</option>`).join('')}</select></div></div>
+        <div class="tkf-p"><div class="tkf-pl">${SVG_P.tag} Etiquetas</div>
+          <div class="tkf-pv"><input id="tk_tags" value="${esc((it.tags||[]).join(', '))}" placeholder="separadas por vírgula"></div></div>
+        ${cpsResto.length?`<div class="tkf-divi"></div>${cpsResto.map(campoLinha).join('')}`:''}
+        ${cpsMoeda.length?`<div class="tkf-divi"></div>
+          <div class="tkf-fin"><div class="ft">◈ Comercial</div>
+            ${cpsMoeda.map(x=>`<div class="fr"><span class="k">${esc(x.nome)}${x.obrigatorio?' *':''}</span><span class="v">${campoHtml(x)}</span></div>`).join('')}
+          </div>`:''}
+      </div>
+    </div>
+
     </div>
     <div class="tkm-painel hidden" id="tkmAtv">
       <h4 class="tkm-tit">Atividade</h4>
