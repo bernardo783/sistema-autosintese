@@ -9439,7 +9439,8 @@ window.fcServToggle=(btn,s)=>{ btn.classList.toggle('on');
   const marcados=[...document.querySelectorAll('#fc_servs .tkp-chip.on')].map(b=>b.dataset.s);
   const el=$('#fc_plano'); if(el) el.value=marcados.join(' + ');
   fcPlanoMuda(); if(window.fcProgresso) fcProgresso(); };
-const FC_CONTRATOS=['Mensal','Trimestral','Semestral','Anual'];
+const FC_AVULSO='Avulso (pagamento único)';
+const FC_CONTRATOS=['Mensal','Trimestral','Semestral','Anual',FC_AVULSO];
 /* Origem do lead (Gabriel 31/08): objetiva, tres opcoes. A chave vai pro banco,
    o rotulo fica na tela — assim relatorio agrupa sem tropecar em acento. */
 const FC_ORIGENS=[['inbound','Inbound — veio até nós'],['outbound','Outbound — nós fomos atrás'],['indicacao','Indicação']];
@@ -9499,14 +9500,36 @@ window.fcPlanoMuda=()=>{ const w=$('#fc_gw'); if(w) w.style.display=fcTemTrafego
 function fcField(lbl,id,ph,val){ return `<div class="field"><label>${lbl}</label><input id="${id}" placeholder="${ph||''}" value="${esc(val||'')}"></div>`; }
 /* O que o fechEnviar realmente barra. A barra do topo e o rodape de envio leem daqui,
    entao a tela nunca promete um envio que a validacao vai recusar depois do clique. */
+const fcEhIntegral=()=>(($('#fc_status')||{}).value||'')==='integral';
 function fcObrig(){
-  const L=[['fc_nome','nome da empresa'],['fc_plano','serviços'],['fc_valor','mensalidade'],
-    ['fc_data','data da 1ª parcela'],['fc_origem','origem do lead'],['fc_sdr','SDR'],
+  const st=(($('#fc_status')||{}).value||''), integral=st==='integral';
+  const L=[['fc_nome','nome da empresa'],['fc_plano','serviços'],
+    ['fc_valor',integral?'valor do projeto':'mensalidade'],
+    ['fc_data',integral?'data do pagamento':'data da 1ª parcela'],
+    ['fc_origem','origem do lead'],['fc_sdr','SDR'],
     ['fc_closer','closer'],['fc_squad','squad'],['fc_resumo','resumo da venda']];
   if(fcTemTrafego()) L.push(['fc_gestor','gestor de tráfego']);
-  if((($('#fc_status')||{}).value||'')==='sinal'){ L.push(['fc_sinal','valor do sinal'],['fc_sinaldata','data do sinal']); }
+  if(st==='sinal'){ L.push(['fc_sinal','valor do sinal'],['fc_sinaldata','data do sinal']); }
   return L;
 }
+/* PAGAMENTO INTEGRAL (Gabriel 31/08): projeto pago a vista. O cliente entra na base
+   igual aos outros — ficha, squad, card em 0. NAO ATIVO — mas SEM mensalidade: nasce
+   sem dia de vencimento e com valor mensal zero, entao nunca gera cobranca recorrente
+   nem entra na Carteira mensal. O dinheiro vira receita do mes na categoria propria
+   "Projeto a vista", separada do recorrente. Quem monta isso e o rpc fechamento_criar. */
+window.fcStatusPagto=(v)=>{
+  const w=$('#fc_sw'); if(w) w.style.display=(v==='sinal')?'':'none';
+  const av=$('#fc_avista'); if(av) av.style.display=(v==='integral')?'':'none';
+  const d=$('#fc_sinaldata'); if(d&&!d.value) d.value=hojeISO();
+  const ld=$('#fc_lbl_data');
+  if(ld) ld.textContent=(v==='sinal')?'Data do acerto do restante *':(v==='integral')?'Data do pagamento *':'Data da 1ª parcela *';
+  const lv=$('#fc_lbl_valor');
+  if(lv) lv.textContent=(v==='integral')?'Valor do projeto (R$) *':'Mensalidade (R$) *';
+  const tc=$('#fc_contrato');
+  if(tc){ if(v==='integral'){ if([...tc.options].some(o=>o.value===FC_AVULSO)) tc.value=FC_AVULSO; }
+          else if(tc.value===FC_AVULSO){ tc.value=FC_CONTRATOS[0]; } }
+  fcProgresso();
+};
 window.fcProgresso=()=>{
   const L=fcObrig(), falta=L.filter(p=>!String((($('#'+p[0])||{}).value||'')).trim());
   const tot=L.length, ok=tot-falta.length, pct=tot?Math.round(ok/tot*100):0;
@@ -9516,7 +9539,7 @@ window.fcProgresso=()=>{
   if(box) box.classList.toggle('ok',!falta.length);
   if(i) i.innerHTML=falta.length
     ? `Ainda falta: <b>${esc(falta.map(x=>x[1]).join(' · '))}</b>`
-    : `Pronto. <b>${esc(((($('#fc_nome')||{}).value||'').trim())||'O cliente')}</b> nasce na coluna 0. NÃO ATIVO e a 1ª cobrança já entra no financeiro.`;
+    : `Pronto. <b>${esc(((($('#fc_nome')||{}).value||'').trim())||'O cliente')}</b> nasce na coluna 0. NÃO ATIVO e ${fcEhIntegral()?'o pagamento entra como receita do mês, sem cobrança recorrente':'a 1ª cobrança já entra no financeiro'}.`;
 };
 /* O cliente preenche autosintese.app.br/contrato e o envio cai em contratos_form.
    O MESMO formulario alimenta duas telas: o Fechamento (aqui) e o gerador de .docx
@@ -9623,15 +9646,16 @@ function renderFechamento(c){
       <div class="row2">${fcField('Responsável financeiro','fc_respfin','Se vazio, uso o dono')}${fcField('Telefone financeiro *','fc_telfin','ex: (24) 99847-1592')}</div>
       <div class="row2">${fcField('E-mail','fc_email','ex: financeiro@empresa.com')}${fcField('Endereço','fc_end','Rua, número - Bairro, Cidade - UF, CEP')}</div>
       <div class="row2">
-        <div class="field"><label>Mensalidade (R$) *</label><input id="fc_valor" type="number" min="0" step="50" placeholder="ex: 1500"></div>
+        <div class="field"><label id="fc_lbl_valor">Mensalidade (R$) *</label><input id="fc_valor" type="number" min="0" step="50" placeholder="ex: 1500"></div>
         <div class="field"><label>Forma de pagamento *</label><select id="fc_forma">${FC_PAGTOS.map(p=>`<option>${p}</option>`).join('')}</select></div></div>
       <div class="row2">
         <div class="field"><label id="fc_lbl_data" data-dica="No fluxo normal: quando a 1ª mensalidade é paga (o DIA vira o vencimento recorrente). Com sinal: quando o RESTANTE será acertado.">Data da 1ª parcela *</label><input id="fc_data" type="date"></div>
-        <div class="field"><label>Status do pagamento *</label><select id="fc_status" onchange="var w=document.getElementById('fc_sw');if(w)w.style.display=this.value==='sinal'?'':'none';var d=document.getElementById('fc_sinaldata');if(d&&!d.value)d.value=hojeISO();var l=document.getElementById('fc_lbl_data');if(l)l.textContent=this.value==='sinal'?'Data do acerto do restante *':'Data da 1ª parcela *';fcProgresso()" data-dica="'Sinal pago' registra a entrada agora e deixa o restante como a receber — o financeiro enxerga as duas partes certinhas."><option value="aguardando">Aguardando pagamento</option><option value="pago">Pago</option><option value="sinal">Sinal pago (entrada)</option></select></div></div>
+        <div class="field"><label>Status do pagamento *</label><select id="fc_status" onchange="fcStatusPagto(this.value)" data-dica="'Sinal pago' registra a entrada agora e deixa o restante como a receber. 'Pagamento integral' é o projeto pago à vista: entra como receita do mês e o cliente não ganha mensalidade."><option value="aguardando">Aguardando pagamento</option><option value="pago">Pago</option><option value="sinal">Sinal pago (entrada)</option><option value="integral">Pagamento integral (à vista, sem mensalidade)</option></select></div></div>
       <div class="row2" id="fc_sw" style="display:none">
         <div class="field"><label>Valor do sinal (R$) *</label><input type="number" step="0.01" id="fc_sinal" placeholder="ex: 500"></div>
         <div class="field"><label data-dica="Quando o dinheiro do sinal ENTROU de verdade — pode ser dias atrás. É essa data que vai pro caixa.">Quando o sinal entrou *</label><input type="date" id="fc_sinaldata"></div>
-      </div>`)}
+      </div>
+      <p class="hint" id="fc_avista" style="display:none;margin:2px 0 0;padding:10px 13px;border-radius:10px;background:rgba(63,207,142,.10);border:1px solid rgba(63,207,142,.32);color:#8ee7bd">O cliente entra na base normalmente — ficha, squad e card em 0. NÃO ATIVO. O valor entra como receita do mês na categoria <strong>Projeto à vista</strong> e <strong>nenhuma cobrança recorrente é criada</strong>: ele não aparece na carteira dos meses seguintes.</p>`)}
     ${sec('04','👥 Responsáveis · comercial e operação','Quem vendeu, de onde veio o lead e qual squad assume a conta.',`
       <div class="row2">${fcField('SDR responsável *','fc_sdr','')}${fcField('Closer responsável *','fc_closer','',(currentUser&&currentUser.nome)||'')}</div>
       <div class="row2">
@@ -9669,6 +9693,7 @@ function renderFechamento(c){
   /* em segundo plano: nao segura a tela, e a faixa aparece sozinha se houver formulario */
   fcFaixaForms();
   fcCarregarForms().then(fcFaixaForms).catch(()=>{});
+  fcStatusPagto((($('#fc_status')||{}).value||''));
 }
 /* REGRA DE NEGÓCIO (Gabriel, 11/08): projeto/cliente não pode duplicar. Compara o nome
    normalizado (sem acento, pontuação, espaços e termos genéricos) com as fichas existentes
@@ -9715,8 +9740,9 @@ window.fechEnviar=async ()=>{
     if(!(sv>0)) falta.push('valor do sinal');
     else if(sv>=vt) { toast('O sinal precisa ser MENOR que a mensalidade ('+brl(vt)+').'); return; }
     if(!body.sinalData) falta.push('quando o sinal entrou'); }
-  if(!(parseFloat(body.valor)>0)) falta.push('mensalidade');
-  if(!body.dataPagamento) falta.push('data da 1ª parcela');
+  const ehIntegral=body.statusPagamento==='integral';
+  if(!(parseFloat(body.valor)>0)) falta.push(ehIntegral?'valor do projeto':'mensalidade');
+  if(!body.dataPagamento) falta.push(ehIntegral?'data do pagamento':'data da 1ª parcela');
   if(!body.origem) falta.push('origem do lead');
   if(!body.sdr) falta.push('SDR');
   if(!body.closer) falta.push('closer');
@@ -9737,9 +9763,9 @@ window.fechEnviar=async ()=>{
     okEl.innerHTML=`<div class="fc-sec fc-ok">
       <div class="fc-ok-anel">✓</div>
       <h2>${esc(MAIUS(body.nome))} está dentro.</h2>
-      <p class="hint" style="margin:0 auto;max-width:52ch">Entrou na Base de Clientes na coluna <strong>0. NÃO ATIVO</strong>, com ficha de projeto “novo” e a 1ª cobrança lançada${body.statusPagamento==='pago'?' como recebida':body.statusPagamento==='sinal'?' com o sinal registrado':''}.</p>
+      <p class="hint" style="margin:0 auto;max-width:52ch">Entrou na Base de Clientes na coluna <strong>0. NÃO ATIVO</strong>, com ficha de projeto “novo”${ehIntegral?` e o pagamento de ${brl(parseFloat(body.valor)||0)} lançado como receita do mês em <strong>Projeto à vista</strong>. Sem mensalidade: nenhuma cobrança recorrente foi criada.`:` e a 1ª cobrança lançada${body.statusPagamento==='pago'?' como recebida':body.statusPagamento==='sinal'?' com o sinal registrado':''}.`}</p>
       <div class="fc-resumo">
-        <span>Mensalidade<b>${brl(parseFloat(body.valor)||0)}</b></span>
+        <span>${ehIntegral?'Projeto · à vista':'Mensalidade'}<b>${brl(parseFloat(body.valor)||0)}</b></span>
         <span>Contrato<b>${esc(body.tipoContrato||'—')}</b></span>
         <span>Squad<b>${esc(body.squad||'—')}</b></span>
         <span>Closer<b>${esc(body.closer||'—')}</b></span>
@@ -10469,7 +10495,7 @@ function renderRecebimentos(c){
       <td>${esc(r.servico)||'—'}</td>
       <td>${r.diaVenc?('dia '+r.diaVenc):'<span class="tag pausado">a definir</span>'}</td>
       <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
-      <td class="money" style="text-align:right">${s==='carencia'?`<span style="color:var(--muted);text-decoration:line-through">${brl(R.val(r))}</span><div style="color:var(--brand2);font-size:11px">carência</div>`:s==='churn'?(R.churnMes(r)?`<span style="color:var(--danger)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">perdido</div>`:`<span style="color:var(--muted)">—</span>`):s==='churnpago'?`<span style="color:var(--ok)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">pago · último mês</div>`:`${brl(R.val(r))}${R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:''}`}</td>
+      <td class="money" style="text-align:right">${s==='carencia'?`<span style="color:var(--muted);text-decoration:line-through">${brl(R.val(r))}</span><div style="color:var(--brand2);font-size:11px">carência</div>`:s==='churn'?(R.churnMes(r)?`<span style="color:var(--danger)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">perdido</div>`:`<span style="color:var(--muted)">—</span>`):s==='churnpago'?`<span style="color:var(--ok)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">pago · último mês</div>`:`${brl(R.val(r))}${(R.byCli[r.id]&&R.byCli[r.id].integral)?`<div style="color:var(--brand2);font-size:11px">projeto à vista · sem mensalidade</div>`:(R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:'')}`}</td>
       <td>${selHtml}</td>
       <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="cliExcluirSeguro('${r.id}')" data-dica="NOVO: excluir o cliente agora limpa junto as cobranças, os lançamentos e o projeto ligados a ele — nada fica órfão.">Excluir</button></div></td>
     </tr>`;}).join('');
