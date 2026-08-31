@@ -1000,6 +1000,18 @@
   tr.arrastavel:hover .tk-grip{color:var(--muted)}
   tr.arrastavel:active .tk-grip{cursor:grabbing}
   tr:not(.arrastavel) .tk-grip{opacity:.25;cursor:not-allowed}
+  /* ETIQUETA DE SQUAD (Gabriel 31/08): o NUMERO em bloco solido vem primeiro — e ele
+     que o olho procura ao varrer a lista — e a palavra "Squad" ao lado, na cor do squad. */
+  .sq-et{display:inline-flex;align-items:center;border-radius:7px;overflow:hidden;vertical-align:middle;
+    border:1px solid color-mix(in srgb,var(--c) 32%,transparent);font-weight:700;white-space:nowrap;
+    line-height:1.15}
+  .sq-et .n{background:var(--c);color:#12121a;padding:4px 8px;font-size:12px;font-weight:800;
+    font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .sq-et .t{padding:4px 10px;color:var(--c);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    background:color-mix(in srgb,var(--c) 10%,transparent)}
+  .sq-et.sm .n{padding:3px 6px;font-size:11px}
+  .sq-et.sm .t{padding:3px 8px;font-size:10px}
+  .ftab .sq-et{margin-right:7px}
   .sq-lista{display:inline-flex;gap:5px;flex-wrap:wrap}
   .sq-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
     border-radius:999px;padding:3px 10px 3px 8px;color:var(--c);
@@ -5010,7 +5022,7 @@ function tkCard(t){
     : `<button type="button" class="tk-chip tk-vaz" title="Ligar a um cliente" onclick="${par(`tkQaCli(event,'${t.id}')`)}">${TG}Cliente</button>`;
   const sq=String(t.squad||'').trim();
   const cSq=sq?sqCor(sq):'';
-  const chSq=sq?`<span class="tk-chip cheio" style="background-color:${esc(cSq)};color:${esc(corTexto(cSq))};cursor:default" title="Squad ${esc(sq)}">squad ${esc(sq)}</span>`:'';
+  const chSq=sq?`<span style="cursor:default">${sqEtiqueta(sq,'sm')}</span>`:'';
   const chCam=TK.escopo!=='lista'?`<span class="tk-chip" style="opacity:.75;cursor:default" title="${esc(tkCaminho(t.lista_id))}">${esc(tkCaminho(t.lista_id))}</span>`:'';
   const chPrio=`<button type="button" class="tk-chip tk-vaz" title="Prioridade" onclick="${par(`tkQaPrio(event,'${t.id}')`)}">${FLG}${esc(TK_PRIO[t.prioridade||'med'])}</button>`;
   const cheio=!!(t.responsavel_id||t.prazo||t.ficha_id||sq||chCam);
@@ -6117,8 +6129,8 @@ function tkBarraSquad(){
   const naLista=Array.from(new Set((TK.tarefas||[]).filter(t=>t.lista_id===TK.listaSel).map(t=>String(t.squad||'')).filter(Boolean)));
   const sqs=vejoTudo()?SQUADS_TK():Array.from(new Set(meusSquads().concat(naLista))).sort();
   if(sqs.length<2) return '';
-  const pil=(v,r)=>`<button class="ftab ${TK.squadF===v?'active':''}" onclick="tkSquadF('${v}')">${esc(r)}</button>`;
-  return `<span class="tk-sqs">${pil('','Todos')}${sqs.map(s=>pil(s,'Squad '+s)).join('')}${pil('(sem)','Sem squad')}</span>`;
+  const pil=(v,r,et)=>`<button class="ftab ${TK.squadF===v?'active':''}" onclick="tkSquadF('${v}')">${et||''}${esc(r)}</button>`;
+  return `<span class="tk-sqs">${pil('','Todos')}${sqs.map(s=>pil(s,'',sqEtiqueta(s,'sm'))).join('')}${pil('(sem)','Sem squad')}</span>`;
 }
 window.tkSquadF=(s)=>{ TK.squadF=s; tkDesenhar($('#content')); };
 /* ===== ATALHOS por gestor + vista Gerentes no Controle de Clientes (ClickUp, pedido 09/08) ===== */
@@ -6168,7 +6180,7 @@ function lcVistaGerentes(){
        <td><strong>${esc(x.f.nome)}</strong> <span class="tag cat-${catDe(x.f)}" style="font-size:10px">${CAT_LABEL[catDe(x.f)]}</span></td>
        <td>${tagN(x.f.nivel)}</td>
        <td>${x.f.responsavel?`${avatarDoNome(x.f.responsavel,'lc-av')}${esc(x.f.responsavel)}`:'—'}</td>
-       <td>${x.f.squad?esc(nomeSquad(x.f.squad)):'—'}</td>
+       <td>${x.f.squad?sqEtiqueta(x.f.squad,'sm'):'—'}</td>
        <td><span class="tag st" style="color:${st(x.t.status_id).cor};background:${st(x.t.status_id).cor}1a">${esc(st(x.t.status_id).nome)}</span></td>
        ${fin?`<td class="money" style="text-align:right">${c?brl(valDe(c)):'—'}</td><td>${c?tagPG(pgDe(c)):'—'}</td>`:''}
      </tr>`; }).join('');
@@ -7822,7 +7834,7 @@ async function dlHistCarregar(){
      const conf=(porD[d.id]||[]).filter(x=>x.conferido_conta).length;
      return `<tr>
        <td><strong>${esc(fmtDate(d.data))}</strong></td>
-       <td><span class="tag st">Squad ${esc(d.squad)}</span></td>
+       <td>${sqEtiqueta(d.squad,'sm')}</td>
        <td>${d.encerrada_em?(Math.floor(seg/60)+' min'):'<span class="hint" style="margin:0">em aberto</span>'}</td>
        <td>${conf}/${inf.itens}</td>
        <td>${inf.tarefas||'—'}</td>
@@ -9577,7 +9589,7 @@ window.openProjCard=(id)=>{
         <div class="pc-meta">
           <span class="tag ${PRJ_NORM(it.status)}">${ST_LABEL[PRJ_NORM(it.status)]}</span>
           <i></i><span>${esc(CAT_LABEL[catDe(it)]||'—')}</span>
-          ${it.squad?`<i></i><span>Squad ${esc(it.squad)}</span>`:''}
+          ${it.squad?`<i></i>${sqEtiqueta(it.squad)}`:''}
         </div>
       </div>
       <button class="x">&times;</button>
@@ -9606,7 +9618,7 @@ window.openProjCard=(id)=>{
       <div class="pc-dl">
         ${li('Gestor de tráfego', pes(it.responsavel), selPessoa('pc_resp',it.responsavel,'trafego'), !String(it.responsavel||'').trim())}
         ${li('Gerente', pes(it.gerente), selPessoa('pc_ger',it.gerente,'gerente'), !String(it.gerente||'').trim())}
-        ${li('Squad', esc(it.squad||'definir'), `<input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s2=>`<option value="${esc(s2)}">`).join('')}</datalist>`, !String(it.squad||'').trim())}
+        ${li('Squad', it.squad?sqEtiqueta(it.squad):'definir', `<input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s2=>`<option value="${esc(s2)}">`).join('')}</datalist>`, !String(it.squad||'').trim())}
       </div>
 
       ${cat('Negócio')}
@@ -10877,6 +10889,12 @@ window.geraSenha=()=>{ const a='abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXY
    quando na verdade e o que merece atencao. */
 const SQ_COR=['#4f8ff7','#e6b13f','#3fcf8e','#a855f7','#ef5b6b'];
 const sqCor=(s)=>{ const i=SQUADS().indexOf(String(s)); return SQ_COR[(i<0?0:i)%SQ_COR.length]; };
+/* "02" quando o squad e numero; as tres primeiras letras quando e nome. */
+const sqNum=(s)=>{ const t=String(s||'').trim(); const m=t.match(/(\d+)/);
+  return m?m[1].padStart(2,'0'):MAIUS(t).slice(0,3); };
+const sqEtiqueta=(s,cls)=>{ const t=String(s||'').trim(); if(!t) return '';
+  return `<span class="sq-et${cls?' '+cls:''}" style="--c:${esc(sqCor(t))}" title="${esc(nomeSquad(t))}">`
+    +`<span class="n">${esc(sqNum(t))}</span><span class="t">Squad</span></span>`; };
 /* quem toca o squad, para o numero virar gente */
 function sqQuem(s){
   const donos=(TK.equipe||[]).filter(u=>{
