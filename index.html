@@ -822,6 +822,7 @@
   .tk-grupo .tk-vazio:hover{color:var(--txt);opacity:1;background:none}
   .tk-sqs{display:inline-flex;gap:5px;align-items:center;margin-right:8px}
   .tk-sqs .ftab{padding:5px 10px;font-size:12px}
+  .fin-tabs .lc-seg{margin-right:10px;flex:none}
   /* ---------- FOLHA DA TAREFA (redesenho 31/08) ----------
      A folha sai do formato "lista de 16 propriedades e a descricao no rodape".
      Capa com caminho e trilha de status, faixa de meta com o que muda todo dia,
@@ -4280,7 +4281,7 @@ const TK_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 const TK_SEM=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 let TK={espacos:[],pastas:[],listas:[],tarefas:[],equipe:[],status:[],campos:[],listaSel:'',arrastando:null,
   visao:'lista',escopo:'lista',ord:'',dir:1,busca:'',focoBusca:false,ref:'',grupo:'status',fechadas:{},colsOff:{},squadF:'',
-  filtro:{resps:[],prazo:'',de:'',ate:'',prios:[]},lcGestor:'',lcVista:'',arqVista:false};
+  filtro:{resps:[],prazo:'',de:'',ate:'',prios:[]},lcGestor:'',lcVista:'',lcPor:'gestor',arqVista:false};
 try{ const _f=JSON.parse(localStorage.getItem('tk_filtro')||'null'); if(_f&&typeof _f==='object') TK.filtro={resps:_f.resps||[],prazo:_f.prazo||'',de:_f.de||'',ate:_f.ate||'',prios:_f.prios||[]}; }catch(_){}
 /* ---------- SQUAD NA TAREFA ----------
    O recorte real e do Postgres (RLS tarefa_visivel): quem tem squad so enxerga o proprio.
@@ -5262,8 +5263,10 @@ function tkFiltradas(){
   if(TK.squadF==='(sem)') arr=arr.filter(t=>!String(t.squad||'').trim());
   else if(TK.squadF) arr=arr.filter(t=>String(t.squad||'')===TK.squadF);
   if(ehLC(TK.listaSel)&&TK.escopo==='lista'&&TK.lcGestor){
+    /* as pilulas filtram por gestor de trafego OU por gerente — a escolha e do botao */
+    const por=(TK.lcPor==='gerente')?'gerente':'responsavel';
     arr=arr.filter(t=>{ const f=fichaDe(t.ficha_id); if(!f) return false;
-      const g=String(f.responsavel||'').trim();
+      const g=String(f[por]||'').trim();
       return TK.lcGestor==='(sem)'?!g:g===TK.lcGestor; });
   }
   /* BUG que sumiu com os clientes do João (31/08): o Controle de Clientes esconde os
@@ -6452,19 +6455,24 @@ window.tkSquadF=(s)=>{ TK.squadF=s; tkDesenhar($('#content')); };
 const lcCor=(n)=>SP_COR[[...String(n||'?')].reduce((s,c)=>s+c.charCodeAt(0),0)%SP_COR.length];
 function lcSemGestorF(){ const s=TK.lcGestor; TK.lcGestor=''; let r; try{ r=tkFiltradas(); }finally{ TK.lcGestor=s; } return r; }
 function lcAtalhos(){
+  /* Antes so dava pra filtrar por gestor de trafego. Gerente nao tinha botao nenhum —
+     quem procurava "os clientes do Joao" nao achava por onde (Gabriel 31/08). */
+  const por=(TK.lcPor==='gerente')?'gerente':'responsavel';
   const cont={};
   lcSemGestorF().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
-    const k=String(f.responsavel||'').trim()||'(sem)'; cont[k]=(cont[k]||0)+1; });
+    const k=String(f[por]||'').trim()||'(sem)'; cont[k]=(cont[k]||0)+1; });
   const gestores=Object.keys(cont).filter(k=>k!=='(sem)').sort((a,b)=>cont[b]-cont[a]);
   const pil=(v,rot,n)=>`<button class="ftab ${TK.lcGestor===v&&TK.lcVista!=='gerentes'?'active':''}" data-g="${esc(v)}" onclick="lcGestorF(this.dataset.g)">${avatarDoNome(rot,'lc-av')||`<span class="lc-av" style="background:${lcCor(rot)}">${esc(rot.trim().charAt(0).toUpperCase())}</span>`}${esc(rot)}<span class="lc-n">${n}</span></button>`;
   return `<div class="fin-tabs" style="margin:0 0 12px">
+    <span class="tk-seg lc-seg"><button class="${por==='responsavel'?'on':''}" onclick="lcPorF('gestor')">Gestor</button><button class="${por==='gerente'?'on':''}" onclick="lcPorF('gerente')">Gerente</button></span>
     <button class="ftab ${!TK.lcGestor&&TK.lcVista!=='gerentes'?'active':''}" onclick="lcGestorF('')">Todos</button>
     ${gestores.map(g=>pil(g,g,cont[g])).join('')}
-    ${cont['(sem)']?pil('(sem)','Sem gestor',cont['(sem)']):''}
+    ${cont['(sem)']?pil('(sem)',por==='gerente'?'Sem gerente':'Sem gestor',cont['(sem)']):''}
     <button class="ftab ${TK.lcVista==='gerentes'?'active':''}" onclick="lcVerGerentes()">&#9776; Gerentes</button>
   </div>`;
 }
 window.lcGestorF=(g)=>{ TK.lcGestor=g; TK.lcVista=''; tkDesenhar($('#content')); };
+window.lcPorF=(k)=>{ TK.lcPor=(k==='gerente')?'gerente':'gestor'; TK.lcGestor=''; TK.lcVista=''; tkDesenhar($('#content')); };
 window.lcVerGerentes=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
 const LC_NIVEL={promotor:{rot:'Promotor',cor:'#3fcf8e'},neutro:{rot:'Neutro',cor:'#8b95a5'},detrator:{rot:'Detrator',cor:'#ef5b6b'}};
 const LC_PG={recebido:{rot:'OK',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'}};
