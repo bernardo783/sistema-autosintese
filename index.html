@@ -9196,18 +9196,24 @@ window.openFinModal=(id)=>{
   const it=id?DB.financeiro.find(x=>x.id===id):{tipo:'receita',data:hojeISO()};
   modal(id?'Editar lançamento':'Novo lançamento',`
     <div class="row2">
-      <div class="field"><label>Data</label><input type="date" id="m_data" value="${it.data||''}"></div>
+      <div class="field"><label>Competência — mês em que foi usado</label><input type="date" id="m_data" value="${it.data||''}"></div>
       <div class="field"><label>Tipo</label><select id="m_tipo"><option value="receita"${it.tipo==='receita'?' selected':''}>Receita</option><option value="despesa"${it.tipo==='despesa'?' selected':''}>Despesa</option></select></div>
     </div>
     <div class="field"><label>Descrição</label><input id="m_desc" value="${esc(it.descricao)}" placeholder="Ex: Venda de serviço"></div>
     <div class="row2">
       <div class="field"><label>Categoria</label><input id="m_cat" value="${esc(it.categoria)}" placeholder="Ex: Vendas"></div>
       <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
-    </div>`,
+    </div>
+    <div class="field"><label>Pago em (opcional)</label><input type="date" id="m_pago" value="${it.pagoEm||''}"></div>
+    <p class="hint">Regime de competência: a despesa entra no mês em que o serviço ou produto foi <strong>consumido</strong> — não no mês em que a fatura do cartão vence. Fatura de cartão não é um lançamento só: lance cada compra no mês em que ela foi usada.</p>`,
     async ()=>{
       const v={data:$('#m_data').value,tipo:$('#m_tipo').value,descricao:$('#m_desc').value.trim(),
-        categoria:$('#m_cat').value.trim(),valor:parseFloat($('#m_valor').value)||0};
+        categoria:$('#m_cat').value.trim(),valor:parseFloat($('#m_valor').value)||0,
+        pagoEm:$('#m_pago').value||null};
       if(!v.descricao){toast('Informe a descrição.');return false;}
+      /* fatura fechada num lancamento so quebra o regime de competencia */
+      if(v.tipo==='despesa'&&/fatura|cart[ãa]o/i.test(v.descricao+' '+v.categoria)
+        &&!confirm('Isso parece uma fatura de cartão lançada inteira em um mês só.\n\nPelo regime de competência, cada compra deveria entrar no mês em que foi usada, não no mês do vencimento da fatura.\n\nQuer salvar assim mesmo?')) return false;
       if(id){Object.assign(it,v);} else {DB.financeiro.push({id:uid(),...v});}
       await saveDB(); render('financeiro'); toast('Salvo.'); return true;
     });
