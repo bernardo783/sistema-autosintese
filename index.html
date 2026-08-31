@@ -1379,6 +1379,20 @@
   .tk-stsel:hover{filter:brightness(1.1)}
   .tk-stsel:focus{outline:2px solid var(--brand2);outline-offset:2px}
   .tk-stsel.opc{padding:0 11px;background-image:none}
+  /* Barra de rolagem horizontal visivel (Gabriel 31/08): a lista tem mais coluna do que
+     cabe na tela, entao a barra precisa se anunciar em vez de aparecer so no scroll. */
+  .tablewrap.rolavel{overflow-x:auto;scrollbar-width:auto;
+    scrollbar-color:var(--fraco) var(--panel2)}
+  .tablewrap.rolavel::-webkit-scrollbar{height:12px}
+  .tablewrap.rolavel::-webkit-scrollbar-track{background:var(--panel2);border-radius:99px}
+  .tablewrap.rolavel::-webkit-scrollbar-thumb{background:var(--fraco);border-radius:99px;
+    border:3px solid var(--panel2)}
+  .tablewrap.rolavel::-webkit-scrollbar-thumb:hover{background:var(--brand2)}
+  /* O nome do cliente fica preso a esquerda: rolando pro lado voce nao perde a linha. */
+  .tk-tab th:first-child{position:sticky;left:0;z-index:4;background:var(--panel2)}
+  .tk-tab tbody tr:not(.tk-faixa) > td:first-child{position:sticky;left:0;z-index:2;
+    background:var(--panel);box-shadow:1px 0 0 0 var(--line)}
+  .tk-tab tbody tr:not(.tk-faixa):hover > td:first-child{background:var(--cardh)}
   /* LINHA PLANA (Gabriel 28/08): o cartao com respiro nao tinha a harmonia do ClickUp.
      Aqui a grade e continua: altura fixa, uma divisoria fina e realce so no hover. */
   .tk-tab{border-collapse:collapse}
@@ -4918,8 +4932,14 @@ async function tkCarregar(){
     TK.espacos.forEach(e=>{ TK.fechadas['e'+e.id]=true; });
     TK.pastas.forEach(p=>{ TK.fechadas['p'+p.id]=true; });
     spSalvarArvore();
-    if(!TK.colsSalvo){ const esconder=['Remuneração por Contrato','Verba Semanal','Forma de Pagamento','Canal'];
-      TK.campos.forEach(k=>{ if(k.lista_id===LC_ID&&esconder.indexOf(k.nome)>=0) TK.colsOff[k.id]=true; }); }
+    /* O Controle de Clientes escondia 4 colunas por padrao (Remuneracao por Contrato, Verba
+       Semanal, Forma de Pagamento e Canal). O Gabriel quer ver tudo — agora a lista abre
+       inteira e quem quiser esconder usa o botao Colunas. Este destravamento roda uma vez
+       so, pra nao desfazer escolha que a pessoa fizer daqui pra frente. */
+    try{ if(!localStorage.getItem('sp_cols_v2')){
+      TK.campos.forEach(k=>{ if(k.lista_id===LC_ID) delete TK.colsOff[k.id]; });
+      spSalvarCols(); localStorage.setItem('sp_cols_v2','1');
+    } }catch(_){}
     if(!TK.colsSalvo){
       TK.campos.forEach(k=>{
         if(k.lista_id===LC_ID) return;
@@ -5355,7 +5375,11 @@ function tkViewLista(){
   if(lc) grupos=grupos.filter(g=>g.its.length);
   const seta=(k)=>TK.ord===k?(TK.dir===1?' ▲':' ▼'):'';
   const th=(k,r)=>`<th class="tk-th" onclick="tkOrdenar('${k}')">${r}${seta(k)}</th>`;
-  const colsCps=cps.map(c=>`<th style="width:${c.largura}px">${esc(c.nome)}</th>`).join('');
+  const colsCps=cps.map(c=>`<th style="width:${c.largura}px;min-width:${c.largura}px">${esc(c.nome)}</th>`).join('');
+  /* Sem uma largura minima a tabela se espreme em 100% e nunca aparece barra de rolagem:
+     as colunas viram tiras ilegiveis. Aqui ela assume a largura real e o wrap rola. */
+  const largFix=lc?(300+190):(32+300+180+130+120+110+44);
+  const largMin=largFix+cps.reduce((a,c)=>a+(Number(c.largura)||140),0);
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
@@ -5395,7 +5419,7 @@ function tkViewLista(){
       :(TK.escopo==='lista'?`<span class="hint" style="margin:0">&#128274; colunas fixas — só master e gerente mudam</span>`:'')}
     <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
   </div>${grupos.length
-    ? `<div class="tablewrap"><table class="tk-tab"><thead>${cab}</thead><tbody>${grupos.map(bloco).join('')}</tbody></table></div>`
+    ? `<div class="tablewrap rolavel"><table class="tk-tab" style="min-width:${largMin}px"><thead>${cab}</thead><tbody>${grupos.map(bloco).join('')}</tbody></table></div>`
     : '<div class="empty">Nada por aqui.</div>'}`;
 }
 /* A arvore de espacos mora na barra lateral: ela e a navegacao principal do sistema. */
