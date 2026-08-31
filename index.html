@@ -336,8 +336,12 @@
     color:var(--muted);margin-bottom:7px}
   #fcForm .field input,#fcForm .field select,#fcForm .field textarea{border-radius:11px;padding:11px 13px;font-size:13.5px}
   #fcForm .field input:hover,#fcForm .field select:hover,#fcForm .field textarea:hover{border-color:var(--fraco)}
-  #fc_servs{gap:8px;margin-top:2px}
-  #fc_servs .tkp-chip{padding:10px 16px;font-size:12.5px;border-radius:12px;transition:.16s}
+  /* Os 4 servicos numa linha so: grade de colunas iguais, nao flex que quebra.
+     A largura inteira do bloco cabe os quatro sem apertar o texto longo. */
+  #fc_servs{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:2px}
+  #fc_servs .tkp-chip{width:100%;text-align:center;padding:12px 10px;font-size:12.5px;
+    border-radius:12px;transition:.16s;line-height:1.25}
+  @media(max-width:760px){ #fc_servs{grid-template-columns:repeat(2,1fr)} }
   #fc_servs .tkp-chip:hover{transform:translateY(-1px)}
   #fc_servs .tkp-chip.on{box-shadow:0 8px 20px rgba(124,58,237,.38)}
 
@@ -9399,11 +9403,12 @@ function renderFechamento(c){
       <div class="row2">${fcField('Nome do responsável (dono)','fc_dono','ex: Luiz Marcelo da Silveira Couto')}${fcField('CPF do responsável','fc_cpf','ex: 123.456.789-00')}</div>
       <div class="row2">${fcField('RG','fc_rg','ex: 12.321.213-1')}<div class="field"></div></div>`)}
     ${sec('02','📋 Plano e contrato','O que foi vendido, em que combinação e por quanto tempo.',`
+      <div class="field"><label data-dica="Marque todos os serviços fechados com esse cliente — qualquer combinação. Fica roxo o que está selecionado, e é isso que vai pro contrato e pra ficha.">Serviços prestados *</label>
+        <input type="hidden" id="fc_plano" value="">
+        <div class="tkp-chips" id="fc_servs">${FC_SERVICOS.map(x=>`<button type="button" class="tkp-chip" data-s="${x}" onclick="fcServToggle(this,'${x}')">${x}</button>`).join('')}</div></div>
       <div class="row2">
-        <div class="field"><label data-dica="Marque todos os serviços fechados com esse cliente — qualquer combinação. Fica roxo o que está selecionado, e é isso que vai pro contrato e pra ficha.">Serviços prestados *</label>
-          <input type="hidden" id="fc_plano" value="">
-          <div class="tkp-chips" id="fc_servs">${FC_SERVICOS.map(x=>`<button type="button" class="tkp-chip" data-s="${x}" onclick="fcServToggle(this,'${x}')">${x}</button>`).join('')}</div></div>
-        <div class="field"><label>Tipo de contrato *</label><select id="fc_contrato">${FC_CONTRATOS.map(p=>`<option>${p}</option>`).join('')}</select></div></div>
+        <div class="field"><label>Tipo de contrato *</label><select id="fc_contrato">${FC_CONTRATOS.map(p=>`<option>${p}</option>`).join('')}</select></div>
+        <div class="field"></div></div>
       <div class="field"><label>Integrações</label><textarea id="fc_integra" rows="2" placeholder="Portais, sistemas e integrações necessárias para o Agente IA"></textarea></div>
       <div class="field"><label>Especificidades do contrato (o que foge do escopo padrão)</label><textarea id="fc_espec" rows="2" placeholder="Deixe vazio se não houver"></textarea></div>`)}
     ${sec('03','💳 Financeiro · cadastro no Asaas','Como e quando o dinheiro entra. O dia da 1ª parcela vira o vencimento recorrente.',`
