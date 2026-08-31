@@ -947,6 +947,19 @@
     .tkf-mb{border-right:none;margin-right:16px;padding-right:0;min-height:54px}
     .tkf-capa .tk-tit{font-size:21px}
   }
+  /* Arrastar arquivo vale em QUALQUER canto da folha, nao so na caixa de Anexos
+     (Gabriel 31/08). O alvo cobre a folha inteira enquanto o arquivo esta no ar. */
+  .overlay.folha .modal{position:relative}
+  .tkf-alvo{position:absolute;inset:0;z-index:60;display:none;place-items:center;pointer-events:none;
+    background:rgba(24,12,58,.78);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    box-shadow:inset 0 0 0 2px rgba(167,139,250,.75)}
+  .overlay.folha.largando .tkf-alvo{display:grid}
+  .tkf-alvo .cx{text-align:center;color:#fff;padding:26px 30px}
+  .tkf-alvo .ic{width:66px;height:66px;margin:0 auto 15px;border-radius:20px;display:grid;place-items:center;
+    font-size:26px;background:rgba(167,139,250,.2);border:1px solid rgba(167,139,250,.55);
+    box-shadow:0 0 0 10px rgba(167,139,250,.09)}
+  .tkf-alvo b{display:block;font-size:19px;font-weight:900;letter-spacing:-.02em;margin-bottom:6px}
+  .tkf-alvo span{font-size:12.5px;color:rgba(255,255,255,.68)}
   /* ---------- PAINEL DA TAREFA (rail de icones na direita, estilo ClickUp) ---------- */
   .tkm{display:flex;gap:0;align-items:stretch}
   .tkm-painel{flex:1;min-width:0}
@@ -7426,6 +7439,30 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     });
     /* campos que mudam por JS (chips de responsavel, prioridade, calendario proprio)
        disparam 'change' no hidden — o listener acima pega. Checklist salva ao editar. */
+    /* ---- soltar arquivo em qualquer canto da folha ----
+       O alvo antigo era so a caixa de Anexos, que fica no fim da coluna da esquerda:
+       pra anexar era preciso rolar ate la. Agora a folha inteira aceita. */
+    const md=ov.querySelector('.modal');
+    if(md){
+      const alvo=document.createElement('div'); alvo.className='tkf-alvo';
+      alvo.innerHTML='<div class="cx"><div class="ic">\u2913</div><b>'+(t?'Solte para anexar':'Salve a tarefa primeiro')+'</b><span>'+(t?'em qualquer canto da tarefa \u00b7 at\u00e9 50 MB por arquivo':'d\u00ea um t\u00edtulo \u00e0 tarefa e os anexos passam a valer aqui')+'</span></div>';
+      md.appendChild(alvo);
+      let prof=0;
+      /* so reage a arquivo de verdade: arrastar texto ou card nao pode acender o alvo */
+      const ehArquivo=(e)=>{ const d=e.dataTransfer; if(!d||!d.types) return false;
+        for(let i=0;i<d.types.length;i++) if(String(d.types[i])==='Files') return true; return false; };
+      md.addEventListener('dragenter',(e)=>{ if(!ehArquivo(e)) return; e.preventDefault(); prof++; ov.classList.add('largando'); });
+      md.addEventListener('dragover',(e)=>{ if(!ehArquivo(e)) return; e.preventDefault(); try{ e.dataTransfer.dropEffect='copy'; }catch(_){} });
+      md.addEventListener('dragleave',(e)=>{ if(!ehArquivo(e)) return; prof--; if(prof<=0){ prof=0; ov.classList.remove('largando'); } });
+      md.addEventListener('drop',(e)=>{ if(!ehArquivo(e)) return; e.preventDefault(); prof=0; ov.classList.remove('largando');
+        const fs=e.dataTransfer&&e.dataTransfer.files;
+        if(!fs||!fs.length) return;
+        const alvoT=(window.__tkmT&&window.__tkmT.id)||(t&&t.id)||'';
+        if(!alvoT){ toast('D\u00ea um t\u00edtulo \u00e0 tarefa primeiro \u2014 a\u00ed os anexos t\u00eam onde morar.'); return; }
+        if(window.tkmAba) tkmAba('Det');
+        tkmAnxUpload(alvoT,fs);
+      });
+    }
     window.__tkmAgendar=agendar;
   }
   ckPintar();
@@ -7551,7 +7588,7 @@ window.tkmAnxCarregar=async (tid)=>{
     }catch(_){}
   });
 };
-window.tkmAnxDrop=(ev,tid)=>{ ev.preventDefault();
+window.tkmAnxDrop=(ev,tid)=>{ ev.preventDefault(); ev.stopPropagation();
   const dz=document.getElementById('tkmDrop'); if(dz) dz.classList.remove('on');
   tkmAnxUpload(tid, ev.dataTransfer.files); };
 window.tkmAnxUpload=async (tid,files)=>{
