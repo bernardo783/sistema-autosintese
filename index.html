@@ -1156,13 +1156,18 @@
   .pc-ic .pc-bdg{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:99px;
     background:var(--brand);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;
     padding:0 4px;border:2px solid var(--panel);line-height:1}
-  .pc-ic::after{content:attr(data-t);position:absolute;top:calc(100% + 7px);left:50%;
-    transform:translateX(-50%);background:#0e0d12;border:1px solid var(--brand2);color:var(--txt);
+  /* A dica encostava na fileira de abas e vazava pela esquerda no primeiro ícone.
+     Agora ela nasce alinhada à borda esquerda do próprio ícone, numa faixa só dela. */
+  .pc-ic::after{content:attr(data-t);position:absolute;top:calc(100% + 8px);left:-4px;
+    background:#0e0d12;border:1px solid var(--brand2);color:var(--txt);
     font-size:11.5px;font-weight:500;padding:5px 10px;border-radius:8px;white-space:nowrap;
-    opacity:0;pointer-events:none;transition:opacity .12s;z-index:60}
+    opacity:0;pointer-events:none;transition:opacity .12s;z-index:200;
+    box-shadow:0 8px 20px rgba(0,0,0,.55)}
+  /* os dois últimos ficam à direita: alinham pela outra ponta pra não sair da janela */
+  .pc-icos .pc-ic:nth-last-child(-n+2)::after{left:auto;right:-4px}
   .pc-ic:hover::after{opacity:1}
   .pc-div{width:1px;height:22px;background:var(--line);margin:0 4px;flex:none}
-  .pc-tabs{padding:0 20px;margin:16px 0 0;gap:20px;border-bottom:1px solid var(--line)}
+  .pc-tabs{padding:0 20px;margin:38px 0 0;gap:20px;border-bottom:1px solid var(--line)}
   .pc-tabs .ftab{background:transparent;border:none;border-radius:0;padding:0 0 10px;
     color:var(--muted);font-size:13px;font-weight:600;position:relative}
   .pc-tabs .ftab:hover{color:var(--txt)}
