@@ -1120,6 +1120,85 @@
     transition:opacity .12s,border-color .12s,color .12s}
   .mhead:hover .pc-ren{opacity:1}
   .pc-ren:hover{color:var(--txt);border-color:var(--brand2);background:var(--panel2)}
+  /* ============ CARD DO CLIENTE, DESENHO NOVO (Gabriel 31/08) ============
+     Categoria e informacao com pesos diferentes: a categoria e uma FAIXA que corta a
+     ficha, com barra roxa no canto; o rotulo do dado e pequeno e apagado; o valor e o
+     mais legivel da linha. Abre em leitura — o formulario so aparece no Editar. */
+  .pc-head{padding:20px 20px 0;display:flex;gap:14px;align-items:flex-start}
+  .pc-nome{font-size:23px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+  .pc-meta{color:var(--muted);font-size:12.5px;margin-top:8px;display:flex;gap:9px;
+    align-items:center;flex-wrap:wrap}
+  .pc-meta i{width:3px;height:3px;border-radius:50%;background:var(--fraco);display:block;flex:none}
+  .pc-meta .tag{font-size:11px}
+  /* fileira de icones: sem palavra, com o nome no hover */
+  .pc-icos{display:flex;gap:7px;align-items:center;padding:16px 20px 0;flex-wrap:wrap}
+  .pc-ic{position:relative;width:35px;height:35px;border-radius:9px;border:1px solid var(--line);
+    background:transparent;color:var(--txt);display:grid;place-items:center;padding:0;
+    transition:background .13s,border-color .13s,color .13s,transform .13s;text-decoration:none}
+  .pc-ic:hover{background:var(--panel2);border-color:var(--brand2);transform:translateY(-1px)}
+  .pc-ic.wa:hover{color:#4ade80;border-color:rgba(37,211,102,.5)}
+  .pc-ic.ig:hover{color:#f472b6;border-color:rgba(236,72,153,.5)}
+  .pc-ic.dr:hover{color:#60a5fa;border-color:rgba(96,165,250,.5)}
+  .pc-ic.vz{border-style:dashed;color:var(--fraco)}
+  .pc-ic.vz:hover{color:var(--txt);border-style:solid}
+  .pc-ic .pc-bdg{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:99px;
+    background:var(--brand);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;
+    padding:0 4px;border:2px solid var(--panel);line-height:1}
+  .pc-ic::after{content:attr(data-t);position:absolute;top:calc(100% + 7px);left:50%;
+    transform:translateX(-50%);background:#0e0d12;border:1px solid var(--brand2);color:var(--txt);
+    font-size:11.5px;font-weight:500;padding:5px 10px;border-radius:8px;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .12s;z-index:60}
+  .pc-ic:hover::after{opacity:1}
+  .pc-div{width:1px;height:22px;background:var(--line);margin:0 4px;flex:none}
+  .pc-tabs{padding:0 20px;margin:16px 0 0;gap:20px;border-bottom:1px solid var(--line)}
+  .pc-tabs .ftab{background:transparent;border:none;border-radius:0;padding:0 0 10px;
+    color:var(--muted);font-size:13px;font-weight:600;position:relative}
+  .pc-tabs .ftab:hover{color:var(--txt)}
+  .pc-tabs .ftab.active{color:var(--txt);background:transparent}
+  .pc-tabs .ftab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;
+    background:var(--brand2);border-radius:2px}
+  .pc-n{color:var(--fraco);font-size:12px;margin-left:4px}
+  /* CATEGORIA: faixa + barra */
+  .pc-cat{display:flex;align-items:center;gap:10px;background:var(--panel2);
+    margin:22px -20px 4px;padding:9px 20px 9px 17px;position:relative;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .pc-cat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:var(--brand2);border-radius:0 2px 2px 0}
+  .pc-cat h4{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--txt)}
+  .pc-cat .cnt{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:600}
+  /* INFORMACAO */
+  .pc-dl{display:grid;grid-template-columns:158px 1fr;align-items:center}
+  .pc-dl > div{padding:9px 0;border-bottom:1px solid var(--line);min-height:42px;
+    display:flex;align-items:center}
+  .pc-dl > div:nth-last-child(-n+2){border-bottom:none}
+  .pc-dl .k{color:var(--muted);font-size:12.5px;font-weight:500}
+  .pc-dl .v{color:var(--txt);font-size:14px;font-weight:600;gap:9px;flex-wrap:wrap;min-width:0}
+  .pc-dl .v.vz .leitura{color:var(--fraco);font-weight:500;font-size:13.5px}
+  .pc-dl .v a{color:var(--brand2);text-decoration:none;border-bottom:1px solid rgba(167,139,250,.3)}
+  .pc-dl .v a:hover{border-bottom-color:var(--brand2)}
+  .pc-txt{color:var(--txt2,var(--txt));font-size:14px;line-height:1.7;padding:12px 0 2px;max-width:64ch}
+  .pc .leitura{display:contents}
+  .pc.ver .campo{display:none}
+  .pc.ed .leitura{display:none}
+  .pc.ed .pc-dl > div{padding:6px 0}
+  .pc.ed .pc-dl .v{display:block;width:100%}
+  .pc.ed .pc-dl .v .campo{display:block;width:100%}
+  .pc.ed .pc-txt .campo{display:block}
+  .pc.ver .pc-dl input,.pc.ver .pc-dl select{display:none}
+  .pc-fin{background:linear-gradient(180deg,rgba(123,104,238,.1),transparent);
+    border:1px solid rgba(168,85,247,.3);border-radius:12px;padding:14px 16px;margin-top:18px}
+  .pc-fin .k{font-size:10.5px;color:var(--muted);font-weight:800;letter-spacing:.09em;margin-bottom:10px}
+  .pc-fin .l{display:flex;gap:30px;flex-wrap:wrap}
+  .pc-fin .kk{font-size:10.5px;color:var(--muted);font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+  .pc-fin .vv{font-size:19px;font-weight:800;margin-top:3px;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums}
+  .pc-modo{font-size:12px;color:var(--muted)}
+  .pc + .mfoot,.modal.pc .mfoot{justify-content:flex-start;align-items:center;
+    background:var(--panel2);position:sticky;bottom:0}
+  .modal.pc.ver .campo.pc-modo{display:none}
+  .modal.pc.ed .leitura.pc-modo{display:none}
+  .modal.pc.ver .btn.campo{display:none}
+  .modal.pc.ed .btn.leitura{display:none}
   /* ===== AGENDA DE WHATSAPP DO CLIENTE (Gabriel 31/08) =====
      O cliente deixa de ter "um telefone" e passa a ter uma lista etiquetada:
      numero da IA, do vendedor, do dono, link do grupo. */
@@ -2255,6 +2334,12 @@ async function lkIr(hash){
   if(tipo==='l'){
     if(!TK.listas.some(x=>x.id===id)) return sumiu('Lista');
     spSelLista(id); return true; }
+  /* link direto pro cliente: #c/<id da ficha> — usado pelo icone de copiar do card */
+  if(tipo==='c'){
+    const f=(DB.projetos||[]).find(x=>String(x.id)===String(id)); if(!f) return sumiu('Cliente');
+    if(TK.listas.some(x=>x.id===LC_ID)) spSelLista(LC_ID);
+    setTimeout(()=>{ try{ abrirCliente(id); }catch(_){} },140);
+    return true; }
   if(tipo==='t'){
     const t=TK.tarefas.find(x=>x.id===id); if(!t) return sumiu('Tarefa');
     spSelLista(t.lista_id);
@@ -9441,83 +9526,116 @@ window.openProjCard=(id)=>{
     </div>`;
   };
   const nContas=contasDoCliente(it.id).length;
-  o.innerHTML=`<div class="modal big">
-    <div class="mhead">
-      <div style="flex:1">
-        <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px">CLIENTE</div>
-        <h3 style="font-size:20px;margin-top:3px">${esc(it.nome)}${master?`<button class="pc-ren" title="Corrigir o nome do cliente" onclick="cliRenomear('${it.id}')">✎</button>`:''} <span class="tag ${PRJ_NORM(it.status)}" style="font-size:11px;vertical-align:3px">${ST_LABEL[PRJ_NORM(it.status)]}</span></h3>
+  const nZaps=zapsDe(it).length;
+  const igLk=linkIg(it.instagram||(cli&&cli.instagram)), drLk=linkUrl(it.drive||(cli&&cli.drive));
+  /* ícone da fileira: acende na cor da marca no hover, tracejado quando vazio */
+  const icoLk=(cls,titulo,href,svg,vazio)=>href
+    ? `<a class="pc-ic ${cls}" data-t="${esc(titulo)}" href="${esc(href)}" target="_blank" rel="noopener">${svg}</a>`
+    : `<button type="button" class="pc-ic ${cls} vz" data-t="${esc(titulo)} — não preenchido" onclick="pcEditar(true)">${svg}</button>`;
+  const I_ZAP='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg>';
+  const I_IG='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.8"/><circle cx="17.4" cy="6.6" r="1.2" fill="currentColor" stroke="none"/></svg>';
+  const I_DR='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.2l2 2.4h8.8A1.5 1.5 0 0 1 21 9.9v8.6a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>';
+  const I_ADS='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20v-8M12 20V6M19 20v-5"/></svg>';
+  const I_KEY='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2.2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+  const I_LINK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 13.5a4 4 0 0 0 5.7.4l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10.5a4 4 0 0 0-5.7-.4l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg>';
+  /* CATEGORIA: faixa que corta a ficha, com a barra roxa no canto (escolha do Gabriel) */
+  const cat=(t,extra)=>`<div class="pc-cat"><h4>${esc(t)}</h4>${extra?`<span class="cnt">${extra}</span>`:''}</div>`;
+  /* INFORMAÇÃO: rótulo pequeno e apagado, valor forte. Leitura e campo no mesmo lugar. */
+  const li=(rot,leitura,campo,vazio)=>`<div class="k">${rot}</div><div class="v${vazio?' vz':''}"><span class="leitura">${leitura}</span><span class="campo">${campo}</span></div>`;
+  const pes=(nome)=>{ const n=String(nome||'').trim();
+    return n?`<span style="display:inline-flex;align-items:center;gap:9px">${avatarDoNome(n,'lc-av')}${esc(n)}</span>`:'definir'; };
+  const ck=drawCheck(), ckN=(it.checklist||[]).length, ckF=(it.checklist||[]).filter(x=>x.feito).length;
+  const temTraf=nContas>0;
+  o.innerHTML=`<div class="modal big pc ver" id="pcModal">
+    <div class="mhead pc-head">
+      <div style="flex:1;min-width:0">
+        <div class="pc-nome">${esc(it.nome)}${master?`<button class="pc-ren" title="Corrigir o nome do cliente" onclick="cliRenomear('${it.id}')">&#9998;</button>`:''}</div>
+        <div class="pc-meta">
+          <span class="tag ${PRJ_NORM(it.status)}">${ST_LABEL[PRJ_NORM(it.status)]}</span>
+          <i></i><span>${esc(CAT_LABEL[catDe(it)]||'—')}</span>
+          ${it.squad?`<i></i><span>Squad ${esc(it.squad)}</span>`:''}
+        </div>
       </div>
       <button class="x">&times;</button>
     </div>
-    <div class="fin-tabs" style="padding:0 18px;margin:12px 0 0">
-      <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">📋 Visão geral</button>
-      <button class="ftab ${cliAba==='contas'?'active':''}" onclick="cliIrPara('${it.id}','contas')">📊 Contas de anúncio${nContas?' ('+nContas+')':''}</button>
-      <button class="ftab ${cliAba==='acessos'?'active':''}" onclick="cliIrPara('${it.id}','acessos')">🔑 Acessos</button>
-      ${master?`<button class="ftab ${cliAba==='fin'?'active':''}" onclick="cliIrPara('${it.id}','fin')">💰 Financeiro</button>`:''}
+
+    <div class="pc-icos">
+      <button type="button" class="pc-ic wa" data-t="WhatsApp${nZaps?' · '+nZaps+' número'+(nZaps===1?'':'s'):' — nenhum número'}" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}${nZaps?`<span class="pc-bdg">${nZaps}</span>`:''}</button>
+      ${icoLk('ig','Instagram',igLk,I_IG)}
+      ${icoLk('dr','Drive',drLk,I_DR)}
+      <span class="pc-div"></span>
+      <button type="button" class="pc-ic ads" data-t="Contas de anúncio${nContas?' · '+nContas:''}" onclick="cliIrPara('${it.id}','contas')">${I_ADS}</button>
+      <button type="button" class="pc-ic" data-t="Acessos e senhas" onclick="cliIrPara('${it.id}','acessos')">${I_KEY}</button>
+      <button type="button" class="pc-ic" data-t="Copiar link deste cliente" onclick="lkCopiar('c','${it.id}')">${I_LINK}</button>
+    </div>
+
+    <div class="fin-tabs pc-tabs">
+      <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">Visão geral</button>
+      <button class="ftab ${cliAba==='contas'?'active':''}" onclick="cliIrPara('${it.id}','contas')">Contas${nContas?' <span class="pc-n">'+nContas+'</span>':''}</button>
+      <button class="ftab ${cliAba==='acessos'?'active':''}" onclick="cliIrPara('${it.id}','acessos')">Acessos</button>
+      ${master?`<button class="ftab ${cliAba==='fin'?'active':''}" onclick="cliIrPara('${it.id}','fin')">Financeiro</button>`:''}
     </div>
     <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
      ${cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):(cliAba==='fin'&&master)?abaFinCliente(it):`
-      <div class="row2" style="margin-bottom:12px">
-        <div class="field" style="margin:0"><label>Status</label><select id="pc_status">${optsSt}</select></div>
-        <div class="field" style="margin:0"><label>Categoria</label><select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select></div>
+
+      ${cat('Time')}
+      <div class="pc-dl">
+        ${li('Gestor de tráfego', pes(it.responsavel), selPessoa('pc_resp',it.responsavel,'trafego'), !String(it.responsavel||'').trim())}
+        ${li('Gerente', pes(it.gerente), selPessoa('pc_ger',it.gerente,'gerente'), !String(it.gerente||'').trim())}
+        ${li('Squad', esc(it.squad||'definir'), `<input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s2=>`<option value="${esc(s2)}">`).join('')}</datalist>`, !String(it.squad||'').trim())}
       </div>
-      <div class="row2" style="margin-bottom:12px">
-        <div class="field" id="pc_gw" style="margin:0${soIA(it)&&!it.responsavel?';display:none':''}"><label>Gestor de tráfego (Autosíntese)</label>${selPessoa('pc_resp',it.responsavel,'trafego')}</div>
-        <div class="field" style="margin:0"><label>Gerente * (Autosíntese)</label>${selPessoa('pc_ger',it.gerente,'gerente')}</div>
+
+      ${cat('Negócio')}
+      <div class="pc-dl">
+        ${li('Status', esc(ST_LABEL[PRJ_NORM(it.status)]||'—'), `<select id="pc_status">${optsSt}</select>`)}
+        ${li('Categoria', esc(CAT_LABEL[catDe(it)]||'—'), `<select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select>`)}
+        ${li('Nicho', esc(nichoDe(it,cli)||'definir'), `<select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select>`, !nichoDe(it,cli))}
+        ${li('Nível (NPS)', it.nivel?`<span class="tag st" style="color:${LC_NIVEL[it.nivel].cor};background:${LC_NIVEL[it.nivel].cor}1a">${LC_NIVEL[it.nivel].rot}</span>`:'definir', `<select id="pc_nivel"><option value="">—</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select>`, !it.nivel)}
+        ${li('Entregas', esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'definir'), `<input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Agente de IA">`, !(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)))}
       </div>
-      <div class="row2" style="margin-bottom:12px">
-        <div class="field" style="margin:0"><label>Squad *</label><input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
-        <div class="field" style="margin:0"></div>
+
+      ${cat('Contato')}
+      <div class="pc-dl">
+        ${li('Dono', esc((cli&&cli.resp)||'definir'), `<input value="${esc((cli&&cli.resp)||'')}" disabled style="opacity:.6">`, !(cli&&cli.resp))}
+        ${li('WhatsApp', `<button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}Números e etiquetas<span class="zn-n" id="zpBtnN">${nZaps} cadastrado${nZaps===1?'':'s'}</span></button>`, `<button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}Números e etiquetas<span class="zn-n">${nZaps} cadastrado${nZaps===1?'':'s'}</span></button>`)}
+        ${li('Instagram', igLk?`<a href="${esc(igLk)}" target="_blank" rel="noopener">${esc(it.instagram||(cli&&cli.instagram))}</a>`:'definir', `<input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link">`, !igLk)}
+        ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk)}
       </div>
-      <div class="row2" style="margin-bottom:12px">
-        <div class="field" style="margin:0"><label>&#128100; Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' - '))}" disabled style="opacity:.75"></div>
-        <div class="field" style="margin:0"><label>&#128172; WhatsApp do cliente</label>
-          <button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg>
-            Números e etiquetas
-            <span class="zn-n" id="zpBtnN">${zapsDe(it).length} cadastrado${zapsDe(it).length===1?'':'s'}</span>
-          </button></div>
+
+      ${temTraf?`${cat('Tráfego pago')}
+      <div class="pc-dl">
+        ${li('Orçamento', it.orcamento?(brl(it.orcamento)+' '+((it.orcPer||'semanal')==='diario'?'por dia':'por semana')):'definir',
+          `<div style="display:flex;gap:8px"><input type="number" step="0.01" min="0" id="pc_orc" value="${it.orcamento||''}" placeholder="Ex.: 350,00" style="flex:1"><select id="pc_orcper" style="max-width:120px"><option value="semanal"${(it.orcPer||'semanal')==='semanal'?' selected':''}>por semana</option><option value="diario"${it.orcPer==='diario'?' selected':''}>por dia</option></select></div>`, !it.orcamento)}
+        ${li('Avisar em', (it.avisoPct||20)+'% do orçamento', `<input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20">`)}
       </div>
-      <div style="margin:16px 0 8px;font-size:13px;font-weight:800">&#127970; Negócio</div>
-      <div class="row2" style="margin-bottom:12px">
-        <div class="field" style="margin:0"><label>Nicho</label><select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select></div>
-        <div class="field" style="margin:0"><label>Nível (NPS)</label><select id="pc_nivel"><option value="">—</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select></div>
-        <div class="field" style="margin:0"><label>Produtos / serviços entregues</label><input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Social media, Agente de IA"></div>
-      </div>
-      <div style="margin:16px 0 8px;font-size:13px;font-weight:800">&#128279; Links</div>
-      <div class="row2" style="margin-bottom:12px">
-        <div class="field" style="margin:0"><label>Instagram ${linkIg(it.instagram||(cli&&cli.instagram))?`<a href="${linkIg(it.instagram||(cli&&cli.instagram))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link"></div>
-        <div class="field" style="margin:0"><label>Drive ${linkUrl(it.drive||(cli&&cli.drive))?`<a href="${linkUrl(it.drive||(cli&&cli.drive))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive"></div>
-      </div>
-      ${contasDoCliente(it.id).length?`
-      <div style="margin:16px 0 8px;font-size:13px;font-weight:800">📡 Tráfego pago</div>
-      <div class="row2" style="margin-bottom:6px">
-        <div class="field" style="margin:0"><label>Orçamento combinado (R$)</label>
-          <div style="display:flex;gap:8px">
-            <input type="number" step="0.01" min="0" id="pc_orc" value="${it.orcamento||''}" placeholder="Ex.: 350,00" style="flex:1">
-            <select id="pc_orcper" class="search" style="max-width:112px">
-              <option value="semanal"${(it.orcPer||'semanal')==='semanal'?' selected':''}>por semana</option>
-              <option value="diario"${it.orcPer==='diario'?' selected':''}>por dia</option>
-            </select>
-          </div></div>
-        <div class="field" style="margin:0"><label>Avisar quando o saldo cair para</label>
-          <input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20"><span class="hint">% do orçamento</span></div>
-      </div>
-      <p class="hint" style="margin:0 0 4px">Usado na <strong>Central da agência</strong> para calcular quanto do saldo resta, quando avisar e de quanto em quanto tempo mandar o Pix.</p>`:''}
-      <div class="field"><label>📝 Descrição</label><textarea id="pc_notas" rows="3">${esc(it.notas)}</textarea></div>
-      <div style="margin:14px 0 8px;font-size:13px;font-weight:800">✅ Checklist</div>
-      <div id="pcCheck">${drawCheck()}</div>
+      <p class="hint" style="margin:8px 0 0">Usado na <strong>Central da agência</strong> pra calcular quanto do saldo resta e quando avisar.</p>`:''}
+
+      ${cat('Descrição')}
+      <div class="pc-txt"><span class="leitura">${it.notas?esc(it.notas):'<span style="color:var(--fraco)">sem descrição</span>'}</span><span class="campo"><textarea id="pc_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></span></div>
+
+      ${cat('Checklist', ckN?(ckF+' de '+ckN):'')}
+      <div id="pcCheck">${ck}</div>
+
       ${master&&it.clienteId?`
-      <div style="background:var(--panel2);border:1px solid rgba(168,85,247,.35);border-radius:12px;padding:14px;margin-top:14px">
-        <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:1px;margin-bottom:8px">💰 FINANCEIRO · VISÍVEL SÓ PARA MASTERS</div>
-        <div style="display:flex;gap:22px;font-size:14px;flex-wrap:wrap">
-          <span>Honorário mensal: <strong>${cli?brl(cli.valor):'—'}</strong></span>
-          <span>Recebido (total): <strong style="color:var(--ok)">${brl(recTot)}</strong></span>
+      <div class="pc-fin">
+        <div class="k">FINANCEIRO · VISÍVEL SÓ PARA MASTERS</div>
+        <div class="l">
+          <div class="it"><div class="kk">Mensal</div><div class="vv">${cli?brl(cli.valor):'—'}</div></div>
+          <div class="it"><div class="kk">Recebido</div><div class="vv" style="color:var(--ok)">${brl(recTot)}</div></div>
+          <div class="it"><div class="kk">Vence</div><div class="vv">${(cli&&cli.diaVenc)?('dia '+cli.diaVenc):'—'}</div></div>
         </div>
-        <button class="btn ghost small" style="margin-top:10px" onclick="cliIrPara('${it.id}','fin')">Ver financeiro deste cliente →</button>
+        <button class="btn ghost small" style="margin-top:12px" onclick="cliIrPara('${it.id}','fin')">Ver financeiro deste cliente &rarr;</button>
       </div>`:''}`}
     </div>
-    <div class="mfoot"><button class="btn secondary small mcancel">Fechar</button>${cliAba==='geral'?'<button class="btn small msave">Salvar</button>':''}</div>
+    <div class="mfoot">
+      ${cliAba==='geral'?`<span class="pc-modo leitura">Somente leitura</span>
+      <span class="pc-modo campo">Editando — nada é salvo até você clicar</span>`:''}
+      <span style="flex:1"></span>
+      <button class="btn secondary small mcancel">Fechar</button>
+      ${cliAba==='geral'?`<button class="btn small leitura" onclick="pcEditar(true)">Editar</button>
+      <button class="btn secondary small campo" onclick="pcEditar(false)">Cancelar</button>
+      <button class="btn small msave campo">Salvar alterações</button>`:''}
+    </div>
   </div>`;
   document.body.appendChild(o);
   const close=()=>o.remove();
@@ -9538,6 +9656,11 @@ window.openProjCard=(id)=>{
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
 };
+/* Leitura x edição no card do cliente: o formulário existe sempre no DOM (o Salvar
+   continua lendo os mesmos ids), o CSS só decide qual metade aparece. */
+window.pcEditar=(ligar)=>{ const el=document.getElementById('pcModal'); if(!el) return;
+  el.classList.toggle('ed',!!ligar); el.classList.toggle('ver',!ligar);
+  if(ligar){ const f=el.querySelector('.pc-dl .campo select,.pc-dl .campo input'); if(f) try{ f.focus(); }catch(_){} } };
 window.prjCkToggle=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const ck=(p.checklist||[]).find(x=>x.id===cid); if(!ck)return; ck.feito=!ck.feito; await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
 window.prjCkDel=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; p.checklist=(p.checklist||[]).filter(x=>x.id!==cid); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
 window.prjCkAdd=async (pid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const inp=document.getElementById('pcNovo'); const t=(inp&&inp.value.trim())||''; if(!t){toast('Escreva o item.');return;} p.checklist=p.checklist||[]; p.checklist.push({id:uid(),txt:t,feito:false}); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
