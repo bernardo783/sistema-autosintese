@@ -1248,6 +1248,27 @@
   .pw-dots{font-family:monospace;letter-spacing:2px}
 
   /* modal */
+  /* FOTO OBRIGATORIA (Gabriel 31/08): trava a tela inteira ate a pessoa escolher a imagem.
+     Nao tem X, nao fecha no Esc nem no clique fora — so sai salvando a foto. */
+  .fgate{position:fixed;inset:0;z-index:10100;background:rgba(10,9,16,.9);backdrop-filter:blur(7px);
+    display:flex;align-items:center;justify-content:center;padding:20px}
+  .fgate-card{width:100%;max-width:392px;background:var(--panel);border:1px solid var(--line);
+    border-radius:20px;padding:32px 28px 22px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  .fgate-av{width:104px;height:104px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:38px;font-weight:800;
+    overflow:hidden;border:3px solid var(--panel2)}
+  .fgate-av img{width:100%;height:100%;object-fit:cover;display:block}
+  .fgate-card h3{font-size:19px;font-weight:800;margin-bottom:8px}
+  .fgate-card p{color:var(--muted);font-size:13.5px;line-height:1.6;margin-bottom:20px}
+  .fgate-esc{display:block;border:1px dashed var(--line);border-radius:10px;padding:11px;
+    color:var(--txt);font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:9px;
+    transition:border-color .12s,background .12s}
+  .fgate-esc:hover{border-color:var(--brand2);background:var(--panel2)}
+  .fgate-card .btn{width:100%}
+  .fgate-card .btn[disabled]{opacity:.42;cursor:not-allowed}
+  .fgate-p{font-size:11.5px;margin:14px 0 0!important}
+  .fgate-p.erro{color:#ff9aa5}
+  body.travado{overflow:hidden}
   .overlay{position:fixed;inset:0;background:rgba(4,8,16,.6);backdrop-filter:blur(3px);
     display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
   .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:100%;max-width:480px;
@@ -2089,6 +2110,7 @@ async function enterApp(){
   if(!foi) spInicio(true);   /* cada um abre no próprio dia de trabalho */
   mtBoot();   /* Meta começa a carregar no login: quando você abrir Tráfego já está pronto */
   ntfBadge(); /* sino já acorda com o número certo */
+  fotoObrigatoria();   /* sem foto o sistema nao libera (Gabriel 31/08) */
 }
 
 /* ======================= LINKS DIRETOS =======================
@@ -4288,7 +4310,7 @@ window.meuPerfil=()=>{
         email:dados.p_mostrar_email?(SESSION&&SESSION.user?SESSION.user.email:null):null,
         telefone:dados.p_mostrar_telefone?dados.p_telefone:null});
       pintarWhoami(); spDesenhar(); if(currentView==='lista') tkDesenhar($('#content'));
-      toast('Perfil salvo.'); return true; });
+      toast('Perfil salvo.'); fotoObrigatoria(); return true; });
   setTimeout(()=>{ const f=$('#mf_f'); if(f) f.onchange=(e)=>fotoDoArquivo(e.target.files[0],192,mfPick); },30);
 };
 window.minhaFoto=()=>{
@@ -4311,8 +4333,60 @@ window.minhaFoto=()=>{
       currentUser.foto=nova;
       const u=TK.equipe.find(x=>x.id===currentUser.id); if(u) u.foto=nova;
       pintarWhoami(); spDesenhar(); if(currentView==='lista') tkDesenhar($('#content'));
-      toast(nova?'Foto atualizada.':'Foto removida.'); return true; });
+      toast(nova?'Foto atualizada.':'Foto removida.'); fotoObrigatoria(); return true; });
   setTimeout(()=>{ const f=$('#mf_f'); if(f) f.onchange=(e)=>fotoDoArquivo(e.target.files[0],192,mfPick); },30);
+};
+/* ============ FOTO OBRIGATORIA (pedido do Gabriel 31/08) ============
+   Sem foto ninguem mexe no sistema. Vale pra todo mundo, master incluso.
+   Chamado no login e tambem quando alguem apaga a propria foto. */
+window.__fgFoto='';
+function fgTecla(e){
+  if(!document.getElementById('fotoGate')){ document.removeEventListener('keydown',fgTecla,true); return; }
+  if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); }
+}
+window.fotoObrigatoria=function(){
+  if(!currentUser||currentUser.foto) return;
+  if(document.getElementById('fotoGate')) return;
+  window.__fgFoto='';
+  const o=document.createElement('div'); o.id='fotoGate'; o.className='fgate';
+  o.innerHTML=`<div class="fgate-card">
+      <div class="fgate-av" id="fgPrev">${esc(inicial(currentUser.nome))}</div>
+      <h3>Falta a sua foto</h3>
+      <p>O time te encontra pela foto nas tarefas, nos clientes e nos quadros. Escolha uma imagem para continuar.</p>
+      <label class="fgate-esc" for="fgFile" id="fgLab">Escolher foto</label>
+      <input type="file" id="fgFile" accept="image/*" style="display:none">
+      <button class="btn" id="fgOk" disabled>Salvar e entrar</button>
+      <p class="hint fgate-p" id="fgAviso">Recorto no quadrado e reduzo para 192px. Só o time vê.</p>
+    </div>`;
+  document.body.appendChild(o);
+  document.body.classList.add('travado');
+  const prev=o.querySelector('#fgPrev'), ok=o.querySelector('#fgOk'),
+        lab=o.querySelector('#fgLab'), av=o.querySelector('#fgAviso');
+  o.querySelector('#fgFile').onchange=function(e){
+    fotoDoArquivo(e.target.files[0],192,function(d){
+      window.__fgFoto=d; prev.innerHTML='<img src="'+d+'" alt="">';
+      ok.disabled=false; lab.textContent='Trocar foto';
+      av.classList.remove('erro'); av.textContent='Ficou boa? É só salvar.';
+    });
+  };
+  ok.onclick=async function(){
+    if(!window.__fgFoto) return;
+    ok.disabled=true; ok.textContent='Salvando...';
+    const r=await sb.rpc('salvar_minha_foto',{p_foto:window.__fgFoto});
+    if(r.error){ av.classList.add('erro'); av.textContent='Não deu para salvar: '+r.error.message;
+      ok.disabled=false; ok.textContent='Salvar e entrar'; return; }
+    currentUser.foto=window.__fgFoto;
+    try{ const u=(TK.equipe||[]).find(x=>x.id===currentUser.id); if(u) u.foto=currentUser.foto; }catch(_){}
+    o.remove(); document.body.classList.remove('travado');
+    document.removeEventListener('keydown',fgTecla,true);
+    pintarWhoami();
+    try{ spDesenhar(); }catch(_){}
+    try{ if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
+    toast('Foto salva. Agora o time te reconhece.');
+  };
+  /* clique no fundo nao fecha */
+  o.addEventListener('mousedown',function(e){ if(e.target===o){ e.preventDefault(); e.stopPropagation(); } },true);
+  document.addEventListener('keydown',fgTecla,true);
 };
 function pintarWhoami(){ /* usuário só no avatar do topo (Gabriel tirou o rodapé) */
   if(!currentUser) return;
