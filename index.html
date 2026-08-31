@@ -1114,6 +1114,12 @@
   .rc-prazo .d{font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums}
   .rc-prazo .q{font-size:11px;margin-top:2px}
   /* Linha do tempo do combinado, na ficha do cliente */
+  /* lapis de renomear no cabecalho do cliente: discreto ate o mouse chegar */
+  .pc-ren{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:7px;
+    padding:2px 7px;font-size:13px;margin-left:6px;vertical-align:3px;opacity:.45;
+    transition:opacity .12s,border-color .12s,color .12s}
+  .mhead:hover .pc-ren{opacity:1}
+  .pc-ren:hover{color:var(--txt);border-color:var(--brand2);background:var(--panel2)}
   .rc-tl{display:flex;flex-wrap:wrap;margin:4px 0 0}
   .rc-et{flex:1;min-width:140px;position:relative;padding-right:4px}
   .rc-et .bola{width:14px;height:14px;border-radius:50%;border:3px solid var(--panel);
@@ -9194,6 +9200,58 @@ function abaFinCliente(f){
    </tbody></table></div>`:'<div style="color:var(--muted);font-size:12.5px">Nenhum recebimento lançado.</div>'}
    <button class="btn ghost small" style="margin-top:12px" onclick="document.querySelector('.overlay').remove();projFin('${cli.id}')">Ver lançamentos deste cliente →</button>`;
 }
+/* ===== RENOMEAR CLIENTE (Gabriel 31/08, so master) =====
+   O nome do cliente mora em quatro lugares: cadastro financeiro (clientes), ficha
+   (projetos, em CAIXA ALTA), card do Controle de Clientes (tarefas.titulo) e em cada
+   linha de recebimento. Trocar na mao em um so deixa o resto divergente — foi o que
+   aconteceu com "Aurea Motors". Aqui os quatro andam juntos. */
+window.cliRenomear=async (fid)=>{
+  if(!currentUser||currentUser.role!=='master'){ toast('Só um usuário master pode corrigir o nome.'); return; }
+  const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
+  const cli=f.clienteId?(DB.clientes||[]).find(c=>c.id===f.clienteId):null;
+  const atual=String((cli&&cli.nome)||f.nome||'').trim();
+  window.__renOnde=fid;
+  modal('Corrigir o nome do cliente',`
+    <div class="field"><label>Nome</label>
+      <input id="ren_nome" value="${esc(atual)}" maxlength="80" autocomplete="off" placeholder="ex: Aura Motors">
+      <p class="hint" style="margin:6px 0 0">Escreva do jeito natural. Na ficha e no card do
+      Controle de Clientes ele aparece em CAIXA ALTA sozinho.</p></div>
+    <div id="ren_av"></div>
+    <p class="hint" style="margin:10px 0 0">Muda em todo lugar de uma vez: cadastro, ficha, card do
+    quadro e as cobranças já lançadas. O histórico do financeiro não é reescrito — lançamento
+    antigo continua com o texto do dia em que foi feito.</p>`,
+    async ()=>{
+      const novo=($('#ren_nome').value||'').trim();
+      if(novo.length<2){ toast('Nome muito curto.'); return false; }
+      if(novo===atual){ return true; }
+      /* mesma regra de duplicidade do fechamento: "LealMotos" == "Leal Motos" */
+      const k=nomeChave(novo);
+      const bate=(DB.projetos||[]).find(p=>p.id!==fid&&nomeChave(p.nome)===k);
+      if(bate){ toast('Já existe um cliente com esse nome: '+bate.nome+'.'); return false; }
+      f.nome=MAIUS(novo);
+      if(cli){ cli.nome=novo;
+        (DB.recebimentos||[]).forEach(r=>{ if(r.clienteId===cli.id) r.nome=novo; }); }
+      await saveDB();
+      /* o card do Controle de Clientes e uma tarefa: o titulo acompanha */
+      try{
+        const t=(TK.tarefas||[]).find(x=>String(x.ficha_id)===String(fid)&&ehLC(x.lista_id));
+        if(t){ const tit=TIT_CLI(t.lista_id,novo);
+          const r=await sb.from('tarefas').update({titulo:tit}).eq('id',t.id);
+          if(!r.error) t.titulo=tit; }
+      }catch(_){}
+      try{ spDesenhar(); }catch(_){}
+      try{ if(currentView==='lista') tkDesenhar($('#content')); else render(currentView); }catch(_){}
+      toast('Agora é "'+novo+'" em todo lugar.');
+      setTimeout(()=>{ try{ openProjCard(fid); }catch(_){} },80);
+      return true; });
+  /* aviso ao vivo de nome repetido, antes de salvar */
+  setTimeout(()=>{ const el=$('#ren_nome'); if(!el) return; el.focus(); el.select();
+    el.oninput=()=>{ const v=(el.value||'').trim(), box=$('#ren_av'); if(!box) return;
+      if(v.length<2){ box.innerHTML=''; return; }
+      const k=nomeChave(v), b=(DB.projetos||[]).find(p=>p.id!==fid&&nomeChave(p.nome)===k);
+      box.innerHTML=b?`<p class="hint" style="margin:8px 0 0;color:#ff9aa5">Já existe: <strong>${esc(b.nome)}</strong>. Cliente não pode duplicar.</p>`:''; };
+  },40);
+};
 window.openProjCard=(id)=>{
   const it=DB.projetos.find(x=>x.id===id); if(!it) return;
   it.checklist=it.checklist||[];
@@ -9226,7 +9284,7 @@ window.openProjCard=(id)=>{
     <div class="mhead">
       <div style="flex:1">
         <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px">CLIENTE</div>
-        <h3 style="font-size:20px;margin-top:3px">${esc(it.nome)} <span class="tag ${PRJ_NORM(it.status)}" style="font-size:11px;vertical-align:3px">${ST_LABEL[PRJ_NORM(it.status)]}</span></h3>
+        <h3 style="font-size:20px;margin-top:3px">${esc(it.nome)}${master?`<button class="pc-ren" title="Corrigir o nome do cliente" onclick="cliRenomear('${it.id}')">✎</button>`:''} <span class="tag ${PRJ_NORM(it.status)}" style="font-size:11px;vertical-align:3px">${ST_LABEL[PRJ_NORM(it.status)]}</span></h3>
       </div>
       <button class="x">&times;</button>
     </div>
