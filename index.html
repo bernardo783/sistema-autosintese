@@ -2110,7 +2110,11 @@ async function enterApp(){
     if(mpListaIds().indexOf(String(lid))<0) lkLimpar();
   }
   const foi=await lkIr();
-  if(!foi) spInicio(true);   /* cada um abre no próprio dia de trabalho */
+  /* sem link explicito, volta pro lugar exato onde a pessoa parou (F5 nao perde nada) */
+  if(!foi){ let voltou=false; try{ voltou=await navVoltar(); }catch(_){}
+    if(!voltou) spInicio(true); }   /* nunca esteve aqui: abre no proprio dia de trabalho */
+  else { try{ navReabrir(); }catch(_){} }
+  NAV_PRONTO=true; navSalvar();
   mtBoot();   /* Meta começa a carregar no login: quando você abrir Tráfego já está pronto */
   ntfBadge(); /* sino já acorda com o número certo */
   fotoObrigatoria();   /* sem foto o sistema nao libera (Gabriel 31/08) */
@@ -2175,6 +2179,83 @@ async function lkIr(hash){
 }
 window.addEventListener('hashchange',()=>{ if(!lkEuMudei) lkIr(); });
 
+/* ======================= LEMBRAR ONDE PAREI (Gabriel 31/08) =======================
+   O F5 caia no Inicio. A URL so carimbava tela e lista — e nem sempre: expandir um
+   espaco, abrir uma tarefa ou trocar de sub-aba nao mexiam nela, e qualquer limpeza
+   do hash apagava tudo. Aqui o estado de navegacao inteiro vai pro localStorage a
+   cada mudanca e volta no login. Link colado (#e/ #p/ #l/ #t/ #v/) continua ganhando:
+   ele e uma intencao explicita de ir pra outro lugar. Guardado por usuario, entao
+   trocar de conta na mesma maquina nao herda a tela do outro. */
+const NAV_K='as_nav_v1';
+let NAV_PRONTO=false, NAV_ULT='';
+window.TK_ABERTA='';
+function navEstado(){
+  return JSON.stringify({
+    u:String((currentUser||{}).id||''),
+    ws:String(WS_SEL||''),
+    view:String(currentView||''),
+    lista:String(TK.listaSel||''),
+    escopo:String(TK.escopo||''),
+    visao:String(TK.visao||''),
+    fin:String(typeof finTab!=='undefined'?finTab:''),
+    ac:String(typeof acTab!=='undefined'?acTab:''),
+    tarefa:String(window.TK_ABERTA||'')
+  });
+}
+function navSalvar(){
+  if(!NAV_PRONTO||!currentUser) return;
+  try{ const s=navEstado(); if(s===NAV_ULT) return; NAV_ULT=s; localStorage.setItem(NAV_K,s); }catch(_){}
+}
+window.navEsquecer=()=>{ NAV_ULT=''; try{ localStorage.removeItem(NAV_K); }catch(_){} };
+function navLer(){
+  try{ const o=JSON.parse(localStorage.getItem(NAV_K)||'null');
+    if(!o||!currentUser||String(o.u||'')!==String(currentUser.id)) return null;
+    return o; }catch(_){ return null; }
+}
+/* Volta pro lugar exato. Devolve false quando nao da — ai o boot cai no Inicio. */
+async function navVoltar(){
+  const o=navLer(); if(!o) return false;
+  try{
+    /* workspace primeiro: e ele que decide qual arvore de espacos existe */
+    if(o.ws&&String(o.ws)!==String(WS_SEL)&&(TK.ws||[]).some(w=>String(w.id)===String(o.ws))){
+      WS_SEL=String(o.ws); try{ localStorage.setItem('ws_sel',WS_SEL); }catch(_){}
+    }
+    const abrirTarefa=()=>{ if(o.tarefa&&TK.tarefas.some(x=>String(x.id)===String(o.tarefa)))
+      setTimeout(()=>{ try{ tkAbrir(o.tarefa); }catch(_){} },140); };
+    /* estava numa lista: volta pra ela — spSelLista ja reabre espaco e pasta no caminho */
+    if(o.lista&&TK.listas.some(x=>String(x.id)===String(o.lista))){
+      if(o.visao) TK.visao=o.visao;
+      spSelLista(o.lista);
+      if(o.visao) TK.visao=o.visao;   /* spSelLista escolhe a visao padrao; a sua ganha */
+      try{ tkDesenhar($('#content')); }catch(_){}
+      abrirTarefa();
+      return true;
+    }
+    /* estava numa tela: so volta se ela ainda faz parte do acesso dessa pessoa */
+    const v=String(o.view||'');
+    if(!v||v==='lista') return false;
+    if(tlBloqueada(v)) return false;
+    if(typeof finTab!=='undefined'&&o.fin) finTab=o.fin;
+    if(typeof acTab!=='undefined'&&o.ac) acTab=o.ac;
+    render(v);
+    abrirTarefa();
+    return true;
+  }catch(_){ return false; }
+}
+/* Veio por link (#l/...): se a pessoa tinha uma tarefa aberta naquela mesma lista,
+   reabre junto — F5 numa tarefa aberta devolve a tarefa aberta. */
+function navReabrir(){
+  const o=navLer(); if(!o||!o.tarefa) return;
+  if(String(o.lista||'')!==String(TK.listaSel||'')) return;
+  if(!TK.tarefas.some(x=>String(x.id)===String(o.tarefa))) return;
+  setTimeout(()=>{ try{ tkAbrir(o.tarefa); }catch(_){} },140);
+}
+/* Rede de seguranca: qualquer caminho de navegacao acaba refletido aqui, sem
+   precisar pendurar uma chamada em cada um dos pontos que mexem na tela. */
+try{ setInterval(navSalvar,1200); }catch(_){}
+window.addEventListener('beforeunload',navSalvar);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) navSalvar(); });
+
 /* ======================= NAVEGAÇÃO ======================= */
 let currentView='dash';
 document.querySelectorAll('.navlink').forEach(b=>{
@@ -2183,7 +2264,7 @@ document.querySelectorAll('.navlink').forEach(b=>{
     render(b.dataset.view); };
 });
 function spMarcarAtalho(v){ document.querySelectorAll('.navlink').forEach(x=>x.classList.toggle('active', x.dataset.view===v)); }
-$('#btnLogout').onclick=async ()=>{ if(confirm('Sair do sistema?')){ try{ await sb.auth.signOut(); }catch(e){} location.reload(); } };
+$('#btnLogout').onclick=async ()=>{ if(confirm('Sair do sistema?')){ try{ navEsquecer(); }catch(_){} try{ await sb.auth.signOut(); }catch(e){} location.reload(); } };
 
 /* ======================= HELPERS ======================= */
 /* Ordem alfabética de verdade: 'Ágil' antes de 'Bruno', 'ç' junto de 'c'.
@@ -6578,6 +6659,7 @@ const estTexto=(min)=>{
 };
 window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const t=id?TK.tarefas.find(x=>x.id===id):null;
+  window.TK_ABERTA=t?String(t.id):'';   /* F5 reabre a mesma tarefa */
   TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok)})):[];
   const it=t||{prioridade:'med',status:'todo',status_id:'',lista_id:TK.listaSel,prazo:prazoPre||'',valores:{}};
   if(!t&&grupoPre&&grupoPre.indexOf('no')!==0){
@@ -11341,7 +11423,7 @@ function modal(title, bodyHTML, onSave){
     <div class="mfoot"><button class="btn secondary small mcancel">Cancelar</button><button class="btn small msave">Salvar</button></div></div>`;
   if(bodyHTML.indexOf('class="tkm"')>=0) o.classList.add('folha'); /* tarefa abre como painel lateral, estilo ClickUp */
   document.body.appendChild(o);
-  const close=()=>o.remove();
+  const close=()=>{ if(o.querySelector('.tkm')) window.TK_ABERTA=''; o.remove(); };
   o.querySelector('.x').onclick=close; o.querySelector('.mcancel').onclick=close;
   o.onclick=e=>{if(e.target===o)close();};
   o.querySelector('.msave').onclick=async ()=>{ const ok=await onSave(); if(ok!==false)close(); };
