@@ -1120,6 +1120,50 @@
     transition:opacity .12s,border-color .12s,color .12s}
   .mhead:hover .pc-ren{opacity:1}
   .pc-ren:hover{color:var(--txt);border-color:var(--brand2);background:var(--panel2)}
+  /* ===== AGENDA DE WHATSAPP DO CLIENTE (Gabriel 31/08) =====
+     O cliente deixa de ter "um telefone" e passa a ter uma lista etiquetada:
+     numero da IA, do vendedor, do dono, link do grupo. */
+  .zp-btn{display:inline-flex;align-items:center;gap:9px;background:var(--panel2);
+    border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 13px;
+    font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:.13s;width:100%}
+  .zp-btn:hover{border-color:#25d366;color:#4ade80}
+  .zp-btn .zn-n{margin-left:auto;color:var(--muted);font-size:11.5px;font-weight:600}
+  .zp{position:fixed;z-index:10200;width:340px;max-width:calc(100vw - 32px);background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;
+    max-height:min(70vh,460px);display:flex;flex-direction:column}
+  .zp-h{display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line);flex:none}
+  .zp-h .t{font-size:12.5px;font-weight:700}
+  .zp-h .n{font-size:11.5px;color:var(--muted);margin-left:auto}
+  .zp-l{overflow-y:auto;flex:1;scrollbar-width:thin}
+  .zp-i{display:flex;align-items:center;gap:11px;padding:10px 14px;cursor:pointer;
+    border-bottom:1px solid var(--line);transition:background .12s}
+  .zp-i:hover{background:var(--panel2)}
+  .zp-i .info{flex:1;min-width:0}
+  .zp-i .nm{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .zp-i .num{font-size:12px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .zp-et{display:inline-flex;align-items:center;gap:5px;border-radius:4px;padding:2px 7px;
+    font-size:10.5px;font-weight:700;white-space:nowrap}
+  .zp-et .p{width:5px;height:5px;border-radius:50%;background:currentColor}
+  .zp-i .acs{display:flex;gap:2px;opacity:0;transition:opacity .12s;flex:none}
+  .zp-i:hover .acs{opacity:1}
+  .zp-a{width:28px;height:28px;border-radius:7px;border:none;background:transparent;color:var(--fraco);
+    display:grid;place-items:center;padding:0}
+  .zp-a:hover{background:var(--hov2);color:var(--txt)}
+  .zp-a.del:hover{color:#ff9aa5}
+  .zp-f{padding:9px 10px;border-top:1px solid var(--line);flex:none}
+  .zp-add{width:100%;display:flex;align-items:center;gap:9px;background:transparent;border:none;
+    color:var(--muted);font-size:12.5px;font-weight:600;padding:8px 6px;border-radius:8px;
+    text-align:left;font-family:inherit}
+  .zp-add:hover{background:var(--panel2);color:var(--txt)}
+  .zp-form{padding:12px 14px 14px;border-top:1px solid var(--line);background:var(--panel2);flex:none}
+  .zp-form label{display:block;font-size:11px;color:var(--muted);font-weight:600;margin:0 0 5px}
+  .zp-form .lin{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+  .zp-form input,.zp-form select{width:100%;background:var(--panel);border:1px solid var(--line);
+    color:var(--txt);border-radius:7px;padding:7px 9px;font-size:12.5px;font-family:inherit;outline:none}
+  .zp-form input:focus,.zp-form select:focus{border-color:var(--brand2)}
+  .zp-form .bts{display:flex;gap:8px;justify-content:flex-end;margin-top:2px}
+  .zp-vazio{padding:20px 14px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.6}
   .rc-tl{display:flex;flex-wrap:wrap;margin:4px 0 0}
   .rc-et{flex:1;min-width:140px;position:relative;padding-right:4px}
   .rc-et .bola{width:14px;height:14px;border-radius:50%;border:3px solid var(--panel);
@@ -9252,6 +9296,123 @@ window.cliRenomear=async (fid)=>{
       box.innerHTML=b?`<p class="hint" style="margin:8px 0 0;color:#ff9aa5">Já existe: <strong>${esc(b.nome)}</strong>. Cliente não pode duplicar.</p>`:''; };
   },40);
 };
+/* ============ AGENDA DE WHATSAPP (Gabriel 31/08) ============
+   Guardada na ficha (`projetos[].zaps`), que todo aprovado pode ler e escrever.
+   Etiqueta e texto livre: as sugeridas + toda etiqueta ja usada em qualquer cliente,
+   entao o vocabulario cresce sozinho e continua o mesmo pra todo mundo. */
+const ZAP_SUG=['IA','Vendedor','Dono','Grupo','Financeiro','Suporte'];
+const zapsDe=(f)=>Array.isArray(f&&f.zaps)?f.zaps:[];
+const zapEtiquetas=()=>{
+  const vistas=[];
+  (DB.projetos||[]).forEach(p=>zapsDe(p).forEach(z=>{ const e=String(z.et||'').trim();
+    if(e&&vistas.indexOf(e)<0) vistas.push(e); }));
+  return ZAP_SUG.concat(vistas.filter(e=>ZAP_SUG.indexOf(e)<0).sort());
+};
+/* numero vira link de conversa; link de grupo abre direto */
+function zapLink(num){
+  const t=String(num||'').trim(); if(!t) return '';
+  if(/^https?:\/\//i.test(t)) return t;
+  if(/chat\.whatsapp\.com/i.test(t)) return 'https://'+t.replace(/^\/+/,'');
+  const d=t.replace(/\D/g,''); if(d.length<8) return '';
+  return 'https://wa.me/'+(d.length<=11?('55'+d):d);
+}
+window.zapFechar=()=>{ const el=document.getElementById('zapPop'); if(el) el.remove();
+  document.removeEventListener('mousedown',zapFora,true); };
+function zapFora(e){ const el=document.getElementById('zapPop');
+  if(el&&!el.contains(e.target)) zapFechar(); }
+window.zapAbrir=(ev,fid)=>{
+  ev.stopPropagation();
+  const ja=document.getElementById('zapPop'); zapFechar(); if(ja&&ja.dataset.f===fid) return;
+  const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
+  const r=ev.currentTarget.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='zapPop'; el.className='zp'; el.dataset.f=fid;
+  el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-352))+'px';
+  el.style.top=Math.min(r.bottom+7,window.innerHeight-120)+'px';
+  document.body.appendChild(el);
+  zapPintar(fid);
+  setTimeout(()=>document.addEventListener('mousedown',zapFora,true),0);
+};
+function zapPintar(fid,abrirForm,editando){
+  const el=document.getElementById('zapPop'); if(!el) return;
+  const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
+  const zs=zapsDe(f);
+  const COPIA='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M6 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V6"/></svg>';
+  const LAPIS='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+  const LIXO='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13"/></svg>';
+  const ZAPI='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg>';
+  const item=(z)=>{ const cor=corOpcao(z.et||'—'), lk=zapLink(z.num);
+    return `<div class="zp-i" onclick="zapIr('${esc(z.id)}','${esc(fid)}')">
+      <div class="info">
+        <div class="nm">${esc(z.nome||'sem nome')}${z.et?`<span class="zp-et" style="color:${esc(cor)};background:${esc(cor)}1f"><span class="p"></span>${esc(z.et)}</span>`:''}</div>
+        <div class="num">${esc(z.num||'')}${lk?'':' · sem link válido'}</div>
+      </div>
+      <div class="acs" onclick="event.stopPropagation()">
+        <button class="zp-a" title="Copiar" onclick="copyTxt('${esc(String(z.num||''))}')">${COPIA}</button>
+        <button class="zp-a" title="Editar" onclick="zapPintar('${esc(fid)}',true,'${esc(z.id)}')">${LAPIS}</button>
+        <button class="zp-a del" title="Remover" onclick="zapRemover('${esc(fid)}','${esc(z.id)}')">${LIXO}</button>
+      </div></div>`; };
+  const ed=editando?zs.find(z=>String(z.id)===String(editando)):null;
+  const ets=zapEtiquetas(), etAt=ed?String(ed.et||''):'';
+  const form=`<div class="zp-form">
+      <div class="lin">
+        <div><label>Etiqueta</label>
+          <select id="zp_et" onchange="zapEtNova(this)">
+            ${ets.map(e=>`<option value="${esc(e)}"${e===etAt?' selected':''}>${esc(e)}</option>`).join('')}
+            ${(etAt&&ets.indexOf(etAt)<0)?`<option value="${esc(etAt)}" selected>${esc(etAt)}</option>`:''}
+            <option value="__nova">+ nova etiqueta…</option>
+          </select>
+          <input id="zp_etnova" placeholder="nome da etiqueta" style="display:none;margin-top:6px"></div>
+        <div><label>Nome</label><input id="zp_nome" value="${esc(ed?ed.nome:'')}" placeholder="ex: Ciclano"></div>
+      </div>
+      <div style="margin-bottom:10px"><label>Número ou link do grupo</label>
+        <input id="zp_num" value="${esc(ed?ed.num:'')}" placeholder="(11) 98123-4567"></div>
+      <div class="bts">
+        <button class="btn secondary small" onclick="zapPintar('${esc(fid)}')">Cancelar</button>
+        <button class="btn small" onclick="zapSalvar('${esc(fid)}','${esc(editando||'')}')">${ed?'Salvar':'Adicionar'}</button>
+      </div></div>`;
+  el.innerHTML=`<div class="zp-h">${ZAPI}<span class="t">WhatsApp</span>
+      <span class="n">${zs.length?(zs.length+' número'+(zs.length===1?'':'s')):'nenhum'}</span></div>
+    <div class="zp-l">${zs.length?zs.map(item).join(''):'<div class="zp-vazio">Nenhum número cadastrado.<br>Adicione o da IA, o do vendedor, o do dono…</div>'}</div>
+    ${(abrirForm||ed)?form:`<div class="zp-f"><button class="zp-add" onclick="zapPintar('${esc(fid)}',true)">＋ Adicionar número</button></div>`}`;
+  if(abrirForm||ed) setTimeout(()=>{ const n=document.getElementById('zp_nome'); if(n) n.focus(); },30);
+}
+window.zapEtNova=(sel)=>{ const inp=document.getElementById('zp_etnova'); if(!inp) return;
+  const nova=sel.value==='__nova'; inp.style.display=nova?'':'none'; if(nova) inp.focus(); };
+window.zapIr=(zid,fid)=>{
+  const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
+  const z=zapsDe(f).find(x=>String(x.id)===String(zid)); if(!z) return;
+  const lk=zapLink(z.num);
+  if(!lk){ toast('Esse contato não tem número nem link válido.'); return; }
+  window.open(lk,'_blank','noopener');
+};
+window.zapSalvar=async (fid,zid)=>{
+  const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
+  const sel=document.getElementById('zp_et'), nova=document.getElementById('zp_etnova');
+  let et=sel?sel.value:'';
+  if(et==='__nova') et=(nova&&nova.value.trim())||'';
+  const nome=(document.getElementById('zp_nome')||{}).value||'';
+  const num=(document.getElementById('zp_num')||{}).value||'';
+  if(!num.trim()){ toast('Informe o número ou o link do grupo.'); return; }
+  f.zaps=zapsDe(f).slice();
+  if(zid){ const z=f.zaps.find(x=>String(x.id)===String(zid));
+    if(z){ z.et=et.trim(); z.nome=nome.trim(); z.num=num.trim(); } }
+  else f.zaps.push({id:uid(),et:et.trim(),nome:nome.trim(),num:num.trim()});
+  await saveDB();
+  zapPintar(fid);
+  const b=document.getElementById('zpBtnN'); if(b) b.textContent=f.zaps.length+' cadastrado'+(f.zaps.length===1?'':'s');
+  toast(zid?'Contato atualizado.':'Número adicionado.');
+};
+window.zapRemover=async (fid,zid)=>{
+  const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
+  const z=zapsDe(f).find(x=>String(x.id)===String(zid));
+  const ok=await confirmar('Remover '+((z&&z.nome)||'este contato')+'?','O número sai da agenda deste cliente.',
+    {sim:'Remover',nao:'Cancelar',perigo:true});
+  if(!ok) return;
+  f.zaps=zapsDe(f).filter(x=>String(x.id)!==String(zid));
+  await saveDB(); zapPintar(fid);
+  const b=document.getElementById('zpBtnN'); if(b) b.textContent=f.zaps.length+' cadastrado'+(f.zaps.length===1?'':'s');
+  toast('Contato removido.');
+};
 window.openProjCard=(id)=>{
   const it=DB.projetos.find(x=>x.id===id); if(!it) return;
   it.checklist=it.checklist||[];
@@ -9310,7 +9471,12 @@ window.openProjCard=(id)=>{
       </div>
       <div class="row2" style="margin-bottom:12px">
         <div class="field" style="margin:0"><label>&#128100; Dono / contato do cliente</label><input value="${esc([cli&&cli.resp,cli&&cli.tel].filter(Boolean).join(' - '))}" disabled style="opacity:.75"></div>
-        <div class="field" style="margin:0"><label>&#128100; Grupo WhatsApp ${linkUrl(it.grupoWpp||(cli&&cli.grupoWpp))?`<a href="${linkUrl(it.grupoWpp||(cli&&cli.grupoWpp))}" target="_blank" rel="noopener" style="font-weight:700">abrir</a>`:''}</label><input id="pc_grupo" value="${esc(it.grupoWpp||(cli&&cli.grupoWpp)||'')}" placeholder="Nome do grupo ou link do convite"></div>
+        <div class="field" style="margin:0"><label>&#128172; WhatsApp do cliente</label>
+          <button type="button" class="zp-btn" onclick="zapAbrir(event,'${it.id}')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg>
+            Números e etiquetas
+            <span class="zn-n" id="zpBtnN">${zapsDe(it).length} cadastrado${zapsDe(it).length===1?'':'s'}</span>
+          </button></div>
       </div>
       <div style="margin:16px 0 8px;font-size:13px;font-weight:800">&#127970; Negócio</div>
       <div class="row2" style="margin-bottom:12px">
@@ -9363,7 +9529,7 @@ window.openProjCard=(id)=>{
     if(!_r && !($('#pc_cat').value==='ia'||$('#pc_cat').value==='outro')){ toast('Ficha incompleta: informe o gestor de tráfego.'); return; }
     if(!_g){ toast('Ficha incompleta: informe o gerente.'); return; }
     if(!_sq){ toast('Ficha incompleta: informe o squad.'); return; }
-    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=_r; it.gerente=_g; it.squad=_sq; it.nicho=$('#pc_nicho').value; it.nivel=$('#pc_nivel').value; it.grupoWpp=$('#pc_grupo').value.trim(); it.produtos=$('#pc_produtos').value.trim(); it.instagram=$('#pc_insta').value.trim(); it.drive=$('#pc_drive').value.trim(); it.notas=$('#pc_notas').value.trim();
+    it.status=$('#pc_status').value; it.categoria=$('#pc_cat').value; it.responsavel=_r; it.gerente=_g; it.squad=_sq; it.nicho=$('#pc_nicho').value; it.nivel=$('#pc_nivel').value; it.grupoWpp=($('#pc_grupo')?$('#pc_grupo').value.trim():(it.grupoWpp||'')); it.produtos=$('#pc_produtos').value.trim(); it.instagram=$('#pc_insta').value.trim(); it.drive=$('#pc_drive').value.trim(); it.notas=$('#pc_notas').value.trim();
     const _oc=$('#pc_orc'), _op=$('#pc_orcper'), _av=$('#pc_aviso');   /* só existem quando o cliente tem conta de anúncio */
     if(_oc){ it.orcamento=parseFloat(String(_oc.value).replace(',','.'))||0; it.orcPer=_op?_op.value:'semanal';
              it.avisoPct=Math.min(90,Math.max(1,parseInt(_av&&_av.value,10)||20)); }
