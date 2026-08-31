@@ -6618,6 +6618,60 @@ function chPerguntarChurn(id){
     return await tkPatch(id,{lista_id:CH_ID,status_id:CH_FIM,status:'feito',valores:nv},'Movido para Controle de Churns');
   });
 }
+
+/* ---------- CHURN AUTOMATICO (Gabriel 31/08) ----------
+   Marcou "Churn (nao vai pagar)" ou "Churn (pagou o mes)" em Recebimentos: o card do
+   cliente sai sozinho da Controle de Clientes e cai no Controle de Churns, em
+   "4. CHURN CONFIRMADO", ja com data de saida, perda de receita e ultimo pagamento.
+   Sem modal: quem marcou em Recebimentos ja confirmou a saida na propria tela.
+   Motivo fica em branco de proposito — e o unico dado que a tela nao sabe. */
+const LC_ATIVO='32a9a89c-92b7-494c-ba40-0a5671d80b78'; /* 4. EM MANUTENCAO */
+function chFichasDo(c){ return (DB.projetos||[]).filter(x=>String(x.clienteId)===String(c.id)).map(x=>String(x.id)); }
+function chCardEm(c,lid){
+  const f=chFichasDo(c);
+  let t=(TK.tarefas||[]).find(x=>x.lista_id===lid&&f.indexOf(String(x.ficha_id||''))>=0);
+  /* rede de seguranca: ficha desconectada, casa pelo nome (card de cliente vive em CAIXA ALTA) */
+  if(!t&&c.nome) t=(TK.tarefas||[]).find(x=>x.lista_id===lid&&MAIUS(x.titulo||'')===MAIUS(c.nome));
+  return t||null;
+}
+function chUltimoPagamento(c,r){
+  if(r&&r.recebido&&r.recebidoEm) return String(r.recebidoEm).slice(0,10);
+  const pagos=(DB.recebimentos||[]).filter(x=>String(x.clienteId)===String(c.id)&&x.recebido&&x.recebidoEm);
+  if(!pagos.length) return '';
+  pagos.sort((a,b)=>String(a.recebidoEm)<String(b.recebidoEm)?1:-1);
+  return String(pagos[0].recebidoEm).slice(0,10);
+}
+async function chMoverParaChurns(c,r){
+  if(!c) return false;
+  if(!(TK.tarefas||[]).length){ try{ await tkCarregar(); }catch(_){ return false; } }
+  if(chCardEm(c,CH_ID)) return false;              /* ja esta la */
+  const t=chCardEm(c,LC_ID); if(!t) return false;  /* cliente sem card: nada a mover */
+  const v=t.valores||{}, nv=Object.assign({},v);
+  nv[CH_SAIDA]=hojeISO();
+  const perda=Number((r&&r.valor)||c.valor||v[LC_MENS]||0);
+  if(perda) nv[CH_PERDA]=perda;
+  const ult=chUltimoPagamento(c,r); if(ult) nv[CH_ULTPG]=ult;
+  if(v[LC_GEST]) nv[CH_GESTOR]=v[LC_GEST];
+  const patch={lista_id:CH_ID,status_id:CH_FIM,status:'feito',valores:nv};
+  const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
+  if(error){ toast('Churn: nao consegui mover o card — '+error.message); return false; }
+  Object.assign(t,patch);
+  try{ spDesenhar(); }catch(_){}
+  return true;
+}
+/* Desfez o churn no mes em que ele foi marcado: o card volta para a Controle de
+   Clientes em "4. EM MANUTENCAO". Sem isto ele ficaria preso no Controle de Churns. */
+async function chVoltarDeChurns(c){
+  if(!c||!(TK.tarefas||[]).length) return false;
+  const t=chCardEm(c,CH_ID); if(!t) return false;
+  const nv=Object.assign({},t.valores||{}); delete nv[CH_SAIDA];
+  const patch={lista_id:LC_ID,status_id:LC_ATIVO,status:'fazendo',valores:nv};
+  const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
+  if(error) return false;
+  Object.assign(t,patch);
+  try{ spDesenhar(); }catch(_){}
+  return true;
+}
 /* Card da Base de Clientes e a ficha do cliente: mover o card move o estagio da ficha. */
 async function lcSincronizarFicha(id,sid){
   const t=TK.tarefas.find(x=>x.id===id);
@@ -10101,6 +10155,7 @@ window.openCliModal=(id)=>{
 window.rcStatusCli=async (cliId,novo)=>{
   if(!novo)return;
   const comp=cliComp; const c=DB.clientes.find(x=>x.id===cliId); if(!c)return;
+  let moveuChurn=false;
   let r=DB.recebimentos.find(x=>x.comp===comp&&x.clienteId===cliId);
   if(!r){
     if(!(c.diaVenc>=1&&c.diaVenc<=31)){ toast('Defina o dia de vencimento primeiro (Editar).'); return; }
@@ -10124,6 +10179,7 @@ window.rcStatusCli=async (cliId,novo)=>{
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
     c.churnComp=comp; c.fim=comp;
     const pj=DB.projetos.find(x=>x.clienteId===c.id); if(pj) pj.status='churn';
+    moveuChurn=await chMoverParaChurns(c,r);
   } else if(novo==='churnpago'){
     /* REGRA (Gabriel 31/08): cliente que PAGOU o mes e depois saiu. A receita do mes
        e real e fica de pe — nao mexemos no lancamento que ja existe no Financeiro
@@ -10141,6 +10197,7 @@ window.rcStatusCli=async (cliId,novo)=>{
     }
     c.churnComp=comp; c.fim=comp;
     const pjcp=DB.projetos.find(x=>x.clienteId===c.id); if(pjcp) pjcp.status='churn';
+    moveuChurn=await chMoverParaChurns(c,r);
   } else if(novo==='recebido'){
     const eraSinal=!!r.sinal && r.status==='sinal';
     r.status='recebido';
@@ -10169,8 +10226,8 @@ window.rcStatusCli=async (cliId,novo)=>{
     r.status=novo; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null;
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
   }
-  if(novo!=='churn' && novo!=='churnpago' && c.churnComp && comp>=c.churnComp){ c.churnComp=null; c.fim=''; }
-  await saveDB(); render('recebimentos'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='sinal'?'🔵 Sinal pago':novo==='inadimplente'?'🔴 Inadimplente':novo==='churn'?'⚫ Churn — receita perdida':novo==='churnpago'?'⚫ Churn — mês pago, receita mantida':novo==='carencia'?'🟣 Carência — isento no mês':'🟡 A receber'));
+  if(novo!=='churn' && novo!=='churnpago' && c.churnComp && comp>=c.churnComp){ c.churnComp=null; c.fim=''; await chVoltarDeChurns(c); }
+  await saveDB(); render('recebimentos'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='sinal'?'🔵 Sinal pago':novo==='inadimplente'?'🔴 Inadimplente':novo==='churn'?'⚫ Churn — receita perdida':novo==='churnpago'?'⚫ Churn — mês pago, receita mantida':novo==='carencia'?'🟣 Carência — isento no mês':'🟡 A receber')+(moveuChurn?' · card movido para 📉 Controle de Churns':''));
 };
 
 /* ======================= CONTRATOS (minutas) ======================= */
