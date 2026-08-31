@@ -2046,6 +2046,11 @@ async function loadDBImpl(){
   /* nome de projeto e sempre CAIXA ALTA — normaliza aqui, antes da fotografia,
      entao nao marca o modulo como sujo nem fabrica conflito falso */
   DB.projetos.forEach(p=>{ p.nome=MAIUS(p.nome); });
+  /* REGRA (Gabriel 31/08): nome de CLIENTE tambem e sempre CAIXA ALTA. Normaliza
+     aqui junto com projetos — antes da fotografia, entao nao suja o modulo nem
+     fabrica conflito falso; o valor so vai pro banco na proxima gravacao real. */
+  DB.clientes.forEach(c=>{ c.nome=MAIUS(c.nome); });
+  DB.recebimentos.forEach(r=>{ r.nome=MAIUS(r.nome); });
   /* carimbo e fotografia por modulo: o saveDB usa pra so gravar o que mudou,
      e pra detectar quando alguem salvou por baixo (lock otimista) */
   DB.__rev=revs;
@@ -6431,7 +6436,7 @@ window.tkSetVal=async (id,campoId,v)=>{
       if(!modo){ tkDesenhar($('#content')); return; } /* cancelou: célula volta */
       if(modo==='mes'){
         let r=DB.recebimentos.find(x=>x.comp===comp&&x.clienteId===cli.id);
-        if(!r){ r={id:uid(),comp,clienteId:cli.id,nome:cli.nome,resp:cli.resp||'',tel:cli.tel||'',
+        if(!r){ r={id:uid(),comp,clienteId:cli.id,nome:MAIUS(cli.nome),resp:cli.resp||'',tel:cli.tel||'',
           valor:Number(v),venc:(cli.diaVenc>=1)?vencOf(comp,cli.diaVenc):null,recebido:false,recebidoEm:null,status:null};
           DB.recebimentos.push(r); }
         else r.valor=Number(v);
@@ -9419,8 +9424,8 @@ window.cliRenomear=async (fid)=>{
       const bate=(DB.projetos||[]).find(p=>p.id!==fid&&nomeChave(p.nome)===k);
       if(bate){ toast('Já existe um cliente com esse nome: '+bate.nome+'.'); return false; }
       f.nome=MAIUS(novo);
-      if(cli){ cli.nome=novo;
-        (DB.recebimentos||[]).forEach(r=>{ if(r.clienteId===cli.id) r.nome=novo; }); }
+      if(cli){ cli.nome=MAIUS(novo);
+        (DB.recebimentos||[]).forEach(r=>{ if(r.clienteId===cli.id) r.nome=MAIUS(novo); }); }
       await saveDB();
       /* o card do Controle de Clientes e uma tarefa: o titulo acompanha */
       try{
@@ -9950,7 +9955,7 @@ window.projFin=(cliId)=>{
 window.openCliModal=(id)=>{
   const it=id?DB.clientes.find(x=>x.id===id):{};
   modal(id?'Editar cliente':'Novo cliente',`
-    <div class="field"><label>Nome do cliente</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Loja X Veículos"></div>
+    <div class="field"><label>Nome do cliente</label><input id="m_nome" style="text-transform:uppercase" value="${esc(it.nome)}" placeholder="EX: LOJA X VEÍCULOS"></div>
     <div class="row2">
       <div class="field"><label>Nicho</label><select id="m_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,it)===n?' selected':''}>${n}</option>`).join('')}</select></div>
       <div class="field"><label>Serviço entregue</label><input id="m_serv" value="${esc(it.servico)}" placeholder="Ex: Tráfego Pago + Agent IA"></div>
@@ -10008,7 +10013,7 @@ window.openCliModal=(id)=>{
     </div>`,
     async ()=>{
       const dia=parseInt($('#m_dia').value);
-      const v={nome:$('#m_nome').value.trim(),nicho:$('#m_nicho').value.trim(),servico:$('#m_serv').value.trim(),produtos:$('#m_serv').value.trim(),grupoWpp:$('#m_grupo').value.trim(),instagram:$('#m_insta').value.trim(),drive:$('#m_drive').value.trim(),
+      const v={nome:MAIUS($('#m_nome').value.trim()),nicho:$('#m_nicho').value.trim(),servico:$('#m_serv').value.trim(),produtos:$('#m_serv').value.trim(),grupoWpp:$('#m_grupo').value.trim(),instagram:$('#m_insta').value.trim(),drive:$('#m_drive').value.trim(),
         diaVenc:(dia>=1&&dia<=31)?dia:null,valor:parseFloat($('#m_valor').value)||0,
         resp:$('#m_resp').value.trim(),tel:$('#m_tel').value.trim(),inicio:$('#m_inicio').value||null,fim:$('#m_fim').value||null,
         contrato:Object.assign({},it.contrato||{},['razao','cnpj','endereco','bairro','cidade_uf','cep','rep_nome','rep_rg','rep_cpf','email'].reduce((o,k)=>{o[k]=(($('#m_k_'+k)||{}).value||'').trim();return o;},{}))};
@@ -10099,7 +10104,7 @@ window.rcStatusCli=async (cliId,novo)=>{
   let r=DB.recebimentos.find(x=>x.comp===comp&&x.clienteId===cliId);
   if(!r){
     if(!(c.diaVenc>=1&&c.diaVenc<=31)){ toast('Defina o dia de vencimento primeiro (Editar).'); return; }
-    r={id:uid(),comp,clienteId:c.id,nome:c.nome,resp:c.resp||'',tel:c.tel||'',valor:Number(c.valor)||0,venc:vencOf(comp,c.diaVenc),recebido:false,recebidoEm:null,status:null};
+    r={id:uid(),comp,clienteId:c.id,nome:MAIUS(c.nome),resp:c.resp||'',tel:c.tel||'',valor:Number(c.valor)||0,venc:vencOf(comp,c.diaVenc),recebido:false,recebidoEm:null,status:null};
     DB.recebimentos.push(r);
   }
   if(novo==='sinal'){
