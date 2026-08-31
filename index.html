@@ -8807,6 +8807,10 @@ window.fcServToggle=(btn,s)=>{ btn.classList.toggle('on');
   const el=$('#fc_plano'); if(el) el.value=marcados.join(' + ');
   fcPlanoMuda(); };
 const FC_CONTRATOS=['Mensal','Trimestral','Semestral','Anual'];
+/* Origem do lead (Gabriel 31/08): objetiva, tres opcoes. A chave vai pro banco,
+   o rotulo fica na tela — assim relatorio agrupa sem tropecar em acento. */
+const FC_ORIGENS=[['inbound','Inbound — veio até nós'],['outbound','Outbound — nós fomos atrás'],['indicacao','Indicação']];
+const FC_ORIGEM_ROT={inbound:'Inbound',outbound:'Outbound',indicacao:'Indicação'};
 const FC_PAGTOS=['Pix','Boleto','Cartão de crédito'];
 /* Squads e sua equipe, a partir de TK.equipe (view equipe_nomes traz cargo). */
 function fcSquads(){
@@ -8873,6 +8877,11 @@ function renderFechamento(c){
     <div class="card" style="margin-bottom:14px"><h2 style="font-size:15px;margin-bottom:12px">👥 Responsáveis · comercial x projetos</h2>
       <div class="row2">${fcField('SDR responsável *','fc_sdr','')}${fcField('Closer responsável *','fc_closer','',(currentUser&&currentUser.nome)||'')}</div>
       <div class="row2">
+        <div class="field"><label data-dica="De onde veio esse lead. Inbound: chegou sozinho (anúncio, indicação do site, redes). Outbound: prospecção ativa nossa. Indicação: veio por alguém.">Origem do lead *</label>
+          <select id="fc_origem"><option value="">Selecione</option>${FC_ORIGENS.map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join('')}</select></div>
+        <div class="field"></div>
+      </div>
+      <div class="row2">
         <div class="field"><label>Squad responsável *</label>
           <select id="fc_squad" onchange="fcSquadMudou()"><option value="">Selecione</option>${fcSquads().map(s=>`<option value="${esc(s.squad)}">Squad ${esc(s.squad)} · ${esc(s.gerente||'sem gerente')}</option>`).join('')}</select>
           <p class="hint" style="margin:6px 0 0">O gerente e o gestor de tráfego vêm do squad. Quem é de qual squad se define em Usuários.</p></div>
@@ -8925,6 +8934,7 @@ window.fechEnviar=async ()=>{
     plano:V('fc_plano'),tipoContrato:V('fc_contrato'),integracoes:V('fc_integra'),especificidades:V('fc_espec'),
     respFin:V('fc_respfin'),telFin:V('fc_telfin'),email:V('fc_email'),endereco:V('fc_end'),
     valor:V('fc_valor'),formaPagamento:V('fc_forma'),dataPagamento:V('fc_data'),statusPagamento:V('fc_status'),sinalValor:V('fc_sinal'),sinalData:V('fc_sinaldata'),
+    origem:V('fc_origem'),
     sdr:V('fc_sdr'),closer:V('fc_closer'),squad:V('fc_squad'),gestor:V('fc_gestor'),linkCall:V('fc_call'),resumo:V('fc_resumo')};
   const dup=fcDuplicado(body.nome);
   if(dup){ fcChecaNome(); toast('Esse projeto já está cadastrado: '+dup.nome+'. Não dá pra duplicar.'); const n=$('#fc_nome'); if(n){ n.focus(); n.scrollIntoView({block:'center',behavior:'smooth'}); } return; }
@@ -8937,6 +8947,7 @@ window.fechEnviar=async ()=>{
     if(!body.sinalData) falta.push('quando o sinal entrou'); }
   if(!(parseFloat(body.valor)>0)) falta.push('mensalidade');
   if(!body.dataPagamento) falta.push('data da 1ª parcela');
+  if(!body.origem) falta.push('origem do lead');
   if(!body.sdr) falta.push('SDR');
   if(!body.closer) falta.push('closer');
   if(!body.squad) falta.push('squad responsável');
