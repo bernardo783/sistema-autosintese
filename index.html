@@ -9113,9 +9113,38 @@ function fcSquads(){
     return {squad:s, gerente:g?g.nome:'', gestor:t?t.nome:''};
   });
 }
+/* ---------- RODIZIO DE SQUAD (Gabriel 31/08) ----------
+   Contrato novo alterna entre os squads: quem NAO levou o ultimo leva o proximo.
+   Fica 50/50 sem ninguém controlar planilha. A ordem vem das fichas (DB.projetos),
+   que nascem na ordem dos fechamentos — então o rodízio vale pra empresa inteira,
+   e nao so pro navegador de quem fechou o ultimo contrato.
+   Se aparecer um Squad 03, ele entra no ciclo sozinho (01 -> 02 -> 03 -> 01). */
+let FC_SQ_VEZ='';
+function fcProximoSquad(){
+  const lista=fcSquads().map(x=>String(x.squad||'')).filter(Boolean).sort();
+  if(lista.length<2) return lista[0]||'';
+  const prjs=(DB.projetos||[]);
+  let ultimo='';
+  for(let i=prjs.length-1;i>=0;i--){
+    const q=String(prjs[i].squad||'');
+    if(q&&lista.indexOf(q)>=0){ ultimo=q; break; }
+  }
+  if(!ultimo) return lista[0];
+  return lista[(lista.indexOf(ultimo)+1)%lista.length];
+}
+/* O closer pode trocar na mão — mas a tela deixa claro de quem era a vez. */
+window.fcNotaRodizio=()=>{
+  const el=$('#fc_rodizio'); if(!el) return;
+  const atual=(($('#fc_squad')||{}).value||'');
+  if(!FC_SQ_VEZ){ el.innerHTML=''; return; }
+  el.innerHTML=(atual===FC_SQ_VEZ)
+    ? `<strong style="color:var(--brand2)">🔁 Rodízio automático: a vez é do Squad ${esc(FC_SQ_VEZ)}.</strong> `
+    : `<strong style="color:var(--warn)">🔁 O rodízio apontava o Squad ${esc(FC_SQ_VEZ)} — você trocou na mão.</strong> `;
+};
 window.fcSquadMudou=()=>{
   const s=($('#fc_squad')||{}).value||'', info=fcSquads().find(x=>x.squad===s), el=$('#fc_equipe');
   const gi=$('#fc_gestor');
+  fcNotaRodizio();
   if(!info){ if(el) el.innerHTML=''; return; }
   if(gi&&info.gestor) gi.value=info.gestor;   /* preenche, mas deixa trocar */
   if(el) el.innerHTML=`<span class="fc-eq"><b>Gerente</b> ${esc(info.gerente||'ninguém com esse cargo no squad')}</span>
@@ -9174,7 +9203,7 @@ function renderFechamento(c){
       <div class="row2">
         <div class="field"><label>Squad responsável *</label>
           <select id="fc_squad" onchange="fcSquadMudou()"><option value="">Selecione</option>${fcSquads().map(s=>`<option value="${esc(s.squad)}">Squad ${esc(s.squad)} · ${esc(s.gerente||'sem gerente')}</option>`).join('')}</select>
-          <p class="hint" style="margin:6px 0 0">O gerente e o gestor de tráfego vêm do squad. Quem é de qual squad se define em Usuários.</p></div>
+          <p class="hint" style="margin:6px 0 0"><span id="fc_rodizio"></span>O gerente e o gestor de tráfego vêm do squad. Quem é de qual squad se define em Usuários.</p></div>
         <div class="field" id="fc_gw"><label>Gestor de tráfego *</label><input id="fc_gestor" list="dlFcGestores" placeholder="preenchido pelo squad, pode trocar"><datalist id="dlFcGestores">${gestores.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div></div>
       <div id="fc_equipe" class="fc-equipe"></div>
       ${fcField('Link da call de vendas','fc_call','https://...')}
@@ -9188,6 +9217,11 @@ function renderFechamento(c){
     <div id="fcOk" style="display:none"></div>
   </div>`;
   fcPlanoMuda();
+  /* squad da vez já entra escolhido — o closer vê de quem é a vez e pode trocar */
+  FC_SQ_VEZ=fcProximoSquad();
+  const selSq=$('#fc_squad');
+  if(selSq&&FC_SQ_VEZ&&[...selSq.options].some(o=>o.value===FC_SQ_VEZ)){ selSq.value=FC_SQ_VEZ; }
+  fcSquadMudou();
   const nEl=$('#fc_nome'); if(nEl){ nEl.oninput=fcChecaNome; }
 }
 /* REGRA DE NEGÓCIO (Gabriel, 11/08): projeto/cliente não pode duplicar. Compara o nome
