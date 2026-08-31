@@ -159,7 +159,6 @@
     font-family:inherit;cursor:pointer;padding:4px 7px;border-radius:6px}
   .dt-f button:hover{background:var(--panel2);color:var(--txt)}
   .dt-f .dt-hoje{color:#c4b8ff}
-  .tk-qab.tem{border-style:solid;border-color:var(--brand2);color:#c4b8ff}
   .pr-box{display:flex;gap:6px;flex-wrap:wrap}
   .pr-chip{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);
     border-radius:999px;padding:6.5px 15px;font-size:12.5px;font-weight:600;color:var(--muted);
@@ -941,17 +940,35 @@
   .tk-card.feito{opacity:.55}
   .tk-card.feito .tk-tit{text-decoration:line-through;color:var(--muted)}
   .tk-card.arrastando{opacity:.35;transform:rotate(1.5deg)}
-  .tk-card .tk-tit{font-weight:600;font-size:13.5px;line-height:1.35}
+  .tk-card .tk-tit{font-weight:600;font-size:13.5px;line-height:1.4}
   .tk-flag{flex:none;margin-right:6px;vertical-align:-1px}
-  .tk-foot{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:9px}
-  /* metadado do card: só ícone + texto, sem caixinha em volta (como no ClickUp) */
-  .tk-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--muted);
-    background:transparent;border:1px solid transparent;border-radius:6px;padding:2px 4px;line-height:1.5;
-    max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* CARTAO estilo ClickUp (Gabriel 28/08, opcao C): titulo, fileira de icones e fileira
+     de chips com rotulo. A prioridade sai do chip e vira barra na borda esquerda.
+     Campo vazio nao ocupa espaco — o botao de preencher so aparece no hover. */
+  .tk-card{padding-left:15px}
+  .tk-card::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;
+    border-radius:0 3px 3px 0;background:var(--pc,transparent)}
+  .tk-card.p-med{--pc:#3a3a44}
+  .tk-meta{display:flex;align-items:center;gap:12px;margin-top:8px;color:var(--muted)}
+  .tk-meta span{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600}
+  .tk-meta svg{flex:none;opacity:.8}
+  .tk-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .tk-chips.so-hover{display:none}
+  .tk-card:hover .tk-chips.so-hover{display:flex}
+  .tk-chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+    border-radius:7px;padding:4px 9px;line-height:1.4;white-space:nowrap;max-width:100%;
+    background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    font-family:inherit;cursor:pointer;overflow:hidden;text-overflow:ellipsis}
+  .tk-chip:hover{border-color:var(--brand2);color:var(--txt)}
   .tk-chip svg{flex:none}
   .tk-chip.hoje{color:#f0c869}
-  .tk-chip.tarde{color:#ff8b97;font-weight:700}
-  .tk-foot .av{margin-left:auto}
+  .tk-chip.tarde{color:#ff8b97}
+  .tk-chip.cheio{border-color:transparent}
+  .tk-chip.cheio:hover{filter:brightness(1.12)}
+  .tk-chip.avb{padding:2px;border-color:transparent;background:transparent}
+  .tk-chip.avb:hover{background:var(--panel)}
+  .tk-vaz{display:none}
+  .tk-card:hover .tk-vaz{display:inline-flex}
   /* ---------- Início: o dia de trabalho da pessoa ---------- */
   .ini-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
   .ini-box.atraso{border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.06)}
@@ -1012,13 +1029,6 @@
   .tk-addcard:hover{background:var(--panel2);color:var(--txt)}
   .tk-addbox{padding:2px}
   .tk-addbox .search{width:100%}
-  .tk-qa{display:flex;gap:3px;align-items:center;margin-top:7px}
-  .tk-qab{position:relative;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;border:1px dashed var(--line);background:transparent;color:var(--muted);overflow:hidden}
-  .tk-qab:hover{color:var(--txt);border-color:var(--brand2);border-style:solid}
-  .tk-qab input[type=date]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-  .tk-qab .av{width:20px;height:20px;font-size:8.5px}
-  .tk-card .tk-qa .tk-qab{opacity:.55;transition:opacity .12s}
-  .tk-card:hover .tk-qa .tk-qab{opacity:1}
   .tk-vazio{border:1.5px dashed var(--line);border-radius:10px;color:var(--muted);font-size:12px;text-align:center;padding:18px 8px;margin:0 0 8px}
   /* tutorial no hover: qualquer elemento com data-dica explica a si mesmo (pedido do Gabriel, 11/08) */
   [data-dica]{position:relative}
@@ -4562,37 +4572,46 @@ function tkCard(t){
     return `<div class="tk-card" ${drag} onclick="abrirCliente('${t.ficha_id}')">
       <div class="tk-tit">${esc(t.titulo)}</div>
       ${sub?`<div class="tk-sub">${sub}</div>`:''}
-      <span class="tk-qa" onclick="event.stopPropagation()">
-        <button class="tk-qab" title="Mudar o estágio do cliente" onclick="tkQaEstagio(event,'${t.id}')">⇄</button>
-      </span>
+      <div class="tk-chips so-hover">
+        <button type="button" class="tk-chip" title="Mudar o estágio do cliente" onclick="event.stopPropagation();tkQaEstagio(event,'${t.id}')">&#8646; Mudar estágio</button>
+      </div>
     </div>`;
   }
-  /* bandeirinha de prioridade (ClickUp) + faixa colorida na borda esquerda */
+  /* Prioridade virou a barra da borda esquerda; 'Normal' fica discreta. */
   const pcl=' p-'+(t.prioridade||'med');
-  const fcor=PRIO_COR[t.prioridade||'med']||'var(--muted)';
-  const FLAG=`<svg class="tk-flag" width="12" height="12" viewBox="0 0 24 24" fill="${fcor}" stroke="${fcor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`;
-  const CAL='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
-  const CK='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg>';
-  /* ações rápidas direto no cartão, estilo ClickUp (vídeo do Gabriel 10/08): nada de modal pra ajustes simples */
+  const CAL='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+  const CK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg>';
+  const DSC='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h12M4 18h8"/></svg>';
   const USR='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   const FLG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
-  const qa=`<span class="tk-qa" onclick="event.stopPropagation()">
-      <button class="tk-qab" title="Responsável" onclick="tkQaResp(event,'${t.id}')">${t.responsavel_id?avatar(t.responsavel_id):USR}</button>
-      <button type="button" class="tk-qab${t.prazo?' tem':''}" title="${t.prazo?('Prazo: '+fmtDate(t.prazo)):'Definir prazo'}"
-        onclick="dtCartao(event,'${t.id}','${t.prazo||''}')">${CAL}</button>
-      <button class="tk-qab" title="Prioridade" onclick="tkQaPrio(event,'${t.id}')">${FLG}</button>
-      <button class="tk-qab" title="Cliente / projeto" onclick="tkQaCli(event,'${t.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg></button>
-    </span>`;
+  const TG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/></svg>';
+  const par=(fn)=>`event.stopPropagation();${fn}`;
+  const ck=ckResumo(t);
+  /* Fileira de icones: so o que a tarefa realmente tem. */
+  const meta=[ t.descricao?`<span title="Tem descrição">${DSC}</span>`:'',
+               ck?`<span title="Checklist">${CK}${esc(ck.replace('☑ ',''))}</span>`:'' ].filter(Boolean).join('');
+  /* Fileira de chips: com conteudo aparece sempre; vazio so no hover. */
+  const chResp=t.responsavel_id
+    ? `<button type="button" class="tk-chip avb" title="${esc(tkNomeUser(t.responsavel_id))}" onclick="${par(`tkQaResp(event,'${t.id}')`)}">${avatar(t.responsavel_id,null,'sm')}</button>`
+    : `<button type="button" class="tk-chip tk-vaz" title="Definir responsável" onclick="${par(`tkQaResp(event,'${t.id}')`)}">${USR}Responsável</button>`;
+  const chPrazo=t.prazo
+    ? `<button type="button" class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}" onclick="${par(`dtCartao(event,'${t.id}','${t.prazo}')`)}">${CAL}${dtRel(t.prazo,hoje)}</button>`
+    : `<button type="button" class="tk-chip tk-vaz" title="Definir prazo" onclick="${par(`dtCartao(event,'${t.id}','')`)}">${CAL}Prazo</button>`;
+  const chCli=t.ficha_id
+    ? `<button type="button" class="tk-chip" title="${esc(tkNomeFicha(t.ficha_id))}" onclick="${par(`tkQaCli(event,'${t.id}')`)}">${TG}${esc(tkNomeFicha(t.ficha_id))||'cliente'}</button>`
+    : `<button type="button" class="tk-chip tk-vaz" title="Ligar a um cliente" onclick="${par(`tkQaCli(event,'${t.id}')`)}">${TG}Cliente</button>`;
+  const sq=String(t.squad||'').trim();
+  const cSq=sq?sqCor(sq):'';
+  const chSq=sq?`<span class="tk-chip cheio" style="background-color:${esc(cSq)};color:${esc(corTexto(cSq))};cursor:default" title="Squad ${esc(sq)}">squad ${esc(sq)}</span>`:'';
+  const chCam=TK.escopo!=='lista'?`<span class="tk-chip" style="opacity:.75;cursor:default" title="${esc(tkCaminho(t.lista_id))}">${esc(tkCaminho(t.lista_id))}</span>`:'';
+  const chPrio=`<button type="button" class="tk-chip tk-vaz" title="Prioridade" onclick="${par(`tkQaPrio(event,'${t.id}')`)}">${FLG}${esc(TK_PRIO[t.prioridade||'med'])}</button>`;
+  const cheio=!!(t.responsavel_id||t.prazo||t.ficha_id||sq||chCam);
   return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')" oncontextmenu="tkCardMenu(event,'${t.id}')">
     ${t.tipo_id?`<div class="tk-tpl">${tipoChip(t.tipo_id,'sm')}</div>`:''}
-    <div class="tk-tit">${FLAG}${esc(t.titulo)}</div>
-    <div class="tk-foot">
-      ${t.prazo?`<span class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}">${CAL}${dtRel(t.prazo,hoje)}</span>`:''}
-      ${ckResumo(t)?`<span class="tk-chip">${CK}${ckResumo(t).replace('☑ ','')}</span>`:''}
-      ${t.ficha_id?`<span class="tk-chip" title="${esc(tkNomeFicha(t.ficha_id))}">${esc(tkNomeFicha(t.ficha_id))||'cliente'}</span>`:''}
-      ${TK.escopo!=='lista'?`<span class="tk-chip" style="opacity:.75" title="${esc(tkCaminho(t.lista_id))}">${esc(tkCaminho(t.lista_id))}</span>`:''}
-    </div>
-    ${qa}</div>`;
+    <div class="tk-tit">${esc(t.titulo)}</div>
+    ${meta?`<div class="tk-meta">${meta}</div>`:''}
+    <div class="tk-chips${cheio?'':' so-hover'}">${chResp}${chPrazo}${chCli}${chSq}${chCam}${chPrio}</div>
+  </div>`;
 }
 /* No cartão não há formulário: o calendário grava direto na tarefa. */
 window.dtCartao=(ev,tid,atual)=>{
