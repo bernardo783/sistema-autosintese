@@ -2945,7 +2945,13 @@ const fichaDe=(fid)=>(DB.projetos||[]).find(p=>p.id===fid)||null;
    perfil.squads vazio (ou master) = vê tudo. Com squads, só as fichas daquele squad. */
 const meusSquads=()=>((currentUser&&currentUser.squads)||[]);
 const vejoTudo=()=>!currentUser||currentUser.role==='master'||meusSquads().length===0;
-const fichaNoMeuSquad=(f)=>vejoTudo()||(!!f&&meusSquads().includes(String(f.squad||'')));
+/* Exceção de junção gestor x gerente (Gabriel 31/08): a ficha também é sua quando você
+   está NELA como gerente ou gestor, mesmo que o squad seja de outro time. Casa por primeiro
+   nome, do mesmo jeito que o resto do sistema. A RLS aplica a mesma regra no banco. */
+const souDaFicha=(f)=>{ if(!f||!currentUser) return false;
+  const eu=primNome(currentUser.nome); if(!eu) return false;
+  return primNome(f.gerente)===eu||primNome(f.responsavel)===eu; };
+const fichaNoMeuSquad=(f)=>vejoTudo()||souDaFicha(f)||(!!f&&meusSquads().includes(String(f.squad||'')));
 const fichasVisiveis=()=>(DB.projetos||[]).filter(fichaNoMeuSquad);
 const fichaDaContaMeta=(c)=>{ const m=contaMarca(c&&c.id); if(m&&m.fichaId) return fichaDe(m.fichaId); const p=(typeof palpiteCliente==='function')?palpiteCliente((c&&c.nome)||''):null; return p?p.ficha:null; };
 const contaVisivel=(c)=>vejoTudo()||fichaNoMeuSquad(fichaDaContaMeta(c));
@@ -2999,7 +3005,8 @@ const avatarNome=(uid,nome)=>{ const n=nome||tkNomeUser(uid); if(!uid&&!n) retur
    sempre numa bolinha com a inicial. Aqui o texto vira a pessoa de verdade —
    nome exato, depois primeiro nome, depois pedaco do nome — e a foto aparece.
    Nada muda no banco: e so leitura, entao apelido continua funcionando. */
-const primNome=(x)=>String(x||'').trim().split(/\s+/)[0].toLowerCase();
+const primNome=(x)=>String(x==null?'':x).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .trim().split(/\s+/)[0].toLowerCase();
 const userPorNome=(nome)=>{
   const t=String(nome||'').trim(); if(!t) return null;
   const eq=(typeof TK!=='undefined'&&TK.equipe)?TK.equipe:[];
