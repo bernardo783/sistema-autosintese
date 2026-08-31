@@ -9654,8 +9654,10 @@ function renderFechamento(c){
       <div id="fc_puxar"></div>
       <div class="row2"><div>${fcField('Nome da empresa *','fc_nome','ex: Select Motors')}<div id="fc_dup"></div></div>
         <div class="field"><label>Nicho *</label><select id="fc_nicho">${NICHOS.map(n=>`<option>${n}</option>`).join('')}</select></div></div>
-      <div class="row2">${fcField('Razão social','fc_razao','ex: S F OLIVEIRA LTDA')}${fcField('CNPJ','fc_cnpj','ex: 12.345.321/0001-23')}</div>
-      <div class="row2">${fcField('Nome do responsável (dono)','fc_dono','ex: Luiz Marcelo da Silveira Couto')}${fcField('CPF do responsável','fc_cpf','ex: 123.456.789-00')}</div>
+      <div class="row2">${fcField('Razão social','fc_razao','ex: S F OLIVEIRA LTDA')}
+        <div class="field"><label data-dica="É por aqui que o Asaas identifica o cliente. Dígito errado = cobrança não é criada.">CNPJ</label><input id="fc_cnpj" placeholder="ex: 12.345.321/0001-23" oninput="this.value=ctMascCNPJ(this.value)"></div></div>
+      <div class="row2">${fcField('Nome do responsável (dono)','fc_dono','ex: Luiz Marcelo da Silveira Couto')}
+        <div class="field"><label data-dica="Serve de identificação no Asaas quando a empresa não tem CNPJ.">CPF do responsável</label><input id="fc_cpf" placeholder="ex: 123.456.789-00" oninput="this.value=ctMascCPF(this.value)"></div></div>
       <div class="row2">${fcField('RG','fc_rg','ex: 12.321.213-1')}<div class="field"></div></div>`)}
     ${sec('02','📋 Plano e contrato','O que foi vendido, em que combinação e por quanto tempo.',`
       <div class="field"><label data-dica="Marque todos os serviços fechados com esse cliente — qualquer combinação. Fica roxo o que está selecionado, e é isso que vai pro contrato e pra ficha.">Serviços prestados *</label>
@@ -9794,6 +9796,18 @@ window.fechEnviar=async ()=>{
   if(fcTemTrafego()&&!body.gestor) falta.push('gestor de tráfego');
   if(!body.resumo) falta.push('resumo da venda');
   if(falta.length){ toast('Falta preencher: '+falta.join(', ')+'.'); return; }
+  /* CNPJ/CPF conferido AQUI, na tela. O Asaas recusa documento com digito errado
+     ("O CPF/CNPJ informado é inválido") e a gente so descobria depois, com o cliente
+     ja criado e sem cobranca. Caso real: 60.921.139/0001-04, que deveria terminar 08. */
+  const probDoc=ctConfereDocs(body.cnpj,body.cpf);
+  if(probDoc){ toast(probDoc); const ed=$('#fc_cnpj'); if(ed){ ed.focus(); ed.scrollIntoView({block:'center',behavior:'smooth'}); } return; }
+  if(!ctConfereDV(body.cnpj,body.cpf)) return;
+  if(body.asaas==='sim' && !ctSoDig(body.cnpj) && !ctSoDig(body.cpf)){
+    const segue=await confirmar('Enviar sem CNPJ e sem CPF?',
+      'O Asaas precisa de um dos dois pra criar o cliente. Sem isso o fechamento entra normalmente, mas a cobrança fica pra fazer na mão no painel.',
+      {sim:'Enviar assim mesmo',nao:'Voltar e preencher'});
+    if(!segue){ const ed2=$('#fc_cnpj'); if(ed2){ ed2.focus(); ed2.scrollIntoView({block:'center',behavior:'smooth'}); } return; }
+  }
   const b=$('#fc_enviar'); b.disabled=true; b.textContent='Enviando...';
   try{
     const {data,error}=await sb.functions.invoke('fechamento',{body});
