@@ -7556,17 +7556,16 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <button class="tkf-addi" type="button" onclick="ckAdd()">+ item</button>
 
         <div class="tkf-sec mt">Anexos<span class="ln"></span><span class="n" id="tkmBAnx"></span></div>
-        ${t?`<div class="tkm-drop" id="tkmDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="tkmAnxDrop(event,'${t.id}')" onclick="document.getElementById('tkmFile').click()">
-              Arraste arquivos aqui ou <u>clique para escolher</u>
-              <div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar — até 50 MB por arquivo</div>
-            </div>
-            <input type="file" id="tkmFile" multiple class="hidden" onchange="tkmAnxUpload('${t.id}',this.files)">
-            <div class="tkm-lnk">
-              <input id="tkmUrl" placeholder="ou cole um link (Drive, YouTube, site...)" onkeydown="if(event.key==='Enter'){event.preventDefault();tkmAnxLink('${t.id}');}">
-              <button class="btn secondary small" type="button" onclick="tkmAnxLink('${t.id}')">Anexar link</button>
-            </div>
-            <div id="tkmAnxLista"><div class="hint">carregando…</div></div>`
-           :`<p class="hint">Salve a tarefa primeiro — aí os anexos ficam guardados aqui.</p>`}
+        <div class="tkm-drop" id="tkmDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="tkmAnxDrop(event)" onclick="document.getElementById('tkmFile').click()">
+          Arraste arquivos aqui ou <u>clique para escolher</u>
+          <div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar — até 50 MB por arquivo</div>
+        </div>
+        <input type="file" id="tkmFile" multiple class="hidden" onchange="tkmAnxUpload('',this.files)">
+        <div class="tkm-lnk">
+          <input id="tkmUrl" placeholder="ou cole um link (Drive, YouTube, site...)" onkeydown="if(event.key==='Enter'){event.preventDefault();tkmAnxLink('');}">
+          <button class="btn secondary small" type="button" onclick="tkmAnxLink('')">Anexar link</button>
+        </div>
+        <div id="tkmAnxLista">${t?'<div class="hint">carregando…</div>':'<p class="hint">Nada anexado ainda — o primeiro anexo cria a tarefa, basta ter título.</p>'}</div>
 
         <div class="tk-rodape">
           ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
@@ -7645,7 +7644,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     const md=ov.querySelector('.modal');
     if(md){
       const alvo=document.createElement('div'); alvo.className='tkf-alvo';
-      alvo.innerHTML='<div class="cx"><div class="ic">\u2913</div><b>'+(t?'Solte para anexar':'Salve a tarefa primeiro')+'</b><span>'+(t?'em qualquer canto da tarefa \u00b7 at\u00e9 50 MB por arquivo':'d\u00ea um t\u00edtulo \u00e0 tarefa e os anexos passam a valer aqui')+'</span></div>';
+      alvo.innerHTML='<div class="cx"><div class="ic">\u2913</div><b>Solte para anexar</b><span>'+(t?'em qualquer canto da tarefa \u00b7 at\u00e9 50 MB por arquivo':'a tarefa \u00e9 criada na hora \u2014 s\u00f3 precisa de t\u00edtulo')+'</span></div>';
       md.appendChild(alvo);
       let prof=0;
       /* so reage a arquivo de verdade: arrastar texto ou card nao pode acender o alvo */
@@ -7657,13 +7656,19 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       md.addEventListener('drop',(e)=>{ if(!ehArquivo(e)) return; e.preventDefault(); prof=0; ov.classList.remove('largando');
         const fs=e.dataTransfer&&e.dataTransfer.files;
         if(!fs||!fs.length) return;
-        const alvoT=(window.__tkmT&&window.__tkmT.id)||(t&&t.id)||'';
-        if(!alvoT){ toast('D\u00ea um t\u00edtulo \u00e0 tarefa primeiro \u2014 a\u00ed os anexos t\u00eam onde morar.'); return; }
         if(window.tkmAba) tkmAba('Det');
-        tkmAnxUpload(alvoT,fs);
+        /* id vazio: o proprio tkmAnxUpload cria a tarefa antes de subir o arquivo */
+        tkmAnxUpload((window.__tkmT&&window.__tkmT.id)||(t&&t.id)||'', fs);
       });
     }
     window.__tkmAgendar=agendar;
+    /* ANEXAR NUMA TAREFA NOVA (Gabriel 01/09): antes a caixa de anexos so existia
+       depois de salvar — anexar exigia salvar, fechar e reabrir. Agora ela aparece
+       sempre e o primeiro anexo cria a tarefa na hora. O autosave ja sabia criar;
+       faltava um jeito de chamar sem esperar o debounce. lid e cps so existem
+       neste escopo, por isso o atalho nasce aqui. */
+    window.__tkmSalvarJa=()=>{ clearTimeout(window.__tkmTimer); window.__tkmTimer=null;
+      return tkmSalvar(window.__tkmT,lid,cps,true); };
   }
   ckPintar();
   window.__tkmTarefaId=t?t.id:'';
@@ -7788,11 +7793,34 @@ window.tkmAnxCarregar=async (tid)=>{
     }catch(_){}
   });
 };
+/* Onde pendurar o anexo. Se a tarefa ainda nao existe, cria agora mesmo — e o
+   que faz "anexar" funcionar numa tarefa nova. Sem titulo nao da: e o titulo que
+   o autosave exige pra gravar. Devolve '' quando nao deu. */
+window.tkmAlvo=async ()=>{
+  const ja=(window.__tkmT&&window.__tkmT.id)||window.__tkmTarefaId||'';
+  if(ja) return ja;
+  const tit=String((($('#tk_tit')||{}).value)||'').trim();
+  if(!tit){
+    toast('Dê um título à tarefa — é ele que cria a tarefa pro anexo morar.');
+    const e=$('#tk_tit'); if(e){ e.focus(); e.scrollIntoView({block:'center',behavior:'smooth'}); }
+    return '';
+  }
+  if(typeof window.__tkmSalvarJa!=='function') return '';
+  const st=document.getElementById('tkmAuto');
+  if(st){ st.textContent='Criando a tarefa…'; st.className='tkm-auto salvando'; }
+  try{ await window.__tkmSalvarJa(); }catch(_){ }
+  const novo=(window.__tkmT&&window.__tkmT.id)||window.__tkmTarefaId||'';
+  if(!novo) toast('Não consegui criar a tarefa — confira os campos obrigatórios.');
+  return novo;
+};
 window.tkmAnxDrop=(ev,tid)=>{ ev.preventDefault(); ev.stopPropagation();
   const dz=document.getElementById('tkmDrop'); if(dz) dz.classList.remove('on');
-  tkmAnxUpload(tid, ev.dataTransfer.files); };
+  /* copia a lista AGORA: depois do await o dataTransfer ja nao vale mais */
+  const fs=[...((ev.dataTransfer&&ev.dataTransfer.files)||[])];
+  tkmAnxUpload(tid||'', fs); };
 window.tkmAnxUpload=async (tid,files)=>{
-  const lista=[...(files||[])]; if(!lista.length) return;
+  const lista=[...(files||[])]; if(!lista.length) return;   /* copia antes de qualquer await */
+  tid=tid||await tkmAlvo(); if(!tid) return;
   const dz=document.getElementById('tkmDrop');
   for(const f of lista){
     if(f.size>AX_MAX){ toast('"'+f.name+'" passa de 50 MB — suba no Drive e anexe o link.'); continue; }
@@ -7816,6 +7844,7 @@ window.tkmAnxLink=async (tid)=>{
   if(!u) return;
   if(!/^https?:\/\//i.test(u)) u='https://'+u;
   try{ new URL(u); }catch(_){ toast('Esse link não parece válido.'); return; }
+  tid=tid||await tkmAlvo(); if(!tid) return;
   const nome=u.replace(/^https?:\/\//,'').slice(0,80);
   const {error}=await sb.from('tarefa_anexos').insert({tarefa_id:tid,tipo:'link',nome:nome,url:u,autor:(currentUser||{}).id||null});
   if(error){ toast('Erro: '+error.message); return; }
