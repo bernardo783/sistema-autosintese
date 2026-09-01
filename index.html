@@ -11765,7 +11765,7 @@ function renderFolha(c){
      return h; })()}</tbody></table>
    ${fixos.length?'':'<div class="empty">Nenhum fixo cadastrado. Cadastre quem recebe todo mês e as contas de cada escritório — o campo Escritório é o que separa os dois.</div>'}</div>
    <div style="margin-top:10px"><button class="btn secondary small" onclick="openFixoModal()">+ Fixo mensal</button></div>
-   <p class="hint" style="margin-top:12px">A lista já é a do mês escolhido no filtro — não precisa gerar nada. Ao marcar <strong>✓ Pagar</strong>, o registro do mês nasce e a despesa entra no Financeiro (categoria Folha de Pagamento, ou Escritórios quando o fixo tem escritório); “Desfazer” remove os dois.</p>`;
+   <p class="hint" style="margin-top:12px">A lista já é a do mês escolhido no filtro — não precisa gerar nada. Ao marcar <strong>✓ Pagar</strong>, o registro do mês nasce e a despesa entra no Financeiro (categoria Folha de Pagamento, ou Escritórios quando o fixo tem escritório); “Desfazer” remove os dois.<br><strong>Pagamento de equipe é variável:</strong> o valor do pré-definido é só referência — ao pagar, o sistema pergunta quanto foi de fato neste mês. Gasto de escritório mantém o valor cadastrado.</p>`;
   $('#fpComp').onchange=e=>{ folhaComp=e.target.value||compNow(); render(folhaView()); };
 }
 /* gerarFolha() saiu (Gabriel, 10/08/2026: "essa funcionalidade n tem logica"). Criava o mes
@@ -11774,9 +11774,20 @@ function renderFolha(c){
 window.fpToggle=(id)=>{ const p=DB.folha.find(x=>x.id===id); if(!p)return; if(p.pago) fpDesfazer(id); else fpPagar(id); };
 window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
-  p.pago=true; p.pagoEm=hojeISO();
   const fxp=DB.folhaFixos.find(f=>f.id===p.fixoId);
   const escN=(fxp&&fxp.esc)||p.esc||'';
+  /* Pagamento de gente e variavel: o valor do pre-definido e so referencia.
+     Quem decide quanto foi no mes e voce, na hora de pagar. Gasto de escritorio
+     (aluguel, agua, luz) segue com o valor cadastrado, que nao muda. */
+  if(!escN){
+    const ref=Number(p.valor)||0;
+    const dig=prompt('Quanto foi pago para '+p.nome+' em '+fmtComp(p.comp||folhaComp)+'?\n\nReferência do cadastro: '+brl(ref)+'\nDigite o valor real deste mês:', ref?String(ref).replace('.',','):'');
+    if(dig===null){ return; }
+    const v=Number(String(dig).replace(/\./g,'').replace(',','.').replace(/[^\d.-]/g,''));
+    if(!(v>0)){ toast('Valor inválido — pagamento não registrado.'); return; }
+    p.valor=v;
+  }
+  p.pago=true; p.pagoEm=hojeISO();
   DB.financeiro.push({id:'fp_'+p.id,data:(p.venc||((p.comp||compNow())+'-01')),comp:p.comp,pagoEm:p.pagoEm,tipo:'despesa',descricao:escN?(p.nome+(p.descricao?' — '+p.descricao:'')+' [Escritório '+escN+']'):('Folha: '+p.nome+(p.descricao?' — '+p.descricao:'')),categoria:escN?'Escritórios':((fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento'),valor:Number(p.valor)||0});
   await saveDB(); render(folhaView()); toast('Pagamento de '+p.nome+' registrado no Financeiro.');
 };
