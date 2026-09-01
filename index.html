@@ -1362,6 +1362,11 @@
   .selmenu-c{flex:none;color:var(--brand2);font-size:12px;font-weight:800;width:11px;text-align:right}
   select.aberto{border-color:var(--brand2)!important;filter:brightness(1.1)}
   .tkpop{position:fixed;z-index:1500;width:330px;max-height:70vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow);scrollbar-width:thin}
+  .lc-chips{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 12px}
+  .lc-chip{background:rgba(124,58,237,.16);color:var(--brand2);border:1px solid rgba(124,58,237,.4);
+    border-radius:999px;padding:4px 10px;font-size:11.5px;font-weight:700}
+  .lc-chip:hover{background:rgba(124,58,237,.26)}
+  .lc-chip.lim{background:transparent;color:var(--muted);border-color:var(--line)}
   .tkp-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
   .tkp-h strong{font-size:14px}
   .tkp-x{background:transparent;border:none;color:var(--muted);font-size:12px;padding:4px 8px;border-radius:7px}
@@ -2659,7 +2664,7 @@ function lkLimpar(){
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){}
   setTimeout(()=>{ lkEuMudei=false; },0);
 }
-function lkMarcar(tipo,id){
+function lkHash(tipo,id){
   if(!id) return;
   const h='#'+tipo+'/'+id;
   if(location.hash===h) return;
@@ -2837,7 +2842,7 @@ function render(view){
   currentView=view; searchTerm='';
   /* 'lista'/'tarefas' nao carimbam: quem manda ali e o #l/<id> que o spSelLista ja pos,
      senao o F5 perderia QUAL lista estava aberta e cairia numa generica */
-  if(__telaPedida!=='lista'&&__telaPedida!=='tarefas') lkMarcar('v',__telaPedida);
+  if(__telaPedida!=='lista'&&__telaPedida!=='tarefas') lkHash('v',__telaPedida);
   if(view==='fechamento'&&TK.listas.some(l=>l.id===LF_ID)) TK.listaSel=LF_ID;
   if(FIN_LISTA[view]&&TK.listas.some(l=>l.id===FIN_LISTA[view])) TK.listaSel=FIN_LISTA[view];
   spMarcarAtalho(view); spDesenhar();
@@ -4316,7 +4321,15 @@ const TK_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 const TK_SEM=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 let TK={espacos:[],pastas:[],listas:[],tarefas:[],equipe:[],status:[],campos:[],listaSel:'',arrastando:null,
   visao:'lista',escopo:'lista',ord:'',dir:1,busca:'',focoBusca:false,ref:'',grupo:'status',fechadas:{},colsOff:{},squadF:'',
-  filtro:{resps:[],prazo:'',de:'',ate:'',prios:[]},lcGestor:'',lcVista:'',lcPor:'gestor',arqVista:false};
+  filtro:{resps:[],prazo:'',de:'',ate:'',prios:[]},lcGestor:'',lcVista:'',lcPor:'gestor',arqVista:false,
+  /* Filtro proprio da Base de Clientes: as pilulas de pessoa continuam sendo o atalho de
+     1 clique, e isto aqui acumula com elas (E logico). Facetas escolhidas pelo Gabriel
+     (01/09): pagamento, categoria do servico, ficha incompleta, nivel, estagio,
+     gestor e gerente. */
+  lcF:{gestor:[],gerente:[],pg:[],cat:[],nivel:[],estagio:[],pend:[]}};
+const LC_FCHAVES=['gestor','gerente','pg','cat','nivel','estagio','pend'];
+try{ const _l=JSON.parse(localStorage.getItem('lc_filtro')||'null');
+  if(_l&&typeof _l==='object') LC_FCHAVES.forEach(k=>{ if(Array.isArray(_l[k])) TK.lcF[k]=_l[k]; }); }catch(_){}
 try{ const _f=JSON.parse(localStorage.getItem('tk_filtro')||'null'); if(_f&&typeof _f==='object') TK.filtro={resps:_f.resps||[],prazo:_f.prazo||'',de:_f.de||'',ate:_f.ate||'',prios:_f.prios||[]}; }catch(_){}
 /* ---------- SQUAD NA TAREFA ----------
    O recorte real e do Postgres (RLS tarefa_visivel): quem tem squad so enxerga o proprio.
@@ -5304,6 +5317,7 @@ function tkFiltradas(){
       const g=String(f[por]||'').trim();
       return TK.lcGestor==='(sem)'?!g:g===TK.lcGestor; });
   }
+  if(ehLC(TK.listaSel)&&TK.escopo==='lista'&&lcFiltroN()) arr=arr.filter(lcPassa);
   /* BUG que sumiu com os clientes do João (31/08): o Controle de Clientes esconde os
      botoes Filtro e Responsavel, mas o filtro guardado no localStorage continuava
      valendo aqui. Um filtro de prazo posto em OUTRA lista zerava o quadro inteiro —
@@ -5336,7 +5350,7 @@ function tkCard(t){
   const drag=`draggable="true" ondragstart="tkPegar(event,'${t.id}');this.classList.add('arrastando')" ondragend="this.classList.remove('arrastando')"`;
   if(cli){
     const f=fichaDe(t.ficha_id)||{};
-    const sub=[f.gerente,f.responsavel].filter(Boolean)
+    const sub=[f.gerente,soIA(f)?'':f.responsavel].filter(Boolean)
       .map(n=>`<span class="tk-pes">${avatarDoNome(n,'lc-av')}${esc(n)}</span>`).join('');
     return `<div class="tk-card" ${drag} onclick="abrirCliente('${t.ficha_id}')">
       <div class="tk-tit">${esc(t.titulo)}</div>
@@ -5725,6 +5739,7 @@ const corOpcao=(txt)=>{ const k=semAcento(txt); if(!k) return '#8e8e99';
 /* Cor da barra do cartao: a mesma do status da linha. */
 const tkCorLinha=(t)=>{ const s=tkStatus1(t.status_id); return (s&&s.cor)||'#8e8e99'; };
 const tkCelula=(t,c)=>{
+  if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA — não tem gestor de tráfego">—</span>';
   const v=(t.valores||{})[c.id];
   const vazio=(v==null||v==='')?' vazio':'';
   if(c.tipo==='select'){
@@ -6239,7 +6254,7 @@ window.spSelLista=(id,semAbrir)=>{
   /* Lista de fluxo (4+ status proprios) abre no Board, como a linha editorial do ClickUp.
      Vale so ate a pessoa escolher a visao na mao — dai respeita a escolha dela. */
   TK.visao=visaoDe(id);
-  currentView='lista'; lkMarcar('l',id); tkDesenhar($('#content')); spDesenhar(); };
+  currentView='lista'; lkHash('l',id); tkDesenhar($('#content')); spDesenhar(); };
 /* ======================= INÍCIO: o dia de trabalho de cada um =======================
    Cada pessoa abre o sistema no que é dela: o que vence hoje, o que está em andamento
    e o que já concluiu. Atrasado aparece sempre, mesmo filtrando só o dia. */
@@ -6565,6 +6580,80 @@ function lcAtalhos(){
     <button class="ftab ${TK.lcVista==='gerentes'?'active':''}" onclick="lcVerGerentes()">&#9776; Gerentes</button>
   </div>`;
 }
+/* ---------- FILTRO COMPOSTO DA BASE DE CLIENTES ----------
+   O filtro generico (prazo/prioridade) nao serve pra cliente e por isso fica escondido
+   aqui. Este e o equivalente com as facetas que fazem sentido pra carteira. */
+const LC_PEND={gestor:'Sem gestor de tráfego',gerente:'Sem gerente',squad:'Sem squad'};
+function lcPgDe(f){
+  const c=finDaFicha(f); if(!c) return '';
+  const comp=cliComp, hoje=hojeISO();
+  const r=(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===c.id);
+  if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
+  if(c.churnComp&&comp>c.churnComp) return 'churn';
+  if(!(c.diaVenc>=1&&c.diaVenc<=31)) return '';
+  return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber';
+}
+const lcFVal=(k,t,f)=> k==='gestor'?(String(f.responsavel||'').trim()||'(sem)')
+  : k==='gerente'?(String(f.gerente||'').trim()||'(sem)')
+  : k==='cat'?catDe(f)
+  : k==='nivel'?(String(f.nivel||'').trim()||'(sem)')
+  : k==='estagio'?(String(t.status_id||'')||'(sem)')
+  : k==='pg'?(lcPgDe(f)||'(sem)') : '';
+function lcPassa(t){
+  const F=TK.lcF, f=fichaDe(t.ficha_id); if(!f) return false;
+  for(const k of LC_FCHAVES){
+    if(!F[k].length) continue;
+    if(k==='pend'){ const p=fichaPend(f); if(!F[k].some(x=>p.includes(x))) return false; continue; }
+    if(!F[k].includes(lcFVal(k,t,f))) return false;
+  }
+  return true;
+}
+const lcFiltroN=()=>LC_FCHAVES.reduce((n,k)=>n+(TK.lcF[k].length?1:0),0);
+function lcFAplicar(){ try{ localStorage.setItem('lc_filtro',JSON.stringify(TK.lcF)); }catch(_){}
+  tkDesenhar($('#content')); tkPopPintar(); }
+window.lcFTog=(k,v)=>{ const a=TK.lcF[k], i=a.indexOf(v); if(i>=0) a.splice(i,1); else a.push(v); lcFAplicar(); };
+window.lcFLimpar=()=>{ LC_FCHAVES.forEach(k=>{ TK.lcF[k]=[]; }); lcFAplicar(); };
+window.lcPopFiltro=(ev)=>tkPopAbrir('lcfiltro',ev);
+function lcBtnFiltro(){ const n=lcFiltroN();
+  return `<button class="btn ghost small${n?' fon':''}" onclick="lcPopFiltro(event)">${svgIco('funil',12)} Filtro${n?`<span class="fbad">${n}</span>`:''}</button>`; }
+/* contagem por opcao ignorando a propria faceta — mostra quantos entrariam, nao quantos ja estao */
+function lcSemFaceta(k){ const s=TK.lcF[k]; TK.lcF[k]=[]; let r; try{ r=tkFiltradas(); }finally{ TK.lcF[k]=s; } return r; }
+const lcRot=(k,v)=> k==='pg'?((LC_PG[v]||{}).rot||'Sem cobrança')
+  : k==='cat'?(CAT_LABEL[v]||'Outro')
+  : k==='nivel'?((LC_NIVEL[v]||{}).rot||'Sem nível')
+  : k==='estagio'?((tkStatusDe(LC_ID).find(x=>x.id===v)||{}).nome||'Sem estágio')
+  : k==='pend'?(LC_PEND[v]||v)
+  : (v==='(sem)'?(k==='gerente'?'Sem gerente':'Sem gestor'):v);
+function lcPopFiltroHTML(){
+  const bloco=(k,rot,vals)=>{
+    const cont={}; if(k!=='pend') lcSemFaceta(k).forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
+      const v=lcFVal(k,t,f); cont[v]=(cont[v]||0)+1; });
+    else lcSemFaceta(k).forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
+      fichaPend(f).forEach(x=>{ cont[x]=(cont[x]||0)+1; }); });
+    const ops=vals.filter(v=>cont[v]||TK.lcF[k].includes(v));
+    if(!ops.length) return '';
+    return `<div class="tkp-sec" style="margin-top:12px">${rot}</div><div class="tkp-chips">${ops.map(v=>
+      `<button class="tkp-chip${TK.lcF[k].includes(v)?' on':''}" onclick="lcFTog('${k}','${String(v).replace(/'/g,"\\'")}')">${esc(lcRot(k,v))}<span class="tkp-n" style="margin-left:5px">${cont[v]||0}</span></button>`).join('')}</div>`;
+  };
+  const nomes=(campo)=>Array.from(new Set((DB.projetos||[]).map(p=>String(p[campo]||'').trim()).filter(Boolean))).sort().concat(['(sem)']);
+  return `<div class="tkp-h"><strong>Filtrar clientes</strong><button class="tkp-x" onclick="tkPopFechar()">&#10005;</button></div>
+   ${bloco('pend','Ficha incompleta',['gestor','gerente','squad'])}
+   ${bloco('pg','Pagamento em '+fmtComp(cliComp),['recebido','sinal','areceber','inadimplente','carencia','churn','churnpago','(sem)'])}
+   ${bloco('cat','Serviço',['trafego','ia','full','outro'])}
+   ${bloco('estagio','Estágio',tkStatusDe(LC_ID).map(x=>x.id).concat(['(sem)']))}
+   ${bloco('nivel','Nível',['promotor','neutro','detrator','(sem)'])}
+   ${bloco('gestor','Gestor de tráfego',nomes('responsavel'))}
+   ${bloco('gerente','Gerente',nomes('gerente'))}
+   ${lcFiltroN()?`<button class="tkp-limpar" onclick="lcFLimpar()">Limpar filtros</button>`:''}`;
+}
+/* faixa do que esta ativo: sem isso a lista encolhe e ninguem sabe por que */
+function lcChips(){
+  if(!lcFiltroN()) return '';
+  const cs=[];
+  LC_FCHAVES.forEach(k=>TK.lcF[k].forEach(v=>cs.push(
+    `<button class="lc-chip" onclick="lcFTog('${k}','${String(v).replace(/'/g,"\\'")}')" title="Tirar este filtro">${esc(lcRot(k,v))} &#10005;</button>`)));
+  return `<div class="lc-chips">${cs.join('')}<button class="lc-chip lim" onclick="lcFLimpar()">Limpar tudo</button></div>`;
+}
 window.lcGestorF=(g)=>{ TK.lcGestor=g; TK.lcVista=''; tkDesenhar($('#content')); };
 window.lcPorF=(k)=>{ TK.lcPor=(k==='gerente')?'gerente':'gestor'; TK.lcGestor=''; TK.lcVista=''; tkDesenhar($('#content')); };
 window.lcVerGerentes=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
@@ -6596,7 +6685,7 @@ function lcVistaGerentes(){
       return `<tr style="cursor:pointer" onclick="abrirCliente('${x.f.id}')">
        <td><strong>${esc(x.f.nome)}</strong> <span class="tag cat-${catDe(x.f)}" style="font-size:10px">${CAT_LABEL[catDe(x.f)]}</span></td>
        <td>${tagN(x.f.nivel)}</td>
-       <td>${x.f.responsavel?`${avatarDoNome(x.f.responsavel,'lc-av')}${esc(x.f.responsavel)}`:'—'}</td>
+       <td>${soIA(x.f)?'<span class="hint" style="margin:0" title="Cliente só de Agent IA — não tem gestor de tráfego">—</span>':(x.f.responsavel?`${avatarDoNome(x.f.responsavel,'lc-av')}${esc(x.f.responsavel)}`:'—')}</td>
        <td>${x.f.squad?sqEtiqueta(x.f.squad,'sm'):'—'}</td>
        <td><span class="tag st" style="color:${st(x.t.status_id).cor};background:${st(x.t.status_id).cor}1a">${esc(st(x.t.status_id).nome)}</span></td>
        ${fin?`<td class="money" style="text-align:right">${c?brl(valDe(c)):'—'}</td><td>${c?tagPG(pgDe(c)):'—'}</td>`:''}
@@ -6645,7 +6734,7 @@ function tkPopAbrir(tipo,ev){ ev.stopPropagation();
 window.tkPopFiltro=(ev)=>tkPopAbrir('filtro',ev);
 window.tkPopResp=(ev)=>tkPopAbrir('resp',ev);
 function tkPopPintar(){ const el=document.getElementById('tkPop'); if(!el||!TKPOP) return;
-  el.innerHTML=TKPOP.tipo==='resp'?tkPopRespHTML():tkPopFiltroHTML(); }
+  el.innerHTML=TKPOP.tipo==='resp'?tkPopRespHTML():TKPOP.tipo==='lcfiltro'?lcPopFiltroHTML():tkPopFiltroHTML(); }
 function tkFiltradasSemResp(){ const s=TK.filtro.resps; TK.filtro.resps=[]; let r; try{ r=tkFiltradas(); }finally{ TK.filtro.resps=s; } return r; }
 function tkPopRespHTML(){ const F=TK.filtro;
   const cont={}; tkFiltradasSemResp().forEach(t=>{ const k=t.responsavel_id||'(sem)'; cont[k]=(cont[k]||0)+1; });
@@ -6710,7 +6799,7 @@ function tkDesenhar(c){
           escorregavam de lugar a cada troca de visão. -->
      <div class="toolbar tk-bar">
        <span class="tk-g">${abas}</span>
-       <span class="tk-g">${cli?'':tkBtnFiltro()}${cli?'':tkBtnResp()}${ordBtn}</span>
+       <span class="tk-g">${cli?lcBtnFiltro():tkBtnFiltro()}${cli?'':tkBtnResp()}${ordBtn}</span>
        <span class="tk-g tk-fim">
          <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
          <button class="btn ghost small" onclick="tkEscopo()">${TK.escopo==='lista'?'Ver todas':'Só esta lista'}</button>
@@ -6718,7 +6807,7 @@ function tkDesenhar(c){
        </span>
      </div>
    </div>
-   ${cli?lcAtalhos():''}
+   ${cli?lcAtalhos()+lcChips():''}
    ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}
    <p class="hint" style="margin-top:14px">${cli?'Cada card é um cliente — clique para abrir a ficha. Arrastar entre colunas muda o estágio.':'Espaço agrupa pastas; pasta agrupa listas; lista agrupa tarefas — cada lista tem seus próprios status e colunas. Tarefa com <strong>cliente</strong> só aparece para quem tem o squad daquele cliente.'}</p>`;
   if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
@@ -6965,6 +7054,9 @@ const CH_SAIDA='c1000000-0000-4000-8000-000000000024';
 const CH_GESTOR='c1000000-0000-4000-8000-000000000026';
 const LC_MENS='7fb37164-cc32-494c-a93c-c336afe163ea';
 const LC_GEST='35cf51e0-c581-473d-8b16-065f4b0e3dc3';
+/* Cliente so de Agent IA/CRM nao tem gestor de trafego. Nao e ficha incompleta —
+   e o campo simplesmente nao aparece pra ele (Gabriel, 01/09). */
+const lcSoIA=(t)=>{ const f=(t&&t.ficha_id)?fichaDe(t.ficha_id):null; return !!f&&soIA(f); };
 const CH_MOTIVOS=['Resultado','Financeiro','Atendimento','Fechou a empresa','Outro'];
 function chPerguntarChurn(id){
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
