@@ -1370,6 +1370,8 @@
   .tkp-sec{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:4px 2px 7px;display:flex;gap:6px}
   .tkp-row{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;cursor:pointer}
   .tkp-row:hover{background:var(--panel2)}
+  .tkp-b{margin:0 0 8px}
+  .tkp-vazio{display:none;color:var(--fraco);font-size:12px;padding:8px 2px}
   .tkp-nm{flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tkp-n{color:var(--muted);font-size:11px;font-weight:700}
   .tkp-row input{accent-color:#7c3aed;width:15px;height:15px;cursor:pointer;flex:none}
@@ -5400,6 +5402,49 @@ window.tkQaEstagio=(ev,id)=>{
 };
 window.tkQaPrazo=(id,v)=>{ tkPatch(id,{prazo:v||null},v?'Prazo definido.':'Prazo removido.'); };
 /* bandeira abre menu escrito com as opções (pedido do Gabriel: ciclar ficava confuso) */
+/* ---------- MENUS FLUTUANTES: busca e posicao (Gabriel 31/08) ----------
+   1) Todo menu de escolher pessoa ganha um campo de busca: com 10+ nomes, procurar
+      "arthur" com o olho e mais lento que digitar.
+   2) O menu nasce embaixo do alvo, mas se nao couber ate o fim da tela ele sobe.
+      Cartao no pe da coluna abria o menu metade fora da janela. */
+const popBusca=(ph)=>`<input class="search tkp-b" style="width:100%" placeholder="${esc(ph||'Pesquisar pessoa…')}" oninput="popFiltrar(this)" onkeydown="popTecla(event,this)" onclick="event.stopPropagation()">`;
+window.popFiltrar=(inp)=>{
+  const cx=inp.closest('.tkpop'); if(!cx) return;
+  const q=semAcento(String(inp.value||''));
+  let n=0;
+  cx.querySelectorAll('.tkp-row').forEach(row=>{
+    const fixo=row.dataset.fixo==='1';
+    const nm=semAcento(((row.querySelector('.tkp-nm')||{}).textContent)||'');
+    const bate=q?(!fixo&&nm.indexOf(q)>=0):true;
+    row.style.display=bate?'':'none';
+    if(bate&&!fixo) n++;
+  });
+  let vz=cx.querySelector('.tkp-vazio');
+  if(!vz){ vz=document.createElement('div'); vz.className='tkp-vazio'; vz.textContent='Ninguém com esse nome.'; cx.appendChild(vz); }
+  vz.style.display=(q&&!n)?'block':'none';
+};
+window.popTecla=(ev,inp)=>{
+  if(ev.key!=='Enter') return;
+  ev.preventDefault();
+  const cx=inp.closest('.tkpop'); if(!cx) return;
+  const alvo=[].slice.call(cx.querySelectorAll('.tkp-row')).filter(x=>x.style.display!=='none'&&x.dataset.fixo!=='1')[0];
+  if(alvo) alvo.click();
+};
+function popPor(el,r){
+  const m=8, vh=window.innerHeight, vw=window.innerWidth;
+  const w=el.offsetWidth||260, h=el.offsetHeight||0;
+  el.style.left=Math.max(m,Math.min(r.left,vw-w-m))+'px';
+  const abaixo=vh-r.bottom-m-6, acima=r.top-m-6;
+  if(h<=abaixo||abaixo>=acima){
+    el.style.maxHeight=Math.max(150,abaixo)+'px';
+    el.style.top=(r.bottom+6)+'px';
+  }else{
+    const alt=Math.min(h,Math.max(150,acima));
+    el.style.maxHeight=Math.max(150,acima)+'px';
+    el.style.top=Math.max(m,r.top-6-alt)+'px';
+  }
+  el.style.overflowY='auto';
+}
 window.tkQaPrio=(ev,id)=>{ ev.stopPropagation();
   const vel=document.getElementById('tkQaMenu'); if(vel){ vel.remove(); if(vel.dataset.id==='pr'+id) return; }
   const r=ev.currentTarget.getBoundingClientRect();
@@ -5407,10 +5452,10 @@ window.tkQaPrio=(ev,id)=>{ ev.stopPropagation();
   el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-186))+'px'; el.style.top=(r.bottom+6)+'px'; el.style.width='180px';
   const t=TK.tarefas.find(x=>x.id===id)||{};
   el.innerHTML=`<div class="tkp-sec">Prioridade</div>`+
-    ['urgente','alta','med','baixa'].map(k=>`<label class="tkp-row" onclick="tkQaSetPrio('${id}','${k}')">
+    ['urgente','alta','med','baixa'].map(k=>`<label class="tkp-row pop-prio" onclick="tkQaSetPrio('${id}','${k}')">
       <span style="width:9px;height:9px;border-radius:3px;background:${PRIO_COR[k]};flex:none"></span>
       <span class="tkp-nm" style="color:${PRIO_COR[k]}">${TK_PRIO[k]}</span>${(t.prioridade||'med')===k?'<span class="tkp-n">•</span>':''}</label>`).join('');
-  document.body.appendChild(el);
+  document.body.appendChild(el); popPor(el,r);
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
 window.tkQaSetPrio=(id,k)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
@@ -5421,11 +5466,12 @@ window.tkQaResp=(ev,id)=>{ ev.stopPropagation();
   const el=document.createElement('div'); el.id='tkQaMenu'; el.className='tkpop'; el.dataset.id=id;
   el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-266))+'px'; el.style.top=(r.bottom+6)+'px'; el.style.width='260px';
   const t=TK.tarefas.find(x=>x.id===id)||{};
-  el.innerHTML=`<div class="tkp-sec">Responsável</div>
-    <label class="tkp-row" onclick="tkQaSetResp('${id}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span><span class="tkp-nm">Sem responsável</span>${!t.responsavel_id?'<span class="tkp-n">•</span>':''}</label>
+  el.innerHTML=`<div class="tkp-sec">Responsável</div>${popBusca()}
+    <label class="tkp-row" data-fixo="1" onclick="tkQaSetResp('${id}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span><span class="tkp-nm">Sem responsável</span>${!t.responsavel_id?'<span class="tkp-n">•</span>':''}</label>
     ${[...TK.equipe].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
       <label class="tkp-row" onclick="tkQaSetResp('${id}','${u.id}')">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span>${t.responsavel_id===u.id?'<span class="tkp-n">•</span>':''}</label>`).join('')}`;
-  document.body.appendChild(el);
+  document.body.appendChild(el); popPor(el,r);
+  const bR=el.querySelector('.tkp-b'); if(bR) bR.focus();
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
 /* ================== MENU DE OPCOES ==================
@@ -5502,10 +5548,12 @@ window.tkQaCampoPessoa=(ev,id,campoId)=>{ ev.stopPropagation();
   el.style.maxHeight='340px'; el.style.overflowY='auto';
   const t=TK.tarefas.find(x=>x.id===id)||{}, c=tkCampo1(campoId)||{}, at=(t.valores||{})[campoId]||'';
   el.innerHTML=`<div class="tkp-sec">${esc(c.nome||'Pessoa')}</div>
-    <label class="tkp-row" onclick="tkQaSetCampoPessoa('${id}','${campoId}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span><span class="tkp-nm">Ninguém</span>${!at?'<span class="tkp-n">•</span>':''}</label>
+    ${popBusca()}
+    <label class="tkp-row" data-fixo="1" onclick="tkQaSetCampoPessoa('${id}','${campoId}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span><span class="tkp-nm">Ninguém</span>${!at?'<span class="tkp-n">•</span>':''}</label>
     ${filtraPapel(equipeDe(t.lista_id,at),papelDaColuna(c.nome),at).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
       <label class="tkp-row" onclick="tkQaSetCampoPessoa('${id}','${campoId}','${u.id}')">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span>${at===u.id?'<span class="tkp-n">•</span>':''}</label>`).join('')}`;
-  document.body.appendChild(el);
+  document.body.appendChild(el); popPor(el,r);
+  const bP=el.querySelector('.tkp-b'); if(bP) bP.focus();
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
 window.tkQaSetCampoPessoa=(id,campoId,uid)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
@@ -5519,7 +5567,7 @@ window.tkQaCli=(ev,id)=>{ ev.stopPropagation();
   el.innerHTML=`<div class="tkp-sec">Cliente / projeto</div>
     <input class="search" style="width:100%" placeholder="Digite pra pesquisar…" oninput="tkQaCliBusca('${id}',this.value)">
     <div id="tkQaCliRes" style="margin-top:8px"></div>`;
-  document.body.appendChild(el);
+  document.body.appendChild(el); popPor(el,r);
   el.querySelector('input').focus();
   tkQaCliBusca(id,'');
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
@@ -6578,7 +6626,7 @@ function tkPopAbrir(tipo,ev){ ev.stopPropagation();
   TKPOP={tipo,x:Math.max(8,Math.min(r.left,window.innerWidth-346)),y:r.bottom+6};
   const el=document.createElement('div'); el.id='tkPop'; el.className='tkpop';
   el.style.left=TKPOP.x+'px'; el.style.top=TKPOP.y+'px';
-  document.body.appendChild(el); tkPopPintar();
+  document.body.appendChild(el); tkPopPintar(); popPor(el,r);
   setTimeout(()=>document.addEventListener('mousedown',tkPopFora,true),0);
 }
 window.tkPopFiltro=(ev)=>tkPopAbrir('filtro',ev);
@@ -7193,13 +7241,19 @@ window.tkRespMenu=(ev)=>{ ev.stopPropagation();
   const r=ev.currentTarget.getBoundingClientRect();
   const el=document.createElement('div'); el.id='tkQaMenu'; el.className='tkpop'; el.style.zIndex=3000;
   el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-266))+'px'; el.style.top=(r.bottom+6)+'px'; el.style.width='260px';
-  const pinta=()=>{ const ids=String(($('#tk_resps')||{}).value||'').split(',').filter(Boolean);
-    el.innerHTML=`<div class="tkp-sec">Equipe</div>`+[...(TK.equipe||[])].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
+  el.innerHTML=`<div class="tkp-sec">Equipe</div>${popBusca()}<div id="tkRespLista"></div>`;
+  /* so a lista e repintada a cada marcacao — o campo de busca (e o que foi digitado) fica */
+  const pinta=()=>{ const box=el.querySelector('#tkRespLista'); if(!box) return;
+    const ids=String(($('#tk_resps')||{}).value||'').split(',').filter(Boolean);
+    box.innerHTML=[...(TK.equipe||[])].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
       <label class="tkp-row" data-u="${u.id}">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span><input type="checkbox" ${ids.includes(String(u.id))?'checked':''}></label>`).join('');
-    el.querySelectorAll('.tkp-row').forEach(row=>{ row.onclick=(e)=>{ e.preventDefault(); tkRespToggle(row.dataset.u); pinta(); }; });
+    box.querySelectorAll('.tkp-row').forEach(row=>{ row.onclick=(e)=>{ e.preventDefault(); tkRespToggle(row.dataset.u); pinta(); }; });
+    const b=el.querySelector('.tkp-b'); if(b&&b.value) popFiltrar(b);
   };
   pinta();
   document.body.appendChild(el);
+  popPor(el,r);
+  const b0=el.querySelector('.tkp-b'); if(b0) b0.focus();
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
 const primeiroNome=(s)=>String(s||'').trim().split(/\s+/)[0]||'';
