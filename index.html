@@ -9524,6 +9524,42 @@ window.fcPlanoMuda=()=>{ const w=$('#fc_gw'); if(w) w.style.display=fcTemTrafego
 function fcField(lbl,id,ph,val){ return `<div class="field"><label>${lbl}</label><input id="${id}" placeholder="${ph||''}" value="${esc(val||'')}"></div>`; }
 /* O que o fechEnviar realmente barra. A barra do topo e o rodape de envio leem daqui,
    entao a tela nunca promete um envio que a validacao vai recusar depois do clique. */
+/* PRAZO DO CONTRATO (Gabriel 31/08) — vira o numero de cobrancas no Asaas.
+   Mensal e Avulso nao tem fim: renovam ate o churn, igual sempre foi.
+   O campo "Fim do contrato" nasce preenchido a partir do tipo, mas o closer
+   pode mudar quando o combinado foi outro — a partir dai a conta segue a data. */
+const FC_PRAZO={'Mensal':0,'Trimestral':3,'Semestral':6,'Anual':12};
+let FC_FIM_MANUAL=false;
+const fcAddMes=(iso,n)=>{ if(!iso) return '';
+  const [a,m,d]=String(iso).split('-').map(Number);
+  const b=new Date(Date.UTC(a,m-1+n,1));
+  const u=new Date(Date.UTC(b.getUTCFullYear(),b.getUTCMonth()+1,0)).getUTCDate();
+  b.setUTCDate(Math.min(d,u)); return b.toISOString().slice(0,10); };
+const fcMesesEntre=(a,b)=>{ if(!a||!b) return 0;
+  const [a1,m1]=String(a).split('-').map(Number), [a2,m2]=String(b).split('-').map(Number);
+  return (a2-a1)*12+(m2-m1); };
+window.fcCalcFim=()=>{
+  const el=$('#fc_fimcontrato');
+  if(el && !FC_FIM_MANUAL){
+    const n=FC_PRAZO[(($('#fc_contrato')||{}).value||'')]||0;
+    const d=(($('#fc_data')||{}).value||'');
+    el.value=(n>0&&d)?fcAddMes(d,n-1):'';
+  }
+  fcFimInfo();
+};
+window.fcFimInfo=()=>{
+  const box=$('#fc_fiminfo'); if(!box) return;
+  const st=(($('#fc_status')||{}).value||'');
+  if(st==='integral'){ box.textContent='Projeto à vista: não gera assinatura no Asaas.'; return; }
+  const fim=(($('#fc_fimcontrato')||{}).value||''), d=(($('#fc_data')||{}).value||'');
+  if(!fim){ box.textContent='Sem data de fim: a assinatura renova todo mês até o churn.'; return; }
+  const total=Math.max(1,fcMesesEntre(d,fim)+1);
+  const jaAcertou=(st==='pago'||st==='sinal');
+  const n=total-(jaAcertou?1:0);
+  box.textContent = n<=0
+    ? 'O contrato inteiro já foi acertado — nenhuma cobrança recorrente será criada.'
+    : total+' mensalidade'+(total===1?'':'s')+' no total · o Asaas gera '+n+(jaAcertou?' (a 1ª já foi acertada fora)':'')+'.';
+};
 const fcEhIntegral=()=>(($('#fc_status')||{}).value||'')==='integral';
 function fcObrig(){
   const st=(($('#fc_status')||{}).value||''), integral=st==='integral';
@@ -9552,6 +9588,7 @@ window.fcStatusPagto=(v)=>{
   const tc=$('#fc_contrato');
   if(tc){ if(v==='integral'){ if([...tc.options].some(o=>o.value===FC_AVULSO)) tc.value=FC_AVULSO; }
           else if(tc.value===FC_AVULSO){ tc.value=FC_CONTRATOS[0]; } }
+  FC_FIM_MANUAL=false; fcCalcFim();
   fcProgresso();
 };
 window.fcProgresso=()=>{
@@ -9664,8 +9701,10 @@ function renderFechamento(c){
         <input type="hidden" id="fc_plano" value="">
         <div class="tkp-chips" id="fc_servs">${FC_SERVICOS.map(x=>`<button type="button" class="tkp-chip" data-s="${x}" onclick="fcServToggle(this,'${x}')">${x}</button>`).join('')}</div></div>
       <div class="row2">
-        <div class="field"><label>Tipo de contrato *</label><select id="fc_contrato">${FC_CONTRATOS.map(p=>`<option>${p}</option>`).join('')}</select></div>
-        <div class="field"></div></div>
+        <div class="field"><label>Tipo de contrato *</label><select id="fc_contrato" onchange="FC_FIM_MANUAL=false;fcCalcFim()">${FC_CONTRATOS.map(p=>`<option>${p}</option>`).join('')}</select></div>
+        <div class="field"><label data-dica="Vem do tipo de contrato: Trimestral 3 meses, Semestral 6, Anual 12 — contando da 1ª parcela. Mensal e Avulso ficam sem fim (renovam até o churn). Mude a data se o combinado foi outro.">Fim do contrato — última mensalidade</label>
+          <input type="date" id="fc_fimcontrato" onchange="FC_FIM_MANUAL=true;fcFimInfo()">
+          <div class="hint" id="fc_fiminfo" style="margin:7px 0 0">—</div></div></div>
       <div class="field"><label>Integrações</label><textarea id="fc_integra" rows="2" placeholder="Portais, sistemas e integrações necessárias para o Agente IA"></textarea></div>
       <div class="field"><label>Especificidades do contrato (o que foge do escopo padrão)</label><textarea id="fc_espec" rows="2" placeholder="Deixe vazio se não houver"></textarea></div>`)}
     ${sec('03','💳 Financeiro · cadastro no Asaas','Como e quando o dinheiro entra. O dia da 1ª parcela vira o vencimento recorrente.',`
@@ -9680,7 +9719,7 @@ function renderFechamento(c){
         <div class="field"><label id="fc_lbl_valor">Mensalidade (R$) *</label><input id="fc_valor" type="number" min="0" step="50" placeholder="ex: 1500"></div>
         <div class="field"><label>Forma de pagamento *</label><select id="fc_forma">${FC_PAGTOS.map(p=>`<option>${p}</option>`).join('')}</select></div></div>
       <div class="row2">
-        <div class="field"><label id="fc_lbl_data" data-dica="No fluxo normal: quando a 1ª mensalidade é paga (o DIA vira o vencimento recorrente). Com sinal: quando o RESTANTE será acertado.">Data da 1ª parcela *</label><input id="fc_data" type="date"></div>
+        <div class="field"><label id="fc_lbl_data" data-dica="No fluxo normal: quando a 1ª mensalidade é paga (o DIA vira o vencimento recorrente). Com sinal: quando o RESTANTE será acertado.">Data da 1ª parcela *</label><input id="fc_data" type="date" onchange="fcCalcFim()"></div>
         <div class="field"><label>Status do pagamento *</label><select id="fc_status" onchange="fcStatusPagto(this.value)" data-dica="'Sinal pago' registra a entrada agora e deixa o restante como a receber. 'Pagamento integral' é o projeto pago à vista: entra como receita do mês e o cliente não ganha mensalidade."><option value="aguardando">Aguardando pagamento</option><option value="pago">Pago</option><option value="sinal">Sinal pago (entrada)</option><option value="integral">Pagamento integral (à vista, sem mensalidade)</option></select></div></div>
       <div class="row2" id="fc_sw" style="display:none">
         <div class="field"><label>Valor do sinal (R$) *</label><input type="number" step="0.01" id="fc_sinal" placeholder="ex: 500"></div>
@@ -9724,6 +9763,7 @@ function renderFechamento(c){
   /* em segundo plano: nao segura a tela, e a faixa aparece sozinha se houver formulario */
   fcFaixaForms();
   fcCarregarForms().then(fcFaixaForms).catch(()=>{});
+  FC_FIM_MANUAL=false;
   fcStatusPagto((($('#fc_status')||{}).value||''));
 }
 /* REGRA DE NEGÓCIO (Gabriel, 11/08): projeto/cliente não pode duplicar. Compara o nome
@@ -9765,13 +9805,13 @@ function fcAsaasLinha(a){
   p.push(a.clienteJaExistia?`Cliente já existia no Asaas (<code>${esc(a.customerId||'')}</code>).`:`Cliente criado no Asaas (<code>${esc(a.customerId||'')}</code>).`);
   if(a.nota) p.push(esc(a.nota));
   if(a.paymentId) p.push(`Restante de ${brl(Number(a.restante)||0)} cobrado à parte${a.invoiceUrl?` · <a class="link" href="${esc(a.invoiceUrl)}" target="_blank" rel="noopener">ver fatura</a>`:''}.`);
-  if(a.subscriptionId) p.push(`Assinatura mensal ativa — 1º vencimento em <strong>${fmtDate(String(a.proximoVencimento||'').slice(0,10))}</strong>.`);
+  if(a.subscriptionId) p.push(`Assinatura mensal ativa — 1º vencimento em <strong>${fmtDate(String(a.proximoVencimento||'').slice(0,10))}</strong>${a.cobrancas?` · <strong>${a.cobrancas}</strong> mensalidade${a.cobrancas===1?'':'s'} e encerra`:' · renova até o churn'}.`);
   return `<div class="fc-asaas bom"><strong>✓ Asaas (${amb})</strong><br>${p.join('<br>')}</div>`;
 }
 window.fechEnviar=async ()=>{
   const V=id=>(($('#'+id)||{}).value||'').trim();
   const body={nome:V('fc_nome'),nicho:V('fc_nicho'),razaoSocial:V('fc_razao'),cnpj:V('fc_cnpj'),dono:V('fc_dono'),cpf:V('fc_cpf'),rg:V('fc_rg'),
-    plano:V('fc_plano'),tipoContrato:V('fc_contrato'),integracoes:V('fc_integra'),especificidades:V('fc_espec'),
+    plano:V('fc_plano'),tipoContrato:V('fc_contrato'),fimContrato:V('fc_fimcontrato'),integracoes:V('fc_integra'),especificidades:V('fc_espec'),
     respFin:V('fc_respfin'),telFin:V('fc_telfin'),email:V('fc_email'),endereco:V('fc_end'),
     valor:V('fc_valor'),formaPagamento:V('fc_forma'),dataPagamento:V('fc_data'),statusPagamento:V('fc_status'),sinalValor:V('fc_sinal'),sinalData:V('fc_sinaldata'),
     origem:V('fc_origem'),
