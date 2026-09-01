@@ -6534,6 +6534,15 @@ function tkBarraSquad(){
 window.tkSquadF=(s)=>{ TK.squadF=s; tkDesenhar($('#content')); };
 /* ===== ATALHOS por gestor + vista Gerentes no Controle de Clientes (ClickUp, pedido 09/08) ===== */
 const lcCor=(n)=>SP_COR[[...String(n||'?')].reduce((s,c)=>s+c.charCodeAt(0),0)%SP_COR.length];
+/* AGENTE A (Gabriel 01/09): cliente sem gestor de trafego nao e cadastro pela metade —
+   e cliente que so tem Agente de IA, sem nenhuma perna em trafego pago. Por isso a
+   pilula ganhou nome e cara proprios em vez do "Sem gestor" com a inicial S. */
+const LC_ROBO='<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  +'<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4.5M9.2 4.5h5.6"/>'
+  +'<circle cx="9.2" cy="13.4" r="1.3" fill="currentColor" stroke="none"/>'
+  +'<circle cx="14.8" cy="13.4" r="1.3" fill="currentColor" stroke="none"/>'
+  +'<path d="M9.6 17h4.8"/></svg>';
+const lcAvAgente=()=>`<span class="lc-av" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff" title="Clientes só de Agente de IA — sem tráfego pago">${LC_ROBO}</span>`;
 function lcSemGestorF(){ const s=TK.lcGestor; TK.lcGestor=''; let r; try{ r=tkFiltradas(); }finally{ TK.lcGestor=s; } return r; }
 function lcAtalhos(){
   /* Antes so dava pra filtrar por gestor de trafego. Gerente nao tinha botao nenhum —
@@ -6543,12 +6552,12 @@ function lcAtalhos(){
   lcSemGestorF().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
     const k=String(f[por]||'').trim()||'(sem)'; cont[k]=(cont[k]||0)+1; });
   const gestores=Object.keys(cont).filter(k=>k!=='(sem)').sort((a,b)=>cont[b]-cont[a]);
-  const pil=(v,rot,n)=>`<button class="ftab ${TK.lcGestor===v&&TK.lcVista!=='gerentes'?'active':''}" data-g="${esc(v)}" onclick="lcGestorF(this.dataset.g)">${avatarDoNome(rot,'lc-av')||`<span class="lc-av" style="background:${lcCor(rot)}">${esc(rot.trim().charAt(0).toUpperCase())}</span>`}${esc(rot)}<span class="lc-n">${n}</span></button>`;
+  const pil=(v,rot,n,av)=>`<button class="ftab ${TK.lcGestor===v&&TK.lcVista!=='gerentes'?'active':''}" data-g="${esc(v)}" onclick="lcGestorF(this.dataset.g)">${av||avatarDoNome(rot,'lc-av')||`<span class="lc-av" style="background:${lcCor(rot)}">${esc(rot.trim().charAt(0).toUpperCase())}</span>`}${esc(rot)}<span class="lc-n">${n}</span></button>`;
   return `<div class="fin-tabs" style="margin:0 0 12px">
     <span class="tk-seg lc-seg"><button class="${por==='responsavel'?'on':''}" onclick="lcPorF('gestor')">Gestor</button><button class="${por==='gerente'?'on':''}" onclick="lcPorF('gerente')">Gerente</button></span>
     <button class="ftab ${!TK.lcGestor&&TK.lcVista!=='gerentes'?'active':''}" onclick="lcGestorF('')">Todos</button>
     ${gestores.map(g=>pil(g,g,cont[g])).join('')}
-    ${cont['(sem)']?pil('(sem)',por==='gerente'?'Sem gerente':'Sem gestor',cont['(sem)']):''}
+    ${cont['(sem)']?pil('(sem)',por==='gerente'?'Sem gerente':'Agente A',cont['(sem)'],por==='gerente'?'':lcAvAgente()):''}
     <button class="ftab ${TK.lcVista==='gerentes'?'active':''}" onclick="lcVerGerentes()">&#9776; Gerentes</button>
   </div>`;
 }
