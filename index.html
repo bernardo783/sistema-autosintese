@@ -10457,6 +10457,10 @@ let statusFiltro='';
    nunca ficava vermelho, e o dia de vencimento do cliente continuava sendo o do SINAL —
    entao o mes seguinte nascia cobrando na data errada (caso DL Repasse).
    `restanteVenc` e a data combinada; sem ela, cai no vencimento da cobranca. */
+/* Cliente arquivado (Gabriel 01/09): sai da carteira e das contas do mes, mas nao e
+   churn e nao perde historico — da para desarquivar a qualquer momento. Serve para standby. */
+const cliArq=(c)=>!!(c&&c.arquivadoEm);
+let cliArqVista=false;
 const rcRestante=(r)=>Math.max(0,(Number((r||{}).valor)||0)-(Number((r||{}).sinal)||0));
 const rcRestVenc=(r)=>String((r&&(r.restanteVenc||r.venc))||'');
 const rcAtrasado=(r)=>{ const v=rcRestVenc(r); return !!(v&&v<hojeISO()); };
@@ -10483,7 +10487,7 @@ function calcRecebimentos(comp){
     if(comp>compNow()) return 'areceber';
     return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
   const g={recebido:[],sinal:[],inadimplente:[],areceber:[],carencia:[],churn:[],churnpago:[],semdia:[]};
-  DB.clientes.forEach(c=>{ const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
+  DB.clientes.forEach(c=>{ if(cliArq(c)) return; const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
   const val=(c)=>{ const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; }; /* valor congelado do mês, se houver registro */
   const soma=a=>a.reduce((s,x)=>s+val(x),0);
   const sinaisPagos=g.sinal.reduce((s,c)=>s+(Number((byCli[c.id]||{}).sinal)||0),0);
@@ -10534,7 +10538,8 @@ function rcBlocoEntradas(R,comp){
 function renderRecebimentos(c){
   const comp=cliComp;
   const R=calcRecebimentos(comp);
-  const ativos=DB.clientes.filter(x=>(!x.inicio||comp>=x.inicio)&&(!x.fim||comp<=x.fim));
+  const ativos=DB.clientes.filter(x=>!cliArq(x)&&(!x.inicio||comp>=x.inicio)&&(!x.fim||comp<=x.fim));
+  const nArqCli=DB.clientes.filter(cliArq).length;
   const totalMensal=ativos.reduce((s,x)=>s+(Number(x.valor)||0),0);
   c.innerHTML=`
    <div class="page-head">
@@ -10553,6 +10558,7 @@ function renderRecebimentos(c){
          <option value="churn"${statusFiltro==='churn'?' selected':''}>⚫ Churn</option>
          <option value="churnpago"${statusFiltro==='churnpago'?' selected':''}>⚫ Churn (mês pago)</option>
        </select>
+       ${(nArqCli||cliArqVista)?`<button class="btn ghost small${cliArqVista?' fon':''}" id="cArqBtn" title="Clientes arquivados">🗄 Arquivados${nArqCli?' ('+nArqCli+')':''}</button>`:''}
        <button class="btn small" onclick="openCliModal()">+ Cliente</button>
      </div>
    </div>
@@ -10572,7 +10578,7 @@ function renderRecebimentos(c){
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const vencDe=(r)=>{ const rc=R.byCli[r.id]; if(rc&&rc.venc) return rc.venc; return (r.diaVenc>=1&&r.diaVenc<=31)?vencOf(comp,r.diaVenc):null; };
-    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro)&&(!statusFiltro||R.st(r)===statusFiltro));
+    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(cliArqVista?cliArq(r):!cliArq(r))&&(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro)&&(!statusFiltro||R.st(r)===statusFiltro));
     $('#cBody').innerHTML=rows.map(r=>{
       const s=R.st(r); const rec=R.byCli[r.id];
       const podeMarcar=s||(r.diaVenc>=1&&r.diaVenc<=31);
@@ -10596,7 +10602,7 @@ function renderRecebimentos(c){
       <td>${esc(r.resp)||'—'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
       <td class="money" style="text-align:right">${s==='carencia'?`<span style="color:var(--muted);text-decoration:line-through">${brl(R.val(r))}</span><div style="color:var(--brand2);font-size:11px">carência</div>`:s==='churn'?(R.churnMes(r)?`<span style="color:var(--danger)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">perdido</div>`:`<span style="color:var(--muted)">—</span>`):s==='churnpago'?`<span style="color:var(--ok)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">pago · último mês</div>`:`${brl(R.val(r))}${(R.byCli[r.id]&&R.byCli[r.id].integral)?`<div style="color:var(--brand2);font-size:11px">projeto à vista · sem mensalidade</div>`:(R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:'')}`}</td>
       <td>${selHtml}</td>
-      <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="cliExcluirSeguro('${r.id}')" data-dica="NOVO: excluir o cliente agora limpa junto as cobranças, os lançamentos e o projeto ligados a ele — nada fica órfão.">Excluir</button></div></td>
+      <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn" onclick="cliAcoes('${r.id}')" data-dica="NOVO: aqui dentro você arquiva o cliente (sai da carteira sem virar churn), move para o Controle de Churns ou exclui de vez — a exclusão leva junto cobranças, lançamentos e ficha.">⋯</button></div></td>
     </tr>`;}).join('');
     $('#cEmpty').innerHTML=rows.length?'':'<div class="empty">Nenhum cliente. Clique em "+ Cliente".</div>';
   };
@@ -10604,6 +10610,7 @@ function renderRecebimentos(c){
   $('#cliCompInp').onchange=e=>{ cliComp=e.target.value||compNow(); if(diaFiltro&&diaFiltro.slice(0,7)!==cliComp) diaFiltro=''; render('recebimentos'); };
   $('#cDiaInp').onchange=e=>{ diaFiltro=e.target.value||''; if(diaFiltro){ const m=diaFiltro.slice(0,7); if(m!==cliComp){ cliComp=m; render('recebimentos'); return; } } draw(); };
   $('#cStatusInp').onchange=e=>{ statusFiltro=e.target.value||''; draw(); };
+  { const b=$('#cArqBtn'); if(b) b.onclick=()=>{ cliArqVista=!cliArqVista; render('recebimentos'); }; }
   draw();
 }
 function syncProjetoCliente(cli){
@@ -12736,6 +12743,38 @@ function modal(title, bodyHTML, onSave){
   o.querySelector('.msave').onclick=async ()=>{ const ok=await onSave(); if(ok!==false)close(); };
 }
 /* Exclusão de cliente sem órfãos (P0 da Fase 1): leva junto recebimentos, lançamentos rc_/rcs_ e o projeto espelho */
+/* Arquivar: tira da carteira sem apagar nada e sem virar churn. Reversivel pelo
+   botao "Arquivados" na barra da tela Clientes. */
+window.cliArquivar=async (id)=>{
+  const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
+  const ok=await confirmar('Arquivar '+(c.nome||'este cliente')+'?',
+    'Ele sai da carteira e das contas do mês, mas nada é apagado: cobranças, lançamentos e ficha continuam lá. Dá para desarquivar quando quiser.',
+    {sim:'Sim, arquivar',nao:'Não'});
+  if(!ok) return;
+  c.arquivadoEm=hojeISO();
+  await saveDB(); render(currentView); toast((c.nome||'Cliente')+' arquivado.');
+};
+window.cliDesarquivar=async (id)=>{
+  const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
+  delete c.arquivadoEm;
+  await saveDB(); render(currentView); toast((c.nome||'Cliente')+' voltou para a carteira.');
+};
+/* Menu da linha do cliente: arquivar, mandar para o Controle de Churns ou excluir. */
+window.cliAcoes=async (id)=>{
+  const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
+  const arq=cliArq(c);
+  const ops=arq
+    ? [{v:'desarq',rot:'↩ Desarquivar'},{v:'excluir',rot:'🗑 Excluir de vez'}]
+    : [{v:'arquivar',rot:'🗄 Arquivar'},{v:'churn',rot:'📉 Mover para Controle de Churns'},{v:'excluir',rot:'🗑 Excluir de vez'}];
+  const v=await escolher(c.nome||'Cliente',
+    arq?('Arquivado em '+fmtDate(c.arquivadoEm)+'. Desarquivar devolve o cliente à carteira.')
+       :'Arquivar tira da carteira e é reversível. Churn marca a saída em '+fmtComp(cliComp)+' e move o card. Excluir apaga cliente, cobranças, lançamentos e ficha.',
+    ops);
+  if(v==='arquivar') return cliArquivar(id);
+  if(v==='desarq') return cliDesarquivar(id);
+  if(v==='churn') return rcStatusCli(id,'churn');
+  if(v==='excluir') return cliExcluirSeguro(id);
+};
 window.cliExcluirSeguro=async (id)=>{
   const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
   const recs=(DB.recebimentos||[]).filter(r=>r.clienteId===id);
