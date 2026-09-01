@@ -1387,6 +1387,11 @@
   .fbad{display:inline-grid;place-items:center;min-width:16px;height:16px;border-radius:8px;background:var(--brand);color:#fff;font-size:10px;font-weight:800;padding:0 4px;margin-left:5px}
   .avstack{display:inline-flex;margin-left:7px}
   .avstack .av{margin-left:-6px;box-shadow:0 0 0 2px var(--panel)}
+  /* Pilha de responsaveis no cartao e na tabela, no estilo ClickUp: o primeiro
+     encosta na borda, os seguintes montam por cima. */
+  .tk-chip .avstack,td .avstack{margin-left:0}
+  .tk-chip .avstack .av:first-child,td .avstack .av:first-child{margin-left:0}
+  .tk-mais{font-size:10.5px;font-weight:700;color:var(--muted);margin-left:5px}
   /* Entradas em aberto (Gabriel 31/08) */
   .rc-bloco{background:var(--panel);border:1px solid var(--line);border-radius:14px;
     padding:15px 17px;margin:0 0 14px}
@@ -5335,8 +5340,11 @@ function tkCard(t){
   const meta=[ t.descricao?`<span title="Tem descrição">${DSC}</span>`:'',
                ck?`<span title="Checklist">${CK}${esc(ck.replace('☑ ',''))}</span>`:'' ].filter(Boolean).join('');
   /* Fileira de chips: com conteudo aparece sempre; vazio so no hover. */
-  const chResp=t.responsavel_id
-    ? `<button type="button" class="tk-chip avb" title="${esc(tkNomeUser(t.responsavel_id))}" onclick="${par(`tkQaResp(event,'${t.id}')`)}">${avatar(t.responsavel_id,null,'sm')}</button>`
+  /* Varios responsaveis (Gabriel 01/09): o cartao mostra a pilha de fotos como no
+     ClickUp, nao so o primeiro da lista. Acima de 4, o resto vira "+n". */
+  const rsC=respDe(t);
+  const chResp=rsC.length
+    ? `<button type="button" class="tk-chip avb" title="${esc(rsC.map(u=>tkNomeUser(u)).filter(Boolean).join(', '))}" onclick="${par(`tkQaResp(event,'${t.id}')`)}"><span class="avstack">${rsC.slice(0,4).map(u=>avatar(u,null,'sm')).join('')}</span>${rsC.length>4?`<span class="tk-mais">+${rsC.length-4}</span>`:''}</button>`
     : `<button type="button" class="tk-chip tk-vaz" title="Definir responsável" onclick="${par(`tkQaResp(event,'${t.id}')`)}">${USR}Responsável</button>`;
   const chPrazo=t.prazo
     ? `<button type="button" class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}" onclick="${par(`dtCartao(event,'${t.id}','${t.prazo}')`)}">${CAL}${dtRel(t.prazo,hoje)}</button>`
@@ -5349,7 +5357,7 @@ function tkCard(t){
   const chSq=sq?`<span style="cursor:default">${sqEtiqueta(sq,'sm')}</span>`:'';
   const chCam=TK.escopo!=='lista'?`<span class="tk-chip" style="opacity:.75;cursor:default" title="${esc(tkCaminho(t.lista_id))}">${esc(tkCaminho(t.lista_id))}</span>`:'';
   const chPrio=`<button type="button" class="tk-chip tk-vaz" title="Prioridade" onclick="${par(`tkQaPrio(event,'${t.id}')`)}">${FLG}${esc(TK_PRIO[t.prioridade||'med'])}</button>`;
-  const cheio=!!(t.responsavel_id||t.prazo||t.ficha_id||sq||chCam);
+  const cheio=!!(rsC.length||t.prazo||t.ficha_id||sq||chCam);
   return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')" oncontextmenu="tkCardMenu(event,'${t.id}')">
     ${t.tipo_id?`<div class="tk-tpl">${tipoChip(t.tipo_id,'sm')}</div>`:''}
     <div class="tk-tit">${esc(t.titulo)}</div>
@@ -5699,7 +5707,8 @@ function tkViewLista(){
       ${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}
       <td><span class="tag st" style="color:${PRIO_COR[t.prioridade]||'var(--muted)'};background:${(PRIO_COR[t.prioridade]||'#888888')}1a;font-weight:800">${TK_PRIO[t.prioridade]||'—'}</span></td>
       <td>${t.prazo?`<span class="tag ${atr?'churn':'st'}">${fmtDate(t.prazo)}</span>`:'<span class="hint" style="margin:0">—</span>'}</td>
-      <td>${t.responsavel_id?`<span title="${esc(tkNomeUser(t.responsavel_id))}" style="cursor:pointer" onclick="event.stopPropagation();verPerfil('${t.responsavel_id}')">${avatar(t.responsavel_id)}</span>`:'<span class="hint" style="margin:0">—</span>'}</td>
+      <td>${(()=>{ const rs=respDe(t); if(!rs.length) return '<span class="hint" style="margin:0">—</span>';
+        return `<span class="avstack">${rs.slice(0,4).map(u=>`<span title="${esc(tkNomeUser(u))}" style="cursor:pointer" onclick="event.stopPropagation();verPerfil('${u}')">${avatar(u)}</span>`).join('')}</span>${rs.length>4?`<span class="tk-mais">+${rs.length-4}</span>`:''}`; })()}</td>
       <td><button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button></td>
     </tr>`;};
   const ncols=lc?(cps.length+2):(cps.length+7);
