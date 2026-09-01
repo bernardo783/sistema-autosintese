@@ -11679,6 +11679,8 @@ function renderFolha(c){
      idempotente (dedup por fixo/mês), e o salvamento segue em segundo plano na fila normal. */
   if(comp>=compNow()){ const nAuto=gerarFolhaCore(comp);
     if(nAuto){ saveDB(); toast(nAuto+' pagamento(s) do mês entraram sozinhos.'); } }
+  /* provisão: todo registro de folha vira despesa da competência, pago ou não */
+  if(fpSincronizar()) saveDB();
   const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
   /* Uma tela so (Gabriel, 10/08/2026): equipe primeiro, depois a faixa "Gastos de Escritório"
      com um sub-grupo por escritório. O que separa continua sendo o campo esc do fixo. */
@@ -11765,12 +11767,50 @@ function renderFolha(c){
      return h; })()}</tbody></table>
    ${fixos.length?'':'<div class="empty">Nenhum fixo cadastrado. Cadastre quem recebe todo mês e as contas de cada escritório — o campo Escritório é o que separa os dois.</div>'}</div>
    <div style="margin-top:10px"><button class="btn secondary small" onclick="openFixoModal()">+ Fixo mensal</button></div>
-   <p class="hint" style="margin-top:12px">A lista já é a do mês escolhido no filtro — não precisa gerar nada. Ao marcar <strong>✓ Pagar</strong>, o registro do mês nasce e a despesa entra no Financeiro (categoria Folha de Pagamento, ou Escritórios quando o fixo tem escritório); “Desfazer” remove os dois.<br><strong>Pagamento de equipe é variável:</strong> o valor do pré-definido é só referência — ao pagar, o sistema pergunta quanto foi de fato neste mês. Gasto de escritório mantém o valor cadastrado.</p>`;
+   <p class="hint" style="margin-top:12px">A lista já é a do mês escolhido no filtro — não precisa gerar nada. Ao marcar <strong>✓ Pagar</strong>, o registro do mês nasce e a despesa entra no Financeiro (categoria Folha de Pagamento, ou Escritórios quando o fixo tem escritório); “Desfazer” remove os dois.<br><strong>Pagamento de equipe é variável:</strong> o valor do pré-definido é só referência — ao pagar, o sistema pergunta quanto foi de fato neste mês. Gasto de escritório mantém o valor cadastrado.<br><strong>Regime de competência:</strong> o custo entra no Financeiro no mês do trabalho, pago ou não — quem ainda não recebeu aparece lá como “· a pagar”. Pós-pago vence no mês seguinte, mas continua sendo custo do mês trabalhado.</p>`;
   $('#fpComp').onchange=e=>{ folhaComp=e.target.value||compNow(); render(folhaView()); };
 }
 /* gerarFolha() saiu (Gabriel, 10/08/2026: "essa funcionalidade n tem logica"). Criava o mes
    inteiro de uma vez a partir dos pre-definidos. O registro do mes nasce quando voce marca
    "Recebeu?" na linha do fixo, que e como a equipe realmente usa. */
+/* ---------- PROVISÃO DA FOLHA ----------
+   Regime de competência: o custo da equipe pertence ao mês em que o trabalho
+   foi feito, pago ou não. Entao todo registro de folha vira uma despesa no
+   Financeiro assim que existe; marcar "Pagar" so confirma o valor e a data.
+   Pos-pago tem vencimento no mes seguinte — a despesa continua na competencia. */
+function fpDataComp(p){
+  const comp=p.comp||compNow();
+  if(p.venc && String(p.venc).slice(0,7)===comp) return p.venc;
+  const [y,m]=comp.split('-').map(Number);
+  return comp+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0');
+}
+function fpDespesaDe(p){
+  const fxp=DB.folhaFixos.find(f=>f.id===p.fixoId);
+  const escN=(fxp&&fxp.esc)||p.esc||'';
+  const base=escN?(p.nome+(p.descricao?' — '+p.descricao:'')+' [Escritório '+escN+']')
+                 :('Folha: '+p.nome+(p.descricao?' — '+p.descricao:''));
+  return {id:'fp_'+p.id, data:fpDataComp(p), comp:p.comp, pagoEm:p.pagoEm||null,
+    tipo:'despesa', descricao:base+(p.pago?'':' · a pagar'),
+    categoria:escN?'Escritórios':((fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento'),
+    valor:Number(p.valor)||0};
+}
+/* Deixa o Financeiro igual a Folha. Devolve quantos lancamentos mudaram. */
+function fpSincronizar(){
+  const porId={}; DB.financeiro.forEach(x=>{ porId[x.id]=x; });
+  let n=0;
+  DB.folha.forEach(p=>{
+    const d=fpDespesaDe(p), atual=porId[d.id];
+    if(!atual){ DB.financeiro.push(d); n++; return; }
+    const mudou=['data','valor','descricao','categoria','pagoEm','comp'].some(k=>atual[k]!==d[k]);
+    if(mudou){ Object.assign(atual,d); n++; }
+  });
+  /* folha apagada leva a despesa junto */
+  const vivos=new Set(DB.folha.map(p=>'fp_'+p.id));
+  const antes=DB.financeiro.length;
+  DB.financeiro=DB.financeiro.filter(x=>!String(x.id).startsWith('fp_')||vivos.has(x.id));
+  n+=antes-DB.financeiro.length;
+  return n;
+}
 window.fpToggle=(id)=>{ const p=DB.folha.find(x=>x.id===id); if(!p)return; if(p.pago) fpDesfazer(id); else fpPagar(id); };
 window.fpPagar=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||p.pago)return;
@@ -11788,14 +11828,14 @@ window.fpPagar=async (id)=>{
     p.valor=v;
   }
   p.pago=true; p.pagoEm=hojeISO();
-  DB.financeiro.push({id:'fp_'+p.id,data:(p.venc||((p.comp||compNow())+'-01')),comp:p.comp,pagoEm:p.pagoEm,tipo:'despesa',descricao:escN?(p.nome+(p.descricao?' — '+p.descricao:'')+' [Escritório '+escN+']'):('Folha: '+p.nome+(p.descricao?' — '+p.descricao:'')),categoria:escN?'Escritórios':((fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento'),valor:Number(p.valor)||0});
-  await saveDB(); render(folhaView()); toast('Pagamento de '+p.nome+' registrado no Financeiro.');
+  fpSincronizar();
+  await saveDB(); render(folhaView()); toast('Pagamento de '+p.nome+' confirmado — a despesa já estava em '+fmtComp(p.comp||folhaComp)+'.');
 };
 window.fpDesfazer=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||!p.pago)return;
   p.pago=false; p.pagoEm=null;
-  DB.financeiro=DB.financeiro.filter(x=>x.id!=='fp_'+p.id);
-  await saveDB(); render(folhaView()); toast('Pagamento desfeito (despesa removida do Financeiro).');
+  fpSincronizar();
+  await saveDB(); render(folhaView()); toast('Pagamento desfeito. A despesa continua na competência, como a pagar.');
 };
 window.fpExcluir=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p)return;
