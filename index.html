@@ -1492,6 +1492,20 @@
   .pc.ed .pc-dl .v .campo{display:block;width:100%}
   .pc.ed .pc-txt .campo{display:block}
   .pc.ver .pc-dl input,.pc.ver .pc-dl select{display:none}
+  /* ===== EDICAO INLINE (Gabriel 01/09) =====
+     Nada de botao "Editar" para destravar a ficha inteira: clicou no valor, aquele
+     campo — e so aquele — vira formulario e salva sozinho ao sair, como no ClickUp. */
+  .pc-dl .v.aberta{cursor:pointer;border-radius:7px}
+  .pc-dl .v.aberta:hover{background:var(--panel2);box-shadow:0 0 0 6px var(--panel2)}
+  .pc-txt.aberta{cursor:pointer;border-radius:7px}
+  .pc-txt.aberta:hover{background:var(--panel2);box-shadow:0 0 0 6px var(--panel2)}
+  .pc.ver .pc-dl .v.ed1{display:block;width:100%;background:transparent;box-shadow:none}
+  .pc.ver .pc-dl .v.ed1 .leitura{display:none}
+  .pc.ver .pc-dl .v.ed1 .campo{display:block;width:100%}
+  .pc.ver .pc-dl .v.ed1 input,.pc.ver .pc-dl .v.ed1 select{display:block}
+  .pc.ver .pc-txt.ed1{background:transparent;box-shadow:none}
+  .pc.ver .pc-txt.ed1 .leitura{display:none}
+  .pc.ver .pc-txt.ed1 .campo{display:block}
   .pc-fin{background:linear-gradient(180deg,rgba(123,104,238,.1),transparent);
     border:1px solid rgba(168,85,247,.3);border-radius:12px;padding:14px 16px;margin-top:18px}
   .pc-fin .k{font-size:10.5px;color:var(--muted);font-weight:800;letter-spacing:.09em;margin-bottom:10px}
@@ -10282,9 +10296,9 @@ window.openProjCard=(id)=>{
   const nZaps=zapsDe(it).length;
   const igLk=linkIg(it.instagram||(cli&&cli.instagram)), drLk=linkUrl(it.drive||(cli&&cli.drive));
   /* ícone da fileira: acende na cor da marca no hover, tracejado quando vazio */
-  const icoLk=(cls,titulo,href,svg,vazio)=>href
+  const icoLk=(cls,titulo,href,svg,fid)=>href
     ? `<a class="pc-ic ${cls}" data-t="${esc(titulo)}" href="${esc(href)}" target="_blank" rel="noopener">${svg}</a>`
-    : `<button type="button" class="pc-ic ${cls} vz" data-t="${esc(titulo)} — não preenchido" onclick="pcEditar(true)">${svg}</button>`;
+    : `<button type="button" class="pc-ic ${cls} vz" data-t="${esc(titulo)} — não preenchido" onclick="pcAbrirCampo('${fid}')">${svg}</button>`;
   const I_ZAP='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg>';
   const I_IG='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.8"/><circle cx="17.4" cy="6.6" r="1.2" fill="currentColor" stroke="none"/></svg>';
   const I_DR='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.2l2 2.4h8.8A1.5 1.5 0 0 1 21 9.9v8.6a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>';
@@ -10294,12 +10308,12 @@ window.openProjCard=(id)=>{
   /* CATEGORIA: faixa que corta a ficha, com a barra roxa no canto (escolha do Gabriel) */
   const cat=(t,extra)=>`<div class="pc-cat"><h4>${esc(t)}</h4>${extra?`<span class="cnt">${extra}</span>`:''}</div>`;
   /* INFORMAÇÃO: rótulo pequeno e apagado, valor forte. Leitura e campo no mesmo lugar. */
-  const li=(rot,leitura,campo,vazio)=>`<div class="k">${rot}</div><div class="v${vazio?' vz':''}"><span class="leitura">${leitura}</span><span class="campo">${campo}</span></div>`;
+  const li=(rot,leitura,campo,vazio,fid)=>`<div class="k">${rot}</div><div class="v${vazio?' vz':''}${fid?' aberta':''}"${fid?` data-f="${fid}" onclick="pcInline(event,this)"`:''}><span class="leitura">${leitura}</span><span class="campo">${campo}</span></div>`;
   const pes=(nome)=>{ const n=String(nome||'').trim();
     return n?`<span style="display:inline-flex;align-items:center;gap:9px">${avatarDoNome(n,'lc-av')}${esc(n)}</span>`:'definir'; };
   const ck=drawCheck(), ckN=(it.checklist||[]).length, ckF=(it.checklist||[]).filter(x=>x.feito).length;
   const temTraf=nContas>0;
-  o.innerHTML=`<div class="modal big pc ver" id="pcModal">
+  o.innerHTML=`<div class="modal big pc ver" id="pcModal" data-pid="${it.id}">
     <div class="mhead pc-head">
       <div style="flex:1;min-width:0">
         <div class="pc-nome">${esc(it.nome)}${master?`<button class="pc-ren" title="Corrigir o nome do cliente" onclick="cliRenomear('${it.id}')">&#9998;</button>`:''}</div>
@@ -10314,8 +10328,8 @@ window.openProjCard=(id)=>{
 
     <div class="pc-icos">
       <button type="button" class="pc-ic wa${nZaps?' tem':''}" data-t="WhatsApp${nZaps?' · '+nZaps+' número'+(nZaps===1?'':'s'):' — nenhum número'}" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}${nZaps?`<span class="pc-bdg">${nZaps}</span>`:''}</button>
-      ${icoLk('ig','Instagram',igLk,I_IG)}
-      ${icoLk('dr','Drive',drLk,I_DR)}
+      ${icoLk('ig','Instagram',igLk,I_IG,'pc_insta')}
+      ${icoLk('dr','Drive',drLk,I_DR,'pc_drive')}
       <span class="pc-div"></span>
       <button type="button" class="pc-ic ads" data-t="Contas de anúncio${nContas?' · '+nContas:''}" onclick="cliIrPara('${it.id}','contas')">${I_ADS}</button>
       <button type="button" class="pc-ic" data-t="Acessos e senhas" onclick="cliIrPara('${it.id}','acessos')">${I_KEY}</button>
@@ -10333,18 +10347,18 @@ window.openProjCard=(id)=>{
 
       ${cat('Time')}
       <div class="pc-dl">
-        ${li('Gestor de tráfego', pes(it.responsavel), selPessoa('pc_resp',it.responsavel,'trafego'), !String(it.responsavel||'').trim())}
-        ${li('Gerente', pes(it.gerente), selPessoa('pc_ger',it.gerente,'gerente'), !String(it.gerente||'').trim())}
-        ${li('Squad', it.squad?sqEtiqueta(it.squad):'definir', `<input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s2=>`<option value="${esc(s2)}">`).join('')}</datalist>`, !String(it.squad||'').trim())}
+        ${li('Gestor de tráfego', pes(it.responsavel), selPessoa('pc_resp',it.responsavel,'trafego'), !String(it.responsavel||'').trim(), 'pc_resp')}
+        ${li('Gerente', pes(it.gerente), selPessoa('pc_ger',it.gerente,'gerente'), !String(it.gerente||'').trim(), 'pc_ger')}
+        ${li('Squad', it.squad?sqEtiqueta(it.squad):'definir', `<input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s2=>`<option value="${esc(s2)}">`).join('')}</datalist>`, !String(it.squad||'').trim(), 'pc_squad')}
       </div>
 
       ${cat('Negócio')}
       <div class="pc-dl">
-        ${li('Status', esc(ST_LABEL[PRJ_NORM(it.status)]||'—'), `<select id="pc_status">${optsSt}</select>`)}
-        ${li('Categoria', esc(CAT_LABEL[catDe(it)]||'—'), `<select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select>`)}
-        ${li('Nicho', esc(nichoDe(it,cli)||'definir'), `<select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select>`, !nichoDe(it,cli))}
-        ${li('Nível (NPS)', it.nivel?`<span class="tag st" style="color:${LC_NIVEL[it.nivel].cor};background:${LC_NIVEL[it.nivel].cor}1a">${LC_NIVEL[it.nivel].rot}</span>`:'definir', `<select id="pc_nivel"><option value="">—</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select>`, !it.nivel)}
-        ${li('Entregas', esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'definir'), `<input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Agente de IA">`, !(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)))}
+        ${li('Status', esc(ST_LABEL[PRJ_NORM(it.status)]||'—'), `<select id="pc_status">${optsSt}</select>`, false, 'pc_status')}
+        ${li('Categoria', esc(CAT_LABEL[catDe(it)]||'—'), `<select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select>`, false, 'pc_cat')}
+        ${li('Nicho', esc(nichoDe(it,cli)||'definir'), `<select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select>`, !nichoDe(it,cli), 'pc_nicho')}
+        ${li('Nível (NPS)', it.nivel?`<span class="tag st" style="color:${LC_NIVEL[it.nivel].cor};background:${LC_NIVEL[it.nivel].cor}1a">${LC_NIVEL[it.nivel].rot}</span>`:'definir', `<select id="pc_nivel"><option value="">—</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select>`, !it.nivel, 'pc_nivel')}
+        ${li('Entregas', esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'definir'), `<input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Agente de IA">`, !(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)), 'pc_produtos')}
       </div>
 
       ${cat('Contato')}
@@ -10352,20 +10366,20 @@ window.openProjCard=(id)=>{
         ${li('Dono', esc((cli&&cli.resp)||'definir'), `<input value="${esc((cli&&cli.resp)||'')}" disabled style="opacity:.6">`, !(cli&&cli.resp))}
         ${(()=>{ const zl=`<button type="button" class="zp-lk${nZaps?'':' vz'}" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}<span id="zpBtnN">${nZaps?(nZaps+' número'+(nZaps===1?'':'s')):'adicionar'}</span></button>`;
           return li('WhatsApp', zl, zl, !nZaps); })()}
-        ${li('Instagram', igLk?`<a href="${esc(igLk)}" target="_blank" rel="noopener">${esc(it.instagram||(cli&&cli.instagram))}</a>`:'definir', `<input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link">`, !igLk)}
-        ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk)}
+        ${li('Instagram', igLk?`<a href="${esc(igLk)}" target="_blank" rel="noopener">${esc(it.instagram||(cli&&cli.instagram))}</a>`:'definir', `<input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link">`, !igLk, 'pc_insta')}
+        ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk, 'pc_drive')}
       </div>
 
       ${temTraf?`${cat('Tráfego pago')}
       <div class="pc-dl">
         ${li('Orçamento', it.orcamento?(brl(it.orcamento)+' '+((it.orcPer||'semanal')==='diario'?'por dia':'por semana')):'definir',
-          `<div style="display:flex;gap:8px"><input type="number" step="0.01" min="0" id="pc_orc" value="${it.orcamento||''}" placeholder="Ex.: 350,00" style="flex:1"><select id="pc_orcper" style="max-width:120px"><option value="semanal"${(it.orcPer||'semanal')==='semanal'?' selected':''}>por semana</option><option value="diario"${it.orcPer==='diario'?' selected':''}>por dia</option></select></div>`, !it.orcamento)}
-        ${li('Avisar em', (it.avisoPct||20)+'% do orçamento', `<input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20">`)}
+          `<div style="display:flex;gap:8px"><input type="number" step="0.01" min="0" id="pc_orc" value="${it.orcamento||''}" placeholder="Ex.: 350,00" style="flex:1"><select id="pc_orcper" style="max-width:120px"><option value="semanal"${(it.orcPer||'semanal')==='semanal'?' selected':''}>por semana</option><option value="diario"${it.orcPer==='diario'?' selected':''}>por dia</option></select></div>`, !it.orcamento, 'pc_orc')}
+        ${li('Avisar em', (it.avisoPct||20)+'% do orçamento', `<input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20">`, false, 'pc_aviso')}
       </div>
       <p class="hint" style="margin:8px 0 0">Usado na <strong>Central da agência</strong> pra calcular quanto do saldo resta e quando avisar.</p>`:''}
 
       ${cat('Descrição')}
-      <div class="pc-txt"><span class="leitura">${it.notas?esc(it.notas):'<span style="color:var(--fraco)">sem descrição</span>'}</span><span class="campo"><textarea id="pc_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></span></div>
+      <div class="pc-txt aberta" data-f="pc_notas" onclick="pcInline(event,this)"><span class="leitura">${it.notas?esc(it.notas):'<span style="color:var(--fraco)">sem descrição</span>'}</span><span class="campo"><textarea id="pc_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></span></div>
 
       ${cat('Checklist', ckN?(ckF+' de '+ckN):'')}
       <div id="pcCheck">${ck}</div>
@@ -10382,13 +10396,10 @@ window.openProjCard=(id)=>{
       </div>`:''}`}
     </div>
     <div class="mfoot">
-      ${cliAba==='geral'?`<span class="pc-modo leitura">Somente leitura</span>
-      <span class="pc-modo campo">Editando — nada é salvo até você clicar</span>`:''}
+      ${cliAba==='geral'?`<span class="pc-modo">Clique em qualquer campo para editar — salva sozinho</span>`:''}
       <span style="flex:1"></span>
       <button class="btn secondary small mcancel">Fechar</button>
-      ${cliAba==='geral'?`<button class="btn small leitura" onclick="pcEditar(true)">Editar</button>
-      <button class="btn secondary small campo" onclick="pcEditar(false)">Cancelar</button>
-      <button class="btn small msave campo">Salvar alterações</button>`:''}
+      
     </div>
   </div>`;
   document.body.appendChild(o);
@@ -10412,6 +10423,79 @@ window.openProjCard=(id)=>{
 };
 /* Leitura x edição no card do cliente: o formulário existe sempre no DOM (o Salvar
    continua lendo os mesmos ids), o CSS só decide qual metade aparece. */
+/* Abre UM campo da ficha para edicao. Fechou o campo (blur, Enter ou troca de select),
+   grava na hora. Esc desiste sem gravar. */
+window.pcInline=(ev,el)=>{
+  if(!el) return;
+  if(ev&&ev.target&&ev.target.closest('a,button,input,select,textarea,.zp-lk')) return;
+  if(el.classList.contains('ed1')) return;
+  const mod=document.getElementById('pcModal'); if(!mod) return;
+  const pid=mod.dataset.pid;
+  mod.querySelectorAll('.ed1').forEach(x=>x.classList.remove('ed1'));
+  el.classList.add('ed1');
+  const campos=[].slice.call(el.querySelectorAll('.campo input,.campo select,.campo textarea'));
+  if(!campos.length){ el.classList.remove('ed1'); return; }
+  let feito=false;
+  const salvar=()=>{ if(feito) return; feito=true; el.classList.remove('ed1'); pcAplicar(pid); };
+  const sair=()=>setTimeout(()=>{ if(el.contains(document.activeElement)) return; salvar(); },0);
+  campos.forEach(c=>{
+    c.addEventListener('blur',sair);
+    if(c.tagName==='SELECT') c.addEventListener('change',()=>setTimeout(salvar,0));
+    c.addEventListener('keydown',(e)=>{
+      if(e.key==='Enter'&&c.tagName!=='TEXTAREA'){ e.preventDefault(); salvar(); }
+      if(e.key==='Escape'){ e.preventDefault(); feito=true; el.classList.remove('ed1'); }
+    });
+  });
+  try{ campos[0].focus(); if(campos[0].select) campos[0].select(); }catch(_){}
+  /* select abre a lista no mesmo clique — um clique so, como no ClickUp */
+  if(campos[0].tagName==='SELECT'){ try{ campos[0].showPicker(); }catch(_){} }
+};
+/* Atalho dos icones do topo: rola ate o campo vazio e ja abre para digitar. */
+window.pcAbrirCampo=(fid)=>{
+  const el=document.querySelector('#pcModal [data-f="'+fid+'"]'); if(!el) return;
+  try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){}
+  pcInline(null,el);
+};
+/* Grava a ficha inteira a partir do que esta no DOM e redesenha o card no mesmo ponto
+   da rolagem. Campo obrigatorio em falta vira aviso, nao trava o salvamento. */
+window.pcAplicar=async (pid)=>{
+  const it=DB.projetos.find(x=>x.id===pid); if(!it) return;
+  const cli=it.clienteId?DB.clientes.find(c=>c.id===it.clienteId):null;
+  const g=(id)=>{ const e=document.getElementById(id); return e?String(e.value):null; };
+  const mb=document.querySelector('#pcModal .mbody'); const sc=mb?mb.scrollTop:0;
+  /* se o clique ja abriu outro campo, ele volta aberto depois do redesenho */
+  const _ab=document.querySelector('#pcModal .ed1'); const _abF=_ab?_ab.getAttribute('data-f'):'';
+  if(g('pc_resp')!==null) it.responsavel=g('pc_resp').trim();
+  if(g('pc_ger')!==null) it.gerente=g('pc_ger').trim();
+  if(g('pc_squad')!==null) it.squad=g('pc_squad').trim();
+  if(g('pc_status')!==null) it.status=g('pc_status');
+  if(g('pc_cat')!==null) it.categoria=g('pc_cat');
+  if(g('pc_nicho')!==null) it.nicho=g('pc_nicho');
+  if(g('pc_nivel')!==null) it.nivel=g('pc_nivel');
+  if(g('pc_produtos')!==null) it.produtos=g('pc_produtos').trim();
+  if(g('pc_insta')!==null) it.instagram=g('pc_insta').trim();
+  if(g('pc_drive')!==null) it.drive=g('pc_drive').trim();
+  if(g('pc_notas')!==null) it.notas=g('pc_notas').trim();
+  if(document.getElementById('pc_orc')){
+    it.orcamento=parseFloat(String(g('pc_orc')).replace(',','.'))||0;
+    it.orcPer=g('pc_orcper')||'semanal';
+    it.avisoPct=Math.min(90,Math.max(1,parseInt(g('pc_aviso'),10)||20));
+  }
+  if(cli){ if(it.nicho&&currentUser&&currentUser.role==='master') cli.nicho=it.nicho;
+    cli.produtos=it.produtos; if(it.produtos) cli.servico=it.produtos;
+    cli.instagram=it.instagram; cli.drive=it.drive; }
+  await saveDB();
+  const catIA=(it.categoria==='ia'||it.categoria==='outro');
+  const falta=[(!String(it.responsavel||'').trim()&&!catIA)?'gestor de tráfego':'',
+               !String(it.gerente||'').trim()?'gerente':'',
+               !String(it.squad||'').trim()?'squad':''].filter(Boolean);
+  try{ render(currentView); }catch(_){}
+  const ov=document.querySelector('.overlay'); if(ov) ov.remove();
+  openProjCard(pid);
+  const mb2=document.querySelector('#pcModal .mbody'); if(mb2) mb2.scrollTop=sc;
+  if(_abF){ const el2=document.querySelector('#pcModal [data-f="'+_abF+'"]'); if(el2) pcInline(null,el2); }
+  toast(falta.length?('Salvo — ainda falta: '+falta.join(', ')+'.'):'Salvo.');
+};
 window.pcEditar=(ligar)=>{ const el=document.getElementById('pcModal'); if(!el) return;
   el.classList.toggle('ed',!!ligar); el.classList.toggle('ver',!ligar);
   if(ligar){ const f=el.querySelector('.pc-dl .campo select,.pc-dl .campo input'); if(f) try{ f.focus(); }catch(_){} } };
