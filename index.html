@@ -9224,6 +9224,29 @@ function fchBloco(titulo,total,itens,sub,aberto){
     <div class="fch-corpo">${itens.map(([a,b,v])=>
       `<div class="fch-li"><span class="fch-a">${esc(a)}</span><span class="fch-b">${esc(b)}</span><span class="fch-v">${brl(v)}</span></div>`).join('')}</div></details>`;
 }
+function fchSaldoMes(ENT,SAIU,entGer,saiGer){
+  const SALDO=ENT-SAIU, ok=SALDO>=0;
+  const gs=Array.from(new Set(Object.keys(entGer||{}).concat(Object.keys(saiGer||{}))))
+    .sort((a,b)=>((entGer[b]||0)-(saiGer[b]||0))-((entGer[a]||0)-(saiGer[a]||0)));
+  return `<h2 style="font-size:16px;margin:26px 0 10px">⚖️ Saldo do mês — entrou × saiu</h2>
+   <div class="tablewrap"><table><tbody>
+     <tr><td>Entrou <span style="color:var(--muted);font-size:12px">mensalidade contratada</span></td>
+         <td class="money" style="text-align:right;color:var(--ok)">+ ${brl(ENT)}</td></tr>
+     <tr><td>Saiu <span style="color:var(--muted);font-size:12px">churn — mensalidade que sumiu</span></td>
+         <td class="money" style="text-align:right;color:var(--danger)">− ${brl(SAIU)}</td></tr>
+     <tr><td><strong>Saldo da carteira recorrente</strong></td>
+         <td class="money" style="text-align:right"><strong>${ok?'+ ':'− '}${brl(Math.abs(SALDO))}</strong></td></tr>
+   </tbody></table></div>
+   <div style="margin-top:10px;padding:13px 16px;border-radius:11px;font-weight:700;line-height:1.5;
+     background:${ok?'rgba(63,207,142,.10)':'rgba(239,91,107,.10)'};border:1px solid ${ok?'var(--ok)':'var(--danger)'};
+     color:${ok?'var(--ok)':'var(--danger)'}">${ok?'✅ Mês POSITIVO':'🔻 Mês NEGATIVO'} — a carteira recorrente
+     ${ok?'cresceu':'encolheu'} ${brl(Math.abs(SALDO))}${SAIU?'. Para cada real que saiu, entraram '+(ENT/SAIU).toFixed(2).replace('.',','):''}.</div>
+   ${gs.length?'<div class="tablewrap" style="margin-top:10px"><table><tbody>'+gs.map(g=>{
+     const e=entGer[g]||0, sa=saiGer[g]||0, d=e-sa;
+     return `<tr><td>${esc(g)} <span style="color:var(--muted);font-size:12px">entrou ${brl(e)} · saiu ${brl(sa)}</span></td>
+       <td class="money" style="text-align:right;color:${d>=0?'var(--ok)':'var(--danger)'}">${d>=0?'+ ':'− '}${brl(Math.abs(d))}</td></tr>`;
+   }).join('')+'</tbody></table></div>':''}`;
+}
 function renderFechamentoMes(c){
   const comp=fechComp;
   const fin=DB.financeiro.filter(x=>fchData(x)===comp);
@@ -9361,6 +9384,32 @@ function renderFechamentoMes(c){
          its.length+' cliente'+(its.length>1?'s':'')+(base?' · '+(p/base*100).toFixed(1).replace('.',',')+'% da carteira':''), true); }).join('')+
        '<div class="fch-tot"><span>Total perdido no mês</span><span>'+qtd+' clientes</span><span>'+brl(tot)+'</span></div>'; })()}
    <p class="hint">Downsell (cliente que reduziu a mensalidade sem sair) ainda não é registrado no sistema, então não entra nesta conta.</p>
+
+   <h2 style="font-size:16px;margin:26px 0 10px;color:var(--ok)">📈 Entradas do mês — clientes que chegaram</h2>
+   ${(()=>{ /* cliente novo = comecou nesta competencia e nunca foi cobrado antes.
+      So o campo inicio nao basta: ha cliente antigo com inicio preenchido errado. */
+     const rall=DB.recebimentos||[], antes={}, prim={};
+     rall.forEach(x=>{ const c=x.comp, i=x.clienteId; if(!c||!i) return;
+       if(c<comp) antes[i]=1; if(!prim[i]||c<prim[i]) prim[i]=c; });
+     const novos=(DB.clientes||[]).filter(x=>String(x.inicio||'').slice(0,7)===comp && !antes[x.id]);
+     const SAIU=somaSt('churn')+somaSt('churnpago');
+     if(!novos.length) return '<div class="hint">Nenhum cliente novo nesta competência.</div>'+
+       fchSaldoMes(0,SAIU,{},{});
+     const pg={}; novos.forEach(x=>{ const g=gerCli[x.id]||'sem gerente'; (pg[g]=pg[g]||[]).push(x); });
+     const ENT=novos.reduce((s,x)=>s+fchN(x.valor),0);
+     const entGer={}; Object.entries(pg).forEach(([g,its])=>entGer[g]=its.reduce((s,x)=>s+fchN(x.valor),0));
+     const saiGer={}; ['churn','churnpago'].forEach(k=>(porSt[k]||[]).forEach(x=>{
+       const g=gerCli[x.clienteId]||'sem gerente'; saiGer[g]=(saiGer[g]||0)+fchN(x.valor); }));
+     return '<p class="hint">Todo cliente que começou no mês, pelo gerente que ficou com ele. O valor é a <strong>mensalidade contratada</strong> — '+
+       'é ela que se compara com o churn, porque os dois são receita recorrente.</p>'+
+       Object.entries(pg).sort((a,b)=>entGer[b[0]]-entGer[a[0]]).map(([g,its])=>
+         fchBloco(g, entGer[g], its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.nome,
+           (String(x.fim||'').slice(0,7)===comp ? 'entrou e saiu no mesmo mês'
+            : (prim[x.id]&&prim[x.id]>comp ? '1ª cobrança só em '+prim[x.id].slice(5,7)+'/'+prim[x.id].slice(0,4)
+               : 'vence dia '+(x.diaVenc||'—')))+'  ·  '+String(x.servico||'').slice(0,40), x.valor]),
+           its.length+' cliente'+(its.length>1?'s':''), true)).join('')+
+       '<div class="fch-tot"><span>Mensalidade nova do mês</span><span>'+novos.length+' clientes</span><span style="color:var(--ok)">+ '+brl(ENT)+'</span></div>'+
+       fchSaldoMes(ENT,SAIU,entGer,saiGer); })()}
 
    <h2 style="font-size:16px;margin:24px 0 10px">💰 Distribuição do lucro</h2>
    <div class="tablewrap"><table><tbody>
