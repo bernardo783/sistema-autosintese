@@ -9290,10 +9290,15 @@ function renderFechamentoMes(c){
   const ROTSt={churn:'Saiu devendo — não pagou nem a última',churnpago:'Saiu, mas pagou o último mês',
     carencia:'Carência — para de faturar por um tempo',inadimplente:'Inadimplente',areceber:'A receber'};
 
-  /* rateio: 20% caixa + 10% Arthur + 70% socios, todos sobre o lucro cheio.
-     Os tres pedacos somam 100; a sobra de centavo do /3 fica no caixa. */
+  /* rateio: 20% caixa + 10% Arthur + 70% socios, todos sobre o mesmo numero.
+     Os tres pedacos somam 100; a sobra de centavo do /3 fica no caixa.
+     A base nao e o lucro de competencia e sim o que ja virou dinheiro: receita
+     reconhecida e ainda nao recebida fica de fora, porque nao da pra distribuir
+     o que nao esta na mao. */
   const dec=(v)=>Math.round(v*100)/100;
-  const LUCRO=dec(BASE-DESPLIQ);
+  const LUCROC=dec(BASE-DESPLIQ);
+  const TAR=dec(aReceber.reduce((s,x)=>s+fchN(x.valor),0));
+  const LUCRO=dec(LUCROC-TAR);
   const art=dec(LUCRO*0.10), cota=dec(dec(LUCRO*0.70)/3);
   const caixa=dec(LUCRO-art-cota*3);
 
@@ -9415,7 +9420,9 @@ function renderFechamentoMes(c){
    <div class="tablewrap"><table><tbody>
      <tr><td>Receita de clientes <span style="color:var(--muted);font-size:12px">sem o repasse</span></td><td class="money" style="text-align:right">${brl(BASE)}</td></tr>
      <tr><td>Despesa líquida <span style="color:var(--muted);font-size:12px">já abatida do repasse</span></td><td class="money" style="text-align:right">− ${brl(DESPLIQ)}</td></tr>
-     <tr><td><strong>Base do rateio</strong></td><td class="money" style="text-align:right"><strong>${brl(BASE-DESPLIQ)}</strong></td></tr>
+     <tr><td><strong>Lucro de competência</strong></td><td class="money" style="text-align:right"><strong>${brl(LUCROC)}</strong></td></tr>
+     <tr><td>Receita reconhecida que ainda não caiu <span style="color:var(--muted);font-size:12px">${aReceber.length?esc(aReceber.map(x=>x.descricao).join('; ')):'—'}</span></td><td class="money" style="text-align:right;color:var(--danger)">− ${brl(TAR)}</td></tr>
+     <tr><td><strong>Base do rateio</strong> <span style="color:var(--muted);font-size:12px">só o que já é dinheiro em caixa</span></td><td class="money" style="text-align:right"><strong>${brl(LUCRO)}</strong></td></tr>
      <tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20% do lucro</span></td><td class="money" style="text-align:right">${brl(caixa)}</td></tr>
      <tr><td>Arthur <span style="color:var(--muted);font-size:12px">10% do lucro</span></td><td class="money" style="text-align:right">${brl(art)}</td></tr>
      <tr><td>José Carlos <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
@@ -9423,7 +9430,45 @@ function renderFechamentoMes(c){
      <tr><td>Bernardo <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
    </tbody></table></div>
    <p class="hint">O lucro se divide em <strong>20% caixa + 10% Arthur + 70% sócios</strong>, todos sobre o mesmo número — as três fatias somam 100%.
-Distribuição de lucro não é despesa e não entra no Financeiro: o honorário de cada sócio já foi descontado como custo antes daqui.</p>`}`;
+Distribuição de lucro não é despesa e não entra no Financeiro: o honorário de cada sócio já foi descontado como custo antes daqui.</p>
+
+   <h2 style="font-size:16px;margin:26px 0 10px;color:var(--ok)">⏳ O que ainda vai entrar — e quanto cada um leva quando entrar</h2>
+   ${(()=>{ /* recebiveis: reconhecido e nao recebido, inadimplente, e adiantamento a ressarcir.
+      Para cada um, mostra o destino do dinheiro no dia em que cair. */
+     const PEND=[];
+     aReceber.forEach(x=>{ const d=gerDe(x), r=rid[String(x.id||'').replace(/^rcs?_/,'')];
+       PEND.push({nome:String(x.descricao).replace('Restante: ','').split(' — ')[0],
+         quando:'reconhecido no mês · vence '+fchDT((r&&r.venc)||x.data), v:fchN(x.valor), g:d.g}); });
+     (porSt.inadimplente||[]).forEach(x=>PEND.push({nome:x.nome,
+       quando:'inadimplente · vencia '+fchDT(x.venc), v:fchN(x.valor), g:gerCli[x.clienteId]||''}));
+     desp.filter(x=>/ressarc|não ressarcida|nao ressarcida/i.test(String(x.descricao))).forEach(x=>
+       PEND.push({nome:String(x.descricao), quando:'adiantamento a ressarcir · já saiu do caixa', v:fchN(x.valor), g:''}));
+     if(!PEND.length) return '<div class="hint">Nada pendente: tudo que foi reconhecido no mês já entrou.</div>';
+     let TP=0,TC=0,TX=0,TA=0,TS=0; const comGer={};
+     const linhas=PEND.sort((a,b)=>b.v-a.v).map(p=>{
+       const com=COMISSAO.some(k=>(p.g||'').includes(k))?dec(p.v*0.10):0;
+       const luc=p.v-com, cx=dec(luc*0.20), ar=dec(luc*0.10), so=dec(dec(luc*0.70)/3);
+       TP+=p.v; TC+=com; TX+=cx; TA+=ar; TS+=so;
+       if(com) comGer[p.g]=(comGer[p.g]||0)+com;
+       const its=[];
+       if(com) its.push(['Comissão do gerente — '+p.g,'10% sobre o valor recebido',com]);
+       its.push(['Caixa da empresa','20% do que sobrar',cx],['Arthur','10% do que sobrar',ar],
+                ['José Carlos','⅓ dos 70%',so],['Gabriel','⅓ dos 70%',so],['Bernardo','⅓ dos 70%',so]);
+       return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''), true);
+     }).join('');
+     return '<p class="hint">Dinheiro que a empresa já reconheceu ou já desembolsou e <strong>ainda não recebeu</strong>. Não está no rateio acima, '+
+       'justamente porque não está na mão. Abra cada linha para ver o destino do dinheiro no dia em que ele cair: primeiro sai a '+
+       '<strong>comissão de 10% do gerente</strong> daquele cliente, e só o que sobra vira lucro e se divide em 20/10/70.</p>'+
+       linhas+
+       '<div class="tablewrap" style="margin-top:10px"><table><tbody>'+
+       '<tr><td><strong>Total pendente</strong> <span style="color:var(--muted);font-size:12px">'+PEND.length+' itens</span></td><td class="money" style="text-align:right"><strong>'+brl(TP)+'</strong></td></tr>'+
+       '<tr><td>Comissão dos gerentes <span style="color:var(--muted);font-size:12px">'+(Object.keys(comGer).length?esc(Object.entries(comGer).map(([g,v])=>g+' '+brl(v)).join(', ')):'nenhum item comissionado')+'</span></td><td class="money" style="text-align:right;color:var(--danger)">− '+brl(TC)+'</td></tr>'+
+       '<tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20%</span></td><td class="money" style="text-align:right">'+brl(TX)+'</td></tr>'+
+       '<tr><td>Arthur <span style="color:var(--muted);font-size:12px">10%</span></td><td class="money" style="text-align:right">'+brl(TA)+'</td></tr>'+
+       '<tr><td><strong>Cada sócio</strong> <span style="color:var(--muted);font-size:12px">José Carlos, Gabriel e Bernardo · ⅓ dos 70%</span></td><td class="money" style="text-align:right"><strong>'+brl(TS)+'</strong></td></tr>'+
+       '</tbody></table></div>'+
+       '<p class="hint">Se tudo isso entrar, cada sócio recebe '+brl(TS)+' a mais — mas só no mês em que o dinheiro cair, porque é aí que ele vira caixa. '+
+       'Ressarcimento de adiantamento não gera comissão: não é receita de cliente, é a volta de dinheiro que a empresa pôs na frente, e entra inteiro no lucro.</p>'; })()}`}`;
 }
 function renderFinanceiro(c){
   c.innerHTML=`
