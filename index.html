@@ -9267,9 +9267,12 @@ function renderFechamentoMes(c){
   const ROTSt={churn:'Saiu devendo — não pagou nem a última',churnpago:'Saiu, mas pagou o último mês',
     carencia:'Carência — para de faturar por um tempo',inadimplente:'Inadimplente',areceber:'A receber'};
 
+  /* rateio: 20% caixa + 10% Arthur + 70% socios, todos sobre o lucro cheio.
+     Os tres pedacos somam 100; a sobra de centavo do /3 fica no caixa. */
   const dec=(v)=>Math.round(v*100)/100;
-  const caixa=dec(BASE-DESPLIQ)*0.2, r1=dec(BASE-DESPLIQ)-dec(caixa);
-  const art=dec(r1*0.1), r2=dec(r1)-dec(art), cota=dec(r2/3);
+  const LUCRO=dec(BASE-DESPLIQ);
+  const art=dec(LUCRO*0.10), cota=dec(dec(LUCRO*0.70)/3);
+  const caixa=dec(LUCRO-art-cota*3);
 
   c.innerHTML=`
    <div class="page-head">
@@ -9358,13 +9361,14 @@ function renderFechamentoMes(c){
      <tr><td>Receita de clientes <span style="color:var(--muted);font-size:12px">sem o repasse</span></td><td class="money" style="text-align:right">${brl(BASE)}</td></tr>
      <tr><td>Despesa líquida <span style="color:var(--muted);font-size:12px">já abatida do repasse</span></td><td class="money" style="text-align:right">− ${brl(DESPLIQ)}</td></tr>
      <tr><td><strong>Base do rateio</strong></td><td class="money" style="text-align:right"><strong>${brl(BASE-DESPLIQ)}</strong></td></tr>
-     <tr><td>Caixa da empresa — 20%</td><td class="money" style="text-align:right">${brl(BASE-DESPLIQ-dec(r1))}</td></tr>
-     <tr><td>Arthur — 10% do que sobra</td><td class="money" style="text-align:right">${brl(art)}</td></tr>
-     <tr><td>José Carlos — ⅓ do restante</td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
-     <tr><td>Gabriel — ⅓ do restante</td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
-     <tr><td>Bernardo — ⅓ do restante</td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
+     <tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20% do lucro</span></td><td class="money" style="text-align:right">${brl(caixa)}</td></tr>
+     <tr><td>Arthur <span style="color:var(--muted);font-size:12px">10% do lucro</span></td><td class="money" style="text-align:right">${brl(art)}</td></tr>
+     <tr><td>José Carlos <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
+     <tr><td>Gabriel <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
+     <tr><td>Bernardo <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
    </tbody></table></div>
-   <p class="hint">Distribuição de lucro não é despesa e não entra no Financeiro — o honorário de cada sócio já foi descontado como custo antes deste número.</p>`}`;
+   <p class="hint">O lucro se divide em <strong>20% caixa + 10% Arthur + 70% sócios</strong>, todos sobre o mesmo número — as três fatias somam 100%.
+Distribuição de lucro não é despesa e não entra no Financeiro: o honorário de cada sócio já foi descontado como custo antes daqui.</p>`}`;
 }
 function renderFinanceiro(c){
   c.innerHTML=`
