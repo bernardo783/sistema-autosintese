@@ -11776,7 +11776,7 @@ function renderFolha(c){
      const pagoSem=ps.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
      return `<tr>
       <td><strong>${esc(f.nome)}</strong>${f.dp?`<div style="font-size:11px;color:var(--muted)">${esc(f.dp)}</div>`:''}</td>
-      <td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}</td>
+      <td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.titular?`<div style="color:var(--muted);font-size:12px">${esc(f.titular)}</div>`:''}</td>
       <td class="money" style="text-align:right">${brl(f.valor)}</td>
       <td>${ps.map(p=>`<label style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;cursor:pointer;font-size:12.5px;color:${p.pago?'var(--ok)':'var(--muted)'}"><input type="checkbox" ${p.pago?'checked':''} onclick="fpToggle('${p.id}')" style="accent-color:#7c3aed;width:15px;height:15px;cursor:pointer">${fmtDate(p.venc).slice(0,5)}</label>`).join('')}</td>
       <td class="money" style="text-align:right">${brl(pagoSem)} <span style="color:var(--muted);font-size:11px">${ps.filter(p=>p.pago).length}/${ps.length}</span></td>
@@ -11785,7 +11785,7 @@ function renderFolha(c){
    <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>Escritório / DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
    <tbody>${(()=>{ const g=agrupar(fixos,f=>(f.esc||'').trim());
      const linha=(f)=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.esc?`<span class="tag st">🏢 ${esc(f.esc)}</span>`:(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:var(--info)">📅 próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
+     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'—'}</td><td>${esc(f.pix)||'—'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.titular?`<div style="color:var(--muted);font-size:12px">${esc(f.titular)}</div>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.esc?`<span class="tag st">🏢 ${esc(f.esc)}</span>`:(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'—')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:var(--info)">📅 próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
      <td class="money" style="text-align:right">${brl(f.valor)}</td>
      <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
      <td><div class="rowact">
@@ -11914,6 +11914,7 @@ window.openFixoModal=(id)=>{
     <div class="row2">
       <div class="field"><label>Chave Pix</label><input id="m_pix" value="${esc(it.pix)}" placeholder="CPF, telefone, email ou CNPJ"></div>
       <div class="field"><label>Banco / Instituição</label><input id="m_banco" value="${esc(it.banco)}" placeholder="Ex: NuBank"></div>
+      <div class="field"><label>Titular da chave Pix</label><input id="m_titular" value="${esc(it.titular||'')}" placeholder="Nome de quem recebe"></div>
     </div>
     <div class="row2">
       <div class="field"><label>Escritório</label><input id="m_esc" value="${esc(it.esc||'')}" placeholder="vazio = pagamento de equipe">
@@ -11938,7 +11939,7 @@ window.openFixoModal=(id)=>{
     </div>
     <div class="field"><label>Ativo (entra na geração do mês)</label><select id="m_ativo"><option value="1"${it.ativo?' selected':''}>Sim</option><option value="0"${!it.ativo?' selected':''}>Não</option></select></div>`,
     async ()=>{
-      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),banco:$('#m_banco').value.trim(),dp:(($('#m_dp')||{}).value||'').trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,posPago:$('#m_pos').value==='1',inicioComp:$('#m_inicioComp').value||null,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1',proxData:$('#m_prox').value||null,recorrente:$('#m_rec').checked};
+      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),titular:((($('#m_titular')||{}).value)||'').trim(),banco:$('#m_banco').value.trim(),dp:(($('#m_dp')||{}).value||'').trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,posPago:$('#m_pos').value==='1',inicioComp:$('#m_inicioComp').value||null,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1',proxData:$('#m_prox').value||null,recorrente:$('#m_rec').checked};
       if(v.proxData){ const pd=new Date(v.proxData+'T12:00:00'); v.dia=Math.min(31,Math.max(1,pd.getDate())); v.diaSemana=pd.getDay(); v.inicioComp=v.proxData.slice(0,7); }
       if(!v.nome){ toast('Informe o nome.'); return false; }
       /* o campo aparece sempre agora: preenchido = pagamento de escritorio, vazio = equipe */
