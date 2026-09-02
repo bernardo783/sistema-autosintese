@@ -12556,6 +12556,10 @@ window.mpTarCard=(id)=>{
 };
 function mpTcPintar(){
   const t=mpTcT(); if(!t) return;
+  /* O contador 0/4 vive na linha da lista, atras do modal. Marcar um item so
+     repintava o cartao, entao a contagem parecia travada ate salvar ou trocar
+     de dia. Como o dado ja esta em memoria, repintar a lista aqui e instantaneo. */
+  mpPintar();
   const ck=$('#mtc_ck');
   if(ck){ const L=Array.isArray(t.checklist)?t.checklist:[];
     ck.innerHTML=L.map((i,ix)=>'<div class="mp-trw'+(i&&i.ok?' done':'')+'"><button class="o'+(i&&i.ok?' on':'')+'" onclick="mpTcCkT('+ix+')">'+svgIco('check',11)+'</button><span class="tt">'+esc((i&&i.t)||'')+'</span><button class="x" onclick="mpTcCkDel('+ix+')">×</button></div>').join(''); }
