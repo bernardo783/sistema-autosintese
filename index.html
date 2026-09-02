@@ -5234,10 +5234,46 @@ function ckPintar(){
   setTimeout(()=>{ if(!window.__tkmAgendar) return;
     el.querySelectorAll('input').forEach(i=>{ if(i.dataset.auto) return; i.dataset.auto='1';
       i.addEventListener(i.type==='checkbox'?'change':'input',()=>window.__tkmAgendar(i.type==='checkbox')); }); },0);
-  el.innerHTML=TK_CK.map((x,i)=>`<div class="ck-l"><input type="checkbox" id="ck_k${i}" ${x.ok?'checked':''} onchange="ckLer();ckPintar()"><input class="ck-t${x.ok?' ok':''}" id="ck_t${i}" value="${esc(x.t)}" placeholder="o que precisa ser feito"><button class="iconbtn del" title="Remover" onclick="ckDel(${i})">✕</button></div>`).join('')||'<div class="hint" style="margin:0">nenhum item ainda</div>';
+  el.innerHTML=TK_CK.map((x,i)=>`<div class="ck-l"><input type="checkbox" id="ck_k${i}" ${x.ok?'checked':''} onchange="ckLer();ckPintar()"><input class="ck-t${x.ok?' ok':''}" id="ck_t${i}" value="${esc(x.t)}" placeholder="o que precisa ser feito" onkeydown="ckTecla(event,${i})" onpaste="ckColar(event,${i})"><button class="iconbtn del" title="Remover" onclick="ckDel(${i})">✕</button></div>`).join('')||'<div class="hint" style="margin:0">nenhum item ainda — clique em + e vá dando Enter; ou cole uma lista inteira que ela vira um item por linha</div>';
   const p=document.getElementById('ck_prog'); if(p){ const f=TK_CK.filter(x=>x.ok).length; p.textContent=TK_CK.length?(f+'/'+TK_CK.length):''; }
 }
 window.ckAdd=()=>{ ckLer(); TK_CK.push({t:'',ok:false}); ckPintar(); const e=document.getElementById('ck_t'+(TK_CK.length-1)); if(e) e.focus(); };
+/* Checklist estilo ClickUp: Enter cria o proximo item, Backspace no vazio apaga, setas navegam e colar lista quebra linha a linha. */
+const ckFoco=(i,fim)=>{ const e=document.getElementById('ck_t'+i); if(!e) return; e.focus(); if(fim){ try{ e.setSelectionRange(e.value.length,e.value.length); }catch(_){} } };
+window.ckTecla=(ev,i)=>{
+  if(ev.key==='Enter'){
+    ev.preventDefault(); ckLer();
+    TK_CK.splice(i+1,0,{t:'',ok:false});
+    ckPintar(); ckFoco(i+1,false);
+    if(window.__tkmAgendar) window.__tkmAgendar(true);
+    return;
+  }
+  if(ev.key==='Backspace' && !String(ev.target.value||'').length && TK_CK.length>1){
+    ev.preventDefault(); ckLer();
+    TK_CK.splice(i,1); ckPintar(); ckFoco(Math.max(0,i-1),true);
+    if(window.__tkmAgendar) window.__tkmAgendar(true);
+    return;
+  }
+  if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){
+    const alvo=document.getElementById('ck_t'+(i+(ev.key==='ArrowDown'?1:-1)));
+    if(alvo){ ev.preventDefault(); alvo.focus(); }
+  }
+};
+window.ckColar=(ev,i)=>{
+  let txt='';
+  try{ txt=((ev.clipboardData||window.clipboardData).getData('text'))||''; }catch(_){ return; }
+  if(!/[\r\n]/.test(txt)) return;
+  ev.preventDefault(); ckLer();
+  const linhas=txt.split(/\r?\n/).map(s=>s.replace(/^\s*(?:[-*•·–—]|\[[ xX]\]|\d+[.)])\s*/,'').trim()).filter(Boolean);
+  if(!linhas.length) return;
+  const tinha=!!String((TK_CK[i]&&TK_CK[i].t)||'').trim();
+  const novos=linhas.map(t=>({t:t,ok:false}));
+  if(tinha) TK_CK.splice.apply(TK_CK,[i+1,0].concat(novos));
+  else TK_CK.splice.apply(TK_CK,[i,1].concat(novos));
+  ckPintar(); ckFoco((tinha?i:i-1)+novos.length,true);
+  if(window.__tkmAgendar) window.__tkmAgendar(true);
+  toast(novos.length+(novos.length===1?' item adicionado.':' itens adicionados.'));
+};
 window.ckDel=(i)=>{ ckLer(); TK_CK.splice(i,1); ckPintar(); if(window.__tkmAgendar) window.__tkmAgendar(true); };
 const ckResumo=(t)=>{ const c=Array.isArray(t.checklist)?t.checklist:[]; return c.length?('☑ '+c.filter(x=>x&&x.ok).length+'/'+c.length):''; };
 const LC_MAPA={'0bf15583-b686-4287-896f-36ff97fa8f80':'novo','4486322a-cb8f-4c01-bcac-8efcf87a5a9d':'novo','52b897a0-a225-4030-b886-c51344b2204c':'onboarding','3678558d-9582-43a4-8d81-951e9a8959cf':'onboarding','32a9a89c-92b7-494c-ba40-0a5671d80b78':'ativo','d3f281df-f769-4ab4-b37e-7d3f59523a57':'ativo','6f912d13-9479-4ee3-aaf0-d5f54d7d9b01':'ativo','a5613240-68a7-40ec-a2a7-9bb46b135177':'churn'};
