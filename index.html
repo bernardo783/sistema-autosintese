@@ -9447,8 +9447,17 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
      aReceber.forEach(x=>{ const d=gerDe(x), r=rid[String(x.id||'').replace(/^rcs?_/,'')];
        PEND.push({nome:String(x.descricao).replace('Restante: ','').split(' — ')[0],
          quando:'reconhecido no mês · vence '+fchDT((r&&r.venc)||x.data), v:fchN(x.valor), g:d.g, rateia:true}); });
-     (porSt.inadimplente||[]).forEach(x=>PEND.push({nome:x.nome,
-       quando:'inadimplente · vencia '+fchDT(x.venc), v:fchN(x.valor), g:gerCli[x.clienteId]||'', rateia:true}));
+     /* cobraveis: mensalidade em aberto que a empresa ainda persegue, inclusive de cliente
+        que ja saiu. Vem de qualquer competencia, nao so do mes escolhido. aCobrar guarda o
+        saldo quando parte ja foi paga. Dedupe por id para nao repetir o inadimplente do mes. */
+     const vistos=new Set();
+     const addCob=(x,rot)=>{ if(vistos.has(x.id)) return; vistos.add(x.id);
+       PEND.push({nome:x.nome, quando:rot, v:fchN(x.aCobrar!=null?x.aCobrar:x.valor),
+         g:gerCli[x.clienteId]||'', rateia:true}); };
+     (DB.recebimentos||[]).filter(x=>x.cobravel).forEach(x=>addCob(x,
+       (x.status==='churn'?'saiu, mas segue em cobrança':(x.status==='sinal'?'pagou parte, falta o resto':'em aberto'))
+       +' · competência '+fmtComp(x.comp)));
+     (porSt.inadimplente||[]).forEach(x=>addCob(x,'inadimplente · vencia '+fchDT(x.venc)));
      desp.filter(x=>/ressarc|não ressarcida|nao ressarcida/i.test(String(x.descricao))).forEach(x=>
        PEND.push({nome:String(x.descricao), quando:'já reduziu o lucro deste mês · na volta é estorno', v:fchN(x.valor), g:'', rateia:true}));
      (DB.financeiro||[]).filter(x=>x.tipo==='recebivel').forEach(x=>
