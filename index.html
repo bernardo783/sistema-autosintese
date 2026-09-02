@@ -1962,6 +1962,25 @@
   .modal{border:1px solid rgba(168,85,247,.35);box-shadow:0 30px 80px rgba(0,0,0,.6)}
   #toast{background:linear-gradient(135deg,#232327,#1b1b1e);border:1px solid rgba(168,85,247,.45)}
   .fin-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .fch-g{background:var(--panel);border:1px solid var(--border);border-radius:11px;margin-bottom:7px;overflow:hidden}
+  .fch-g[open]{border-color:var(--brand)}
+  .fch-g summary{display:flex;align-items:center;gap:10px;padding:12px 15px;cursor:pointer;list-style:none;user-select:none}
+  .fch-g summary::-webkit-details-marker{display:none}
+  .fch-g summary:hover{background:var(--panel2)}
+  .fch-cv{width:0;height:0;border-left:6px solid var(--brand2);border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;transition:transform .16s;flex:none}
+  .fch-g[open] .fch-cv{transform:rotate(90deg)}
+  .fch-t{font-weight:700;flex:1}
+  .fch-s{color:var(--muted);font-size:12px;white-space:nowrap}
+  .fch-tv{font-weight:800;min-width:118px;text-align:right;font-variant-numeric:tabular-nums}
+  .fch-corpo{border-top:1px solid var(--border);padding:3px 0}
+  .fch-li{display:flex;align-items:center;gap:10px;padding:7px 15px 7px 31px;font-size:13px;border-bottom:1px solid var(--panel2)}
+  .fch-li:last-child{border-bottom:0}
+  .fch-li:hover{background:var(--panel2)}
+  .fch-a{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fch-b{color:var(--muted);font-size:11.5px;white-space:nowrap}
+  .fch-v{min-width:108px;text-align:right;font-variant-numeric:tabular-nums}
+  @media(max-width:620px){.fch-b{display:none}}
+
   .ftab{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:700;transition:all .15s ease}
   .ftab:hover{color:var(--txt);border-color:var(--brand)}
   .ftab.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(124,58,237,.35)}
@@ -9167,11 +9186,179 @@ window.calRender=()=>{
 /* ---------- FINANCEIRO (central) ---------- */
 /* Toda aba do Financeiro tem que ter rota aqui — sem isso o clique na pilula nao redesenha nada. */
 const FIN_TAB={financeiro:'lanc',lanc:'lanc',recebimentos:'recebimentos',
-  folha:'folha',escritorios:'folha',painel:'painel',apagar:'apagar'};  /* escritorios virou secao da folha */
+  folha:'folha',escritorios:'folha',painel:'painel',apagar:'apagar',fechames:'fechames'};  /* escritorios virou secao da folha */
 let finTab='lanc';
 let lancComp=compNow();
 let lancDe=''; let lancAte='';
 window.finGo=async (t)=>{ finTab=t; if(SESSION&&currentUser&&currentUser.aprovado){ try{ await loadDB(); }catch(e){} } render(t==='lanc'?'financeiro':t); };
+/* ---------- FECHAMENTO DO MÊS (aba do Financeiro, só master) ----------
+   Le tudo de DB e mostra o mes fechado em blocos que abrem no clique.
+   Regras que valem aqui: competencia (o custo e do mes do trabalho), repasse de
+   token sai dos dois lados, e comissao de gerente e 10% do que entrou. */
+let fechComp=compNow();
+window.fechMes=(m)=>{ fechComp=m||compNow(); renderFinanceiro($('#content')); };
+const fchN=(v)=>Number(v)||0;
+const fchData=(x)=>String(x.data||'').slice(0,7);
+const fchDT=(s)=>s?String(s).slice(0,10).split('-').reverse().join('/'):'—';
+const FCH_FORA=['repasse','antecip','recarga'];
+const fchEhRepasse=(x)=>FCH_FORA.some(k=>String(x.categoria||'').toLowerCase().includes(k));
+const FCH_ESC=[['Volta Redonda',['volta redonda']],['Itajubá',['itajub']],['São José do Rio Preto',['são josé do rio preto','sao jose do rio preto','sjrp']]];
+function fchEscDe(t){ t=String(t||'').toLowerCase();
+  for(const [n,ks] of FCH_ESC){ if(ks.some(k=>t.includes(k))) return n; } return null; }
+const FCH_SETOR={'Luiz Marcelo':'Gerentes','João Vitor':'Gerentes','Luan Peixoto':'Gestores de tráfego',
+  'Yghor':'Gestores de tráfego','Maria Eduarda':'Editora de vídeo','José Carlos':'Sócios',
+  'Gabriel Henrique':'Sócios','Bernardo Rocha':'Sócios','Arthur':'Programação','Kennedy':'Comercial','Luana':'Comercial'};
+const FCH_ORDEM=['Sócios','Gerentes','Gestores de tráfego','Comercial','Programação','Editora de vídeo','Outros'];
+function fchSetor(nome){ nome=String(nome||'').toLowerCase();
+  for(const k in FCH_SETOR){ if(nome.includes(k.toLowerCase())) return FCH_SETOR[k]; } return 'Outros'; }
+/* bloco expansivel: some o detalhe, mostra so o total */
+function fchBloco(titulo,total,itens,sub,aberto){
+  return `<details class="fch-g"${aberto?' open':''}><summary>
+    <span class="fch-cv"></span><span class="fch-t">${esc(titulo)}</span>
+    <span class="fch-s">${esc(sub||'')}</span><span class="fch-tv">${brl(total)}</span></summary>
+    <div class="fch-corpo">${itens.map(([a,b,v])=>
+      `<div class="fch-li"><span class="fch-a">${esc(a)}</span><span class="fch-b">${esc(b)}</span><span class="fch-v">${brl(v)}</span></div>`).join('')}</div></details>`;
+}
+function renderFechamentoMes(c){
+  const comp=fechComp;
+  const fin=DB.financeiro.filter(x=>fchData(x)===comp);
+  const rec=fin.filter(x=>x.tipo==='receita'), desp=fin.filter(x=>x.tipo==='despesa');
+  const fol=DB.folha.filter(x=>x.comp===comp);
+  const rcb=DB.recebimentos.filter(x=>x.comp===comp);
+  const TR=rec.reduce((s,x)=>s+fchN(x.valor),0), TD=desp.reduce((s,x)=>s+fchN(x.valor),0);
+  const recFora=rec.filter(fchEhRepasse), recMes=rec.filter(x=>!fchEhRepasse(x));
+  const RFORA=recFora.reduce((s,x)=>s+fchN(x.valor),0), RMES=TR-RFORA;
+  const LU=TR-TD;
+  /* repasse sai da receita e da despesa: entrou e saiu, nao muda o lucro */
+  const BASE=TR-RFORA, DESPLIQ=TD-RFORA;
+
+  const ehFolha=(x)=>String(x.id||'').startsWith('fp_')&&x.categoria!=='Escritórios';
+  const folhaD=desp.filter(ehFolha), oper=desp.filter(x=>!ehFolha(x));
+  const TFOLHA=folhaD.reduce((s,x)=>s+fchN(x.valor),0), TOPER=oper.reduce((s,x)=>s+fchN(x.valor),0);
+
+  /* escritorios: pega tudo que cita o imovel, mesmo em outra categoria */
+  const porEsc={};
+  desp.forEach(x=>{ const e=fchEscDe(x.descricao); if(e){ (porEsc[e]=porEsc[e]||[]).push(x); } });
+
+  /* carteira dos gerentes: so receita do mes, ligada pelo id do recebimento */
+  const gerCli={}; (DB.projetos||[]).forEach(p=>{ if(p.clienteId) gerCli[p.clienteId]=(p.gerente||'').trim(); });
+  const rid={}; DB.recebimentos.forEach(r=>{ rid[r.id]=r; });
+  const gerDe=(x)=>{ const i=String(x.id||'');
+    const k=i.startsWith('rcs_')?i.slice(4):(i.startsWith('rc_')?i.slice(3):null);
+    const r=k?rid[k]:null; return {g:(r?gerCli[r.clienteId]:'')||'', nome:r?r.nome:null, st:r?r.status:null}; };
+  const cart={};
+  recMes.forEach(x=>{ const d=gerDe(x); if(d.g) (cart[d.g]=cart[d.g]||[]).push([d.nome||x.descricao,d.st||'',fchN(x.valor),x.data]); });
+  const semGer=recMes.filter(x=>!gerDe(x).g);
+  const COMISSAO=['Luiz','João'];
+
+  /* folha por funcao */
+  const folP=fol.filter(x=>!(x.esc||'')&&!/aluguel|maria zilda/i.test(x.nome||''));
+  const porSet={}; folP.forEach(x=>{ (porSet[fchSetor(x.nome)]=porSet[fchSetor(x.nome)]||[]).push(x); });
+
+  /* falta receber e churn */
+  const aReceber=rec.filter(x=>!x.pagoEm);
+  const porSt={}; rcb.forEach(x=>{ if(['churn','churnpago','carencia','inadimplente','areceber'].includes(x.status)) (porSt[x.status]=porSt[x.status]||[]).push(x); });
+  const somaSt=(k)=>(porSt[k]||[]).reduce((s,x)=>s+fchN(x.valor),0);
+  const ROTSt={churn:'Saiu devendo — não pagou nem a última',churnpago:'Saiu, mas pagou o último mês',
+    carencia:'Carência — para de faturar por um tempo',inadimplente:'Inadimplente',areceber:'A receber'};
+
+  const dec=(v)=>Math.round(v*100)/100;
+  const caixa=dec(BASE-DESPLIQ)*0.2, r1=dec(BASE-DESPLIQ)-dec(caixa);
+  const art=dec(r1*0.1), r2=dec(r1)-dec(art), cota=dec(r2/3);
+
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Fechamento do mês</h2><div class="desc">Regime de competência · clique em qualquer linha para abrir o detalhe</div></div>
+     <div class="toolbar"><input type="month" class="search" value="${comp}" style="min-width:150px" onchange="fechMes(this.value)">
+       <button class="btn secondary small" onclick="document.querySelectorAll('.fch-g').forEach(d=>d.open=true)">Abrir tudo</button>
+       <button class="btn secondary small" onclick="document.querySelectorAll('.fch-g').forEach(d=>d.open=false)">Fechar</button></div>
+   </div>
+   ${!fin.length?'<div class="empty">Nenhum lançamento em '+fmtComp(comp)+'.</div>':`
+   <div class="cards">
+     <div class="card"><div class="k">Receita do mês</div><div class="v pos">${brl(RMES)}</div><div class="sub">${recMes.length} cobranças de cliente</div></div>
+     <div class="card"><div class="k">Receita total</div><div class="v">${brl(TR)}</div><div class="sub">${RFORA?'+ '+brl(RFORA)+' de repasse':'sem repasse'}</div></div>
+     <div class="card"><div class="k">Despesa</div><div class="v neg">${brl(TD)}</div><div class="sub">${(TD/(TR||1)*100).toFixed(1)}% da receita</div></div>
+     <div class="card"><div class="k">Lucro</div><div class="v ${LU>=0?'pos':'neg'}">${brl(LU)}</div><div class="sub">margem de ${(LU/(RMES||1)*100).toFixed(1)}%</div></div>
+   </div>
+   <p class="hint"><strong>Receita do mês</strong> é o que o cliente pagou pelo serviço prestado. Fica de fora repasse de custo,
+   antecipação e projeto pago de uma vez — entrada que não se repete não serve para medir o mês nem para o rateio.</p>
+
+   <h2 style="font-size:16px;margin:24px 0 10px">🏢 Custo por escritório</h2>
+   ${Object.entries(porEsc).sort((a,b)=>b[1].reduce((s,x)=>s+fchN(x.valor),0)-a[1].reduce((s,x)=>s+fchN(x.valor),0))
+     .map(([k,its])=>fchBloco(k, its.reduce((s,x)=>s+fchN(x.valor),0),
+       its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.descricao,x.categoria,x.valor]),
+       its.length+' lançamentos')).join('')||'<div class="hint">Nenhum gasto de escritório neste mês.</div>'}
+
+   <h2 style="font-size:16px;margin:24px 0 10px">🧾 Folha de pagamento — ${brl(TFOLHA)}</h2>
+   ${FCH_ORDEM.filter(s=>porSet[s]).map(s=>{ const its=porSet[s];
+     const ab=its.filter(x=>!x.pago), tot=its.reduce((a,x)=>a+fchN(x.valor),0);
+     return fchBloco(s, tot, its.sort((a,b)=>fchN(b.valor)-fchN(a.valor))
+       .map(x=>[x.nome+' · '+String(x.descricao||'pagamento').slice(0,52), fchDT(x.venc)+(x.pago?' · pago':' · a pagar'), x.valor]),
+       new Set(its.map(x=>x.nome)).size+' pessoa(s)'+(ab.length?' · '+brl(ab.reduce((a,x)=>a+fchN(x.valor),0))+' a pagar':''));
+   }).join('')}
+
+   <h2 style="font-size:16px;margin:24px 0 10px">🤝 Carteira dos gerentes — 10% do que entrou</h2>
+   ${Object.entries(cart).sort((a,b)=>b[1].reduce((s,i)=>s+i[2],0)-a[1].reduce((s,i)=>s+i[2],0)).map(([g,its])=>{
+     const tot=its.reduce((s,i)=>s+i[2],0), com=COMISSAO.some(k=>g.includes(k));
+     const porCli={}; its.forEach(([n,st,v,d])=>{ const a=porCli[n]=porCli[n]||{v:0,n:0,st:st,d:d}; a.v+=v; a.n++; if(d<a.d)a.d=d; });
+     return fchBloco(g+(com?'  ·  comissão '+brl(tot*0.1):'  ·  sem comissão'), tot,
+       Object.entries(porCli).sort((a,b)=>b[1].v-a[1].v)
+         .map(([n,a])=>[n, fchDT(a.d)+(a.st&&a.st!=='recebido'?' · '+a.st:'')+(a.n>1?' · '+a.n+' pagamentos':''), a.v]),
+       Object.keys(porCli).length+' clientes'); }).join('')}
+   ${semGer.length?fchBloco('⚠️ Receita de cliente sem gerente no cadastro', semGer.reduce((s,x)=>s+fchN(x.valor),0),
+     semGer.map(x=>[x.descricao, fchDT(x.data)+' · '+x.categoria, x.valor]),'falta preencher'):''}
+
+   <h2 style="font-size:16px;margin:24px 0 10px">🛠 Custos operacionais — ${brl(TOPER)}</h2>
+   ${(()=>{ const pc={}; oper.forEach(x=>{ (pc[x.categoria]=pc[x.categoria]||[]).push(x); });
+     return Object.entries(pc).sort((a,b)=>b[1].reduce((s,x)=>s+fchN(x.valor),0)-a[1].reduce((s,x)=>s+fchN(x.valor),0))
+      .map(([k,its])=>{ const t=its.reduce((s,x)=>s+fchN(x.valor),0);
+        return fchBloco(k,t,its.sort((a,b)=>fchN(b.valor)-fchN(a.valor))
+          .map(x=>[String(x.descricao).replace(' · a pagar',''), fchDT(x.data)+(x.pagoEm?'':' · a pagar'), x.valor]),
+          its.length+' itens · '+(t/(TOPER||1)*100).toFixed(1)+'%'); }).join(''); })()}
+   <p class="hint">Só ferramenta, anúncio e estrutura. As pessoas saíram destas categorias e foram para a Folha acima.</p>
+
+   <h2 style="font-size:16px;margin:24px 0 10px">⏳ Falta receber</h2>
+   ${aReceber.length?fchBloco('Reconhecido no mês, ainda não caiu', aReceber.reduce((s,x)=>s+fchN(x.valor),0),
+     aReceber.map(x=>[x.descricao, fchDT(x.data)+' · '+x.categoria, x.valor]),'entra no resultado, não no caixa',true):''}
+   ${['inadimplente','churn','carencia'].filter(k=>porSt[k]).map(k=>fchBloco(ROTSt[k],somaSt(k),
+     porSt[k].sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.nome,'vencia '+fchDT(x.venc),x.valor]),
+     porSt[k].length+' cliente(s) · fora da receita')).join('')}
+
+   <h2 style="font-size:16px;margin:24px 0 10px">📉 Churn do mês</h2>
+   ${(()=>{ /* perda por gerente: quem perdeu cliente no mes, com nome e valor */
+     const pg={}; ['churn','churnpago'].forEach(k=>(porSt[k]||[]).forEach(x=>{
+       const g=gerCli[x.clienteId]||'sem gerente';
+       (pg[g]=pg[g]||[]).push(x); }));
+     const linhas=Object.entries(pg).sort((a,b)=>b[1].reduce((s,x)=>s+fchN(x.valor),0)-a[1].reduce((s,x)=>s+fchN(x.valor),0));
+     if(!linhas.length) return '';
+     return '<div class="tablewrap" style="margin-bottom:12px"><table><thead><tr><th>Perda de receita por gerente</th><th>Clientes</th><th style="text-align:right">Perda mensal</th></tr></thead><tbody>'+
+       linhas.map(([g,its])=>{ const t=its.reduce((s,x)=>s+fchN(x.valor),0);
+         return '<tr><td><strong>'+esc(g)+'</strong><div style="color:var(--muted);font-size:11.5px">'+
+           its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>esc(x.nome)+' ('+brl(x.valor)+')').join(' · ')+
+           '</div></td><td>'+its.length+'</td><td class="money" style="text-align:right;color:var(--danger)"><strong>'+brl(t)+'</strong></td></tr>'; }).join('')+
+       '<tr><td><strong>TOTAL</strong></td><td><strong>'+linhas.reduce((s,[,i])=>s+i.length,0)+'</strong></td><td class="money" style="text-align:right"><strong>'+
+       brl(linhas.reduce((s,[,i])=>s+i.reduce((a,x)=>a+fchN(x.valor),0),0))+'</strong></td></tr></tbody></table></div>'; })()}
+   ${['churn','churnpago','carencia'].filter(k=>porSt[k]).map(k=>fchBloco(ROTSt[k],somaSt(k),
+     porSt[k].sort((a,b)=>fchN(b.valor)-fchN(a.valor))
+       .map(x=>[x.nome,(gerCli[x.clienteId]||'—')+' · vencia '+fchDT(x.venc),x.valor]),
+     porSt[k].length+' clientes')).join('')||'<div class="hint">Nenhuma saída neste mês.</div>'}
+   <p class="hint">Perda recorrente do mês: <strong>${brl(somaSt('churn')+somaSt('churnpago'))}</strong> —
+   ${((somaSt('churn')+somaSt('churnpago'))/(RMES||1)*100).toFixed(1)}% do faturamento, ${brl((somaSt('churn')+somaSt('churnpago'))*12)} em 12 meses.
+   Carência não entra: o cliente volta a faturar.</p>
+
+   <h2 style="font-size:16px;margin:24px 0 10px">💰 Distribuição do lucro</h2>
+   <div class="tablewrap"><table><tbody>
+     <tr><td>Receita de clientes <span style="color:var(--muted);font-size:12px">sem o repasse</span></td><td class="money" style="text-align:right">${brl(BASE)}</td></tr>
+     <tr><td>Despesa líquida <span style="color:var(--muted);font-size:12px">já abatida do repasse</span></td><td class="money" style="text-align:right">− ${brl(DESPLIQ)}</td></tr>
+     <tr><td><strong>Base do rateio</strong></td><td class="money" style="text-align:right"><strong>${brl(BASE-DESPLIQ)}</strong></td></tr>
+     <tr><td>Caixa da empresa — 20%</td><td class="money" style="text-align:right">${brl(BASE-DESPLIQ-dec(r1))}</td></tr>
+     <tr><td>Arthur — 10% do que sobra</td><td class="money" style="text-align:right">${brl(art)}</td></tr>
+     <tr><td>José Carlos — ⅓ do restante</td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
+     <tr><td>Gabriel — ⅓ do restante</td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
+     <tr><td>Bernardo — ⅓ do restante</td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
+   </tbody></table></div>
+   <p class="hint">Distribuição de lucro não é despesa e não entra no Financeiro — o honorário de cada sócio já foi descontado como custo antes deste número.</p>`}`;
+}
 function renderFinanceiro(c){
   c.innerHTML=`
    <div class="fin-tabs">
@@ -9180,9 +9367,11 @@ function renderFinanceiro(c){
      <button class="ftab ${finTab==='apagar'?'active':''}" onclick="finGo('apagar')" data-dica="NOVO: todas as despesas a pagar num lugar só — avulsas, parceladas e recorrentes, com status automático de vencida.">📥 Contas a Pagar</button>
      <button class="ftab ${finTab==='folha'?'active':''}" onclick="finGo('folha')">🧾 Folha de Pagamento</button>
      <button class="ftab ${finTab==='painel'?'active':''}" onclick="finGo('painel')">📊 Painel</button>
+     <button class="ftab ${finTab==='fechames'?'active':''}" onclick="finGo('fechames')" data-dica="Fechamento do mês em regime de competência: resultado, folha por função, carteira dos gerentes, o que falta receber e o rateio do lucro.">📄 Fechamento</button>
    </div>
    <div id="finSub"></div>`;
   const sub=$('#finSub');
+  if(finTab==='fechames') return renderFechamentoMes(sub);
   if(finTab==='painel') return renderDash(sub);
   if(finTab==='apagar') return renderFinAPagar(sub);
   if(finTab==='recebimentos') return renderRecebimentos(sub);
