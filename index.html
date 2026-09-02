@@ -9333,21 +9333,6 @@ function renderFechamentoMes(c){
      porSt[k].length+' cliente(s) · fora da receita')).join('')}
 
    <h2 style="font-size:16px;margin:24px 0 10px">📉 Churn do mês</h2>
-   ${(()=>{ /* perda por gerente: quem perdeu cliente no mes, com nome e valor */
-     const pg={}; ['churn','churnpago'].forEach(k=>(porSt[k]||[]).forEach(x=>{
-       const g=gerCli[x.clienteId]||'sem gerente';
-       (pg[g]=pg[g]||[]).push(x); }));
-     const linhas=Object.entries(pg).sort((a,b)=>b[1].reduce((s,x)=>s+fchN(x.valor),0)-a[1].reduce((s,x)=>s+fchN(x.valor),0));
-     if(!linhas.length) return '';
-     const tot=linhas.reduce((s,[,i])=>s+i.reduce((a,x)=>a+fchN(x.valor),0),0);
-     const qtd=linhas.reduce((s,[,i])=>s+i.length,0);
-     /* clicar no gerente abre os clientes que ele perdeu, com valor e vencimento */
-     return '<div class="fch-cab">Perda de receita por gerente</div>'+
-       linhas.map(([g,its])=>fchBloco(g, its.reduce((s,x)=>s+fchN(x.valor),0),
-         its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.nome,
-           (x.status==='churnpago'?'pagou o último · ':'saiu devendo · ')+'vencia '+fchDT(x.venc), x.valor]),
-         its.length+' cliente(s) perdido(s)')).join('')+
-       '<div class="fch-tot"><span>Total perdido no mês</span><span>'+qtd+' clientes</span><span>'+brl(tot)+'</span></div>'; })()}
    ${['churn','churnpago','carencia'].filter(k=>porSt[k]).map(k=>fchBloco(ROTSt[k],somaSt(k),
      porSt[k].sort((a,b)=>fchN(b.valor)-fchN(a.valor))
        .map(x=>[x.nome,(gerCli[x.clienteId]||'—')+' · vencia '+fchDT(x.venc),x.valor]),
@@ -9355,6 +9340,27 @@ function renderFechamentoMes(c){
    <p class="hint">Perda recorrente do mês: <strong>${brl(somaSt('churn')+somaSt('churnpago'))}</strong> —
    ${((somaSt('churn')+somaSt('churnpago'))/(RMES||1)*100).toFixed(1)}% do faturamento, ${brl((somaSt('churn')+somaSt('churnpago'))*12)} em 12 meses.
    Carência não entra: o cliente volta a faturar.</p>
+
+   <h2 style="font-size:16px;margin:26px 0 10px;color:var(--danger)">🚨 Quem perdeu — perda de receita por gerente</h2>
+   ${(()=>{ /* secao propria: um bloco por gerente, clicar abre os clientes que sairam da carteira dele */
+     const pg={}; ['churn','churnpago'].forEach(k=>(porSt[k]||[]).forEach(x=>{
+       const g=gerCli[x.clienteId]||'sem gerente';
+       (pg[g]=pg[g]||[]).push(x); }));
+     const linhas=Object.entries(pg).sort((a,b)=>b[1].reduce((s,x)=>s+fchN(x.valor),0)-a[1].reduce((s,x)=>s+fchN(x.valor),0));
+     if(!linhas.length) return '<div class="hint">Nenhum gerente perdeu cliente neste mês.</div>';
+     const tot=linhas.reduce((s,[,i])=>s+i.reduce((a,x)=>a+fchN(x.valor),0),0);
+     const qtd=linhas.reduce((s,[,i])=>s+i.length,0);
+     return '<p class="hint">O número é quanto de mensalidade cada gerente deixou de ter. <strong>Clique no nome</strong> para ver quem saiu da carteira dele. '+
+       'A porcentagem é a perda dividida pela carteira que ele tinha antes das saídas — é ela que mostra o tamanho do estrago, '+
+       'porque o mesmo valor pesa diferente em carteira grande e em carteira pequena.</p>'+
+       linhas.map(([g,its])=>{
+         const p=its.reduce((s,x)=>s+fchN(x.valor),0);
+         const base=(cart[g]||[]).reduce((s,i)=>s+i[2],0)+p;
+         return fchBloco(g, p, its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.nome,
+           (x.status==='churnpago'?'saiu, pagou o último · ':'saiu devendo · ')+'vencia '+fchDT(x.venc), x.valor]),
+         its.length+' cliente'+(its.length>1?'s':'')+(base?' · '+(p/base*100).toFixed(1).replace('.',',')+'% da carteira':''), true); }).join('')+
+       '<div class="fch-tot"><span>Total perdido no mês</span><span>'+qtd+' clientes</span><span>'+brl(tot)+'</span></div>'; })()}
+   <p class="hint">Downsell (cliente que reduziu a mensalidade sem sair) ainda não é registrado no sistema, então não entra nesta conta.</p>
 
    <h2 style="font-size:16px;margin:24px 0 10px">💰 Distribuição do lucro</h2>
    <div class="tablewrap"><table><tbody>
