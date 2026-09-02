@@ -9475,7 +9475,7 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
        if(com) its.push(['Comissão do gerente — '+p.g,'10% sobre o valor recebido',com]);
        its.push(['Caixa da empresa','20% do que sobrar',cx],['Arthur','10% do que sobrar',ar],
                 ['José Carlos','⅓ dos 70%',so],['Gabriel','⅓ dos 70%',so],['Bernardo','⅓ dos 70%',so]);
-       return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''), true);
+       return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''));
      }).join('');
      const TA_=A.reduce((s,p)=>s+p.v,0), TB=B.reduce((s,p)=>s+p.v,0);
      const linhasB=B.length?('<div class="tablewrap" style="margin-top:6px"><table><tbody>'+B.map(p=>
@@ -9484,17 +9484,22 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
        '</tbody></table></div>'):'';
      return '<p class="hint">Dinheiro da empresa que está na mão de terceiro. Nada disso entrou no rateio acima, porque não está em caixa. '+
        'Mas o destino na volta <strong>não é o mesmo para todos</strong> — por isso a lista está partida em dois.</p>'+
-       '<div class="fch-cab">1 · Vira lucro quando entrar</div>'+
-       '<p class="hint">Estes valores já passaram pelo resultado: ou foram reconhecidos como receita e não caíram, ou viraram despesa que será estornada na volta. '+
-       'Quando o dinheiro chegar, sai a <strong>comissão de 10% do gerente</strong> e o resto se divide em 20/10/70.</p>'+
-       linhasA+
-       '<div class="tablewrap" style="margin-top:10px"><table><tbody>'+
-       '<tr><td><strong>Subtotal que vira lucro</strong> <span style="color:var(--muted);font-size:12px">'+A.length+' itens</span></td><td class="money" style="text-align:right"><strong>'+brl(TA_)+'</strong></td></tr>'+
-       '<tr><td>Comissão dos gerentes <span style="color:var(--muted);font-size:12px">'+(Object.keys(comGer).length?esc(Object.entries(comGer).map(([g,v])=>g+' '+brl(v)).join(', ')):'nenhum item comissionado')+'</span></td><td class="money" style="text-align:right;color:var(--danger)">− '+brl(TC)+'</td></tr>'+
-       '<tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20%</span></td><td class="money" style="text-align:right">'+brl(TX)+'</td></tr>'+
+       '<div class="fch-cab">1 · Vira lucro quando entrar — '+brl(TA_)+'</div>'+
+       '<p class="hint">Já passaram pelo resultado: ou foram reconhecidos como receita e não caíram, ou viraram despesa que será estornada na volta. '+
+       'Se <strong>todos</strong> pagarem, é isto que cada um leva:</p>'+
+       '<div class="tablewrap"><table><tbody>'+
+       Object.entries(comGer).sort((a,b)=>b[1]-a[1]).map(([g,v])=>
+         '<tr><td>'+esc(g)+' <span style="color:var(--muted);font-size:12px">comissão de 10% sobre o que ele receber</span></td><td class="money" style="text-align:right">'+brl(v)+'</td></tr>').join('')+
+       '<tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20% do que sobrar depois das comissões</span></td><td class="money" style="text-align:right">'+brl(TX)+'</td></tr>'+
        '<tr><td>Arthur <span style="color:var(--muted);font-size:12px">10%</span></td><td class="money" style="text-align:right">'+brl(TA)+'</td></tr>'+
-       '<tr><td><strong>Cada sócio</strong> <span style="color:var(--muted);font-size:12px">José Carlos, Gabriel e Bernardo · ⅓ dos 70%</span></td><td class="money" style="text-align:right"><strong>'+brl(TS)+'</strong></td></tr>'+
+       '<tr><td>José Carlos <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
+       '<tr><td>Gabriel <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
+       '<tr><td>Bernardo <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
        '</tbody></table></div>'+
+       '<p class="hint">'+brl(TA_)+' a receber − '+brl(TC)+' de comissão = '+brl(TA_-TC)+' de lucro novo, dividido em 20/10/70.</p>'+
+       '<details class="fch-g" style="margin-top:10px"><summary><span class="fch-cv"></span><span class="fch-t">Ver cliente por cliente</span>'+
+       '<span class="fch-s">'+A.length+' itens · clique para abrir</span><span class="fch-tv">'+brl(TA_)+'</span></summary>'+
+       '<div class="fch-corpo" style="padding:10px 12px">'+linhasA+'</div></details>'+
        (B.length?('<div class="fch-cab" style="margin-top:22px">2 · Só repõe o caixa — não entra em rateio</div>'+
          '<p class="hint">Saiu direto do caixa ou é de competência já fechada: <strong>nunca reduziu o lucro de mês nenhum</strong>. '+
          'Quando voltar, apenas tapa o buraco no caixa. Se entrasse no rateio, a empresa distribuiria duas vezes o mesmo dinheiro — '+
