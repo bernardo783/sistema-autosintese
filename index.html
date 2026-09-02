@@ -9435,20 +9435,32 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
    <h2 style="font-size:16px;margin:26px 0 10px;color:var(--ok)">⏳ O que ainda vai entrar — e quanto cada um leva quando entrar</h2>
    ${(()=>{ /* recebiveis: reconhecido e nao recebido, inadimplente, e adiantamento a ressarcir.
       Para cada um, mostra o destino do dinheiro no dia em que cair. */
+     /* Dois grupos com destinos diferentes:
+        rateia=true  -> quando o dinheiro cair vira lucro novo e se divide 20/10/70.
+                        Sao os casos em que o valor JA passou pelo resultado: receita
+                        reconhecida e nao recebida, inadimplente, e despesa lancada que
+                        sera estornada na volta.
+        rateia=false -> dinheiro que nunca tocou o resultado (saiu direto do caixa, ou e de
+                        competencia que ja foi fechada). Na volta so recompoe o caixa; se
+                        entrasse no rateio, a empresa distribuiria duas vezes o mesmo dinheiro. */
      const PEND=[];
      aReceber.forEach(x=>{ const d=gerDe(x), r=rid[String(x.id||'').replace(/^rcs?_/,'')];
        PEND.push({nome:String(x.descricao).replace('Restante: ','').split(' — ')[0],
-         quando:'reconhecido no mês · vence '+fchDT((r&&r.venc)||x.data), v:fchN(x.valor), g:d.g}); });
+         quando:'reconhecido no mês · vence '+fchDT((r&&r.venc)||x.data), v:fchN(x.valor), g:d.g, rateia:true}); });
      (porSt.inadimplente||[]).forEach(x=>PEND.push({nome:x.nome,
-       quando:'inadimplente · vencia '+fchDT(x.venc), v:fchN(x.valor), g:gerCli[x.clienteId]||''}));
+       quando:'inadimplente · vencia '+fchDT(x.venc), v:fchN(x.valor), g:gerCli[x.clienteId]||'', rateia:true}));
      desp.filter(x=>/ressarc|não ressarcida|nao ressarcida/i.test(String(x.descricao))).forEach(x=>
-       PEND.push({nome:String(x.descricao), quando:'adiantamento a ressarcir · já saiu do caixa', v:fchN(x.valor), g:''}));
+       PEND.push({nome:String(x.descricao), quando:'já reduziu o lucro deste mês · na volta é estorno', v:fchN(x.valor), g:'', rateia:true}));
+     (DB.financeiro||[]).filter(x=>x.tipo==='recebivel').forEach(x=>
+       PEND.push({nome:String(x.descricao), quando:(x.comp?'competência '+fmtComp(x.comp)+' · ':'')+'nunca passou pelo resultado', v:fchN(x.valor), g:'', rateia:false}));
      if(!PEND.length) return '<div class="hint">Nada pendente: tudo que foi reconhecido no mês já entrou.</div>';
-     let TP=0,TC=0,TX=0,TA=0,TS=0; const comGer={};
-     const linhas=PEND.sort((a,b)=>b.v-a.v).map(p=>{
+     const ord=(a,b)=>b.v-a.v;
+     const A=PEND.filter(p=>p.rateia).sort(ord), B=PEND.filter(p=>!p.rateia).sort(ord);
+     let TC=0,TX=0,TA=0,TS=0; const comGer={};
+     const linhasA=A.map(p=>{
        const com=COMISSAO.some(k=>(p.g||'').includes(k))?dec(p.v*0.10):0;
        const luc=p.v-com, cx=dec(luc*0.20), ar=dec(luc*0.10), so=dec(dec(luc*0.70)/3);
-       TP+=p.v; TC+=com; TX+=cx; TA+=ar; TS+=so;
+       TC+=com; TX+=cx; TA+=ar; TS+=so;
        if(com) comGer[p.g]=(comGer[p.g]||0)+com;
        const its=[];
        if(com) its.push(['Comissão do gerente — '+p.g,'10% sobre o valor recebido',com]);
@@ -9456,19 +9468,29 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
                 ['José Carlos','⅓ dos 70%',so],['Gabriel','⅓ dos 70%',so],['Bernardo','⅓ dos 70%',so]);
        return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''), true);
      }).join('');
-     return '<p class="hint">Dinheiro que a empresa já reconheceu ou já desembolsou e <strong>ainda não recebeu</strong>. Não está no rateio acima, '+
-       'justamente porque não está na mão. Abra cada linha para ver o destino do dinheiro no dia em que ele cair: primeiro sai a '+
-       '<strong>comissão de 10% do gerente</strong> daquele cliente, e só o que sobra vira lucro e se divide em 20/10/70.</p>'+
-       linhas+
+     const TA_=A.reduce((s,p)=>s+p.v,0), TB=B.reduce((s,p)=>s+p.v,0);
+     const linhasB=B.length?('<div class="tablewrap" style="margin-top:6px"><table><tbody>'+B.map(p=>
+       `<tr><td>${esc(p.nome)} <span style="color:var(--muted);font-size:12px">${esc(p.quando)}</span></td><td class="money" style="text-align:right">${brl(p.v)}</td></tr>`).join('')+
+       `<tr><td><strong>Total que só repõe caixa</strong></td><td class="money" style="text-align:right"><strong>${brl(TB)}</strong></td></tr>`+
+       '</tbody></table></div>'):'';
+     return '<p class="hint">Dinheiro da empresa que está na mão de terceiro. Nada disso entrou no rateio acima, porque não está em caixa. '+
+       'Mas o destino na volta <strong>não é o mesmo para todos</strong> — por isso a lista está partida em dois.</p>'+
+       '<div class="fch-cab">1 · Vira lucro quando entrar</div>'+
+       '<p class="hint">Estes valores já passaram pelo resultado: ou foram reconhecidos como receita e não caíram, ou viraram despesa que será estornada na volta. '+
+       'Quando o dinheiro chegar, sai a <strong>comissão de 10% do gerente</strong> e o resto se divide em 20/10/70.</p>'+
+       linhasA+
        '<div class="tablewrap" style="margin-top:10px"><table><tbody>'+
-       '<tr><td><strong>Total pendente</strong> <span style="color:var(--muted);font-size:12px">'+PEND.length+' itens</span></td><td class="money" style="text-align:right"><strong>'+brl(TP)+'</strong></td></tr>'+
+       '<tr><td><strong>Subtotal que vira lucro</strong> <span style="color:var(--muted);font-size:12px">'+A.length+' itens</span></td><td class="money" style="text-align:right"><strong>'+brl(TA_)+'</strong></td></tr>'+
        '<tr><td>Comissão dos gerentes <span style="color:var(--muted);font-size:12px">'+(Object.keys(comGer).length?esc(Object.entries(comGer).map(([g,v])=>g+' '+brl(v)).join(', ')):'nenhum item comissionado')+'</span></td><td class="money" style="text-align:right;color:var(--danger)">− '+brl(TC)+'</td></tr>'+
        '<tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20%</span></td><td class="money" style="text-align:right">'+brl(TX)+'</td></tr>'+
        '<tr><td>Arthur <span style="color:var(--muted);font-size:12px">10%</span></td><td class="money" style="text-align:right">'+brl(TA)+'</td></tr>'+
        '<tr><td><strong>Cada sócio</strong> <span style="color:var(--muted);font-size:12px">José Carlos, Gabriel e Bernardo · ⅓ dos 70%</span></td><td class="money" style="text-align:right"><strong>'+brl(TS)+'</strong></td></tr>'+
        '</tbody></table></div>'+
-       '<p class="hint">Se tudo isso entrar, cada sócio recebe '+brl(TS)+' a mais — mas só no mês em que o dinheiro cair, porque é aí que ele vira caixa. '+
-       'Ressarcimento de adiantamento não gera comissão: não é receita de cliente, é a volta de dinheiro que a empresa pôs na frente, e entra inteiro no lucro.</p>'; })()}`}`;
+       (B.length?('<div class="fch-cab" style="margin-top:22px">2 · Só repõe o caixa — não entra em rateio</div>'+
+         '<p class="hint">Saiu direto do caixa ou é de competência já fechada: <strong>nunca reduziu o lucro de mês nenhum</strong>. '+
+         'Quando voltar, apenas tapa o buraco no caixa. Se entrasse no rateio, a empresa distribuiria duas vezes o mesmo dinheiro — '+
+         'uma quando o lucro daquele mês foi dividido, outra agora.</p>'+linhasB):'')+
+       '<p class="hint">Total na mão de terceiros: <strong>'+brl(TA_+TB)+'</strong>. Destes, só '+brl(TA_)+' viram lucro novo; '+brl(TB)+' apenas recompõem o caixa.</p>'; })()}`}`;
 }
 function renderFinanceiro(c){
   c.innerHTML=`
@@ -9729,8 +9751,8 @@ function renderLanc(c){
     const list=rows.filter(r=>!t||(r.descricao+r.categoria).toLowerCase().includes(t));
     $('#fBody').innerHTML=list.map(r=>`<tr>
       <td>${fmtDate(r.data)}${r.pagoEm&&r.pagoEm!==r.data?`<div style="color:var(--muted);font-size:11px">pago em ${fmtDate(r.pagoEm)}</div>`:''}</td><td>${esc(r.descricao)}</td><td>${esc(r.categoria)||'—'}</td>
-      <td><span class="tag ${r.tipo}">${r.tipo==='receita'?'Receita':'Despesa'}</span></td>
-      <td class="money" style="text-align:right;color:${r.tipo==='receita'?'var(--ok)':'var(--danger)'}">${r.tipo==='despesa'?'-':''}${brl(r.valor)}</td>
+      <td><span class="tag ${r.tipo}">${r.tipo==='receita'?'Receita':(r.tipo==='despesa'?'Despesa':'A receber')}</span></td>
+      <td class="money" style="text-align:right;color:${r.tipo==='receita'?'var(--ok)':(r.tipo==='despesa'?'var(--danger)':'var(--warn)')}">${r.tipo==='despesa'?'-':''}${brl(r.valor)}</td>
       <td><div class="rowact"><button class="iconbtn" onclick="openFinModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('financeiro','${r.id}')">Excluir</button></div></td>
     </tr>`).join('');
     $('#fEmpty').innerHTML=list.length?'':'<div class="empty">Nenhum lançamento. Clique em “+ Lançamento”.</div>';
