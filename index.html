@@ -393,6 +393,30 @@
   .fn-var.ruim{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
   .fn-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px;margin-bottom:14px}
   @media(max-width:1000px){.fn-grid{grid-template-columns:1fr}}
+  /* ---------- AGENTE IA (captação de lojistas) ---------- */
+  .ag-grid{display:grid;grid-template-columns:280px minmax(0,1fr);gap:14px;align-items:start}
+  @media(max-width:900px){.ag-grid{grid-template-columns:1fr}}
+  .ag-qr h3{margin:0 0 12px;font-size:15px}
+  .ag-qrbox{background:#fff;border-radius:12px;padding:8px;width:206px;margin:0 auto;display:flex}
+  .ag-qrbox svg{display:block;width:190px;height:190px}
+  .ag-url{margin-top:12px;font-size:12.5px;color:var(--brand2);word-break:break-all;text-align:center;font-weight:600}
+  .ag-btns{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+  .ag-btns .btn{text-decoration:none}
+  .ag-tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
+  .ag-lead{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--panel2,transparent)}
+  .ag-l1{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .ag-nome{font-size:14.5px;min-width:0}
+  .ag-loja{color:var(--txt);font-weight:600}
+  .ag-cid{color:var(--muted);font-size:12.5px;margin-left:4px}
+  .ag-l2{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;font-size:12.5px}
+  .ag-wa{color:var(--ok);font-weight:700;text-decoration:none}
+  .ag-chip{font-size:11.5px;color:var(--muted);background:color-mix(in srgb,var(--brand) 14%,transparent);border-radius:999px;padding:2px 9px}
+  .ag-dt{color:var(--muted);font-size:11.5px;margin-left:auto}
+  .ag-msg{margin-top:8px;font-size:13px;color:var(--txt);opacity:.85;font-style:italic}
+  .ag-l3{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+  .ag-acoes{display:flex;gap:6px;align-items:center}
+  .ag-obs{flex:1;min-width:200px;font:inherit;font-size:12.5px;background:transparent;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:7px 10px}
+  .ag-obs:focus{outline:none;border-color:var(--brand)}
   .fn-etapas{padding:14px 16px 6px}
   .fn-et{margin-bottom:12px}
   .fn-etl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;font-size:12.5px}
@@ -2291,6 +2315,8 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span class="t">Contratos</span></button>
     <button class="rl navlink hidden" data-view="funil" id="navFunil" title="Funil de captação da AutoSíntese">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg><span class="t">Funil</span></button>
+    <button class="rl navlink hidden" data-view="agente" id="navAgente" title="Agente IA — lojistas interessados (captação por QR code)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4.5M9.2 4.5h5.6"/><circle cx="9.2" cy="13.4" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.8" cy="13.4" r="1.3" fill="currentColor" stroke="none"/><path d="M9.6 17h4.8"/></svg><span class="t">Agente IA</span></button>
     <button class="rl navlink hidden" data-view="daily" id="navDaily" title="Reunião diária do squad">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="t">Daily</span></button>
     <div class="sep"></div>
@@ -2688,7 +2714,7 @@ async function enterApp(){
   catch(e){ $('#loginErr').textContent='Erro ao carregar dados: '+(e.message||e); show($('#loginView')); return; }
   hide($('#login')); show($('#app'));
   pintarWhoami();
-  if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); show($('#navFunil')); } else { hide($('#navUsuarios')); hide($('#navFin')); hide($('#navFunil')); }
+  if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); show($('#navFunil')); show($('#navAgente')); } else { hide($('#navUsuarios')); hide($('#navFin')); hide($('#navFunil')); hide($('#navAgente')); }
   if(podeContratos()){ show($('#navContratos')); } else { hide($('#navContratos')); } /* Contratos: master + comercial (José) */
   tlAplicar();   /* tira da barra as telas que essa pessoa não tem */
   if(souGerente()){ show($('#navDaily')); } else { hide($('#navDaily')); } /* Daily: só master e gerentes (regra do Gabriel, 10/08) */
@@ -2935,6 +2961,10 @@ function render(view){
   if(view==='funil'){
     if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
     return renderFunil(c);
+  }
+  if(view==='agente'){
+    if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+    return renderAgente(c);
   }
   if(view==='daily'){ if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito aos gerentes e ao master.</div>'; return; } return renderDaily(c); }
   if(view==='trafego') return renderTrafego(c);
@@ -8952,6 +8982,118 @@ function waHTML(){
    <p class="hint" style="margin-top:12px">Arraste o cartão entre colunas ou abra e escolha o estágio. Toda mudança fica na linha do tempo, então dá pra medir quanto tempo cada lead passa em cada etapa. O telefone é a chave: a mesma pessoa nunca vira dois leads.</p>`;
 }
 
+/* ===== AGENTE IA — lojistas captados pela landing pública autosintese.app.br/jr-motors =====
+   A landing grava via edge 'agente-lead' na tabela agente_leads (RLS: só master lê/edita).
+   Esta tela é master-only: lista os leads, muda status, anota, e entrega o link + QR code. */
+const AG={leads:[],carregou:false,erro:'',filtro:'abertos'};
+const AG_URL='https://autosintese.app.br/jr-motors';
+const AG_QR_N=29;
+const AG_QR_D='M0 0h7v1h-7zM9 0h1v1h-1zM11 0h3v1h-3zM15 0h1v1h-1zM19 0h2v1h-2zM22 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h1v1h-1zM13 1h4v1h-4zM18 1h1v1h-1zM22 1h1v1h-1zM28 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM8 2h1v1h-1zM10 2h2v1h-2zM13 2h1v1h-1zM18 2h1v1h-1zM22 2h1v1h-1zM24 2h3v1h-3zM28 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h1v1h-1zM10 3h1v1h-1zM14 3h5v1h-5zM20 3h1v1h-1zM22 3h1v1h-1zM24 3h3v1h-3zM28 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h2v1h-2zM12 4h1v1h-1zM16 4h5v1h-5zM22 4h1v1h-1zM24 4h3v1h-3zM28 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h2v1h-2zM15 5h1v1h-1zM17 5h1v1h-1zM20 5h1v1h-1zM22 5h1v1h-1zM28 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h7v1h-7zM8 7h2v1h-2zM14 7h1v1h-1zM18 7h1v1h-1zM0 8h1v1h-1zM2 8h5v1h-5zM11 8h1v1h-1zM15 8h3v1h-3zM22 8h5v1h-5zM1 9h5v1h-5zM7 9h2v1h-2zM12 9h3v1h-3zM16 9h1v1h-1zM18 9h3v1h-3zM22 9h3v1h-3zM28 9h1v1h-1zM0 10h1v1h-1zM3 10h2v1h-2zM6 10h2v1h-2zM9 10h3v1h-3zM13 10h6v1h-6zM21 10h1v1h-1zM23 10h1v1h-1zM1 11h1v1h-1zM3 11h3v1h-3zM8 11h1v1h-1zM12 11h2v1h-2zM16 11h1v1h-1zM18 11h3v1h-3zM22 11h2v1h-2zM25 11h1v1h-1zM27 11h1v1h-1zM0 12h3v1h-3zM4 12h1v1h-1zM6 12h1v1h-1zM8 12h1v1h-1zM10 12h1v1h-1zM14 12h1v1h-1zM17 12h1v1h-1zM19 12h1v1h-1zM25 12h2v1h-2zM3 13h1v1h-1zM7 13h1v1h-1zM10 13h1v1h-1zM16 13h1v1h-1zM19 13h1v1h-1zM21 13h4v1h-4zM28 13h1v1h-1zM0 14h2v1h-2zM5 14h2v1h-2zM11 14h2v1h-2zM15 14h1v1h-1zM17 14h2v1h-2zM20 14h3v1h-3zM24 14h3v1h-3zM2 15h2v1h-2zM5 15h1v1h-1zM7 15h1v1h-1zM10 15h1v1h-1zM12 15h1v1h-1zM14 15h3v1h-3zM18 15h1v1h-1zM20 15h1v1h-1zM23 15h2v1h-2zM27 15h1v1h-1zM0 16h2v1h-2zM6 16h1v1h-1zM8 16h1v1h-1zM10 16h1v1h-1zM15 16h4v1h-4zM23 16h1v1h-1zM25 16h2v1h-2zM0 17h2v1h-2zM3 17h3v1h-3zM13 17h2v1h-2zM16 17h9v1h-9zM26 17h1v1h-1zM28 17h1v1h-1zM0 18h1v1h-1zM2 18h1v1h-1zM5 18h2v1h-2zM9 18h2v1h-2zM12 18h6v1h-6zM20 18h1v1h-1zM22 18h3v1h-3zM26 18h1v1h-1zM0 19h1v1h-1zM2 19h3v1h-3zM8 19h6v1h-6zM16 19h1v1h-1zM19 19h1v1h-1zM21 19h4v1h-4zM27 19h1v1h-1zM0 20h1v1h-1zM3 20h1v1h-1zM5 20h3v1h-3zM14 20h1v1h-1zM17 20h1v1h-1zM20 20h5v1h-5zM26 20h3v1h-3zM8 21h2v1h-2zM11 21h1v1h-1zM16 21h5v1h-5zM24 21h5v1h-5zM0 22h7v1h-7zM15 22h6v1h-6zM22 22h1v1h-1zM24 22h3v1h-3zM0 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM10 23h2v1h-2zM14 23h3v1h-3zM18 23h3v1h-3zM24 23h1v1h-1zM27 23h1v1h-1zM0 24h1v1h-1zM2 24h3v1h-3zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM17 24h1v1h-1zM20 24h5v1h-5zM26 24h1v1h-1zM0 25h1v1h-1zM2 25h3v1h-3zM6 25h1v1h-1zM8 25h2v1h-2zM12 25h3v1h-3zM16 25h1v1h-1zM19 25h1v1h-1zM23 25h1v1h-1zM25 25h4v1h-4zM0 26h1v1h-1zM2 26h3v1h-3zM6 26h1v1h-1zM8 26h1v1h-1zM10 26h2v1h-2zM13 26h7v1h-7zM22 26h6v1h-6zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h1v1h-1zM11 27h2v1h-2zM14 27h3v1h-3zM18 27h1v1h-1zM20 27h1v1h-1zM23 27h3v1h-3zM27 27h1v1h-1zM0 28h7v1h-7zM8 28h1v1h-1zM10 28h3v1h-3zM17 28h3v1h-3zM21 28h1v1h-1zM24 28h1v1h-1zM26 28h1v1h-1z';
+const AG_STATUS={novo:['Novo','var(--info)'],contatado:['Contatado','var(--brand2)'],fechado:['Fechou','var(--ok)'],descartado:['Descartado','var(--muted)']};
+const AG_EST={ate20:'até 20 carros','21a50':'21 a 50 carros','51a100':'51 a 100 carros','100mais':'+100 carros'};
+const AG_INT={atendimento24h:'Atendimento 24h',whatsapp_oficial:'WhatsApp oficial',portais:'Portais',kanban:'Kanban',rodizio:'Rodízio',metricas:'Métricas'};
+function agQrSvg(px){
+  const n=AG_QR_N;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-3 -3 ${n+6} ${n+6}" width="${px}" height="${px}" shape-rendering="crispEdges"><rect x="-3" y="-3" width="${n+6}" height="${n+6}" fill="#fff"/><path d="${AG_QR_D}" fill="#2C0870"/></svg>`;
+}
+async function agCarregar(){
+  try{
+    const {data,error}=await sb.from('agente_leads').select('*').order('criado_em',{ascending:false});
+    if(error) throw error;
+    AG.leads=data||[]; AG.erro='';
+  }catch(e){ AG.leads=[]; AG.erro=(e&&e.message)||'falha ao carregar'; }
+  AG.carregou=true;
+}
+window.agCopiar=()=>{ try{ navigator.clipboard.writeText(AG_URL).then(()=>toast('Link copiado.')); }catch(_){ toast(AG_URL); } };
+window.agBaixarQr=()=>{
+  const svg=agQrSvg(1200), img=new Image();
+  img.onload=()=>{
+    const cv=document.createElement('canvas'); cv.width=1200; cv.height=1200;
+    const ctx=cv.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,1200,1200); ctx.drawImage(img,0,0,1200,1200);
+    const a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='qr-jr-motors.png'; document.body.appendChild(a); a.click(); a.remove();
+  };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+};
+window.agFiltro=(f)=>{ AG.filtro=f; renderAgente($('#content')); };
+window.agStatus=async (id,st)=>{
+  if(!AG_STATUS[st]) return;
+  const {error}=await sb.from('agente_leads').update({status:st,atualizado_em:new Date().toISOString(),atualizado_por:currentUser.id}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const l=AG.leads.find(x=>x.id===id); if(l) l.status=st;
+  renderAgente($('#content')); toast('Status: '+AG_STATUS[st][0]+'.');
+};
+window.agObs=async (id,el)=>{
+  const obs=String(el.value||'').trim().slice(0,2000);
+  const l=AG.leads.find(x=>x.id===id); if(!l||(l.obs||'')===obs) return;
+  const {error}=await sb.from('agente_leads').update({obs:obs||null,atualizado_em:new Date().toISOString(),atualizado_por:currentUser.id}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  l.obs=obs; toast('Anotação salva.');
+};
+window.agExcluir=async (id)=>{
+  const l=AG.leads.find(x=>x.id===id); if(!l) return;
+  const ok=await confirmar('Excluir o lead "'+(l.nome||'')+'"?','Some de vez. Se só quer tirar da lista, marque como Descartado.',{sim:'Excluir',nao:'Cancelar',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('agente_leads').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  AG.leads=AG.leads.filter(x=>x.id!==id); renderAgente($('#content'));
+};
+function agWa(t){ const d=String(t||'').replace(/\D/g,''); return d?('https://wa.me/'+(d.length<=11?'55'+d:d)):''; }
+function renderAgente(c){
+  if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+  if(!AG.carregou){ c.innerHTML='<div class="empty">Carregando lojistas…</div>'; agCarregar().then(()=>{ if(currentView==='agente') renderAgente($('#content')); }); return; }
+  const L=AG.leads, n=(s)=>L.filter(x=>x.status===s).length;
+  const abertos=L.filter(x=>x.status==='novo'||x.status==='contatado');
+  const lista=AG.filtro==='abertos'?abertos:AG.filtro==='todos'?L:L.filter(x=>x.status===AG.filtro);
+  const tab=(f,r,q)=>`<button class="ftab ${AG.filtro===f?'active':''}" onclick="agFiltro('${f}')">${r}${q!==undefined?` <span class="fbad">${q}</span>`:''}</button>`;
+  const quando=(iso)=>{ if(!iso) return ''; const d=new Date(iso); return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+  const item=(l)=>{ const st=AG_STATUS[l.status]||AG_STATUS.novo; const wa=agWa(l.whatsapp);
+    return `<div class="ag-lead">
+      <div class="ag-l1">
+        <div class="ag-nome"><strong>${esc(l.nome)}</strong>${l.loja?` <span class="ag-loja">· ${esc(l.loja)}</span>`:''}${l.cidade?` <span class="ag-cid">${esc(l.cidade)}</span>`:''}</div>
+        <span class="tag" style="color:${st[1]};background:color-mix(in srgb,${st[1]} 16%,transparent)">${st[0]}</span>
+      </div>
+      <div class="ag-l2">
+        ${wa?`<a class="ag-wa" href="${wa}" target="_blank" rel="noopener">💬 ${esc(l.whatsapp)}</a>`:esc(l.whatsapp||'')}
+        ${l.estoque?`<span class="ag-chip">${esc(AG_EST[l.estoque]||l.estoque)}</span>`:''}
+        ${(l.interesses||[]).map(i=>`<span class="ag-chip">${esc(AG_INT[i]||i)}</span>`).join('')}
+        <span class="ag-dt">${quando(l.criado_em)}${l.origem&&l.origem!=='jr-motors'?' · '+esc(l.origem):''}</span>
+      </div>
+      ${l.mensagem?`<div class="ag-msg">“${esc(l.mensagem)}”</div>`:''}
+      <div class="ag-l3">
+        <div class="ag-acoes">
+          ${Object.keys(AG_STATUS).filter(k=>k!==l.status).map(k=>`<button class="btn ghost small" onclick="agStatus('${l.id}','${k}')">${AG_STATUS[k][0]}</button>`).join('')}
+          <button class="iconbtn del" title="Excluir de vez" onclick="agExcluir('${l.id}')">&times;</button>
+        </div>
+        <input class="ag-obs" placeholder="Anotação (ex.: ligar quinta, pediu proposta)…" value="${esc(l.obs||'')}" maxlength="2000" onchange="agObs('${l.id}',this)">
+      </div>
+    </div>`; };
+  c.innerHTML=`
+   <div class="page-head"><div><h2>Agente IA — lojistas interessados</h2><div class="desc">Quem escaneou o QR code e deixou contato em <strong>${AG_URL.replace('https://','')}</strong> · só master vê esta tela</div></div></div>
+   <div class="cards fn-topo" style="margin-bottom:14px">
+     <div class="card fn-card"><div class="k">Novos</div><div class="v" style="color:var(--info)">${n('novo')}</div><div class="sub">ninguém chamou ainda</div></div>
+     <div class="card fn-card"><div class="k">Contatados</div><div class="v" style="color:var(--brand2)">${n('contatado')}</div><div class="sub">em conversa</div></div>
+     <div class="card fn-card"><div class="k">Fecharam</div><div class="v" style="color:var(--ok)">${n('fechado')}</div><div class="sub">viraram cliente</div></div>
+     <div class="card fn-card"><div class="k">Total</div><div class="v">${L.length}</div><div class="sub">${n('descartado')} descartado${n('descartado')===1?'':'s'}</div></div>
+   </div>
+   <div class="ag-grid">
+     <div class="card ag-qr">
+       <h3>Link e QR code</h3>
+       <div class="ag-qrbox">${agQrSvg(190)}</div>
+       <div class="ag-url">${esc(AG_URL)}</div>
+       <div class="ag-btns">
+         <button class="btn small" onclick="agCopiar()">Copiar link</button>
+         <button class="btn ghost small" onclick="agBaixarQr()">Baixar QR (PNG)</button>
+         <a class="btn ghost small" href="${AG_URL}" target="_blank" rel="noopener">Abrir landing</a>
+       </div>
+       <div class="hint" style="margin-top:10px">Imprima o QR no material do evento ou do balcão. Cada lead chega aqui e avisa os masters no sininho.</div>
+     </div>
+     <div class="card">
+       <div class="ag-tabs">${tab('abertos','Em aberto',abertos.length)}${tab('novo','Novos',n('novo'))}${tab('contatado','Contatados',n('contatado'))}${tab('fechado','Fecharam',n('fechado'))}${tab('descartado','Descartados',n('descartado'))}${tab('todos','Todos',L.length)}
+         <button class="btn ghost small" style="margin-left:auto" onclick="AG.carregou=false;renderAgente($('#content'))">Atualizar</button></div>
+       ${AG.erro?`<div class="empty">Erro: ${esc(AG.erro)}</div>`:lista.length?lista.map(item).join(''):'<div class="empty">Nenhum lojista aqui ainda. Quando alguém escanear o QR e preencher, aparece nesta lista.</div>'}
+     </div>
+   </div>`;
+}
 function renderFunil(c){
   if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
   const d=FN.dados, m=d?fnMetricas(d.atual):null, ma=d?fnMetricas(d.anterior):null, v=fnVar(m,ma);
@@ -13205,7 +13347,7 @@ window.inSet=async (uid,campo,v)=>{
 const TL_RAIL=[{v:'tarefas',nome:'Tarefas (as suas)',el:'rlInbox'}];
 const tlLista=()=>Array.from(document.querySelectorAll('.navlink[data-view]'))
   .map(b=>({v:b.dataset.view,nome:(b.getAttribute('title')||b.dataset.view),
-            master:['financeiro','usuarios','funil'].indexOf(b.dataset.view)>=0}))
+            master:['financeiro','usuarios','funil','agente'].indexOf(b.dataset.view)>=0}))
   .concat(TL_RAIL.filter(r=>document.getElementById(r.el)).map(r=>({v:r.v,nome:r.nome,master:false})));
 const tlOff=(u)=>((u&&u.telas_off)||[]);
 const tlBloqueada=(v)=>tlOff(currentUser).indexOf(String(v))>=0;
