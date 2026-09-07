@@ -13444,14 +13444,22 @@ async function mpEvtsDia(iso){
   if(r.error){ MP.evtsPorDia[iso]=MP.evtsPorDia[iso]||[]; toast('Agenda: '+r.error.message); return; }
   MP.evtsPorDia[iso]=r.data||[];
 }
+/* Pinta primeiro com o que ja esta no banco (o cron do servidor sincroniza com o Google a
+   cada 30 min), e so depois pede ao Google em segundo plano. Antes a tela esperava o Google
+   inteiro — uns 5 s de agenda vazia (Gabriel 07/09). */
 async function mpAgendaSync(force){
   if(MP.__sync) return; MP.__sync=true;
   const iso=MP.dia;
+  const pinta=()=>{ if(currentView==='pessoal'&&(MP.aba==='tarefas'||MP.aba==='agenda')&&MP.dia===iso) mpPintar(); };
   try{
-    if(MP.g){ try{ await mpGFn('dia',{dia:iso}); }catch(e){ if(force) toast('Google: '+e.message); } }
-    await mpEvtsDia(iso);
+    try{ await mpEvtsDia(iso); }catch(_){}
+    pinta();
+    if(MP.g){
+      const antes=JSON.stringify(MP.evtsPorDia[iso]||[]);
+      try{ await mpGFn('dia',{dia:iso}); await mpEvtsDia(iso); }catch(e){ if(force) toast('Google: '+e.message); }
+      if(JSON.stringify(MP.evtsPorDia[iso]||[])!==antes||force) pinta();
+    }
   }finally{ MP.__sync=false; }
-  if(currentView==='pessoal'&&(MP.aba==='tarefas'||MP.aba==='agenda')&&MP.dia===iso) mpPintar();
 }
 window.mpGAtualizar=()=>{ toast('Atualizando…'); mpAgendaSync(true); };
 async function mpEvtCriar(nome,dia,hora){
