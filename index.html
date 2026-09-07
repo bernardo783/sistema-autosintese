@@ -2422,6 +2422,11 @@
 .overlay.tc-ov .mhead,.overlay.tc-ov .mfoot{display:none}
 .overlay.tc-ov .mbody{padding:14px 18px 18px}
 .overlay.tc-ov .modal{max-width:520px}
+.tc-mais{font-size:20px;letter-spacing:1px;font-weight:900;color:var(--muted);padding:0 2px}
+.tc-prog{height:4px;border-radius:99px;background:var(--panel2);margin:2px 0 8px;overflow:hidden}
+.tc-prog i{display:block;height:100%;width:0;background:var(--ok);transition:width .25s}
+.tc-pronto{display:block;width:100%;margin-top:22px;padding:14px;background:var(--txt);color:var(--bg);border:none;border-radius:12px;
+  font:inherit;font-size:16px;font-weight:800;cursor:pointer}
 .tc-top{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px}
 .tc-lk{background:none;border:none;color:var(--muted);font:inherit;font-size:15px;cursor:pointer;padding:4px 0}
 .tc-lk.ok{color:var(--brand2);font-weight:800}
@@ -13576,7 +13581,7 @@ window.mpTarCard=(id)=>{
   modal('Tarefa',
     '<div class="tc">'+
     '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button>'+
-      '<button type="button" class="tc-lk ok" onclick="document.querySelector(\'.overlay .msave\').click()">Pronto</button></div>'+
+      '<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpTcMenu(event)">···</button></div>'+
     '<div class="tc-tit"><button type="button" class="tc-o'+(f?' on':'')+'" title="'+(f?'Concluída — toque pra reabrir':'Concluir')+'" onclick="mpTarVirar(\''+t.id+'\');this.classList.toggle(\'on\')">'+svgIco('check',12)+'</button>'+
       '<input id="mtc_tt" class="tc-in" value="'+esc(t.titulo||'')+'" placeholder="Título"/></div>'+
     '<div class="tc-props">'+
@@ -13590,11 +13595,11 @@ window.mpTarCard=(id)=>{
     '</div>'+
     '<div class="tc-sec">Notas</div>'+
     '<textarea id="mtc_ds" class="tc-ds" rows="3" placeholder="Notas">'+esc(t.descricao||'')+'</textarea>'+
-    '<div class="tc-sec">Checklist <span id="mtc_ckc"></span></div><div id="mtc_ck"></div>'+
-    '<div class="tc-add"><span class="tc-o vz"></span><input type="text" id="mtc_ckn" placeholder="Novo item" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mpTcCkAdd();}"></div>'+
-    '<div class="tc-sec">Subtarefas</div><div id="mtc_sub"></div>'+
-    '<div class="tc-add"><span class="tc-o vz"></span><input type="text" id="mtc_subn" placeholder="Nova subtarefa" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mpTcSubAdd();}"></div>'+
-    '<button type="button" class="tc-del" onclick="mpTcApagar()">Apagar tarefa</button>'+
+    '<div class="tc-sec">Etapas <span id="mtc_ckc"></span></div>'+
+    '<div class="tc-prog"><i id="mtc_prog"></i></div>'+
+    '<div id="mtc_ck"></div><div id="mtc_sub"></div>'+
+    '<div class="tc-add"><span class="tc-o vz"></span><input type="text" id="mtc_ckn" placeholder="Nova etapa" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mpTcCkAdd();}"></div>'+
+    '<button type="button" class="tc-pronto" onclick="document.querySelector(\'.overlay .msave\').click()">Pronto</button>'+
     '</div>',
     async ()=>{
       const tt=(($('#mtc_tt')||{}).value||'').trim();
@@ -13607,6 +13612,12 @@ window.mpTarCard=(id)=>{
   const ov=document.querySelector('.overlay'); if(ov){ ov.classList.add('tc-ov'); }
   mpTcPintar();
 };
+/* Menu "..." do cartao: o Apagar sai do meio do formulario (Gabriel 07/09, C + B) */
+window.mpTcMenu=(ev)=>{ ev.stopPropagation();
+  ctxAbrir(ev,[
+    {ic:MICO.lixo,t:'Apagar tarefa',dgr:true,f:()=>mpTcApagar()}
+  ]);
+};
 function mpTcPintar(){
   const t=mpTcT(); if(!t) return;
   /* O contador 0/4 vive na linha da lista, atras do modal. Marcar um item so
@@ -13614,7 +13625,10 @@ function mpTcPintar(){
      de dia. Como o dado ja esta em memoria, repintar a lista aqui e instantaneo. */
   mpPintar();
   const ck=$('#mtc_ck');
-  { const L0=Array.isArray(t.checklist)?t.checklist:[]; const c=$('#mtc_ckc'); if(c) c.textContent=L0.length?(L0.filter(i=>i&&i.ok).length+'/'+L0.length):''; }
+  { const L0=Array.isArray(t.checklist)?t.checklist:[], S0=mpSubsDe(t.id);
+    const tot=L0.length+S0.length, ok=L0.filter(i=>i&&i.ok).length+S0.filter(mpFeita).length;
+    const c=$('#mtc_ckc'); if(c) c.textContent=tot?(ok+' de '+tot):'';
+    const p=$('#mtc_prog'); if(p){ p.style.width=(tot?Math.round(ok/tot*100):0)+'%'; p.parentNode.hidden=!tot; } }
   if(ck){ const L=Array.isArray(t.checklist)?t.checklist:[];
     ck.innerHTML=L.map((i,ix)=>'<div class="mp-trw'+(i&&i.ok?' done':'')+'"><button class="o'+(i&&i.ok?' on':'')+'" onclick="mpTcCkT('+ix+')">'+svgIco('check',11)+'</button><span class="tt">'+esc((i&&i.t)||'')+'</span><button class="x" onclick="mpTcCkDel('+ix+')">×</button></div>').join(''); }
   const su=$('#mtc_sub');
