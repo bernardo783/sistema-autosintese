@@ -2400,6 +2400,8 @@
 .ga-bl{display:flex;align-items:center;gap:9px;border-radius:10px;padding:9px 11px;font-size:12.5px;font-weight:700;color:#fff;
   background:linear-gradient(135deg,var(--brand),#5b4bd6);box-shadow:0 6px 16px rgba(124,58,237,.28);position:relative;z-index:1}
 .ga-bl.tar{background:linear-gradient(135deg,#e6b13f,#b7791f);box-shadow:0 6px 16px rgba(230,177,63,.22);color:#1a1206}
+.ga-bl.hab{background:linear-gradient(135deg,#3fcf8e,#22a394);box-shadow:0 6px 16px rgba(63,207,142,.22);color:#06231a}
+.ga-bl.hab .o{border-color:rgba(0,0,0,.45)} .ga-bl.hab .o.on{color:#22a394} .ga-bl.hab .g{border-color:rgba(0,0,0,.25)}
 .ga-bl.done{opacity:.5} .ga-bl.done .tt{text-decoration:line-through}
 .ga-bl .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ga-bl .tt.abre{cursor:pointer}
@@ -13240,13 +13242,18 @@ function mpIniMobileHTML(){
   const ck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   const o=(on,fn)=>passado?('<span class="o'+(on?' on':' x')+'">'+(on?ck:'')+'</span>')
     :('<button type="button" class="o'+(on?' on':'')+(futuro?' ro':'')+'" '+(futuro?'':'onclick="'+fn+'"')+'>'+ck+'</button>');
-  const linhas=[];
+  /* Ordem do dia (Gabriel 07/09): quem tem horario vem primeiro, na ordem da hora —
+     academia 06:00 amanhece no topo. Sem horario fica embaixo, na ordem de sempre. */
+  const itens=[];
+  const hh=(x)=>x&&/^\d{2}:\d{2}/.test(String(x))?String(x).slice(0,5):'';
   ts.forEach(t=>{ const f=mpFeita(t);
-    linhas.push('<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa</small></span></div>'); });
+    itens.push({hora:hh(t.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa</small></span>'+(hh(t.hora)?'<span class="h">'+hh(t.hora)+'</span>':'')+'</div>'}); });
   evs.forEach(e=>{ const f=!!e.feito;
-    linhas.push('<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpEvtVirar(\''+e.id+'\')')+'<span class="tt">'+esc(e.titulo||'')+'<small>evento'+(e.gcal_id?' · Google':'')+'</small></span>'+(e.hora?'<span class="h">'+esc(String(e.hora).slice(0,5))+'</span>':'')+'</div>'); });
+    itens.push({hora:hh(e.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpEvtVirar(\''+e.id+'\')')+'<span class="tt">'+esc(e.titulo||'')+'<small>evento'+(e.gcal_id?' · Google':'')+'</small></span>'+(hh(e.hora)?'<span class="h">'+hh(e.hora)+'</span>':'')+'</div>'}); });
   hs.forEach(h=>{ const f=mpCk(h.id,dia);
-    linhas.push('<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')')+'<span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>hábito</small></span></div>'); });
+    itens.push({hora:hh(h.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')')+'<span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>hábito</small></span>'+(hh(h.hora)?'<span class="h">'+hh(h.hora)+'</span>':'')+'</div>'}); });
+  itens.sort((a,b)=>(a.hora&&b.hora)?a.hora.localeCompare(b.hora):(a.hora?-1:(b.hora?1:0)));
+  const linhas=itens.map(x=>x.html);
   /* habito que ainda nao comecou mas comeca em breve: mostra pra pessoa saber que existe */
   if(ehHoje) MP.habitos.filter(h=>!mpProg(h,dia)&&mpIni(h)>dia).forEach(h=>{
     linhas.push('<div class="f1-it"><span class="o ro"></span><span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>hábito · '+esc(mpComeca(mpIni(h)))+'</small></span></div>'); });
@@ -13478,6 +13485,8 @@ window.mpHabitoModal=(id)=>{
     '<div class="field"><label>Ícone</label><div class="mp-ics" id="mph_ic"></div></div>'+
     '<div class="field"><label>Cor</label><div class="mp-cors" id="mph_cor"></div></div>'+
     '<div class="field"><label>Frequência</label><div class="mp-pills" id="mph_dias" style="margin:0"></div></div>'+
+    '<div class="field"><label>Horário <span class="hint" style="margin:0;display:inline">(opcional)</span></label><input id="mph_hora" type="time" value="'+esc(h&&h.hora?String(h.hora).slice(0,5):'')+'"/>'+
+    '<div class="hint">com horário, o hábito sobe pro lugar dele na lista do dia e aparece na agenda</div></div>'+
     '<div class="field"><label>Começa em</label><div class="mp-pills" id="mph_qini" style="margin:0 0 8px"></div>'+
     '<input id="mph_ini" type="date" value="'+esc(window.__mpH.ini)+'" onchange="mpHIniIn(this.value)"/>'+
     '<div class="hint">antes dessa data o hábito não conta na nota nem na grade</div></div>'+
@@ -13492,7 +13501,7 @@ window.mpHabitoModal=(id)=>{
       const teto=st.tipo==='sem'?7:(st.tipo==='mes'?31:366);
       if(qtd<1){ toast('Meta precisa ser pelo menos 1.'); return false; }
       if(qtd>teto){ toast('Meta máxima '+(st.tipo==='sem'?'semanal é 7':(st.tipo==='mes'?'mensal é 31':'anual é 366'))+'.'); return false; }
-      const pay={nome,icone:st.ic,cor:st.cor,dias:st.dias.slice().sort(),meta_tipo:st.tipo,meta_qtd:qtd,inicio:st.ini||tkHoje()};
+      const pay={nome,icone:st.ic,cor:st.cor,dias:st.dias.slice().sort(),meta_tipo:st.tipo,meta_qtd:qtd,inicio:st.ini||tkHoje(),hora:((($('#mph_hora')||{}).value)||'').slice(0,5)||null};
       if(st.id){
         const {error}=await sb.from('habitos').update(pay).eq('id',st.id);
         if(error){ toast('Erro: '+error.message); return false; }
@@ -13812,6 +13821,7 @@ function mpAgendaHTML(){
   const porHora={};
   com.forEach(e=>{ (porHora[hh(e.hora)]=porHora[hh(e.hora)]||[]).push({tipo:'ev',o:e}); });
   tarsH.forEach(t=>{ (porHora[hh(t.hora)]=porHora[hh(t.hora)]||[]).push({tipo:'tar',o:t}); });
+  MP.habitos.filter(h=>h.hora&&mpProg(h,dia)).forEach(h=>{ (porHora[hh(h.hora)]=porHora[hh(h.hora)]||[]).push({tipo:'hab',o:h}); });
   const bloco=(it)=>{
     if(it.tipo==='ev'){ const e=it.o;
       return '<div class="ga-bl ev'+(e.feito?' done':'')+'">'+
@@ -13819,6 +13829,10 @@ function mpAgendaHTML(){
         '<span class="tt">'+esc(e.titulo||'')+'</span><span class="h">'+esc(String(e.hora).slice(0,5))+'</span>'+
         (e.gcal_id?'<span class="g">Google</span>':'')+
         '<button class="x" title="Apagar" onclick="mpEvtDel(\''+e.id+'\')">×</button></div>'; }
+    if(it.tipo==='hab'){ const h=it.o, f=mpCk(h.id,dia);
+      return '<div class="ga-bl hab'+(f?' done':'')+'">'+
+        '<button class="o'+(f?' on':'')+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')">'+svgIco('check',10)+'</button>'+
+        '<span class="tt abre" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'</span><span class="h">'+esc(String(h.hora).slice(0,5))+'</span><span class="g">hábito</span></div>'; }
     const t=it.o, f=mpFeita(t);
     return '<div class="ga-bl tar'+(f?' done':'')+'">'+
       '<button class="o'+(f?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',10)+'</button>'+
