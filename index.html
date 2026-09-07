@@ -2458,6 +2458,8 @@
 .tc-mais{font-size:20px;letter-spacing:1px;font-weight:900;color:var(--muted);padding:0 2px}
 .tc-prog{height:4px;border-radius:99px;background:var(--panel2);margin:2px 0 8px;overflow:hidden}
 .tc-prog i{display:block;height:100%;width:0;background:var(--ok);transition:width .25s}
+.mph-icbt{width:36px;height:36px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);display:grid;place-items:center;cursor:pointer;flex:none;padding:0}
+.tc-chip.on{background:var(--txt);color:var(--bg);border-color:var(--txt)}
 .tc-pronto{display:block;width:100%;margin-top:22px;padding:14px;background:var(--txt);color:var(--bg);border:none;border-radius:12px;
   font:inherit;font-size:16px;font-weight:800;cursor:pointer}
 .tc-top{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px}
@@ -13584,24 +13586,32 @@ window.mpHabApagar=async(id)=>{
   MP.checks=MP.checks.filter(k=>String(k.habito_id)!==String(id));
   mpPintar(); toast('Hábito apagado.');
 };
+/* Novo/editar habito no MESMO padrao do cartao de tarefa (Gabriel 07/09): titulo em cima,
+   linhas "Rotulo · valor ›" que abrem a escolha embaixo, e um botao Pronto. Nada de
+   formulario comprido — o Salvar nao pode ficar escondido. */
 window.mpHabitoModal=(id)=>{
   const h=id?MP.habitos.find(x=>String(x.id)===String(id)):null;
   window.__mpH={id:id||null,ic:h?h.icone:'raio',cor:h?(h.cor||MP_CORES[0]):MP_CORES[0],
     dias:h?(h.dias||[]).map(Number):[1,2,3,4,5],tipo:h?h.meta_tipo:'sem',qtd:h?h.meta_qtd:5,
-    ini:h?mpIni(h):tkHoje()};
+    ini:h?mpIni(h):tkHoje(),hora:h&&h.hora?String(h.hora).slice(0,5):''};
+  const st=window.__mpH;
+  const linha=(k,rot,extra)=>'<button type="button" class="tc-p" onclick="mpHTgl(\''+k+'\')"><small>'+rot+'</small><b id="mphv_'+k+'"></b><i>›</i></button>'+
+    '<div id="mph_box_'+k+'" class="tc-box mph-box" hidden>'+extra+'</div>';
   modal(h?'Editar hábito':'Novo hábito',
-    '<div class="field"><label>Nome</label><input id="mph_nm" value="'+esc(h?h.nome:'')+'" placeholder="ex.: Academia"/></div>'+
-    '<div class="field"><label>Ícone</label><div class="mp-ics" id="mph_ic"></div></div>'+
-    '<div class="field"><label>Cor</label><div class="mp-cors" id="mph_cor"></div></div>'+
-    '<div class="field"><label>Frequência</label><div class="mp-pills" id="mph_dias" style="margin:0"></div></div>'+
-    '<div class="field"><label>Horário <span class="hint" style="margin:0;display:inline">(opcional)</span></label><input id="mph_hora" type="time" value="'+esc(h&&h.hora?String(h.hora).slice(0,5):'')+'"/>'+
-    '<div class="hint">com horário, o hábito sobe pro lugar dele na lista do dia e aparece na agenda</div></div>'+
-    '<div class="field"><label>Começa em</label><div class="mp-pills" id="mph_qini" style="margin:0 0 8px"></div>'+
-    '<input id="mph_ini" type="date" value="'+esc(window.__mpH.ini)+'" onchange="mpHIniIn(this.value)"/>'+
-    '<div class="hint">antes dessa data o hábito não conta na nota nem na grade</div></div>'+
-    '<div class="field"><label>Meta</label><div class="mp-pills" id="mph_mt" style="margin:0"></div>'+
-    '<div class="mp-metain"><input id="mph_qtd" type="number" min="1" value="'+Number(window.__mpH.qtd)+'"/><span id="mph_suf"></span></div>'+
-    '<div class="hint">o número vem dos dias marcados — pode escrever outro por cima</div></div>',
+    '<div class="tc">'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button>'+
+      (h?'<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpHabMenu(event,\''+h.id+'\')">···</button>':'<span></span>')+'</div>'+
+    '<div class="tc-tit"><button type="button" class="mph-icbt" id="mphv_icbt" onclick="mpHTgl(\'ic\')"></button>'+
+      '<input id="mph_nm" class="tc-in" value="'+esc(h?h.nome:'')+'" placeholder="Nome do hábito"/></div>'+
+    '<div class="tc-props">'+
+      linha('ic','Ícone','<div class="mp-cors" id="mph_cor" style="margin-bottom:10px"></div><div class="mp-ics" id="mph_ic"></div>')+
+      linha('dias','Dias','<div class="tc-chips" id="mph_dias"></div>')+
+      linha('hora','Hora','<div class="tc-chips"><input type="time" id="mph_hora" class="tc-date" value="'+esc(st.hora)+'" onchange="window.__mpH.hora=this.value.slice(0,5);mpHPintar()"/><button type="button" class="tc-chip" onclick="mpHHora(\'\')">Sem hora</button></div>')+
+      linha('ini','Começa','<div class="tc-chips" id="mph_qini"></div><input type="date" id="mph_ini" class="tc-date" style="margin-top:8px" value="'+esc(st.ini)+'" onchange="mpHIniIn(this.value)" hidden/>')+
+      linha('meta','Meta','<div class="tc-chips" id="mph_mt" style="margin-bottom:8px"></div><div class="mp-metain"><input id="mph_qtd" type="number" min="1" value="'+Number(st.qtd)+'" oninput="mpHValores()"/><span id="mph_suf"></span></div>')+
+    '</div>'+
+    '<button type="button" class="tc-pronto" onclick="document.querySelector(\'.overlay .msave\').click()">'+(h?'Pronto':'Adicionar')+'</button>'+
+    '</div>',
     async ()=>{
       const st=window.__mpH, nome=($('#mph_nm').value||'').trim();
       if(!nome){ toast('Dá um nome pro hábito.'); return false; }
@@ -13610,7 +13620,7 @@ window.mpHabitoModal=(id)=>{
       const teto=st.tipo==='sem'?7:(st.tipo==='mes'?31:366);
       if(qtd<1){ toast('Meta precisa ser pelo menos 1.'); return false; }
       if(qtd>teto){ toast('Meta máxima '+(st.tipo==='sem'?'semanal é 7':(st.tipo==='mes'?'mensal é 31':'anual é 366'))+'.'); return false; }
-      const pay={nome,icone:st.ic,cor:st.cor,dias:st.dias.slice().sort(),meta_tipo:st.tipo,meta_qtd:qtd,inicio:st.ini||tkHoje(),hora:((($('#mph_hora')||{}).value)||'').slice(0,5)||null};
+      const pay={nome,icone:st.ic,cor:st.cor,dias:st.dias.slice().sort(),meta_tipo:st.tipo,meta_qtd:qtd,inicio:st.ini||tkHoje(),hora:(st.hora||'').slice(0,5)||null};
       if(st.id){
         const {error}=await sb.from('habitos').update(pay).eq('id',st.id);
         if(error){ toast('Erro: '+error.message); return false; }
@@ -13623,28 +13633,50 @@ window.mpHabitoModal=(id)=>{
       }
       mpPintar();
     });
+  const ov=document.querySelector('.overlay'); if(ov) ov.classList.add('tc-ov');
   mpHPintar();
+  setTimeout(()=>{ if(!h){ const i=$('#mph_nm'); if(i) i.focus(); } },40);
 };
+/* abre uma escolha por vez, como no cartao de tarefa */
+window.mpHTgl=(k)=>{ const alvo=$('#mph_box_'+k); const aberto=alvo&&!alvo.hidden;
+  document.querySelectorAll('.mph-box').forEach(b=>{ b.hidden=true; });
+  if(alvo&&!aberto){ alvo.hidden=false; if(k==='hora'){ const i=$('#mph_hora'); if(i){ i.focus(); try{ i.showPicker&&i.showPicker(); }catch(_){} } } } };
+window.mpHHora=(v)=>{ window.__mpH.hora=v||''; const i=$('#mph_hora'); if(i) i.value=v||''; mpHPintar(); if(!v){ const b=$('#mph_box_hora'); if(b) b.hidden=true; } };
+function mpHFreqRot(d){ const sd=d.slice().map(Number).sort(), j=sd.join(',');
+  if(j==='0,1,2,3,4,5,6') return 'Todos os dias'; if(j==='1,2,3,4,5') return 'Seg a sex'; if(j==='0,6') return 'Fim de semana';
+  if(!sd.length) return 'nenhum'; return sd.map(i=>MP_SEMD[i]).join(', '); }
+function mpHValores(){
+  const st=window.__mpH; if(!st) return;
+  const v=(k,txt,vz)=>{ const e=$('#mphv_'+k); if(e){ e.innerHTML=txt; e.classList.toggle('vz',!!vz); } };
+  v('ic','<span style="color:'+esc(st.cor)+';display:inline-flex;vertical-align:middle">'+mpIco(st.ic,16)+'</span>');
+  const bt=$('#mphv_icbt'); if(bt){ bt.style.color=st.cor; bt.innerHTML=mpIco(st.ic,20); }
+  v('dias',esc(mpHFreqRot(st.dias)),!st.dias.length);
+  v('hora',st.hora?esc(st.hora):'nenhuma',!st.hora);
+  v('ini',esc(mpTcRotDia(st.ini)));
+  const q=parseInt((($('#mph_qtd')||{}).value)||st.qtd,10)||0;
+  v('meta',q+'× por '+(st.tipo==='sem'?'semana':(st.tipo==='mes'?'mês':'ano')));
+}
 const error_or=(r)=>!!(r&&r.error);
 function mpHPintar(){
   const st=window.__mpH;
   const ic=$('#mph_ic'); if(ic) ic.innerHTML=Object.keys(MP_ICO).map(k=>'<div class="mp-icb'+(st.ic===k?' on':'')+'" style="color:'+esc(st.cor)+'" onclick="mpHIc(\''+k+'\')">'+mpIco(k,18)+'</div>').join('');
   const co=$('#mph_cor'); if(co) co.innerHTML=MP_CORES.map(c=>'<div class="mp-corb'+(st.cor===c?' on':'')+'" style="background:'+c+'" onclick="mpHCor(\''+c+'\')"></div>').join('');
-  const di=$('#mph_dias'); if(di) di.innerHTML=[0,1,2,3,4,5,6].map(i=>'<button type="button" class="mp-pill'+(st.dias.indexOf(i)>=0?' on':'')+'" onclick="mpHDia('+i+')">'+MP_SEMD[i]+'</button>').join('');
-  const mt=$('#mph_mt'); if(mt) mt.innerHTML=[['sem','Semanal'],['mes','Mensal'],['ano','Anual']].map(p=>'<button type="button" class="mp-pill'+(st.tipo===p[0]?' on':'')+'" onclick="mpHTipo(\''+p[0]+'\')">'+p[1]+'</button>').join('');
+  const di=$('#mph_dias'); if(di) di.innerHTML=[0,1,2,3,4,5,6].map(i=>'<button type="button" class="tc-chip'+(st.dias.indexOf(i)>=0?' on':'')+'" onclick="mpHDia('+i+')">'+MP_SEMD[i]+'</button>').join('');
+  const mt=$('#mph_mt'); if(mt) mt.innerHTML=[['sem','Semanal'],['mes','Mensal'],['ano','Anual']].map(p=>'<button type="button" class="tc-chip'+(st.tipo===p[0]?' on':'')+'" onclick="mpHTipo(\''+p[0]+'\')">'+p[1]+'</button>').join('');
   const su=$('#mph_suf'); if(su) su.textContent='vezes / '+(st.tipo==='sem'?'semana':(st.tipo==='mes'?'mês':'ano'));
   /* Hoje / Amanha / Proxima segunda / Outra data — o calendario so aparece na ultima
      (Gabriel 07/09: a data por extenso embaixo dos chips era ruido) */
   const ops=mpHIniOps(), bate=ops.some(o=>o[1]===st.ini), pers=!!st.pers||!bate;
-  const qi=$('#mph_qini'); if(qi) qi.innerHTML=ops.map(o=>'<button type="button" class="mp-pill'+((!pers&&st.ini===o[1])?' on':'')+'" onclick="mpHIniSet(\''+o[1]+'\')">'+o[0]+'</button>').join('')
-    +'<button type="button" class="mp-pill'+(pers?' on':'')+'" onclick="mpHIniPers()">Outra data</button>';
-  const ii=$('#mph_ini'); if(ii){ if(ii.value!==st.ini) ii.value=st.ini; ii.style.display=pers?'':'none'; }
+  const qi=$('#mph_qini'); if(qi) qi.innerHTML=ops.map(o=>'<button type="button" class="tc-chip'+((!pers&&st.ini===o[1])?' on':'')+'" onclick="mpHIniSet(\''+o[1]+'\')">'+o[0]+'</button>').join('')
+    +'<button type="button" class="tc-chip'+(pers?' on':'')+'" onclick="mpHIniPers()">Outro</button>';
+  const ii=$('#mph_ini'); if(ii){ if(ii.value!==st.ini) ii.value=st.ini; ii.hidden=!pers; }
+  if(typeof mpHValores==='function') mpHValores();
 }
 /* Atalhos de início. Montando no domingo, "Amanhã" e "Próxima segunda" dão o mesmo
    dia — de propósito: é o caso do Gabriel, que quer a semana cheia de seg a dom. */
 function mpHIniOps(){ const hj=tkHoje();
   return [['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Próxima segunda',tkDiaMais(mpSegDa(hj),7)]]; }
-window.mpHIniSet=(iso)=>{ window.__mpH.ini=iso; window.__mpH.pers=false; mpHPintar(); };
+window.mpHIniSet=(iso)=>{ window.__mpH.ini=iso; window.__mpH.pers=false; mpHPintar(); const b=$('#mph_box_ini'); if(b) b.hidden=true; };
 window.mpHIniPers=()=>{ window.__mpH.pers=true; mpHPintar(); const i=$('#mph_ini'); if(i){ i.focus(); try{ i.showPicker&&i.showPicker(); }catch(_){} } };
 window.mpHIniIn=(v)=>{ if(v) window.__mpH.ini=v; window.__mpH.pers=true; mpHPintar(); };
 function mpHCalc(){
@@ -14001,7 +14033,7 @@ window.shFecha=()=>{ const o=document.getElementById('shOv'); if(o) o.remove(); 
 function shTeclado(){ const sh=document.querySelector('#shOv .sheet'); if(!sh||!window.visualViewport) return;
   const vv=window.visualViewport; const desl=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
   sh.style.transform=desl?('translateY(-'+desl+'px)'):''; }
-window.mpEvtSheet=(h)=>{
+window.mpEvtSheetAntigo=(h)=>{
   shFecha();
   const dia=MP.dia; SH={h:(h==null?null:h),hora:'',dur:60,outro:false};
   SH.hora=shHoraOps(SH.h)[0];
@@ -14053,20 +14085,56 @@ function mpCalMesHTML(){
     '<div class="ga-calg">'+['S','T','Q','Q','S','S','D'].map(x=>'<small>'+x+'</small>').join('')+cel+'</div></div>';
 }
 window.mpEvtSlot=(h)=>{
-  if(window.innerWidth<=720||document.body.classList.contains('mob-pessoal')) return mpEvtSheet(h);
-  const dia=MP.dia;
+  const dia=MP.dia, hj=tkHoje();
+  const hora=(h==null)?'':(String(h).padStart(2,'0')+':00');
+  const chips=[['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Seg '+Number(tkDiaMais(mpSegDa(hj),7).slice(8,10)),tkDiaMais(mpSegDa(hj),7)]];
+  window.__mpE={dur:60};
   modal('Novo evento',
-    '<div class="field"><label>Nome</label><input id="gce_nm" placeholder="Nome do evento…"/></div>'+
-    '<div class="field"><label>Hora</label><input type="time" id="gce_hr" value="'+String(h).padStart(2,'0')+':00"/></div>',
+    '<div class="tc">'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button><span></span></div>'+
+    '<div class="tc-tit"><input id="gce_nm" class="tc-in" placeholder="Título" onkeydown="if(event.key===\'Enter\'){event.preventDefault();document.querySelector(\'.overlay .msave\').click();}"/></div>'+
+    '<div class="tc-props">'+
+      '<button type="button" class="tc-p" onclick="mpETgl(\'dt\')"><small>Dia</small><b id="gcev_dt">'+esc(mpTcRotDia(dia))+'</b><i>›</i></button>'+
+      '<div id="gce_box_dt" class="tc-box gce-box" hidden><div class="tc-chips">'+chips.map(c=>'<button type="button" class="tc-chip'+(c[1]===dia?' on':'')+'" onclick="mpEDia(\''+c[1]+'\')">'+c[0]+'</button>').join('')+
+        '<button type="button" class="tc-chip" onclick="var i=document.getElementById(\'gce_dt\');i.hidden=false;i.focus();try{i.showPicker&&i.showPicker()}catch(e){}">Outro</button></div>'+
+        '<input type="date" id="gce_dt" class="tc-date" style="margin-top:8px" value="'+esc(dia)+'" onchange="mpERot()" '+(chips.some(c=>c[1]===dia)?'hidden':'')+'/></div>'+
+      '<button type="button" class="tc-p" onclick="mpETgl(\'hr\')"><small>Hora</small><b id="gcev_hr" class="'+(hora?'':'vz')+'">'+esc(hora||'nenhuma')+'</b><i>›</i></button>'+
+      '<div id="gce_box_hr" class="tc-box gce-box" hidden><div class="tc-chips"><input type="time" id="gce_hr" class="tc-date" value="'+esc(hora)+'" onchange="mpERot()"/>'+
+        '<button type="button" class="tc-chip" onclick="mpEHora(\'\')">Dia inteiro</button></div></div>'+
+      '<button type="button" class="tc-p" onclick="mpETgl(\'du\')"><small>Duração</small><b id="gcev_du">1 h</b><i>›</i></button>'+
+      '<div id="gce_box_du" class="tc-box gce-box" hidden><div class="tc-chips" id="gce_du">'+[[30,'30 min'],[60,'1 h'],[120,'2 h']].map(d=>'<button type="button" class="tc-chip'+(d[0]===60?' on':'')+'" onclick="mpEDur('+d[0]+')">'+d[1]+'</button>').join('')+'</div></div>'+
+      (MP.g?'<button type="button" class="tc-p" onclick="mpEGoogle()"><small>Google</small><b id="gcev_g">Sim</b><i>›</i></button>':'')+
+    '</div>'+
+    '<button type="button" class="tc-pronto" onclick="document.querySelector(\'.overlay .msave\').click()">Adicionar</button>'+
+    '</div>',
     async ()=>{
-      const nome=(($('#gce_nm')||{}).value||'').trim(); if(!nome){ toast('Dá um nome pro evento.'); return false; }
-      const hora=(($('#gce_hr')||{}).value||'')||null;
-      const ok=await mpEvtCriar(nome,dia,hora);
+      const nome=(($('#gce_nm')||{}).value||'').trim(); if(!nome){ toast('Dá um nome pro evento.'); const i=$('#gce_nm'); if(i) i.focus(); return false; }
+      const d=(($('#gce_dt')||{}).value||'')||dia;
+      const hr=(($('#gce_hr')||{}).value||'')||null;
+      const g=window.__mpE.google!==false;
+      MP.dia=d;
+      const ok=await mpEvtCriar(nome,d,hr,hr?window.__mpE.dur:0,g);
       if(!ok) return false;
     });
+  const ov=document.querySelector('.overlay'); if(ov) ov.classList.add('tc-ov');
   setTimeout(()=>{ const e=$('#gce_nm'); if(e) e.focus(); },60);
 };
-
+window.mpETgl=(k)=>{ const alvo=$('#gce_box_'+k); const aberto=alvo&&!alvo.hidden;
+  document.querySelectorAll('.gce-box').forEach(b=>{ b.hidden=true; });
+  if(alvo&&!aberto){ alvo.hidden=false; if(k==='hr'){ const i=$('#gce_hr'); if(i){ i.focus(); try{ i.showPicker&&i.showPicker(); }catch(_){} } } } };
+window.mpEDia=(iso)=>{ const i=$('#gce_dt'); if(i) i.value=iso; mpERot(); const b=$('#gce_box_dt'); if(b) b.hidden=true; };
+window.mpEHora=(v)=>{ const i=$('#gce_hr'); if(i) i.value=v||''; mpERot(); if(!v){ const b=$('#gce_box_hr'); if(b) b.hidden=true; } };
+window.mpEDur=(m)=>{ window.__mpE.dur=m; mpERot(); const b=$('#gce_box_du'); if(b) b.hidden=true; };
+window.mpEGoogle=()=>{ window.__mpE.google=(window.__mpE.google===false)?true:false; mpERot(); };
+function mpERot(){
+  const d=(($('#gce_dt')||{}).value||''), h=(($('#gce_hr')||{}).value||'');
+  const dl=$('#gcev_dt'); if(dl) dl.textContent=mpTcRotDia(d);
+  const hl=$('#gcev_hr'); if(hl){ hl.textContent=h?h.slice(0,5):'dia inteiro'; hl.classList.toggle('vz',!h); }
+  const du=$('#gcev_du'); if(du){ const m=window.__mpE.dur; du.textContent=m===30?'30 min':(m===120?'2 h':'1 h'); }
+  document.querySelectorAll('#gce_du .tc-chip').forEach(b=>b.classList.toggle('on',b.textContent.trim()===(window.__mpE.dur===30?'30 min':(window.__mpE.dur===120?'2 h':'1 h'))));
+  const dur=$('#gce_box_du'); const durRow=dur&&dur.previousElementSibling; if(durRow){ durRow.style.display=h?'':'none'; if(!h) dur.hidden=true; }
+  const g=$('#gcev_g'); if(g) g.textContent=(window.__mpE.google===false)?'Não':'Sim';
+}
 /* ---------- google ---------- */
 async function mpGFn(acao,corpo){
   const t=(SESSION&&SESSION.access_token)||'';
