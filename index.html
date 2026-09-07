@@ -5053,12 +5053,40 @@ function gsBuscar(qRaw){
     .map(l=>({ t:l.nome||l.telefone, sub:'funil', go:()=>{ render('funil'); setTimeout(()=>waAbrir(l.id),80); } })));
   return G;
 }
-let GS={sel:0,flat:[]};
+/* ---- busca no workspace PESSOAL (Gabriel 07/09): so o que e seu ----
+   Tarefas do seu workspace, eventos da sua agenda (no banco, qualquer dia) e habitos.
+   Nada da Sintese aparece aqui. Escolher um evento leva pro dia dele na Agenda. */
+const gsPessoal=()=>(wsAtual()||{}).tipo==='pessoal';
+async function gsBuscarPessoal(qRaw){
+  const q=gsNorm(qRaw).split(/\s+/).filter(Boolean);
+  if(!q.length) return [];
+  const G=[], MAX=8, hoje=tkHoje();
+  const add=(rot,ic,itens)=>{ if(itens.length) G.push({rot,ic,itens:itens.slice(0,MAX),mais:Math.max(0,itens.length-MAX)}); };
+  const diaRot=(d)=>!d?'sem data':(d===hoje?'hoje':(d===tkDiaMais(hoje,1)?'amanhã':(d===tkDiaMais(hoje,-1)?'ontem':mpDataExt(d))));
+  add('Tarefas','▤',mpTarefas().filter(t=>gsBate(q,[t.titulo,t.descricao].join(' '))).map(t=>{ const d=String(t.prazo||'').slice(0,10); return {
+    t:t.titulo||'(sem título)', sub:diaRot(d)+(t.hora?' · '+String(t.hora).slice(0,5):'')+(mpFeita(t)?' · feita':''),
+    go:()=>{ if(d) MP.dia=d; MP.aba='tarefas'; render('pessoal'); setTimeout(()=>mpTarCard(t.id),150); } }; }));
+  let evs=[];
+  try{
+    const r=await sb.from('agenda_eventos').select('id,titulo,dia,hora,gcal_id').eq('dono',currentUser.id)
+      .ilike('titulo','%'+String(q[0]).replace(/[%_]/g,'')+'%').limit(60);
+    evs=(r.data||[]).filter(e=>gsBate(q,e.titulo));
+  }catch(_){}
+  const ch=(e)=>String(e.dia)+(e.hora||'');
+  const fut=evs.filter(e=>e.dia>=hoje).sort((a,b)=>ch(a).localeCompare(ch(b)));
+  const pas=evs.filter(e=>e.dia<hoje).sort((a,b)=>ch(b).localeCompare(ch(a)));
+  add('Eventos','▦',fut.concat(pas).map(e=>({ t:e.titulo||'(sem título)',
+    sub:diaRot(e.dia)+(e.hora?' · '+String(e.hora).slice(0,5):'')+(e.gcal_id?' · Google':''),
+    go:()=>{ MP.dia=e.dia; MP.aba='agenda'; render('pessoal'); } })));
+  add('Hábitos','◎',(MP.habitos||[]).filter(h=>gsBate(q,h.nome)).map(h=>({ t:h.nome||'', sub:(h.hora?String(h.hora).slice(0,5)+' · ':'')+'hábito', go:()=>mpHabitoModal(h.id) })));
+  return G;
+}
+let GS={sel:0,flat:[],tok:0};
 window.gsAbrir=(q)=>{
   gsFechar();
   const o=document.createElement('div'); o.className='overlay gs-ov'; o.id='gsOv';
   o.innerHTML=`<div class="gs-box">
-    <div class="gs-in"><span class="gs-lupa">⌕</span><input id="gsQ" placeholder="Buscar tarefa, cliente, lista, pasta, link…" autocomplete="off" value="${esc(q||'')}"><span class="gs-esc">esc</span></div>
+    <div class="gs-in"><span class="gs-lupa">⌕</span><input id="gsQ" placeholder="${gsPessoal()?'Buscar tarefa, evento':'Buscar tarefa, cliente, lista, pasta, link…'}" autocomplete="off" value="${esc(q||'')}"><span class="gs-esc">esc</span></div>
     <div class="gs-res" id="gsRes"></div></div>`;
   document.body.appendChild(o);
   o.onclick=(e)=>{ if(e.target===o) gsFechar(); };
@@ -5073,10 +5101,14 @@ window.gsAbrir=(q)=>{
   gsPintar(q||''); setTimeout(()=>{ inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length); },20);
 };
 function gsFechar(){ const o=document.getElementById('gsOv'); if(o) o.remove(); }
-function gsPintar(q){
+async function gsPintar(q){
   const box=document.getElementById('gsRes'); if(!box) return;
-  const G=gsBuscar(q); GS.sel=0; GS.flat=[];
-  if(!q.trim()){ box.innerHTML='<div class="gs-vazio">Digite pra buscar em tarefas, clientes, listas, pastas, espaços, links e senhas.</div>'; return; }
+  const pes=gsPessoal();
+  if(!q.trim()){ GS.sel=0; GS.flat=[]; box.innerHTML='<div class="gs-vazio">'+(pes?'Digite pra buscar em tarefas, eventos e hábitos.':'Digite pra buscar em tarefas, clientes, listas, pastas, espaços, links e senhas.')+'</div>'; return; }
+  const tok=++GS.tok;
+  const G=pes?await gsBuscarPessoal(q):gsBuscar(q);
+  if(tok!==GS.tok||!document.getElementById('gsRes')) return;   /* resposta velha ou busca fechada */
+  GS.sel=0; GS.flat=[];
   if(!G.length){ box.innerHTML='<div class="gs-vazio">Nada encontrado para “'+esc(q)+'”.</div>'; return; }
   let i=0;
   box.innerHTML=G.map(g=>`<div class="gs-g"><div class="gs-gh">${esc(g.ic)} ${esc(g.rot)}<span class="gs-n">${g.itens.length+(g.mais?'+':'')}</span></div>
