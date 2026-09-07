@@ -2149,6 +2149,9 @@
   .mp-mini{display:none}
   body.mob-pessoal .topbar .tb-esp::after{content:'Pessoal \25BE';font-weight:800}
   body.mob-pessoal .main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}
+  /* modal por cima da pilula e do FAB: o Salvar do "Novo habito" ficava escondido atras deles */
+  body.mob-pessoal .overlay{z-index:960}
+  body.mob-pessoal .overlay .modal{max-height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
   body.mob-pessoal .mp-abas,body.mob-pessoal .mp-topo-acao{display:none}
   body.mob-pessoal .mp-sino{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
     border:1px solid var(--line);background:var(--panel);color:var(--txt);position:relative;flex:none;cursor:pointer}
@@ -13266,15 +13269,20 @@ function mpHPintar(){
   const di=$('#mph_dias'); if(di) di.innerHTML=[0,1,2,3,4,5,6].map(i=>'<button type="button" class="mp-pill'+(st.dias.indexOf(i)>=0?' on':'')+'" onclick="mpHDia('+i+')">'+MP_SEMD[i]+'</button>').join('');
   const mt=$('#mph_mt'); if(mt) mt.innerHTML=[['sem','Semanal'],['mes','Mensal'],['ano','Anual']].map(p=>'<button type="button" class="mp-pill'+(st.tipo===p[0]?' on':'')+'" onclick="mpHTipo(\''+p[0]+'\')">'+p[1]+'</button>').join('');
   const su=$('#mph_suf'); if(su) su.textContent='vezes / '+(st.tipo==='sem'?'semana':(st.tipo==='mes'?'mês':'ano'));
-  const qi=$('#mph_qini'); if(qi) qi.innerHTML=mpHIniOps().map(o=>'<button type="button" class="mp-pill'+(st.ini===o[1]?' on':'')+'" onclick="mpHIniSet(\''+o[1]+'\')">'+o[0]+'</button>').join('');
-  const ii=$('#mph_ini'); if(ii&&ii.value!==st.ini) ii.value=st.ini;
+  /* Hoje / Amanha / Proxima segunda / Outra data — o calendario so aparece na ultima
+     (Gabriel 07/09: a data por extenso embaixo dos chips era ruido) */
+  const ops=mpHIniOps(), bate=ops.some(o=>o[1]===st.ini), pers=!!st.pers||!bate;
+  const qi=$('#mph_qini'); if(qi) qi.innerHTML=ops.map(o=>'<button type="button" class="mp-pill'+((!pers&&st.ini===o[1])?' on':'')+'" onclick="mpHIniSet(\''+o[1]+'\')">'+o[0]+'</button>').join('')
+    +'<button type="button" class="mp-pill'+(pers?' on':'')+'" onclick="mpHIniPers()">Outra data</button>';
+  const ii=$('#mph_ini'); if(ii){ if(ii.value!==st.ini) ii.value=st.ini; ii.style.display=pers?'':'none'; }
 }
 /* Atalhos de início. Montando no domingo, "Amanhã" e "Próxima segunda" dão o mesmo
    dia — de propósito: é o caso do Gabriel, que quer a semana cheia de seg a dom. */
 function mpHIniOps(){ const hj=tkHoje();
   return [['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Próxima segunda',tkDiaMais(mpSegDa(hj),7)]]; }
-window.mpHIniSet=(iso)=>{ window.__mpH.ini=iso; mpHPintar(); };
-window.mpHIniIn=(v)=>{ if(v) window.__mpH.ini=v; mpHPintar(); };
+window.mpHIniSet=(iso)=>{ window.__mpH.ini=iso; window.__mpH.pers=false; mpHPintar(); };
+window.mpHIniPers=()=>{ window.__mpH.pers=true; mpHPintar(); const i=$('#mph_ini'); if(i){ i.focus(); try{ i.showPicker&&i.showPicker(); }catch(_){} } };
+window.mpHIniIn=(v)=>{ if(v) window.__mpH.ini=v; window.__mpH.pers=true; mpHPintar(); };
 function mpHCalc(){
   const st=window.__mpH, n=st.dias.length||1;
   const v=st.tipo==='sem'?n:(st.tipo==='mes'?Math.round(n*52/12):n*52);
