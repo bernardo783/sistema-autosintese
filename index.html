@@ -2398,6 +2398,49 @@
 .sh-btn{width:100%;margin-top:14px;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:14px;
   font:inherit;font-size:16px;font-weight:700;cursor:pointer}
 .sh-btn:disabled{opacity:.45}
+/* ---- cartao da tarefa (opcao C) ---- */
+.overlay.tc-ov .mhead,.overlay.tc-ov .mfoot{display:none}
+.overlay.tc-ov .mbody{padding:14px 18px 18px}
+.overlay.tc-ov .modal{max-width:520px}
+.tc-top{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px}
+.tc-lk{background:none;border:none;color:var(--muted);font:inherit;font-size:15px;cursor:pointer;padding:4px 0}
+.tc-lk.ok{color:var(--brand2);font-weight:800}
+.tc-tit{display:flex;align-items:flex-start;gap:12px;margin:2px 0 8px}
+.tc-o{width:24px;height:24px;border-radius:50%;border:2px solid var(--fraco);background:none;color:transparent;flex:none;
+  display:grid;place-items:center;cursor:pointer;margin-top:4px}
+.tc-o.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.tc-o.vz{border-style:dashed;width:20px;height:20px;margin-top:0;cursor:default}
+.tc-in{flex:1;min-width:0;background:transparent;border:none;color:var(--txt);font:inherit;font-size:20px;font-weight:800;
+  letter-spacing:-.02em;line-height:1.2;padding:2px 0;outline:none}
+.tc-in::placeholder{color:var(--fraco);font-weight:600}
+.tc-props{border-top:1px solid var(--line);margin-top:8px}
+.tc-p{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;border-bottom:1px solid var(--line);
+  color:var(--txt);font:inherit;padding:12px 0;cursor:pointer;text-align:left}
+.tc-p small{width:64px;flex:none;font-size:13px;color:var(--muted);font-weight:600}
+.tc-p b{flex:1;font-size:14px;font-weight:700}
+.tc-p b.vz{color:var(--fraco);font-weight:500}
+.tc-p i{font-style:normal;color:var(--fraco);font-size:16px}
+.tc-box{padding:10px 0 12px;border-bottom:1px solid var(--line)}
+.tc-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tc-chip{font:inherit;font-size:13px;font-weight:600;color:var(--txt);background:var(--panel2);border:1px solid var(--line);
+  border-radius:9px;padding:8px 12px;cursor:pointer}
+.tc-chip.on{background:var(--txt);color:var(--bg);border-color:var(--txt)}
+.tc-date{background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--txt);font:inherit;font-size:15px;
+  padding:8px 10px;margin-top:8px;color-scheme:dark;width:100%}
+.tc-chips .tc-date{width:auto;margin-top:0;flex:1}
+:root[data-tema="claro"] .tc-date,:root[data-tema="branco"] .tc-date{color-scheme:light}
+.tc-sec{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco);font-weight:800;margin:20px 0 6px;display:flex;gap:8px}
+.tc-sec span{color:var(--muted);letter-spacing:0;font-family:ui-monospace,Menlo,monospace}
+.tc-ds{width:100%;background:transparent;border:none;color:var(--txt);font:inherit;font-size:14px;line-height:1.55;padding:2px 0;
+  outline:none;resize:vertical;min-height:52px}
+.tc-ds::placeholder{color:var(--fraco)}
+.overlay.tc-ov .mp-trw{background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:9px 0;margin:0;font-size:14px}
+.overlay.tc-ov .mp-trw .o{width:20px;height:20px;border-width:2px}
+.tc-add{display:flex;align-items:center;gap:11px;padding:9px 0}
+.tc-add input{flex:1;background:transparent;border:none;color:var(--txt);font:inherit;font-size:14px;outline:none;padding:0}
+.tc-add input::placeholder{color:var(--fraco)}
+.tc-del{display:block;width:100%;margin-top:22px;padding:12px;background:none;border:none;border-top:1px solid var(--line);
+  color:var(--danger);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .gc-wrap{margin-top:14px}
 .gc-grid{position:relative;margin-left:8px}
 .gc-hr{position:absolute;left:0;right:0;height:48px;border-top:1px solid var(--line);cursor:pointer}
@@ -13473,25 +13516,58 @@ window.mpTarPraDia=async(id)=>{
 
 /* ---------- cartão da tarefa (descrição, checklist, subtarefas) ---------- */
 const mpTcT=()=>(TK.tarefas||[]).find(x=>String(x.id)===String(window.__mpTc||''));
+/* Cartao da tarefa (Gabriel 07/09, opcao C): titulo com o circulo de concluir, propriedades
+   em linha (Dia, Hora) que abrem o seletor ao tocar, notas, checklist e subtarefas como listas.
+   Pronto salva; Cancelar fecha; Apagar mora no rodape, longe do resto. */
+const mpTcRotDia=(iso)=>{ if(!iso) return 'Sem dia'; const hj=tkHoje(); if(iso===hj) return 'Hoje'; if(iso===tkDiaMais(hj,1)) return 'Amanhã';
+  if(iso===tkDiaMais(hj,-1)) return 'Ontem'; const t=mpDataExt(iso); return t.charAt(0).toUpperCase()+t.slice(1); };
+window.mpTcDiaTgl=()=>{ const b=$('#mtc_dtbox'); if(b) b.hidden=!b.hidden; if(b&&!b.hidden){ const h=$('#mtc_hrbox'); if(h) h.hidden=true; } };
+window.mpTcHoraTgl=()=>{ const b=$('#mtc_hrbox'); if(b) b.hidden=!b.hidden; if(b&&!b.hidden){ const d=$('#mtc_dtbox'); if(d) d.hidden=true; const i=$('#mtc_hr'); if(i){ i.focus(); try{ i.showPicker&&i.showPicker(); }catch(_){} } } };
+window.mpTcDia=(iso)=>{ const i=$('#mtc_dt'); if(i) i.value=iso||''; mpTcRotulos(); const b=$('#mtc_dtbox'); if(b&&iso!=='__outro') b.hidden=true; };
+window.mpTcHora=(v)=>{ const i=$('#mtc_hr'); if(i) i.value=v||''; mpTcRotulos(); if(!v){ const b=$('#mtc_hrbox'); if(b) b.hidden=true; } };
+function mpTcRotulos(){
+  const d=(($('#mtc_dt')||{}).value||''), h=(($('#mtc_hr')||{}).value||'');
+  const dl=$('#mtc_dtl'); if(dl) dl.textContent=mpTcRotDia(d);
+  const hl=$('#mtc_hrl'); if(hl){ hl.textContent=h?h.slice(0,5):'nenhuma'; hl.classList.toggle('vz',!h); }
+  const hj=tkHoje(); document.querySelectorAll('#mtc_dtbox .tc-chip').forEach(c=>c.classList.toggle('on',c.dataset.d===d));
+}
 window.mpTarCard=(id)=>{
   const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
   window.__mpTc=String(id);
+  const hj=tkHoje(), dia=String(t.prazo||'').slice(0,10), f=mpFeita(t);
+  const chips=[['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Seg '+Number(tkDiaMais(mpSegDa(hj),7).slice(8,10)),tkDiaMais(mpSegDa(hj),7)],['Sem dia','']];
   modal('Tarefa',
-    '<div class="field"><label>Título</label><input id="mtc_tt" value="'+esc(t.titulo||'')+'"/></div>'+
-    '<div class="field"><label>Dia</label><input type="date" id="mtc_dt" value="'+esc(String(t.prazo||'').slice(0,10))+'"/></div>'+
-    '<div class="field"><label>Descrição</label><textarea id="mtc_ds" placeholder="Anota aqui o que precisar…">'+esc(t.descricao||'')+'</textarea></div>'+
-    '<div class="field"><label>Checklist</label><div id="mtc_ck"></div>'+
-      '<div class="mp-trw"><input type="text" id="mtc_ckn" placeholder="Novo item…" onkeydown="if(event.key===\'Enter\')mpTcCkAdd()"><button class="btn small" onclick="mpTcCkAdd()">'+svgIco('check',12)+'</button></div></div>'+
-    '<div class="field"><label>Subtarefas</label><div id="mtc_sub"></div>'+
-      '<div class="mp-trw"><input type="text" id="mtc_subn" placeholder="Nova subtarefa…" onkeydown="if(event.key===\'Enter\')mpTcSubAdd()"><button class="btn small" onclick="mpTcSubAdd()">'+svgIco('check',12)+'</button></div></div>'+
-    '<button class="btn danger small" onclick="mpTcApagar()" style="margin-top:4px">Apagar tarefa</button>',
+    '<div class="tc">'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button>'+
+      '<button type="button" class="tc-lk ok" onclick="document.querySelector(\'.overlay .msave\').click()">Pronto</button></div>'+
+    '<div class="tc-tit"><button type="button" class="tc-o'+(f?' on':'')+'" title="'+(f?'Concluída — toque pra reabrir':'Concluir')+'" onclick="mpTarVirar(\''+t.id+'\');this.classList.toggle(\'on\')">'+svgIco('check',12)+'</button>'+
+      '<input id="mtc_tt" class="tc-in" value="'+esc(t.titulo||'')+'" placeholder="Título"/></div>'+
+    '<div class="tc-props">'+
+      '<button type="button" class="tc-p" onclick="mpTcDiaTgl()"><small>Dia</small><b id="mtc_dtl">'+esc(mpTcRotDia(dia))+'</b><i>›</i></button>'+
+      '<div id="mtc_dtbox" class="tc-box" hidden><div class="tc-chips">'+chips.map(c=>'<button type="button" class="tc-chip'+(c[1]===dia?' on':'')+'" data-d="'+c[1]+'" onclick="mpTcDia(\''+c[1]+'\')">'+c[0]+'</button>').join('')+
+        '<button type="button" class="tc-chip" onclick="var i=document.getElementById(\'mtc_dt\');i.hidden=false;i.focus();try{i.showPicker&&i.showPicker()}catch(e){}">Outro</button></div>'+
+        '<input type="date" id="mtc_dt" class="tc-date" value="'+esc(dia)+'" onchange="mpTcRotulos()" '+(chips.some(c=>c[1]===dia)?'hidden':'')+'/></div>'+
+      '<button type="button" class="tc-p" onclick="mpTcHoraTgl()"><small>Hora</small><b id="mtc_hrl" class="'+(t.hora?'':'vz')+'">'+esc(t.hora?String(t.hora).slice(0,5):'nenhuma')+'</b><i>›</i></button>'+
+      '<div id="mtc_hrbox" class="tc-box" hidden><div class="tc-chips"><input type="time" id="mtc_hr" class="tc-date" value="'+esc(t.hora||'')+'" onchange="mpTcRotulos()"/>'+
+        '<button type="button" class="tc-chip" onclick="mpTcHora(\'\')">Sem hora</button></div></div>'+
+    '</div>'+
+    '<div class="tc-sec">Notas</div>'+
+    '<textarea id="mtc_ds" class="tc-ds" rows="3" placeholder="Notas">'+esc(t.descricao||'')+'</textarea>'+
+    '<div class="tc-sec">Checklist <span id="mtc_ckc"></span></div><div id="mtc_ck"></div>'+
+    '<div class="tc-add"><span class="tc-o vz"></span><input type="text" id="mtc_ckn" placeholder="Novo item" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mpTcCkAdd();}"></div>'+
+    '<div class="tc-sec">Subtarefas</div><div id="mtc_sub"></div>'+
+    '<div class="tc-add"><span class="tc-o vz"></span><input type="text" id="mtc_subn" placeholder="Nova subtarefa" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mpTcSubAdd();}"></div>'+
+    '<button type="button" class="tc-del" onclick="mpTcApagar()">Apagar tarefa</button>'+
+    '</div>',
     async ()=>{
       const tt=(($('#mtc_tt')||{}).value||'').trim();
-      const patch={titulo:TIT_CLI(t.lista_id,tt||t.titulo),prazo:(($('#mtc_dt')||{}).value||'')||null,descricao:(($('#mtc_ds')||{}).value||'')||null};
+      const patch={titulo:TIT_CLI(t.lista_id,tt||t.titulo),prazo:(($('#mtc_dt')||{}).value||'')||null,descricao:(($('#mtc_ds')||{}).value||'')||null,
+        hora:((($('#mtc_hr')||{}).value||'').slice(0,5))||null};
       const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
       if(error){ toast('Erro: '+error.message); return false; }
       Object.assign(t,patch); mpPintar();
     });
+  const ov=document.querySelector('.overlay'); if(ov){ ov.classList.add('tc-ov'); }
   mpTcPintar();
 };
 function mpTcPintar(){
@@ -13501,6 +13577,7 @@ function mpTcPintar(){
      de dia. Como o dado ja esta em memoria, repintar a lista aqui e instantaneo. */
   mpPintar();
   const ck=$('#mtc_ck');
+  { const L0=Array.isArray(t.checklist)?t.checklist:[]; const c=$('#mtc_ckc'); if(c) c.textContent=L0.length?(L0.filter(i=>i&&i.ok).length+'/'+L0.length):''; }
   if(ck){ const L=Array.isArray(t.checklist)?t.checklist:[];
     ck.innerHTML=L.map((i,ix)=>'<div class="mp-trw'+(i&&i.ok?' done':'')+'"><button class="o'+(i&&i.ok?' on':'')+'" onclick="mpTcCkT('+ix+')">'+svgIco('check',11)+'</button><span class="tt">'+esc((i&&i.t)||'')+'</span><button class="x" onclick="mpTcCkDel('+ix+')">×</button></div>').join(''); }
   const su=$('#mtc_sub');
@@ -13733,7 +13810,7 @@ function mpCalMesHTML(){
     '<div class="ga-calg">'+['S','T','Q','Q','S','S','D'].map(x=>'<small>'+x+'</small>').join('')+cel+'</div></div>';
 }
 window.mpEvtSlot=(h)=>{
-  if(window.innerWidth<=720) return mpEvtSheet(h);
+  if(window.innerWidth<=720||document.body.classList.contains('mob-pessoal')) return mpEvtSheet(h);
   const dia=MP.dia;
   modal('Novo evento',
     '<div class="field"><label>Nome</label><input id="gce_nm" placeholder="Nome do evento…"/></div>'+
