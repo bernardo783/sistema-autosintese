@@ -2182,6 +2182,27 @@
   .mp-fabm button i svg{width:15px;height:15px}
 }
 /* 3A — primeiro passo: aparece com zero habitos, em qualquer tamanho de tela */
+/* Menu do chip "Pessoal" no celular: modal centralizado, igual a busca — a gaveta lateral
+   abria colada no topo do navegador e nao dava pra entender o que fazer (Gabriel 07/09). */
+.mp-ws{display:flex;flex-direction:column;gap:4px}
+.mp-ws-sec{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--fraco);font-weight:800;margin:10px 4px 6px}
+.mp-ws-sec:first-child{margin-top:0}
+.mp-ws-it{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:1px solid transparent;
+  border-radius:13px;padding:10px 12px;color:var(--txt);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.mp-ws-it:hover{background:var(--hov2)}
+.mp-ws-it.on{background:color-mix(in srgb,var(--brand) 14%,transparent);border-color:color-mix(in srgb,var(--brand) 45%,transparent)}
+.mp-ws-it .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;
+  background:var(--panel2);color:var(--muted);font-size:15px}
+.mp-ws-it .ic .av{width:34px;height:34px}
+.mp-ws-it .ic.emp{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-weight:900;font-size:14px}
+.mp-ws-it .tx{flex:1;min-width:0}
+.mp-ws-it .tx small{display:block;font-size:11.5px;font-weight:500;color:var(--muted);margin-top:1px}
+.mp-ws-it .ok{color:var(--brand2);font-weight:900}
+.mp-ws-it.dgr{color:var(--danger)}
+.mp-ws-temas{display:flex;gap:6px;padding:2px 4px 4px;flex-wrap:wrap}
+.mp-ws-temas button{font:inherit;font-size:12px;font-weight:700;border-radius:999px;padding:7px 12px;cursor:pointer;
+  background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.mp-ws-temas button.on{background:color-mix(in srgb,var(--brand) 16%,transparent);border-color:var(--brand2);color:var(--txt)}
 .mp-zero{margin:18px 0 0;padding:26px 20px;text-align:center;border:1px solid var(--line);border-radius:18px;
   background:linear-gradient(160deg,color-mix(in srgb,var(--brand) 10%,transparent),transparent 70%)}
 .mp-zero .ic{width:52px;height:52px;border-radius:16px;margin:0 auto 12px;display:grid;place-items:center;
@@ -12908,6 +12929,32 @@ function mpZeroHTML(){
     '<button class="btn" onclick="mpHabitoModal()">+ Criar hábito</button>'+
     '<span class="alt" onclick="mpIrTarNova()">ou anotar uma tarefa pra hoje</span></div>';
 }
+/* Chip "Pessoal" no celular: abre um modal centralizado com os workspaces e o que o avatar
+   (escondido no celular) dava acesso — perfil, senha, tema, sair. */
+window.mpWsMenu=()=>{
+  const eu=currentUser||{}, at=wsAtual()||{};
+  const ws=(TK.ws||[]).filter(w=>w.tipo==='empresa'||String(w.dono)===String(eu.id));
+  const item=(w)=>{ const on=String(w.id)===String(at.id), pes=w.tipo==='pessoal';
+    return `<button class="mp-ws-it${on?' on':''}" onclick="${on?'':`wsTrocar('${w.id}')`};document.querySelector('.overlay .mcancel').click()">
+      <span class="ic${pes?'':' emp'}">${pes?avatar(eu.id,eu.nome):'A'}</span>
+      <span class="tx">${esc(w.nome||(pes?'Pessoal':WS_NOME))}<small>${pes?'só seu — hábitos, tarefas e agenda':'workspace da empresa'}</small></span>
+      ${on?'<span class="ok">✓</span>':''}</button>`; };
+  const linha=(ic,t,f,extra)=>`<button class="mp-ws-it${extra||''}" onclick="document.querySelector('.overlay .mcancel').click();${f}"><span class="ic">${ic}</span><span class="tx">${t}</span></button>`;
+  modal('Onde você está',`<div class="mp-ws">
+      <div class="mp-ws-sec">Workspace</div>
+      ${ws.map(item).join('')||'<div class="hint">Nenhum workspace encontrado.</div>'}
+      <div class="mp-ws-sec">Você</div>
+      ${linha(MICO.perfil||'',"Meu perfil",'meuPerfil()')}
+      ${linha(MICO.senha||'',"Mudar senha","document.getElementById('btnChangePw').click()")}
+      <div class="mp-ws-sec">Tema</div>
+      <div class="mp-ws-temas">${TEMAS.map(t=>`<button class="${t.k===TEMA?'on':''}" onclick="temaPor('${t.k}');this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this))">${esc(t.n)}</button>`).join('')}</div>
+      <div class="mp-ws-sec"></div>
+      ${linha(MICO.sair||'',"Sair","document.getElementById('btnLogout').click()",' dgr')}
+    </div>`, async ()=>true);
+  const ov=document.querySelector('.overlay'); if(!ov) return;
+  const sv=ov.querySelector('.msave'); if(sv) sv.remove();
+  const mc=ov.querySelector('.mcancel'); if(mc) mc.textContent='Fechar';
+};
 function mpPintar(){
   if(currentView!=='pessoal') return;
   const c=$('#content'); if(!c) return;
@@ -12927,7 +12974,10 @@ function mpPintar(){
     b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="bdg">'+esc(nB)+'</span>';
     const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); })();
   /* foto do usuario pequena dentro do chip "Pessoal" (Gabriel 07/09): e o seletor de workspace */
-  (function(){ const e=document.querySelector('#topbar .tb-esp'); if(!e||e.querySelector('.mp-mini')||!currentUser) return;
+  (function(){ const e=document.querySelector('#topbar .tb-esp'); if(!e||!currentUser) return;
+    if(!e.dataset.mp){ e.dataset.mp='1';
+      e.onclick=()=>{ if(document.body.classList.contains('mob-pessoal')&&window.innerWidth<=720) mpWsMenu(); else spMovel(); }; }
+    if(e.querySelector('.mp-mini')) return;
     const m=document.createElement('span'); m.className='mp-mini'; m.innerHTML=avatar(currentUser.id,currentUser.nome);
     e.insertBefore(m,e.firstChild); })();
   const b=$('#mpCorpo');
