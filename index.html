@@ -2456,8 +2456,11 @@
 :root[data-tema="claro"] .tc-date,:root[data-tema="branco"] .tc-date{color-scheme:light}
 .tc-sec{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco);font-weight:800;margin:20px 0 6px;display:flex;gap:8px}
 .tc-sec span{color:var(--muted);letter-spacing:0;font-family:ui-monospace,Menlo,monospace}
-.tc-ds{width:100%;background:transparent;border:none;color:var(--txt);font:inherit;font-size:14px;line-height:1.55;padding:2px 0;
-  outline:none;resize:vertical;min-height:52px}
+/* Notas com moldura propria, como a Descricao do cartao antigo (Gabriel 07/09):
+   no meio do cartao, entre Hora e Etapas, e separada do resto. */
+.tc-ds{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:11px;color:var(--txt);font:inherit;font-size:14px;line-height:1.55;
+  padding:11px 12px;outline:none;resize:vertical;min-height:88px}
+.tc-ds:focus{border-color:var(--fraco)}
 .tc-ds::placeholder{color:var(--fraco)}
 .overlay.tc-ov .mp-trw{background:transparent;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:9px 0;margin:0;font-size:14px}
 .overlay.tc-ov .mp-trw .o{width:20px;height:20px;border-width:2px}
