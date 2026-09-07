@@ -2150,7 +2150,7 @@
   body.mob-pessoal .topbar .tb-esp::after{content:'Pessoal \25BE';font-weight:800}
   body.mob-pessoal .main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}
   /* modal por cima da pilula e do FAB: o Salvar do "Novo habito" ficava escondido atras deles */
-  body.mob-pessoal .overlay{z-index:960}
+  body.mob-pessoal .overlay{z-index:980}
   body.mob-pessoal .overlay .modal{max-height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
   body.mob-pessoal .mp-abas,body.mob-pessoal .mp-topo-acao{display:none}
   body.mob-pessoal .mp-sino{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
@@ -13041,7 +13041,9 @@ function mpPintar(){
   /* foto do usuario pequena dentro do chip "Pessoal" (Gabriel 07/09): e o seletor de workspace */
   (function(){ const e=document.querySelector('#topbar .tb-esp'); if(!e||!currentUser) return;
     if(!e.dataset.mp){ e.dataset.mp='1';
-      e.onclick=()=>{ if(document.body.classList.contains('mob-pessoal')&&window.innerWidth<=720) mpWsMenu(); else spMovel(); }; }
+      /* Em Pessoal o chip SEMPRE abre o modal centralizado. A gaveta lateral (spMovel) nasce
+         colada no canto superior esquerdo e em tela larga de celular/tablet nao dava pra usar. */
+      e.onclick=()=>{ if(document.body.classList.contains('mob-pessoal')) mpWsMenu(); else spMovel(); }; }
     if(e.querySelector('.mp-mini')) return;
     const m=document.createElement('span'); m.className='mp-mini'; m.innerHTML=avatar(currentUser.id,currentUser.nome);
     e.insertBefore(m,e.firstChild); })();
