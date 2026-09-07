@@ -2139,7 +2139,7 @@
    2A  um botao de criar (FAB) em vez de tres
    3A  sem habito, sem KPI: um card so
    4A  topo = "Pessoal" + busca + avisos; sem avatar (no computador ele fica) */
-.mp-tabbar,.mp-fab,.mp-fabm,.mp-sino,.mp-kpibt{display:none}
+.mp-tabbar,.mp-fab,.mp-fabm,.mp-sino{display:none}
 @media(max-width:720px){
   body.mob-pessoal .railbar{display:none}
   body.mob-pessoal .topbar{padding:calc(10px + env(safe-area-inset-top,0px)) 14px 0;gap:8px}
@@ -2156,11 +2156,10 @@
   body.mob-pessoal .overlay{z-index:980}
   body.mob-pessoal .overlay .modal{max-height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
   body.mob-pessoal .mp-abas,body.mob-pessoal .mp-topo-acao{display:none}
-  body.mob-pessoal .mp-sino,body.mob-pessoal .mp-kpibt{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
+  body.mob-pessoal .mp-sino{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
     border:1px solid var(--line);background:var(--panel);color:var(--txt);position:relative;flex:none;cursor:pointer}
-  body.mob-pessoal .mp-sino svg,body.mob-pessoal .mp-kpibt svg{width:16px;height:16px}
+  body.mob-pessoal .mp-sino svg{width:16px;height:16px}
   body.mob-pessoal .mp-sino .bdg{position:absolute;top:-4px;right:-4px}
-  body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
   .mp-tabbar{position:fixed;left:14px;right:14px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:900;
     display:flex;justify-content:space-around;align-items:center;height:60px;padding:0 6px;
     border-radius:999px;border:1px solid var(--line);
@@ -3231,7 +3230,7 @@ document.addEventListener('click',(e)=>{
   if(dentro&&e.target.closest('.tk-lista')) setTimeout(()=>document.body.classList.remove('sb-aberta'),120);
 });
 function render(view){
-  if(view!=='pessoal'){ document.body.classList.remove('mob-pessoal'); const sn=document.querySelector('.topbar .mp-sino'); if(sn) sn.remove(); const kb=document.querySelector('.topbar .mp-kpibt'); if(kb) kb.remove(); const mm=document.querySelector('.topbar .mp-mini'); if(mm) mm.remove(); const fm=document.getElementById('mpFabMenu'); if(fm) fm.remove(); }
+  if(view!=='pessoal'){ document.body.classList.remove('mob-pessoal'); const sn=document.querySelector('.topbar .mp-sino'); if(sn) sn.remove(); const mm=document.querySelector('.topbar .mp-mini'); if(mm) mm.remove(); const fm=document.getElementById('mpFabMenu'); if(fm) fm.remove(); }
   /* a tela pedida, antes das reescritas internas (senhas/links viram acessos etc.):
      e ela que vai pra barra de enderecos, pra F5 e link colado voltarem no mesmo lugar */
   const __telaPedida=view;
@@ -7419,6 +7418,69 @@ window.tkSetVal=async (id,campoId,v)=>{
   if(v===null||v===false) delete val[campoId]; else val[campoId]=v;
   await tkPatch(id,{valores:val});
 };
+/* ======================= LEMBRETES (sino do workspace PESSOAL) =======================
+   Gabriel 07/09: no Pessoal o sino so lembra. Tres coisas, nada mais:
+   - evento da agenda: "Faltam 30 min pra X (11:00)"
+   - habito com horario: "Daqui a 30 min: Academia (06:00)"
+   - tarefa que vence hoje: "Tarefa pra hoje, ate meia-noite: X" (as 20h, se ainda estiver pendente)
+   Roda no navegador a cada minuto enquanto o app esta aberto; cada aviso dispara uma vez
+   (marcado no localStorage). Aviso do sistema (Notification) quando o navegador deixa. */
+const LEM_K='lem_v1', LEM_LOG='lem_log_v1';
+const lemMarcas=()=>{ try{ return JSON.parse(localStorage.getItem(LEM_K)||'{}'); }catch(_){ return {}; } };
+const lemMarca=(k)=>{ const o=lemMarcas(); o[k]=Date.now(); const ks=Object.keys(o); if(ks.length>400) ks.slice(0,200).forEach(x=>delete o[x]); try{ localStorage.setItem(LEM_K,JSON.stringify(o)); }catch(_){} };
+const lemLog=()=>{ try{ return JSON.parse(localStorage.getItem(LEM_LOG)||'[]'); }catch(_){ return []; } };
+const lemLogSalva=(a)=>{ try{ localStorage.setItem(LEM_LOG,JSON.stringify(a.slice(0,40))); }catch(_){} };
+function lemItensHoje(){
+  const hoje=tkHoje(), ag=new Date(), agMin=ag.getHours()*60+ag.getMinutes();
+  const min=(h)=>Number(String(h).slice(0,2))*60+Number(String(h).slice(3,5));
+  const L=[];
+  (MP.evtsPorDia[hoje]||[]).filter(e=>e.hora&&!e.feito).forEach(e=>L.push({k:'ev'+e.id,tipo:'evento',hora:String(e.hora).slice(0,5),m:min(e.hora),titulo:e.titulo||'(sem título)',
+    go:()=>{ MP.dia=hoje; MP.aba='agenda'; render('pessoal'); }}));
+  (MP.habitos||[]).filter(h=>h.hora&&mpProg(h,hoje)&&!mpCk(h.id,hoje)).forEach(h=>L.push({k:'hb'+h.id+hoje,tipo:'hábito',hora:String(h.hora).slice(0,5),m:min(h.hora),titulo:h.nome||'',
+    go:()=>{ MP.iniDia=hoje; MP.aba='inicio'; render('pessoal'); }}));
+  mpTarDia(hoje).filter(t=>!mpFeita(t)).forEach(t=>L.push({k:'tf'+t.id+hoje,tipo:'tarefa',hora:t.hora?String(t.hora).slice(0,5):'',m:t.hora?min(t.hora):24*60,titulo:t.titulo||'',
+    go:()=>{ MP.dia=hoje; MP.aba='tarefas'; render('pessoal'); }}));
+  L.forEach(x=>{ x.falta=x.m-agMin; });
+  return L.sort((a,b)=>a.m-b.m);
+}
+function lemBadge(){
+  const n=lemLog().filter(x=>!x.lido).length;
+  const b=document.getElementById('ntfBdg'); if(b) b.textContent=n||'';
+  const s=document.querySelector('.mp-sino .bdg'); if(s) s.textContent=n||'';
+}
+function lemPush(msg){ try{ if('Notification' in window&&Notification.permission==='granted') new Notification('Síntese',{body:msg}); }catch(_){} }
+async function lemTick(){
+  if(!currentUser||typeof gsPessoal!=='function'||!gsPessoal()||!MP||!MP.habitos) return;
+  const hoje=tkHoje();
+  if(!MP.evtsPorDia[hoje]){ try{ await mpEvtsDia(hoje); }catch(_){} }
+  const L=lemItensHoje(), m=lemMarcas(), ag=new Date(), hm=ag.getHours()*60+ag.getMinutes();
+  const log=lemLog(); let novo=false;
+  L.forEach(x=>{
+    let msg='', key='';
+    if(x.hora){ key='a30'+x.k; if(x.falta>0&&x.falta<=30&&!m[key]) msg=(x.tipo==='evento'?'Faltam '+x.falta+' min pra ':'Daqui a '+x.falta+' min: ')+x.titulo+' ('+x.hora+')'; }
+    else { key='t20'+x.k; if(hm>=20*60&&!m[key]) msg='Tarefa pra hoje, até meia-noite: '+x.titulo; }
+    if(msg){ lemMarca(key); log.unshift({t:Date.now(),msg,tipo:x.tipo,lido:false}); novo=true; toast(msg); lemPush(msg); }
+  });
+  if(novo) lemLogSalva(log);
+  lemBadge();
+}
+try{ setInterval(lemTick,60000); setTimeout(lemTick,4000); }catch(_){}
+window.lemPermitir=async()=>{ try{ const r=await Notification.requestPermission(); toast(r==='granted'?'Avisos do navegador ativados.':'O navegador não deixou.'); render('notificacoes'); }catch(_){ toast('Esse navegador não tem avisos.'); } };
+function renderLembretes(c){
+  const log=lemLog(); log.forEach(x=>{ x.lido=true; }); lemLogSalva(log); lemBadge();
+  const L=lemItensHoje();
+  const quando=(x)=>x.tipo==='tarefa'&&!x.hora?'até meia-noite':(x.falta<=0?'já passou · '+x.hora:(x.falta<60?'em '+x.falta+' min':'às '+x.hora));
+  const perm=('Notification' in window)?Notification.permission:'nao';
+  const hh=(t)=>{ const d=new Date(t); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+  c.innerHTML=`
+   <div class="page-head"><div><h2>Lembretes</h2><div class="desc">só o que é seu: evento, hábito com horário e tarefa do dia</div></div></div>
+   ${perm==='default'?'<div class="card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px"><div style="font-size:13px">Quer receber o aviso no navegador, mesmo com o sistema em segundo plano?</div><button class="btn small" onclick="lemPermitir()">Ativar</button></div>':''}
+   <div class="mp-sech">Hoje · ${L.length}</div>
+   ${L.length?L.map((x,i)=>`<div class="mp-trw" style="cursor:pointer" onclick="window.__lem[${i}].go()"><span style="font-size:12px;font-weight:800;color:var(--brand2);min-width:96px">${esc(quando(x))}</span><span class="tt">${esc(x.titulo)}</span><span class="hint" style="margin:0">${esc(x.tipo)}</span></div>`).join(''):'<div class="hint">Nada com hora pra hoje.</div>'}
+   <div class="mp-sech" style="margin-top:22px">Avisados</div>
+   ${log.length?log.slice(0,20).map(x=>`<div class="mp-trw"><span style="font-size:11.5px;color:var(--fraco);min-width:44px">${hh(x.t)}</span><span class="tt">${esc(x.msg)}</span></div>`).join(''):'<div class="hint">Nenhum aviso ainda. Eles caem aqui 30 min antes de cada evento e às 20h pra tarefa do dia.</div>'}`;
+  window.__lem=L;
+}
 /* ======================= NOTIFICAÇÕES =======================
    Aviso interno, guardado em `notificacoes` (RLS: cada um le so as proprias).
    Gatilho de hoje: video da lista Edição de Vídeo entrou em status de grupo
@@ -7431,6 +7493,7 @@ async function ntfCriar(rows){
 /* badge do sino: conta as nao lidas; roda no boot e a cada 2 minutos */
 window.__ntfN=0;
 async function ntfBadge(){
+  if(typeof gsPessoal==='function'&&gsPessoal()){ lemBadge(); return; }
   try{
     const {count,error}=await sb.from('notificacoes').select('id',{count:'exact',head:true}).is('lida_em',null);
     if(error) return;
@@ -7440,6 +7503,7 @@ async function ntfBadge(){
 }
 try{ setInterval(ntfBadge, 120000); }catch(_){}
 async function renderNotificacoes(c){
+  if(typeof gsPessoal==='function'&&gsPessoal()){ const hoje=tkHoje(); if(!MP.evtsPorDia[hoje]){ try{ await mpEvtsDia(hoje); }catch(_){} } return renderLembretes(c); }
   c.innerHTML='<div class="empty">Carregando...</div>';
   const {data,error}=await sb.from('notificacoes').select('*').order('criado_em',{ascending:false}).limit(80);
   if(error){ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(error.message)+'</div>'; return; }
@@ -13202,17 +13266,6 @@ function mpPintar(){
     const b=document.createElement('button'); b.className='mp-sino'; b.title='Avisos'; b.onclick=()=>render('notificacoes');
     b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="bdg">'+esc(nB)+'</span>';
     const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); })();
-  /* atalho de KPI ao lado do sino (Gabriel 07/09): o bloco vive no fim do Inicio e
-     ninguem rolava ate la. Sem habito nao aparece — nao teria pra onde rolar. */
-  (function(){ const tb=document.getElementById('topbar'); if(!tb) return;
-    const ja=tb.querySelector('.mp-kpibt');
-    if(!MP.habitos.length){ if(ja) ja.remove(); return; }
-    if(ja) return;
-    const b=document.createElement('button'); b.className='mp-kpibt'; b.title='KPI — suas notas e progresso';
-    b.onclick=()=>mpIrKpi();
-    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/><circle cx="19" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>';
-    const sn=tb.querySelector('.mp-sino');
-    if(sn) tb.insertBefore(b,sn); else { const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); } })();
   /* foto do usuario pequena dentro do chip "Pessoal" (Gabriel 07/09): e o seletor de workspace */
   (function(){ const e=document.querySelector('#topbar .tb-esp'); if(!e||!currentUser) return;
     if(!e.dataset.mp){ e.dataset.mp='1';
