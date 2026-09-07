@@ -2309,7 +2309,35 @@
 .mp-t7 small{font-size:9px;color:var(--muted);letter-spacing:1px}
 .mp-t7 b{display:block;font-size:15px;margin:4px 0 6px;font-variant-numeric:tabular-nums}
 /* ---- agenda comprimida (1B) ---- */
-.ga{margin-top:12px}
+/* ---- cabecalho da agenda: titulo que abre o mes + faixa da semana ---- */
+.ga-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px}
+.ga-tit{background:none;border:none;color:var(--txt);font:inherit;font-size:19px;font-weight:800;letter-spacing:-.02em;
+  padding:4px 0;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-align:left}
+.ga-tit .cv{color:var(--muted);font-size:13px}
+.ga-sem{display:flex;justify-content:space-between;gap:4px;margin:0 0 14px}
+.ga-sem button{flex:1;background:none;border:none;color:var(--muted);font:inherit;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:3px;padding:4px 0 2px;border-radius:12px}
+.ga-sem button small{font-size:10px;font-weight:700;letter-spacing:.04em}
+.ga-sem button b{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;color:var(--txt);
+  font-variant-numeric:tabular-nums}
+.ga-sem button.hj b{color:var(--brand2)}
+.ga-sem button.on b{background:var(--brand);color:#fff}
+.ga-sem button i,.ga-calg button i{display:block;width:4px;height:4px;border-radius:50%;background:transparent}
+.ga-sem button i.pt,.ga-calg button i.pt{background:var(--brand2)}
+.ga-sem button.on i.pt{background:var(--brand2)}
+.ga-conectar{margin:-6px 0 12px;font-size:12px}
+.ga-cal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 12px 8px;margin:0 0 14px}
+.ga-calh{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ga-calh b{flex:1;text-align:center;font-size:14px;font-weight:800}
+.ga-calg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.ga-calg small{font-size:10px;color:var(--fraco);font-weight:700;padding:4px 0 6px}
+.ga-calg button{background:none;border:none;color:var(--txt);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;
+  height:40px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-variant-numeric:tabular-nums}
+.ga-calg button:hover{background:var(--hov2)}
+.ga-calg button.hj{color:var(--brand2);font-weight:800}
+.ga-calg button.on{background:var(--brand);color:#fff}
+.ga-calg button.on i.pt{background:#fff}
+.ga{margin-top:4px}
 .ga-livre{display:flex;justify-content:space-between;align-items:center;margin:6px 0;padding:7px 12px;border:1px dashed var(--line);
   border-radius:9px;font-size:11.5px;color:var(--fraco);cursor:pointer;font-variant-numeric:tabular-nums}
 .ga-livre:hover{border-color:var(--brand2);color:var(--muted)}
@@ -13614,14 +13642,19 @@ function mpAgendaHTML(){
       (its.length?its.map(bloco).join(''):'<div class="ga-vz" onclick="mpEvtSlot('+h+')"></div>')+'</div></div>';
     h++;
   }
-  const sync=MP.g
-    ? '<span class="ga-sync"><i class="pt"></i>Google'+(MP.gSyncEm?' · sincronizado '+esc(MP.gSyncEm):'')+' <button class="mp-add" style="margin-left:2px" onclick="mpGAtualizar()" title="Atualizar agora">↻</button></span>'
-    : '<span class="ga-sync"><button class="mp-add" style="margin-left:0" onclick="mpGConectar()">Conectar Google Agenda</button> <button class="mp-add" style="margin-left:0" onclick="mpGChecar()">já conectei</button></span>';
-  return '<div class="mp-per"><button class="mp-nav" onclick="mpDiaNav(-1)">‹</button>'+
-    '<div><div class="mp-pttl">'+mpDataExt(dia)+'</div><div class="mp-psub">'+(ehHoje?'hoje':'')+'</div></div>'+
-    '<button class="mp-nav" onclick="mpDiaNav(1)">›</button>'+
-    (ehHoje?'':'<button class="mp-pill" onclick="mpDiaSel(\''+hoje+'\')">Hoje</button>')+
-    '<span class="mp-pnota">'+sync+'</span></div>'+
+  /* Cabecalho (Gabriel 07/09): sem status do Google, sem e-mail, sem setinha. O titulo
+     abre o calendario do mes (igual ao Google Agenda) e a faixa da semana troca o dia num toque. */
+  const tit=mpDataExt(dia); const titCap=tit.charAt(0).toUpperCase()+tit.slice(1);
+  const seg=mpSegDa(dia), d7=mpDias7(seg), SEM=['S','T','Q','Q','S','S','D'];
+  const temEv=(d)=>((MP.evtsPorDia[d]||[]).length>0)||mpTarDia(d).length>0;
+  const faixa='<div class="ga-sem">'+d7.map((d,i)=>'<button type="button" class="'+(d===dia?'on':'')+(d===hoje?' hj':'')+'" onclick="mpDiaSel(\''+d+'\')"><small>'+SEM[i]+'</small><b>'+Number(d.slice(8,10))+'</b><i class="'+(temEv(d)?'pt':'')+'"></i></button>').join('')+'</div>';
+  const conectar=MP.g?'':'<div class="ga-conectar"><button class="mp-add" style="margin-left:0" onclick="mpGConectar()">Conectar Google Agenda</button> <button class="mp-add" style="margin-left:0" onclick="mpGChecar()">já conectei</button></div>';
+  return '<div class="ga-cab">'+
+    '<button type="button" class="ga-tit" onclick="mpCalToggle()">'+esc(titCap)+'<span class="cv">'+(MP.calAberto?'▴':'▾')+'</span></button>'+
+    (ehHoje?'':'<button type="button" class="mp-pill" onclick="mpDiaSel(\''+hoje+'\')">Hoje</button>')+
+    '</div>'+
+    (MP.calAberto?mpCalMesHTML():'')+
+    faixa+conectar+
     (sem.length?'<div class="mp-sech">Dia inteiro</div>'+sem.map(mpEvtRow).join(''):'')+
     '<div class="ga">'+linhas+'</div>'+
     (tarsS.length?'<div class="mp-sech" style="margin-top:18px">Sem horário · '+tarsS.length+'</div>'+tarsS.filter(t=>!mpFeita(t)).map(mpTarRow).join('')+tarsS.filter(mpFeita).map(mpTarRow).join(''):'');
@@ -13681,6 +13714,24 @@ window.shCriar=async()=>{
   shFecha();
   await mpEvtCriar(nome,dia,hora,diaTodo?0:SH.dur,noGoogle);
 };
+/* Calendario do mes, aberto pelo titulo da agenda. Toca no dia, fecha e vai. */
+window.mpCalToggle=()=>{ MP.calAberto=!MP.calAberto; if(MP.calAberto) MP.calMes=MP.dia.slice(0,7); mpPintar(); };
+window.mpCalNav=(n)=>{ const [y,m]=(MP.calMes||MP.dia.slice(0,7)).split('-').map(Number); const d=new Date(y,m-1+n,1);
+  MP.calMes=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); mpPintar(); };
+window.mpCalDia=(iso)=>{ MP.calAberto=false; mpDiaSel(iso); if(!MP.evtsPorDia[iso]) mpAgendaSync(); };
+function mpCalMesHTML(){
+  const ym=MP.calMes||MP.dia.slice(0,7), [y,m]=ym.split('-').map(Number), hoje=tkHoje();
+  const prim=new Date(y,m-1,1), off=(prim.getDay()+6)%7, ult=new Date(y,m,0).getDate();
+  const temEv=(d)=>((MP.evtsPorDia[d]||[]).length>0)||mpTarDia(d).length>0;
+  let cel='';
+  for(let i=0;i<off;i++) cel+='<span></span>';
+  for(let d=1;d<=ult;d++){ const iso=ym+'-'+String(d).padStart(2,'0');
+    cel+='<button type="button" class="'+(iso===MP.dia?'on':'')+(iso===hoje?' hj':'')+'" onclick="mpCalDia(\''+iso+'\')">'+d+'<i class="'+(temEv(iso)?'pt':'')+'"></i></button>'; }
+  return '<div class="ga-cal">'+
+    '<div class="ga-calh"><button type="button" class="mp-nav" onclick="mpCalNav(-1)">‹</button><b>'+esc(DT_MES[m-1].charAt(0).toUpperCase()+DT_MES[m-1].slice(1))+' '+y+'</b><button type="button" class="mp-nav" onclick="mpCalNav(1)">›</button>'+
+    '<button type="button" class="mp-pill" onclick="mpCalDia(\''+hoje+'\')">Hoje</button></div>'+
+    '<div class="ga-calg">'+['S','T','Q','Q','S','S','D'].map(x=>'<small>'+x+'</small>').join('')+cel+'</div></div>';
+}
 window.mpEvtSlot=(h)=>{
   if(window.innerWidth<=720) return mpEvtSheet(h);
   const dia=MP.dia;
