@@ -2209,6 +2209,32 @@
 .mp-ws-temas button{font:inherit;font-size:12px;font-weight:700;border-radius:999px;padding:7px 12px;cursor:pointer;
   background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
 .mp-ws-temas button.on{background:color-mix(in srgb,var(--brand) 16%,transparent);border-color:var(--brand2);color:var(--txt)}
+/* ---------- INICIO F1 no celular (Gabriel 07/09): so a data, setas, um fio, a lista ----------
+   Sem saudacao, sem anel, sem secoes. A data e o titulo; as setas andam um dia; o fio e a nota.
+   Dia passado e leitura. Desktop nao muda. */
+.f1{padding:6px 2px 0}
+.f1-h{display:flex;align-items:center;gap:8px}
+.f1-h .ar{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--txt);
+  font:inherit;font-size:18px;display:grid;place-items:center;cursor:pointer;flex:none;line-height:1}
+.f1-h .ar:active{background:var(--hov2)}
+.f1-h .dt{flex:1;min-width:0;text-align:center}
+.f1-h .dt b{display:block;font-size:22px;font-weight:900;letter-spacing:-.035em;line-height:1.05}
+.f1-h .dt small{display:block;font-size:11px;color:var(--fraco);font-weight:600;margin-top:4px}
+.f1-hoje{display:block;margin:8px auto 0;font:inherit;font-size:11.5px;font-weight:800;color:var(--brand2);background:none;border:none;cursor:pointer;padding:4px 10px}
+.f1-pb{margin-top:14px;height:3px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.f1-pb i{display:block;height:100%;background:var(--txt);transition:width .3s}
+.f1-l{margin-top:6px}
+.f1-it{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.f1-it .o{width:21px;height:21px;border-radius:50%;border:1.5px solid var(--fraco);flex:none;background:none;cursor:pointer;display:grid;place-items:center;color:transparent;padding:0}
+.f1-it .o.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
+.f1-it .o.x{border-color:var(--line);background:repeating-linear-gradient(45deg,var(--panel2) 0 2px,transparent 2px 4px);cursor:default}
+.f1-it .o.ro{cursor:default}
+.f1-it .o svg{width:11px;height:11px}
+.f1-it .tt{flex:1;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em}
+.f1-it .tt small{display:block;font-size:11px;color:var(--fraco);font-weight:500;margin-top:1px}
+.f1-it.done .tt{color:var(--fraco);text-decoration:line-through}
+.f1-it .h{font-size:11.5px;color:var(--fraco);font-variant-numeric:tabular-nums;flex:none}
+.f1-vz{padding:28px 0 8px;text-align:center;color:var(--fraco);font-size:13px}
 .mp-zero{margin:18px 0 0;padding:26px 20px;text-align:center;border:1px solid var(--line);border-radius:18px;
   background:linear-gradient(160deg,color-mix(in srgb,var(--brand) 10%,transparent),transparent 70%)}
 .mp-zero .ic{width:52px;height:52px;border-radius:16px;margin:0 auto 12px;display:grid;place-items:center;
@@ -13152,7 +13178,7 @@ function mpPintar(){
   const b=$('#mpCorpo');
   /* KPI nao e aba (Gabriel 07/09): o bloco vive dentro do Inicio, e so aparece com habito */
   if(MP.aba==='progresso') MP.aba='inicio';
-  if(MP.aba==='inicio') b.innerHTML=mpInicioHTML();
+  if(MP.aba==='inicio') b.innerHTML=(window.innerWidth<=720)?mpIniMobileHTML():mpInicioHTML();
   else if(MP.aba==='habitos') b.innerHTML=mpHabsHTML();
   else if(MP.aba==='agenda'){ b.innerHTML=mpAgendaHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
   else{ b.innerHTML=mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
@@ -13200,6 +13226,42 @@ function mpHabCards(){
 function mpHabsHTML(){ return mpHabCards(); }
 window.mpIrTarNova=()=>{ MP.aba='tarefas'; MP.tarNova=true; MP.evtNovo=false; mpPintar();
   setTimeout(()=>{ const e=$('#mpTarNm'); if(e) e.focus(); },60); };
+/* Inicio F1 (celular): a data como titulo, setas de um dia, fio de progresso, lista unica */
+function mpIniMobileHTML(){
+  const hoje=tkHoje(); if(!MP.iniDia) MP.iniDia=hoje;
+  const dia=MP.iniDia, passado=dia<hoje, futuro=dia>hoje, ehHoje=dia===hoje;
+  const hs=MP.habitos.filter(h=>mpProg(h,dia)), ts=mpTarDia(dia), evs=mpEvtsOrd(dia);
+  const tot=hs.length+ts.length+evs.length;
+  const feit=hs.filter(h=>mpCk(h.id,dia)).length+ts.filter(mpFeita).length+evs.filter(e=>e.feito).length;
+  const pct=tot?Math.round(feit/tot*100):0;
+  const tit=ehHoje?'Hoje':(dia===tkDiaMais(hoje,-1)?'Ontem':(dia===tkDiaMais(hoje,1)?'Amanhã':mpDataExt(dia).replace(/^(\w)/,m=>m.toUpperCase())));
+  const sub=(ehHoje||dia===tkDiaMais(hoje,-1)||dia===tkDiaMais(hoje,1))?mpDataExt(dia):'';
+  const ck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const o=(on,fn)=>passado?('<span class="o'+(on?' on':' x')+'">'+(on?ck:'')+'</span>')
+    :('<button type="button" class="o'+(on?' on':'')+(futuro?' ro':'')+'" '+(futuro?'':'onclick="'+fn+'"')+'>'+ck+'</button>');
+  const linhas=[];
+  ts.forEach(t=>{ const f=mpFeita(t);
+    linhas.push('<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa</small></span></div>'); });
+  evs.forEach(e=>{ const f=!!e.feito;
+    linhas.push('<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpEvtVirar(\''+e.id+'\')')+'<span class="tt">'+esc(e.titulo||'')+'<small>evento'+(e.gcal_id?' · Google':'')+'</small></span>'+(e.hora?'<span class="h">'+esc(String(e.hora).slice(0,5))+'</span>':'')+'</div>'); });
+  hs.forEach(h=>{ const f=mpCk(h.id,dia);
+    linhas.push('<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')')+'<span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>hábito</small></span></div>'); });
+  /* habito que ainda nao comecou mas comeca em breve: mostra pra pessoa saber que existe */
+  if(ehHoje) MP.habitos.filter(h=>!mpProg(h,dia)&&mpIni(h)>dia).forEach(h=>{
+    linhas.push('<div class="f1-it"><span class="o ro"></span><span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>hábito · '+esc(mpComeca(mpIni(h)))+'</small></span></div>'); });
+  return '<div class="f1">'+
+    '<div class="f1-h"><button type="button" class="ar" onclick="mpIniNav(-1)">‹</button>'+
+      '<div class="dt"><b>'+esc(tit)+'</b><small>'+esc(sub)+(sub?' · ':'')+feit+' de '+tot+'</small></div>'+
+      '<button type="button" class="ar" onclick="mpIniNav(1)">›</button></div>'+
+    (ehHoje?'':'<button type="button" class="f1-hoje" onclick="mpIniHoje()">Voltar pra hoje</button>')+
+    '<div class="f1-pb"><i style="width:'+pct+'%"></i></div>'+
+    '<div class="f1-l">'+(linhas.length?linhas.join(''):(ehHoje&&!MP.habitos.length?'':'<div class="f1-vz">Nada neste dia.</div>'))+'</div>'+
+    (ehHoje&&!MP.habitos.length?mpZeroHTML():'')+
+    '</div>';
+}
+window.mpIniNav=async(d)=>{ MP.iniDia=tkDiaMais(MP.iniDia||tkHoje(),d); mpPintar();
+  if(!MP.evtsPorDia[MP.iniDia]){ try{ await mpEvtsDia(MP.iniDia); }catch(_){} if(MP.aba==='inicio') mpPintar(); } };
+window.mpIniHoje=()=>{ MP.iniDia=tkHoje(); mpPintar(); };
 function mpInicioHTML(){
   const hoje=tkHoje(), n=mpNotaDia(hoje);
   const deg=n.nota==null?0:Math.round(n.nota*36);
