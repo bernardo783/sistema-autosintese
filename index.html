@@ -1772,6 +1772,21 @@
     background:var(--hov1);border:1px dashed var(--line);border-radius:9px;padding:7px 10px;
     font-size:12.5px;cursor:not-allowed}
   .tkf-trava .cad{opacity:.5;font-size:11px}
+  /* Minha carteira: o gerente ve as proprias contas e a comissao, sem enxergar
+     folha, lucro nem rateio. Os numeros vem da view carteira_gerente no banco. */
+  .cg-topo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .cg-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+  .cg-c{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .cg-c .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);font-weight:800}
+  .cg-c .v{font-size:25px;font-weight:900;letter-spacing:-.02em;margin-top:7px;
+    font-variant-numeric:tabular-nums}
+  .cg-c .s{font-size:11.5px;color:var(--muted);margin-top:5px}
+  .cg-c.destaque{border-color:rgba(63,207,142,.4);
+    background:linear-gradient(160deg,rgba(63,207,142,.09),rgba(63,207,142,.015))}
+  .cg-c.destaque .v{color:#7fe4bb}
+  .cg-fora .v{color:var(--warn)}
+  .cg-m{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;
+    background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
   .tk-th{cursor:pointer;user-select:none}
   .tk-th:hover{color:var(--txt)}
   .tk-chk{width:16px;height:16px;accent-color:var(--brand2);cursor:pointer}
@@ -2330,6 +2345,8 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4.5M9.2 4.5h5.6"/><circle cx="9.2" cy="13.4" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.8" cy="13.4" r="1.3" fill="currentColor" stroke="none"/><path d="M9.6 17h4.8"/></svg><span class="t">Agente IA</span></button>
     <button class="rl navlink hidden" data-view="daily" id="navDaily" title="Reunião diária do squad">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="t">Daily</span></button>
+    <button class="rl navlink hidden" data-view="carteira" id="navCarteira" title="Minha carteira — clientes que você gerencia e a comissão do mês">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg><span class="t">Carteira</span></button>
     <div class="sep"></div>
     <button class="rl navlink" data-view="acessos" title="Acessos e senhas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.3-8.3M17 6l3 3M14 9l3 3"/></svg><span class="t">Acessos</span></button>
@@ -2730,7 +2747,7 @@ async function enterApp(){
   if(currentUser.papel_crm) show($('#navFunil'));
   if(podeContratos()){ show($('#navContratos')); } else { hide($('#navContratos')); } /* Contratos: master + comercial (José) */
   tlAplicar();   /* tira da barra as telas que essa pessoa não tem */
-  if(souGerente()){ show($('#navDaily')); } else { hide($('#navDaily')); } /* Daily: só master e gerentes (regra do Gabriel, 10/08) */
+  if(souGerente()){ show($('#navDaily')); show($('#navCarteira')); } else { hide($('#navDaily')); hide($('#navCarteira')); } /* Daily: só master e gerentes (regra do Gabriel, 10/08) */
   try{ await tkCarregar(); }catch(e){}
   spDesenhar();
   /* veio de um link? cai direto no destino em vez da tela padrão —
@@ -2960,6 +2977,10 @@ function render(view){
     finTab='painel'; currentView='financeiro'; spMarcarAtalho('financeiro'); return renderFinanceiro(c);
   }
   if(view==='fechamento') return renderFechamento(c);
+  if(view==='carteira'){
+    if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito a master e gerentes.</div>'; return; }
+    return renderCarteira(c);
+  }
   if(FIN_TAB[view]){
     if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
     finTab=FIN_TAB[view]; return renderFinanceiro(c);
@@ -9409,6 +9430,61 @@ window.calRender=()=>{
    <div class="calfoot"><button class="iconbtn" onclick="calLimpar()">Limpar</button><span style="font-size:11px;color:var(--muted);align-self:center">${calSel1?('início '+fmtDate(calSel1)+' — clique no fim'):'clique no início e no fim'}</span></div>`;
 };
 
+/* ---------- MINHA CARTEIRA (Gabriel 01/09) ----------
+   Gerente ve as contas dele, o que entrou, o que ficou de fora e por que, e os 10%.
+   Tudo sai da view carteira_gerente: o banco decide o que a pessoa pode ver, entao
+   nao existe caminho no cliente que mostre a carteira de outro gerente. */
+let cgComp=compNow(), cgGer='';
+const CG_MOTIVO={inadimplente:'inadimplente',churn:'churn — saiu sem pagar',carencia:'carência (isento no mês)',
+  sinal:'só o sinal entrou',areceber:'ainda a receber','':'ainda a receber'};
+window.cgMes=(d)=>{ const [y,m]=cgComp.split('-').map(Number); const nd=new Date(y,m-1+d,1);
+  cgComp=nd.getFullYear()+'-'+String(nd.getMonth()+1).padStart(2,'0'); render('carteira'); };
+window.cgGerF=(g)=>{ cgGer=g; render('carteira'); };
+async function renderCarteira(c){
+  c.innerHTML='<div class="empty">carregando…</div>';
+  const {data,error}=await sb.from('carteira_gerente').select('*').eq('comp',cgComp);
+  if(error){ c.innerHTML='<div class="empty">Não consegui carregar: '+esc(error.message)+'</div>'; return; }
+  let linhas=data||[];
+  const gers=Array.from(new Set(linhas.map(x=>String(x.gerente||'')).filter(Boolean))).sort();
+  if(cgGer) linhas=linhas.filter(x=>String(x.gerente||'')===cgGer);
+  const dentro=linhas.filter(x=>x.considerada), fora=linhas.filter(x=>!x.considerada);
+  const som=(a)=>a.reduce((s,x)=>s+(Number(x.valor_mes)||0),0);
+  const recebido=som(dentro), perdido=som(fora), comissao=recebido*0.10;
+  const lin=(x,ok)=>`<tr><td><strong>${esc(x.cliente||'—')}</strong></td>
+     <td>${gers.length>1&&!cgGer?esc(x.gerente||'—'):''}</td>
+     <td class="money" style="text-align:right">${brl(Number(x.valor_mes)||0)}</td>
+     <td>${ok?`<span class="tag ok">recebido${x.recebido_em?' · '+fmtDate(x.recebido_em):''}</span>`
+             :`<span class="cg-m">${esc(CG_MOTIVO[String(x.status||'')]||String(x.status||'a receber'))}</span>`}</td></tr>`;
+  const tabela=(tit,arr,ok)=>arr.length?`<h3 style="font-size:14px;font-weight:800;margin:22px 0 10px">${tit}</h3>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>${(gers.length>1&&!cgGer)?'Gerente':''}</th>
+      <th style="text-align:right">Valor</th><th>Situação</th></tr></thead>
+      <tbody>${arr.slice().sort((a,b)=>(Number(b.valor_mes)||0)-(Number(a.valor_mes)||0)).map(x=>lin(x,ok)).join('')}</tbody></table></div>`:'';
+  c.innerHTML=`
+   <div class="page-head"><div><h2>💼 Minha carteira</h2>
+     <div class="desc">clientes que você gerencia · comissão de 10% sobre o que entrou no mês</div></div></div>
+   <div class="cg-topo">
+     <button class="btn ghost small" onclick="cgMes(-1)">‹</button>
+     <strong style="min-width:150px;text-align:center">${esc(fmtComp(cgComp))}</strong>
+     <button class="btn ghost small" onclick="cgMes(1)">›</button>
+     ${gers.length>1?`<span class="fin-tabs" style="margin:0 0 0 10px">
+       <button class="ftab ${!cgGer?'active':''}" onclick="cgGerF('')">Todos</button>
+       ${gers.map(g=>`<button class="ftab ${cgGer===g?'active':''}" onclick="cgGerF('${esc(g)}')">${esc(g)}</button>`).join('')}
+     </span>`:''}
+   </div>
+   <div class="cg-cards">
+     <div class="cg-c"><div class="k">Contas na carteira</div><div class="v">${linhas.length}</div>
+       <div class="s">${dentro.length} pagaram · ${fora.length} não</div></div>
+     <div class="cg-c"><div class="k">Entrou no mês</div><div class="v">${brl(recebido)}</div>
+       <div class="s">base do cálculo</div></div>
+     <div class="cg-c destaque"><div class="k">Sua comissão · 10%</div><div class="v">${brl(comissao)}</div>
+       <div class="s">${brl(recebido)} × 10%</div></div>
+     <div class="cg-c cg-fora"><div class="k">Ficou de fora</div><div class="v">${brl(perdido)}</div>
+       <div class="s">${fora.length} conta${fora.length===1?'':'s'} · ${brl(perdido*0.10)} de comissão que não entrou</div></div>
+   </div>
+   ${tabela('✅ Consideradas no cálculo',dentro,true)}
+   ${tabela('⚠️ Desconsideradas — não entraram no mês',fora,false)}
+   ${linhas.length?'':'<div class="empty">Nenhuma conta sua com cobrança neste mês.</div>'}`;
+}
 /* ---------- FINANCEIRO (central) ---------- */
 /* Toda aba do Financeiro tem que ter rota aqui — sem isso o clique na pilula nao redesenha nada. */
 const FIN_TAB={financeiro:'lanc',lanc:'lanc',recebimentos:'recebimentos',
