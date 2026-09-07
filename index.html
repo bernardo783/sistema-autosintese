@@ -2339,6 +2339,37 @@
 .ga-now span{position:absolute;left:0;top:-8px;font-size:9.5px;font-weight:800;color:var(--danger);background:var(--bg);padding-right:4px;font-variant-numeric:tabular-nums}
 .ga-sync{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
 .ga-sync .pt{width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block}
+/* ---- folha de baixo: novo evento (Gabriel 07/09, popup A) ----
+   Sem degrade, sem brilho, sem frase fofa: cara de tela nativa. */
+.ovs{position:fixed;inset:0;z-index:970;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;background:var(--panel);border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+  padding:8px 18px calc(16px + env(safe-area-inset-bottom,0px));position:relative;transition:transform .18s ease;
+  animation:sheetIn .2s ease}
+@keyframes sheetIn{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+.sh-hand{width:36px;height:4px;border-radius:99px;background:var(--line2,var(--fraco));margin:0 auto 14px;opacity:.7}
+.sh-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.sh-top b{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.sh-top button{background:none;border:none;color:var(--muted);font:inherit;font-size:14px;cursor:pointer;padding:0}
+.sh-tit{width:100%;background:transparent;border:none;border-bottom:1px solid var(--line);color:var(--txt);
+  font:inherit;font-size:19px;font-weight:600;padding:6px 0 12px;outline:none;letter-spacing:-.01em}
+.sh-tit::placeholder{color:var(--fraco);font-weight:500}
+.sh-tit:focus{border-bottom-color:var(--txt)}
+.sh-lab{font-size:12px;color:var(--muted);font-weight:600;margin:16px 0 8px}
+.sh-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;margin:0 -18px;padding-left:18px;padding-right:18px}
+.sh-chips::-webkit-scrollbar{display:none}
+.sh-chips button{flex:none;font:inherit;font-size:14px;font-weight:600;color:var(--txt);background:var(--panel2);
+  border:1px solid var(--line);border-radius:9px;padding:8px 13px;cursor:pointer;font-variant-numeric:tabular-nums}
+.sh-chips button.on{background:var(--txt);color:var(--bg);border-color:var(--txt)}
+.sh-time{margin-top:8px;width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--txt);
+  font:inherit;font-size:16px;padding:9px 12px;color-scheme:dark}
+:root[data-tema="claro"] .sh-time,:root[data-tema="branco"] .sh-time{color-scheme:light}
+.sh-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;padding:14px 0 2px;margin-top:6px;border-top:1px solid var(--line)}
+.sh-sw{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;margin:0;transition:background .15s}
+.sh-sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sh-sw:checked{background:var(--ok)} .sh-sw:checked::after{left:21px}
+.sh-btn{width:100%;margin-top:14px;background:var(--brand);color:#fff;border:none;border-radius:12px;padding:14px;
+  font:inherit;font-size:16px;font-weight:700;cursor:pointer}
+.sh-btn:disabled{opacity:.45}
 .gc-wrap{margin-top:14px}
 .gc-grid{position:relative;margin-left:8px}
 .gc-hr{position:absolute;left:0;right:0;height:48px;border-top:1px solid var(--line);cursor:pointer}
@@ -13501,14 +13532,18 @@ async function mpAgendaSync(force){
   }finally{ MP.__sync=false; }
 }
 window.mpGAtualizar=()=>{ toast('Atualizando…'); mpAgendaSync(true); };
-async function mpEvtCriar(nome,dia,hora){
+async function mpEvtCriar(nome,dia,hora,dur,noGoogle){
   const ws=mpWsAtivo(); if(!ws) return false;
-  const r=await sb.from('agenda_eventos').insert({dono:currentUser.id,workspace_id:ws.id,titulo:nome,dia,hora,gcal_id:null}).select().single();
+  const d=(dur==null)?60:Number(dur);
+  let fim=null;
+  if(hora&&d>0){ const ini=Number(hora.slice(0,2))*60+Number(hora.slice(3,5)); const fm=Math.min(23*60+59,ini+d);
+    fim=String(Math.floor(fm/60)).padStart(2,'0')+':'+String(fm%60).padStart(2,'0'); }
+  const r=await sb.from('agenda_eventos').insert({dono:currentUser.id,workspace_id:ws.id,titulo:nome,dia,hora,fim,gcal_id:null}).select().single();
   if(r.error){ toast('Erro: '+r.error.message); return false; }
   (MP.evtsPorDia[dia]=MP.evtsPorDia[dia]||[]).push(r.data); mpPintar();
-  if(MP.g){
+  if(MP.g&&(noGoogle!==false)){
     try{
-      const g=await mpGFn('criar',{titulo:nome,dia,hora});
+      const g=await mpGFn('criar',{titulo:nome,dia,hora,duracao_min:d>0?d:undefined});
       const gid=(g&&g.gcal_id)||null;
       if(gid){ await sb.from('agenda_eventos').update({gcal_id:gid}).eq('id',r.data.id);
         const ev=(MP.evtsPorDia[dia]||[]).find(x=>String(x.id)===String(r.data.id)); if(ev) ev.gcal_id=gid; mpPintar(); }
@@ -13589,7 +13624,63 @@ function mpAgendaHTML(){
     '<div class="ga">'+linhas+'</div>'+
     (tarsS.length?'<div class="mp-sech" style="margin-top:18px">Sem horário · '+tarsS.length+'</div>'+tarsS.filter(t=>!mpFeita(t)).map(mpTarRow).join('')+tarsS.filter(mpFeita).map(mpTarRow).join(''):'');
 }
+/* ---- folha de novo evento (celular) ---- */
+let SH={h:null,hora:'',dur:60,outro:false};
+function shHoraOps(h){
+  const base=(h==null)?Math.min(23,new Date().getHours()+1):h;
+  const ops=[]; for(let m=base*60;m<=Math.min(23*60+30,base*60+150);m+=30) ops.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'));
+  return ops;
+}
+function shPintar(){
+  const box=document.getElementById('sh_hrs'); if(!box) return;
+  const ops=shHoraOps(SH.h);
+  box.innerHTML=ops.map(o=>'<button type="button" class="'+((!SH.outro&&SH.hora===o)?'on':'')+'" onclick="shHora(\''+o+'\')">'+o+'</button>').join('')
+    +'<button type="button" class="'+(SH.outro?'on':'')+'" onclick="shOutro()">Outro</button>';
+  const t=document.getElementById('sh_time'); if(t) t.hidden=!SH.outro;
+  const d=document.getElementById('sh_dur'); if(d) d.querySelectorAll('button').forEach(b=>b.classList.toggle('on',Number(b.dataset.m)===SH.dur));
+}
+window.shHora=(o)=>{ SH.hora=o; SH.outro=false; shPintar(); };
+window.shOutro=()=>{ SH.outro=true; shPintar(); const t=document.getElementById('sh_time'); if(t){ t.focus(); try{ t.showPicker&&t.showPicker(); }catch(_){} } };
+window.shDur=(m)=>{ SH.dur=m; shPintar(); };
+window.shFecha=()=>{ const o=document.getElementById('shOv'); if(o) o.remove(); if(window.visualViewport) window.visualViewport.removeEventListener('resize',shTeclado); };
+function shTeclado(){ const sh=document.querySelector('#shOv .sheet'); if(!sh||!window.visualViewport) return;
+  const vv=window.visualViewport; const desl=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+  sh.style.transform=desl?('translateY(-'+desl+'px)'):''; }
+window.mpEvtSheet=(h)=>{
+  shFecha();
+  const dia=MP.dia; SH={h:(h==null?null:h),hora:'',dur:60,outro:false};
+  SH.hora=shHoraOps(SH.h)[0];
+  const o=document.createElement('div'); o.id='shOv'; o.className='ovs';
+  o.onclick=(e)=>{ if(e.target===o) shFecha(); };
+  o.innerHTML='<div class="sheet">'+
+    '<div class="sh-hand"></div>'+
+    '<div class="sh-top"><b>Novo evento</b><button type="button" onclick="shFecha()">Cancelar</button></div>'+
+    '<input class="sh-tit" id="sh_nm" placeholder="Título" autocomplete="off" enterkeyhint="done" onkeydown="if(event.key===\'Enter\'){event.preventDefault();shCriar();}">'+
+    '<div class="sh-lab">Início · '+esc(mpDataExt(dia))+'</div>'+
+    '<div class="sh-chips" id="sh_hrs"></div>'+
+    '<input type="time" id="sh_time" class="sh-time" hidden onchange="SH.hora=this.value||SH.hora">'+
+    '<div class="sh-lab">Duração</div>'+
+    '<div class="sh-chips" id="sh_dur"><button type="button" data-m="30" onclick="shDur(30)">30 min</button><button type="button" data-m="60" onclick="shDur(60)">1 h</button><button type="button" data-m="120" onclick="shDur(120)">2 h</button><button type="button" data-m="0" onclick="shDur(0)">Dia inteiro</button></div>'+
+    (MP.g?'<label class="sh-row"><span>Google Agenda</span><input type="checkbox" class="sh-sw" id="sh_g" checked></label>':'')+
+    '<button type="button" class="sh-btn" id="sh_ok" onclick="shCriar()">Adicionar</button>'+
+    '</div>';
+  document.body.appendChild(o); shPintar();
+  if(window.visualViewport) window.visualViewport.addEventListener('resize',shTeclado);
+  setTimeout(()=>{ const i=document.getElementById('sh_nm'); if(i) i.focus(); },40);
+};
+window.shCriar=async()=>{
+  const nome=((document.getElementById('sh_nm')||{}).value||'').trim();
+  if(!nome){ const i=document.getElementById('sh_nm'); if(i) i.focus(); return; }
+  const b=document.getElementById('sh_ok'); if(b) b.disabled=true;
+  const diaTodo=SH.dur===0;
+  const hora=diaTodo?null:(SH.outro?((document.getElementById('sh_time')||{}).value||SH.hora):SH.hora);
+  const g=document.getElementById('sh_g'); const noGoogle=!!(MP.g&&(!g||g.checked));
+  const dia=MP.dia;
+  shFecha();
+  await mpEvtCriar(nome,dia,hora,diaTodo?0:SH.dur,noGoogle);
+};
 window.mpEvtSlot=(h)=>{
+  if(window.innerWidth<=720) return mpEvtSheet(h);
   const dia=MP.dia;
   modal('Novo evento',
     '<div class="field"><label>Nome</label><input id="gce_nm" placeholder="Nome do evento…"/></div>'+
