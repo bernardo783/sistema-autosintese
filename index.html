@@ -2,13 +2,16 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sistema Autosíntese</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
 <link rel="apple-touch-icon" href="icone-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="crm.css?v=1">
 <meta name="apple-mobile-web-app-title" content="Síntese">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- barra de status transparente: o roxo passa por baixo do relogio em vez da faixa branca (Gabriel 07/09) -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#7c3aed">
@@ -558,7 +561,7 @@
 
   /* ---------- LOGIN — spotlight premium: card com borda em gradient, marca em squircle ---------- */
   #login{position:relative;overflow:hidden;min-height:100vh;display:flex;align-items:center;justify-content:center;
-    padding:48px 24px;background:var(--bg)}
+    padding:calc(48px + env(safe-area-inset-top,0px)) 24px calc(48px + env(safe-area-inset-bottom,0px));background:var(--bg)}
   #login::before{content:'';position:absolute;inset:0;pointer-events:none;
     background:radial-gradient(640px 480px at 50% 36%,rgba(124,58,237,.21),rgba(124,58,237,.055) 48%,transparent 72%),
       radial-gradient(300px 220px at 50% 30%,rgba(168,85,247,.14),transparent 70%),
@@ -1878,7 +1881,7 @@
     .railbar,.sidebar,.topbar,.main{grid-column:auto;grid-row:auto}
     .topbar{padding:10px 18px 0}
     .railbar{flex-direction:row;justify-content:flex-start;overflow-x:auto;border-right:none;
-      border-bottom:1px solid var(--line);padding:8px 10px;gap:4px}
+      border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;gap:4px}
     .railbar #rlInicio{margin:0 4px 0 0}
     .railbar .sep{width:1px;height:26px;margin:0 4px}
     .railbar .bot{margin:0 0 0 auto;flex-direction:row}
@@ -2127,6 +2130,62 @@
 .mp-hchk.on{background:var(--brand);border-color:var(--brand);color:#fff}
 .mp-hchk:disabled{cursor:default;opacity:.4}
 .mp-per{display:flex;align-items:center;gap:12px;margin:4px 0 16px;flex-wrap:wrap}
+/* ---------- MODO PESSOAL NO CELULAR (Gabriel 07/09: escolhas 1B·2A·3A·4A) ----------
+   So no breakpoint do celular e so na tela Pessoal. Desktop nao muda nada.
+   1B  navegacao numa pilula flutuante no rodape, solta da borda
+   2A  um botao de criar (FAB) em vez de tres
+   3A  sem habito, sem KPI: um card so
+   4A  topo = "Pessoal" + busca + avisos; sem avatar (no computador ele fica) */
+.mp-tabbar,.mp-fab,.mp-fabm,.mp-sino{display:none}
+@media(max-width:720px){
+  body.mob-pessoal .railbar{display:none}
+  body.mob-pessoal .topbar{padding:calc(10px + env(safe-area-inset-top,0px)) 14px 0;gap:8px}
+  body.mob-pessoal .topbar .uav{display:none}
+  body.mob-pessoal .topbar .tb-esp span{display:none}
+  body.mob-pessoal .topbar .tb-esp::after{content:'Pessoal \25BE';font-weight:800}
+  body.mob-pessoal .main{padding-bottom:128px}
+  body.mob-pessoal .mp-abas,body.mob-pessoal .mp-topo-acao{display:none}
+  body.mob-pessoal .mp-sino{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel);color:var(--txt);position:relative;flex:none;cursor:pointer}
+  body.mob-pessoal .mp-sino svg{width:16px;height:16px}
+  body.mob-pessoal .mp-sino .bdg{position:absolute;top:-4px;right:-4px}
+  .mp-tabbar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:900;
+    display:flex;justify-content:space-around;align-items:center;height:60px;padding:0 6px;
+    border-radius:999px;border:1px solid var(--line);
+    background:color-mix(in srgb,var(--panel) 90%,transparent);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 14px 34px rgba(0,0,0,.30)}
+  .mp-tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;
+    color:var(--muted);font:inherit;font-size:10px;font-weight:700;padding:6px 0;border-radius:14px;position:relative;cursor:pointer}
+  .mp-tabbar button svg{width:20px;height:20px}
+  .mp-tabbar button.on{color:var(--brand2)}
+  .mp-tabbar button.on::before{content:'';position:absolute;top:2px;width:34px;height:34px;border-radius:12px;
+    background:color-mix(in srgb,var(--brand) 16%,transparent);z-index:-1}
+  .mp-fab{position:fixed;right:18px;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:901;
+    width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:28px;line-height:1;
+    display:grid;place-items:center;box-shadow:0 12px 26px rgba(124,58,237,.45);transition:transform .15s}
+  .mp-fab.aberto{transform:rotate(45deg)}
+  .mp-fabm{position:fixed;right:18px;bottom:calc(148px + env(safe-area-inset-bottom,0px));z-index:901;
+    display:flex;flex-direction:column;gap:4px;min-width:170px;padding:6px;border-radius:16px;
+    background:var(--panel);border:1px solid var(--line);box-shadow:0 16px 40px rgba(0,0,0,.35)}
+  .mp-fabm button{display:flex;align-items:center;gap:10px;background:none;border:none;color:var(--txt);
+    font:inherit;font-size:13.5px;font-weight:700;padding:10px 12px;border-radius:11px;cursor:pointer;text-align:left}
+  .mp-fabm button:hover,.mp-fabm button:active{background:var(--hov2)}
+  .mp-fabm button i{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-style:normal;
+    background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand2)}
+  .mp-fabm button i svg{width:15px;height:15px}
+}
+/* 3A — primeiro passo: aparece com zero habitos, em qualquer tamanho de tela */
+.mp-zero{margin:18px 0 0;padding:26px 20px;text-align:center;border:1px solid var(--line);border-radius:18px;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--brand) 10%,transparent),transparent 70%)}
+.mp-zero .ic{width:52px;height:52px;border-radius:16px;margin:0 auto 12px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand2)}
+.mp-zero .ic svg{width:24px;height:24px}
+.mp-zero b{display:block;font-size:17px;font-weight:900;letter-spacing:-.02em}
+.mp-zero p{color:var(--muted);font-size:13px;margin:6px auto 16px;max-width:36ch;line-height:1.5}
+.mp-zero .btn{width:auto;padding:12px 22px}
+.mp-zero .alt{display:block;margin-top:12px;font-size:12.5px;color:var(--brand2);font-weight:700;cursor:pointer}
 .mp-nav{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--muted);display:grid;place-items:center;font-size:15px;cursor:pointer;flex:none}
 .mp-nav:hover{background:var(--hov1);color:var(--txt)}
 .mp-pttl{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15}
@@ -2949,6 +3008,7 @@ document.addEventListener('click',(e)=>{
   if(dentro&&e.target.closest('.tk-lista')) setTimeout(()=>document.body.classList.remove('sb-aberta'),120);
 });
 function render(view){
+  if(view!=='pessoal'){ document.body.classList.remove('mob-pessoal'); const sn=document.querySelector('.topbar .mp-sino'); if(sn) sn.remove(); const fm=document.getElementById('mpFabMenu'); if(fm) fm.remove(); }
   /* a tela pedida, antes das reescritas internas (senhas/links viram acessos etc.):
      e ela que vai pra barra de enderecos, pra F5 e link colado voltarem no mesmo lugar */
   const __telaPedida=view;
@@ -12806,6 +12866,43 @@ const MP_ACAO={
 function mpEvtHoraSug(){ if(MP.dia!==tkHoje()) return 9;
   return Math.min(23,new Date().getHours()+1); }
 
+/* Navegacao do celular (1B) e botao de criar (2A). Renderizados sempre; o CSS so os
+   mostra abaixo de 720px na tela Pessoal. Icones da biblioteca propria, nunca emoji. */
+function mpTabbarHTML(){
+  const ic={
+    inicio:'<path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    habitos:'<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.3 2.3 4.7-5"/>',
+    tarefas:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+    agenda:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    kpi:'<path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/>'
+  };
+  const sv=(k)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ic[k]+'</svg>';
+  const abas=[['inicio','Início','mpAba(\'inicio\')'],['habitos','Hábitos','mpAba(\'habitos\')'],['tarefas','Tarefas','mpAba(\'tarefas\')'],
+    ['agenda','Agenda','mpAba(\'agenda\')'],['kpi','KPI','mpIrKpi()']];
+  return '<nav class="mp-tabbar">'+abas.map(a=>'<button class="'+(MP.aba===a[0]?'on':'')+'" onclick="'+a[2]+'">'+sv(a[0])+a[1]+'</button>').join('')+'</nav>'+
+    '<button class="mp-fab" id="mpFab" onclick="mpFabClique(event)" aria-label="Criar">+</button>';
+}
+window.mpFabClique=(ev)=>{ ev.stopPropagation();
+  const vel=document.getElementById('mpFabMenu'); const fab=document.getElementById('mpFab');
+  if(vel){ mpFabFecha(); return; }
+  /* fora do Inicio o botao ja sabe o que criar: e a acao da aba */
+  if(MP.aba!=='inicio'){ const ac=MP_ACAO[MP.aba]; if(ac){ try{ (new Function(ac[1]))(); }catch(_){} } return; }
+  const m=document.createElement('div'); m.id='mpFabMenu'; m.className='mp-fabm';
+  const sv=(d)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
+  m.innerHTML='<button onclick="mpFabFecha();mpHabitoModal()"><i>'+sv('<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.3 2.3 4.7-5"/>')+'</i>Novo hábito</button>'+
+    '<button onclick="mpFabFecha();mpIrTarNova()"><i>'+sv('<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>')+'</i>Nova tarefa</button>'+
+    '<button onclick="mpFabFecha();mpAba(\'agenda\');mpEvtSlot(mpEvtHoraSug())"><i>'+sv('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>')+'</i>Novo evento</button>';
+  document.body.appendChild(m); if(fab) fab.classList.add('aberto');
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!m.contains(e.target)&&e.target!==fab){ mpFabFecha(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.mpFabFecha=()=>{ const m=document.getElementById('mpFabMenu'); if(m) m.remove(); const fab=document.getElementById('mpFab'); if(fab) fab.classList.remove('aberto'); };
+/* 3A: sem habito nao existe KPI — um card so, com o primeiro passo */
+function mpZeroHTML(){
+  return '<div class="mp-zero"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.3 2.3 4.7-5"/></svg></div>'+
+    '<b>Comece pelo primeiro hábito</b><p>Ele vira uma linha aqui, um ponto no KPI e uma nota por semana. Leva vinte segundos.</p>'+
+    '<button class="btn" onclick="mpHabitoModal()">+ Criar hábito</button>'+
+    '<span class="alt" onclick="mpIrTarNova()">ou anotar uma tarefa pra hoje</span></div>';
+}
 function mpPintar(){
   if(currentView!=='pessoal') return;
   const c=$('#content'); if(!c) return;
@@ -12813,10 +12910,17 @@ function mpPintar(){
     if(el){ mem[id]={v:el.value,f:document.activeElement===el}; } });
   const abas=[['inicio','Início'],['habitos','Hábitos'],['tarefas','Tarefas'],['agenda','Agenda']];
   const ac=MP_ACAO[MP.aba]||MP_ACAO.inicio;
+  document.body.classList.add('mob-pessoal');
+  const nB=(document.getElementById('ntfBdg')||{}).textContent||'';
   c.innerHTML='<div class="page-head"><div></div>'+
-    '<div class="toolbar"><button class="btn small" onclick="'+ac[1]+'">'+ac[0]+'</button></div></div>'+
-    '<div class="fin-tabs">'+abas.map(a=>'<button class="ftab '+(MP.aba===a[0]?'active':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
-    '<div id="mpCorpo"></div>';
+    '<div class="toolbar mp-topo-acao"><button class="btn small" onclick="'+ac[1]+'">'+ac[0]+'</button></div></div>'+
+    '<div class="fin-tabs mp-abas">'+abas.map(a=>'<button class="ftab '+(MP.aba===a[0]?'active':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
+    '<div id="mpCorpo"></div>'+mpTabbarHTML();
+  /* sino de avisos no topo do celular (4A): copia o contador da railbar, que fica escondida */
+  (function(){ const tb=document.getElementById('topbar'); if(!tb||tb.querySelector('.mp-sino')) return;
+    const b=document.createElement('button'); b.className='mp-sino'; b.title='Avisos'; b.onclick=()=>render('notificacoes');
+    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="bdg">'+esc(nB)+'</span>';
+    const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); })();
   const b=$('#mpCorpo');
   if(MP.aba==='progresso') MP.aba='inicio';
   if(MP.aba==='inicio') b.innerHTML=mpInicioHTML();
@@ -12880,12 +12984,12 @@ function mpInicioHTML(){
       '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota do dia</div><div class="xp">'+n.feit+'/'+n.prev+' feitos</div></div></div>':'')+
     (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:10px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+
     '</div>'+
-    mpHabCards()+
+    (MP.habitos.length?mpHabCards():mpZeroHTML())+
     '<div class="mp-sech" style="margin-top:26px">Tarefas de hoje · '+ts.length+'<button class="mp-add" onclick="mpIrTarNova()">+ Nova tarefa</button></div>'+
     (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>')+
-    /* KPI mora aqui também: o Início é o lugar único — semana, nota por período e comparativo */
-    '<div class="mp-sech" id="mpKpi" style="margin-top:34px">KPI · Progresso</div>'+
-    mpProgHTML();
+    /* KPI mora aqui também: o Início é o lugar único — semana, nota por período e comparativo.
+       Sem habito ele nao aparece (3A): era um bloco inteiro de controle morto. */
+    (MP.habitos.length?'<div class="mp-sech" id="mpKpi" style="margin-top:34px">KPI · Progresso</div>'+mpProgHTML():'');
 }
 
 /* ---------- aba Progresso ---------- */
