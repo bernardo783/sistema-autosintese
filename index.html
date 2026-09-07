@@ -2308,6 +2308,37 @@
 .mp-t7.hj{border-color:var(--brand)}
 .mp-t7 small{font-size:9px;color:var(--muted);letter-spacing:1px}
 .mp-t7 b{display:block;font-size:15px;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+/* ---- agenda comprimida (1B) ---- */
+.ga{margin-top:12px}
+.ga-livre{display:flex;justify-content:space-between;align-items:center;margin:6px 0;padding:7px 12px;border:1px dashed var(--line);
+  border-radius:9px;font-size:11.5px;color:var(--fraco);cursor:pointer;font-variant-numeric:tabular-nums}
+.ga-livre:hover{border-color:var(--brand2);color:var(--muted)}
+.ga-hr{display:flex;gap:10px;align-items:stretch;min-height:52px;border-top:1px solid var(--line);padding:6px 0}
+.ga-hl{width:44px;flex:none;font-size:11px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums;padding-top:9px;cursor:pointer}
+.ga-hl:hover{color:var(--brand2)}
+.ga-body{flex:1;min-width:0;position:relative;display:flex;flex-direction:column;gap:5px}
+.ga-vz{flex:1;min-height:38px;border-radius:9px;cursor:pointer}
+.ga-vz:hover{background:var(--hov1)}
+.ga-bl{display:flex;align-items:center;gap:9px;border-radius:10px;padding:9px 11px;font-size:12.5px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,var(--brand),#5b4bd6);box-shadow:0 6px 16px rgba(124,58,237,.28);position:relative;z-index:1}
+.ga-bl.tar{background:linear-gradient(135deg,#e6b13f,#b7791f);box-shadow:0 6px 16px rgba(230,177,63,.22);color:#1a1206}
+.ga-bl.done{opacity:.5} .ga-bl.done .tt{text-decoration:line-through}
+.ga-bl .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ga-bl .tt.abre{cursor:pointer}
+.ga-bl .h{font-size:11px;font-variant-numeric:tabular-nums;opacity:.85;flex:none}
+.ga-bl .g{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border:1px solid rgba(255,255,255,.35);border-radius:5px;padding:1px 5px;opacity:.9;flex:none}
+.ga-bl.tar .g{border-color:rgba(0,0,0,.25)}
+.ga-bl .o{width:17px;height:17px;border-radius:50%;border:1.5px solid rgba(255,255,255,.7);flex:none;background:none;cursor:pointer;display:grid;place-items:center;color:transparent}
+.ga-bl.tar .o{border-color:rgba(0,0,0,.45)}
+.ga-bl .o.on{background:#fff;border-color:#fff;color:var(--brand)}
+.ga-bl.tar .o.on{color:#b7791f}
+.ga-bl .x{background:none;border:none;color:inherit;opacity:.6;font-size:15px;line-height:1;cursor:pointer;padding:0 2px;flex:none}
+.ga-bl .x:hover{opacity:1}
+.ga-now{position:absolute;left:-54px;right:0;height:0;border-top:1.5px solid var(--danger);z-index:2;pointer-events:none}
+.ga-now::before{content:'';position:absolute;left:44px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--danger)}
+.ga-now span{position:absolute;left:0;top:-8px;font-size:9.5px;font-weight:800;color:var(--danger);background:var(--bg);padding-right:4px;font-variant-numeric:tabular-nums}
+.ga-sync{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.ga-sync .pt{width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block}
 .gc-wrap{margin-top:14px}
 .gc-grid{position:relative;margin-left:8px}
 .gc-hr{position:absolute;left:0;right:0;height:48px;border-top:1px solid var(--line);cursor:pointer}
@@ -13464,7 +13495,7 @@ async function mpAgendaSync(force){
     pinta();
     if(MP.g){
       const antes=JSON.stringify(MP.evtsPorDia[iso]||[]);
-      try{ await mpGFn('dia',{dia:iso}); await mpEvtsDia(iso); }catch(e){ if(force) toast('Google: '+e.message); }
+      try{ await mpGFn('dia',{dia:iso}); await mpEvtsDia(iso); const d=new Date(); MP.gSyncEm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(e){ if(force) toast('Google: '+e.message); }
       if(JSON.stringify(MP.evtsPorDia[iso]||[])!==antes||force) pinta();
     }
   }finally{ MP.__sync=false; }
@@ -13507,33 +13538,56 @@ window.mpEvtDel=async(id)=>{
 };
 
 /* ---------- aba Agenda (grade de horários, estilo Google Calendar) ---------- */
+/* Agenda do dia — grade comprimida + tarefas do dia (Gabriel 07/09: 1B · 2B).
+   As horas vazias colapsam numa linha "livre"; evento e tarefa viram blocos na hora
+   deles; tarefa sem hora entra no fim, com o check pra concluir ali mesmo. */
 function mpAgendaHTML(){
   const dia=MP.dia, hoje=tkHoje();
   const evts=mpEvtsOrd(dia), sem=evts.filter(e=>!e.hora), com=evts.filter(e=>!!e.hora);
-  const H0=6,H1=23,PX=48;
-  const blocos=com.map(e=>{
-    const h=Number(String(e.hora).slice(0,2)), mi=Number(String(e.hora).slice(3,5))||0;
-    const top=Math.max(0,(Math.min(Math.max(h,H0),H1)-H0)*PX+mi/60*PX);
-    return '<div class="gc-ev'+(e.feito?' done':'')+'" style="top:'+top+'px">'+
-      '<button class="o'+(e.feito?' on':'')+'" onclick="mpEvtVirar(\''+e.id+'\')">'+svgIco('check',10)+'</button>'+
-      '<span class="tt">'+esc(e.titulo||'')+'</span><span class="gc-h">'+esc(String(e.hora).slice(0,5))+'</span>'+
-      (e.gcal_id?'<span class="mp-gtag">Google</span>':'')+
-      '<button class="x" title="Apagar" onclick="mpEvtDel(\''+e.id+'\')">×</button></div>';
-  }).join('');
-  let linhas='';
-  for(let h=H0;h<=H1;h++) linhas+='<div class="gc-hr" title="Novo evento às '+String(h).padStart(2,'0')+':00" style="top:'+((h-H0)*PX)+'px" onclick="mpEvtSlot('+h+')"><span>'+String(h).padStart(2,'0')+':00</span></div>';
-  let now='';
-  const ag=new Date();
-  if(dia===hoje&&ag.getHours()>=H0&&ag.getHours()<=H1)
-    now='<div class="gc-now" style="top:'+((ag.getHours()-H0)*PX+Math.round(ag.getMinutes()/60*PX))+'px"></div>';
+  const tars=mpTarDia(dia), tarsH=tars.filter(t=>!!t.hora), tarsS=tars.filter(t=>!t.hora);
+  const H0=6,H1=23, ag=new Date(), ehHoje=dia===hoje, hAg=ag.getHours();
+  const hh=(x)=>Number(String(x||'').slice(0,2)), mm=(x)=>Number(String(x||'').slice(3,5))||0;
+  const porHora={};
+  com.forEach(e=>{ (porHora[hh(e.hora)]=porHora[hh(e.hora)]||[]).push({tipo:'ev',o:e}); });
+  tarsH.forEach(t=>{ (porHora[hh(t.hora)]=porHora[hh(t.hora)]||[]).push({tipo:'tar',o:t}); });
+  const bloco=(it)=>{
+    if(it.tipo==='ev'){ const e=it.o;
+      return '<div class="ga-bl ev'+(e.feito?' done':'')+'">'+
+        '<button class="o'+(e.feito?' on':'')+'" onclick="mpEvtVirar(\''+e.id+'\')">'+svgIco('check',10)+'</button>'+
+        '<span class="tt">'+esc(e.titulo||'')+'</span><span class="h">'+esc(String(e.hora).slice(0,5))+'</span>'+
+        (e.gcal_id?'<span class="g">Google</span>':'')+
+        '<button class="x" title="Apagar" onclick="mpEvtDel(\''+e.id+'\')">×</button></div>'; }
+    const t=it.o, f=mpFeita(t);
+    return '<div class="ga-bl tar'+(f?' done':'')+'">'+
+      '<button class="o'+(f?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',10)+'</button>'+
+      '<span class="tt abre" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'</span><span class="h">'+esc(String(t.hora).slice(0,5))+'</span><span class="g">tarefa</span></div>';
+  };
+  const hStr=(h)=>String(h).padStart(2,'0')+':00';
+  let linhas='', h=H0;
+  while(h<=H1){
+    const tem=!!porHora[h]||(ehHoje&&h===hAg);
+    if(!tem){
+      let f=h; while(f+1<=H1&&!porHora[f+1]&&!(ehHoje&&f+1===hAg)) f++;
+      linhas+='<div class="ga-livre" onclick="mpEvtSlot('+h+')" title="Novo evento às '+hStr(h)+'"><span>'+hStr(h)+' – '+(f>=H1?'23:59':hStr(f+1))+'</span><span>livre</span></div>';
+      h=f+1; continue;
+    }
+    const its=(porHora[h]||[]).slice().sort((x,y)=>String(x.o.hora).localeCompare(String(y.o.hora)));
+    linhas+='<div class="ga-hr"><div class="ga-hl" onclick="mpEvtSlot('+h+')" title="Novo evento às '+hStr(h)+'">'+hStr(h)+'</div><div class="ga-body">'+
+      (ehHoje&&h===hAg?'<div class="ga-now" style="top:'+Math.round(ag.getMinutes()/60*100)+'%"><span>'+String(hAg).padStart(2,'0')+':'+String(ag.getMinutes()).padStart(2,'0')+'</span></div>':'')+
+      (its.length?its.map(bloco).join(''):'<div class="ga-vz" onclick="mpEvtSlot('+h+')"></div>')+'</div></div>';
+    h++;
+  }
+  const sync=MP.g
+    ? '<span class="ga-sync"><i class="pt"></i>Google'+(MP.gSyncEm?' · sincronizado '+esc(MP.gSyncEm):'')+' <button class="mp-add" style="margin-left:2px" onclick="mpGAtualizar()" title="Atualizar agora">↻</button></span>'
+    : '<span class="ga-sync"><button class="mp-add" style="margin-left:0" onclick="mpGConectar()">Conectar Google Agenda</button> <button class="mp-add" style="margin-left:0" onclick="mpGChecar()">já conectei</button></span>';
   return '<div class="mp-per"><button class="mp-nav" onclick="mpDiaNav(-1)">‹</button>'+
-    '<div><div class="mp-pttl">'+mpDataExt(dia)+'</div><div class="mp-psub">'+(dia===hoje?'hoje':'')+'</div></div>'+
+    '<div><div class="mp-pttl">'+mpDataExt(dia)+'</div><div class="mp-psub">'+(ehHoje?'hoje':'')+'</div></div>'+
     '<button class="mp-nav" onclick="mpDiaNav(1)">›</button>'+
-    '<button class="mp-pill'+(dia===hoje?' on':'')+'" onclick="mpDiaSel(\''+hoje+'\')">Hoje</button>'+
-    '<span class="mp-pnota">'+(MP.g?esc(MP.g.google_email||'Google')+' · <button class="mp-add" style="margin-left:0" onclick="mpGAtualizar()">atualizar</button>'
-      :'<button class="mp-add" style="margin-left:0" onclick="mpGConectar()">Conectar Google Agenda</button> <button class="mp-add" style="margin-left:0" onclick="mpGChecar()">já conectei</button>')+'</span></div>'+
+    (ehHoje?'':'<button class="mp-pill" onclick="mpDiaSel(\''+hoje+'\')">Hoje</button>')+
+    '<span class="mp-pnota">'+sync+'</span></div>'+
     (sem.length?'<div class="mp-sech">Dia inteiro</div>'+sem.map(mpEvtRow).join(''):'')+
-    '<div class="gc-wrap"><div class="gc-grid" style="height:'+((H1-H0+1)*PX)+'px">'+linhas+now+blocos+'</div></div>';
+    '<div class="ga">'+linhas+'</div>'+
+    (tarsS.length?'<div class="mp-sech" style="margin-top:18px">Sem horário · '+tarsS.length+'</div>'+tarsS.filter(t=>!mpFeita(t)).map(mpTarRow).join('')+tarsS.filter(mpFeita).map(mpTarRow).join(''):'');
 }
 window.mpEvtSlot=(h)=>{
   const dia=MP.dia;
