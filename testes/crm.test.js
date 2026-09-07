@@ -16,7 +16,7 @@ const g={console,Date,Math,JSON,String,Number,Array,Object,Boolean,RegExp,Set,Ma
   brl:(n)=>'R$ '+(Number(n)||0).toFixed(2).replace('.',','), toast(){}, modal(){}, confirmar:async()=>true, $:()=>null,
   renderFunil(){}, FN:{}, lkHash(){}, SUPA_URL:'https://x.supabase.co'};
 g.window=g; vm.createContext(g);
-vm.runInContext(SRC+'\n;Object.assign(window,{CRM,crmFiltrar,crmJanela,crmPct,crmFone,crmNoPeriodo,crmPipelineHTML,crmOrigensHTML,crmAgendaHTML,crmFichaHTML,crmIsoLocal,crmEst,crmOrigem});',g);
+vm.runInContext(SRC+'\n;Object.assign(window,{CRM,crmFiltrar,crmJanela,crmPct,crmFone,crmNoPeriodo,crmPipelineHTML,crmOrigensHTML,crmAgendaHTML,crmFichaHTML,crmIsoLocal,crmEst,crmOrigem,crmIntgHTML,CRM_LOGOS});',g);
 
 grupo('Carrega e exporta');
 ok('crm.js é JS válido e definiu crmRender', typeof g.crmRender==='function');
@@ -105,6 +105,19 @@ ok('closer conectado aparece como Google ok', html.includes('Google ok'));
 ok('próxima sessão lista o lead e o Meet', html.includes('Carla Menezes') && html.includes('Meet'));
 F(); g.CRM.f.closer='s1'; html=g.crmAgendaHTML();
 ok('filtro de closer some com a sessão de outro closer', !html.includes('Carla Menezes'));
+
+grupo('Integrações');
+g.CRM.intg.saude=null; g.CRM.d.wa=[]; html=g.crmIntgHTML();
+ok('sem dados: cinco tiles de saúde com logos', (html.match(/class="crm-hc"/g)||[]).length===5 && (html.match(/<svg/g)||[]).length>=10);
+ok('sem número: orienta a conectar', html.includes('Nenhum número conectado'));
+g.CRM.d.wa=[{id:'w1',name:'WhatsApp da Loane',phone_number:'+55 17 99700-1101',phone_number_id:'5567',waba_id:'1029',assigned_user_id:'s1',connection_status:'connected',coexistence:true,quality_rating:'GREEN',last_webhook_at:new Date().toISOString()}];
+g.CRM.intg.saude={health:[{provider:'meta_ads',status:'connected',checked_at:new Date().toISOString(),details:{conta:{nome:'Auto Síntese',id:'act_1',business:'AutoSíntese'},permissoes:['ads_read'],token:'EAAG…9x'}}],google:[{dono:'c1',google_email:'jose@x.com'}],capi:{pending:1,accepted:2},ultimo_webhook:new Date().toISOString()};
+html=g.crmIntgHTML();
+ok('número conectado aparece com SDR, coexistência e qualidade', html.includes('WhatsApp da Loane') && html.includes('coexistência') && html.includes('qualidade GREEN') && html.includes('Loane'));
+ok('Meta mostra conta, permissões e token mascarado', html.includes('Auto Síntese') && html.includes('ads_read') && html.includes('EAAG…9x') && !html.includes('EAAG9x'));
+ok('closer com Google aparece conectado', html.includes('jose@x.com'));
+ok('CAPI mostra contadores', html.includes('<b>1</b>') && html.includes('<b>2</b>'));
+ok('logos das 5 integrações existem', ['whatsapp','meta','gcal','meet','capi'].every(k=>g.CRM_LOGOS[k].startsWith('<svg')));
 
 console.log('\n'+(falhas?('\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m'):('\x1b[32m>>> '+total+' testes ok\x1b[0m')));
 process.exit(falhas?1:0);
