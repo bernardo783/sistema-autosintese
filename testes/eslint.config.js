@@ -1,5 +1,5 @@
 // ESLint só para o módulo CRM (crm.js). O index.html segue sem lint por ora.
-const globais=['crmAba','crmAbrirFicha','crmAgendarModal','crmCancelarAp','crmConectarGoogle','crmEditarModal','crmEquipeModal','crmFechar','crmFiltro','crmGanhoModal','crmLimpar','crmMes','crmMover','crmNotaModal','crmNovoLead','crmNovoLeadOrigem','crmOcupacao','crmPerdaModal','crmPresenca','crmReagendarModal','crmRender','crmResponsavelModal','crmSemana','crmSoltar','sb','currentUser','SESSION','esc','brl','toast','modal','confirmar','$','renderFunil','FN','lkHash','SUPA_URL','currentView'];
+const globais=['crmAba','crmAbrirFicha','crmAgendarModal','crmCancelarAp','crmConectarGoogle','crmEditarModal','crmEquipeModal','crmFechar','crmFiltro','crmGanhoModal','crmLimpar','crmMes','crmMetaTestar','crmMover','crmNotaModal','crmNovoLead','crmNovoLeadOrigem','crmOcupacao','crmPerdaModal','crmPresenca','crmReagendarModal','crmRender','crmResponsavelModal','crmSemana','crmSoltar','crmWaEditar','crmWaLogs','crmWaNovo','crmWaTestar','crmWaToken','crmWaWebhook','sb','currentUser','SESSION','esc','brl','toast','modal','confirmar','$','renderFunil','FN','lkHash','SUPA_URL','currentView'];
 module.exports=[{
   files:['crm.js','testes/crm.test.js'],
   languageOptions:{ecmaVersion:2022,sourceType:'script',
