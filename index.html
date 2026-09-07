@@ -2293,6 +2293,29 @@
 .mp-mtit b{color:var(--warn);font-weight:800}
 .mp-leg{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-top:2px}
 .mp-leg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.mp-plac{display:grid;grid-template-columns:minmax(0,1fr) 118px;gap:14px;align-items:stretch;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:6px 0 10px}
+.mp-placL .rot{font-size:10px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted)}
+.mp-placL .nb{font-size:34px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums;margin-top:2px}
+.mp-placL .var{font-size:12.5px;font-weight:800;margin-top:2px}
+.mp-placL .var small{display:block;font-size:10.5px;font-weight:600;color:var(--muted);letter-spacing:0}
+.mp-placL .sub{font-size:11.5px;color:var(--muted);margin-top:7px}
+.mp-placB{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;align-items:end;padding-bottom:16px;position:relative}
+.mp-placB .col{height:74px;display:flex;align-items:flex-end}
+.mp-placB .bar{width:100%;border-radius:4px 4px 2px 2px;background:var(--panel2);min-height:4px}
+.mp-placB .bar.on{background:var(--brand)}
+.mp-placB .lb2{position:absolute;left:0;right:0;bottom:0;font-size:9.5px;color:var(--muted);text-align:center}
+.mp-resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px;margin-bottom:12px}
+.mp-resumo>div{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 11px}
+.mp-resumo .k{display:block;font-size:10px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--muted)}
+.mp-resumo .v{display:block;font-size:13px;font-weight:700;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-prow{display:grid;grid-template-columns:minmax(0,1fr) 46px 72px 34px;align-items:center;gap:9px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
+.mp-prow .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-prow .nm svg{width:13px;height:13px;vertical-align:-2px;margin-right:5px}
+.mp-prow .qt{color:var(--muted);font-size:11.5px;text-align:right;font-variant-numeric:tabular-nums}
+.mp-prow .bar{height:6px;border-radius:3px;background:var(--panel2);overflow:hidden}
+.mp-prow .bar i{display:block;height:100%;border-radius:3px}
+.mp-prow .nt{font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
 .mp-cmp .lb2{font-size:9px;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;white-space:nowrap}
 .mp-delta{font-size:12px;color:var(--muted);margin-top:10px}
 .mp-delta b{color:var(--ok)}
@@ -13439,10 +13462,73 @@ function mpMapaHTML(){
 function mpFaixaAtual(){
   const hoje=tkHoje();
   if(MP.per==='hoje') return [hoje,hoje];
+  if(MP.per==='30d') return [tkDiaMais(hoje,-29),hoje];
   if(MP.per==='mes') return [hoje.slice(0,8)+'01',hoje];
   if(MP.per==='pers'){ let i=MP.perIni||tkDiaMais(hoje,-6), f=MP.perFim||hoje;
     if(i>f){ const t=i; i=f; f=t; } return [i,f]; }
   return [tkDiaMais(hoje,-6),hoje];
+}
+const MP_PERROT={hoje:'Hoje','7d':'Últimos 7 dias','30d':'Últimos 30 dias',mes:'Este mês',pers:'Período escolhido'};
+/* janela anterior do mesmo tamanho, pra comparar sem truque */
+function mpFaixaAntes(ini,fim,n){
+  const dias=Math.round((mpDe(fim)-mpDe(ini))/864e5)+1;
+  const f=tkDiaMais(ini,-1-dias*(n||0));
+  return [tkDiaMais(f,-(dias-1)),f];
+}
+/* resumo do periodo: por habito, dias perfeitos e onde esta travando */
+function mpResumoFaixa(ini,fim){
+  const hoje=tkHoje(); if(fim>hoje) fim=hoje;
+  const porHab=MP.habitos.map(h=>({h,prev:0,feit:0}));
+  let dTot=0,dPerf=0,d=ini,g=0;
+  while(d<=fim&&g++<1100){
+    const n=mpNotaDia(d);
+    if(n.prev){ dTot++; if(n.feit===n.prev) dPerf++; }
+    porHab.forEach(o=>{ if(mpProg(o.h,d)){ o.prev++; if(mpCk(o.h.id,d)) o.feit++; } });
+    d=tkDiaMais(d,1);
+  }
+  porHab.forEach(o=>{ o.nota=o.prev?Math.round(o.feit/o.prev*100)/10:null; });
+  const comDado=porHab.filter(o=>o.prev);
+  const ord=comDado.slice().sort((a,b)=>b.nota-a.nota);
+  return {porHab,dTot,dPerf,melhor:ord[0]||null,pior:ord.length>1?ord[ord.length-1]:null};
+}
+/* placar do periodo: nota grande, variacao contra a janela anterior e o resumo */
+function mpPlacarHTML(){
+  const fx=mpFaixaAtual(), np=mpNotaFaixa(fx[0],fx[1]);
+  const ant=mpFaixaAntes(fx[0],fx[1],0), na=mpNotaFaixa(ant[0],ant[1]);
+  const dif=(np.nota!=null&&na.nota!=null)?Math.round((np.nota-na.nota)*10)/10:null;
+  const pct=np.prev?Math.round(np.feit/np.prev*100):0;
+  const r=mpResumoFaixa(fx[0],fx[1]);
+  const rot=MP_PERROT[MP.per]||'Período';
+  const barras=[4,3,2,1,0].map(i=>{
+    const f=mpFaixaAntes(fx[0],fx[1],i-1);
+    const w=(i===0)?fx:f, n=mpNotaFaixa(w[0],w[1]);
+    return '<div class="col" title="'+mpCurto(w[0])+' – '+mpCurto(w[1])+' · nota '+mpNotaFmt(n.nota)+'">'+
+      '<div class="bar'+(i===0?' on':'')+'" style="height:'+Math.max(4,(n.nota||0)*10)+'%"></div></div>';
+  }).join('');
+  const seta=dif==null?'':(dif>0?'▲':(dif<0?'▼':'='));
+  const cor=dif==null?'var(--muted)':(dif>0?'var(--ok)':(dif<0?'var(--danger)':'var(--muted)'));
+  return '<div class="mp-plac">'+
+    '<div class="mp-placL">'+
+      '<div class="rot">'+esc(rot)+'</div>'+
+      '<div class="nb">'+mpNotaFmt(np.nota)+'</div>'+
+      (dif!=null?'<div class="var" style="color:'+cor+'">'+seta+' '+mpNotaFmt(Math.abs(dif))+
+        '<small>vs. período anterior</small></div>':'<div class="var"><small>sem período anterior pra comparar</small></div>')+
+      '<div class="sub">'+np.feit+' de '+np.prev+' marcados · '+pct+'%</div>'+
+    '</div>'+
+    '<div class="mp-placB">'+barras+'<div class="lb2">últimos 5 períodos</div></div>'+
+  '</div>'+
+  '<div class="mp-resumo">'+
+    '<div><span class="k">Dias perfeitos</span><span class="v">'+r.dPerf+' de '+r.dTot+'</span></div>'+
+    (r.melhor?'<div><span class="k">Melhor</span><span class="v">'+esc(r.melhor.h.nome)+' · '+mpNotaFmt(r.melhor.nota)+'</span></div>':'')+
+    (r.pior&&r.pior!==r.melhor?'<div><span class="k">Travando</span><span class="v">'+esc(r.pior.h.nome)+' · '+mpNotaFmt(r.pior.nota)+'</span></div>':'')+
+  '</div>'+
+  r.porHab.filter(o=>o.prev).sort((a,b)=>b.nota-a.nota).map(o=>{
+    const w=Math.round(o.feit/o.prev*100);
+    return '<div class="mp-prow"><span class="nm"><span style="color:'+esc(o.h.cor||'#a78bfa')+'">'+mpIco(o.h.icone,13)+'</span>'+esc(o.h.nome)+'</span>'+
+      '<span class="qt">'+o.feit+'/'+o.prev+'</span>'+
+      '<span class="bar"><i style="width:'+w+'%;background:'+esc(o.h.cor||'#a78bfa')+'"></i></span>'+
+      '<span class="nt">'+mpNotaFmt(o.nota)+'</span></div>';
+  }).join('');
 }
 function mpRotSem(seg){
   const atual=mpSegDa(tkHoje());
@@ -13482,10 +13568,10 @@ function mpProgHTML(){
     '<button class="mp-nav" onclick="mpSemNav(1)">›</button>'+
     '<span class="mp-pnota">Nota da semana: <b>'+mpNotaFmt(ns.nota)+'</b> · '+ns.feit+'/'+ns.prev+'</span></div>'+
     cab+linhas+
-    '<div class="mp-sech" style="margin-top:24px">Nota por período</div>'+
-    '<div class="mp-pills">'+[['hoje','Hoje'],['7d','7 dias'],['mes','Mês'],['pers','Personalizado']].map(p=>'<button class="mp-pill '+(MP.per===p[0]?'on':'')+'" onclick="mpPer(\''+p[0]+'\')">'+p[1]+'</button>').join('')+
+    '<div class="mp-sech" style="margin-top:24px">Como você está indo</div>'+
+    '<div class="mp-pills">'+[['hoje','Hoje'],['7d','7 dias'],['30d','30 dias'],['pers','Personalizado']].map(p=>'<button class="mp-pill '+(MP.per===p[0]?'on':'')+'" onclick="mpPer(\''+p[0]+'\')">'+p[1]+'</button>').join('')+
     (pers?'<input type="date" class="ini-dt" value="'+esc(fx[0])+'" onchange="mpPerIni(this.value)"><span style="color:var(--muted)">até</span><input type="date" class="ini-dt" value="'+esc(fx[1])+'" onchange="mpPerFim(this.value)">':'')+
-    '<span class="mp-pnota"><b>'+mpNotaFmt(np.nota)+'</b> · '+np.feit+'/'+np.prev+'</span></div>'+
+    '</div>'+mpPlacarHTML()+
     /* constancia fica fechada: e pra olhar de vez em quando, nao todo dia */
     '<details class="fch-g" style="margin-top:22px"><summary><span class="fch-cv"></span>'+
     '<span class="fch-t">Constância — últimos 90 dias</span><span class="fch-s">clique para abrir</span></summary>'+
