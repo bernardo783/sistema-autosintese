@@ -2174,8 +2174,9 @@
     background:color-mix(in srgb,var(--brand) 16%,transparent);z-index:-1}
   .mp-fab{position:fixed;right:18px;bottom:calc(138px + env(safe-area-inset-bottom,0px));z-index:901;
     width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
-    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:28px;line-height:1;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:0;
     display:grid;place-items:center;box-shadow:0 12px 26px rgba(124,58,237,.45);transition:transform .15s}
+  .mp-fab svg{width:24px;height:24px;display:block}
   .mp-fab.aberto{transform:rotate(45deg)}
   .mp-fabm{position:fixed;right:18px;bottom:calc(200px + env(safe-area-inset-bottom,0px));z-index:901;
     display:flex;flex-direction:column;gap:4px;min-width:170px;padding:6px;border-radius:16px;
@@ -13099,7 +13100,7 @@ function mpTabbarHTML(){
   const abas=[['inicio','Início','mpAba(\'inicio\')'],['habitos','Hábitos','mpAba(\'habitos\')'],['tarefas','Tarefas','mpAba(\'tarefas\')'],
     ['agenda','Agenda','mpAba(\'agenda\')']];
   return '<nav class="mp-tabbar">'+abas.map(a=>'<button class="'+(MP.aba===a[0]?'on':'')+'" onclick="'+a[2]+'">'+sv(a[0])+a[1]+'</button>').join('')+'</nav>'+
-    '<button class="mp-fab" id="mpFab" onclick="mpFabClique(event)" aria-label="Criar">+</button>';
+    '<button class="mp-fab" id="mpFab" onclick="mpFabClique(event)" aria-label="Criar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>';
 }
 window.mpFabClique=(ev)=>{ ev.stopPropagation();
   const vel=document.getElementById('mpFabMenu'); const fab=document.getElementById('mpFab');
