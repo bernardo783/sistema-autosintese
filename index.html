@@ -12883,7 +12883,7 @@ function mpTabbarHTML(){
   };
   const sv=(k)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ic[k]+'</svg>';
   const abas=[['inicio','Início','mpAba(\'inicio\')'],['habitos','Hábitos','mpAba(\'habitos\')'],['tarefas','Tarefas','mpAba(\'tarefas\')'],
-    ['agenda','Agenda','mpAba(\'agenda\')'],['kpi','KPI','mpIrKpi()']];
+    ['agenda','Agenda','mpAba(\'agenda\')'],['progresso','KPI','mpAba(\'progresso\')']];
   return '<nav class="mp-tabbar">'+abas.map(a=>'<button class="'+(MP.aba===a[0]?'on':'')+'" onclick="'+a[2]+'">'+sv(a[0])+a[1]+'</button>').join('')+'</nav>'+
     '<button class="mp-fab" id="mpFab" onclick="mpFabClique(event)" aria-label="Criar">+</button>';
 }
@@ -12913,7 +12913,7 @@ function mpPintar(){
   const c=$('#content'); if(!c) return;
   const mem={}; ['mpTarNm','mpEvtNm','mpEvtHr'].forEach(id=>{ const el=document.getElementById(id);
     if(el){ mem[id]={v:el.value,f:document.activeElement===el}; } });
-  const abas=[['inicio','Início'],['habitos','Hábitos'],['tarefas','Tarefas'],['agenda','Agenda']];
+  const abas=[['inicio','Início'],['habitos','Hábitos'],['tarefas','Tarefas'],['agenda','Agenda'],['progresso','KPI']];
   const ac=MP_ACAO[MP.aba]||MP_ACAO.inicio;
   document.body.classList.add('mob-pessoal');
   const nB=(document.getElementById('ntfBdg')||{}).textContent||'';
@@ -12931,8 +12931,10 @@ function mpPintar(){
     const m=document.createElement('span'); m.className='mp-mini'; m.innerHTML=avatar(currentUser.id,currentUser.nome);
     e.insertBefore(m,e.firstChild); })();
   const b=$('#mpCorpo');
-  if(MP.aba==='progresso') MP.aba='inicio';
+  /* KPI e aba propria (Gabriel 07/09: "o KPI nao foi descontinuado"). No Inicio o bloco
+     continua aparecendo tambem; aqui ele ganha a tela inteira. Sem habito, mostra o primeiro passo. */
   if(MP.aba==='inicio') b.innerHTML=mpInicioHTML();
+  else if(MP.aba==='progresso') b.innerHTML=(MP.habitos.length?'<div class="mp-sech" id="mpKpi">KPI · Progresso</div>'+mpProgHTML():mpZeroHTML());
   else if(MP.aba==='habitos') b.innerHTML=mpHabsHTML();
   else if(MP.aba==='agenda'){ b.innerHTML=mpAgendaHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
   else{ b.innerHTML=mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
@@ -12944,7 +12946,7 @@ function mpPintar(){
 window.mpAba=(a)=>{ MP.aba=a; MP.tarNova=false; MP.evtNovo=false; mpPintar(); };
 window.mpIrAgenda=()=>{ MP.aba='agenda'; render('pessoal'); };
 /* atalho KPI da railbar foi descontinuado: o bloco vive no Início (#mpKpi) */
-window.mpIrKpi=()=>{ MP.aba='inicio'; MP.rolarKpi=true; render('pessoal'); };
+window.mpIrKpi=()=>{ MP.aba='progresso'; render('pessoal'); };
 
 /* ---------- aba Início ---------- */
 function mpHabRow(h,iso,podeCheck){
