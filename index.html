@@ -2242,6 +2242,26 @@
 .mp-cmp .bar{width:100%;max-width:56px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,var(--brand2),var(--brand));min-height:3px}
 .mp-cmp .bar.lo{opacity:.45}
 .mp-cmp .nv{font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.mp-hrow{display:grid;grid-template-columns:minmax(0,1fr) auto 150px;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.mp-hrow.cab{border-top:0;padding-bottom:2px}
+.mp-hrnm{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-hrnm svg{width:14px;height:14px;vertical-align:-2px;margin-right:6px}
+.mp-hsem{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.mp-hsem .lb{font-size:9px;font-weight:700;letter-spacing:.4px;color:var(--muted);text-align:center}
+.mp-hsem .lb.hj{color:var(--brand2)}
+.mp-hsem .mp-cel{width:auto;height:20px;margin:0}
+.mp-cel.hj{box-shadow:inset 0 0 0 1.5px var(--brand2)}
+.mp-seq{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:var(--warn);
+  background:color-mix(in srgb,var(--warn) 14%,transparent);border-radius:999px;padding:2px 7px;min-width:34px;justify-content:center}
+.mp-seq.off{visibility:hidden}
+.mp-mapa{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);grid-auto-columns:1fr;gap:2.5px;margin:4px 0 12px}
+.mp-mcel{width:100%;aspect-ratio:1;border-radius:2.5px;background:var(--panel2);opacity:.25}
+.mp-mcel.ok{background:var(--brand);opacity:1}
+.mp-mcel.miss{background:var(--panel2);opacity:.8;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 55%,transparent)}
+.mp-mtit{font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 0;display:flex;align-items:center;gap:6px}
+.mp-mtit b{color:var(--warn);font-weight:800}
+.mp-leg{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-top:2px}
+.mp-leg i{width:11px;height:11px;border-radius:3px;display:inline-block}
 .mp-cmp .lb2{font-size:9px;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;white-space:nowrap}
 .mp-delta{font-size:12px;color:var(--muted);margin-top:10px}
 .mp-delta b{color:var(--ok)}
@@ -13191,6 +13211,39 @@ function mpInicioHTML(){
 }
 
 /* ---------- aba Progresso ---------- */
+/* dias seguidos: conta so o que estava programado. Se hoje ainda nao foi marcado
+   a sequencia nao quebra — o dia nao acabou. */
+function mpSeq(h){
+  const ini=mpIni(h); let d=tkHoje(), n=0, g=0;
+  if(mpProg(h,d)&&!mpCk(h.id,d)) d=tkDiaMais(d,-1);
+  while(d>=ini&&g++<400){
+    if(mpProg(h,d)){ if(mpCk(h.id,d)) n++; else break; }
+    d=tkDiaMais(d,-1);
+  }
+  return n;
+}
+function mpCelCls(h,d,hoje){
+  if(d<mpIni(h)||!mpProg(h,d)) return 'off';
+  if(mpCk(h.id,d)) return 'ok';
+  return d>hoje?'fut':'miss';
+}
+function mpMapaHTML(){
+  const hoje=tkHoje(), fim=mpSegDa(hoje), ini=tkDiaMais(fim,-7*12);
+  return MP.habitos.map(h=>{
+    const sq=mpSeq(h);
+    let cels='';
+    for(let i=0;i<91;i++){
+      const d=tkDiaMais(ini,i);
+      if(d>hoje){ cels+='<div class="mp-mcel" style="visibility:hidden"></div>'; continue; }
+      cels+='<div class="mp-mcel '+mpCelCls(h,d,hoje)+'" title="'+esc(h.nome)+' · '+mpCurto(d)+'"></div>';
+    }
+    return '<div class="mp-mtit"><span style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,12)+'</span>'+esc(h.nome)+
+      (sq>1?' · <b>'+sq+' seguidos</b>':'')+'</div><div class="mp-mapa">'+cels+'</div>';
+  }).join('')+
+  '<div class="mp-leg"><i style="background:var(--brand)"></i>feito'+
+  '<i style="background:var(--panel2);box-shadow:inset 0 0 0 1px var(--danger);margin-left:8px"></i>passou batido'+
+  '<i style="background:var(--panel2);opacity:.3;margin-left:8px"></i>sem programação</div>';
+}
 function mpFaixaAtual(){
   const hoje=tkHoje();
   if(MP.per==='hoje') return [hoje,hoje];
@@ -13211,56 +13264,40 @@ function mpProgHTML(){
   const seg=MP.sem, ds=mpDias7(seg), hoje=tkHoje();
   const ns=mpNotaFaixa(seg,ds[6]);
   const ordem=[1,2,3,4,5,6,0];
-  let g='<div class="mp-gradewrap"><table class="mp-grade"><tr><th></th>'+
-    ordem.map(i=>{ const d=ds.filter(x=>mpDow(x)===i)[0];
-      return '<th class="'+(d===hoje?'hj':'')+'">'+MP_SEMD[i].toUpperCase()+'</th>'; }).join('')+'</tr>';
-  MP.habitos.forEach(h=>{
-    g+='<tr><td class="mp-gnm"><span style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,13)+'</span>'+esc(h.nome)+'</td>';
-    ordem.forEach(i=>{
-      const d=ds.filter(x=>mpDow(x)===i)[0];
-      let cls='off',clk='',tit=esc(h.nome)+' · '+mpCurto(d);
-      if(d<mpIni(h)) tit+=' — antes do início do hábito';
-      if(mpProg(h,d)){
-        if(mpCk(h.id,d)){ cls='ok'; clk=' onclick="mpCheck(\''+h.id+'\',\''+d+'\')"'; tit+=' — feito'; }
-        else if(d>hoje){ cls='fut'; tit+=' — programado'; }
-        else{ cls='miss'; clk=' onclick="mpCheck(\''+h.id+'\',\''+d+'\')"'; tit+=(d===hoje?' — marcar':' — ficou pra trás'); }
-      }
-      g+='<td><div class="mp-cel '+cls+'" title="'+tit+'"'+clk+'></div></td>';
-    });
-    g+='</tr>';
-  });
-  g+='</table></div>';
-  if(!MP.habitos.length) g='<div class="empty">Sem hábitos ainda — crie o primeiro no botão lá em cima.</div>';
+  const dias=ordem.map(i=>ds.filter(x=>mpDow(x)===i)[0]);
+  /* uma linha por habito: nome, dias seguidos e a semana em 7 blocos.
+     Substitui a tabela — com 1 ou 2 habitos a grade era quase toda espaco morto. */
+  const cab='<div class="mp-hrow cab"><span></span><span></span><div class="mp-hsem">'+
+    dias.map((d,ix)=>'<div class="lb'+(d===hoje?' hj':'')+'">'+MP_SEMD[ordem[ix]].toUpperCase()+'</div>').join('')+'</div></div>';
+  const linhas=MP.habitos.map(h=>{
+    const sq=mpSeq(h);
+    return '<div class="mp-hrow">'+
+      '<div class="mp-hrnm"><span style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,14)+'</span>'+esc(h.nome)+'</div>'+
+      '<span class="mp-seq'+(sq>1?'':' off')+'" title="dias seguidos">'+svgIco('raio',11)+(sq>1?sq:'')+'</span>'+
+      '<div class="mp-hsem">'+dias.map(d=>{
+        const c=mpCelCls(h,d,hoje);
+        const clk=(c==='ok'||c==='miss')?' onclick="mpCheck(\''+h.id+'\',\''+d+'\')"':'';
+        let tit=esc(h.nome)+' · '+mpCurto(d);
+        if(c==='ok') tit+=' — feito'; else if(c==='miss') tit+=(d===hoje?' — marcar':' — ficou pra trás');
+        else if(c==='fut') tit+=' — programado';
+        return '<div class="mp-cel '+c+(d===hoje?' hj':'')+'" title="'+tit+'"'+clk+'></div>';
+      }).join('')+'</div></div>';
+  }).join('');
   const fx=mpFaixaAtual(), np=mpNotaFaixa(fx[0],fx[1]);
   const pers=MP.per==='pers';
-  let comp='';
-  if(MP.cmp==='mes'){
-    const base=mpDe(hoje);
-    comp=[4,3,2,1,0].map(i=>{
-      const d=new Date(base.getFullYear(),base.getMonth()-i,1);
-      const ini=tkISO(d), fim=tkISO(new Date(d.getFullYear(),d.getMonth()+1,0));
-      const n=mpNotaFaixa(ini,fim);
-      const lb=i===0?'ESTE MÊS':DT_MES[d.getMonth()].slice(0,3).toUpperCase()+(d.getFullYear()!==base.getFullYear()?'/'+String(d.getFullYear()).slice(2):'');
-      return {n,lb};
-    }).map(x=>'<div class="col"><span class="nv">'+mpNotaFmt(x.n.nota)+'</span><div class="bar'+((x.n.nota||0)<7?' lo':'')+'" style="height:'+Math.max(3,(x.n.nota||0)*10)+'%"></div><span class="lb2">'+x.lb+'</span></div>').join('');
-  }else{
-    const segA=mpSegDa(hoje);
-    comp=[4,3,2,1,0].map(i=>{
-      const sg=tkDiaMais(segA,-7*i), n=mpNotaFaixa(sg,tkDiaMais(sg,6));
-      return {n,lb:i===0?'ESTA SEMANA':'SEM '+mpCurto(sg)};
-    }).map(x=>'<div class="col"><span class="nv">'+mpNotaFmt(x.n.nota)+'</span><div class="bar'+((x.n.nota||0)<7?' lo':'')+'" style="height:'+Math.max(3,(x.n.nota||0)*10)+'%"></div><span class="lb2">'+x.lb+'</span></div>').join('');
-  }
   return '<div class="mp-per"><button class="mp-nav" onclick="mpSemNav(-1)">‹</button>'+
     '<div><div class="mp-pttl">'+mpCurto(seg)+' – '+mpCurto(ds[6])+'</div><div class="mp-psub">'+mpRotSem(seg)+'</div></div>'+
     '<button class="mp-nav" onclick="mpSemNav(1)">›</button>'+
-    '<span class="mp-pnota">Nota da semana: <b>'+mpNotaFmt(ns.nota)+'</b> · '+ns.feit+'/'+ns.prev+'</span></div>'+g+
-    '<div class="mp-sech" style="margin-top:26px">Nota por período</div>'+
+    '<span class="mp-pnota">Nota da semana: <b>'+mpNotaFmt(ns.nota)+'</b> · '+ns.feit+'/'+ns.prev+'</span></div>'+
+    cab+linhas+
+    '<div class="mp-sech" style="margin-top:24px">Nota por período</div>'+
     '<div class="mp-pills">'+[['hoje','Hoje'],['7d','7 dias'],['mes','Mês'],['pers','Personalizado']].map(p=>'<button class="mp-pill '+(MP.per===p[0]?'on':'')+'" onclick="mpPer(\''+p[0]+'\')">'+p[1]+'</button>').join('')+
     (pers?'<input type="date" class="ini-dt" value="'+esc(fx[0])+'" onchange="mpPerIni(this.value)"><span style="color:var(--muted)">até</span><input type="date" class="ini-dt" value="'+esc(fx[1])+'" onchange="mpPerFim(this.value)">':'')+
     '<span class="mp-pnota"><b>'+mpNotaFmt(np.nota)+'</b> · '+np.feit+'/'+np.prev+'</span></div>'+
-    '<div class="mp-sech" style="margin-top:24px">Comparativo <span class="mp-add"></span>'+
-    '<span style="margin-left:auto;display:flex;gap:6px"><button class="mp-pill '+(MP.cmp==='sem'?'on':'')+'" onclick="mpCmp(\'sem\')">Semanas</button><button class="mp-pill '+(MP.cmp==='mes'?'on':'')+'" onclick="mpCmp(\'mes\')">Meses</button></span></div>'+
-    '<div class="mp-cmp">'+comp+'</div>';
+    /* constancia fica fechada: e pra olhar de vez em quando, nao todo dia */
+    '<details class="fch-g" style="margin-top:22px"><summary><span class="fch-cv"></span>'+
+    '<span class="fch-t">Constância — últimos 90 dias</span><span class="fch-s">clique para abrir</span></summary>'+
+    '<div class="fch-corpo" style="padding:10px 14px 14px">'+mpMapaHTML()+'</div></details>';
 }
 window.mpSemNav=(n)=>{ MP.sem=tkDiaMais(MP.sem,n*7); mpPintar(); };
 window.mpPer=(p)=>{ MP.per=p; mpPintar(); };
