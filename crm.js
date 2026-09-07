@@ -132,7 +132,7 @@ window.crmRender=function(c,viewPedida){
   const v=String(viewPedida||''); const mOpp=v.match(/^funil\/opp\/([0-9a-f-]{36})/);
   if(mOpp){ CRM.sel=mOpp[1]; }
   if(!CRM.carregou){ if(!CRM.carregando) crmCarregar().then(crmPintar); c.innerHTML=`<div class="page-head"><div><h2>Comercial</h2><div class="desc">Carregando o funil…</div></div></div>`; return; }
-  const abas=[['pipeline','Pipeline'],['agenda','Agenda'],['origens','Origem da receita']].concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]);
+  const abas=[['pipeline','Pipeline'],['agenda','Agenda'],['origens','Origem da receita']].concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[]);
   const tabs=`<div class="fin-tabs" style="margin:0 0 14px">${abas.map(a=>`<button class="ftab${CRM.aba===a[0]?' active':''}" onclick="crmAba('${a[0]}')">${a[1]}</button>`).join('')}
     <span style="margin-left:auto"></span>
     ${crmAdmin()?`<button class="btn secondary small" onclick="crmEquipeModal()">Equipe comercial</button>`:''}
@@ -145,10 +145,11 @@ window.crmRender=function(c,viewPedida){
   }
   const j=crmJanela();
   c.innerHTML=`<div class="page-head">
-      <div><h2>Comercial</h2><div class="desc">${CRM.aba==='pipeline'?'Pipeline de oportunidades':CRM.aba==='agenda'?'Sessões estratégicas':'De onde vem a receita'} · ${esc(crmDia(j.de.toISOString()))} a ${esc(crmDia(new Date(j.ate-1).toISOString()))}${CRM.erro?` · <span style="color:var(--danger)">${esc(CRM.erro)}</span>`:''}</div></div>
+      <div><h2>Comercial</h2><div class="desc">${CRM.aba==='pipeline'?'Pipeline de oportunidades':CRM.aba==='agenda'?'Sessões estratégicas':CRM.aba==='integracoes'?'WhatsApp · Meta Ads · Google Agenda · Google Meet · Conversions API':'De onde vem a receita'}${CRM.aba==='integracoes'?'':` · ${esc(crmDia(j.de.toISOString()))} a ${esc(crmDia(new Date(j.ate-1).toISOString()))}`}${CRM.erro?` · <span style="color:var(--danger)">${esc(CRM.erro)}</span>`:''}</div></div>
       <div class="toolbar"><button class="btn secondary small" onclick="crmRecarregar()" title="Recarregar">↻</button></div>
-    </div>${tabs}${CRM.aba==='origens'?'':crmFiltrosHTML()}
-    ${CRM.aba==='pipeline'?crmPipelineHTML():CRM.aba==='agenda'?crmAgendaHTML():crmOrigensHTML()}`;
+    </div>${tabs}${CRM.aba==='origens'||CRM.aba==='integracoes'?'':crmFiltrosHTML()}
+    ${CRM.aba==='pipeline'?crmPipelineHTML():CRM.aba==='agenda'?crmAgendaHTML():CRM.aba==='integracoes'?crmIntgHTML():crmOrigensHTML()}`;
+  if(CRM.aba==='integracoes') crmIntgCarregar();
   if(CRM.sel) crmAbrirFicha(CRM.sel);
 };
 
@@ -504,6 +505,109 @@ function crmOrigensHTML(){
     </table></div>
     <p class="crm-hint">Mês = mês em que o lead entrou (data da oportunidade). Receita conta quando a oportunidade é marcada como Ganho. Investimento em mídia, CPL, CAC e ROAS por origem entram quando a sincronização com a Meta (Fase 4) estiver no ar.</p>`;
 }
+
+/* ---------- INTEGRAÇÕES (admin) ---------- */
+const CRM_LOGOS={
+  whatsapp:`<svg viewBox="0 0 48 48"><path fill="#25D366" d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 10L4 44l10.3-2.6C17.2 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4z"/><path fill="#fff" d="M33.6 28.3c-.5-.3-3-1.5-3.5-1.7-.5-.2-.8-.3-1.2.3-.3.5-1.3 1.7-1.6 2-.3.3-.6.4-1.1.1-.5-.3-2.1-.8-4.1-2.5-1.5-1.3-2.5-3-2.8-3.5-.3-.5 0-.8.2-1 .2-.2.5-.6.8-.9.3-.3.3-.5.5-.8.2-.3.1-.6 0-.9-.1-.3-1.2-2.8-1.6-3.8-.4-1-.9-.9-1.2-.9h-1c-.3 0-.9.1-1.4.6-.5.5-1.8 1.8-1.8 4.3s1.9 5 2.1 5.3c.3.3 3.7 5.6 8.9 7.9 1.2.5 2.2.9 3 1.1 1.2.4 2.4.3 3.3.2 1-.2 3-1.2 3.5-2.4.4-1.2.4-2.2.3-2.4-.1-.3-.4-.4-.9-.6z"/></svg>`,
+  meta:`<svg viewBox="0 0 48 48"><defs><linearGradient id="crmMetaG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0064E0"/><stop offset="1" stop-color="#7B68EE"/></linearGradient></defs><path fill="none" stroke="url(#crmMetaG)" stroke-width="5.5" stroke-linecap="round" d="M6 30c0-7 3.5-14 8-14 5 0 8 8 10 12 2 4 5 12 10 12 4.5 0 8-7 8-14s-3.5-12-8-12c-5 0-8 8-10 12-2 4-5 14-10 14-4.5 0-8-3-8-10z"/></svg>`,
+  gcal:`<svg viewBox="0 0 48 48"><rect x="8" y="10" width="32" height="30" rx="4" fill="#fff"/><rect x="8" y="10" width="32" height="8" rx="4" fill="#1A73E8"/><rect x="8" y="14" width="32" height="4" fill="#1A73E8"/><rect x="8" y="32" width="8" height="8" fill="#188038"/><rect x="32" y="32" width="8" height="8" fill="#FBBC04"/><rect x="8" y="18" width="8" height="14" fill="#4285F4" opacity=".15"/><path fill="#EA4335" d="M32 40h8l-8 8z"/><text x="24" y="33" font-size="13" font-weight="700" fill="#1A73E8" text-anchor="middle" font-family="Inter,system-ui,sans-serif">31</text></svg>`,
+  meet:`<svg viewBox="0 0 48 48"><path fill="#00832D" d="M8 16h14v16H8z"/><path fill="#0066DA" d="M8 32h14v8H12a4 4 0 0 1-4-4z"/><path fill="#E94235" d="M8 16v-4a4 4 0 0 1 4-4h10v8z"/><path fill="#2684FC" d="M22 8h10v8H22z"/><path fill="#00AC47" d="M22 32h10v8H22z"/><path fill="#FFBA00" d="M32 16v16l8 6V10z"/><path fill="#00AC47" d="M32 16v16h-10V16z" opacity=".35"/></svg>`,
+  capi:`<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18" fill="none" stroke="#7B68EE" stroke-width="3"/><path fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M15 27l6-6 5 5 8-9M28 17h6v6"/></svg>`
+};
+CRM.intg={saude:null,logs:null,meta:null,carregando:false,erro:''};
+async function crmAdminEdge(corpo){
+  if(!SESSION||!SESSION.access_token) throw new Error('sem login');
+  const r=await fetch(SUPA_URL+'/functions/v1/wa-admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+SESSION.access_token},body:JSON.stringify(corpo)});
+  const j=await r.json().catch(()=>({erro:'resposta inválida'}));
+  if(!r.ok||(j.erro&&!('ok' in j))) throw new Error(j.detalhe?j.erro+': '+j.detalhe:(j.erro||'erro'));
+  return j;
+}
+async function crmIntgCarregar(){
+  if(CRM.intg.carregando) return; CRM.intg.carregando=true;
+  try{ const [s,w]=await Promise.all([crmAdminEdge({acao:'saude'}), sb.from('whatsapp_connections').select('*').order('created_at')]);
+    CRM.intg.saude=s; CRM.d.wa=(w.data||[]); CRM.intg.erro=''; }
+  catch(e){ CRM.intg.erro=e.message; }
+  CRM.intg.carregando=false; crmPintar();
+}
+const crmRel=(iso)=>{ if(!iso) return 'nunca'; const m=Math.round((Date.now()-new Date(iso))/60000); if(m<1) return 'agora'; if(m<60) return m+' min atrás'; const h=Math.round(m/60); if(h<48) return h+' h atrás'; return crmDia(iso); };
+function crmIntgHTML(){
+  const s=CRM.intg.saude, wa=CRM.d.wa||[]; const h=(p)=>((s&&s.health)||[]).find(x=>x.provider===p)||{};
+  const google=(s&&s.google)||CRM.d.google.map(g=>({dono:g.user_id,google_email:g.google_email}));
+  const closers=crmClosers(); const closersG=closers.filter(c=>google.some(g=>g.dono===c.id));
+  const capi=(s&&s.capi)||{};
+  const conectados=wa.filter(c=>c.connection_status==='connected').length;
+  const st=(cls,txt)=>`<span class="st ${cls}"><i></i>${txt}</span>`;
+  const tile=(lg,nome,status,sub)=>`<div class="crm-hc"><div class="lg">${CRM_LOGOS[lg]}</div><div style="min-width:0"><b>${nome}</b>${status}<small>${sub}</small></div></div>`;
+  const saude=`<div class="crm-intg-saude">
+    ${tile('whatsapp','WhatsApp', wa.length?(conectados===wa.length?st('ok','Conectado'):conectados?st('warn','Instável'):st('bad','Erro')):st('off','Sem número'), wa.length?`${conectados}/${wa.length} números · webhook ${crmRel(s&&s.ultimo_webhook)}`:'conecte o primeiro número')}
+    ${tile('meta','Meta Ads', h('meta_ads').status==='connected'?st('ok','Conectado'):h('meta_ads').status==='error'?st('bad','Erro'):st('off','Não testado'), h('meta_ads').details&&h('meta_ads').details.conta?esc(h('meta_ads').details.conta.nome||''):'sincronização automática na Fase 4')}
+    ${tile('gcal','Google Agenda', closersG.length?st('ok','Conectado'):google.length?st('warn','Sem closer'):st('off','Ninguém conectou'), `${google.length} conta${google.length===1?'':'s'} · ${closersG.length}/${closers.length} closers`)}
+    ${tile('meet','Google Meet', closersG.length?st('ok','Meet exclusivo por sessão'):st('off','Depende da Agenda'), 'presença automática na Fase 7')}
+    ${tile('capi','Conversions API', (capi.accepted||capi.sent)?st('ok','Enviando'):capi.error?st('bad','Erro'):st('off','Fase 9'), `${capi.pending||0} pendente · ${capi.accepted||0} aceito · ${capi.error||0} erro`)}
+  </div>`;
+  const waRows=wa.length?wa.map(c=>`<div class="crm-row">${crmAv(c.assigned_user_id)}<div class="g"><b>${esc(c.name)}</b> ${c.phone_number?'· '+esc(c.phone_number):''} ${c.coexistence?'<span class="crm-badge info">coexistência</span>':''} ${c.quality_rating?`<span class="crm-badge ${c.quality_rating==='GREEN'?'ok':c.quality_rating==='RED'?'bad':'warn'}">qualidade ${esc(c.quality_rating)}</span>`:''}
+      <small>SDR ${esc(c.assigned_user_id?crmNome(c.assigned_user_id):'—')} · WABA ${esc(c.waba_id||'—')} · Phone ID ${esc(c.phone_number_id||'—')} · webhook ${esc(crmRel(c.last_webhook_at))}${c.last_error?` · <span style="color:var(--danger)">${esc(c.last_error)}</span>`:''}</small></div>
+      <span class="crm-badge ${c.connection_status==='connected'?'ok':c.connection_status==='error'?'bad':c.connection_status==='pending'?'warn':''}">${{connected:'conectado',pending:'aguardando token/teste',error:'erro',degraded:'instável',disconnected:'desconectado'}[c.connection_status]||c.connection_status}</span>
+      <div class="acts"><button class="btn secondary small" onclick="crmWaTestar('${c.id}')">Testar</button><button class="btn secondary small" onclick="crmWaToken('${c.id}')">${c.token_secret_id?'Reconectar':'Token'}</button><button class="btn secondary small" onclick="crmWaEditar('${c.id}')">Editar</button></div></div>`).join('')
+    :'<div class="crm-vazio">Nenhum número conectado. Cada SDR tem o seu; conecte e vincule.</div>';
+  const metaDet=h('meta_ads').details||{};
+  return `${CRM.intg.erro?`<div class="crm-hint" style="color:var(--danger);margin:0 0 10px">${esc(CRM.intg.erro)}</div>`:''}${saude}
+  <div class="crm-intg">
+    <div class="crm-ic wide"><div class="hd"><div class="lg">${CRM_LOGOS.whatsapp}</div><div><h4>WhatsApp Business Platform</h4><div class="sub">Cloud API oficial da Meta · um número por SDR · leads de anúncio entram sozinhos no pipeline</div></div>
+        <div class="acts"><button class="btn secondary small" onclick="crmWaWebhook()">Webhook</button><button class="btn secondary small" onclick="crmWaLogs()">Logs técnicos</button><button class="btn small" onclick="crmWaNovo()">+ Conectar número</button></div></div>
+      ${waRows}<div id="crmWaExtra"></div>
+      <div class="crm-hint">O SDR não mexe em token: o administrador conecta o número aqui e vincula ao SDR. Para manter o app WhatsApp Business no celular (coexistência), a AutoSíntese precisa concluir a verificação de Tech Provider na Meta; o Embedded Signup entra aqui assim que for aprovado.</div></div>
+    <div class="crm-ic"><div class="hd"><div class="lg">${CRM_LOGOS.meta}</div><div><h4>Meta Ads</h4><div class="sub">Campanhas, conjuntos, anúncios, investimento</div></div><div class="acts"><button class="btn secondary small" onclick="crmMetaTestar()">Testar conexão</button></div></div>
+      <div class="crm-kv">
+        <span>Business</span><b>${esc(metaDet.conta&&metaDet.conta.business||'—')}</b>
+        <span>Ad Account</span><b>${esc(metaDet.conta?metaDet.conta.nome+' · '+metaDet.conta.id:'act_1784945562132417')}</b>
+        <span>Token</span><b>${metaDet.token?esc(metaDet.token)+' ('+esc(metaDet.usuario||'')+')':'guardado nos segredos do servidor'}</b>
+        <span>Permissões</span><b>${(metaDet.permissoes||[]).length?esc(metaDet.permissoes.join(', ')):'—'}</b>
+        <span>Status</span><b>${h('meta_ads').status==='connected'?'<span class="crm-badge ok">conectado</span>':h('meta_ads').status==='error'?`<span class="crm-badge bad">erro</span> ${esc(h('meta_ads').last_error||'')}`:'<span class="crm-badge">não testado</span>'} · ${esc(crmRel(h('meta_ads').checked_at))}</b>
+        <span>Sincronização</span><b><span class="crm-fase">Fase 4 · a cada hora, campanhas → conjuntos → anúncios → insights diários</span></b>
+      </div></div>
+    <div class="crm-ic"><div class="hd"><div class="lg">${CRM_LOGOS.gcal}</div><div><h4>Google Agenda</h4><div class="sub">Sessão estratégica na agenda do closer, com convite</div></div><div class="acts">${crmGoogleDe((currentUser||{}).id)?'<span class="crm-badge ok">minha conta ok</span>':'<button class="btn secondary small" onclick="crmConectarGoogle()">Conectar a minha</button>'}</div></div>
+      ${closers.length?closers.map(c=>{ const g=google.find(x=>x.dono===c.id); return `<div class="crm-row">${crmAv(c.id,'c')}<div class="g"><b>${esc(c.nome)}</b> <span class="crm-badge">${esc(c.papel_crm||'master')}</span><small>${g?esc(g.google_email||'conectado')+(g.conectado_em?' · desde '+esc(crmDia(g.conectado_em)):''):'ainda não conectou — ele precisa entrar em Comercial → Agenda → “Conectar meu Google Agenda”'}</small></div>${g?'<span class="crm-badge ok">conectado</span>':'<span class="crm-badge warn">pendente</span>'}</div>`; }).join(''):'<div class="crm-vazio">Defina os closers em “Equipe comercial”.</div>'}
+      <div class="crm-hint">Escopo: só eventos da agenda (calendar.events). O token de cada pessoa fica no servidor.</div></div>
+    <div class="crm-ic"><div class="hd"><div class="lg">${CRM_LOGOS.meet}</div><div><h4>Google Meet</h4><div class="sub">Um Meet exclusivo por sessão · comparecimento</div></div></div>
+      <div class="crm-kv">
+        <span>Criação do Meet</span><b>${closersG.length?'<span class="crm-badge ok">ativa</span> junto com o evento da Agenda':'<span class="crm-badge warn">aguardando</span> um closer com Google conectado'}</b>
+        <span>Presença</span><b>manual (Compareceu / No-show na Agenda) · <span class="crm-fase">Fase 7 · automática pela Meet REST API: quem entrou, quando, por quanto tempo</span></b>
+        <span>Regra automática</span><b>≥ 1 participante externo à AutoSíntese por ≥ 5 min (configurável)</b>
+      </div></div>
+    <div class="crm-ic"><div class="hd"><div class="lg">${CRM_LOGOS.capi}</div><div><h4>Conversions API</h4><div class="sub">Devolve a venda à Meta (Purchase) para otimizar os anúncios</div></div></div>
+      <div class="crm-kv">
+        <span>Pendente</span><b>${capi.pending||0}</b><span>Enviado</span><b>${capi.sent||0}</b><span>Aceito</span><b>${capi.accepted||0}</b><span>Erro</span><b>${capi.error||0}</b>
+        <span>Regra</span><b>só oportunidades com ctwa_clid do anúncio; 1 Purchase por venda (idempotente); valor em BRL</b>
+        <span>Status</span><b><span class="crm-fase">Fase 9 · Conversions API for Business Messaging</span></b>
+      </div></div>
+  </div>`;
+}
+window.crmWaNovo=(id)=>{ const c=id?(CRM.d.wa||[]).find(x=>x.id===id):null;
+  modal(c?'Editar número':'Conectar número do WhatsApp',`<div class="crm-form">
+    <div class="row2"><div class="field"><label>Nome (como aparece aqui)</label><input id="wn_nome" value="${esc(c?c.name:'')}" placeholder="WhatsApp da Loane"></div><div class="field"><label>SDR responsável</label>${crmSelEquipe('wn_sdr',crmSdrs(),c?c.assigned_user_id:'','—')}</div></div>
+    <div class="row2"><div class="field"><label>Phone Number ID *</label><input id="wn_pid" value="${esc(c?c.phone_number_id||'':'')}" placeholder="ex.: 556712345678901"></div><div class="field"><label>WABA ID</label><input id="wn_waba" value="${esc(c?c.waba_id||'':'')}" placeholder="ex.: 102987654321"></div></div>
+    <div class="row2"><div class="field"><label>Número (só referência)</label><input id="wn_tel" value="${esc(c?c.phone_number||'':'')}" placeholder="+55 17 99700-1101"></div>${c?'':`<div class="field"><label>Access token (fica no cofre)</label><input id="wn_tok" type="password" autocomplete="off" placeholder="EAAG…"></div>`}</div>
+    <div class="crm-hint">Onde achar: Meta for Developers → seu app → WhatsApp → Configuração da API. O token vai direto para o cofre do servidor (Vault); ninguém vê depois. Use um token de System User sem expiração.</div></div>`,
+    async ()=>{ const row={name:crmVal('wn_nome')||'WhatsApp',assigned_user_id:crmVal('wn_sdr')||null,phone_number_id:crmVal('wn_pid')||null,waba_id:crmVal('wn_waba')||null,phone_number:crmVal('wn_tel')||null};
+      if(!row.phone_number_id){ toast('Informe o Phone Number ID.'); return false; }
+      let cid=id;
+      if(c){ const {error}=await sb.from('whatsapp_connections').update(row).eq('id',id); if(error){ toast('Erro: '+error.message); return false; } }
+      else { row.created_by=(currentUser||{}).id; const {data,error}=await sb.from('whatsapp_connections').insert(row).select('id').single(); if(error){ toast('Erro: '+error.message); return false; } cid=data.id;
+        const tok=crmVal('wn_tok'); if(tok){ const r=await sb.rpc('crm_wa_salvar_token',{p_conn:cid,p_token:tok}); if(r.error){ toast('Número salvo, mas o token falhou: '+r.error.message); } } }
+      toast(c?'Número atualizado.':'Número salvo. Testando…'); await crmIntgCarregar(); if(!c) crmWaTestar(cid); return true; }); };
+window.crmWaEditar=(id)=>crmWaNovo(id);
+window.crmWaToken=(id)=>{ modal('Token do número',`<div class="crm-form"><div class="field"><label>Novo access token</label><input id="wt_tok" type="password" autocomplete="off" placeholder="EAAG…"></div><div class="crm-hint">Substitui o anterior no cofre e testa a conexão em seguida.</div></div>`,
+  async ()=>{ const tok=crmVal('wt_tok'); if(!tok){ toast('Cole o token.'); return false; } const r=await sb.rpc('crm_wa_salvar_token',{p_conn:id,p_token:tok}); if(r.error){ toast('Erro: '+r.error.message); return false; } toast('Token guardado. Testando…'); crmWaTestar(id); return true; }); };
+window.crmWaTestar=async (id)=>{ try{ const j=await crmAdminEdge({acao:'wa_testar',conn_id:id}); toast(j.ok?`Conectado: ${j.numero||''} ${j.nome?'('+j.nome+')':''}${j.coexistencia?' · coexistência ativa':''}`:'Falhou: '+(j.detalhe||j.erro)); }catch(e){ toast(e.message); } await crmIntgCarregar(); };
+window.crmWaWebhook=async ()=>{ try{ const j=await crmAdminEdge({acao:'wa_webhook_info'}); const box=document.getElementById('crmWaExtra'); if(!box) return;
+    box.innerHTML=`<div class="crm-box" style="margin-top:10px"><h4>Webhook para colar no app da Meta <button class="btn secondary small" onclick="this.closest('.crm-box').remove()">fechar</button></h4>
+      <div class="crm-kv"><span>Callback URL</span><b>${j.url?`<span class="crm-copy" onclick="navigator.clipboard.writeText('${esc(j.url)}').then(()=>toast('Copiado.'))">${esc(j.url)}</span>`:'WA_WEBHOOK_SECRET não configurado nos segredos do servidor'}</b>
+      <span>Verify token</span><b>${j.verify_token?`<span class="crm-copy" onclick="navigator.clipboard.writeText('${esc(j.verify_token)}').then(()=>toast('Copiado.'))">${esc(j.verify_token)}</span>`:'—'}</b>
+      <span>Campos</span><b>messages (e, na coexistência, smb_message_echoes, smb_app_state_sync, history)</b></div><div class="crm-hint">${esc(j.aviso||'')}</div></div>`; }catch(e){ toast(e.message); } };
+window.crmWaLogs=async ()=>{ try{ const j=await crmAdminEdge({acao:'wa_logs',n:40}); const box=document.getElementById('crmWaExtra'); if(!box) return;
+    box.innerHTML=`<div class="crm-box" style="margin-top:10px"><h4>Últimos webhooks <button class="btn secondary small" onclick="this.closest('.crm-box').remove()">fechar</button></h4><div class="crm-log">${(j.logs||[]).length?j.logs.map(l=>`${esc(crmQuando(l.received_at))}  ${esc((l.event_type||'').padEnd(18))}  ${esc(l.status.padEnd(10))}  ${l.attempts?'tent.'+l.attempts:''}  ${esc(l.error||'')}`).join('\n'):'Nenhum webhook registrado ainda (o registro bruto entra com o novo endpoint da Fase 3).'}</div></div>`; }catch(e){ toast(e.message); } };
+window.crmMetaTestar=async ()=>{ try{ const j=await crmAdminEdge({acao:'meta_testar'}); toast(j.ok?`Meta ok: ${j.usuario||''} · ${j.conta?j.conta.nome:''}`:'Meta: '+(j.detalhe||j.erro)); }catch(e){ toast(e.message); } await crmIntgCarregar(); };
 
 /* boot: se a tela do funil já estava aberta quando este arquivo carregou, redesenha */
 try{ if(typeof currentView!=='undefined'&&String(currentView).indexOf('funil')===0){ const c=$('#content'); if(c) crmRender(c,currentView); } }catch(_){ /* ainda sem sessão */ }
