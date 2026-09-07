@@ -1762,6 +1762,16 @@
   .tk-ev{display:block;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--brand2);border-radius:6px;padding:4px 6px;margin-top:4px;font-size:11.5px;font-weight:600;color:var(--txt);cursor:pointer;font-family:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tk-ev.feito{opacity:.5;text-decoration:line-through}
   .tk-ev.atrasada{border-left-color:var(--danger)}
+  /* Campo que vem do financeiro: gerente e membro veem, so master altera.
+     A trava de verdade e o trigger trg_tarefas_trava_campos no banco — isto aqui
+     e so pra ninguem tentar editar e tomar erro sem entender por que. */
+  .tk-trava{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12.5px;cursor:not-allowed}
+  .tk-trava .cad{opacity:.45;font-size:10px}
+  .tk-trava.vaz{color:var(--fraco)}
+  .tkf-trava{display:flex;align-items:center;gap:8px;width:100%;color:var(--muted);
+    background:var(--hov1);border:1px dashed var(--line);border-radius:9px;padding:7px 10px;
+    font-size:12.5px;cursor:not-allowed}
+  .tkf-trava .cad{opacity:.5;font-size:11px}
   .tk-th{cursor:pointer;user-select:none}
   .tk-th:hover{color:var(--txt)}
   .tk-chk{width:16px;height:16px;accent-color:var(--brand2);cursor:pointer}
@@ -5877,10 +5887,28 @@ const corOpcao=(txt)=>{ const k=semAcento(txt); if(!k) return '#8e8e99';
   return OPC_PAL[h]; };
 /* Cor da barra do cartao: a mesma do status da linha. */
 const tkCorLinha=(t)=>{ const s=tkStatus1(t.status_id); return (s&&s.cor)||'#8e8e99'; };
+/* ---- campos travados: valor vem do financeiro, so master altera (Gabriel 01/09) ---- */
+const podeMexerCampo=(c)=>!(c&&c.so_master)||!!(currentUser&&currentUser.role==='master');
+const campoTexto=(c,v)=>{
+  if(v==null||v==='') return '';
+  if(c.tipo==='moeda') return brl(Number(v)||0);
+  if(c.tipo==='numero') return String(v);
+  if(c.tipo==='pessoa') return tkNomeUser(v)||'';
+  if(c.tipo==='data') return fmtDate(v)||String(v);
+  if(c.tipo==='checkbox') return v?'Sim':'Não';
+  return String(v);
+};
 const tkCelula=(t,c)=>{
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA — não tem gestor de tráfego">—</span>';
   const v=(t.valores||{})[c.id];
   const vazio=(v==null||v==='')?' vazio':'';
+  if(!podeMexerCampo(c)){
+    const txt=campoTexto(c,v);
+    if(c.tipo==='select'&&txt){ const cS=corOpcao(v);
+      return `<span class="tag st" style="background-color:${esc(cS)};color:${esc(corTexto(cS))};cursor:not-allowed" title="${esc(c.nome)} vem do financeiro — só master altera">${esc(txt)}</span>`; }
+    if(c.tipo==='pessoa'&&v) return `<span class="tk-trava" title="${esc(c.nome)} vem do financeiro — só master altera">${avatar(v,txt,'sm')}</span>`;
+    return `<span class="tk-trava${txt?'':' vaz'}" title="${esc(c.nome)} vem do financeiro — só master altera"><span class="cad">🔒</span>${esc(txt||'—')}</span>`;
+  }
   if(c.tipo==='select'){
     const ops=`<option value="">—</option>`+(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('');
     if(vazio) return `<select class="tk-cel sel vazio" onchange="tkSetVal('${t.id}','${c.id}',this.value)">${ops}</select>`;
@@ -7629,6 +7657,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   /* Tarefa nova ja nasce no meu squad; quem tem recorte so consegue escolher entre os seus. */
   const sqOpc=squadsQuePosso(), sqAtual=t?String(it.squad||''):(String(it.squad||'')||(meusSquads()[0]||''));
   const campoHtml=(c)=>{ const v=(it.valores||{})[c.id];
+    if(!podeMexerCampo(c)){ const txt=campoTexto(c,v);
+      return `<span class="tkf-trava" title="Esse número vem do controle financeiro, na área Administrativa — só o master altera."><span class="cad">🔒</span>${esc(txt||'—')}</span>`; }
     if(c.tipo==='select') return `<select id="cp_${c.id}"><option value="">—</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
     if(c.tipo==='pessoa') return `<select id="cp_${c.id}"><option value="">—</option>${equipeDe(lid,v).map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
     if(c.tipo==='checkbox') return `<input type="checkbox" id="cp_${c.id}" ${v?'checked':''} style="width:auto">`;
