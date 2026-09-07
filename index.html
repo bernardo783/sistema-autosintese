@@ -2139,7 +2139,7 @@
    2A  um botao de criar (FAB) em vez de tres
    3A  sem habito, sem KPI: um card so
    4A  topo = "Pessoal" + busca + avisos; sem avatar (no computador ele fica) */
-.mp-tabbar,.mp-fab,.mp-fabm,.mp-sino{display:none}
+.mp-tabbar,.mp-fab,.mp-fabm,.mp-sino,.mp-kpibt{display:none}
 @media(max-width:720px){
   body.mob-pessoal .railbar{display:none}
   body.mob-pessoal .topbar{padding:calc(10px + env(safe-area-inset-top,0px)) 14px 0;gap:8px}
@@ -2156,9 +2156,10 @@
   body.mob-pessoal .overlay{z-index:980}
   body.mob-pessoal .overlay .modal{max-height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
   body.mob-pessoal .mp-abas,body.mob-pessoal .mp-topo-acao{display:none}
-  body.mob-pessoal .mp-sino{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
+  body.mob-pessoal .mp-sino,body.mob-pessoal .mp-kpibt{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
     border:1px solid var(--line);background:var(--panel);color:var(--txt);position:relative;flex:none;cursor:pointer}
-  body.mob-pessoal .mp-sino svg{width:16px;height:16px}
+  body.mob-pessoal .mp-sino svg,body.mob-pessoal .mp-kpibt svg{width:16px;height:16px}
+  body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
   body.mob-pessoal .mp-sino .bdg{position:absolute;top:-4px;right:-4px}
   .mp-tabbar{position:fixed;left:14px;right:14px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:900;
     display:flex;justify-content:space-around;align-items:center;height:60px;padding:0 6px;
@@ -3230,7 +3231,7 @@ document.addEventListener('click',(e)=>{
   if(dentro&&e.target.closest('.tk-lista')) setTimeout(()=>document.body.classList.remove('sb-aberta'),120);
 });
 function render(view){
-  if(view!=='pessoal'){ document.body.classList.remove('mob-pessoal'); const sn=document.querySelector('.topbar .mp-sino'); if(sn) sn.remove(); const mm=document.querySelector('.topbar .mp-mini'); if(mm) mm.remove(); const fm=document.getElementById('mpFabMenu'); if(fm) fm.remove(); }
+  if(view!=='pessoal'){ document.body.classList.remove('mob-pessoal'); const sn=document.querySelector('.topbar .mp-sino'); if(sn) sn.remove(); const kb=document.querySelector('.topbar .mp-kpibt'); if(kb) kb.remove(); const mm=document.querySelector('.topbar .mp-mini'); if(mm) mm.remove(); const fm=document.getElementById('mpFabMenu'); if(fm) fm.remove(); }
   /* a tela pedida, antes das reescritas internas (senhas/links viram acessos etc.):
      e ela que vai pra barra de enderecos, pra F5 e link colado voltarem no mesmo lugar */
   const __telaPedida=view;
@@ -13266,6 +13267,17 @@ function mpPintar(){
     const b=document.createElement('button'); b.className='mp-sino'; b.title='Avisos'; b.onclick=()=>render('notificacoes');
     b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="bdg">'+esc(nB)+'</span>';
     const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); })();
+  /* atalho de KPI ao lado do sino (Gabriel 07/09): o bloco vive no fim do Inicio e
+     ninguem rolava ate la. Sem habito nao aparece — nao teria pra onde rolar. */
+  (function(){ const tb=document.getElementById('topbar'); if(!tb) return;
+    const ja=tb.querySelector('.mp-kpibt');
+    if(!MP.habitos.length){ if(ja) ja.remove(); return; }
+    if(ja) return;
+    const b=document.createElement('button'); b.className='mp-kpibt'; b.title='KPI — suas notas e progresso';
+    b.onclick=()=>mpIrKpi();
+    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/><circle cx="19" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>';
+    const sn=tb.querySelector('.mp-sino');
+    if(sn) tb.insertBefore(b,sn); else { const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); } })();
   /* foto do usuario pequena dentro do chip "Pessoal" (Gabriel 07/09): e o seletor de workspace */
   (function(){ const e=document.querySelector('#topbar .tb-esp'); if(!e||!currentUser) return;
     if(!e.dataset.mp){ e.dataset.mp='1';
