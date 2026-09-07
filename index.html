@@ -1358,6 +1358,9 @@
   .tk-vazio{border:1.5px dashed var(--line);border-radius:10px;color:var(--muted);font-size:12px;text-align:center;padding:18px 8px;margin:0 0 8px}
   /* tutorial no hover: qualquer elemento com data-dica explica a si mesmo (pedido do Gabriel, 11/08) */
   [data-dica]{position:relative}
+  /* Celular/tablet: nao existe hover, so toque. A dica abria pra cima no primeiro toque e
+     comia o clique (o chip "Pessoal" nunca abria o modal — Gabriel 07/09). */
+  @media(hover:none){ [data-dica]:hover::after,[data-dica]:hover::before{display:none!important} }
   [data-dica]:hover::after{content:attr(data-dica);position:absolute;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%);
     width:max-content;max-width:290px;white-space:normal;background:#0e0d12;color:var(--txt);border:1px solid var(--brand2);
     border-radius:10px;padding:9px 13px;font-size:12px;font-weight:500;line-height:1.55;z-index:4000;pointer-events:none;
@@ -2626,7 +2629,7 @@
     <div class="sb-grip" id="sbGrip" title="Arraste para mudar a largura · 2 cliques volta ao padrão"></div>
   </aside>
   <div class="topbar" id="topbar">
-    <button class="tb-esp" onclick="spMovel()" data-dica="Abre a lista de espaços, pastas e listas — no celular ela vira uma gaveta pra não roubar a tela.">
+    <button class="tb-esp" onclick="spMovel()" title="Espaços">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span>Espaços</span></button>
     <button class="tb-busca" onclick="gsAbrir('')" title="Buscar em tudo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
