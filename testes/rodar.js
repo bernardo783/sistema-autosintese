@@ -214,7 +214,9 @@ grupo('Temas (escuro, preto, claro, branco)');
   secao('nenhuma cor de fundo escuro escapou');
   /* Pastel claro como cor de TEXTO só funciona sobre fundo escuro: no tema branco
      ele lava e fica ilegível. Foi o que quebrou o branco na primeira versão. */
-  const semPaleta=HTML.replace(/:root(?:\[data-tema="[a-z]+"\])?\{[^}]*\}/g,'');
+  /* OPC_PAL e a paleta de cores que o usuario escolhe para opcoes de campo (vira fundo
+     de chip, nao texto) — fica fora da checagem de proposito. */
+  const semPaleta=HTML.replace(/:root(?:\[data-tema="[a-z]+"\])?\{[^}]*\}/g,'').replace(/const OPC_PAL=\[[^\]]*\];/,'');
   const pasteis=['#fbbf24','#f87171','#34d399','#60a5fa','#7db0ff','#2dd4bf'];
   pasteis.forEach(c=>ok('nenhum '+c+' fora da paleta', semPaleta.indexOf(c)<0));
   ok('existe token --info para o azul', /--info\s*:/.test(HTML));
@@ -395,7 +397,7 @@ grupo('Modo Pessoal: o botão do topo acompanha a aba');
   secao('nenhuma aba fica sem ação própria');
   const lista=(HTML.match(/const abas=\[[\s\S]*?\];/)||[''])[0];
   const chaves=(lista.match(/\['([a-z]+)',/g)||[]).map(s=>s.slice(2,-2));
-  ok('achou as abas no código', chaves.length===5);
+  ok('achou as abas no código', chaves.length>=4);   /* Progresso saiu das abas em ago/2026 */
   chaves.forEach(k=>ok('aba "'+k+'" tem ação própria', !!g.MP_ACAO[k]));
   secao('hora que já vem preenchida no evento');
   ok('vendo outro dia, sugere 9h', g.mpEvtHoraSug()===9);
