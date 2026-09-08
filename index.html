@@ -12417,7 +12417,7 @@ function ctCPFValido(v){
   return dv(9)===Number(d[9])&&dv(10)===Number(d[10]);
 }
 const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_tel:'ctMascTel'};
-const CT_DATA={rep_nascimento:1,data_inicio:1};
+const CT_DATA={rep_nascimento:1,data_inicio:1,data_primeira_parcela:1}; /* 1a parcela e data de verdade: calendario e dd/mm/aaaa no contrato (Gabriel 08/09) */
 const CT_VIGENCIAS=(()=>{ const e=['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze'];
   return e.map((x,i)=>(i+1)+' ('+x+') '+(i?'meses':'mês')); })();
 const CT_PAGAMENTOS=['Boleto Bancário ou PIX','Boleto Bancário','PIX','Cartão de Crédito','Boleto Bancário ou Cartão de Crédito'];
@@ -12946,7 +12946,8 @@ window.ctForm=()=>{
   const campo=([k,rot,pad])=>{
     const v0=base[k]||pad||'', ops=CT_OPCOES[k], m=CT_MASC[k];
     if(ops) return `<div class="field"><label>${esc(rot)}</label><select id="ct_${k}" ${k==='vigencia'?'onchange="ctPrevia()"':''}>${ops.map(o=>`<option value="${esc(o)}"${o===v0?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
-    const v=m?window[m](v0):v0;
+    let v=m?window[m](v0):v0;
+    if(CT_DATA[k]&&/^\d{2}\/\d{2}\/\d{4}$/.test(v)) v=v.split('/').reverse().join('-'); /* veio dd/mm/aaaa da ficha: o calendario quer ISO */
     const extra=(k==='valor_mensal')?' oninput="ctPrevia()"':(m?` oninput="this.value=${m}(this.value);"`:'');
     return `<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(v)}"${extra}${CT_DATA[k]?' type="date"':''}></div>`; };
   modal('Contrato — '+CT_MODELOS[ctModelo],`
