@@ -331,6 +331,36 @@
   .fc-puxar .tx b{display:block;font-size:13px;font-weight:800;line-height:1.3}
   .fc-puxar .tx em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
   .fc-lead{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+/* Respostas dos clientes */
+.cf-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 16px}
+.cf-top .ftab small{font-weight:600;opacity:.6;margin-left:2px}
+.cf-busca{max-width:320px;flex:1}
+.cf-wrap{display:grid;grid-template-columns:1fr;gap:18px;align-items:start}
+.cf-wrap.com-detalhe{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+.cf-item{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:8px;cursor:pointer}
+.cf-item:hover{border-color:var(--brand2)}
+.cf-item.on{border-color:var(--brand);box-shadow:0 0 0 3px var(--sel)}
+.cf-item.nv b::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--brand);margin-right:7px;vertical-align:middle}
+.cf-l{min-width:0} .cf-l b{display:block;font-size:14px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cf-l span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.cf-r{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
+.cf-r small{font-size:11px;color:var(--fraco);font-variant-numeric:tabular-nums}
+.cf-chip{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:3px 9px;background:var(--panel2);color:var(--muted)}
+.cf-chip.brand{background:var(--sel);color:var(--brand2)} .cf-chip.ok{background:rgba(31,157,99,.14);color:var(--ok)} .cf-chip.warn{background:rgba(183,121,31,.16);color:var(--warn)}
+.cf-det{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;position:sticky;top:12px}
+.cf-dh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.cf-dh b{display:block;font-size:18px;font-weight:800;margin-top:8px;color:var(--txt)}
+.cf-dh small{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+.cf-campos{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+.cf-campo{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:10px 0;border-bottom:1px solid var(--line);min-width:0}
+.cf-campo .k{grid-column:1/-1;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fraco)}
+.cf-campo .k em{font-style:normal;color:var(--warn)}
+.cf-campo .v{font-size:14px;color:var(--txt);font-weight:600;overflow-wrap:anywhere}
+.cf-campo.vz .v{color:var(--fraco);font-weight:500}
+.cf-cp{background:none;border:0;color:var(--fraco);cursor:pointer;font-size:14px;padding:0 2px;align-self:center}
+.cf-cp:hover{color:var(--txt)}
+.cf-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+@media(max-width:860px){ .cf-wrap.com-detalhe{grid-template-columns:1fr} .cf-det{position:static} .cf-campos{grid-template-columns:1fr} }
   .fc-lead:last-child{border-bottom:none}
   .fc-lead .s{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis}
   /* linha do Asaas: opcao no formulario e resultado na tela de sucesso */
@@ -12626,6 +12656,7 @@ function renderContratos(c){
      <div><h2>Contratos</h2><div class="desc">Preenche e baixa o .docx pronto. O valor total sai do mensal × prazo, sem redigitar.</div></div>
      <div class="toolbar">
        <button class="btn secondary small" onclick="ctCopiarLink()">🔗 Link do formulário</button>
+       <button class="btn secondary small" onclick="cfAbrir()">📋 Respostas dos clientes</button>
        <button class="btn secondary small" onclick="ctModelosModal()">⚙️ Modelos</button>
      </div>
    </div>
@@ -12663,6 +12694,83 @@ function renderContratos(c){
   pinta();
   ctCarregarLeads().then(pinta).catch(()=>{});
 }
+/* ---------- Respostas dos clientes (Gabriel 08/09) ----------
+   Tudo que caiu em contratos_form pelo autosintese.app.br/contrato, inclusive o que o
+   cliente comecou e nao terminou. Abrir uma resposta marca "visto". Daqui da pra usar
+   no contrato, arquivar ou trazer de volta. */
+let CF={lista:[],filtro:'todas',busca:'',aberto:null};
+const CF_CAMPOS=[['razao_social','Razão social'],['cnpj','CNPJ'],['representante','Representante legal'],['cpf','CPF do representante'],['rg','RG do representante'],['nascimento','Nascimento'],['endereco','Endereço da empresa'],['email','E-mail para contrato'],['resp_financeiro','Responsável financeiro'],['telefone','Telefone do financeiro']];
+const cfVal=(k,v)=>{ if(!v) return ''; if(k==='cnpj') return ctMascCNPJ(v); if(k==='cpf') return ctMascCPF(v); if(k==='telefone') return ctMascTel(v); if(k==='nascimento') return fmtDate(String(v).slice(0,10)); return String(v); };
+const cfQuando=(iso)=>{ if(!iso) return ''; const d=new Date(iso); return fmtDate(iso.slice(0,10))+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+function cfEstado(f){ if(!f.enviado_em) return ['incompleta','Incompleta','warn']; if(f.status==='arquivado') return ['arquivada','Arquivada','muted']; if(f.status==='usado') return ['usada','Usada no contrato','ok']; return ['nova','Nova','brand']; }
+window.cfAbrir=async()=>{
+  CF.aberto=null; CF.filtro='todas'; CF.busca='';
+  const c=$('#content')||document.querySelector('.content')||document.querySelector('main'); if(!c) return;
+  c.innerHTML='<div class="empty">Carregando…</div>';
+  const {data,error}=await sb.from('contratos_form').select('*').order('criado_em',{ascending:false}).limit(300);
+  if(error){ c.innerHTML='<div class="empty">Erro: '+esc(error.message)+'</div>'; return; }
+  CF.lista=data||[]; cfPintar();
+};
+function cfPintar(){
+  const c=$('#content')||document.querySelector('.content')||document.querySelector('main'); if(!c) return;
+  const q=(CF.busca||'').trim().toLowerCase();
+  const cont={todas:CF.lista.length,nova:0,usada:0,arquivada:0,incompleta:0};
+  CF.lista.forEach(f=>{ cont[cfEstado(f)[0]]++; });
+  const L=CF.lista.filter(f=>{ const e=cfEstado(f)[0]; if(CF.filtro!=='todas'&&e!==CF.filtro) return false;
+    if(!q) return true; return [f.razao_social,f.cnpj,f.representante,f.email,f.resp_financeiro].some(v=>String(v||'').toLowerCase().indexOf(q)>=0); });
+  const ab=CF.aberto?CF.lista.find(f=>f.id===CF.aberto):null;
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Respostas dos clientes</h2><div class="desc">O que chegou pelo formulário ${esc(CT_LINK)} — completo ou pela metade.</div></div>
+     <div class="toolbar"><button class="btn secondary small" onclick="render('contratos')">‹ Contratos</button><button class="btn secondary small" onclick="ctCopiarLink()">🔗 Link do formulário</button></div>
+   </div>
+   <div class="cf-top">
+     <div class="fin-tabs" style="margin:0">${[['todas','Todas'],['nova','Novas'],['incompleta','Incompletas'],['usada','Usadas'],['arquivada','Arquivadas']].map(([k,t])=>`<button class="ftab ${CF.filtro===k?'active':''}" onclick="cfFiltro('${k}')">${t} <small>${cont[k]||0}</small></button>`).join('')}</div>
+     <input class="search cf-busca" placeholder="Buscar empresa, CNPJ, representante…" value="${esc(CF.busca)}" oninput="cfBusca(this.value)">
+   </div>
+   <div class="cf-wrap${ab?' com-detalhe':''}">
+     <div class="cf-lista">${L.length?L.map(f=>{ const e=cfEstado(f); const n=CF_CAMPOS.filter(([k])=>f[k]).length;
+       return `<div class="cf-item${CF.aberto===f.id?' on':''}${f.visto_em?'':' nv'}" onclick="cfVer('${f.id}')">
+         <div class="cf-l"><b>${esc(f.razao_social||f.representante||'Sem nome ainda')}</b>
+           <span>${esc(cfVal('cnpj',f.cnpj)||'sem CNPJ')} · ${esc(f.representante||'sem representante')}</span></div>
+         <div class="cf-r"><span class="cf-chip ${e[2]}">${e[1]}</span><small>${esc(cfQuando(f.enviado_em||f.criado_em))}</small>${f.enviado_em?'':`<small>${n} de ${CF_CAMPOS.length} campos</small>`}</div>
+       </div>`; }).join(''):'<div class="empty">Nada por aqui.</div>'}</div>
+     ${ab?cfDetalheHTML(ab):''}
+   </div>`;
+}
+function cfDetalheHTML(f){
+  const e=cfEstado(f);
+  const chk={cnpj:v=>ctSoDig(v).length===14,cpf:v=>ctSoDig(v).length===11,email:v=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v||''),telefone:v=>ctSoDig(v).length>=10};
+  return `<div class="cf-det">
+    <div class="cf-dh"><div><span class="cf-chip ${e[2]}">${e[1]}</span><b>${esc(f.razao_social||'Sem razão social')}</b>
+      <small>${f.enviado_em?'enviada em '+esc(cfQuando(f.enviado_em)):'começou em '+esc(cfQuando(f.criado_em))+' · não terminou'}${f.visto_em?' · visto '+esc(cfQuando(f.visto_em)):''}</small></div>
+      <button class="iconbtn" title="Fechar" onclick="cfFechar()">×</button></div>
+    <div class="cf-campos">${CF_CAMPOS.map(([k,rot])=>{ const v=cfVal(k,f[k]); const ok=v&&chk[k]?chk[k](f[k]):null;
+      return `<div class="cf-campo${v?'':' vz'}"><span class="k">${rot}${ok===false?' <em title="parece inválido">⚠︎</em>':''}</span>
+        <span class="v">${v?esc(v):'—'}</span>${v?`<button class="cf-cp" title="Copiar" onclick="cfCopiar(event,'${esc(String(f[k]||'')).replace(/'/g,'&#39;')}')">⧉</button>`:''}</div>`; }).join('')}</div>
+    <div class="cf-acoes">
+      ${f.enviado_em&&f.status!=='arquivado'?`<button class="btn small" onclick="cfUsar('${f.id}')">✍️ Usar no contrato</button>`:''}
+      ${f.status==='arquivado'?`<button class="btn secondary small" onclick="cfStatus('${f.id}','novo')">Trazer de volta</button>`:`<button class="btn secondary small" onclick="cfStatus('${f.id}','arquivado')">Arquivar</button>`}
+      ${currentUser&&currentUser.role==='master'?`<button class="iconbtn del" onclick="cfApagar('${f.id}')">Apagar</button>`:''}
+    </div>
+    <div class="hint" style="margin-top:14px">${f.ua?'Preenchido em: '+esc(String(f.ua).slice(0,90)):''}</div>
+  </div>`;
+}
+window.cfFiltro=(k)=>{ CF.filtro=k; cfPintar(); };
+window.cfBusca=(v)=>{ CF.busca=v; const a=document.activeElement; cfPintar(); const i=document.querySelector('.cf-busca'); if(i&&a&&a.classList&&a.classList.contains('cf-busca')){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } };
+window.cfFechar=()=>{ CF.aberto=null; cfPintar(); };
+window.cfVer=async(id)=>{ CF.aberto=id; cfPintar();
+  const f=CF.lista.find(x=>x.id===id); if(f&&!f.visto_em&&currentUser){ const agora=new Date().toISOString();
+    const {error}=await sb.from('contratos_form').update({visto_em:agora,visto_por:currentUser.id}).eq('id',id); if(!error){ f.visto_em=agora; f.visto_por=currentUser.id; cfPintar(); } } };
+window.cfCopiar=(ev,v)=>{ ev.stopPropagation(); const t=document.createElement('textarea'); t.value=v; document.body.appendChild(t); t.select(); try{ document.execCommand('copy'); toast('Copiado.'); }catch(_){ } t.remove(); };
+window.cfStatus=async(id,st)=>{ const {error}=await sb.from('contratos_form').update({status:st}).eq('id',id); if(error){ toast('Erro: '+error.message); return; }
+  const f=CF.lista.find(x=>x.id===id); if(f) f.status=st; toast(st==='arquivado'?'Arquivada.':'De volta na lista.'); cfPintar(); };
+window.cfApagar=async(id)=>{ if(!confirm('Apagar esta resposta de vez? Não tem volta.')) return; const {error}=await sb.from('contratos_form').delete().eq('id',id); if(error){ toast('Erro: '+error.message); return; }
+  CF.lista=CF.lista.filter(x=>x.id!==id); CF.aberto=null; cfPintar(); };
+window.cfUsar=async(id)=>{ await ctCarregarLeads().catch(()=>{}); let l=ctLeads.find(x=>x.id===id);
+  if(!l){ const r=CF.lista.find(x=>x.id===id); if(!r) return; l={id:r.id,dados:{contratante_razao:r.razao_social||'',contratante_cnpj:r.cnpj||'',contratante_endereco:r.endereco||'',rep_cargo:'',rep_nome:r.representante||'',rep_rg:r.rg||'',rep_cpf:r.cpf||'',rep_nascimento:r.nascimento||'',contratante_tel:r.telefone||'',contratante_email:r.email||''}}; }
+  ctRasc=Object.assign({},l.dados); ctRasc._lead=id; render('contratos'); toast('Dados carregados. Agora preencha valor e prazo.'); setTimeout(()=>ctForm(),50); };
+
 window.ctSetModelo=(m)=>{ ctModelo=m; render('contratos'); };
 window.ctCopiarLink=()=>{
   const t=document.createElement('textarea'); t.value=CT_LINK; document.body.appendChild(t); t.select();
