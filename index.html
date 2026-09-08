@@ -2301,6 +2301,7 @@
 .mp-mtit b{color:var(--warn);font-weight:800}
 .mp-leg{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);margin-top:2px}
 .mp-leg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.mp-kpitopo{display:flex;align-items:center;gap:12px;margin:2px 0 14px}
 .mp-plac{display:grid;grid-template-columns:minmax(0,1fr) 118px;gap:14px;align-items:stretch;
   background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:6px 0 10px}
 .mp-placL .rot{font-size:10px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted)}
@@ -13336,9 +13337,11 @@ function mpPintar(){
     const m=document.createElement('span'); m.className='mp-mini'; m.innerHTML=avatar(currentUser.id,currentUser.nome);
     e.insertBefore(m,e.firstChild); })();
   const b=$('#mpCorpo');
-  /* KPI nao e aba (Gabriel 07/09): o bloco vive dentro do Inicio, e so aparece com habito */
-  if(MP.aba==='progresso') MP.aba='inicio';
-  if(MP.aba==='inicio') b.innerHTML=(window.innerWidth<=720)?mpIniMobileHTML():mpInicioHTML();
+  /* KPI nao e aba da barra de baixo, mas e tela propria: no celular o Inicio vira a lista
+     do dia e nao carrega o bloco de KPI, entao o atalho do grafico nao tinha pra onde rolar.
+     Agora ele abre esta tela. (Gabriel 07/09) */
+  if(MP.aba==='progresso'){ b.innerHTML=mpKpiTelaHTML(); }
+  else if(MP.aba==='inicio') b.innerHTML=(window.innerWidth<=720)?mpIniMobileHTML():mpInicioHTML();
   else if(MP.aba==='habitos') b.innerHTML=mpHabsHTML();
   else if(MP.aba==='agenda'){ b.innerHTML=mpAgendaHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
   else{ b.innerHTML=mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
@@ -13350,7 +13353,13 @@ function mpPintar(){
 window.mpAba=(a)=>{ MP.aba=a; MP.tarNova=false; MP.evtNovo=false; mpPintar(); };
 window.mpIrAgenda=()=>{ MP.aba='agenda'; render('pessoal'); };
 /* atalho KPI da railbar foi descontinuado: o bloco vive no Início (#mpKpi) */
-window.mpIrKpi=()=>{ MP.aba='inicio'; MP.rolarKpi=true; render('pessoal'); };
+window.mpIrKpi=()=>{ MP.aba='progresso'; MP.rolarKpi=false; render('pessoal'); };
+function mpKpiTelaHTML(){
+  if(!MP.habitos.length) return '<div class="mp-kpitopo"><button class="mp-nav" onclick="mpAba(\'inicio\')">‹</button>'+
+    '<div><div class="mp-pttl">KPI</div><div class="mp-psub">seu progresso</div></div></div>'+mpZeroHTML();
+  return '<div class="mp-kpitopo"><button class="mp-nav" onclick="mpAba(\'inicio\')">‹</button>'+
+    '<div><div class="mp-pttl">KPI</div><div class="mp-psub">seu progresso</div></div></div>'+mpProgHTML();
+}
 
 /* ---------- aba Início ---------- */
 function mpHabRow(h,iso,podeCheck){
