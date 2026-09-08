@@ -12753,15 +12753,18 @@ async function ctPdfDeDocx(docxBlob){
   const padrao=await ctPdfFontePadrao(zip);
   const buf=await zip.generateAsync({type:'arraybuffer'});
   let st=document.getElementById('ctPdfCss'); if(!st){ st=document.createElement('style'); st.id='ctPdfCss'; document.head.appendChild(st); }
-  st.textContent='#ctPdfBox .docx-wrapper{background:#fff;padding:0}#ctPdfBox .docx-wrapper>section.docx{box-shadow:none;margin:0}';
+  st.textContent='#ctPdfBox .docx-wrapper{background:#fff;padding:0}#ctPdfBox .docx-wrapper>section.docx{box-shadow:none;margin:0}#ctPdfBox .docx p.ct-numerado::before{content:none!important}';
   const box=document.createElement('div'); box.id='ctPdfBox';
   box.style.cssText='position:absolute;left:0;top:0;width:900px;opacity:0;pointer-events:none;z-index:-1;background:#fff;color:#000;font-family:'+padrao;
   document.body.appendChild(box);
   try{
     await window.docx.renderAsync(buf,box,null,{inWrapper:true,ignoreWidth:false,ignoreHeight:false,breakPages:true,renderHeaders:true,renderFooters:true,useBase64URL:true,ignoreLastRenderedPageBreak:true});
     const wrap=box.querySelector('.docx-wrapper')||box;
+    ctPdfNumeracao(wrap);
     ctPdfFontes(wrap);
-    await Promise.all([...box.querySelectorAll('img')].map(im=>im.decode().catch(()=>{})));
+    /* img.decode() trava em aba escondida; espera o load com teto de 1,5s */
+    const espera=(im)=>new Promise(res=>{ if(im.complete&&im.naturalWidth) return res(); im.onload=im.onerror=()=>res(); setTimeout(res,1500); });
+    await Promise.all([...box.querySelectorAll('img')].map(espera));
     await new Promise(r=>setTimeout(r,60));
     ctPdfPaginar(wrap);
     const secs=[...wrap.querySelectorAll('section.docx')];
@@ -12780,6 +12783,30 @@ async function ctPdfFontePadrao(zip){
   try{ const st=zip.file('word/styles.xml'); if(st){ const x=await st.async('string'); const m=/<w:rPrDefault>[\s\S]*?<w:rFonts[^>]*w:ascii="([^"]+)"/.exec(x); if(m) f=m[1]; } }catch(_){ }
   if(!f){ try{ const th=zip.file('word/theme/theme1.xml'); if(th){ const x=await th.async('string'); const m=/<a:minorFont>\s*<a:latin typeface="([^"]+)"/.exec(x); if(m) f=m[1]; } }catch(_){ } }
   return serif(f)?"'Times New Roman',Times,serif":'Arial,Helvetica,sans-serif';
+}
+/* O docx-preview numera listas com ::before + counter() do CSS — isso nao e texto e o PDF
+   nao veria "I.", "II.", "a)". Aqui a gente refaz o mesmo contador e escreve como texto. */
+function ctPdfNumeracao(wrap){
+  const cont={}; let n=0;
+  const roman=(v,up)=>{ const t=[[1000,'m'],[900,'cm'],[500,'d'],[400,'cd'],[100,'c'],[90,'xc'],[50,'l'],[40,'xl'],[10,'x'],[9,'ix'],[5,'v'],[4,'iv'],[1,'i']]; let s=''; for(const [k,c] of t){ while(v>=k){ s+=c; v-=k; } } return up?s.toUpperCase():s; };
+  const alpha=(v,up)=>{ let s=''; while(v>0){ v--; s=String.fromCharCode(97+v%26)+s; v=Math.floor(v/26); } return up?s.toUpperCase():s; };
+  const fmt=(v,st)=>{ st=(st||'decimal').trim(); if(st==='upper-roman') return roman(v,1); if(st==='lower-roman') return roman(v,0); if(st==='upper-alpha'||st==='upper-latin') return alpha(v,1); if(st==='lower-alpha'||st==='lower-latin') return alpha(v,0); if(st==='decimal-leading-zero') return String(v).padStart(2,'0'); if(st==='none') return ''; return String(v); };
+  const unesc=(s)=>s.replace(/\\9 ?/g,'').replace(/\\([0-9a-fA-F]{1,6}) ?/g,(_,h)=>String.fromCodePoint(parseInt(h,16))).replace(/\\(.)/g,'$1');
+  wrap.querySelectorAll('p[class*="docx-num-"]').forEach(p=>{
+    const m=/docx-num-(\d+)-(\d+)/.exec(p.className); if(!m) return;
+    const spec=getComputedStyle(p,'::before').content; if(!spec||spec==='none'||spec==='normal') return;
+    const id=m[1], lvl=+m[2], key=id+'-'+lvl; cont[key]=(cont[key]||0)+1;
+    Object.keys(cont).forEach(k=>{ const mm=/^(\d+)-(\d+)$/.exec(k); if(mm&&mm[1]===id&&+mm[2]>lvl) cont[k]=0; });
+    let label=''; const re=/"((?:[^"\\]|\\.)*)"|counter\(\s*([\w-]+)\s*(?:,\s*([\w-]+))?\s*\)/g; let t;
+    while((t=re.exec(spec))){ if(t[1]!==undefined) label+=unesc(t[1]); else { const cm=/docx-num-(\d+)-(\d+)/.exec(t[2]); label+=fmt(cont[cm?cm[1]+'-'+cm[2]:t[2]]||0,t[3]); } }
+    label=label.replace(/\t/g,'').trim(); if(!label) return;
+    const tiPx=parseFloat(getComputedStyle(p).textIndent)||0;
+    const sp=document.createElement('span'); sp.className='ct-num'; sp.textContent=label;
+    sp.style.cssText='display:inline-block;white-space:nowrap;text-indent:0;'+(tiPx<0?'min-width:'+(-tiPx)+'px;':'margin-right:6px;');
+    const r0=p.querySelector('span'); if(r0){ const c=getComputedStyle(r0); sp.style.fontFamily=c.fontFamily; sp.style.fontWeight=c.fontWeight; sp.style.fontSize=c.fontSize; }
+    p.insertBefore(sp,p.firstChild); p.classList.add('ct-numerado'); n++;
+  });
+  return n;
 }
 function ctPdfFontes(wrap){
   const serif=(f)=>{ const p=String(f||'').split(',')[0]; return /times|georgia|cambria|garamond|antiqua|palatino|baskerville|bookman|century|serif/i.test(p)&&!/sans/i.test(p); };
