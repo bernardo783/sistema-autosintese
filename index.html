@@ -13167,6 +13167,15 @@ const mpCk=(hid,iso)=>MP.checks.some(k=>String(k.habito_id)===String(hid)&&k.dia
 /* A partir de quando o hábito vale. Antes disso ele não é previsto: não entra na
    nota nem na grade. Cai no dia da criação pros hábitos antigos, sem data. */
 const mpIni=(h)=>String(h.inicio||'').slice(0,10)||(h.criado_em?tkISO(new Date(h.criado_em)):'0');
+/* Ordem de habito e sempre a do relogio (Gabriel 08/09): quem tem hora vem primeiro,
+   do mais cedo pro mais tarde; sem hora fica depois, na ordem manual (campo ordem). */
+const mpHoraDe=(h)=>{ const v=String((h&&h.hora)||''); return /^\d{2}:\d{2}/.test(v)?v.slice(0,5):''; };
+const mpPorHora=(arr)=>arr.slice().sort((a,b)=>{
+  const x=mpHoraDe(a), y=mpHoraDe(b);
+  if(x&&y) return x.localeCompare(y)||String(a.nome||'').localeCompare(String(b.nome||''));
+  if(x) return -1; if(y) return 1;
+  return (Number(a.ordem||0)-Number(b.ordem||0))||String(a.nome||'').localeCompare(String(b.nome||''));
+});
 const mpProg=(h,iso)=>((h.dias||[]).map(Number).indexOf(mpDow(iso))>=0)&&mpIni(h)<=iso;
 /* "começa amanhã" / "começa segunda, 24/08" — pra linha do hábito que ainda não valeu */
 function mpComeca(iso){ const hj=tkHoje();
@@ -13401,7 +13410,7 @@ function mpHabRow(h,iso,podeCheck){
 }
 function mpHabCards(){
   const hoje=tkHoje();
-  const rows=MP.habitos.map(h=>{
+  const rows=mpPorHora(MP.habitos).map(h=>{
     const p=mpMetaProg(h), pct=Math.min(100,Math.round(p.n/Math.max(1,p.m)*1000)/10);
     const prog=mpProg(h,hoje), ck=prog&&mpCk(h.id,hoje);
     return '<div class="mp-hab2'+(prog?'':' off')+'" draggable="true" data-hid="'+h.id+'"'+
@@ -13453,7 +13462,7 @@ function mpIniMobileHTML(){
   /* Inicio celular, L2 (Gabriel 08/09): habitos numa fileira de cartoes que rola pro lado,
      na ordem da hora (o proximo a esquerda). Altura fixa com 3 ou 20. Tarefas em lista embaixo. */
   const linhas=[];
-  const HB=hs.slice().sort((a,b)=>{ const x=hh(a.hora),y=hh(b.hora); return (x&&y)?x.localeCompare(y):(x?-1:(y?1:0)); });
+  const HB=mpPorHora(hs);
   const vem=ehHoje?MP.habitos.filter(h=>!mpProg(h,dia)&&mpIni(h)>dia):[];
   if(HB.length||vem.length){
     const fh=HB.reduce((a,h)=>a+mpFrac(h,dia),0);
@@ -13524,7 +13533,7 @@ function mpCelCls(h,d,hoje){
 }
 function mpMapaHTML(){
   const hoje=tkHoje(), fim=mpSegDa(hoje), ini=tkDiaMais(fim,-7*12);
-  return MP.habitos.map(h=>{
+  return mpPorHora(MP.habitos).map(h=>{
     const sq=mpSeq(h);
     let cels='';
     for(let i=0;i<91;i++){
@@ -13627,7 +13636,7 @@ function mpProgHTML(){
      Substitui a tabela — com 1 ou 2 habitos a grade era quase toda espaco morto. */
   const cab='<div class="mp-hrow cab"><span></span><span></span><div class="mp-hsem">'+
     dias.map((d,ix)=>'<div class="lb'+(d===hoje?' hj':'')+'">'+MP_SEMD[ordem[ix]].toUpperCase()+'</div>').join('')+'</div></div>';
-  const linhas=MP.habitos.map(h=>{
+  const linhas=mpPorHora(MP.habitos).map(h=>{
     const sq=mpSeq(h);
     return '<div class="mp-hrow">'+
       '<div class="mp-hrnm"><span style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,14)+'</span>'+esc(h.nome)+'</div>'+
