@@ -12492,6 +12492,26 @@ async function ctCamposDoZip(zip){
     (await f.async('string')).replace(/\{\{(\w+)\}\}/g,(_,k)=>{ achados.add(k); return _; }); }
   return [...achados];
 }
+/* Bloco de assinatura (Gabriel 08/09): "CONTRATANTE", "CONTRATADA"/"CONTRATADO" e a linha
+   de ______ saem centralizados de verdade — tira tab, recuo e espaco que o modelo usava
+   pra "empurrar" o texto e que desalinhava no Word e no PDF. */
+function ctAssinaturasCentro(xml){
+  const CT_PAR2=/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g;
+  return xml.replace(CT_PAR2,(par)=>{
+    const ts=par.match(CT_T)||[];
+    const txt=ts.map(t=>ctUnesc(t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,''))).join('').replace(/[\s ]+/g,' ').trim();
+    const norm=txt.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[:.]$/,'');
+    if(!(/^(CONTRATANTE|CONTRATADA|CONTRATADO)$/.test(norm)||/^_{4,}$/.test(txt))) return par;
+    let p=par.replace(/<w:tab\s*\/>|<w:tab><\/w:tab>|<w:ptab[^>]*\/>/g,'');
+    p=p.replace(CT_T,(_a,ab,mi,fe)=>ab+mi.replace(/^[\s ]+|[\s ]+$/g,'')+fe);
+    const jc='<w:jc w:val="center"/>';
+    if(/<w:pPr>[\s\S]*?<\/w:pPr>/.test(p)){
+      p=p.replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/,(_m,inner)=>{ let i=inner.replace(/<w:jc[^>]*\/>/g,'').replace(/<w:ind[^>]*\/>/g,'');
+        i=/<w:rPr>/.test(i)?i.replace('<w:rPr>',jc+'<w:rPr>'):i+jc; return '<w:pPr>'+i+'</w:pPr>'; });
+    }else{ p=p.replace(/^(<w:p(?:\s[^>]*)?>)/,'$1<w:pPr>'+jc+'</w:pPr>'); }
+    return p;
+  });
+}
 async function ctGerar(slug,dados,nomeArquivo){
   const {zip}=await ctModeloZip(slug);
   const d=ctResolver(dados);
@@ -12501,6 +12521,7 @@ async function ctGerar(slug,dados,nomeArquivo){
     let xml=await f.async('string');
     xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k];
       if(v===undefined||v===''){ faltando.add(k); return todo; } return ctEsc(v); });
+    if(alvo==='word/document.xml') xml=ctAssinaturasCentro(xml);
     zip.file(alvo,xml);
   }
   const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
@@ -12517,7 +12538,8 @@ async function ctGerar(slug,dados,nomeArquivo){
    volta no proprio arquivo. Paragrafo que ninguem tocou sai identico; paragrafo editado
    e reescrito no primeiro <w:t> (perde negrito no meio da frase, ganha o texto certo). */
 const CT_PAR=/<w:p[ >][\s\S]*?<\/w:p>/g;
-const CT_T=/(<w:t[^>]*>)([\s\S]*?)(<\/w:t>)/g;
+/* so <w:t> e <w:t xml:space=...>: sem o espaco obrigatorio, <w:tab/> tambem casava e virava texto */
+const CT_T=/(<w:t(?:\s[^>]*)?>)([\s\S]*?)(<\/w:t>)/g;
 const ctUnesc=(x)=>String(x).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");
 /* le os paragrafos de um xml, na ordem */
 function ctParas(xml){
@@ -12556,6 +12578,7 @@ window.ctEditor=async (slug,dados,nomeArquivo)=>{
     let xml=await f.async('string');
     xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k];
       if(v===undefined||v===''){ faltando.add(k); return todo; } return ctEsc(v); });
+    if(alvo==='word/document.xml') xml=ctAssinaturasCentro(xml);
     zip.file(alvo,xml);
   }
   const xml=await zip.file('word/document.xml').async('string');
