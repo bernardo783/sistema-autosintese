@@ -13426,7 +13426,7 @@ function mpHabCards(){
       ' ondragstart="mpHDragIni(event,\''+h.id+'\')" ondragover="mpHDragSobre(event,\''+h.id+'\')"'+
       ' ondragleave="mpHDragSai(event,\''+h.id+'\')" ondrop="mpHDrop(event,\''+h.id+'\')" ondragend="mpHDragFim()">'+
       '<div class="mp-hic" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,18)+'</div>'+
-      '<div><div class="mp-hnm">'+esc(h.nome)+'<span class="mp-hmenu" onclick="mpHabMenu(event,\''+h.id+'\')">⋯</span></div>'+
+      '<div><div class="mp-hnm"><span style="cursor:pointer" onclick="mpHabAbrir(\''+h.id+'\',\''+hoje+'\')">'+esc(h.nome)+'</span><span class="mp-hmenu" onclick="mpHabMenu(event,\''+h.id+'\')">⋯</span></div>'+
       '<div class="mp-hsub">'+(p.futuro?mpComeca(p.ini):(p.n+' / '+p.m+' vezes '+p.rot+(prog?'':' · hoje não tem')))+'</div></div>'+
       '<div class="mp-h2pct">'+String(pct).replace('.',',')+'%</div>'+
       (prog?'<button class="mp-hchk'+(ck?' on':'')+'" style="'+mpCkStyle(mpFrac(h,hoje),'var(--brand)')+'" title="'+(ck?'Feito hoje — toque pra desfazer':'Marcar hoje')+'" onclick="mpCheck(\''+h.id+'\',\''+hoje+'\')">'+svgIco('check',13)+'</button>':'<span></span>')+
@@ -13464,7 +13464,7 @@ function mpIniMobileHTML(){
   hs.forEach(h=>{ const fr=mpFrac(h,dia), f=fr>=1, et=mpEtapas(h);
     const oh=(fr>0&&fr<1)?(passado?'<span class="o" style="'+mpCkStyle(fr)+'"></span>':'<button type="button" class="o" style="'+mpCkStyle(fr)+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"></button>'):o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')');
     const sub=et.length?(Math.round(fr*et.length)+' de '+et.length+' etapas'):'hábito';
-    itens.push({g:'hab',fr:fr,hora:hh(h.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+oh+'<span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>'+esc(sub)+'</small></span>'+(hh(h.hora)?'<span class="h">'+hh(h.hora)+'</span>':'')+'</div>'}); });
+    itens.push({g:'hab',fr:fr,hora:hh(h.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+oh+'<span class="tt" onclick="mpHabAbrir(\''+h.id+'\',\''+dia+'\')">'+esc(h.nome||'')+'<small>'+esc(sub)+'</small></span>'+(hh(h.hora)?'<span class="h">'+hh(h.hora)+'</span>':'')+'</div>'}); });
   itens.sort((a,b)=>(a.hora&&b.hora)?a.hora.localeCompare(b.hora):(a.hora?-1:(b.hora?1:0)));
   /* habito que ainda nao comecou mas comeca em breve: mostra pra pessoa saber que existe */
   if(ehHoje) MP.habitos.filter(h=>!mpProg(h,dia)&&mpIni(h)>dia).forEach(h=>{
@@ -13487,7 +13487,7 @@ function mpIniMobileHTML(){
         ? '<button type="button" class="ring" style="--p:'+Math.round(fr*100)+'%" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"><i>'+(on?svgIco('check',11):'')+'</i></button>'
         : '<span class="ring" style="--p:'+Math.round(fr*100)+'%'+(depois?';border:1.5px dashed var(--fraco);background:none':'')+'"><i'+(depois?' style="background:none"':'')+'>'+(on?svgIco('check',11):'')+'</i></span>';
       return '<div class="f1-tile'+(on?' on':'')+((futuro||depois)?' ro':'')+'">'+ring+
-        '<span class="nm" onclick="mpHabitoModal(\''+h.id+'\')"><b>'+esc(h.nome||'')+'</b><small>'+esc(sub)+'</small></span></div>'; };
+        '<span class="nm" onclick="'+(depois?'mpHabitoModal':'mpHabAbrir')+'(\''+h.id+'\',\''+dia+'\')"><b>'+esc(h.nome||'')+'</b><small>'+esc(sub)+'</small></span></div>'; };
     const tiles=HB.map(h=>tile(h,false)).concat(vem.map(h=>tile(h,true)));
     /* L2 de novo (Gabriel 08/09, "publica nesse formato L2"): fileira que rola pro lado.
        Ate 4 habitos: todos cabem na tela, sem rolar e sem cortar. 5 ou mais: 3 inteiros
@@ -13701,12 +13701,16 @@ window.mpCmp=(m)=>{ MP.cmp=m; mpPintar(); };
 
 /* ---------- checks ---------- */
 /* Lista de etapas do dia: marca uma a uma; a bolinha do habito enche na proporcao */
+/* Toque no habito (Gabriel 08/09): com etapas abre o checklist do dia, pra ir preenchendo;
+   sem etapas abre o cadastro. Cada dia nasce com o checklist zerado (a marcacao e por dia). */
+window.mpHabAbrir=(hid,iso)=>{ const h=MP.habitos.find(x=>String(x.id)===String(hid)); iso=iso||tkHoje();
+  if(h&&mpEtapas(h).length&&iso<=tkHoje()&&mpProg(h,iso)) mpEtapasModal(hid,iso); else mpHabitoModal(hid); };
 window.mpEtapasModal=(hid,iso)=>{
   const h=MP.habitos.find(x=>String(x.id)===String(hid)); if(!h) return;
   const et=mpEtapas(h);
   modal(h.nome||'Hábito',
     '<div class="tc">'+
-    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Fechar</button><span class="hint" style="margin:0">'+esc(mpTcRotDia(iso))+'</span></div>'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Fechar</button><span class="hint" style="margin:0">'+esc(mpTcRotDia(iso))+'</span><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click();mpHabitoModal(\''+h.id+'\')">Editar</button></div>'+
     '<div class="tc-tit"><span class="mph-icbt" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,20)+'</span><b style="font-size:20px;font-weight:800">'+esc(h.nome||'')+'</b></div>'+
     '<div class="tc-prog"><i id="mpe_prog"></i></div>'+
     '<div id="mpe_lista"></div>'+
@@ -14280,7 +14284,7 @@ function mpAgendaHTML(){
     if(it.tipo==='hab'){ const h=it.o, f=mpCk(h.id,dia);
       return '<div class="ga-bl hab'+(f?' done':'')+'">'+
         '<button class="o'+(f?' on':'')+'" style="'+mpCkStyle(mpFrac(h,dia),'#06231a')+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')">'+svgIco('check',10)+'</button>'+
-        '<span class="tt abre" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'</span><span class="h">'+esc(String(h.hora).slice(0,5))+'</span><span class="g">hábito</span></div>'; }
+        '<span class="tt abre" onclick="mpHabAbrir(\''+h.id+'\',\''+dia+'\')">'+esc(h.nome||'')+'</span><span class="h">'+esc(String(h.hora).slice(0,5))+'</span><span class="g">hábito</span></div>'; }
     const t=it.o, f=mpFeita(t);
     return '<div class="ga-bl tar'+(f?' done':'')+'">'+
       '<button class="o'+(f?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',10)+'</button>'+
