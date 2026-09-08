@@ -2246,7 +2246,8 @@
 .f1-tile.on small{color:#3b2d66}
 .f1-tile.ro .ring{cursor:default}
 .f1-sb{display:flex;gap:5px;justify-content:center;margin:8px 0 0;height:5px}
-.f1-sb i{width:5px;height:5px;border-radius:99px;background:var(--line);transition:width .15s,background .15s}
+.f1-sb i{width:5px;height:5px;border-radius:99px;background:var(--fraco);opacity:.45;transition:width .15s,background .15s,opacity .15s}
+.f1-sb i.on{opacity:1}
 .f1-sb i.on{width:14px;background:var(--txt)}
 /* a ponta do proximo cartao some num degrade em vez de ficar cortada no meio */
 .f1-row:not(.fim){-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 64px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 64px),transparent)}
@@ -13494,7 +13495,8 @@ function mpIniMobileHTML(){
     const n=tiles.length, rola=n>4;
     const w=rola?'calc((100% - 44px)/3)':'calc((100% - '+((n-1)*8)+'px)/'+n+')';
     linhas.push('<section class="f1-grp hab"><div class="f1-lbl"><span>Hábitos</span><small>'+(HB.length?mpFmtN(fh)+' de '+HB.length:'')+(rola?' · desliza ›':'')+'</small></div>'+
-      '<div class="f1-row" onscroll="mpRowSb(this)" style="--tw:'+w+'">'+tiles.join('')+'</div><div class="f1-sb"><i></i></div></section>');
+      '<div class="f1-row ini'+(rola?'':' fim')+'" onscroll="mpRowSb(this)" style="--tw:'+w+'">'+tiles.join('')+'</div>'+
+      (rola?'<div class="f1-sb">'+Array.from({length:Math.ceil(n/3)},(_,i)=>'<i'+(i?'':' class="on"')+'></i>').join('')+'</div>':'')+'</section>');
   }
   const T=itens.filter(x=>x.g==='tar');
   if(T.length){ const nf=T.filter(x=>/f1-it done/.test(x.html)).length;
@@ -13509,13 +13511,12 @@ function mpIniMobileHTML(){
     (ehHoje&&!MP.habitos.length?mpZeroHTML():'')+
     '</div>';
 }
-window.mpRowSb=(r)=>{ const sb=r.nextElementSibling; if(!sb) return;
-  const cabe=r.scrollWidth<=r.clientWidth+2; sb.style.display=cabe?'none':'';
-  const fim=r.scrollLeft+r.clientWidth>=r.scrollWidth-2;
-  r.classList.toggle('fim',cabe||fim); r.classList.toggle('ini',r.scrollLeft<=2);
-  if(cabe) return;
-  const pg=Math.max(1,Math.ceil(r.scrollWidth/r.clientWidth)), at=fim?pg-1:Math.min(pg-1,Math.round(r.scrollLeft/r.clientWidth));
-  let h=''; for(let i=0;i<pg;i++) h+='<i'+(i===at?' class="on"':'')+'></i>'; if(sb.innerHTML!==h) sb.innerHTML=h; };
+window.mpRowSb=(r)=>{ const max=r.scrollWidth-r.clientWidth; const fim=max<=2||r.scrollLeft>=max-2;
+  r.classList.toggle('fim',fim); r.classList.toggle('ini',r.scrollLeft<=2);
+  const sb=r.nextElementSibling; if(!sb||!sb.classList.contains('f1-sb')) return;
+  const ds=sb.children, pg=ds.length; if(!pg) return;
+  const at=max<=2?0:Math.round(r.scrollLeft/max*(pg-1));
+  for(let i=0;i<pg;i++) ds[i].classList.toggle('on',i===at); };
 window.mpIniNav=async(d)=>{ MP.iniDia=tkDiaMais(MP.iniDia||tkHoje(),d); mpPintar();
   if(!MP.evtsPorDia[MP.iniDia]){ try{ await mpEvtsDia(MP.iniDia); }catch(_){} if(MP.aba==='inicio') mpPintar(); } };
 window.mpIniHoje=()=>{ MP.iniDia=tkHoje(); mpPintar(); };
