@@ -2248,7 +2248,7 @@
 .f1-sb{height:3px;background:var(--panel2);border-radius:99px;margin:4px 0 0;position:relative;overflow:hidden}
 .f1-sb i{position:absolute;top:0;height:100%;background:var(--txt);border-radius:99px;width:30%;left:0}
 .f1-grid{display:grid;gap:8px;padding:8px 0 2px}
-.f1-grid .f1-tile{width:auto;flex:initial}
+.f1-grid .f1-tile{width:var(--tw,104px)}
 .f1-grid .f1-tile b{white-space:normal;overflow-wrap:anywhere;line-height:1.2}
 .f1-grp.tar .f1-it:first-of-type{margin-top:2px}
 .f1-grp .f1-it:last-child{border-bottom:0}
@@ -13482,9 +13482,13 @@ function mpIniMobileHTML(){
       return '<div class="f1-tile'+(on?' on':'')+((futuro||depois)?' ro':'')+'">'+ring+
         '<span class="nm" onclick="mpHabitoModal(\''+h.id+'\')"><b>'+esc(h.nome||'')+'</b><small>'+esc(sub)+'</small></span></div>'; };
     const tiles=HB.map(h=>tile(h,false)).concat(vem.map(h=>tile(h,true)));
-    const nc=tiles.length<=1?1:((tiles.length===2||tiles.length===4)?2:3);
-    linhas.push('<section class="f1-grp hab"><div class="f1-lbl"><span>Hábitos</span><small>'+(HB.length?mpFmtN(fh)+' de '+HB.length:'')+'</small></div>'+
-      '<div class="f1-grid" style="grid-template-columns:repeat('+nc+',minmax(0,1fr))">'+tiles.join('')+'</div></section>');
+    /* L2 de novo (Gabriel 08/09, "publica nesse formato L2"): fileira que rola pro lado.
+       Ate 4 habitos: todos cabem na tela, sem rolar e sem cortar. 5 ou mais: 3 inteiros
+       + uma ponta do 4o aparecendo (36px), pra ficar obvio que tem mais a direita. */
+    const n=tiles.length, rola=n>4;
+    const w=rola?'calc((100% - 44px)/3)':'calc((100% - '+((n-1)*8)+'px)/'+n+')';
+    linhas.push('<section class="f1-grp hab"><div class="f1-lbl"><span>Hábitos</span><small>'+(HB.length?mpFmtN(fh)+' de '+HB.length:'')+(rola?' · desliza ›':'')+'</small></div>'+
+      '<div class="f1-row" onscroll="mpRowSb(this)" style="--tw:'+w+'">'+tiles.join('')+'</div><div class="f1-sb"><i></i></div></section>');
   }
   const T=itens.filter(x=>x.g==='tar');
   if(T.length){ const nf=T.filter(x=>/f1-it done/.test(x.html)).length;
