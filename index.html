@@ -12575,7 +12575,8 @@ function ctEdPintar(){
         <span class="hint" style="margin:0 0 0 10px">clique em qualquer parágrafo para corrigir · <span id="ctEdN">0</span> alterado(s)</span></div>
       <div style="display:flex;gap:8px">
         <button class="btn secondary small" onclick="ctEdFechar()">Cancelar</button>
-        <button class="btn small" id="ctEdBaixar" onclick="ctEdBaixar()">Baixar .docx</button>
+        <button class="btn secondary small" id="ctEdDocx" onclick="ctEdBaixar('docx')">Baixar .docx</button>
+        <button class="btn small" id="ctEdBaixar" onclick="ctEdBaixar('pdf')">Baixar PDF</button>
       </div>
     </div>
     ${alerta}
@@ -12592,14 +12593,17 @@ window.ctEdMudou=(i,el)=>{ if(!CT_ED) return;
   const n=document.getElementById('ctEdN'); if(n) n.textContent=Object.keys(CT_ED.mudou).length;
 };
 window.ctEdFechar=()=>{ const o=document.getElementById('ctOv'); if(o) o.remove(); CT_ED=null; };
-window.ctEdBaixar=async ()=>{
-  const e=CT_ED; if(!e) return;
-  const b=document.getElementById('ctEdBaixar'); if(b){ b.disabled=true; b.textContent='Gerando…'; }
+window.ctEdBaixar=async (fmt)=>{
+  const e=CT_ED; if(!e) return; fmt=fmt||'pdf';
+  const b=document.getElementById(fmt==='pdf'?'ctEdBaixar':'ctEdDocx'); const rot=b?b.textContent:'';
+  if(b){ b.disabled=true; b.textContent='Gerando…'; }
   try{
     e.zip.file('word/document.xml', ctAplica(e.xml,e.mudou));
-    const blob=await e.zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    const docxBlob=await e.zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    let blob=docxBlob, arquivo=e.nome+'.docx';
+    if(fmt==='pdf'){ blob=await ctPdfDeDocx(docxBlob); arquivo=e.nome+'.pdf'; }
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=e.nome+'.docx'; a.click();
+    a.download=arquivo; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
     /* o contrato fica guardado no sistema — sem planilha de controle por fora */
     try{
@@ -12607,7 +12611,7 @@ window.ctEdBaixar=async ()=>{
       const b64=await ctBlobB64(blob);
       const {error}=await sb.from('contratos_gerados').insert({
         modelo:e.slug, cliente_id:ctCliSel||null, cliente_nome:(cli&&cli.nome)||e.dados.contratante_razao||'',
-        signatario:ctSignatario, dados:e.dados, edicoes:e.mudou, arquivo:e.nome+'.docx',
+        signatario:ctSignatario, dados:e.dados, edicoes:e.mudou, arquivo,
         conteudo_b64:b64, bytes:blob.size, gerado_por:(currentUser||{}).id||null});
       if(error) toast('Baixado, mas não consegui arquivar: '+error.message);
       else toast('Contrato baixado e guardado no sistema.');
@@ -12615,9 +12619,103 @@ window.ctEdBaixar=async ()=>{
     ctEdFechar();
   }catch(err){
     toast('Erro ao gerar: '+(err.message||err));
-    if(b){ b.disabled=false; b.textContent='Baixar .docx'; }
+    if(b){ b.disabled=false; b.textContent=rot; }
   }
 };
+
+/* ======================= PDF NO NAVEGADOR (Gabriel 08/09) =======================
+   Sem servidor: o docx-preview monta o .docx em HTML com as medidas da pagina, o
+   navegador diagrama (quebra de linha, justificado, negrito), a gente quebra em
+   paginas A4 e desenha cada palavra no PDF exatamente onde o navegador a colocou.
+   Sai texto de verdade (seleciona, busca), leve — 9 paginas dao uns 40 KB. */
+let CT_PDFLIBS=null;
+function ctPdfLibs(){
+  if(CT_PDFLIBS) return CT_PDFLIBS;
+  const ld=(u)=>new Promise((ok,er)=>{ const sc=document.createElement('script'); sc.src=u; sc.onload=ok; sc.onerror=()=>er(new Error('não consegui carregar '+u)); document.head.appendChild(sc); });
+  CT_PDFLIBS=(async()=>{
+    await ctJSZip();
+    if(!window.docx) await ld('https://cdn.jsdelivr.net/npm/docx-preview@0.3.5/dist/docx-preview.min.js');
+    if(!window.jspdf) await ld('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  })().catch(e=>{ CT_PDFLIBS=null; throw e; });
+  return CT_PDFLIBS;
+}
+async function ctPdfDeDocx(docxBlob){
+  await ctPdfLibs();
+  const buf=await docxBlob.arrayBuffer();
+  /* a fonte vira Arial/Helvetica em tudo: e a mesma metrica que o PDF usa, entao a palavra
+     cai no PDF exatamente onde o navegador mediu. (Calibri no modelo daria sobreposicao.) */
+  if(!document.getElementById('ctPdfCss')){ const st=document.createElement('style'); st.id='ctPdfCss';
+    st.textContent='#ctPdfBox .docx-wrapper{background:#fff;padding:0}#ctPdfBox .docx-wrapper>section.docx{box-shadow:none;margin:0}#ctPdfBox .docx,#ctPdfBox .docx *{font-family:Arial,Helvetica,sans-serif!important}';
+    document.head.appendChild(st); }
+  const box=document.createElement('div'); box.id='ctPdfBox';
+  box.style.cssText='position:absolute;left:0;top:0;width:900px;opacity:0;pointer-events:none;z-index:-1;background:#fff;color:#000';
+  document.body.appendChild(box);
+  try{
+    await window.docx.renderAsync(buf,box,null,{inWrapper:true,ignoreWidth:false,ignoreHeight:false,breakPages:true,renderHeaders:true,renderFooters:true,useBase64URL:true,ignoreLastRenderedPageBreak:true});
+    await Promise.all([...box.querySelectorAll('img')].map(im=>im.decode().catch(()=>{})));
+    await new Promise(r=>setTimeout(r,60));
+    const wrap=box.querySelector('.docx-wrapper')||box;
+    ctPdfPaginar(wrap);
+    const secs=[...wrap.querySelectorAll('section.docx')];
+    if(!secs.length) throw new Error('o modelo não gerou páginas');
+    return ctPdfDesenhar(secs);
+  }finally{ box.remove(); }
+}
+/* quebra em paginas A4 movendo paragrafos inteiros; cabecalho e rodape repetem */
+function ctPdfPaginar(wrap){
+  [...wrap.querySelectorAll('section.docx')].forEach(sec=>{
+    const art=sec.querySelector(':scope>article'); if(!art) return;
+    const cs=getComputedStyle(sec);
+    const pageH=parseFloat(cs.minHeight)||1122.5, padT=parseFloat(cs.paddingTop)||0, padB=parseFloat(cs.paddingBottom)||0;
+    const hd=sec.querySelector(':scope>header'), ft=sec.querySelector(':scope>footer');
+    const avail=pageH-padT-padB-(hd?hd.offsetHeight:0)-(ft?ft.offsetHeight:0)-2;
+    const blocos=[...art.children]; if(!blocos.length) return;
+    let atual=sec, atualArt=art, usado=0; const pgs=[sec];
+    const nova=()=>{ const n=sec.cloneNode(false);
+      if(hd) n.appendChild(hd.cloneNode(true)); const na=document.createElement('article'); na.className=art.className; n.appendChild(na); if(ft) n.appendChild(ft.cloneNode(true));
+      atual.after(n); atual=n; atualArt=na; usado=0; pgs.push(n); };
+    blocos.forEach(b=>{ const bs=getComputedStyle(b); const h=b.offsetHeight+(parseFloat(bs.marginTop)||0)+(parseFloat(bs.marginBottom)||0);
+      if(usado>0&&usado+h>avail) nova();
+      atualArt.appendChild(b); usado+=h; });
+    pgs.forEach(p=>{ p.style.height=pageH+'px'; p.style.minHeight=pageH+'px'; p.style.overflow='hidden'; p.style.display='flex'; p.style.flexDirection='column'; const a=p.querySelector(':scope>article'); if(a) a.style.flex='1 0 auto'; });
+  });
+}
+function ctPdfDesenhar(secs){
+  const K=72/96, pdf=new window.jspdf.jsPDF({unit:'pt',format:'a4',compress:true});
+  const rg=document.createRange();
+  secs.forEach((sec,pi)=>{
+    if(pi) pdf.addPage();
+    const o=sec.getBoundingClientRect();
+    sec.querySelectorAll('img').forEach(im=>{ const r=im.getBoundingClientRect(); if(!r.width||!r.height) return; const src=im.currentSrc||im.src;
+      const tp=/^data:image\/png/i.test(src)?'PNG':(/^data:image\/(jpe?g)/i.test(src)?'JPEG':null); if(!tp) return;
+      try{ pdf.addImage(src,tp,(r.left-o.left)*K,(r.top-o.top)*K,r.width*K,r.height*K); }catch(_){ } });
+    sec.querySelectorAll('td,th').forEach(td=>{ const r=td.getBoundingClientRect(), cs=getComputedStyle(td); const x=(r.left-o.left)*K,y=(r.top-o.top)*K,w=r.width*K,h=r.height*K;
+      const bw=(k)=>(cs['border'+k+'Style']==='none'||cs['border'+k+'Style']==='hidden')?0:(parseFloat(cs['border'+k+'Width'])||0); pdf.setDrawColor(0);
+      if(bw('Top')>0){ pdf.setLineWidth(bw('Top')*K); pdf.line(x,y,x+w,y); } if(bw('Bottom')>0){ pdf.setLineWidth(bw('Bottom')*K); pdf.line(x,y+h,x+w,y+h); }
+      if(bw('Left')>0){ pdf.setLineWidth(bw('Left')*K); pdf.line(x,y,x,y+h); } if(bw('Right')>0){ pdf.setLineWidth(bw('Right')*K); pdf.line(x+w,y,x+w,y+h); } });
+    const tw=document.createTreeWalker(sec,NodeFilter.SHOW_TEXT,null); let node;
+    while((node=tw.nextNode())){
+      const txt=node.nodeValue; if(!txt||!txt.trim()) continue;
+      const el=node.parentElement; const cs=getComputedStyle(el); if(cs.display==='none'||cs.visibility==='hidden') continue;
+      const fs=parseFloat(cs.fontSize)*K; if(!fs) continue;
+      const bold=parseInt(cs.fontWeight,10)>=600||cs.fontWeight==='bold', it=cs.fontStyle==='italic';
+      pdf.setFont('helvetica',bold&&it?'bolditalic':(bold?'bold':(it?'italic':'normal'))); pdf.setFontSize(fs);
+      const m=/rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(cs.color); if(m) pdf.setTextColor(+m[1],+m[2],+m[3]); else pdf.setTextColor(0);
+      const und=/underline/.test(cs.textDecorationLine||cs.textDecoration||''), caps=cs.textTransform==='uppercase';
+      const re=/\S+/g; let mm;
+      while((mm=re.exec(txt))){
+        rg.setStart(node,mm.index); rg.setEnd(node,mm.index+mm[0].length);
+        const rs=rg.getClientRects(); if(!rs.length) continue;
+        const r=rs[0]; if(r.top<o.top-1||r.top>o.bottom) continue;
+        const x=(r.left-o.left)*K, y=(r.top-o.top)*K+fs*0.905;
+        let w=mm[0].replace(/[   ]/g,' ').replace(/‑/g,'-'); if(caps) w=w.toUpperCase();
+        pdf.text(w,x,y);
+        if(und){ pdf.setLineWidth(Math.max(.5,fs*.06)); pdf.line(x,y+fs*.12,x+r.width*K,y+fs*.12); }
+      }
+    }
+  });
+  return pdf.output('blob');
+}
 
 /* ---- tela ---- */
 let ctModelo='full'; let ctCliSel=''; let ctSignatario='bernardo'; let ctRasc={}; let ctLeads=[];
@@ -12653,7 +12751,7 @@ function renderContratos(c){
   const pinta=()=>{
     c.innerHTML=`
    <div class="page-head">
-     <div><h2>Contratos</h2><div class="desc">Preenche e baixa o .docx pronto. O valor total sai do mensal × prazo, sem redigitar.</div></div>
+     <div><h2>Contratos</h2><div class="desc">Preenche, confere e baixa o PDF pronto (ou o .docx). O valor total sai do mensal × prazo, sem redigitar.</div></div>
      <div class="toolbar">
        <button class="btn secondary small" onclick="ctCopiarLink()">🔗 Link do formulário</button>
        <button class="btn secondary small" onclick="cfAbrir()">📋 Respostas dos clientes</button>
@@ -12790,6 +12888,8 @@ window.ctArquivarLead=async (id)=>{
   render('contratos');
 };
 
+/* Agente de IA e CRM nao tem midia: a verba minima semanal nem e perguntada (Gabriel 08/09) */
+const ctNegocio=()=>CT_NEGOCIO.filter(([k])=>k!=='verba_minima'||ctModelo!=='ia_crm');
 window.ctForm=()=>{
   const base=Object.assign(ctDoCliente(ctCliSel),ctRasc);
   const campo=([k,rot,pad])=>{
@@ -12802,10 +12902,10 @@ window.ctForm=()=>{
     <div class="k" style="margin:4px 0 10px">Dados do cliente</div>
     <div class="row2">${CT_CLIENTE.map(campo).join('')}</div>
     <div class="k" style="margin:18px 0 10px">Condições comerciais</div>
-    <div class="row2">${CT_NEGOCIO.map(campo).join('')}</div>
+    <div class="row2">${ctNegocio().map(campo).join('')}</div>
     <div id="ctPrev" class="card" style="margin-top:14px"></div>`,
   async ()=>{
-    const todos=[...CT_CLIENTE,...CT_NEGOCIO];
+    const todos=[...CT_CLIENTE,...ctNegocio()];
     const d={}; todos.forEach(([k])=>{ d[k]=(($('#ct_'+k)||{}).value||'').trim(); });
     const prob=ctConfereDocs(d.contratante_cnpj,d.rep_cpf);
     if(prob){ toast(prob); return false; }
