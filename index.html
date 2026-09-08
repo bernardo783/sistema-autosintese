@@ -13393,8 +13393,9 @@ function mpPintar(){
     const b=document.createElement('button'); b.className='mp-kpibt'; b.title='KPI — suas notas e progresso';
     b.onclick=()=>mpIrKpi();
     b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/><circle cx="19" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>';
+    /* ordem no topo (Gabriel 08/09): lupa, sino, KPI */
     const sn=tb.querySelector('.mp-sino');
-    if(sn) tb.insertBefore(b,sn); else { const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); } })();
+    if(sn) sn.insertAdjacentElement('afterend',b); else { const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); } })();
   /* foto do usuario pequena dentro do chip "Pessoal" (Gabriel 07/09): e o seletor de workspace */
   (function(){ const e=document.querySelector('#topbar .tb-esp'); if(!e||!currentUser) return;
     if(!e.dataset.mp){ e.dataset.mp='1';
