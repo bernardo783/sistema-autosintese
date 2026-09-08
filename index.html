@@ -13408,8 +13408,7 @@ function mpHabCards(){
     '<button class="mp-addrow" onclick="mpHabitoModal()">+ Adicionar hábito</button>';
 }
 function mpHabsHTML(){ return mpHabCards(); }
-window.mpIrTarNova=()=>{ MP.aba='tarefas'; MP.tarNova=true; MP.evtNovo=false; mpPintar();
-  setTimeout(()=>{ const e=$('#mpTarNm'); if(e) e.focus(); },60); };
+window.mpIrTarNova=()=>{ MP.aba='tarefas'; MP.evtNovo=false; mpPintar(); mpTarNovaCard(); };
 /* Inicio F1 (celular): a data como titulo, setas de um dia, fio de progresso, lista unica */
 function mpIniMobileHTML(){
   const hoje=tkHoje(); if(!MP.iniDia) MP.iniDia=hoje;
@@ -13915,29 +13914,63 @@ function mpTarHTML(){
   const dia=MP.dia;
   const ts=mpTarDia(dia), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
   const semData=mpTarSemData();
-  const evts=mpEvtsOrd(dia);
-  const tarRow=mpTarRow, evtRow=mpEvtRow;
+  const tarRow=mpTarRow;
+  /* Aba Tarefas so cuida de tarefa (Gabriel 08/09): a agenda de eventos e o Google
+     Calendar moram na aba Agenda. Nova tarefa abre o mesmo cartao da edicao, com
+     Dia e Hora — a linha inline so aceitava o nome e herdava o dia da tira. */
   return mpStrip()+
     '<div class="mp-psub" style="margin-bottom:14px">'+(ts.length?feitas.length+' de '+ts.length+' concluída'+(ts.length>1?'s':''):'')+'</div>'+
-    '<div class="mp-sech">Pendentes · '+pend.length+'<button class="mp-add" onclick="mpTarNovaTgl()">+ Nova tarefa</button></div>'+
-    (MP.tarNova?'<div class="mp-trw"><input type="text" id="mpTarNm" placeholder="Nome da tarefa…" onkeydown="if(event.key===\'Enter\')mpTarAdd()"><button class="btn small" onclick="mpTarAdd()">'+svgIco('check',12)+'</button></div>':'')+
-    (pend.length?pend.map(tarRow).join(''):(MP.tarNova?'':'<div class="hint" style="margin-bottom:8px">Nada pra este dia.</div>'))+
+    '<div class="mp-sech">Pendentes · '+pend.length+'<button class="mp-add" onclick="mpTarNovaCard()">+ Nova tarefa</button></div>'+
+    (pend.length?pend.map(tarRow).join(''):'<div class="hint" style="margin-bottom:8px">Nada pra este dia.</div>')+
     (feitas.length?feitas.map(tarRow).join(''):'')+
     (semData.length?'<div class="mp-sech" style="margin-top:18px">Sem data · '+semData.length+'</div>'+
-      semData.map(t=>'<div class="mp-trw"><button class="o'+(mpFeita(t)?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button><span class="tt">'+esc(t.titulo||'')+'</span>'+
+      semData.map(t=>'<div class="mp-trw"><button class="o'+(mpFeita(t)?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button><span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'</span>'+
       '<button class="x" title="Agendar pra '+mpCurto(dia)+'" style="font-size:12px" onclick="mpTarPraDia(\''+t.id+'\')">'+svgIco('calendario',13)+'</button>'+
-      '<button class="x" title="Apagar" onclick="mpTarDel(\''+t.id+'\')">×</button></div>').join(''):'')+
-    '<div class="mp-sech" style="margin-top:18px">Agenda · '+evts.length+'<button class="mp-add" onclick="mpEvtNovoTgl()">+ Novo evento</button></div>'+
-    (MP.g?'<div class="mp-sync">'+svgIco('calendario',12)+'sincronizada com o Google Calendar'+(MP.g.google_email?' · '+esc(MP.g.google_email):'')+
-      ' <button class="mp-add" style="margin-left:0" onclick="mpGAtualizar()">atualizar</button></div>'
-      :'<div class="mp-sync"><button class="mp-add" style="margin-left:0" onclick="mpGConectar()">Conectar Google Agenda</button>'+
-       '<button class="mp-add" style="margin-left:0" onclick="mpGChecar()">já conectei</button></div>')+
-    (MP.evtNovo?'<div class="mp-trw"><input type="text" id="mpEvtNm" placeholder="Nome do evento…" onkeydown="if(event.key===\'Enter\')mpEvtAdd()"><input type="time" id="mpEvtHr"><button class="btn small" onclick="mpEvtAdd()">'+svgIco('check',12)+'</button></div>':'')+
-    (evts.length?evts.map(evtRow).join(''):(MP.evtNovo?'':'<div class="hint">Nenhum evento neste dia.</div>'));
+      '<button class="x" title="Apagar" onclick="mpTarDel(\''+t.id+'\')">×</button></div>').join(''):'');
 }
 window.mpDiaSel=(iso)=>{ MP.dia=iso; MP.evtNovo=false; mpPintar(); };
 window.mpDiaNav=(n)=>{ MP.dia=tkDiaMais(MP.dia,n); mpPintar(); };
-window.mpTarNovaTgl=()=>{ MP.tarNova=!MP.tarNova; mpPintar(); };
+window.mpTarNovaTgl=()=>{ mpTarNovaCard(); };
+/* Cartao de nova tarefa: mesmo desenho do cartao de edicao, so com titulo, Dia, Hora
+   e notas. Etapas so aparecem depois que a tarefa existe. */
+window.mpTarNovaCard=(diaIni)=>{
+  const hj=tkHoje(), dia=diaIni||MP.dia||hj;
+  const chips=[['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Seg '+Number(tkDiaMais(mpSegDa(hj),7).slice(8,10)),tkDiaMais(mpSegDa(hj),7)],['Sem dia','']];
+  modal('Nova tarefa',
+    '<div class="tc">'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button></div>'+
+    '<div class="tc-tit"><span class="tc-o vz"></span>'+
+      '<input id="mtc_tt" class="tc-in" value="" placeholder="O que precisa ser feito?"/></div>'+
+    '<div class="tc-props">'+
+      '<button type="button" class="tc-p" onclick="mpTcDiaTgl()"><small>Dia</small><b id="mtc_dtl">'+esc(mpTcRotDia(dia))+'</b><i>›</i></button>'+
+      '<div id="mtc_dtbox" class="tc-box" hidden><div class="tc-chips">'+chips.map(c=>'<button type="button" class="tc-chip'+(c[1]===dia?' on':'')+'" data-d="'+c[1]+'" onclick="mpTcDia(\''+c[1]+'\')">'+c[0]+'</button>').join('')+
+        '<button type="button" class="tc-chip" onclick="var i=document.getElementById(\'mtc_dt\');i.hidden=false;i.focus();try{i.showPicker&&i.showPicker()}catch(e){}">Outro</button></div>'+
+        '<input type="date" id="mtc_dt" class="tc-date" value="'+esc(dia)+'" onchange="mpTcRotulos()" '+(chips.some(c=>c[1]===dia)?'hidden':'')+'/></div>'+
+      '<button type="button" class="tc-p" onclick="mpTcHoraTgl()"><small>Hora</small><b id="mtc_hrl" class="vz">nenhuma</b><i>›</i></button>'+
+      '<div id="mtc_hrbox" class="tc-box" hidden><div class="tc-chips"><input type="time" id="mtc_hr" class="tc-date" value="" onchange="mpTcRotulos()"/>'+
+        '<button type="button" class="tc-chip" onclick="mpTcHora(\'\')">Sem hora</button></div></div>'+
+    '</div>'+
+    '<div class="tc-sec">Notas</div>'+
+    '<textarea id="mtc_ds" class="tc-ds" rows="3" placeholder="Notas"></textarea>'+
+    '<button type="button" class="tc-pronto" onclick="document.querySelector(\'.overlay .msave\').click()">Criar tarefa</button>'+
+    '</div>',
+    async ()=>{
+      const tt=(($('#mtc_tt')||{}).value||'').trim();
+      if(!tt){ toast('Dá um nome pra tarefa.'); return false; }
+      const l=await pessoalGarantir(); if(!l) return false;
+      const uid=currentUser.id;
+      const r=await sb.from('tarefas').insert({titulo:tt,lista_id:l.id,status:'todo',
+        prazo:(($('#mtc_dt')||{}).value||'')||null, hora:((($('#mtc_hr')||{}).value||'').slice(0,5))||null,
+        descricao:(($('#mtc_ds')||{}).value||'')||null,
+        responsavel_id:uid,responsaveis:[uid],criado_por:uid}).select().single();
+      if(r.error){ toast('Erro: '+r.error.message); return false; }
+      TK.tarefas.push(r.data);
+      if(r.data.prazo) MP.dia=String(r.data.prazo).slice(0,10);
+      mpPintar();
+    });
+  const ov=document.querySelector('.overlay'); if(ov) ov.classList.add('tc-ov');
+  setTimeout(()=>{ const i=$('#mtc_tt'); if(i) i.focus(); },60);
+};
 window.mpEvtNovoTgl=()=>{ MP.evtNovo=!MP.evtNovo; mpPintar(); const e=$('#mpEvtNm'); if(e) e.focus(); };
 
 window.mpTarAdd=async()=>{
