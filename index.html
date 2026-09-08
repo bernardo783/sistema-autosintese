@@ -12540,6 +12540,38 @@ function ctJuntaMarcadores(xml){
     return out+par.slice(cur);
   });
 }
+/* Data fixa esquecida no modelo (Gabriel 08/09): "...primeira parcela ... ocorrerá no dia 11/12/2025"
+   sem {{data_primeira_parcela}}. Troca a data escrita pela do formulario, run a run, sem perder
+   negrito. O certo continua sendo o marcador no Word; isto e a rede de seguranca. */
+const CT_FIXAS=[
+  {re:/(primeira\s+parcela[\s\S]{0,120}?\bdia\s+)(\d{2}\/\d{2}\/\d{4})/i, campo:'data_primeira_parcela'},
+  {re:/(in[ií]cio\s+da\s+vig[êe]ncia[\s\S]{0,80}?\bdia\s+)(\d{2}\/\d{2}\/\d{4})/i, campo:'data_inicio'}
+];
+function ctTrocaDatasFixas(xml,d){
+  const RUN=/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g;
+  return xml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g,(par)=>{
+    const runs=[]; let m; RUN.lastIndex=0;
+    while((m=RUN.exec(par))){ const ts=m[0].match(CT_T)||[]; if(!ts.length) continue;
+      runs.push({ini:m.index,fim:m.index+m[0].length,xml:m[0],txt:ctUnesc(ts.map(t=>t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,'')).join(''))}); }
+    if(!runs.length) return par;
+    let todo=runs.map(r=>r.txt).join(''), mexeu=false;
+    CT_FIXAS.forEach(f=>{ const v=d[f.campo]; if(!v||!/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return;
+      const mm=f.re.exec(todo); if(!mm||mm[2]===v) return;
+      const a=mm.index+mm[1].length, b=a+mm[2].length;
+      let acc=0; const pos=runs.map((r,i)=>{ const p={i,a:acc,b:acc+r.txt.length}; acc+=r.txt.length; return p; });
+      const i0=pos.find(p=>a>=p.a&&a<p.b), i1=pos.find(p=>b-1>=p.a&&b-1<p.b); if(!i0||!i1) return;
+      if(i0.i===i1.i){ const r=runs[i0.i]; r.txt=r.txt.slice(0,a-i0.a)+v+r.txt.slice(b-i0.a); }
+      else{ const r=runs[i0.i]; let junto=''; for(let k=i0.i;k<=i1.i;k++){ junto+=runs[k].txt; if(k>i0.i) runs[k].txt=''; }
+        r.txt=junto.slice(0,a-i0.a)+v+junto.slice(b-i0.a); }
+      todo=runs.map(r=>r.txt).join(''); mexeu=true; });
+    if(!mexeu) return par;
+    let out='', cur=0;
+    runs.forEach(r=>{ out+=par.slice(cur,r.ini); let primeiro=true;
+      out+=r.xml.replace(CT_T,(_a,ab,_mi,fe)=>{ const corpo=primeiro?ctEsc(r.txt):''; primeiro=false; const abre=ab.indexOf('xml:space')>=0?ab:ab.replace('<w:t','<w:t xml:space="preserve"'); return abre+corpo+fe; });
+      cur=r.fim; });
+    return out+par.slice(cur);
+  });
+}
 async function ctGerar(slug,dados,nomeArquivo){
   const {zip}=await ctModeloZip(slug);
   const d=ctResolver(dados);
@@ -12549,7 +12581,7 @@ async function ctGerar(slug,dados,nomeArquivo){
     let xml=ctJuntaMarcadores(await f.async('string'));
     xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k];
       if(v===undefined||v===''){ faltando.add(k); return todo; } return ctEsc(v); });
-    if(alvo==='word/document.xml') xml=ctAssinaturasCentro(xml);
+    if(alvo==='word/document.xml') xml=ctAssinaturasCentro(ctTrocaDatasFixas(xml,d));
     zip.file(alvo,xml);
   }
   const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
@@ -12606,7 +12638,7 @@ window.ctEditor=async (slug,dados,nomeArquivo)=>{
     let xml=ctJuntaMarcadores(await f.async('string'));
     xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k];
       if(v===undefined||v===''){ faltando.add(k); return todo; } return ctEsc(v); });
-    if(alvo==='word/document.xml') xml=ctAssinaturasCentro(xml);
+    if(alvo==='word/document.xml') xml=ctAssinaturasCentro(ctTrocaDatasFixas(xml,d));
     zip.file(alvo,xml);
   }
   const xml=await zip.file('word/document.xml').async('string');
