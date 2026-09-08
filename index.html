@@ -12333,6 +12333,7 @@ const CT_CLIENTE=[
 const CT_NEGOCIO=[
   ['vigencia','Vigência','12 (doze) meses'],
   ['valor_mensal','Valor mensal (R$)',''],
+  ['data_contrato','Data de assinatura',''],
   ['data_inicio','Início da vigência',''],
   ['data_vencimento','Dia do vencimento (1 a 31)',''],
   ['data_primeira_parcela','Vencimento da 1ª parcela',''],
@@ -12417,7 +12418,7 @@ function ctCPFValido(v){
   return dv(9)===Number(d[9])&&dv(10)===Number(d[10]);
 }
 const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_tel:'ctMascTel'};
-const CT_DATA={rep_nascimento:1,data_inicio:1,data_primeira_parcela:1}; /* 1a parcela e data de verdade: calendario e dd/mm/aaaa no contrato (Gabriel 08/09) */
+const CT_DATA={rep_nascimento:1,data_inicio:1,data_primeira_parcela:1,data_contrato:1}; /* 1a parcela e data de verdade: calendario e dd/mm/aaaa no contrato (Gabriel 08/09) */
 const CT_VIGENCIAS=(()=>{ const e=['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze'];
   return e.map((x,i)=>(i+1)+' ('+x+') '+(i?'meses':'mês')); })();
 const CT_PAGAMENTOS=['Boleto Bancário ou PIX','Boleto Bancário','PIX','Cartão de Crédito','Boleto Bancário ou Cartão de Crédito'];
@@ -12554,7 +12555,9 @@ function ctJuntaMarcadores(xml){
    negrito. O certo continua sendo o marcador no Word; isto e a rede de seguranca. */
 const CT_FIXAS=[
   {re:/(primeira\s+parcela[\s\S]{0,120}?\bdia\s+)(\d{2}\/\d{2}\/\d{4})/i, campo:'data_primeira_parcela'},
-  {re:/(in[ií]cio\s+da\s+vig[êe]ncia[\s\S]{0,80}?\bdia\s+)(\d{2}\/\d{2}\/\d{4})/i, campo:'data_inicio'}
+  {re:/(in[ií]cio\s+da\s+vig[êe]ncia[\s\S]{0,80}?\bdia\s+)(\d{2}\/\d{2}\/\d{4})/i, campo:'data_inicio'},
+  /* "São Paulo, 11 de dezembro de 2025." escrito fixo no fim do contrato */
+  {re:/([A-ZÀ-Ú][\wÀ-ÿ]+(?:\s[A-ZÀ-Ú][\wÀ-ÿ]+)*,\s*)(\d{1,2}\s+de\s+(?:janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4})/i, campo:'data_contrato_extenso', ok:v=>/^\d{1,2} de \S+ de \d{4}$/.test(v)}
 ];
 function ctTrocaDatasFixas(xml,d){
   const RUN=/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g;
@@ -12564,7 +12567,7 @@ function ctTrocaDatasFixas(xml,d){
       runs.push({ini:m.index,fim:m.index+m[0].length,xml:m[0],txt:ctUnesc(ts.map(t=>t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,'')).join(''))}); }
     if(!runs.length) return par;
     let todo=runs.map(r=>r.txt).join(''), mexeu=false;
-    CT_FIXAS.forEach(f=>{ const v=d[f.campo]; if(!v||!/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return;
+    CT_FIXAS.forEach(f=>{ const v=d[f.campo]; if(!v||!(f.ok?f.ok(v):/^\d{2}\/\d{2}\/\d{4}$/.test(v))) return;
       const mm=f.re.exec(todo); if(!mm||mm[2]===v) return;
       const a=mm.index+mm[1].length, b=a+mm[2].length;
       let acc=0; const pos=runs.map((r,i)=>{ const p={i,a:acc,b:acc+r.txt.length}; acc+=r.txt.length; return p; });
@@ -12985,7 +12988,7 @@ const ctNegocio=()=>CT_NEGOCIO.filter(([k])=>k!=='verba_minima'||ctModelo!=='ia_
 window.ctForm=()=>{
   const base=Object.assign(ctDoCliente(ctCliSel),ctRasc);
   const campo=([k,rot,pad])=>{
-    const v0=base[k]||pad||'', ops=CT_OPCOES[k], m=CT_MASC[k];
+    const v0=base[k]||pad||(k==='data_contrato'?hojeISO():''), ops=CT_OPCOES[k], m=CT_MASC[k];
     if(ops) return `<div class="field"><label>${esc(rot)}</label><select id="ct_${k}" ${k==='vigencia'?'onchange="ctPrevia()"':''}>${ops.map(o=>`<option value="${esc(o)}"${o===v0?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
     let v=m?window[m](v0):v0;
     if(CT_DATA[k]&&/^\d{2}\/\d{2}\/\d{4}$/.test(v)) v=v.split('/').reverse().join('-'); /* veio dd/mm/aaaa da ficha: o calendario quer ISO */
