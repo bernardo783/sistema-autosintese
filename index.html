@@ -12501,8 +12501,17 @@ function ctAssinaturasCentro(xml){
     const ts=par.match(CT_T)||[];
     const txt=ts.map(t=>ctUnesc(t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,''))).join('').replace(/[\s ]+/g,' ').trim();
     const norm=txt.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[:.]$/,'');
-    if(!(/^(CONTRATANTE|CONTRATADA|CONTRATADO)$/.test(norm)||/^_{4,}$/.test(txt))) return par;
+    const combo=/^(_{4,})\s*(CONTRATANTE|CONTRATADA|CONTRATADO)[:.]?$/.exec(norm)||(/^(CONTRATANTE|CONTRATADA|CONTRATADO)[:.]?\s*(_{4,})$/.test(norm)?[0,norm.match(/_{4,}/)[0],norm.match(/CONTRATANTE|CONTRATADA|CONTRATADO/)[0]]:null);
+    if(!(/^(CONTRATANTE|CONTRATADA|CONTRATADO)$/.test(norm)||/^_{4,}$/.test(txt)||combo)) return par;
     let p=par.replace(/<w:tab\s*\/>|<w:tab><\/w:tab>|<w:ptab[^>]*\/>/g,'');
+    if(combo){
+      /* linha e rotulo no mesmo paragrafo ("________ CONTRATANTE" alinhado a direita): vira
+         linha, quebra, rotulo — um run so, com a formatacao do primeiro, tudo centralizado */
+      const rpr=(p.match(/<w:r(?:\s[^>]*)?>\s*(<w:rPr>[\s\S]*?<\/w:rPr>)/)||[])[1]||'';
+      const rotulo=(txt.match(/CONTRATANTE|CONTRATADA|CONTRATADO/i)||[combo[2]])[0];
+      const runNovo='<w:r>'+rpr+'<w:t>'+combo[1]+'</w:t><w:br/><w:t>'+rotulo+'</w:t></w:r>';
+      let trocou=false; p=p.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g,(r)=>{ if(!/<w:t(?:\s[^>]*)?>/.test(r)) return r; if(trocou) return ''; trocou=true; return runNovo; });
+    }
     p=p.replace(CT_T,(_a,ab,mi,fe)=>ab+mi.replace(/^[\s ]+|[\s ]+$/g,'')+fe);
     const jc='<w:jc w:val="center"/>';
     if(/<w:pPr>[\s\S]*?<\/w:pPr>/.test(p)){
