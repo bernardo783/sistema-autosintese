@@ -12498,29 +12498,38 @@ async function ctCamposDoZip(zip){
    pra "empurrar" o texto e que desalinhava no Word e no PDF. */
 function ctAssinaturasCentro(xml){
   const CT_PAR2=/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g;
-  return xml.replace(CT_PAR2,(par)=>{
-    const ts=par.match(CT_T)||[];
-    const txt=ts.map(t=>ctUnesc(t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,''))).join('').replace(/[\s ]+/g,' ').trim();
-    const norm=txt.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[:.]$/,'');
-    const combo=/^(_{4,})\s*(CONTRATANTE|CONTRATADA|CONTRATADO)[:.]?$/.exec(norm)||(/^(CONTRATANTE|CONTRATADA|CONTRATADO)[:.]?\s*(_{4,})$/.test(norm)?[0,norm.match(/_{4,}/)[0],norm.match(/CONTRATANTE|CONTRATADA|CONTRATADO/)[0]]:null);
-    if(!(/^(CONTRATANTE|CONTRATADA|CONTRATADO)$/.test(norm)||/^_{4,}$/.test(txt)||combo)) return par;
-    let p=par.replace(/<w:tab\s*\/>|<w:tab><\/w:tab>|<w:ptab[^>]*\/>/g,'');
+  const ps=[]; let m; while((m=CT_PAR2.exec(xml))){ const ts=m[0].match(CT_T)||[];
+    const txt=ts.map(t=>ctUnesc(t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,''))).join('').replace(/[\s ]+/g,' ').trim();
+    ps.push({ini:m.index,fim:m.index+m[0].length,par:m[0],txt}); }
+  const ROT=/^(CONTRATANTE|CONTRATADA|CONTRATADO)[:]?$/;
+  const norm=(t)=>t.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+  const ehLinha=(p)=>/^_{4,}$/.test(p.txt);
+  const vizinho=(k,d)=>{ for(let q=k+d;q>=0&&q<ps.length;q+=d){ if(ps[q].txt) return ps[q]; } return null; };
+  ps.forEach((p,k)=>{
+    const n=norm(p.txt);
+    /* "CONTRATANTE." sozinho numa linha e o fim de uma frase da clausula anterior, nao assinatura:
+       so vale como assinatura se tem a linha de ______ no proprio paragrafo ou no vizinho */
+    const combo=/^(_{4,})\s*(CONTRATANTE|CONTRATADA|CONTRATADO)[:]?$/.exec(n)||(/^(CONTRATANTE|CONTRATADA|CONTRATADO)[:]?\s*(_{4,})$/.test(n)?[0,n.match(/_{4,}/)[0],n.match(/CONTRATANTE|CONTRATADA|CONTRATADO/)[0]]:null);
+    const rotulo=ROT.test(n)&&((vizinho(k,-1)&&ehLinha(vizinho(k,-1)))||(vizinho(k,1)&&ehLinha(vizinho(k,1))));
+    const linha=ehLinha(p)&&(function(){ const a=vizinho(k,-1),b=vizinho(k,1); return (a&&ROT.test(norm(a.txt)))||(b&&ROT.test(norm(b.txt))); })();
+    if(!(combo||rotulo||linha)) return;
+    let x=p.par.replace(/<w:tab\s*\/>|<w:tab><\/w:tab>|<w:ptab[^>]*\/>/g,'');
     if(combo){
-      /* linha e rotulo no mesmo paragrafo ("________ CONTRATANTE" alinhado a direita): vira
-         linha, quebra, rotulo — um run so, com a formatacao do primeiro, tudo centralizado */
-      const rpr=(p.match(/<w:r(?:\s[^>]*)?>\s*(<w:rPr>[\s\S]*?<\/w:rPr>)/)||[])[1]||'';
-      const rotulo=(txt.match(/CONTRATANTE|CONTRATADA|CONTRATADO/i)||[combo[2]])[0];
-      const runNovo='<w:r>'+rpr+'<w:t>'+combo[1]+'</w:t><w:br/><w:t>'+rotulo+'</w:t></w:r>';
-      let trocou=false; p=p.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g,(r)=>{ if(!/<w:t(?:\s[^>]*)?>/.test(r)) return r; if(trocou) return ''; trocou=true; return runNovo; });
+      const rpr=(x.match(/<w:r(?:\s[^>]*)?>\s*(<w:rPr>[\s\S]*?<\/w:rPr>)/)||[])[1]||'';
+      const rot=(p.txt.match(/CONTRATANTE|CONTRATADA|CONTRATADO/i)||[combo[2]])[0];
+      const runNovo='<w:r>'+rpr+'<w:t>'+combo[1]+'</w:t><w:br/><w:t>'+rot+'</w:t></w:r>';
+      let trocou=false; x=x.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g,(r)=>{ if(!/<w:t(?:\s[^>]*)?>/.test(r)) return r; if(trocou) return ''; trocou=true; return runNovo; });
     }
-    p=p.replace(CT_T,(_a,ab,mi,fe)=>ab+mi.replace(/^[\s ]+|[\s ]+$/g,'')+fe);
+    x=x.replace(CT_T,(_a,ab,mi,fe)=>ab+mi.replace(/^[\s ]+|[\s ]+$/g,'')+fe);
     const jc='<w:jc w:val="center"/>';
-    if(/<w:pPr>[\s\S]*?<\/w:pPr>/.test(p)){
-      p=p.replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/,(_m,inner)=>{ let i=inner.replace(/<w:jc[^>]*\/>/g,'').replace(/<w:ind[^>]*\/>/g,'');
-        i=/<w:rPr>/.test(i)?i.replace('<w:rPr>',jc+'<w:rPr>'):i+jc; return '<w:pPr>'+i+'</w:pPr>'; });
-    }else{ p=p.replace(/^(<w:p(?:\s[^>]*)?>)/,'$1<w:pPr>'+jc+'</w:pPr>'); }
-    return p;
+    if(/<w:pPr>[\s\S]*?<\/w:pPr>/.test(x)){
+      x=x.replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/,(_m,inner)=>{ let ii=inner.replace(/<w:jc[^>]*\/>/g,'').replace(/<w:ind[^>]*\/>/g,'');
+        ii=/<w:rPr>/.test(ii)?ii.replace('<w:rPr>',jc+'<w:rPr>'):ii+jc; return '<w:pPr>'+ii+'</w:pPr>'; });
+    }else{ x=x.replace(/^(<w:p(?:\s[^>]*)?>)/,'$1<w:pPr>'+jc+'</w:pPr>'); }
+    p.novo=x;
   });
+  let out='',cur=0; ps.forEach(p=>{ if(!p.novo) return; out+=xml.slice(cur,p.ini)+p.novo; cur=p.fim; });
+  return out+xml.slice(cur);
 }
 /* O Word quebra {{marcador}} em varios <w:r> (corretor, formatacao, rsid) e o {{...}}
    deixa de existir no XML — dai "{{data_contrato_extenso}}" chegava intacto no contrato.
