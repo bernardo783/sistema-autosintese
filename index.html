@@ -13535,10 +13535,10 @@ function mpInicioHTML(){
     '</div>'+
     (MP.habitos.length?mpHabCards():mpZeroHTML())+
     '<div class="mp-sech" style="margin-top:26px">Tarefas de hoje · '+ts.length+'<button class="mp-add" onclick="mpIrTarNova()">+ Nova tarefa</button></div>'+
-    (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>')+
-    /* KPI mora aqui também: o Início é o lugar único — semana, nota por período e comparativo.
-       Sem habito ele nao aparece (3A): era um bloco inteiro de controle morto. */
-    (MP.habitos.length?'<div class="mp-sech" id="mpKpi" style="margin-top:34px">KPI · Progresso</div>'+mpProgHTML():'');
+    (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>');
+    /* KPI saiu do Inicio tambem no PC (Gabriel 01/09). Ele ja estava fora no celular;
+       no desktop enchia o fim da tela com um bloco que ninguem rolava ate. Continua
+       inteiro na tela propria — botao do grafico na barra de cima (mpIrKpi). */
 }
 
 /* ---------- aba Progresso ---------- */
