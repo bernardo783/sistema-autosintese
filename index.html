@@ -2300,6 +2300,26 @@
 .mp-pills{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
 .mp-pill{padding:6px 13px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit}
 .mp-pill.on{background:var(--brand);border-color:var(--brand);color:#fff}
+/* KPI enxuto */
+.kp{max-width:560px}
+.kp-pills{margin:0 0 6px}
+.kp-dts{display:flex;align-items:center;gap:8px;margin:6px 0 2px;font-size:12px;color:var(--muted)}
+.kp-big{display:flex;align-items:flex-end;gap:12px;margin:14px 0 0}
+.kp-big b{font-size:52px;font-weight:900;letter-spacing:-.06em;line-height:.85;font-variant-numeric:tabular-nums;color:var(--txt)}
+.kp-big .v{padding-bottom:5px}
+.kp-big .v em{font-style:normal;font-size:13px;font-weight:800;display:block}
+.kp-big .v small{display:block;font-size:11px;color:var(--fraco);font-weight:600;margin-top:2px}
+.kp-spark{margin:12px 0 0;position:relative}
+.kp-spark svg{width:100%;height:86px;display:block}
+.kp-spark .lb{display:flex;justify-content:space-between;font-size:10px;color:var(--fraco);font-weight:700;margin-top:4px}
+.kp-vz{height:86px;display:grid;place-items:center;color:var(--fraco);font-size:12px;border:1px dashed var(--line);border-radius:12px}
+.kp-sec{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 2px;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco)}
+.kp-sec small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
+.kp-hl .r{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;font-weight:600;cursor:pointer}
+.kp-hl .r:last-child{border-bottom:0}
+.kp-hl .r .ic{width:7px;height:7px;border-radius:50%;flex:none}
+.kp-hl .r .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-hl .r .pc{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--txt)}
 .mp-cmp{display:flex;gap:14px;align-items:flex-end;height:150px;padding:8px 2px 0}
 .mp-cmp .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
 .mp-cmp .bar{width:100%;max-width:56px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,var(--brand2),var(--brand));min-height:3px}
@@ -13654,44 +13674,43 @@ function mpRotSem(seg){
   if(dif===1) return 'semana que vem';
   return dif<0?(-dif)+' semanas atrás':'daqui a '+dif+' semanas';
 }
+/* KPI enxuto (Gabriel 08/09, "K3 com filtros do K1 + personalizado"): filtro de periodo,
+   nota grande com variacao, UMA linha com a nota de cada dia, e a lista de habitos com %.
+   Saiu: grade da semana, placar de 5 barras, resumo (dias perfeitos/melhor/travando) e constancia. */
 function mpProgHTML(){
-  const seg=MP.sem, ds=mpDias7(seg), hoje=tkHoje();
-  const ns=mpNotaFaixa(seg,ds[6]);
-  const ordem=[1,2,3,4,5,6,0];
-  const dias=ordem.map(i=>ds.filter(x=>mpDow(x)===i)[0]);
-  /* uma linha por habito: nome, dias seguidos e a semana em 7 blocos.
-     Substitui a tabela — com 1 ou 2 habitos a grade era quase toda espaco morto. */
-  const cab='<div class="mp-hrow cab"><span></span><span></span><div class="mp-hsem">'+
-    dias.map((d,ix)=>'<div class="lb'+(d===hoje?' hj':'')+'">'+MP_SEMD[ordem[ix]].toUpperCase()+'</div>').join('')+'</div></div>';
-  const linhas=mpPorHora(MP.habitos).map(h=>{
-    const sq=mpSeq(h);
-    return '<div class="mp-hrow">'+
-      '<div class="mp-hrnm"><span style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,14)+'</span>'+esc(h.nome)+'</div>'+
-      '<span class="mp-seq'+(sq>1?'':' off')+'" title="dias seguidos">'+svgIco('raio',11)+(sq>1?sq:'')+'</span>'+
-      '<div class="mp-hsem">'+dias.map(d=>{
-        const c=mpCelCls(h,d,hoje);
-        const clk=(c==='ok'||c==='miss')?' onclick="mpCheck(\''+h.id+'\',\''+d+'\')"':'';
-        let tit=esc(h.nome)+' · '+mpCurto(d);
-        if(c==='ok') tit+=' — feito'; else if(c==='miss') tit+=(d===hoje?' — marcar':' — ficou pra trás');
-        else if(c==='fut') tit+=' — programado';
-        return '<div class="mp-cel '+c+(d===hoje?' hj':'')+'" title="'+tit+'"'+clk+'></div>';
-      }).join('')+'</div></div>';
-  }).join('');
-  const fx=mpFaixaAtual(), np=mpNotaFaixa(fx[0],fx[1]);
+  const hoje=tkHoje(), fx=mpFaixaAtual(), np=mpNotaFaixa(fx[0],fx[1]);
+  const ant=mpFaixaAntes(fx[0],fx[1],0), na=mpNotaFaixa(ant[0],ant[1]);
+  const dif=(np.nota!=null&&na.nota!=null)?Math.round((np.nota-na.nota)*10)/10:null;
   const pers=MP.per==='pers';
-  return '<div class="mp-per"><button class="mp-nav" onclick="mpSemNav(-1)">‹</button>'+
-    '<div><div class="mp-pttl">'+mpCurto(seg)+' – '+mpCurto(ds[6])+'</div><div class="mp-psub">'+mpRotSem(seg)+'</div></div>'+
-    '<button class="mp-nav" onclick="mpSemNav(1)">›</button>'+
-    '<span class="mp-pnota">Nota da semana: <b>'+mpNotaFmt(ns.nota)+'</b> · '+mpFmtN(ns.feit)+'/'+ns.prev+'</span></div>'+
-    cab+linhas+
-    '<div class="mp-sech" style="margin-top:24px">Como você está indo</div>'+
-    '<div class="mp-pills">'+[['hoje','Hoje'],['7d','7 dias'],['30d','30 dias'],['pers','Personalizado']].map(p=>'<button class="mp-pill '+(MP.per===p[0]?'on':'')+'" onclick="mpPer(\''+p[0]+'\')">'+p[1]+'</button>').join('')+
-    (pers?'<input type="date" class="ini-dt" value="'+esc(fx[0])+'" onchange="mpPerIni(this.value)"><span style="color:var(--muted)">até</span><input type="date" class="ini-dt" value="'+esc(fx[1])+'" onchange="mpPerFim(this.value)">':'')+
-    '</div>'+mpPlacarHTML()+
-    /* constancia fica fechada: e pra olhar de vez em quando, nao todo dia */
-    '<details class="fch-g" style="margin-top:22px"><summary><span class="fch-cv"></span>'+
-    '<span class="fch-t">Constância — últimos 90 dias</span><span class="fch-s">clique para abrir</span></summary>'+
-    '<div class="fch-corpo" style="padding:10px 14px 14px">'+mpMapaHTML()+'</div></details>';
+  const rotAnt={hoje:'vs. ontem','7d':'vs. 7 dias antes','30d':'vs. 30 dias antes',pers:'vs. período anterior'}[MP.per]||'vs. período anterior';
+  /* a linha precisa de chao: com "Hoje" ou periodo curto, mostra os ultimos 14 dias */
+  let li=fx[0], lf=fx[1]>hoje?hoje:fx[1];
+  if(Math.round((mpDe(lf)-mpDe(li))/864e5)+1<7) li=tkDiaMais(lf,-13);
+  const pts=[]; let d=li,g=0; while(d<=lf&&g++<400){ const n=mpNotaDia(d); pts.push({d,nota:n.prev?n.nota:null}); d=tkDiaMais(d,1); }
+  const W=300,H=70,n=pts.length, x=(k)=>n>1?Math.round(k/(n-1)*W*10)/10:W, y=(v)=>Math.round((64-v*6)*10)/10;
+  let linha='',area='',ult=null;
+  pts.forEach((p,k)=>{ if(p.nota==null) return; const c=x(k)+' '+y(p.nota); linha+=(linha?' L':'M')+c; area+=(area?' L':'M')+c; ult={k,p}; });
+  const prim=pts.findIndex(p=>p.nota!=null);
+  if(area&&ult) area+=' L'+x(ult.k)+' '+H+' L'+x(prim)+' '+H+' Z';
+  const svg=linha?'<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
+      '<defs><linearGradient id="kpg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a78bfa" stop-opacity=".35"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs>'+
+      '<path d="'+area+'" fill="url(#kpg)"/><path d="'+linha+'" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'+
+      (ult?'<circle cx="'+x(ult.k)+'" cy="'+y(ult.p.nota)+'" r="3.5" fill="var(--txt)"/>':'')+'</svg>'
+    :'<div class="kp-vz">Sem dias marcados nesse período ainda.</div>';
+  const porHab=MP.habitos.map(h=>{ let prev=0,feit=0,d=fx[0],g=0; const fim=fx[1]>hoje?hoje:fx[1];
+    while(d<=fim&&g++<1100){ if(mpProg(h,d)){ prev++; feit+=mpFrac(h,d); } d=tkDiaMais(d,1); } return {h,prev,feit,pct:prev?Math.round(feit/prev*100):0}; })
+    .filter(o=>o.prev).sort((a,b)=>b.pct-a.pct);
+  const rotLista={hoje:'hoje','7d':'7 dias','30d':'30 dias',pers:mpCurto(fx[0])+' – '+mpCurto(fx[1])}[MP.per]||'';
+  return '<div class="kp">'+
+    '<div class="mp-pills kp-pills">'+[['hoje','Hoje'],['7d','7 dias'],['30d','30 dias'],['pers','Personalizado']].map(p=>'<button class="mp-pill '+(MP.per===p[0]?'on':'')+'" onclick="mpPer(\''+p[0]+'\')">'+p[1]+'</button>').join('')+'</div>'+
+    (pers?'<div class="kp-dts"><input type="date" class="ini-dt" value="'+esc(fx[0])+'" onchange="mpPerIni(this.value)"><span>até</span><input type="date" class="ini-dt" value="'+esc(fx[1])+'" onchange="mpPerFim(this.value)"></div>':'')+
+    '<div class="kp-big"><b>'+mpNotaFmt(np.nota)+'</b><div class="v">'+
+      (dif!=null?'<em style="color:'+(dif>0?'var(--ok)':(dif<0?'var(--danger)':'var(--muted)'))+'">'+(dif>0?'▲':(dif<0?'▼':'='))+' '+mpNotaFmt(Math.abs(dif))+'</em>':'<em style="color:var(--muted)">—</em>')+
+      '<small>'+esc(rotAnt)+' · '+mpFmtN(np.feit)+' de '+np.prev+'</small></div></div>'+
+    '<div class="kp-spark">'+svg+'<div class="lb"><span>'+esc(mpCurto(li))+'</span><span>'+(lf===hoje?'hoje':esc(mpCurto(lf)))+'</span></div></div>'+
+    (porHab.length?'<div class="kp-sec"><span>Por hábito</span><small>'+esc(rotLista)+'</small></div>'+
+      '<div class="kp-hl">'+porHab.map(o=>'<div class="r" onclick="mpHabitoModal(\''+o.h.id+'\')"><span class="ic" style="background:'+esc(o.h.cor||'#a78bfa')+'"></span><span class="nm">'+esc(o.h.nome)+'</span><span class="pc">'+o.pct+'%</span></div>').join('')+'</div>':'')+
+    '</div>';
 }
 window.mpSemNav=(n)=>{ MP.sem=tkDiaMais(MP.sem,n*7); mpPintar(); };
 window.mpPer=(p)=>{ MP.per=p; mpPintar(); };
