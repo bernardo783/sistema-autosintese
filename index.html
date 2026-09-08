@@ -2226,14 +2226,14 @@
 .f1-pb{margin-top:14px;height:3px;background:var(--panel2);border-radius:99px;overflow:hidden}
 .f1-pb i{display:block;height:100%;background:var(--txt);transition:width .3s}
 .f1-l{margin-top:6px}
-.f1-grp{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:4px 14px 6px;margin-top:14px}
-.f1-grp:first-child{margin-top:10px}
-.f1-grp.hab{border-color:rgba(167,139,250,.35)}
-.f1-sec{display:flex;align-items:baseline;justify-content:space-between;padding:10px 0 6px;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco)}
-.f1-grp.hab .f1-sec span{color:#a78bfa}
-.f1-sec small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
+/* Inicio celular, opcao B (Gabriel 08/09): titulo pesado por grupo + placar, sem caixa */
+.f1-grp{margin-top:22px}
+.f1-grp:first-child{margin-top:12px}
+.f1-sec{display:flex;align-items:baseline;gap:9px;padding:0 0 4px}
+.f1-sec b{font-size:19px;font-weight:900;letter-spacing:-.03em;color:var(--txt)}
+.f1-sec span{font-size:12px;font-weight:600;color:var(--fraco);font-variant-numeric:tabular-nums}
+.f1-sec span em{font-style:normal;color:var(--txt)}
 .f1-grp .f1-it:last-child{border-bottom:0}
-.f1-grp .f1-it{padding:11px 0}
 .f1-it{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .f1-it .o{width:21px;height:21px;border-radius:50%;border:1.5px solid var(--fraco);flex:none;background:none;cursor:pointer;display:grid;place-items:center;color:transparent;padding:0}
 .f1-it .o.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
@@ -13417,7 +13417,7 @@ function mpIniMobileHTML(){
   hs.forEach(h=>{ const fr=mpFrac(h,dia), f=fr>=1, et=mpEtapas(h);
     const oh=(fr>0&&fr<1)?(passado?'<span class="o" style="'+mpCkStyle(fr)+'"></span>':'<button type="button" class="o" style="'+mpCkStyle(fr)+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"></button>'):o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')');
     const sub=et.length?(Math.round(fr*et.length)+' de '+et.length+' etapas'):'hábito';
-    itens.push({g:'hab',hora:hh(h.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+oh+'<span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>'+esc(sub)+'</small></span>'+(hh(h.hora)?'<span class="h">'+hh(h.hora)+'</span>':'')+'</div>'}); });
+    itens.push({g:'hab',fr:fr,hora:hh(h.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+oh+'<span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>'+esc(sub)+'</small></span>'+(hh(h.hora)?'<span class="h">'+hh(h.hora)+'</span>':'')+'</div>'}); });
   itens.sort((a,b)=>(a.hora&&b.hora)?a.hora.localeCompare(b.hora):(a.hora?-1:(b.hora?1:0)));
   /* habito que ainda nao comecou mas comeca em breve: mostra pra pessoa saber que existe */
   if(ehHoje) MP.habitos.filter(h=>!mpProg(h,dia)&&mpIni(h)>dia).forEach(h=>{
@@ -13428,7 +13428,7 @@ function mpIniMobileHTML(){
   [['hab','Hábitos'],['tar','Tarefas']].forEach(([g,nome])=>{
     const L=itens.filter(x=>x.g===g); if(!L.length) return;
     const nf=L.filter(x=>/f1-it done/.test(x.html)).length;
-    linhas.push('<section class="f1-grp '+g+'"><div class="f1-sec"><span>'+nome+'</span><small>'+nf+' de '+L.length+'</small></div>'+L.map(x=>x.html).join('')+'</section>');
+    linhas.push('<section class="f1-grp '+g+'"><div class="f1-sec"><b>'+nome+'</b><span><em>'+(g==='hab'?mpFmtN(L.reduce((a,x)=>a+(x.fr!=null?x.fr:(/f1-it done/.test(x.html)?1:0)),0)):nf)+'</em>/'+L.length+'</span></div>'+L.map(x=>x.html).join('')+'</section>');
   });
   return '<div class="f1">'+
     '<div class="f1-h"><button type="button" class="ar" onclick="mpIniNav(-1)">‹</button>'+
