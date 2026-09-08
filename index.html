@@ -2247,6 +2247,10 @@
 .f1-tile.ro .ring{cursor:default}
 .f1-sb{height:3px;background:var(--panel2);border-radius:99px;margin:4px 0 0;position:relative;overflow:hidden}
 .f1-sb i{position:absolute;top:0;height:100%;background:var(--txt);border-radius:99px;width:30%;left:0}
+.f1-grp .mp-hab2{cursor:default;padding:16px 2px 14px}
+.f1-grp .mp-hab2:first-of-type{border-top:0}
+.f1-grp .mp-hchk{color:transparent}
+.f1-grp .mp-hchk.on{color:#fff}
 .f1-grp.tar .f1-it:first-of-type{margin-top:2px}
 .f1-grp .f1-it:last-child{border-bottom:0}
 .f1-it{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
@@ -13463,17 +13467,31 @@ function mpIniMobileHTML(){
      na ordem da hora (o proximo a esquerda). Altura fixa com 3 ou 20. Tarefas em lista embaixo. */
   const linhas=[];
   const HB=mpPorHora(hs);
-  const vem=ehHoje?MP.habitos.filter(h=>!mpProg(h,dia)&&mpIni(h)>dia):[];
+  const vem=ehHoje?mpPorHora(MP.habitos.filter(h=>!mpProg(h,dia)&&mpIni(h)>dia)):[];
   if(HB.length||vem.length){
     const fh=HB.reduce((a,h)=>a+mpFrac(h,dia),0);
-    const tiles=HB.map(h=>{ const fr=mpFrac(h,dia), on=fr>=1, et=mpEtapas(h);
-      const sub=et.length?(Math.round(fr*et.length)+'/'+et.length+(hh(h.hora)?' · '+hh(h.hora):'')):(hh(h.hora)||'');
-      const ring=passado?'<span class="ring" style="--p:'+Math.round(fr*100)+'%"><i>'+(on?svgIco('check',11):'')+'</i></span>'
-        :'<button type="button" class="ring" style="--p:'+Math.round(fr*100)+'%" '+(futuro?'':'onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"')+'><i>'+(on?svgIco('check',11):'')+'</i></button>';
-      return '<div class="f1-tile'+(on?' on':'')+(futuro?' ro':'')+'">'+ring+'<span class="nm" onclick="mpHabitoModal(\''+h.id+'\')"><b>'+esc(h.nome||'')+'</b><small>'+esc(sub)+'</small></span></div>'; })
-      .concat(vem.map(h=>'<div class="f1-tile ro"><span class="ring" style="--p:0%;border:1.5px dashed var(--fraco);background:none"><i style="background:none"></i></span><span class="nm" onclick="mpHabitoModal(\''+h.id+'\')"><b>'+esc(h.nome||'')+'</b><small>'+esc(mpComeca(mpIni(h)))+'</small></span></div>'));
-    linhas.push('<section class="f1-grp hab"><div class="f1-lbl"><span>Hábitos</span><small>'+(HB.length?mpFmtN(fh)+' de '+HB.length:'')+(tiles.length>3?' · desliza ›':'')+'</small></div>'+
-      '<div class="f1-row" onscroll="mpRowSb(this)">'+tiles.join('')+'</div><div class="f1-sb"><i></i></div></section>');
+    /* Lista em pe, com o mesmo cartao das abas Habitos e Tarefas (Gabriel 08/09).
+       A fileira que rolava pro lado cortava o 4o habito e deixava meia tela vazia. */
+    const linhaHab=(h,depois)=>{
+      const fr=depois?0:mpFrac(h,dia), on=fr>=1, et=mpEtapas(h);
+      const p=[]; if(hh(h.hora)) p.push(hh(h.hora));
+      if(depois) p.push(mpComeca(mpIni(h)));
+      else if(et.length) p.push(Math.round(fr*et.length)+' de '+et.length+' etapas');
+      const pode=!passado&&!futuro&&!depois;
+      const alvo='mpCheck(\''+h.id+'\',\''+dia+'\')';
+      const cir=pode
+        ? '<button class="mp-hchk'+(on?' on':'')+'" style="'+mpCkStyle(fr,'var(--brand)')+'" title="'+(on?'Feito — toque pra desfazer':'Marcar')+'" onclick="'+alvo+'">'+svgIco('check',13)+'</button>'
+        : '<span class="mp-hchk'+(on?' on':'')+'" style="'+mpCkStyle(fr,'var(--brand)')+(depois?';border-style:dashed':'')+'">'+(on?svgIco('check',13):'')+'</span>';
+      return '<div class="mp-hab2'+(depois?' off':'')+'">'+
+        '<div class="mp-hic" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,18)+'</div>'+
+        '<div><div class="mp-hnm" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'</div>'+
+        '<div class="mp-hsub">'+esc(p.join(' · ')||'sem hora')+'</div></div>'+
+        '<div class="mp-h2pct">'+(et.length?Math.round(fr*et.length)+'/'+et.length:'')+'</div>'+
+        cir+
+        (et.length?'<div class="mp-h2bar"><i style="width:'+Math.round(fr*100)+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div>':'')+
+        '</div>'; };
+    linhas.push('<section class="f1-grp hab"><div class="f1-lbl"><span>Hábitos</span><small>'+(HB.length?mpFmtN(fh)+' de '+HB.length:'')+'</small></div>'+
+      HB.map(h=>linhaHab(h,false)).join('')+vem.map(h=>linhaHab(h,true)).join('')+'</section>');
   }
   const T=itens.filter(x=>x.g==='tar');
   if(T.length){ const nf=T.filter(x=>/f1-it done/.test(x.html)).length;
