@@ -2226,10 +2226,14 @@
 .f1-pb{margin-top:14px;height:3px;background:var(--panel2);border-radius:99px;overflow:hidden}
 .f1-pb i{display:block;height:100%;background:var(--txt);transition:width .3s}
 .f1-l{margin-top:6px}
-.f1-sec{display:flex;align-items:baseline;justify-content:space-between;padding:18px 0 4px;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco)}
+.f1-grp{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:4px 14px 6px;margin-top:14px}
+.f1-grp:first-child{margin-top:10px}
+.f1-grp.hab{border-color:rgba(167,139,250,.35)}
+.f1-sec{display:flex;align-items:baseline;justify-content:space-between;padding:10px 0 6px;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco)}
+.f1-grp.hab .f1-sec span{color:#a78bfa}
 .f1-sec small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
-.f1-sec:first-child{padding-top:8px}
-.f1-it:last-child{border-bottom:0}
+.f1-grp .f1-it:last-child{border-bottom:0}
+.f1-grp .f1-it{padding:11px 0}
 .f1-it{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .f1-it .o{width:21px;height:21px;border-radius:50%;border:1.5px solid var(--fraco);flex:none;background:none;cursor:pointer;display:grid;place-items:center;color:transparent;padding:0}
 .f1-it .o.on{background:var(--txt);border-color:var(--txt);color:var(--bg)}
@@ -13387,8 +13391,8 @@ function mpIniMobileHTML(){
   const hoje=tkHoje(); if(!MP.iniDia) MP.iniDia=hoje;
   const dia=MP.iniDia, passado=dia<hoje, futuro=dia>hoje, ehHoje=dia===hoje;
   const hs=MP.habitos.filter(h=>mpProg(h,dia)), ts=mpTarDia(dia), evs=mpEvtsOrd(dia);
-  const tot=hs.length+ts.length+evs.length;
-  const feit=hs.reduce((s,h)=>s+mpFrac(h,dia),0)+ts.filter(mpFeita).length+evs.filter(e=>e.feito).length;
+  const tot=hs.length+ts.length; /* agenda fica fora do Inicio (Gabriel 08/09) */
+  const feit=hs.reduce((s,h)=>s+mpFrac(h,dia),0)+ts.filter(mpFeita).length;
   const pct=tot?Math.round(feit/tot*100):0;
   const tit=ehHoje?'Hoje':(dia===tkDiaMais(hoje,-1)?'Ontem':(dia===tkDiaMais(hoje,1)?'Amanhã':mpDataExt(dia).replace(/^(\w)/,m=>m.toUpperCase())));
   const sub=(ehHoje||dia===tkDiaMais(hoje,-1)||dia===tkDiaMais(hoje,1))?mpDataExt(dia):'';
@@ -13401,8 +13405,6 @@ function mpIniMobileHTML(){
   const hh=(x)=>x&&/^\d{2}:\d{2}/.test(String(x))?String(x).slice(0,5):'';
   ts.forEach(t=>{ const f=mpFeita(t);
     itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa</small></span>'+(hh(t.hora)?'<span class="h">'+hh(t.hora)+'</span>':'')+'</div>'}); });
-  evs.forEach(e=>{ const f=!!e.feito;
-    itens.push({g:'evt',hora:hh(e.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpEvtVirar(\''+e.id+'\')')+'<span class="tt">'+esc(e.titulo||'')+'<small>evento'+(e.gcal_id?' · Google':'')+'</small></span>'+(hh(e.hora)?'<span class="h">'+hh(e.hora)+'</span>':'')+'</div>'}); });
   hs.forEach(h=>{ const fr=mpFrac(h,dia), f=fr>=1, et=mpEtapas(h);
     const oh=(fr>0&&fr<1)?(passado?'<span class="o" style="'+mpCkStyle(fr)+'"></span>':'<button type="button" class="o" style="'+mpCkStyle(fr)+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"></button>'):o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')');
     const sub=et.length?(Math.round(fr*et.length)+' de '+et.length+' etapas'):'hábito';
@@ -13414,10 +13416,10 @@ function mpIniMobileHTML(){
   /* Secoes (Gabriel 08/09): Habitos, Tarefas e Agenda separados, cada um na ordem da hora.
      Secao vazia nao aparece. */
   const linhas=[];
-  [['hab','Hábitos'],['tar','Tarefas'],['evt','Agenda']].forEach(([g,nome])=>{
+  [['hab','Hábitos'],['tar','Tarefas']].forEach(([g,nome])=>{
     const L=itens.filter(x=>x.g===g); if(!L.length) return;
     const nf=L.filter(x=>/f1-it done/.test(x.html)).length;
-    linhas.push('<div class="f1-sec"><span>'+nome+'</span><small>'+nf+'/'+L.length+'</small></div>'+L.map(x=>x.html).join(''));
+    linhas.push('<section class="f1-grp '+g+'"><div class="f1-sec"><span>'+nome+'</span><small>'+nf+' de '+L.length+'</small></div>'+L.map(x=>x.html).join('')+'</section>');
   });
   return '<div class="f1">'+
     '<div class="f1-h"><button type="button" class="ar" onclick="mpIniNav(-1)">‹</button>'+
