@@ -7462,7 +7462,7 @@ function lemItensHoje(){
   const L=[];
   (MP.evtsPorDia[hoje]||[]).filter(e=>e.hora&&!e.feito).forEach(e=>L.push({k:'ev'+e.id,tipo:'evento',hora:String(e.hora).slice(0,5),m:min(e.hora),titulo:e.titulo||'(sem título)',
     go:()=>{ MP.dia=hoje; MP.aba='agenda'; render('pessoal'); }}));
-  (MP.habitos||[]).filter(h=>h.hora&&mpProg(h,hoje)&&!mpCk(h.id,hoje)).forEach(h=>L.push({k:'hb'+h.id+hoje,tipo:'hábito',hora:String(h.hora).slice(0,5),m:min(h.hora),titulo:h.nome||'',
+  (MP.habitos||[]).filter(h=>h.hora&&mpProg(h,hoje)&&mpFrac(h,hoje)<1).forEach(h=>L.push({k:'hb'+h.id+hoje,tipo:'hábito',hora:String(h.hora).slice(0,5),m:min(h.hora),titulo:h.nome||'',
     go:()=>{ MP.iniDia=hoje; MP.aba='inicio'; render('pessoal'); }}));
   mpTarDia(hoje).filter(t=>!mpFeita(t)).forEach(t=>L.push({k:'tf'+t.id+hoje,tipo:'tarefa',hora:t.hora?String(t.hora).slice(0,5):'',m:t.hora?min(t.hora):24*60,titulo:t.titulo||'',
     go:()=>{ MP.dia=hoje; MP.aba='tarefas'; render('pessoal'); }}));
@@ -13137,7 +13137,22 @@ function mpComeca(iso){ const hj=tkHoje();
   if(iso===tkDiaMais(hj,1)) return 'começa amanhã';
   const sm=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
   return 'começa '+sm[mpDow(iso)]+', '+mpCurto(iso); }
-const mpChecksFaixa=(hid,ini,fim)=>MP.checks.filter(k=>String(k.habito_id)===String(hid)&&k.dia>=ini&&k.dia<=fim).length;
+/* Etapas (Gabriel 07/09): habito com checklist conta proporcional. 2 de 4 etapas = 0,5.
+   Sem etapas, e 0 ou 1 como sempre. Toda conta de nota e meta passa por aqui. */
+const mpEtapas=(h)=>Array.isArray(h&&h.etapas)?h.etapas.map(x=>String(x||'').trim()).filter(Boolean):[];
+const mpCkRow=(hid,iso)=>MP.checks.find(k=>String(k.habito_id)===String(hid)&&k.dia===iso)||null;
+function mpFrac(h,iso){
+  const r=mpCkRow(h.id,iso); if(!r) return 0;
+  const et=mpEtapas(h); if(!et.length) return 1;
+  const ok=Array.isArray(r.etapas_ok)?r.etapas_ok.filter(i=>i>=0&&i<et.length).length:et.length;
+  return Math.min(1,ok/et.length);
+}
+const mpChecksFaixa=(hid,ini,fim)=>{ const h=MP.habitos.find(x=>String(x.id)===String(hid));
+  return MP.checks.filter(k=>String(k.habito_id)===String(hid)&&k.dia>=ini&&k.dia<=fim).reduce((s,k)=>s+(h?mpFrac(h,k.dia):1),0); };
+/* bolinha de check com preenchimento proporcional (meia bomba = meia bolinha) */
+const mpFmtN=(n)=>String(Math.round((+n||0)*10)/10).replace('.',',');
+function mpCkStyle(frac,cor){ if(frac<=0||frac>=1) return ''; const c=cor||'var(--txt)';
+  return 'background:conic-gradient('+c+' 0 '+Math.round(frac*100)+'%,transparent '+Math.round(frac*100)+'% 100%);color:transparent;border-color:'+c+';'; }
 
 function mpWsAtivo(){
   const w=wsAtual();
@@ -13159,8 +13174,8 @@ const mpFeita=(t)=>t.status==='feito'||!!t.concluida_em;
 function mpNotaDia(iso){
   const hs=MP.habitos.filter(h=>mpProg(h,iso)), ts=mpTarDia(iso);
   const prev=hs.length+ts.length;
-  const feit=hs.filter(h=>mpCk(h.id,iso)).length+ts.filter(mpFeita).length;
-  return {prev,feit,nota:prev?Math.round(feit/prev*100)/10:null};
+  const feit=hs.reduce((s,h)=>s+mpFrac(h,iso),0)+ts.filter(mpFeita).length;
+  return {prev,feit:Math.round(feit*100)/100,nota:prev?Math.round(feit/prev*100)/10:null};
 }
 function mpNotaFaixa(ini,fim){
   const hoje=tkHoje(); if(fim>hoje) fim=hoje;
@@ -13352,7 +13367,7 @@ function mpHabCards(){
       '<div><div class="mp-hnm">'+esc(h.nome)+'<span class="mp-hmenu" onclick="mpHabMenu(event,\''+h.id+'\')">⋯</span></div>'+
       '<div class="mp-hsub">'+(p.futuro?mpComeca(p.ini):(p.n+' / '+p.m+' vezes '+p.rot+(prog?'':' · hoje não tem')))+'</div></div>'+
       '<div class="mp-h2pct">'+String(pct).replace('.',',')+'%</div>'+
-      (prog?'<button class="mp-hchk'+(ck?' on':'')+'" title="'+(ck?'Feito hoje — toque pra desfazer':'Marcar hoje')+'" onclick="mpCheck(\''+h.id+'\',\''+hoje+'\')">'+svgIco('check',13)+'</button>':'<span></span>')+
+      (prog?'<button class="mp-hchk'+(ck?' on':'')+'" style="'+mpCkStyle(mpFrac(h,hoje),'var(--brand)')+'" title="'+(ck?'Feito hoje — toque pra desfazer':'Marcar hoje')+'" onclick="mpCheck(\''+h.id+'\',\''+hoje+'\')">'+svgIco('check',13)+'</button>':'<span></span>')+
       '<div class="mp-h2bar"><i style="width:'+pct+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div>'+
       '</div>';
   }).join('');
@@ -13369,7 +13384,7 @@ function mpIniMobileHTML(){
   const dia=MP.iniDia, passado=dia<hoje, futuro=dia>hoje, ehHoje=dia===hoje;
   const hs=MP.habitos.filter(h=>mpProg(h,dia)), ts=mpTarDia(dia), evs=mpEvtsOrd(dia);
   const tot=hs.length+ts.length+evs.length;
-  const feit=hs.filter(h=>mpCk(h.id,dia)).length+ts.filter(mpFeita).length+evs.filter(e=>e.feito).length;
+  const feit=hs.reduce((s,h)=>s+mpFrac(h,dia),0)+ts.filter(mpFeita).length+evs.filter(e=>e.feito).length;
   const pct=tot?Math.round(feit/tot*100):0;
   const tit=ehHoje?'Hoje':(dia===tkDiaMais(hoje,-1)?'Ontem':(dia===tkDiaMais(hoje,1)?'Amanhã':mpDataExt(dia).replace(/^(\w)/,m=>m.toUpperCase())));
   const sub=(ehHoje||dia===tkDiaMais(hoje,-1)||dia===tkDiaMais(hoje,1))?mpDataExt(dia):'';
@@ -13384,8 +13399,10 @@ function mpIniMobileHTML(){
     itens.push({hora:hh(t.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa</small></span>'+(hh(t.hora)?'<span class="h">'+hh(t.hora)+'</span>':'')+'</div>'}); });
   evs.forEach(e=>{ const f=!!e.feito;
     itens.push({hora:hh(e.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpEvtVirar(\''+e.id+'\')')+'<span class="tt">'+esc(e.titulo||'')+'<small>evento'+(e.gcal_id?' · Google':'')+'</small></span>'+(hh(e.hora)?'<span class="h">'+hh(e.hora)+'</span>':'')+'</div>'}); });
-  hs.forEach(h=>{ const f=mpCk(h.id,dia);
-    itens.push({hora:hh(h.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')')+'<span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>hábito</small></span>'+(hh(h.hora)?'<span class="h">'+hh(h.hora)+'</span>':'')+'</div>'}); });
+  hs.forEach(h=>{ const fr=mpFrac(h,dia), f=fr>=1, et=mpEtapas(h);
+    const oh=(fr>0&&fr<1)?(passado?'<span class="o" style="'+mpCkStyle(fr)+'"></span>':'<button type="button" class="o" style="'+mpCkStyle(fr)+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"></button>'):o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')');
+    const sub=et.length?(Math.round(fr*et.length)+' de '+et.length+' etapas'):'hábito';
+    itens.push({hora:hh(h.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+oh+'<span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>'+esc(sub)+'</small></span>'+(hh(h.hora)?'<span class="h">'+hh(h.hora)+'</span>':'')+'</div>'}); });
   itens.sort((a,b)=>(a.hora&&b.hora)?a.hora.localeCompare(b.hora):(a.hora?-1:(b.hora?1:0)));
   const linhas=itens.map(x=>x.html);
   /* habito que ainda nao comecou mas comeca em breve: mostra pra pessoa saber que existe */
@@ -13393,7 +13410,7 @@ function mpIniMobileHTML(){
     linhas.push('<div class="f1-it"><span class="o ro"></span><span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>hábito · '+esc(mpComeca(mpIni(h)))+'</small></span></div>'); });
   return '<div class="f1">'+
     '<div class="f1-h"><button type="button" class="ar" onclick="mpIniNav(-1)">‹</button>'+
-      '<div class="dt"><b>'+esc(tit)+'</b><small>'+esc(sub)+(sub?' · ':'')+feit+' de '+tot+'</small></div>'+
+      '<div class="dt"><b>'+esc(tit)+'</b><small>'+esc(sub)+(sub?' · ':'')+mpFmtN(feit)+' de '+tot+'</small></div>'+
       '<button type="button" class="ar" onclick="mpIniNav(1)">›</button></div>'+
     (ehHoje?'':'<button type="button" class="f1-hoje" onclick="mpIniHoje()">Voltar pra hoje</button>')+
     '<div class="f1-pb"><i style="width:'+pct+'%"></i></div>'+
@@ -13414,7 +13431,7 @@ function mpInicioHTML(){
   return '<div class="mp-topo">'+
     '<div class="mp-saud">'+saud+', '+esc(nome)+'.<small>'+mpDataExt(hoje)+'</small></div>'+
     (n.prev>0?'<div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
-      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota do dia</div><div class="xp">'+n.feit+'/'+n.prev+' feitos</div></div></div>':'')+
+      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota do dia</div><div class="xp">'+mpFmtN(n.feit)+'/'+n.prev+' feitos</div></div></div>':'')+
     (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:10px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+
     '</div>'+
     (MP.habitos.length?mpHabCards():mpZeroHTML())+
@@ -13513,7 +13530,7 @@ function mpPlacarHTML(){
       '<div class="nb">'+mpNotaFmt(np.nota)+'</div>'+
       (dif!=null?'<div class="var" style="color:'+cor+'">'+seta+' '+mpNotaFmt(Math.abs(dif))+
         '<small>vs. período anterior</small></div>':'<div class="var"><small>sem período anterior pra comparar</small></div>')+
-      '<div class="sub">'+np.feit+' de '+np.prev+' marcados · '+pct+'%</div>'+
+      '<div class="sub">'+mpFmtN(np.feit)+' de '+np.prev+' marcados · '+pct+'%</div>'+
     '</div>'+
     '<div class="mp-placB">'+barras+'<div class="lb2">últimos 5 períodos</div></div>'+
   '</div>'+
@@ -13525,7 +13542,7 @@ function mpPlacarHTML(){
   r.porHab.filter(o=>o.prev).sort((a,b)=>b.nota-a.nota).map(o=>{
     const w=Math.round(o.feit/o.prev*100);
     return '<div class="mp-prow"><span class="nm"><span style="color:'+esc(o.h.cor||'#a78bfa')+'">'+mpIco(o.h.icone,13)+'</span>'+esc(o.h.nome)+'</span>'+
-      '<span class="qt">'+o.feit+'/'+o.prev+'</span>'+
+      '<span class="qt">'+mpFmtN(o.feit)+'/'+o.prev+'</span>'+
       '<span class="bar"><i style="width:'+w+'%;background:'+esc(o.h.cor||'#a78bfa')+'"></i></span>'+
       '<span class="nt">'+mpNotaFmt(o.nota)+'</span></div>';
   }).join('');
@@ -13566,7 +13583,7 @@ function mpProgHTML(){
   return '<div class="mp-per"><button class="mp-nav" onclick="mpSemNav(-1)">‹</button>'+
     '<div><div class="mp-pttl">'+mpCurto(seg)+' – '+mpCurto(ds[6])+'</div><div class="mp-psub">'+mpRotSem(seg)+'</div></div>'+
     '<button class="mp-nav" onclick="mpSemNav(1)">›</button>'+
-    '<span class="mp-pnota">Nota da semana: <b>'+mpNotaFmt(ns.nota)+'</b> · '+ns.feit+'/'+ns.prev+'</span></div>'+
+    '<span class="mp-pnota">Nota da semana: <b>'+mpNotaFmt(ns.nota)+'</b> · '+mpFmtN(ns.feit)+'/'+ns.prev+'</span></div>'+
     cab+linhas+
     '<div class="mp-sech" style="margin-top:24px">Como você está indo</div>'+
     '<div class="mp-pills">'+[['hoje','Hoje'],['7d','7 dias'],['30d','30 dias'],['pers','Personalizado']].map(p=>'<button class="mp-pill '+(MP.per===p[0]?'on':'')+'" onclick="mpPer(\''+p[0]+'\')">'+p[1]+'</button>').join('')+
@@ -13584,8 +13601,49 @@ window.mpPerFim=(v)=>{ MP.perFim=v; mpPintar(); };
 window.mpCmp=(m)=>{ MP.cmp=m; mpPintar(); };
 
 /* ---------- checks ---------- */
+/* Lista de etapas do dia: marca uma a uma; a bolinha do habito enche na proporcao */
+window.mpEtapasModal=(hid,iso)=>{
+  const h=MP.habitos.find(x=>String(x.id)===String(hid)); if(!h) return;
+  const et=mpEtapas(h);
+  modal(h.nome||'Hábito',
+    '<div class="tc">'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Fechar</button><span class="hint" style="margin:0">'+esc(mpTcRotDia(iso))+'</span></div>'+
+    '<div class="tc-tit"><span class="mph-icbt" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,20)+'</span><b style="font-size:20px;font-weight:800">'+esc(h.nome||'')+'</b></div>'+
+    '<div class="tc-prog"><i id="mpe_prog"></i></div>'+
+    '<div id="mpe_lista"></div>'+
+    '</div>', async ()=>true);
+  const ov=document.querySelector('.overlay'); if(ov) ov.classList.add('tc-ov');
+  window.__mpE2={hid,iso}; mpEtapasPintar();
+};
+function mpEtapasPintar(){
+  const st=window.__mpE2; if(!st) return;
+  const h=MP.habitos.find(x=>String(x.id)===String(st.hid)); if(!h) return;
+  const et=mpEtapas(h), r=mpCkRow(h.id,st.iso), ok=(r&&Array.isArray(r.etapas_ok))?r.etapas_ok:[];
+  const box=$('#mpe_lista'); if(box) box.innerHTML=et.map((e,i)=>'<div class="mp-trw" style="cursor:pointer" onclick="mpEtapaVirar('+i+')"><span class="o'+(ok.indexOf(i)>=0?' on':'')+'">'+svgIco('check',11)+'</span><span class="tt">'+esc(e)+'</span></div>').join('');
+  const p=$('#mpe_prog'); if(p) p.style.width=Math.round(mpFrac(h,st.iso)*100)+'%';
+}
+window.mpEtapaVirar=async(i)=>{
+  const st=window.__mpE2; if(!st) return;
+  const h=MP.habitos.find(x=>String(x.id)===String(st.hid)); if(!h) return;
+  const et=mpEtapas(h), r=mpCkRow(h.id,st.iso);
+  let ok=(r&&Array.isArray(r.etapas_ok))?r.etapas_ok.slice():[];
+  if(ok.indexOf(i)>=0) ok=ok.filter(x=>x!==i); else ok.push(i);
+  ok=ok.filter(x=>x>=0&&x<et.length).sort((a,b)=>a-b);
+  if(!ok.length){
+    if(r){ const {error}=await sb.from('habito_checks').delete().eq('habito_id',h.id).eq('dia',st.iso); if(error){ toast('Erro: '+error.message); return; }
+      MP.checks=MP.checks.filter(k=>!(String(k.habito_id)===String(h.id)&&k.dia===st.iso)); }
+  }else if(r){
+    const {error}=await sb.from('habito_checks').update({etapas_ok:ok}).eq('habito_id',h.id).eq('dia',st.iso); if(error){ toast('Erro: '+error.message); return; }
+    r.etapas_ok=ok;
+  }else{
+    const {data,error}=await sb.from('habito_checks').insert({habito_id:h.id,dono:currentUser.id,dia:st.iso,etapas_ok:ok}).select().single(); if(error){ toast('Erro: '+error.message); return; }
+    MP.checks.push(data);
+  }
+  mpEtapasPintar(); mpPintar();
+};
 window.mpCheck=async(hid,iso)=>{
   if(iso>tkHoje()){ toast('Esse dia ainda não chegou.'); return; }
+  { const he=MP.habitos.find(x=>String(x.id)===String(hid)); if(he&&mpEtapas(he).length&&!window.__ckDireto){ mpEtapasModal(hid,iso); return; } }
   /* a tela nem oferece a célula, mas se ela estiver velha (o início mudou depois de
      pintar) o clique chegaria aqui — o dia antes do início não pode virar check */
   const hh=MP.habitos.find(x=>String(x.id)===String(hid));
@@ -13679,7 +13737,7 @@ window.mpHabitoModal=(id)=>{
   const h=id?MP.habitos.find(x=>String(x.id)===String(id)):null;
   window.__mpH={id:id||null,ic:h?h.icone:'raio',cor:h?(h.cor||MP_CORES[0]):MP_CORES[0],
     dias:h?(h.dias||[]).map(Number):[1,2,3,4,5],tipo:h?h.meta_tipo:'sem',qtd:h?h.meta_qtd:5,
-    ini:h?mpIni(h):tkHoje(),hora:h&&h.hora?String(h.hora).slice(0,5):''};
+    ini:h?mpIni(h):tkHoje(),hora:h&&h.hora?String(h.hora).slice(0,5):'',et:h?mpEtapas(h):[]};
   const st=window.__mpH;
   const linha=(k,rot,extra)=>'<button type="button" class="tc-p" onclick="mpHTgl(\''+k+'\')"><small>'+rot+'</small><b id="mphv_'+k+'"></b><i>›</i></button>'+
     '<div id="mph_box_'+k+'" class="tc-box mph-box" hidden>'+extra+'</div>';
@@ -13695,6 +13753,7 @@ window.mpHabitoModal=(id)=>{
       linha('hora','Hora','<div class="tc-chips"><input type="time" id="mph_hora" class="tc-date" value="'+esc(st.hora)+'" onchange="window.__mpH.hora=this.value.slice(0,5);mpHPintar()"/><button type="button" class="tc-chip" onclick="mpHHora(\'\')">Sem hora</button></div>')+
       linha('ini','Começa','<div class="tc-chips" id="mph_qini"></div><input type="date" id="mph_ini" class="tc-date" style="margin-top:8px" value="'+esc(st.ini)+'" onchange="mpHIniIn(this.value)" hidden/>')+
       linha('meta','Meta','<div class="tc-chips" id="mph_mt" style="margin-bottom:8px"></div><div class="mp-metain"><input id="mph_qtd" type="number" min="1" value="'+Number(st.qtd)+'" oninput="mpHValores()"/><span id="mph_suf"></span></div>')+
+      linha('et','Etapas','<div id="mph_et"></div><div class="tc-add"><span class="tc-o vz"></span><input type="text" id="mph_etn" placeholder="Nova etapa" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mpHEtAdd();}"></div><div class="hint">com etapas, o dia conta na proporção do que foi feito — 2 de 4 vale metade</div>')+
     '</div>'+
     '<button type="button" class="tc-pronto" onclick="document.querySelector(\'.overlay .msave\').click()">'+(h?'Pronto':'Adicionar')+'</button>'+
     '</div>',
@@ -13706,7 +13765,7 @@ window.mpHabitoModal=(id)=>{
       const teto=st.tipo==='sem'?7:(st.tipo==='mes'?31:366);
       if(qtd<1){ toast('Meta precisa ser pelo menos 1.'); return false; }
       if(qtd>teto){ toast('Meta máxima '+(st.tipo==='sem'?'semanal é 7':(st.tipo==='mes'?'mensal é 31':'anual é 366'))+'.'); return false; }
-      const pay={nome,icone:st.ic,cor:st.cor,dias:st.dias.slice().sort(),meta_tipo:st.tipo,meta_qtd:qtd,inicio:st.ini||tkHoje(),hora:(st.hora||'').slice(0,5)||null};
+      const pay={nome,icone:st.ic,cor:st.cor,dias:st.dias.slice().sort(),meta_tipo:st.tipo,meta_qtd:qtd,inicio:st.ini||tkHoje(),hora:(st.hora||'').slice(0,5)||null,etapas:(st.et||[]).length?st.et:null};
       if(st.id){
         const {error}=await sb.from('habitos').update(pay).eq('id',st.id);
         if(error){ toast('Erro: '+error.message); return false; }
@@ -13741,7 +13800,11 @@ function mpHValores(){
   v('ini',esc(mpTcRotDia(st.ini)));
   const q=parseInt((($('#mph_qtd')||{}).value)||st.qtd,10)||0;
   v('meta',q+'× por '+(st.tipo==='sem'?'semana':(st.tipo==='mes'?'mês':'ano')));
+  const et=st.et||[]; v('et',et.length?(et.length+(et.length===1?' etapa':' etapas')):'nenhuma',!et.length);
+  const eb=$('#mph_et'); if(eb) eb.innerHTML=et.map((e,i)=>'<div class="mp-trw"><span class="tt">'+esc(e)+'</span><button type="button" class="x" title="Tirar" onclick="mpHEtDel('+i+')">×</button></div>').join('');
 }
+window.mpHEtAdd=()=>{ const i=$('#mph_etn'); const v=((i&&i.value)||'').trim(); if(!v) return; (window.__mpH.et=window.__mpH.et||[]).push(v); if(i) i.value=''; mpHValores(); if(i) i.focus(); };
+window.mpHEtDel=(i)=>{ (window.__mpH.et||[]).splice(i,1); mpHValores(); };
 const error_or=(r)=>!!(r&&r.error);
 function mpHPintar(){
   const st=window.__mpH;
@@ -14058,7 +14121,7 @@ function mpAgendaHTML(){
         '<button class="x" title="Apagar" onclick="mpEvtDel(\''+e.id+'\')">×</button></div>'; }
     if(it.tipo==='hab'){ const h=it.o, f=mpCk(h.id,dia);
       return '<div class="ga-bl hab'+(f?' done':'')+'">'+
-        '<button class="o'+(f?' on':'')+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')">'+svgIco('check',10)+'</button>'+
+        '<button class="o'+(f?' on':'')+'" style="'+mpCkStyle(mpFrac(h,dia),'#06231a')+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')">'+svgIco('check',10)+'</button>'+
         '<span class="tt abre" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'</span><span class="h">'+esc(String(h.hora).slice(0,5))+'</span><span class="g">hábito</span></div>'; }
     const t=it.o, f=mpFeita(t);
     return '<div class="ga-bl tar'+(f?' done':'')+'">'+
