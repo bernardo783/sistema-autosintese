@@ -2115,7 +2115,7 @@
 .mp-anel .lb{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .mp-anel .xp{font-size:11px;color:var(--brand2);margin-top:3px}
 .mp-perf{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:12px;font-weight:800;color:var(--warn)}
-.mp-sech{font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.mp-sech{font-size:10.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--txt);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
 .mp-add{margin-left:auto;color:var(--brand2);letter-spacing:0;text-transform:none;font-size:12px;font-weight:700;cursor:pointer;background:none;border:0;font-family:inherit}
 .mp-hab{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
 .mp-hab:first-of-type{border-top:none}
@@ -2229,8 +2229,10 @@
 /* Inicio celular, L2 (Gabriel 08/09): habitos em fileira que rola, tarefas em lista */
 .f1-grp{margin-top:18px}
 .f1-grp:first-child{margin-top:10px}
-.f1-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco)}
-.f1-lbl small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);font-variant-numeric:tabular-nums}
+/* Rotulo de secao do Inicio (Gabriel 08/09): estava em --fraco, sumia no fundo.
+   Vira texto cheio; o contador ao lado e que fica discreto. */
+.f1-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--txt)}
+.f1-lbl small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--fraco);font-variant-numeric:tabular-nums}
 .f1-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:16px;padding:8px 16px 4px;margin:0 -16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
 .f1-row::-webkit-scrollbar{display:none}
 .f1-tile{flex:none;width:104px;scroll-snap-align:start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 10px 9px;display:flex;flex-direction:column;gap:8px;color:var(--txt)}
@@ -2245,7 +2247,8 @@
 .f1-tile small{display:block;font-size:10px;color:var(--fraco);font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px;min-height:12px}
 .f1-tile.on small{color:#3b2d66}
 .f1-tile.ro .ring{cursor:default}
-.f1-sb{display:flex;gap:5px;justify-content:center;margin:8px 0 0;height:5px}
+/* as bolinhas nascem no extremo esquerdo, na mesma coluna dos cartoes (Gabriel 08/09) */
+.f1-sb{display:flex;gap:5px;justify-content:flex-start;margin:8px 0 0;height:5px}
 .f1-sb i{width:5px;height:5px;border-radius:99px;background:var(--fraco);opacity:.45;transition:width .15s,background .15s,opacity .15s}
 .f1-sb i.on{opacity:1}
 .f1-sb i.on{width:14px;background:var(--txt)}
