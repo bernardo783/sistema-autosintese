@@ -2400,6 +2400,15 @@
 .mp-h2bar{grid-column:1/-1;height:6px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:12px}
 .mp-h2bar i{display:block;height:100%;border-radius:99px}
 .mp-addrow{display:inline-block;padding:8px 2px;border:0;background:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;margin-top:8px;opacity:.75}
+.mp-tit{display:flex;align-items:baseline;gap:10px;margin:4px 0 4px}
+.mp-tit b{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.mp-tit small{font-size:12.5px;font-weight:600;color:var(--muted)}
+.mp-hab2.tar .mp-hnm{cursor:pointer}
+.mp-hab2.tar.done .mp-hnm{text-decoration:line-through;opacity:.5}
+.mp-hab2.tar.atr .mp-hsub{color:var(--danger)}
+.mp-feitas{margin-top:10px}
+.mp-feitas>summary{list-style:none;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);padding:8px 2px}
+.mp-feitas>summary::-webkit-details-marker{display:none}
 .mp-addrow:hover{color:var(--brand2);opacity:1}
 .mp-t7g{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 .mp-t7{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 6px;text-align:center}
@@ -13403,7 +13412,8 @@ function mpHabCards(){
       '<div class="mp-h2bar"><i style="width:'+pct+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div>'+
       '</div>';
   }).join('');
-  return '<div class="mp-sech">Hábitos · '+MP.habitos.length+'</div>'+
+  const ativos=MP.habitos.filter(h=>mpProg(h,hoje)).length;
+  return '<div class="mp-tit"><b>Hábitos</b><small>'+MP.habitos.length+(ativos?' · '+ativos+' hoje':'')+'</small></div>'+
     (rows||'<div class="hint">Nenhum hábito ainda.</div>')+
     '<button class="mp-addrow" onclick="mpHabitoModal()">+ Adicionar hábito</button>';
 }
@@ -13894,13 +13904,36 @@ function mpStrip(){
     ds.map(d=>'<button class="mp-dia'+(d===dia?' on':'')+(d===hoje?' hj':'')+'" onclick="mpDiaSel(\''+d+'\')"><small>'+MP_SEMD[mpDow(d)].toUpperCase()+'</small><b>'+Number(d.slice(8,10))+'</b></button>').join('')+
     '</div><button class="mp-nav" onclick="mpDiaNav(7)">›</button></div>';
 }
-function mpTarRow(t){ const f=mpFeita(t);
+/* Tarefa usa o mesmo cartao do habito (Gabriel 08/09): icone, nome, subtitulo,
+   contador de etapas, circulo de concluir e a barra de progresso embaixo. */
+const MP_TARICO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
+function mpTarSub(t){
+  const hoje=tkHoje(), dia=String(t.prazo||'').slice(0,10), hh=t.hora?String(t.hora).slice(0,5):'';
   const L=Array.isArray(t.checklist)?t.checklist:[], S=mpSubsDe(t.id);
   const tot=L.length+S.length, okn=L.filter(i=>i&&i.ok).length+S.filter(mpFeita).length;
-  return '<div class="mp-trw'+(f?' done':'')+'"><button class="o'+(f?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button>'+
-  '<span class="tt abre" title="Abrir cartão" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'</span>'+
-  (tot?'<span class="mp-tprog">'+okn+'/'+tot+'</span>':'')+
-  '<button class="x" title="Apagar" onclick="mpTarDel(\''+t.id+'\')">×</button></div>'; }
+  let p=[];
+  if(!dia) p.push('sem dia');
+  else if(dia<hoje&&!mpFeita(t)) p.push('atrasada · '+mpCurto(dia));
+  else p.push(mpTcRotDia(dia).toLowerCase());
+  if(hh) p.push(hh);
+  if(tot) p.push(okn+' de '+tot+' etapas');
+  return {sub:p.join(' · '),tot:tot,okn:okn,atr:!!(dia&&dia<hoje&&!mpFeita(t))};
+}
+function mpTarRow(t){ const f=mpFeita(t), d=mpTarSub(t);
+  const fr=f?1:(d.tot?d.okn/d.tot:0), pct=Math.round(fr*100);
+  return '<div class="mp-hab2 tar'+(f?' done':'')+(d.atr?' atr':'')+'">'+
+    '<div class="mp-hic" style="color:'+(d.atr?'var(--danger)':'var(--brand2)')+'">'+MP_TARICO+'</div>'+
+    '<div><div class="mp-hnm" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+
+      '<span class="mp-hmenu" onclick="event.stopPropagation();mpTarMenu(event,\''+t.id+'\')">⋯</span></div>'+
+      '<div class="mp-hsub">'+esc(d.sub)+'</div></div>'+
+    '<div class="mp-h2pct">'+(d.tot?d.okn+'/'+d.tot:'')+'</div>'+
+    '<button class="mp-hchk'+(f?' on':'')+'" title="'+(f?'Concluída — toque pra reabrir':'Concluir')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',13)+'</button>'+
+    (d.tot?'<div class="mp-h2bar"><i style="width:'+pct+'%;background:var(--brand)"></i></div>':'')+
+    '</div>'; }
+window.mpTarMenu=(ev,id)=>{ ev.stopPropagation(); ctxAbrir(ev,[
+  {ic:MICO.lapis,t:'Abrir cartão',f:()=>mpTarCard(id)},
+  {sep:true},
+  {ic:MICO.lixo,t:'Apagar',dgr:true,f:()=>mpTarDel(id)}]); };
 function mpEvtRow(e){
   return '<div class="mp-trw'+(e.feito?' done':'')+'"><button class="o'+(e.feito?' on':'')+'" onclick="mpEvtVirar(\''+e.id+'\')">'+svgIco('check',11)+'</button>'+
   '<span class="tt">'+esc(e.titulo||'')+'</span>'+
@@ -13911,22 +13944,26 @@ const mpEvtsOrd=(dia)=>(MP.evtsPorDia[dia]||[]).slice().sort((a,b)=>String(a.hor
 
 /* ---------- aba Tarefas (dia + agenda) ---------- */
 function mpTarHTML(){
-  const dia=MP.dia;
-  const ts=mpTarDia(dia), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
-  const semData=mpTarSemData();
-  const tarRow=mpTarRow;
-  /* Aba Tarefas so cuida de tarefa (Gabriel 08/09): a agenda de eventos e o Google
-     Calendar moram na aba Agenda. Nova tarefa abre o mesmo cartao da edicao, com
-     Dia e Hora — a linha inline so aceitava o nome e herdava o dia da tira. */
-  return mpStrip()+
-    '<div class="mp-psub" style="margin-bottom:14px">'+(ts.length?feitas.length+' de '+ts.length+' concluída'+(ts.length>1?'s':''):'')+'</div>'+
-    '<div class="mp-sech">Pendentes · '+pend.length+'<button class="mp-add" onclick="mpTarNovaCard()">+ Nova tarefa</button></div>'+
-    (pend.length?pend.map(tarRow).join(''):'<div class="hint" style="margin-bottom:8px">Nada pra este dia.</div>')+
-    (feitas.length?feitas.map(tarRow).join(''):'')+
-    (semData.length?'<div class="mp-sech" style="margin-top:18px">Sem data · '+semData.length+'</div>'+
-      semData.map(t=>'<div class="mp-trw"><button class="o'+(mpFeita(t)?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',11)+'</button><span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'</span>'+
-      '<button class="x" title="Agendar pra '+mpCurto(dia)+'" style="font-size:12px" onclick="mpTarPraDia(\''+t.id+'\')">'+svgIco('calendario',13)+'</button>'+
-      '<button class="x" title="Apagar" onclick="mpTarDel(\''+t.id+'\')">×</button></div>').join(''):'');
+  /* Mesma casca do Habitos (Gabriel 08/09): titulo grande, cartoes iguais e o
+     "+" no rodape. A tira de dias saiu — o dia agora e propriedade da tarefa,
+     mostrada no subtitulo, entao a lista mostra tudo que esta em aberto. */
+  const hoje=tkHoje(), todas=mpTarefas();
+  const ordem=(a,b)=>{ const da=String(a.prazo||'').slice(0,10), db=String(b.prazo||'').slice(0,10);
+    if(!da&&!db) return String(a.titulo||'').localeCompare(String(b.titulo||''));
+    if(!da) return 1; if(!db) return -1;
+    if(da!==db) return da.localeCompare(db);
+    const ha=String(a.hora||'99:99').slice(0,5), hb=String(b.hora||'99:99').slice(0,5);
+    return ha.localeCompare(hb); };
+  const pend=todas.filter(t=>!mpFeita(t)).sort(ordem);
+  const feitas=todas.filter(mpFeita).sort((a,b)=>String(b.concluida_em||'').localeCompare(String(a.concluida_em||'')));
+  const atr=pend.filter(t=>{ const d=String(t.prazo||'').slice(0,10); return d&&d<hoje; }).length;
+  const hj=pend.filter(t=>String(t.prazo||'').slice(0,10)===hoje).length;
+  const marca=[]; if(atr) marca.push(atr+' atrasada'+(atr>1?'s':'')); if(hj) marca.push(hj+' pra hoje');
+  return '<div class="mp-tit"><b>Tarefas</b><small>'+pend.length+(marca.length?' · '+marca.join(' · '):'')+'</small></div>'+
+    (pend.length?pend.map(mpTarRow).join(''):'<div class="hint">Nenhuma tarefa em aberto.</div>')+
+    (feitas.length?'<details class="mp-feitas"><summary>Concluídas · '+feitas.length+'</summary>'+
+      feitas.slice(0,30).map(mpTarRow).join('')+'</details>':'')+
+    '<button class="mp-addrow" onclick="mpTarNovaCard()">+ Nova tarefa</button>';
 }
 window.mpDiaSel=(iso)=>{ MP.dia=iso; MP.evtNovo=false; mpPintar(); };
 window.mpDiaNav=(n)=>{ MP.dia=tkDiaMais(MP.dia,n); mpPintar(); };
@@ -13934,7 +13971,7 @@ window.mpTarNovaTgl=()=>{ mpTarNovaCard(); };
 /* Cartao de nova tarefa: mesmo desenho do cartao de edicao, so com titulo, Dia, Hora
    e notas. Etapas so aparecem depois que a tarefa existe. */
 window.mpTarNovaCard=(diaIni)=>{
-  const hj=tkHoje(), dia=diaIni||MP.dia||hj;
+  const hj=tkHoje(), dia=diaIni||hj;   /* sem tira de dias, nova tarefa nasce hoje */
   const chips=[['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Seg '+Number(tkDiaMais(mpSegDa(hj),7).slice(8,10)),tkDiaMais(mpSegDa(hj),7)],['Sem dia','']];
   modal('Nova tarefa',
     '<div class="tc">'+
@@ -13965,7 +14002,6 @@ window.mpTarNovaCard=(diaIni)=>{
         responsavel_id:uid,responsaveis:[uid],criado_por:uid}).select().single();
       if(r.error){ toast('Erro: '+r.error.message); return false; }
       TK.tarefas.push(r.data);
-      if(r.data.prazo) MP.dia=String(r.data.prazo).slice(0,10);
       mpPintar();
     });
   const ov=document.querySelector('.overlay'); if(ov) ov.classList.add('tc-ov');
