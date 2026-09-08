@@ -12745,25 +12745,80 @@ function ctPdfLibs(){
 }
 async function ctPdfDeDocx(docxBlob){
   await ctPdfLibs();
-  const buf=await docxBlob.arrayBuffer();
-  /* a fonte vira Arial/Helvetica em tudo: e a mesma metrica que o PDF usa, entao a palavra
-     cai no PDF exatamente onde o navegador mediu. (Calibri no modelo daria sobreposicao.) */
-  if(!document.getElementById('ctPdfCss')){ const st=document.createElement('style'); st.id='ctPdfCss';
-    st.textContent='#ctPdfBox .docx-wrapper{background:#fff;padding:0}#ctPdfBox .docx-wrapper>section.docx{box-shadow:none;margin:0}#ctPdfBox .docx,#ctPdfBox .docx *{font-family:Arial,Helvetica,sans-serif!important}';
-    document.head.appendChild(st); }
+  /* marca d'agua e outras imagens ancoradas do cabecalho/rodape: o docx-preview nao sabe
+     posicionar "atras do texto"; a gente tira do XML e desenha direto no PDF, na posicao do Word */
+  const JSZipC=await ctJSZip();
+  const zip=await JSZipC.loadAsync(await docxBlob.arrayBuffer());
+  const fundo=await ctPdfAncoras(zip);
+  const padrao=await ctPdfFontePadrao(zip);
+  const buf=await zip.generateAsync({type:'arraybuffer'});
+  let st=document.getElementById('ctPdfCss'); if(!st){ st=document.createElement('style'); st.id='ctPdfCss'; document.head.appendChild(st); }
+  st.textContent='#ctPdfBox .docx-wrapper{background:#fff;padding:0}#ctPdfBox .docx-wrapper>section.docx{box-shadow:none;margin:0}';
   const box=document.createElement('div'); box.id='ctPdfBox';
-  box.style.cssText='position:absolute;left:0;top:0;width:900px;opacity:0;pointer-events:none;z-index:-1;background:#fff;color:#000';
+  box.style.cssText='position:absolute;left:0;top:0;width:900px;opacity:0;pointer-events:none;z-index:-1;background:#fff;color:#000;font-family:'+padrao;
   document.body.appendChild(box);
   try{
     await window.docx.renderAsync(buf,box,null,{inWrapper:true,ignoreWidth:false,ignoreHeight:false,breakPages:true,renderHeaders:true,renderFooters:true,useBase64URL:true,ignoreLastRenderedPageBreak:true});
+    const wrap=box.querySelector('.docx-wrapper')||box;
+    ctPdfFontes(wrap);
     await Promise.all([...box.querySelectorAll('img')].map(im=>im.decode().catch(()=>{})));
     await new Promise(r=>setTimeout(r,60));
-    const wrap=box.querySelector('.docx-wrapper')||box;
     ctPdfPaginar(wrap);
     const secs=[...wrap.querySelectorAll('section.docx')];
     if(!secs.length) throw new Error('o modelo não gerou páginas');
-    return ctPdfDesenhar(secs);
+    return ctPdfDesenhar(secs,fundo);
   }finally{ box.remove(); }
+}
+/* Fonte do modelo vira a fonte-irma que o PDF tem: serifada -> Times, o resto -> Arial/Helvetica.
+   Times New Roman e Arial tem a mesma metrica das fontes do PDF, entao a palavra cai no
+   PDF exatamente onde o navegador mediu. (Calibri viraria sobreposicao.) */
+/* fonte padrao do documento (texto sem fonte explicita): docDefaults do styles.xml, senao a
+   fonte "minor" do tema (Word usa Calibri/Cambria; o modelo da Sintese usa Cambria = serifada) */
+async function ctPdfFontePadrao(zip){
+  const serif=(f)=>/times|georgia|cambria|garamond|antiqua|palatino|baskerville|bookman|century|serif/i.test(f||'')&&!/sans/i.test(f||'');
+  let f='';
+  try{ const st=zip.file('word/styles.xml'); if(st){ const x=await st.async('string'); const m=/<w:rPrDefault>[\s\S]*?<w:rFonts[^>]*w:ascii="([^"]+)"/.exec(x); if(m) f=m[1]; } }catch(_){ }
+  if(!f){ try{ const th=zip.file('word/theme/theme1.xml'); if(th){ const x=await th.async('string'); const m=/<a:minorFont>\s*<a:latin typeface="([^"]+)"/.exec(x); if(m) f=m[1]; } }catch(_){ } }
+  return serif(f)?"'Times New Roman',Times,serif":'Arial,Helvetica,sans-serif';
+}
+function ctPdfFontes(wrap){
+  const serif=(f)=>{ const p=String(f||'').split(',')[0]; return /times|georgia|cambria|garamond|antiqua|palatino|baskerville|bookman|century|serif/i.test(p)&&!/sans/i.test(p); };
+  [wrap,...wrap.querySelectorAll('*')].forEach(el=>{ const fam=getComputedStyle(el).fontFamily; el.style.setProperty('font-family',serif(fam)?"'Times New Roman',Times,serif":'Arial,Helvetica,sans-serif','important'); });
+}
+async function ctPdfAncoras(zip){
+  const EMU=12700, out=[];
+  const docF=zip.file('word/document.xml'); const doc=docF?await docF.async('string'):'';
+  const mar=(/<w:pgMar([^>]*)\/>/.exec(doc)||[])[1]||'', pg=(/<w:pgSz([^>]*)\/>/.exec(doc)||[])[1]||'';
+  const tw=(src,k,pad)=>{ const m=new RegExp('w:'+k+'="(-?\\d+)"').exec(src); return m?+m[1]/20:pad; };
+  const mL=tw(mar,'left',70.9), mT=tw(mar,'top',56.7), pW=tw(pg,'w',595.3), pH=tw(pg,'h',841.9);
+  const partes=Object.keys(zip.files).filter(n=>/^word\/(header|footer)\d*\.xml$/.test(n));
+  for(const nome of partes){
+    let xml=await zip.file(nome).async('string'); if(xml.indexOf('<wp:anchor')<0) continue;
+    const relsF=zip.file('word/_rels/'+nome.slice(5)+'.rels'); const rels=relsF?await relsF.async('string'):'';
+    const alvo=(id)=>{ const m=new RegExp('<Relationship[^>]*Id="'+id+'"[^>]*>').exec(rels); const t=m&&/Target="([^"]+)"/.exec(m[0]); return t?t[1]:null; };
+    const blocos=[];
+    xml=xml.replace(/<mc:AlternateContent>[\s\S]*?<\/mc:AlternateContent>/g,(b)=>{ if(b.indexOf('<wp:anchor')<0) return b; const fb=/<mc:Fallback>([\s\S]*?)<\/mc:Fallback>/.exec(b); blocos.push(fb?fb[1]:b); return ''; });
+    xml=xml.replace(/<w:drawing>\s*<wp:anchor[\s\S]*?<\/wp:anchor>\s*<\/w:drawing>/g,(b)=>{ blocos.push(b); return ''; });
+    for(const b of blocos){
+      const a=/<wp:anchor[\s\S]*?<\/wp:anchor>/.exec(b); if(!a) continue; const sx=a[0];
+      const ext=/<wp:extent cx="(\d+)" cy="(\d+)"/.exec(sx), emb=/r:embed="(\w+)"/.exec(sx); if(!ext||!emb) continue;
+      const w=+ext[1]/EMU, h=+ext[2]/EMU;
+      const pos=(eixo,tam,marg,total)=>{ const m=new RegExp('<wp:position'+eixo+' relativeFrom="(\\w+)">([\\s\\S]*?)</wp:position'+eixo+'>').exec(sx); if(!m) return 0;
+        const off=/<wp:posOffset>(-?\d+)<\/wp:posOffset>/.exec(m[2]), al=/<wp:align>(\w+)<\/wp:align>/.exec(m[2]);
+        const base=m[1]==='page'?0:marg;
+        if(off) return base+(+off[1])/EMU;
+        if(al){ const ref=m[1]==='page'?total:(total-2*marg); const a2=al[1]; return base+(a2==='center'?(ref-tam)/2:((a2==='right'||a2==='bottom')?ref-tam:0)); }
+        return base; };
+      const x=pos('H',w,mL,pW), y=pos('V',h,mT,pH);
+      const t=alvo(emb[1]); if(!t) continue; const f=zip.file('word/'+t.replace(/^\/?(word\/)?/,'')); if(!f) continue;
+      const tp=/\.png$/i.test(t)?'PNG':(/\.jpe?g$/i.test(t)?'JPEG':null); if(!tp) continue;
+      const chave=[Math.round(x),Math.round(y),Math.round(w),t].join('|'); if(out.some(o=>o.chave===chave)) continue;
+      const b64=await f.async('base64');
+      out.push({x,y,w,h,tp,src:'data:image/'+(tp==='PNG'?'png':'jpeg')+';base64,'+b64,atras:/behindDoc="1"/.test(sx),chave});
+    }
+    zip.file(nome,xml);
+  }
+  return out;
 }
 /* quebra em paginas A4 movendo paragrafos inteiros; cabecalho e rodape repetem */
 function ctPdfPaginar(wrap){
@@ -12784,14 +12839,19 @@ function ctPdfPaginar(wrap){
     pgs.forEach(p=>{ p.style.height=pageH+'px'; p.style.minHeight=pageH+'px'; p.style.overflow='hidden'; p.style.display='flex'; p.style.flexDirection='column'; const a=p.querySelector(':scope>article'); if(a) a.style.flex='1 0 auto'; });
   });
 }
-function ctPdfDesenhar(secs){
+function ctPdfDesenhar(secs,fundo){
   const K=72/96, pdf=new window.jspdf.jsPDF({unit:'pt',format:'a4',compress:true});
-  const rg=document.createRange();
+  const rg=document.createRange(); fundo=fundo||[];
+  const marca=(atras)=>fundo.filter(f=>!!f.atras===atras).forEach(f=>{ try{ pdf.addImage(f.src,f.tp,f.x,f.y,f.w,f.h); }catch(_){ } });
+  /* o docx-preview nem sempre sabe o tipo da imagem (vem application/octet-stream): olha a assinatura dos bytes */
+  const tipoImg=(src)=>{ const m=/^data:([^;]+);base64,(.{0,12})/.exec(src||''); if(!m) return null; if(/png/i.test(m[1])) return 'PNG'; if(/jpe?g/i.test(m[1])) return 'JPEG';
+    try{ const h=atob(m[2]); if(h.charCodeAt(0)===0x89&&h.slice(1,4)==='PNG') return 'PNG'; if(h.charCodeAt(0)===0xFF&&h.charCodeAt(1)===0xD8) return 'JPEG'; }catch(_){ } return null; };
   secs.forEach((sec,pi)=>{
     if(pi) pdf.addPage();
+    marca(true);
     const o=sec.getBoundingClientRect();
     sec.querySelectorAll('img').forEach(im=>{ const r=im.getBoundingClientRect(); if(!r.width||!r.height) return; const src=im.currentSrc||im.src;
-      const tp=/^data:image\/png/i.test(src)?'PNG':(/^data:image\/(jpe?g)/i.test(src)?'JPEG':null); if(!tp) return;
+      const tp=tipoImg(src); if(!tp) return;
       try{ pdf.addImage(src,tp,(r.left-o.left)*K,(r.top-o.top)*K,r.width*K,r.height*K); }catch(_){ } });
     sec.querySelectorAll('td,th').forEach(td=>{ const r=td.getBoundingClientRect(), cs=getComputedStyle(td); const x=(r.left-o.left)*K,y=(r.top-o.top)*K,w=r.width*K,h=r.height*K;
       const bw=(k)=>(cs['border'+k+'Style']==='none'||cs['border'+k+'Style']==='hidden')?0:(parseFloat(cs['border'+k+'Width'])||0); pdf.setDrawColor(0);
@@ -12803,7 +12863,8 @@ function ctPdfDesenhar(secs){
       const el=node.parentElement; const cs=getComputedStyle(el); if(cs.display==='none'||cs.visibility==='hidden') continue;
       const fs=parseFloat(cs.fontSize)*K; if(!fs) continue;
       const bold=parseInt(cs.fontWeight,10)>=600||cs.fontWeight==='bold', it=cs.fontStyle==='italic';
-      pdf.setFont('helvetica',bold&&it?'bolditalic':(bold?'bold':(it?'italic':'normal'))); pdf.setFontSize(fs);
+      const fam=/times|serif/i.test(String(cs.fontFamily).split(',')[0])&&!/sans/i.test(String(cs.fontFamily).split(',')[0])?'times':'helvetica';
+      pdf.setFont(fam,bold&&it?'bolditalic':(bold?'bold':(it?'italic':'normal'))); pdf.setFontSize(fs);
       const m=/rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(cs.color); if(m) pdf.setTextColor(+m[1],+m[2],+m[3]); else pdf.setTextColor(0);
       const und=/underline/.test(cs.textDecorationLine||cs.textDecoration||''), caps=cs.textTransform==='uppercase';
       const re=/\S+/g; let mm;
@@ -12817,6 +12878,7 @@ function ctPdfDesenhar(secs){
         if(und){ pdf.setLineWidth(Math.max(.5,fs*.06)); pdf.line(x,y+fs*.12,x+r.width*K,y+fs*.12); }
       }
     }
+    marca(false);
   });
   return pdf.output('blob');
 }
