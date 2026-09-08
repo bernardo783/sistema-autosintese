@@ -13439,7 +13439,8 @@ function mpHabCards(){
     (rows||'<button class="mp-vazio" onclick="mpHabitoModal()">Nenhum hábito ainda · criar o primeiro</button>');
 }
 function mpHabsHTML(){ return mpHabCards(); }
-window.mpIrTarNova=()=>{ MP.aba='tarefas'; MP.evtNovo=false; mpPintar(); mpTarNovaCard(); };
+/* Nova tarefa fica na aba onde a pessoa esta (Gabriel 08/09): no Inicio, nasce no dia que esta sendo olhado */
+window.mpIrTarNova=()=>{ MP.evtNovo=false; if(MP.aba==='progresso'){ MP.aba='tarefas'; mpPintar(); } mpTarNovaCard(MP.aba==='inicio'&&MP.iniDia&&MP.iniDia>=tkHoje()?MP.iniDia:undefined); };
 /* Inicio F1 (celular): a data como titulo, setas de um dia, fio de progresso, lista unica */
 function mpIniMobileHTML(){
   const hoje=tkHoje(); if(!MP.iniDia) MP.iniDia=hoje;
