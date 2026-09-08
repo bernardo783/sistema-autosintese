@@ -2410,6 +2410,9 @@
 .mp-feitas>summary{list-style:none;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);padding:8px 2px}
 .mp-feitas>summary::-webkit-details-marker{display:none}
 .mp-addrow:hover{color:var(--brand2);opacity:1}
+.mp-vazio{display:block;width:100%;margin-top:10px;padding:16px;border:1px dashed var(--line);border-radius:12px;
+  background:none;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.mp-vazio:hover{color:var(--brand2);border-color:var(--brand)}
 .mp-t7g{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 .mp-t7{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 6px;text-align:center}
 .mp-t7.hj{border-color:var(--brand)}
@@ -13414,8 +13417,9 @@ function mpHabCards(){
   }).join('');
   const ativos=MP.habitos.filter(h=>mpProg(h,hoje)).length;
   return '<div class="mp-tit"><b>Hábitos</b><small>'+MP.habitos.length+(ativos?' · '+ativos+' hoje':'')+'</small></div>'+
-    (rows||'<div class="hint">Nenhum hábito ainda.</div>')+
-    '<button class="mp-addrow" onclick="mpHabitoModal()">+ Adicionar hábito</button>';
+    /* o "+" roxo (celular) e o botao do topo (tela grande) ja criam — a linha
+       "+ Adicionar" no rodape virou repeticao (Gabriel 08/09) */
+    (rows||'<button class="mp-vazio" onclick="mpHabitoModal()">Nenhum hábito ainda · criar o primeiro</button>');
 }
 function mpHabsHTML(){ return mpHabCards(); }
 window.mpIrTarNova=()=>{ MP.aba='tarefas'; MP.evtNovo=false; mpPintar(); mpTarNovaCard(); };
@@ -13960,10 +13964,9 @@ function mpTarHTML(){
   const hj=pend.filter(t=>String(t.prazo||'').slice(0,10)===hoje).length;
   const marca=[]; if(atr) marca.push(atr+' atrasada'+(atr>1?'s':'')); if(hj) marca.push(hj+' pra hoje');
   return '<div class="mp-tit"><b>Tarefas</b><small>'+pend.length+(marca.length?' · '+marca.join(' · '):'')+'</small></div>'+
-    (pend.length?pend.map(mpTarRow).join(''):'<div class="hint">Nenhuma tarefa em aberto.</div>')+
+    (pend.length?pend.map(mpTarRow).join(''):'<button class="mp-vazio" onclick="mpTarNovaCard()">Nenhuma tarefa em aberto · criar uma</button>')+
     (feitas.length?'<details class="mp-feitas"><summary>Concluídas · '+feitas.length+'</summary>'+
-      feitas.slice(0,30).map(mpTarRow).join('')+'</details>':'')+
-    '<button class="mp-addrow" onclick="mpTarNovaCard()">+ Nova tarefa</button>';
+      feitas.slice(0,30).map(mpTarRow).join('')+'</details>':'');
 }
 window.mpDiaSel=(iso)=>{ MP.dia=iso; MP.evtNovo=false; mpPintar(); };
 window.mpDiaNav=(n)=>{ MP.dia=tkDiaMais(MP.dia,n); mpPintar(); };
