@@ -14303,8 +14303,9 @@ function mpAgendaHTML(){
     '<button type="button" class="ga-tit" onclick="mpCalToggle()">'+esc(titCap)+'<span class="cv">'+(MP.calAberto?'▴':'▾')+'</span></button>'+
     (ehHoje?'':'<button type="button" class="mp-pill" onclick="mpDiaSel(\''+hoje+'\')">Hoje</button>')+
     '</div>'+
-    (MP.calAberto?mpCalMesHTML():'')+
-    faixa+conectar+
+    /* Com o mes aberto a tira da semana e repeticao: os mesmos 7 dias, duas vezes,
+       um embaixo do outro (Gabriel, 08/09). Some enquanto o calendario esta aberto. */
+    (MP.calAberto?mpCalMesHTML():faixa)+conectar+
     (sem.length?'<div class="mp-sech">Dia inteiro</div>'+sem.map(mpEvtRow).join(''):'')+
     '<div class="ga">'+linhas+'</div>'+
     (tarsS.length?'<div class="mp-sech" style="margin-top:18px">Sem horário · '+tarsS.length+'</div>'+tarsS.filter(t=>!mpFeita(t)).map(mpTarRow).join('')+tarsS.filter(mpFeita).map(mpTarRow).join(''):'');
