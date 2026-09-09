@@ -331,36 +331,6 @@
   .fc-puxar .tx b{display:block;font-size:13px;font-weight:800;line-height:1.3}
   .fc-puxar .tx em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
   .fc-lead{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
-/* Respostas dos clientes */
-.cf-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 16px}
-.cf-top .ftab small{font-weight:600;opacity:.6;margin-left:2px}
-.cf-busca{max-width:320px;flex:1}
-.cf-wrap{display:grid;grid-template-columns:1fr;gap:18px;align-items:start}
-.cf-wrap.com-detalhe{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
-.cf-item{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:8px;cursor:pointer}
-.cf-item:hover{border-color:var(--brand2)}
-.cf-item.on{border-color:var(--brand);box-shadow:0 0 0 3px var(--sel)}
-.cf-item.nv b::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--brand);margin-right:7px;vertical-align:middle}
-.cf-l{min-width:0} .cf-l b{display:block;font-size:14px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cf-l span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.cf-r{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
-.cf-r small{font-size:11px;color:var(--fraco);font-variant-numeric:tabular-nums}
-.cf-chip{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:3px 9px;background:var(--panel2);color:var(--muted)}
-.cf-chip.brand{background:var(--sel);color:var(--brand2)} .cf-chip.ok{background:rgba(31,157,99,.14);color:var(--ok)} .cf-chip.warn{background:rgba(183,121,31,.16);color:var(--warn)}
-.cf-det{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;position:sticky;top:12px}
-.cf-dh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
-.cf-dh b{display:block;font-size:18px;font-weight:800;margin-top:8px;color:var(--txt)}
-.cf-dh small{display:block;font-size:12px;color:var(--muted);margin-top:3px}
-.cf-campos{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
-.cf-campo{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:10px 0;border-bottom:1px solid var(--line);min-width:0}
-.cf-campo .k{grid-column:1/-1;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fraco)}
-.cf-campo .k em{font-style:normal;color:var(--warn)}
-.cf-campo .v{font-size:14px;color:var(--txt);font-weight:600;overflow-wrap:anywhere}
-.cf-campo.vz .v{color:var(--fraco);font-weight:500}
-.cf-cp{background:none;border:0;color:var(--fraco);cursor:pointer;font-size:14px;padding:0 2px;align-self:center}
-.cf-cp:hover{color:var(--txt)}
-.cf-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
-@media(max-width:860px){ .cf-wrap.com-detalhe{grid-template-columns:1fr} .cf-det{position:static} .cf-campos{grid-template-columns:1fr} }
   .fc-lead:last-child{border-bottom:none}
   .fc-lead .s{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis}
   /* linha do Asaas: opcao no formulario e resultado na tela de sucesso */
@@ -1066,11 +1036,7 @@
     border-radius:14px;padding:14px 12px;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;text-align:left}
   .tk-addcol:hover{background:var(--panel2);color:var(--txt);border-color:var(--brand2)}
   /* ---------- CONFIRMAÇÃO DO SISTEMA ---------- */
-  /* Regra da casa (Gabriel, 08/09): fechar e SEMPRE o x no canto direito — nunca a
-     palavra "Cancelar". E os tres pontinhos moram no canto esquerdo. */
-  .cf-m{max-width:430px;position:relative}
-  .cf-m>.x{position:absolute;top:8px;right:11px;font-size:21px;padding:4px 7px;border-radius:8px;z-index:2}
-  .cf-m>.x:hover{background:var(--panel2);color:var(--txt)}
+  .cf-m{max-width:430px}
   .cf-m .mbody{padding-top:22px}
   .cf-t{font-size:16.5px;font-weight:800;line-height:1.35;letter-spacing:-.01em}
   .cf-x{color:var(--muted);font-size:13.5px;line-height:1.6;margin-top:9px}
@@ -1381,50 +1347,6 @@
   .pes-sep{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
     font-weight:800;padding:10px 14px 4px;border-top:1px solid var(--line)}
   .ini-prog{font-size:11.5px;color:var(--muted);font-weight:600;padding:9px 14px 2px}
-  /* Inicio com a linguagem do Pessoal (Gabriel 08/09): data como titulo, fio de
-     progresso, numeros numa linha e secao sem caixa — so rotulo e contador. */
-  .ini-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:2px}
-  .ini-dia{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
-  .ini-dsub{font-size:12.5px;color:var(--muted);margin-top:3px}
-  .ini-fio{height:3px;border-radius:99px;background:var(--panel2);overflow:hidden;margin:14px 0 0}
-  .ini-fio i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .25s}
-  .ini-nums{display:flex;flex-wrap:wrap;gap:6px 20px;margin:12px 0 6px;font-size:11.5px;color:var(--muted)}
-  .ini-nums b{font-size:13.5px;font-weight:800;color:var(--txt);margin-right:4px;font-variant-numeric:tabular-nums}
-  .ini-lbl{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
-    font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco);margin:24px 2px 2px}
-  .ini-lbl small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);font-variant-numeric:tabular-nums}
-  .ini-lbl.atraso{color:var(--danger)}
-  .ini-box{background:none;border:0;border-radius:0;padding:0;margin-bottom:0}
-  .ini-box.atraso{background:none;border:0}
-  .ini-it{padding:12px 2px;border-radius:0;border-top:1px solid var(--line);gap:12px}
-  .ini-it+.ini-it{border-top:1px solid var(--line)}
-  .ini-it:hover{background:var(--panel)}
-  .ini-ok{width:34px;height:34px;border-width:1.5px}
-  .ini-ok svg{width:15px;height:15px}
-  .ini-ok::after{width:9px;height:9px}
-  .ini-tit{font-size:14.5px;font-weight:600;white-space:normal}
-  .ini-sub{font-size:12px;margin-top:2px}
-  .ini-it.atrasada .ini-ok{border-color:var(--danger)}
-  .ini-it.atrasada .ini-sub{color:var(--danger)}
-  .ini-zero{padding:26px 2px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
-  .ini-hoje{border:1px solid var(--line);background:none;color:var(--muted);border-radius:999px;
-    padding:4px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
-  .ini-hoje:hover{color:var(--brand2);border-color:var(--brand)}
-  .ini-tiles{display:grid;gap:10px;margin:6px 0 2px}
-  .ini-tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 13px;
-    display:flex;flex-direction:column;gap:9px;cursor:pointer;min-width:0}
-  .ini-tile:hover{border-color:var(--brand)}
-  .ini-tile.ativo{border-color:rgba(77,163,255,.5)}
-  .ini-tile b{font-size:13px;font-weight:800;letter-spacing:-.01em;line-height:1.25;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .ini-tile small{font-size:11px;color:var(--fraco);font-weight:600;font-variant-numeric:tabular-nums;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ini-tile .ini-ok{width:26px;height:26px}
-  .ini-tile .ini-ok svg{width:12px;height:12px}
-  .ini-bar{flex-basis:100%;height:4px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:8px}
-  .ini-bar i{display:block;height:100%;background:var(--brand);border-radius:99px}
-  .ini-it{flex-wrap:wrap}
-  .pes-novo{margin-top:8px}
   .ini-tit{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ini-sub{color:var(--muted);font-size:11.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ini-tag{flex:none;font-size:11px;font-weight:700;color:var(--muted);background:var(--panel2);border-radius:7px;padding:3px 9px;white-space:nowrap}
@@ -2193,7 +2115,7 @@
 .mp-anel .lb{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .mp-anel .xp{font-size:11px;color:var(--brand2);margin-top:3px}
 .mp-perf{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:12px;font-weight:800;color:var(--warn)}
-.mp-sech{font-size:10.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--txt);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.mp-sech{font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
 .mp-add{margin-left:auto;color:var(--brand2);letter-spacing:0;text-transform:none;font-size:12px;font-weight:700;cursor:pointer;background:none;border:0;font-family:inherit}
 .mp-hab{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
 .mp-hab:first-of-type{border-top:none}
@@ -2249,12 +2171,8 @@
     color:var(--muted);font:inherit;font-size:10px;font-weight:700;padding:6px 0;border-radius:14px;position:relative;cursor:pointer}
   .mp-tabbar button svg{width:20px;height:20px}
   .mp-tabbar button.on{color:var(--brand2)}
-  /* Marca da aba aberta: um traco encostado na borda de cima (Gabriel, 08/09).
-     O quadrado que morava aqui tinha z-index:-1 e caia ATRAS do vidro da barra, e
-     era posicionado so pelo top, sem centralizar — ficava torto e meio comido. */
-  .mp-tabbar button.on::before{content:'';position:absolute;top:-1px;left:50%;
-    transform:translateX(-50%);width:26px;height:3px;border-radius:0 0 3px 3px;
-    background:var(--brand2)}
+  .mp-tabbar button.on::before{content:'';position:absolute;top:2px;width:34px;height:34px;border-radius:12px;
+    background:color-mix(in srgb,var(--brand) 16%,transparent);z-index:-1}
   .mp-fab{position:fixed;right:18px;bottom:calc(138px + env(safe-area-inset-bottom,0px));z-index:901;
     width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
     background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:0;
@@ -2311,11 +2229,9 @@
 /* Inicio celular, L2 (Gabriel 08/09): habitos em fileira que rola, tarefas em lista */
 .f1-grp{margin-top:18px}
 .f1-grp:first-child{margin-top:10px}
-/* Rotulo de secao do Inicio (Gabriel 08/09): estava em --fraco, sumia no fundo.
-   Vira texto cheio; o contador ao lado e que fica discreto. */
-.f1-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--txt)}
-.f1-lbl small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--fraco);font-variant-numeric:tabular-nums}
-.f1-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:16px;padding:8px 16px 4px;margin:0 -16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+.f1-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco)}
+.f1-lbl small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);font-variant-numeric:tabular-nums}
+.f1-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:8px 16px 4px;margin:0 -16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
 .f1-row::-webkit-scrollbar{display:none}
 .f1-tile{flex:none;width:104px;scroll-snap-align:start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 10px 9px;display:flex;flex-direction:column;gap:8px;color:var(--txt)}
 .f1-tile .ring{width:24px;height:24px;border-radius:50%;padding:2.5px;background:conic-gradient(#a78bfa var(--p,0%),var(--panel2) 0);border:0;cursor:pointer;display:block;flex:none}
@@ -2329,36 +2245,13 @@
 .f1-tile small{display:block;font-size:10px;color:var(--fraco);font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px;min-height:12px}
 .f1-tile.on small{color:#3b2d66}
 .f1-tile.ro .ring{cursor:default}
-/* as bolinhas nascem no extremo esquerdo, na mesma coluna dos cartoes (Gabriel 08/09) */
-.f1-sb{display:flex;gap:5px;justify-content:flex-start;margin:8px 0 0;height:5px}
-.f1-sb i{width:5px;height:5px;border-radius:99px;background:var(--fraco);opacity:.45;transition:width .15s,background .15s,opacity .15s}
-.f1-sb i.on{opacity:1}
-.f1-sb i.on{width:14px;background:var(--txt)}
-/* a ponta do proximo cartao some num degrade em vez de ficar cortada no meio */
-.f1-row:not(.fim){-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 64px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 64px),transparent)}
-.f1-row:not(.ini):not(.fim){-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 64px),transparent);mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 64px),transparent)}
-.f1-row:not(.ini).fim{-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px);mask-image:linear-gradient(90deg,transparent,#000 40px)}
-.f1-grid{display:grid;gap:8px;padding:8px 0 2px}
-.f1-row .f1-tile,.f1-grid .f1-tile{width:var(--tw,104px)}
-.f1-grid .f1-tile b{white-space:normal;overflow-wrap:anywhere;line-height:1.2}
+.f1-sb{height:3px;background:var(--panel2);border-radius:99px;margin:4px 0 0;position:relative;overflow:hidden}
+.f1-sb i{position:absolute;top:0;height:100%;background:var(--txt);border-radius:99px;width:30%;left:0}
+.f1-grp .mp-hab2{cursor:default;padding:16px 2px 14px}
+.f1-grp .mp-hab2:first-of-type{border-top:0}
+.f1-grp .mp-hchk{color:transparent}
+.f1-grp .mp-hchk.on{color:#fff}
 .f1-grp.tar .f1-it:first-of-type{margin-top:2px}
-@media(min-width:721px){
-  .f1{max-width:980px;margin:0 auto;padding:10px 0 0}
-  .f1-h .dt b{font-size:26px}
-  .f1-h .dt small{font-size:12.5px}
-  .f1-pb{height:4px;margin-top:16px}
-  .f1-grp{margin-top:22px}
-  .f1-lbl{font-size:12px}
-  .f1-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;overflow:visible;
-    margin:0;padding:10px 0 2px;-webkit-mask-image:none;mask-image:none}
-  .f1-row .f1-tile{width:auto}
-  .f1-tile{padding:12px 12px 11px;border-radius:16px}
-  .f1-tile b{font-size:13.5px;white-space:normal;overflow-wrap:anywhere;line-height:1.2}
-  .f1-tile small{font-size:11px}
-  .f1-tile .ring{width:28px;height:28px}
-  .f1-sb{display:none}
-  .f1-it{padding-top:10px;padding-bottom:10px}
-}
 .f1-grp .f1-it:last-child{border-bottom:0}
 .f1-it{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .f1-it .o{width:21px;height:21px;border-radius:50%;border:1.5px solid var(--fraco);flex:none;background:none;cursor:pointer;display:grid;place-items:center;color:transparent;padding:0}
@@ -2368,13 +2261,6 @@
 .f1-it .o svg{width:11px;height:11px}
 .f1-it .tt{flex:1;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em}
 .f1-it .tt small{display:block;font-size:11px;color:var(--fraco);font-weight:500;margin-top:1px}
-/* pendencia arrastada de um dia anterior: etiqueta no cartao e faixa no topo do dia */
-.mp-adi{display:inline-flex;align-items:center;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
-  color:#f3ce7a;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.34);border-radius:99px;padding:1px 7px;margin-left:7px;vertical-align:1px}
-.f1-aviso{display:flex;align-items:center;gap:9px;margin:12px 0 0;padding:9px 12px;border-radius:11px;
-  background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.30);color:#f3ce7a;font-size:12px;font-weight:700;line-height:1.35}
-.f1-aviso b{font-weight:900}
-.f1-it.adi .tt{color:var(--fraco)}
 .f1-it.done .tt{color:var(--fraco);text-decoration:line-through}
 .f1-it .h{font-size:11.5px;color:var(--fraco);font-variant-numeric:tabular-nums;flex:none}
 .f1-vz{padding:28px 0 8px;text-align:center;color:var(--fraco);font-size:13px}
@@ -2409,26 +2295,6 @@
 .mp-pills{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
 .mp-pill{padding:6px 13px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit}
 .mp-pill.on{background:var(--brand);border-color:var(--brand);color:#fff}
-/* KPI enxuto */
-.kp{max-width:560px}
-.kp-pills{margin:0 0 6px}
-.kp-dts{display:flex;align-items:center;gap:8px;margin:6px 0 2px;font-size:12px;color:var(--muted)}
-.kp-big{display:flex;align-items:flex-end;gap:12px;margin:14px 0 0}
-.kp-big b{font-size:52px;font-weight:900;letter-spacing:-.06em;line-height:.85;font-variant-numeric:tabular-nums;color:var(--txt)}
-.kp-big .v{padding-bottom:5px}
-.kp-big .v em{font-style:normal;font-size:13px;font-weight:800;display:block}
-.kp-big .v small{display:block;font-size:11px;color:var(--fraco);font-weight:600;margin-top:2px}
-.kp-spark{margin:12px 0 0;position:relative}
-.kp-spark svg{width:100%;height:86px;display:block}
-.kp-spark .lb{display:flex;justify-content:space-between;font-size:10px;color:var(--fraco);font-weight:700;margin-top:4px}
-.kp-vz{height:86px;display:grid;place-items:center;color:var(--fraco);font-size:12px;border:1px dashed var(--line);border-radius:12px}
-.kp-sec{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 2px;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco)}
-.kp-sec small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
-.kp-hl .r{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;font-weight:600;cursor:pointer}
-.kp-hl .r:last-child{border-bottom:0}
-.kp-hl .r .ic{width:7px;height:7px;border-radius:50%;flex:none}
-.kp-hl .r .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kp-hl .r .pc{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--txt)}
 .mp-cmp{display:flex;gap:14px;align-items:flex-end;height:150px;padding:8px 2px 0}
 .mp-cmp .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
 .mp-cmp .bar{width:100%;max-width:56px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,var(--brand2),var(--brand));min-height:3px}
@@ -2662,7 +2528,6 @@
 .tc-top{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px}
 .tc-lk{background:none;border:none;color:var(--muted);font:inherit;font-size:15px;cursor:pointer;padding:4px 0}
 .tc-lk.ok{color:var(--brand2);font-weight:800}
-.tc-lk.tc-x{font-size:23px;line-height:1;padding:0 2px}
 .tc-tit{display:flex;align-items:flex-start;gap:12px;margin:2px 0 8px}
 .tc-o{width:24px;height:24px;border-radius:50%;border:2px solid var(--fraco);background:none;color:transparent;flex:none;
   display:grid;place-items:center;cursor:pointer;margin-top:4px}
@@ -6960,7 +6825,6 @@ window.spSelLista=(id,semAbrir)=>{
    Cada pessoa abre o sistema no que é dela: o que vence hoje, o que está em andamento
    e o que já concluiu. Atrasado aparece sempre, mesmo filtrando só o dia. */
 let inicioPer='hoje';   /* 'hoje' | '7d' | 'per' */
-let inicioDia='';       /* dia que as setas estao mostrando; vazio = hoje */
 let inicioDe='', inicioAte='';
 /* ---------- TEMPO ÚTIL ----------
    Só conta segunda a sexta, das 8h às 18h. Demanda criada 19h e concluída 9h do dia
@@ -7083,8 +6947,9 @@ function pessoalBloco(){
       <span class="pes-t">${esc(t.titulo)}</span>
       <button type="button" class="pes-x" title="Apagar" onclick="pessoalApagar('${t.id}')">&#10005;</button>
     </div>`;
-  return `<div>
-     <div class="ini-lbl"><span>Só minhas</span><small>${abertas.length}${feitas.length?' · '+feitas.length+' feita'+(feitas.length>1?'s':''):''}</small></div>
+  return `<div class="ini-box">
+     <div class="ini-h">✎ Só minhas
+       <span class="hint" style="margin:0;font-weight:600">anotações suas, ninguém mais vê</span></div>
      <div class="pes-novo">
        <input id="pes_novo" placeholder="Escreva e dê Enter" autocomplete="off"
          onkeydown="pessoalEnter(event,this)">
@@ -7125,8 +6990,6 @@ window.iniConcluir=async (ev,id)=>{
   toast('Concluída: '+t.titulo);
   renderInicio($('#content')); spDesenhar();
 };
-window.inicioDiaNav=(n)=>{ inicioDia=tkDiaMais(inicioDia||tkHoje(),n); renderInicio($('#content')); };
-window.inicioDiaHoje=()=>{ inicioDia=''; renderInicio($('#content')); };
 window.inicioPeriodo=(p)=>{
   inicioPer=p;
   if(p==='per'&&!inicioDe){ inicioDe=isoMais(-29); inicioAte=tkHoje(); }
@@ -7143,9 +7006,8 @@ function renderInicio(c){
     return tkCarregar().then(()=>{ spDesenhar(); renderInicio(c); }).catch(e=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(e.message)+'</div>'; }); }
   currentView='inicio'; spMarcarAtalho('inicio');
   const hoje=tkHoje();
-  const dia = inicioPer==='hoje' ? (inicioDia||hoje) : hoje;
-  const de = inicioPer==='7d'?isoMais(-6) : inicioPer==='per'?(inicioDe||hoje) : dia;
-  const ate= inicioPer==='per'?(inicioAte||hoje) : dia;
+  const de = inicioPer==='7d'?isoMais(-6) : inicioPer==='per'?(inicioDe||hoje) : hoje;
+  const ate= inicioPer==='per'?(inicioAte||hoje) : hoje;
   const noPeriodo=(d)=>!!d && String(d).slice(0,10)>=de && String(d).slice(0,10)<=ate;
   const todas=minhasTarefas();
   const abertas=todas.filter(t=>faseDe(t)!=='feito'&&faseDe(t)!=='fechado'&&!ehPessoal(t));
@@ -7158,94 +7020,80 @@ function renderInicio(c){
   /* média só do que dá para medir: precisa de abertura e conclusão com hora */
   const comTempo=feitas.filter(t=>t.criado_em&&t.concluida_em);
   const medUteis=comTempo.length?comTempo.reduce((s,t)=>s+minUteis(t.criado_em,t.concluida_em),0)/comTempo.length:0;
-  const atrasadas=(inicioPer==='hoje'&&dia!==hoje)?[]:abertas.filter(t=>t.prazo&&String(t.prazo).slice(0,10)<hoje)
+  const atrasadas=abertas.filter(t=>t.prazo&&String(t.prazo).slice(0,10)<hoje)
                          .sort((a,b)=>String(a.prazo).localeCompare(String(b.prazo)));
-  /* ordem do relogio, igual aos habitos: quem tem hora primeiro, do mais cedo pro mais tarde */
-  const horaDe=(t)=>{ const v=String((t&&t.hora)||''); return /^\d{2}:\d{2}/.test(v)?v.slice(0,5):''; };
-  const porHora=(arr)=>arr.slice().sort((a,b)=>{ const x=horaDe(a),y=horaDe(b);
-    if(x&&y) return x.localeCompare(y);
-    if(x) return -1; if(y) return 1;
-    return String(a.prazo||'').localeCompare(String(b.prazo||''))||String(a.titulo||'').localeCompare(String(b.titulo||'')); });
-  /* Para hoje + Em andamento viram uma lista so, na ordem do relogio (Gabriel 08/09) */
-  const doDia=porHora(pendentes.concat(andamento.filter(t=>pendentes.indexOf(t)<0)));
-  const etapasDe=(t)=>{ const L=Array.isArray(t.checklist)?t.checklist:[];
-    return {tot:L.length, ok:L.filter(i=>i&&i.ok).length}; };
   const primeiro=String((currentUser||{}).nome||'').trim().split(/\s+/)[0]||'';
   const h=new Date().getHours();
   const ola=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
   const item=(t,tipo)=>{
     const dias=t.prazo?Math.round((new Date(hoje)-new Date(String(t.prazo).slice(0,10)))/86400000):0;
-    return `<div class="ini-it${tipo==='ok'?' feita':''}${tipo==='atraso'?' atrasada':''}" onclick="tkAbrir('${t.id}')">
+    return `<div class="ini-it${tipo==='ok'?' feita':''}" onclick="tkAbrir('${t.id}')">
       <button type="button" class="ini-ok${tipo==='ok'?' feito':''}" title="${tipo==='ok'?'Desmarcar':'Marcar como concluída'}"
         style="--bol:${tipo==='atraso'?'var(--danger)':faseDe(t)==='ativo'?'var(--info)':'#8b8b95'}"
         onclick="${tipo==='ok'?`iniDesfazer(event,'${t.id}')`:`iniConcluir(event,'${t.id}')`}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>
       <div style="flex:1;min-width:0">
         <div class="ini-tit">${esc(t.titulo)}</div>
-        <div class="ini-sub">${tipo==='atraso'?((dias===1?'1 dia atrasada':dias+' dias atrasada')+' · '):''}${(()=>{ const e=etapasDe(t); return e.tot?e.ok+' de '+e.tot+' etapas · ':''; })()}${esc(tkCaminho(t.lista_id))}${t.ficha_id?' · '+esc(tkNomeFicha(t.ficha_id)):''}</div>
+        <div class="ini-sub">${esc(tkCaminho(t.lista_id))}${t.ficha_id?' · '+esc(tkNomeFicha(t.ficha_id)):''}</div>
       </div>
-      ${tipo==='atraso'?'':`<span class="ini-tag">${horaDe(t)||(t.prazo?(String(t.prazo).slice(0,10)===hoje?'hoje':fmtDate(t.prazo).slice(0,5)):'sem prazo')}</span>`}
-      ${(()=>{ const e=etapasDe(t); return e.tot?`<div class="ini-bar"><i style="width:${Math.round(e.ok/e.tot*100)}%"></i></div>`:''; })()}
+      ${tipo==='atraso'
+        ? `<span class="ini-tag atraso">${dias===1?'1 dia atrasada':dias+' dias atrasada'}</span>`
+        : `<span class="ini-tag">${t.prazo?(String(t.prazo).slice(0,10)===hoje?'hoje':fmtDate(t.prazo).slice(0,5)):'sem prazo'}</span>`}
     </div>`;
   };
   c.innerHTML=`
-   <div class="ini-topo">
-     <div style="display:flex;align-items:center;gap:12px">
-       ${inicioPer==='hoje'?`<button type="button" class="mp-nav" onclick="inicioDiaNav(-1)" title="Dia anterior">‹</button>`:''}
-     <div>
-       <div class="ini-dia">${inicioPer==='hoje'?(dia===hoje?'Hoje':(dia===tkDiaMais(hoje,1)?'Amanhã':(dia===tkDiaMais(hoje,-1)?'Ontem':fmtDate(dia)))):(inicioPer==='7d'?'Últimos 7 dias':'Período')}</div>
-       <div class="ini-dsub">${esc(typeof mpDataExt==='function'?mpDataExt(dia):dia)}${(doDia.length+feitas.length)?' · '+feitas.length+' de '+(doDia.length+feitas.length)+' concluída'+((doDia.length+feitas.length)>1?'s':''):''}</div>
-     </div>
-       ${inicioPer==='hoje'?`<button type="button" class="mp-nav" onclick="inicioDiaNav(1)" title="Próximo dia">›</button>
-         ${dia!==hoje?`<button type="button" class="ini-hoje" onclick="inicioDiaHoje()">Hoje</button>`:''}`:''}
-     </div>
+   <div class="page-head">
+     <div><h2>${ola}${primeiro?', '+esc(primeiro):''} 👋</h2>
+       <div class="desc">${inicioPer==='hoje'?'O que é seu para hoje':'O que é seu nos últimos 7 dias'}</div></div>
      <div class="fin-tabs" style="margin:0">
        <button class="ftab ${inicioPer==='hoje'?'active':''}" onclick="inicioPeriodo('hoje')">Hoje</button>
-       <button class="ftab ${inicioPer==='7d'?'active':''}" onclick="inicioPeriodo('7d')">7 dias</button>
+       <button class="ftab ${inicioPer==='7d'?'active':''}" onclick="inicioPeriodo('7d')">Últimos 7 dias</button>
        <button class="ftab ${inicioPer==='per'?'active':''}" onclick="inicioPeriodo('per')">Personalizado</button>
        ${inicioPer==='per'?`<input type="date" class="ini-dt" id="iniDe" value="${esc(de)}" onchange="inicioData()">
          <span style="color:var(--muted);font-size:12px">até</span>
          <input type="date" class="ini-dt" id="iniAte" value="${esc(ate)}" onchange="inicioData()">`:''}
      </div>
    </div>
-   <div class="ini-fio"><i style="width:${(doDia.length+feitas.length)?Math.round(feitas.length/(doDia.length+feitas.length)*100):0}%"></i></div>
-   <div class="ini-nums">
-     <span><b>${doDia.length}</b> aberta${doDia.length===1?'':'s'}</span>
-     <span><b style="color:var(--info)">${andamento.length}</b> em andamento</span>
-     <span><b class="pos">${feitas.length}</b> concluída${feitas.length===1?'':'s'}</span>
-     <span><b>${comTempo.length?esc(fmtUteis(medUteis)):'—'}</b> ${comTempo.length?'média por demanda':'sem média ainda'}</span>
+   <div class="cards">
+     <div class="card"><div class="k">Demandas ${inicioPer==='hoje'?'de hoje':'do período'}</div>
+       <div class="v">${pendentes.length}</div><div class="sub">${pendentes.length?'esperando você':'nada pendente 🎉'}</div></div>
+     <div class="card"><div class="k">Em andamento</div>
+       <div class="v" style="color:var(--info)">${andamento.length}</div><div class="sub">já começadas</div></div>
+     <div class="card"><div class="k">Concluídas</div>
+       <div class="v pos">${feitas.length}</div><div class="sub">${inicioPer==='hoje'?'hoje':inicioPer==='7d'?'nos últimos 7 dias':'no período'}</div></div>
+     <div class="card"><div class="k">Tempo médio por demanda</div>
+       <div class="v">${comTempo.length?esc(fmtUteis(medUteis)):'—'}</div>
+       <div class="sub">${comTempo.length
+         ? ('em '+comTempo.length+' concluída'+(comTempo.length>1?'s':'')+' · só 8h–18h, dias úteis')
+         : 'ainda sem concluída no período'}</div></div>
    </div>
-
    ${atrasadas.length?`
-   <div class="ini-lbl atraso"><span>Atrasadas</span><small>${atrasadas.length}</small></div>
-   ${atrasadas.slice(0,8).map(t=>item(t,'atraso')).join('')}
-   ${atrasadas.length>8?`<div class="hint">e mais ${atrasadas.length-8}…</div>`:''}`:''}
-
-   ${doDia.length>=3?`
-   <div class="ini-lbl"><span>A seguir</span><small>${doDia.length>4?'próximas 4 de '+doDia.length:doDia.length}</small></div>
-   <div class="ini-tiles" style="grid-template-columns:repeat(${Math.min(4,Math.max(1,doDia.length))},minmax(0,1fr))">
-     ${doDia.slice(0,4).map(t=>{ const e=etapasDe(t);
-       return `<div class="ini-tile${faseDe(t)==='ativo'?' ativo':''}" onclick="tkAbrir('${t.id}')">
-         <button type="button" class="ini-ok" style="--bol:${faseDe(t)==='ativo'?'var(--info)':'#8b8b95'}" title="Concluir"
-           onclick="iniConcluir(event,'${t.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-           stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>
-         <b>${esc(t.titulo)}</b>
-         <small>${horaDe(t)||(e.tot?e.ok+'/'+e.tot+' etapas':esc(tkCaminho(t.lista_id)))}</small></div>`; }).join('')}
+   <div class="ini-box atraso">
+     <div class="ini-h">⚠️ ${atrasadas.length===1?'1 demanda atrasada':atrasadas.length+' demandas atrasadas'}
+       <span class="hint" style="margin:0;font-weight:600">venceram antes de hoje e continuam abertas</span></div>
+     ${atrasadas.slice(0,8).map(t=>item(t,'atraso')).join('')}
+     ${atrasadas.length>8?`<div class="hint" style="margin:8px 0 0">e mais ${atrasadas.length-8}…</div>`:''}
    </div>`:''}
-
-   ${(doDia.length||feitas.length)?`
-   <div class="ini-lbl"><span>${inicioPer==='hoje'?(dia===hoje?'Do dia':'Do dia '+fmtDate(dia).slice(0,5)):'Do período'}</span><small>${feitas.length} de ${doDia.length+feitas.length}</small></div>
-   ${doDia.map(t=>item(t,'')).join('')}
-   ${feitas.sort((a,b)=>String(b.concluida_em||'').localeCompare(String(a.concluida_em||''))).map(t=>item(t,'ok')).join('')}`:''}
-
+   <div class="ini-box">
+     <div class="ini-h">📋 ${inicioPer==='hoje'?'Para hoje':'Do período'}</div>
+     ${(pendentes.length||feitas.length)
+       ? pendentes.sort((a,b)=>String(a.prazo||'').localeCompare(String(b.prazo||''))).map(t=>item(t,'')).join('')
+         + feitas.sort((a,b)=>String(b.concluida_em||'').localeCompare(String(a.concluida_em||''))).map(t=>item(t,'ok')).join('')
+       : '<div class="empty" style="padding:18px">Nada com prazo '+(inicioPer==='hoje'?'para hoje':'no período')+'.</div>'}
+     ${(pendentes.length&&feitas.length)?`<div class="ini-prog">${feitas.length} de ${pendentes.length+feitas.length} concluídas</div>`:''}
+   </div>
+   ${andamento.length?`
+   <div class="ini-box">
+     <div class="ini-h">🔵 Em andamento</div>
+     ${andamento.slice(0,10).map(t=>item(t,'')).join('')}
+   </div>`:''}
    ${semPrazo.length?`
-   <div class="ini-lbl"><span>Sem prazo</span><small>${semPrazo.length}</small></div>
-   ${semPrazo.slice(0,10).map(t=>item(t,'')).join('')}
-   ${semPrazo.length>10?`<div class="hint">e mais ${semPrazo.length-10}…</div>`:''}`:''}
-
-   ${(!atrasadas.length&&!doDia.length&&!feitas.length&&!semPrazo.length)
-     ?'<div class="ini-zero">Nada atribuído a você '+(inicioPer==='hoje'?'para hoje':'no período')+'.</div>':''}
-
+   <div class="ini-box">
+     <div class="ini-h">◻ Sem prazo definido
+       <span class="hint" style="margin:0;font-weight:600">é sua, mas ninguém marcou quando</span></div>
+     ${semPrazo.slice(0,10).map(t=>item(t,'')).join('')}
+     ${semPrazo.length>10?`<div class="hint" style="margin:8px 0 0">e mais ${semPrazo.length-10}…</div>`:''}
+   </div>`:''}
    ${pessoalBloco()}
    <p class="hint" style="margin-top:14px">Clique numa demanda para abrir. Tudo que aparece aqui está atribuído a você.</p>`;
   spDesenhar();   /* sem isto o realce do rail nao acompanha o clique em Inicio */
@@ -7810,7 +7658,7 @@ window.tpPick=(b,i)=>{ $('#tp_icone').value=i; document.querySelectorAll('#tp_ig
 window.tkTipoExcluir=async (id)=>{
   const t=tipoDe(id); if(!t) return;
   const usando=(TK.tarefas||[]).filter(x=>String(x.tipo_id)===String(id)).length;
-  const ok=await confirmar('Excluir o tipo "'+t.nome+'"?', usando?(usando+' tarefa(s) usam este tipo — elas ficam sem tipo, nada é apagado.'):'',{sim:'Excluir',nao:'Não',perigo:true});
+  const ok=await confirmar('Excluir o tipo "'+t.nome+'"?', usando?(usando+' tarefa(s) usam este tipo — elas ficam sem tipo, nada é apagado.'):'',{sim:'Excluir',nao:'Cancelar',perigo:true});
   if(!ok) return;
   const {error}=await sb.from('tipos_tarefa').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
@@ -8723,7 +8571,7 @@ window.tkmAnxPrever=async (id)=>{
 };
 window.tkmAnxApagar=async (id,tid)=>{
   const x=(window.__anx||{})[id]; if(!x) return;
-  const ok=await confirmar('Remover "'+x.nome+'"?', x.tipo==='link'?'':'O arquivo sai do armazenamento também.',{sim:'Remover',nao:'Não',perigo:true});
+  const ok=await confirmar('Remover "'+x.nome+'"?', x.tipo==='link'?'':'O arquivo sai do armazenamento também.',{sim:'Remover',nao:'Cancelar',perigo:true});
   if(!ok) return;
   const {error}=await sb.from('tarefa_anexos').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
@@ -9684,7 +9532,7 @@ window.agObs=async (id,el)=>{
 };
 window.agExcluir=async (id)=>{
   const l=AG.leads.find(x=>x.id===id); if(!l) return;
-  const ok=await confirmar('Excluir o lead "'+(l.nome||'')+'"?','Some de vez. Se só quer tirar da lista, marque como Descartado.',{sim:'Excluir',nao:'Não',perigo:true});
+  const ok=await confirmar('Excluir o lead "'+(l.nome||'')+'"?','Some de vez. Se só quer tirar da lista, marque como Descartado.',{sim:'Excluir',nao:'Cancelar',perigo:true});
   if(!ok) return;
   const {error}=await sb.from('agente_leads').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
@@ -11712,7 +11560,7 @@ window.zapRemover=async (fid,zid)=>{
   const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
   const z=zapsDe(f).find(x=>String(x.id)===String(zid));
   const ok=await confirmar('Remover '+((z&&z.nome)||'este contato')+'?','O número sai da agenda deste cliente.',
-    {sim:'Remover',nao:'Não',perigo:true});
+    {sim:'Remover',nao:'Cancelar',perigo:true});
   if(!ok) return;
   f.zaps=zapsDe(f).filter(x=>String(x.id)!==String(zid));
   await saveDB(); zapPintar(fid);
@@ -12427,7 +12275,6 @@ const CT_CLIENTE=[
 const CT_NEGOCIO=[
   ['vigencia','Vigência','12 (doze) meses'],
   ['valor_mensal','Valor mensal (R$)',''],
-  ['data_contrato','Data de assinatura',''],
   ['data_inicio','Início da vigência',''],
   ['data_vencimento','Dia do vencimento (1 a 31)',''],
   ['data_primeira_parcela','Vencimento da 1ª parcela',''],
@@ -12512,7 +12359,7 @@ function ctCPFValido(v){
   return dv(9)===Number(d[9])&&dv(10)===Number(d[10]);
 }
 const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_tel:'ctMascTel'};
-const CT_DATA={rep_nascimento:1,data_inicio:1,data_primeira_parcela:1,data_contrato:1}; /* 1a parcela e data de verdade: calendario e dd/mm/aaaa no contrato (Gabriel 08/09) */
+const CT_DATA={rep_nascimento:1,data_inicio:1};
 const CT_VIGENCIAS=(()=>{ const e=['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze'];
   return e.map((x,i)=>(i+1)+' ('+x+') '+(i?'meses':'mês')); })();
 const CT_PAGAMENTOS=['Boleto Bancário ou PIX','Boleto Bancário','PIX','Cartão de Crédito','Boleto Bancário ou Cartão de Crédito'];
@@ -12584,108 +12431,8 @@ async function ctModeloZip(slug){
 async function ctCamposDoZip(zip){
   const achados=new Set();
   for(const alvo of CT_ALVOS){ const f=zip.file(alvo); if(!f) continue;
-    ctJuntaMarcadores(await f.async('string')).replace(/\{\{(\w+)\}\}/g,(_,k)=>{ achados.add(k); return _; }); }
+    (await f.async('string')).replace(/\{\{(\w+)\}\}/g,(_,k)=>{ achados.add(k); return _; }); }
   return [...achados];
-}
-/* Bloco de assinatura (Gabriel 08/09): "CONTRATANTE", "CONTRATADA"/"CONTRATADO" e a linha
-   de ______ saem centralizados de verdade — tira tab, recuo e espaco que o modelo usava
-   pra "empurrar" o texto e que desalinhava no Word e no PDF. */
-function ctAssinaturasCentro(xml){
-  const CT_PAR2=/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g;
-  const ps=[]; let m; while((m=CT_PAR2.exec(xml))){ const ts=m[0].match(CT_T)||[];
-    const txt=ts.map(t=>ctUnesc(t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,''))).join('').replace(/[\s ]+/g,' ').trim();
-    ps.push({ini:m.index,fim:m.index+m[0].length,par:m[0],txt}); }
-  const ROT=/^(CONTRATANTE|CONTRATADA|CONTRATADO)[:]?$/;
-  const norm=(t)=>t.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
-  const ehLinha=(p)=>/^_{4,}$/.test(p.txt);
-  const vizinho=(k,d)=>{ for(let q=k+d;q>=0&&q<ps.length;q+=d){ if(ps[q].txt) return ps[q]; } return null; };
-  ps.forEach((p,k)=>{
-    const n=norm(p.txt);
-    /* "CONTRATANTE." sozinho numa linha e o fim de uma frase da clausula anterior, nao assinatura:
-       so vale como assinatura se tem a linha de ______ no proprio paragrafo ou no vizinho */
-    const combo=/^(_{4,})\s*(CONTRATANTE|CONTRATADA|CONTRATADO)[:]?$/.exec(n)||(/^(CONTRATANTE|CONTRATADA|CONTRATADO)[:]?\s*(_{4,})$/.test(n)?[0,n.match(/_{4,}/)[0],n.match(/CONTRATANTE|CONTRATADA|CONTRATADO/)[0]]:null);
-    const rotulo=ROT.test(n)&&((vizinho(k,-1)&&ehLinha(vizinho(k,-1)))||(vizinho(k,1)&&ehLinha(vizinho(k,1))));
-    const linha=ehLinha(p)&&(function(){ const a=vizinho(k,-1),b=vizinho(k,1); return (a&&ROT.test(norm(a.txt)))||(b&&ROT.test(norm(b.txt))); })();
-    if(!(combo||rotulo||linha)) return;
-    let x=p.par.replace(/<w:tab\s*\/>|<w:tab><\/w:tab>|<w:ptab[^>]*\/>/g,'');
-    if(combo){
-      const rpr=(x.match(/<w:r(?:\s[^>]*)?>\s*(<w:rPr>[\s\S]*?<\/w:rPr>)/)||[])[1]||'';
-      const rot=(p.txt.match(/CONTRATANTE|CONTRATADA|CONTRATADO/i)||[combo[2]])[0];
-      const runNovo='<w:r>'+rpr+'<w:t>'+combo[1]+'</w:t><w:br/><w:t>'+rot+'</w:t></w:r>';
-      let trocou=false; x=x.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g,(r)=>{ if(!/<w:t(?:\s[^>]*)?>/.test(r)) return r; if(trocou) return ''; trocou=true; return runNovo; });
-    }
-    x=x.replace(CT_T,(_a,ab,mi,fe)=>ab+mi.replace(/^[\s ]+|[\s ]+$/g,'')+fe);
-    const jc='<w:jc w:val="center"/>';
-    if(/<w:pPr>[\s\S]*?<\/w:pPr>/.test(x)){
-      x=x.replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/,(_m,inner)=>{ let ii=inner.replace(/<w:jc[^>]*\/>/g,'').replace(/<w:ind[^>]*\/>/g,'');
-        ii=/<w:rPr>/.test(ii)?ii.replace('<w:rPr>',jc+'<w:rPr>'):ii+jc; return '<w:pPr>'+ii+'</w:pPr>'; });
-    }else{ x=x.replace(/^(<w:p(?:\s[^>]*)?>)/,'$1<w:pPr>'+jc+'</w:pPr>'); }
-    p.novo=x;
-  });
-  let out='',cur=0; ps.forEach(p=>{ if(!p.novo) return; out+=xml.slice(cur,p.ini)+p.novo; cur=p.fim; });
-  return out+xml.slice(cur);
-}
-/* O Word quebra {{marcador}} em varios <w:r> (corretor, formatacao, rsid) e o {{...}}
-   deixa de existir no XML — dai "{{data_contrato_extenso}}" chegava intacto no contrato.
-   Aqui, em cada paragrafo, os runs que um marcador atravessa sao juntados no primeiro. */
-function ctJuntaMarcadores(xml){
-  const RUN=/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g;
-  return xml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g,(par)=>{
-    if(par.indexOf('{')<0) return par;
-    const runs=[]; let m; RUN.lastIndex=0;
-    while((m=RUN.exec(par))){ const ts=m[0].match(CT_T)||[]; if(!ts.length) continue;
-      runs.push({ini:m.index,fim:m.index+m[0].length,xml:m[0],txt:ts.map(t=>t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,'')).join('')}); }
-    if(runs.length<2) return par;
-    const todo=runs.map(r=>r.txt).join('');
-    if(!/\{\{\w+\}\}/.test(todo)) return par;
-    /* se todo marcador ja cabe num run so, nada a fazer */
-    if(runs.every(r=>!/\{\{?$|^\}?\}/.test(r.txt)&&!(r.txt.indexOf('{{')>=0&&r.txt.indexOf('}}')<0))) return par;
-    const pos=[]; let acc=0; runs.forEach((r,i)=>{ pos.push({i,a:acc,b:acc+r.txt.length}); acc+=r.txt.length; });
-    const grupos=[]; const re=/\{\{\w+\}\}/g; let mm;
-    while((mm=re.exec(todo))){ const a=mm.index,b=a+mm[0].length; const i0=pos.find(p=>a>=p.a&&a<p.b).i, i1=pos.find(p=>b-1>=p.a&&b-1<p.b).i; if(i1>i0) grupos.push([i0,i1]); }
-    if(!grupos.length) return par;
-    const novo=runs.map(r=>r.txt);
-    grupos.forEach(([i0,i1])=>{ for(let k=i0+1;k<=i1;k++){ novo[i0]+=novo[k]; novo[k]=''; } });
-    let out='', cur=0;
-    runs.forEach((r,i)=>{ out+=par.slice(cur,r.ini); let primeiro=true;
-      out+=r.xml.replace(CT_T,(_a,ab,_mi,fe)=>{ const corpo=primeiro?novo[i]:''; primeiro=false; const abre=ab.indexOf('xml:space')>=0?ab:ab.replace('<w:t','<w:t xml:space="preserve"'); return abre+corpo+fe; });
-      cur=r.fim; });
-    return out+par.slice(cur);
-  });
-}
-/* Data fixa esquecida no modelo (Gabriel 08/09): "...primeira parcela ... ocorrerá no dia 11/12/2025"
-   sem {{data_primeira_parcela}}. Troca a data escrita pela do formulario, run a run, sem perder
-   negrito. O certo continua sendo o marcador no Word; isto e a rede de seguranca. */
-const CT_FIXAS=[
-  {re:/(primeira\s+parcela[\s\S]{0,120}?\bdia\s+)(\d{2}\/\d{2}\/\d{4})/i, campo:'data_primeira_parcela'},
-  {re:/(in[ií]cio\s+da\s+vig[êe]ncia[\s\S]{0,80}?\bdia\s+)(\d{2}\/\d{2}\/\d{4})/i, campo:'data_inicio'},
-  /* "São Paulo, 11 de dezembro de 2025." escrito fixo no fim do contrato */
-  {re:/([A-ZÀ-Ú][\wÀ-ÿ]+(?:\s[A-ZÀ-Ú][\wÀ-ÿ]+)*,\s*)(\d{1,2}\s+de\s+(?:janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4})/i, campo:'data_contrato_extenso', ok:v=>/^\d{1,2} de \S+ de \d{4}$/.test(v)}
-];
-function ctTrocaDatasFixas(xml,d){
-  const RUN=/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g;
-  return xml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g,(par)=>{
-    const runs=[]; let m; RUN.lastIndex=0;
-    while((m=RUN.exec(par))){ const ts=m[0].match(CT_T)||[]; if(!ts.length) continue;
-      runs.push({ini:m.index,fim:m.index+m[0].length,xml:m[0],txt:ctUnesc(ts.map(t=>t.replace(/<w:t[^>]*>/,'').replace(/<\/w:t>/,'')).join(''))}); }
-    if(!runs.length) return par;
-    let todo=runs.map(r=>r.txt).join(''), mexeu=false;
-    CT_FIXAS.forEach(f=>{ const v=d[f.campo]; if(!v||!(f.ok?f.ok(v):/^\d{2}\/\d{2}\/\d{4}$/.test(v))) return;
-      const mm=f.re.exec(todo); if(!mm||mm[2]===v) return;
-      const a=mm.index+mm[1].length, b=a+mm[2].length;
-      let acc=0; const pos=runs.map((r,i)=>{ const p={i,a:acc,b:acc+r.txt.length}; acc+=r.txt.length; return p; });
-      const i0=pos.find(p=>a>=p.a&&a<p.b), i1=pos.find(p=>b-1>=p.a&&b-1<p.b); if(!i0||!i1) return;
-      if(i0.i===i1.i){ const r=runs[i0.i]; r.txt=r.txt.slice(0,a-i0.a)+v+r.txt.slice(b-i0.a); }
-      else{ const r=runs[i0.i]; let junto=''; for(let k=i0.i;k<=i1.i;k++){ junto+=runs[k].txt; if(k>i0.i) runs[k].txt=''; }
-        r.txt=junto.slice(0,a-i0.a)+v+junto.slice(b-i0.a); }
-      todo=runs.map(r=>r.txt).join(''); mexeu=true; });
-    if(!mexeu) return par;
-    let out='', cur=0;
-    runs.forEach(r=>{ out+=par.slice(cur,r.ini); let primeiro=true;
-      out+=r.xml.replace(CT_T,(_a,ab,_mi,fe)=>{ const corpo=primeiro?ctEsc(r.txt):''; primeiro=false; const abre=ab.indexOf('xml:space')>=0?ab:ab.replace('<w:t','<w:t xml:space="preserve"'); return abre+corpo+fe; });
-      cur=r.fim; });
-    return out+par.slice(cur);
-  });
 }
 async function ctGerar(slug,dados,nomeArquivo){
   const {zip}=await ctModeloZip(slug);
@@ -12693,10 +12440,9 @@ async function ctGerar(slug,dados,nomeArquivo){
   const faltando=new Set();
   for(const alvo of CT_ALVOS){
     const f=zip.file(alvo); if(!f) continue;
-    let xml=ctJuntaMarcadores(await f.async('string'));
+    let xml=await f.async('string');
     xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k];
       if(v===undefined||v===''){ faltando.add(k); return todo; } return ctEsc(v); });
-    if(alvo==='word/document.xml') xml=ctAssinaturasCentro(ctTrocaDatasFixas(xml,d));
     zip.file(alvo,xml);
   }
   const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
@@ -12713,8 +12459,7 @@ async function ctGerar(slug,dados,nomeArquivo){
    volta no proprio arquivo. Paragrafo que ninguem tocou sai identico; paragrafo editado
    e reescrito no primeiro <w:t> (perde negrito no meio da frase, ganha o texto certo). */
 const CT_PAR=/<w:p[ >][\s\S]*?<\/w:p>/g;
-/* so <w:t> e <w:t xml:space=...>: sem o espaco obrigatorio, <w:tab/> tambem casava e virava texto */
-const CT_T=/(<w:t(?:\s[^>]*)?>)([\s\S]*?)(<\/w:t>)/g;
+const CT_T=/(<w:t[^>]*>)([\s\S]*?)(<\/w:t>)/g;
 const ctUnesc=(x)=>String(x).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");
 /* le os paragrafos de um xml, na ordem */
 function ctParas(xml){
@@ -12750,10 +12495,9 @@ window.ctEditor=async (slug,dados,nomeArquivo)=>{
   const d=ctResolver(dados), faltando=new Set();
   for(const alvo of CT_ALVOS){
     const f=zip.file(alvo); if(!f) continue;
-    let xml=ctJuntaMarcadores(await f.async('string'));
+    let xml=await f.async('string');
     xml=xml.replace(/\{\{(\w+)\}\}/g,(todo,k)=>{ const v=d[k];
       if(v===undefined||v===''){ faltando.add(k); return todo; } return ctEsc(v); });
-    if(alvo==='word/document.xml') xml=ctAssinaturasCentro(ctTrocaDatasFixas(xml,d));
     zip.file(alvo,xml);
   }
   const xml=await zip.file('word/document.xml').async('string');
@@ -12772,9 +12516,8 @@ function ctEdPintar(){
       <div><strong>${esc(CT_MODELOS[e.slug]||e.slug)}</strong>
         <span class="hint" style="margin:0 0 0 10px">clique em qualquer parágrafo para corrigir · <span id="ctEdN">0</span> alterado(s)</span></div>
       <div style="display:flex;gap:8px">
-        <button class="x" title="Fechar" aria-label="Fechar" onclick="ctEdFechar()">&times;</button>
-        <button class="btn secondary small" id="ctEdDocx" onclick="ctEdBaixar('docx')">Baixar .docx</button>
-        <button class="btn small" id="ctEdBaixar" onclick="ctEdBaixar('pdf')">Baixar PDF</button>
+        <button class="btn secondary small" onclick="ctEdFechar()">Cancelar</button>
+        <button class="btn small" id="ctEdBaixar" onclick="ctEdBaixar()">Baixar .docx</button>
       </div>
     </div>
     ${alerta}
@@ -12791,17 +12534,14 @@ window.ctEdMudou=(i,el)=>{ if(!CT_ED) return;
   const n=document.getElementById('ctEdN'); if(n) n.textContent=Object.keys(CT_ED.mudou).length;
 };
 window.ctEdFechar=()=>{ const o=document.getElementById('ctOv'); if(o) o.remove(); CT_ED=null; };
-window.ctEdBaixar=async (fmt)=>{
-  const e=CT_ED; if(!e) return; fmt=fmt||'pdf';
-  const b=document.getElementById(fmt==='pdf'?'ctEdBaixar':'ctEdDocx'); const rot=b?b.textContent:'';
-  if(b){ b.disabled=true; b.textContent='Gerando…'; }
+window.ctEdBaixar=async ()=>{
+  const e=CT_ED; if(!e) return;
+  const b=document.getElementById('ctEdBaixar'); if(b){ b.disabled=true; b.textContent='Gerando…'; }
   try{
     e.zip.file('word/document.xml', ctAplica(e.xml,e.mudou));
-    const docxBlob=await e.zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-    let blob=docxBlob, arquivo=e.nome+'.docx';
-    if(fmt==='pdf'){ blob=await ctPdfDeDocx(docxBlob); arquivo=e.nome+'.pdf'; }
+    const blob=await e.zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=arquivo; a.click();
+    a.download=e.nome+'.docx'; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
     /* o contrato fica guardado no sistema — sem planilha de controle por fora */
     try{
@@ -12809,7 +12549,7 @@ window.ctEdBaixar=async (fmt)=>{
       const b64=await ctBlobB64(blob);
       const {error}=await sb.from('contratos_gerados').insert({
         modelo:e.slug, cliente_id:ctCliSel||null, cliente_nome:(cli&&cli.nome)||e.dados.contratante_razao||'',
-        signatario:ctSignatario, dados:e.dados, edicoes:e.mudou, arquivo,
+        signatario:ctSignatario, dados:e.dados, edicoes:e.mudou, arquivo:e.nome+'.docx',
         conteudo_b64:b64, bytes:blob.size, gerado_por:(currentUser||{}).id||null});
       if(error) toast('Baixado, mas não consegui arquivar: '+error.message);
       else toast('Contrato baixado e guardado no sistema.');
@@ -12817,192 +12557,9 @@ window.ctEdBaixar=async (fmt)=>{
     ctEdFechar();
   }catch(err){
     toast('Erro ao gerar: '+(err.message||err));
-    if(b){ b.disabled=false; b.textContent=rot; }
+    if(b){ b.disabled=false; b.textContent='Baixar .docx'; }
   }
 };
-
-/* ======================= PDF NO NAVEGADOR (Gabriel 08/09) =======================
-   Sem servidor: o docx-preview monta o .docx em HTML com as medidas da pagina, o
-   navegador diagrama (quebra de linha, justificado, negrito), a gente quebra em
-   paginas A4 e desenha cada palavra no PDF exatamente onde o navegador a colocou.
-   Sai texto de verdade (seleciona, busca), leve — 9 paginas dao uns 40 KB. */
-let CT_PDFLIBS=null;
-function ctPdfLibs(){
-  if(CT_PDFLIBS) return CT_PDFLIBS;
-  const ld=(u)=>new Promise((ok,er)=>{ const sc=document.createElement('script'); sc.src=u; sc.onload=ok; sc.onerror=()=>er(new Error('não consegui carregar '+u)); document.head.appendChild(sc); });
-  CT_PDFLIBS=(async()=>{
-    await ctJSZip();
-    if(!window.docx) await ld('https://cdn.jsdelivr.net/npm/docx-preview@0.3.5/dist/docx-preview.min.js');
-    if(!window.jspdf) await ld('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-  })().catch(e=>{ CT_PDFLIBS=null; throw e; });
-  return CT_PDFLIBS;
-}
-async function ctPdfDeDocx(docxBlob){
-  await ctPdfLibs();
-  /* marca d'agua e outras imagens ancoradas do cabecalho/rodape: o docx-preview nao sabe
-     posicionar "atras do texto"; a gente tira do XML e desenha direto no PDF, na posicao do Word */
-  const JSZipC=await ctJSZip();
-  const zip=await JSZipC.loadAsync(await docxBlob.arrayBuffer());
-  const fundo=await ctPdfAncoras(zip);
-  const padrao=await ctPdfFontePadrao(zip);
-  const buf=await zip.generateAsync({type:'arraybuffer'});
-  let st=document.getElementById('ctPdfCss'); if(!st){ st=document.createElement('style'); st.id='ctPdfCss'; document.head.appendChild(st); }
-  st.textContent='#ctPdfBox .docx-wrapper{background:#fff;padding:0}#ctPdfBox .docx-wrapper>section.docx{box-shadow:none;margin:0}#ctPdfBox .docx p.ct-numerado::before{content:none!important}';
-  const box=document.createElement('div'); box.id='ctPdfBox';
-  box.style.cssText='position:absolute;left:0;top:0;width:900px;opacity:0;pointer-events:none;z-index:-1;background:#fff;color:#000;font-family:'+padrao;
-  document.body.appendChild(box);
-  try{
-    await window.docx.renderAsync(buf,box,null,{inWrapper:true,ignoreWidth:false,ignoreHeight:false,breakPages:true,renderHeaders:true,renderFooters:true,useBase64URL:true,ignoreLastRenderedPageBreak:true});
-    const wrap=box.querySelector('.docx-wrapper')||box;
-    ctPdfNumeracao(wrap);
-    ctPdfFontes(wrap);
-    /* img.decode() trava em aba escondida; espera o load com teto de 1,5s */
-    const espera=(im)=>new Promise(res=>{ if(im.complete&&im.naturalWidth) return res(); im.onload=im.onerror=()=>res(); setTimeout(res,1500); });
-    await Promise.all([...box.querySelectorAll('img')].map(espera));
-    await new Promise(r=>setTimeout(r,60));
-    ctPdfPaginar(wrap);
-    const secs=[...wrap.querySelectorAll('section.docx')];
-    if(!secs.length) throw new Error('o modelo não gerou páginas');
-    return ctPdfDesenhar(secs,fundo);
-  }finally{ box.remove(); }
-}
-/* Fonte do modelo vira a fonte-irma que o PDF tem: serifada -> Times, o resto -> Arial/Helvetica.
-   Times New Roman e Arial tem a mesma metrica das fontes do PDF, entao a palavra cai no
-   PDF exatamente onde o navegador mediu. (Calibri viraria sobreposicao.) */
-/* fonte padrao do documento (texto sem fonte explicita): docDefaults do styles.xml, senao a
-   fonte "minor" do tema (Word usa Calibri/Cambria; o modelo da Sintese usa Cambria = serifada) */
-async function ctPdfFontePadrao(zip){
-  const serif=(f)=>/times|georgia|cambria|garamond|antiqua|palatino|baskerville|bookman|century|serif/i.test(f||'')&&!/sans/i.test(f||'');
-  let f='';
-  try{ const st=zip.file('word/styles.xml'); if(st){ const x=await st.async('string'); const m=/<w:rPrDefault>[\s\S]*?<w:rFonts[^>]*w:ascii="([^"]+)"/.exec(x); if(m) f=m[1]; } }catch(_){ }
-  if(!f){ try{ const th=zip.file('word/theme/theme1.xml'); if(th){ const x=await th.async('string'); const m=/<a:minorFont>\s*<a:latin typeface="([^"]+)"/.exec(x); if(m) f=m[1]; } }catch(_){ } }
-  return serif(f)?"'Times New Roman',Times,serif":'Arial,Helvetica,sans-serif';
-}
-/* O docx-preview numera listas com ::before + counter() do CSS — isso nao e texto e o PDF
-   nao veria "I.", "II.", "a)". Aqui a gente refaz o mesmo contador e escreve como texto. */
-function ctPdfNumeracao(wrap){
-  const cont={}; let n=0;
-  const roman=(v,up)=>{ const t=[[1000,'m'],[900,'cm'],[500,'d'],[400,'cd'],[100,'c'],[90,'xc'],[50,'l'],[40,'xl'],[10,'x'],[9,'ix'],[5,'v'],[4,'iv'],[1,'i']]; let s=''; for(const [k,c] of t){ while(v>=k){ s+=c; v-=k; } } return up?s.toUpperCase():s; };
-  const alpha=(v,up)=>{ let s=''; while(v>0){ v--; s=String.fromCharCode(97+v%26)+s; v=Math.floor(v/26); } return up?s.toUpperCase():s; };
-  const fmt=(v,st)=>{ st=(st||'decimal').trim(); if(st==='upper-roman') return roman(v,1); if(st==='lower-roman') return roman(v,0); if(st==='upper-alpha'||st==='upper-latin') return alpha(v,1); if(st==='lower-alpha'||st==='lower-latin') return alpha(v,0); if(st==='decimal-leading-zero') return String(v).padStart(2,'0'); if(st==='none') return ''; return String(v); };
-  const unesc=(s)=>s.replace(/\\9 ?/g,'').replace(/\\([0-9a-fA-F]{1,6}) ?/g,(_,h)=>String.fromCodePoint(parseInt(h,16))).replace(/\\(.)/g,'$1');
-  wrap.querySelectorAll('p[class*="docx-num-"]').forEach(p=>{
-    const m=/docx-num-(\d+)-(\d+)/.exec(p.className); if(!m) return;
-    const spec=getComputedStyle(p,'::before').content; if(!spec||spec==='none'||spec==='normal') return;
-    const id=m[1], lvl=+m[2], key=id+'-'+lvl; cont[key]=(cont[key]||0)+1;
-    Object.keys(cont).forEach(k=>{ const mm=/^(\d+)-(\d+)$/.exec(k); if(mm&&mm[1]===id&&+mm[2]>lvl) cont[k]=0; });
-    let label=''; const re=/"((?:[^"\\]|\\.)*)"|counter\(\s*([\w-]+)\s*(?:,\s*([\w-]+))?\s*\)/g; let t;
-    while((t=re.exec(spec))){ if(t[1]!==undefined) label+=unesc(t[1]); else { const cm=/docx-num-(\d+)-(\d+)/.exec(t[2]); label+=fmt(cont[cm?cm[1]+'-'+cm[2]:t[2]]||0,t[3]); } }
-    label=label.replace(/\t/g,'').trim(); if(!label) return;
-    const tiPx=parseFloat(getComputedStyle(p).textIndent)||0;
-    const sp=document.createElement('span'); sp.className='ct-num'; sp.textContent=label;
-    sp.style.cssText='display:inline-block;white-space:nowrap;text-indent:0;'+(tiPx<0?'min-width:'+(-tiPx)+'px;':'margin-right:6px;');
-    const r0=p.querySelector('span'); if(r0){ const c=getComputedStyle(r0); sp.style.fontFamily=c.fontFamily; sp.style.fontWeight=c.fontWeight; sp.style.fontSize=c.fontSize; }
-    p.insertBefore(sp,p.firstChild); p.classList.add('ct-numerado'); n++;
-  });
-  return n;
-}
-function ctPdfFontes(wrap){
-  const serif=(f)=>{ const p=String(f||'').split(',')[0]; return /times|georgia|cambria|garamond|antiqua|palatino|baskerville|bookman|century|serif/i.test(p)&&!/sans/i.test(p); };
-  [wrap,...wrap.querySelectorAll('*')].forEach(el=>{ const fam=getComputedStyle(el).fontFamily; el.style.setProperty('font-family',serif(fam)?"'Times New Roman',Times,serif":'Arial,Helvetica,sans-serif','important'); });
-}
-async function ctPdfAncoras(zip){
-  const EMU=12700, out=[];
-  const docF=zip.file('word/document.xml'); const doc=docF?await docF.async('string'):'';
-  const mar=(/<w:pgMar([^>]*)\/>/.exec(doc)||[])[1]||'', pg=(/<w:pgSz([^>]*)\/>/.exec(doc)||[])[1]||'';
-  const tw=(src,k,pad)=>{ const m=new RegExp('w:'+k+'="(-?\\d+)"').exec(src); return m?+m[1]/20:pad; };
-  const mL=tw(mar,'left',70.9), mT=tw(mar,'top',56.7), pW=tw(pg,'w',595.3), pH=tw(pg,'h',841.9);
-  const partes=Object.keys(zip.files).filter(n=>/^word\/(header|footer)\d*\.xml$/.test(n));
-  for(const nome of partes){
-    let xml=await zip.file(nome).async('string'); if(xml.indexOf('<wp:anchor')<0) continue;
-    const relsF=zip.file('word/_rels/'+nome.slice(5)+'.rels'); const rels=relsF?await relsF.async('string'):'';
-    const alvo=(id)=>{ const m=new RegExp('<Relationship[^>]*Id="'+id+'"[^>]*>').exec(rels); const t=m&&/Target="([^"]+)"/.exec(m[0]); return t?t[1]:null; };
-    const blocos=[];
-    xml=xml.replace(/<mc:AlternateContent>[\s\S]*?<\/mc:AlternateContent>/g,(b)=>{ if(b.indexOf('<wp:anchor')<0) return b; const fb=/<mc:Fallback>([\s\S]*?)<\/mc:Fallback>/.exec(b); blocos.push(fb?fb[1]:b); return ''; });
-    xml=xml.replace(/<w:drawing>\s*<wp:anchor[\s\S]*?<\/wp:anchor>\s*<\/w:drawing>/g,(b)=>{ blocos.push(b); return ''; });
-    for(const b of blocos){
-      const a=/<wp:anchor[\s\S]*?<\/wp:anchor>/.exec(b); if(!a) continue; const sx=a[0];
-      const ext=/<wp:extent cx="(\d+)" cy="(\d+)"/.exec(sx), emb=/r:embed="(\w+)"/.exec(sx); if(!ext||!emb) continue;
-      const w=+ext[1]/EMU, h=+ext[2]/EMU;
-      const pos=(eixo,tam,marg,total)=>{ const m=new RegExp('<wp:position'+eixo+' relativeFrom="(\\w+)">([\\s\\S]*?)</wp:position'+eixo+'>').exec(sx); if(!m) return 0;
-        const off=/<wp:posOffset>(-?\d+)<\/wp:posOffset>/.exec(m[2]), al=/<wp:align>(\w+)<\/wp:align>/.exec(m[2]);
-        const base=m[1]==='page'?0:marg;
-        if(off) return base+(+off[1])/EMU;
-        if(al){ const ref=m[1]==='page'?total:(total-2*marg); const a2=al[1]; return base+(a2==='center'?(ref-tam)/2:((a2==='right'||a2==='bottom')?ref-tam:0)); }
-        return base; };
-      const x=pos('H',w,mL,pW), y=pos('V',h,mT,pH);
-      const t=alvo(emb[1]); if(!t) continue; const f=zip.file('word/'+t.replace(/^\/?(word\/)?/,'')); if(!f) continue;
-      const tp=/\.png$/i.test(t)?'PNG':(/\.jpe?g$/i.test(t)?'JPEG':null); if(!tp) continue;
-      const chave=[Math.round(x),Math.round(y),Math.round(w),t].join('|'); if(out.some(o=>o.chave===chave)) continue;
-      const b64=await f.async('base64');
-      out.push({x,y,w,h,tp,src:'data:image/'+(tp==='PNG'?'png':'jpeg')+';base64,'+b64,atras:/behindDoc="1"/.test(sx),chave});
-    }
-    zip.file(nome,xml);
-  }
-  return out;
-}
-/* quebra em paginas A4 movendo paragrafos inteiros; cabecalho e rodape repetem */
-function ctPdfPaginar(wrap){
-  [...wrap.querySelectorAll('section.docx')].forEach(sec=>{
-    const art=sec.querySelector(':scope>article'); if(!art) return;
-    const cs=getComputedStyle(sec);
-    const pageH=parseFloat(cs.minHeight)||1122.5, padT=parseFloat(cs.paddingTop)||0, padB=parseFloat(cs.paddingBottom)||0;
-    const hd=sec.querySelector(':scope>header'), ft=sec.querySelector(':scope>footer');
-    const avail=pageH-padT-padB-(hd?hd.offsetHeight:0)-(ft?ft.offsetHeight:0)-2;
-    const blocos=[...art.children]; if(!blocos.length) return;
-    let atual=sec, atualArt=art, usado=0; const pgs=[sec];
-    const nova=()=>{ const n=sec.cloneNode(false);
-      if(hd) n.appendChild(hd.cloneNode(true)); const na=document.createElement('article'); na.className=art.className; n.appendChild(na); if(ft) n.appendChild(ft.cloneNode(true));
-      atual.after(n); atual=n; atualArt=na; usado=0; pgs.push(n); };
-    blocos.forEach(b=>{ const bs=getComputedStyle(b); const h=b.offsetHeight+(parseFloat(bs.marginTop)||0)+(parseFloat(bs.marginBottom)||0);
-      if(usado>0&&usado+h>avail) nova();
-      atualArt.appendChild(b); usado+=h; });
-    pgs.forEach(p=>{ p.style.height=pageH+'px'; p.style.minHeight=pageH+'px'; p.style.overflow='hidden'; p.style.display='flex'; p.style.flexDirection='column'; const a=p.querySelector(':scope>article'); if(a) a.style.flex='1 0 auto'; });
-  });
-}
-function ctPdfDesenhar(secs,fundo){
-  const K=72/96, pdf=new window.jspdf.jsPDF({unit:'pt',format:'a4',compress:true});
-  const rg=document.createRange(); fundo=fundo||[];
-  const marca=(atras)=>fundo.filter(f=>!!f.atras===atras).forEach(f=>{ try{ pdf.addImage(f.src,f.tp,f.x,f.y,f.w,f.h); }catch(_){ } });
-  /* o docx-preview nem sempre sabe o tipo da imagem (vem application/octet-stream): olha a assinatura dos bytes */
-  const tipoImg=(src)=>{ const m=/^data:([^;]+);base64,(.{0,12})/.exec(src||''); if(!m) return null; if(/png/i.test(m[1])) return 'PNG'; if(/jpe?g/i.test(m[1])) return 'JPEG';
-    try{ const h=atob(m[2]); if(h.charCodeAt(0)===0x89&&h.slice(1,4)==='PNG') return 'PNG'; if(h.charCodeAt(0)===0xFF&&h.charCodeAt(1)===0xD8) return 'JPEG'; }catch(_){ } return null; };
-  secs.forEach((sec,pi)=>{
-    if(pi) pdf.addPage();
-    marca(true);
-    const o=sec.getBoundingClientRect();
-    sec.querySelectorAll('img').forEach(im=>{ const r=im.getBoundingClientRect(); if(!r.width||!r.height) return; const src=im.currentSrc||im.src;
-      const tp=tipoImg(src); if(!tp) return;
-      try{ pdf.addImage(src,tp,(r.left-o.left)*K,(r.top-o.top)*K,r.width*K,r.height*K); }catch(_){ } });
-    sec.querySelectorAll('td,th').forEach(td=>{ const r=td.getBoundingClientRect(), cs=getComputedStyle(td); const x=(r.left-o.left)*K,y=(r.top-o.top)*K,w=r.width*K,h=r.height*K;
-      const bw=(k)=>(cs['border'+k+'Style']==='none'||cs['border'+k+'Style']==='hidden')?0:(parseFloat(cs['border'+k+'Width'])||0); pdf.setDrawColor(0);
-      if(bw('Top')>0){ pdf.setLineWidth(bw('Top')*K); pdf.line(x,y,x+w,y); } if(bw('Bottom')>0){ pdf.setLineWidth(bw('Bottom')*K); pdf.line(x,y+h,x+w,y+h); }
-      if(bw('Left')>0){ pdf.setLineWidth(bw('Left')*K); pdf.line(x,y,x,y+h); } if(bw('Right')>0){ pdf.setLineWidth(bw('Right')*K); pdf.line(x+w,y,x+w,y+h); } });
-    const tw=document.createTreeWalker(sec,NodeFilter.SHOW_TEXT,null); let node;
-    while((node=tw.nextNode())){
-      const txt=node.nodeValue; if(!txt||!txt.trim()) continue;
-      const el=node.parentElement; const cs=getComputedStyle(el); if(cs.display==='none'||cs.visibility==='hidden') continue;
-      const fs=parseFloat(cs.fontSize)*K; if(!fs) continue;
-      const bold=parseInt(cs.fontWeight,10)>=600||cs.fontWeight==='bold', it=cs.fontStyle==='italic';
-      const fam=/times|serif/i.test(String(cs.fontFamily).split(',')[0])&&!/sans/i.test(String(cs.fontFamily).split(',')[0])?'times':'helvetica';
-      pdf.setFont(fam,bold&&it?'bolditalic':(bold?'bold':(it?'italic':'normal'))); pdf.setFontSize(fs);
-      const m=/rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(cs.color); if(m) pdf.setTextColor(+m[1],+m[2],+m[3]); else pdf.setTextColor(0);
-      const und=/underline/.test(cs.textDecorationLine||cs.textDecoration||''), caps=cs.textTransform==='uppercase';
-      const re=/\S+/g; let mm;
-      while((mm=re.exec(txt))){
-        rg.setStart(node,mm.index); rg.setEnd(node,mm.index+mm[0].length);
-        const rs=rg.getClientRects(); if(!rs.length) continue;
-        const r=rs[0]; if(r.top<o.top-1||r.top>o.bottom) continue;
-        const x=(r.left-o.left)*K, y=(r.top-o.top)*K+fs*0.905;
-        let w=mm[0].replace(/[   ]/g,' ').replace(/‑/g,'-'); if(caps) w=w.toUpperCase();
-        pdf.text(w,x,y);
-        if(und){ pdf.setLineWidth(Math.max(.5,fs*.06)); pdf.line(x,y+fs*.12,x+r.width*K,y+fs*.12); }
-      }
-    }
-    marca(false);
-  });
-  return pdf.output('blob');
-}
 
 /* ---- tela ---- */
 let ctModelo='full'; let ctCliSel=''; let ctSignatario='bernardo'; let ctRasc={}; let ctLeads=[];
@@ -13038,10 +12595,9 @@ function renderContratos(c){
   const pinta=()=>{
     c.innerHTML=`
    <div class="page-head">
-     <div><h2>Contratos</h2><div class="desc">Preenche, confere e baixa o PDF pronto (ou o .docx). O valor total sai do mensal × prazo, sem redigitar.</div></div>
+     <div><h2>Contratos</h2><div class="desc">Preenche e baixa o .docx pronto. O valor total sai do mensal × prazo, sem redigitar.</div></div>
      <div class="toolbar">
        <button class="btn secondary small" onclick="ctCopiarLink()">🔗 Link do formulário</button>
-       <button class="btn secondary small" onclick="cfAbrir()">📋 Respostas dos clientes</button>
        <button class="btn secondary small" onclick="ctModelosModal()">⚙️ Modelos</button>
      </div>
    </div>
@@ -13079,83 +12635,6 @@ function renderContratos(c){
   pinta();
   ctCarregarLeads().then(pinta).catch(()=>{});
 }
-/* ---------- Respostas dos clientes (Gabriel 08/09) ----------
-   Tudo que caiu em contratos_form pelo autosintese.app.br/contrato, inclusive o que o
-   cliente comecou e nao terminou. Abrir uma resposta marca "visto". Daqui da pra usar
-   no contrato, arquivar ou trazer de volta. */
-let CF={lista:[],filtro:'todas',busca:'',aberto:null};
-const CF_CAMPOS=[['razao_social','Razão social'],['cnpj','CNPJ'],['representante','Representante legal'],['cpf','CPF do representante'],['rg','RG do representante'],['nascimento','Nascimento'],['endereco','Endereço da empresa'],['email','E-mail para contrato'],['resp_financeiro','Responsável financeiro'],['telefone','Telefone do financeiro']];
-const cfVal=(k,v)=>{ if(!v) return ''; if(k==='cnpj') return ctMascCNPJ(v); if(k==='cpf') return ctMascCPF(v); if(k==='telefone') return ctMascTel(v); if(k==='nascimento') return fmtDate(String(v).slice(0,10)); return String(v); };
-const cfQuando=(iso)=>{ if(!iso) return ''; const d=new Date(iso); return fmtDate(iso.slice(0,10))+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
-function cfEstado(f){ if(!f.enviado_em) return ['incompleta','Incompleta','warn']; if(f.status==='arquivado') return ['arquivada','Arquivada','muted']; if(f.status==='usado') return ['usada','Usada no contrato','ok']; return ['nova','Nova','brand']; }
-window.cfAbrir=async()=>{
-  CF.aberto=null; CF.filtro='todas'; CF.busca='';
-  const c=$('#content')||document.querySelector('.content')||document.querySelector('main'); if(!c) return;
-  c.innerHTML='<div class="empty">Carregando…</div>';
-  const {data,error}=await sb.from('contratos_form').select('*').order('criado_em',{ascending:false}).limit(300);
-  if(error){ c.innerHTML='<div class="empty">Erro: '+esc(error.message)+'</div>'; return; }
-  CF.lista=data||[]; cfPintar();
-};
-function cfPintar(){
-  const c=$('#content')||document.querySelector('.content')||document.querySelector('main'); if(!c) return;
-  const q=(CF.busca||'').trim().toLowerCase();
-  const cont={todas:CF.lista.length,nova:0,usada:0,arquivada:0,incompleta:0};
-  CF.lista.forEach(f=>{ cont[cfEstado(f)[0]]++; });
-  const L=CF.lista.filter(f=>{ const e=cfEstado(f)[0]; if(CF.filtro!=='todas'&&e!==CF.filtro) return false;
-    if(!q) return true; return [f.razao_social,f.cnpj,f.representante,f.email,f.resp_financeiro].some(v=>String(v||'').toLowerCase().indexOf(q)>=0); });
-  const ab=CF.aberto?CF.lista.find(f=>f.id===CF.aberto):null;
-  c.innerHTML=`
-   <div class="page-head">
-     <div><h2>Respostas dos clientes</h2><div class="desc">O que chegou pelo formulário ${esc(CT_LINK)} — completo ou pela metade.</div></div>
-     <div class="toolbar"><button class="btn secondary small" onclick="render('contratos')">‹ Contratos</button><button class="btn secondary small" onclick="ctCopiarLink()">🔗 Link do formulário</button></div>
-   </div>
-   <div class="cf-top">
-     <div class="fin-tabs" style="margin:0">${[['todas','Todas'],['nova','Novas'],['incompleta','Incompletas'],['usada','Usadas'],['arquivada','Arquivadas']].map(([k,t])=>`<button class="ftab ${CF.filtro===k?'active':''}" onclick="cfFiltro('${k}')">${t} <small>${cont[k]||0}</small></button>`).join('')}</div>
-     <input class="search cf-busca" placeholder="Buscar empresa, CNPJ, representante…" value="${esc(CF.busca)}" oninput="cfBusca(this.value)">
-   </div>
-   <div class="cf-wrap${ab?' com-detalhe':''}">
-     <div class="cf-lista">${L.length?L.map(f=>{ const e=cfEstado(f); const n=CF_CAMPOS.filter(([k])=>f[k]).length;
-       return `<div class="cf-item${CF.aberto===f.id?' on':''}${f.visto_em?'':' nv'}" onclick="cfVer('${f.id}')">
-         <div class="cf-l"><b>${esc(f.razao_social||f.representante||'Sem nome ainda')}</b>
-           <span>${esc(cfVal('cnpj',f.cnpj)||'sem CNPJ')} · ${esc(f.representante||'sem representante')}</span></div>
-         <div class="cf-r"><span class="cf-chip ${e[2]}">${e[1]}</span><small>${esc(cfQuando(f.enviado_em||f.criado_em))}</small>${f.enviado_em?'':`<small>${n} de ${CF_CAMPOS.length} campos</small>`}</div>
-       </div>`; }).join(''):'<div class="empty">Nada por aqui.</div>'}</div>
-     ${ab?cfDetalheHTML(ab):''}
-   </div>`;
-}
-function cfDetalheHTML(f){
-  const e=cfEstado(f);
-  const chk={cnpj:v=>ctSoDig(v).length===14,cpf:v=>ctSoDig(v).length===11,email:v=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v||''),telefone:v=>ctSoDig(v).length>=10};
-  return `<div class="cf-det">
-    <div class="cf-dh"><div><span class="cf-chip ${e[2]}">${e[1]}</span><b>${esc(f.razao_social||'Sem razão social')}</b>
-      <small>${f.enviado_em?'enviada em '+esc(cfQuando(f.enviado_em)):'começou em '+esc(cfQuando(f.criado_em))+' · não terminou'}${f.visto_em?' · visto '+esc(cfQuando(f.visto_em)):''}</small></div>
-      <button class="iconbtn" title="Fechar" onclick="cfFechar()">×</button></div>
-    <div class="cf-campos">${CF_CAMPOS.map(([k,rot])=>{ const v=cfVal(k,f[k]); const ok=v&&chk[k]?chk[k](f[k]):null;
-      return `<div class="cf-campo${v?'':' vz'}"><span class="k">${rot}${ok===false?' <em title="parece inválido">⚠︎</em>':''}</span>
-        <span class="v">${v?esc(v):'—'}</span>${v?`<button class="cf-cp" title="Copiar" onclick="cfCopiar(event,'${esc(String(f[k]||'')).replace(/'/g,'&#39;')}')">⧉</button>`:''}</div>`; }).join('')}</div>
-    <div class="cf-acoes">
-      ${f.enviado_em&&f.status!=='arquivado'?`<button class="btn small" onclick="cfUsar('${f.id}')">✍️ Usar no contrato</button>`:''}
-      ${f.status==='arquivado'?`<button class="btn secondary small" onclick="cfStatus('${f.id}','novo')">Trazer de volta</button>`:`<button class="btn secondary small" onclick="cfStatus('${f.id}','arquivado')">Arquivar</button>`}
-      ${currentUser&&currentUser.role==='master'?`<button class="iconbtn del" onclick="cfApagar('${f.id}')">Apagar</button>`:''}
-    </div>
-    <div class="hint" style="margin-top:14px">${f.ua?'Preenchido em: '+esc(String(f.ua).slice(0,90)):''}</div>
-  </div>`;
-}
-window.cfFiltro=(k)=>{ CF.filtro=k; cfPintar(); };
-window.cfBusca=(v)=>{ CF.busca=v; const a=document.activeElement; cfPintar(); const i=document.querySelector('.cf-busca'); if(i&&a&&a.classList&&a.classList.contains('cf-busca')){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } };
-window.cfFechar=()=>{ CF.aberto=null; cfPintar(); };
-window.cfVer=async(id)=>{ CF.aberto=id; cfPintar();
-  const f=CF.lista.find(x=>x.id===id); if(f&&!f.visto_em&&currentUser){ const agora=new Date().toISOString();
-    const {error}=await sb.from('contratos_form').update({visto_em:agora,visto_por:currentUser.id}).eq('id',id); if(!error){ f.visto_em=agora; f.visto_por=currentUser.id; cfPintar(); } } };
-window.cfCopiar=(ev,v)=>{ ev.stopPropagation(); const t=document.createElement('textarea'); t.value=v; document.body.appendChild(t); t.select(); try{ document.execCommand('copy'); toast('Copiado.'); }catch(_){ } t.remove(); };
-window.cfStatus=async(id,st)=>{ const {error}=await sb.from('contratos_form').update({status:st}).eq('id',id); if(error){ toast('Erro: '+error.message); return; }
-  const f=CF.lista.find(x=>x.id===id); if(f) f.status=st; toast(st==='arquivado'?'Arquivada.':'De volta na lista.'); cfPintar(); };
-window.cfApagar=async(id)=>{ if(!confirm('Apagar esta resposta de vez? Não tem volta.')) return; const {error}=await sb.from('contratos_form').delete().eq('id',id); if(error){ toast('Erro: '+error.message); return; }
-  CF.lista=CF.lista.filter(x=>x.id!==id); CF.aberto=null; cfPintar(); };
-window.cfUsar=async(id)=>{ await ctCarregarLeads().catch(()=>{}); let l=ctLeads.find(x=>x.id===id);
-  if(!l){ const r=CF.lista.find(x=>x.id===id); if(!r) return; l={id:r.id,dados:{contratante_razao:r.razao_social||'',contratante_cnpj:r.cnpj||'',contratante_endereco:r.endereco||'',rep_cargo:'',rep_nome:r.representante||'',rep_rg:r.rg||'',rep_cpf:r.cpf||'',rep_nascimento:r.nascimento||'',contratante_tel:r.telefone||'',contratante_email:r.email||''}}; }
-  ctRasc=Object.assign({},l.dados); ctRasc._lead=id; render('contratos'); toast('Dados carregados. Agora preencha valor e prazo.'); setTimeout(()=>ctForm(),50); };
-
 window.ctSetModelo=(m)=>{ ctModelo=m; render('contratos'); };
 window.ctCopiarLink=()=>{
   const t=document.createElement('textarea'); t.value=CT_LINK; document.body.appendChild(t); t.select();
@@ -13175,25 +12654,22 @@ window.ctArquivarLead=async (id)=>{
   render('contratos');
 };
 
-/* Agente de IA e CRM nao tem midia: a verba minima semanal nem e perguntada (Gabriel 08/09) */
-const ctNegocio=()=>CT_NEGOCIO.filter(([k])=>k!=='verba_minima'||ctModelo!=='ia_crm');
 window.ctForm=()=>{
   const base=Object.assign(ctDoCliente(ctCliSel),ctRasc);
   const campo=([k,rot,pad])=>{
-    const v0=base[k]||pad||(k==='data_contrato'?hojeISO():''), ops=CT_OPCOES[k], m=CT_MASC[k];
+    const v0=base[k]||pad||'', ops=CT_OPCOES[k], m=CT_MASC[k];
     if(ops) return `<div class="field"><label>${esc(rot)}</label><select id="ct_${k}" ${k==='vigencia'?'onchange="ctPrevia()"':''}>${ops.map(o=>`<option value="${esc(o)}"${o===v0?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
-    let v=m?window[m](v0):v0;
-    if(CT_DATA[k]&&/^\d{2}\/\d{2}\/\d{4}$/.test(v)) v=v.split('/').reverse().join('-'); /* veio dd/mm/aaaa da ficha: o calendario quer ISO */
+    const v=m?window[m](v0):v0;
     const extra=(k==='valor_mensal')?' oninput="ctPrevia()"':(m?` oninput="this.value=${m}(this.value);"`:'');
     return `<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(v)}"${extra}${CT_DATA[k]?' type="date"':''}></div>`; };
   modal('Contrato — '+CT_MODELOS[ctModelo],`
     <div class="k" style="margin:4px 0 10px">Dados do cliente</div>
     <div class="row2">${CT_CLIENTE.map(campo).join('')}</div>
     <div class="k" style="margin:18px 0 10px">Condições comerciais</div>
-    <div class="row2">${ctNegocio().map(campo).join('')}</div>
+    <div class="row2">${CT_NEGOCIO.map(campo).join('')}</div>
     <div id="ctPrev" class="card" style="margin-top:14px"></div>`,
   async ()=>{
-    const todos=[...CT_CLIENTE,...ctNegocio()];
+    const todos=[...CT_CLIENTE,...CT_NEGOCIO];
     const d={}; todos.forEach(([k])=>{ d[k]=(($('#ct_'+k)||{}).value||'').trim(); });
     const prob=ctConfereDocs(d.contratante_cnpj,d.rep_cpf);
     if(prob){ toast(prob); return false; }
@@ -13741,45 +13217,12 @@ const mpTarefas=()=>{ const ids=mpListaIds();
   return (TK.tarefas||[]).filter(t=>!t.arquivada_em&&!t.pai_id&&ids.indexOf(String(t.lista_id))>=0); };
 const mpSubsDe=(id)=>(TK.tarefas||[]).filter(x=>String(x.pai_id||'')===String(id)&&!x.arquivada_em);
 const mpTarDia=(iso)=>mpTarefas().filter(t=>String(t.prazo||'').slice(0,10)===iso);
-/* ---------- ARRASTO DE PENDENCIA (Gabriel 08/09) ----------
-   Demanda do Pessoal que o dia acabou e nao foi concluida nao some: ela anda pro dia
-   de hoje. Mas o dia que ficou pra tras precisa continuar registrando a falha, senao
-   a nota daquele dia melhorava sozinha quando a tarefa saia dele. Por isso o prazo
-   muda E o dia antigo entra em 'adiada_de'.
-   So entra o dia em que ela estava DE FATO prevista: se ficou parada tres dias com
-   prazo vencido, os dias do meio nao a tinham em lista nenhuma — nao seria honesto
-   cobrar deles. Vale so no workspace pessoal (mpTarefas ja filtra por isso). */
-const mpAdiadaDias=(t)=>(Array.isArray(t&&t.adiada_de)?t.adiada_de:[]).map(d=>String(d).slice(0,10)).filter(Boolean);
-const mpAdiadaN=(t)=>mpAdiadaDias(t).length;
-const mpTarAdiadasDe=(iso)=>mpTarefas().filter(t=>mpAdiadaDias(t).indexOf(iso)>=0&&String(t.prazo||'').slice(0,10)!==iso);
-window.__mpAdiadas=0;
-async function mpArrastarPendentes(){
-  const hoje=tkHoje();
-  const alvo=mpTarefas().filter(t=>{ const p=String(t.prazo||'').slice(0,10);
-    return p&&p<hoje&&!mpFeita(t); });
-  window.__mpAdiadas=0;
-  if(!alvo.length) return;
-  let n=0;
-  for(const t of alvo){
-    const de=String(t.prazo).slice(0,10);
-    const dias=mpAdiadaDias(t); if(dias.indexOf(de)<0) dias.push(de);
-    const patch={prazo:hoje,adiada_de:dias};
-    if(!t.prazo_orig) patch.prazo_orig=dias[0]||de;   /* o primeiro dia em que ficou pendente */
-    const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
-    if(error) continue;
-    Object.assign(t,patch); n++;
-  }
-  window.__mpAdiadas=n;
-}
 const mpTarSemData=()=>mpTarefas().filter(t=>!t.prazo);
 const mpFeita=(t)=>t.status==='feito'||!!t.concluida_em;
 
 function mpNotaDia(iso){
   const hs=MP.habitos.filter(h=>mpProg(h,iso)), ts=mpTarDia(iso);
-  /* o que foi adiado DESTE dia continua contando como previsto e nao feito:
-     arrastar a demanda pra frente nao pode limpar a nota do dia que passou */
-  const ad=mpTarAdiadasDe(iso);
-  const prev=hs.length+ts.length+ad.length;
+  const prev=hs.length+ts.length;
   const feit=hs.reduce((s,h)=>s+mpFrac(h,iso),0)+ts.filter(mpFeita).length;
   return {prev,feit:Math.round(feit*100)/100,nota:prev?Math.round(feit/prev*100)/10:null};
 }
@@ -13802,15 +13245,6 @@ function mpMetaProg(h){
 /* ---------- tela ---------- */
 async function renderPessoal(c){
   if(!currentUser) return;
-  /* Sem isto, TK.ws chegava vazio quando o Pessoal era a primeira tela aberta e o
-     mpWsAtivo() devolvia null — a tela oferecia "Criar meu workspace pessoal" pra
-     quem ja tem um. Mesma guarda que renderInicio e spAbrirClientes ja usam. */
-  if(!(TK.ws||[]).length){
-    c.innerHTML='<div class="empty">Carregando seu Modo Pessoal…</div>';
-    try{ await tkCarregar(); spDesenhar(); }
-    catch(e){ if(currentView==='pessoal') c.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
-    if(currentView!=='pessoal') return;
-  }
   const ws=mpWsAtivo();
   if(!ws){
     c.innerHTML='<div class="page-head"><div><h2>Modo Pessoal</h2><div class="desc">Seus hábitos, tarefas e agenda — privados, nem o administrador vê.</div></div></div>'+
@@ -13824,9 +13258,6 @@ async function renderPessoal(c){
     c.innerHTML='<div class="empty">Carregando seu Modo Pessoal…</div>';
     try{ await mpCarregar(); }catch(e){ if(currentView==='pessoal') c.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
   }
-  /* pendencia de ontem chega no dia de hoje antes da tela ser pintada */
-  try{ await mpArrastarPendentes(); }catch(_){ }
-  if(currentView!=='pessoal') return;
   mpPintar();
 }
 window.mpCriarWs=async()=>{ const l=await pessoalGarantir(); if(l){ spDesenhar(); render('pessoal'); } };
@@ -13934,9 +13365,8 @@ function mpPintar(){
     const b=document.createElement('button'); b.className='mp-kpibt'; b.title='KPI — suas notas e progresso';
     b.onclick=()=>mpIrKpi();
     b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/><circle cx="19" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg>';
-    /* ordem no topo (Gabriel 08/09): lupa, sino, KPI */
     const sn=tb.querySelector('.mp-sino');
-    if(sn) sn.insertAdjacentElement('afterend',b); else { const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); } })();
+    if(sn) tb.insertBefore(b,sn); else { const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); } })();
   /* foto do usuario pequena dentro do chip "Pessoal" (Gabriel 07/09): e o seletor de workspace */
   (function(){ const e=document.querySelector('#topbar .tb-esp'); if(!e||!currentUser) return;
     if(!e.dataset.mp){ e.dataset.mp='1';
@@ -13951,7 +13381,7 @@ function mpPintar(){
      do dia e nao carrega o bloco de KPI, entao o atalho do grafico nao tinha pra onde rolar.
      Agora ele abre esta tela. (Gabriel 07/09) */
   if(MP.aba==='progresso'){ b.innerHTML=mpKpiTelaHTML(); }
-  else if(MP.aba==='inicio'){ b.innerHTML=mpIniMobileHTML(); /* Gabriel 08/09: mesma tela no PC, esticada (opcao C) */ requestAnimationFrame(()=>{ const r=b.querySelector('.f1-row'); if(r) mpRowSb(r); }); }
+  else if(MP.aba==='inicio'){ b.innerHTML=(window.innerWidth<=720)?mpIniMobileHTML():mpInicioHTML(); requestAnimationFrame(()=>{ const r=b.querySelector('.f1-row'); if(r) mpRowSb(r); }); }
   else if(MP.aba==='habitos') b.innerHTML=mpHabsHTML();
   else if(MP.aba==='agenda'){ b.innerHTML=mpAgendaHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
   else{ b.innerHTML=mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
@@ -13991,7 +13421,7 @@ function mpHabCards(){
       ' ondragstart="mpHDragIni(event,\''+h.id+'\')" ondragover="mpHDragSobre(event,\''+h.id+'\')"'+
       ' ondragleave="mpHDragSai(event,\''+h.id+'\')" ondrop="mpHDrop(event,\''+h.id+'\')" ondragend="mpHDragFim()">'+
       '<div class="mp-hic" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,18)+'</div>'+
-      '<div><div class="mp-hnm"><span style="cursor:pointer" onclick="mpHabAbrir(\''+h.id+'\',\''+hoje+'\')">'+esc(h.nome)+'</span><span class="mp-hmenu" onclick="mpHabMenu(event,\''+h.id+'\')">⋯</span></div>'+
+      '<div><div class="mp-hnm">'+esc(h.nome)+'<span class="mp-hmenu" onclick="mpHabMenu(event,\''+h.id+'\')">⋯</span></div>'+
       '<div class="mp-hsub">'+(p.futuro?mpComeca(p.ini):(p.n+' / '+p.m+' vezes '+p.rot+(prog?'':' · hoje não tem')))+'</div></div>'+
       '<div class="mp-h2pct">'+String(pct).replace('.',',')+'%</div>'+
       (prog?'<button class="mp-hchk'+(ck?' on':'')+'" style="'+mpCkStyle(mpFrac(h,hoje),'var(--brand)')+'" title="'+(ck?'Feito hoje — toque pra desfazer':'Marcar hoje')+'" onclick="mpCheck(\''+h.id+'\',\''+hoje+'\')">'+svgIco('check',13)+'</button>':'<span></span>')+
@@ -14005,8 +13435,7 @@ function mpHabCards(){
     (rows||'<button class="mp-vazio" onclick="mpHabitoModal()">Nenhum hábito ainda · criar o primeiro</button>');
 }
 function mpHabsHTML(){ return mpHabCards(); }
-/* Nova tarefa fica na aba onde a pessoa esta (Gabriel 08/09): no Inicio, nasce no dia que esta sendo olhado */
-window.mpIrTarNova=()=>{ MP.evtNovo=false; if(MP.aba==='progresso'){ MP.aba='tarefas'; mpPintar(); } mpTarNovaCard(MP.aba==='inicio'&&MP.iniDia&&MP.iniDia>=tkHoje()?MP.iniDia:undefined); };
+window.mpIrTarNova=()=>{ MP.aba='tarefas'; MP.evtNovo=false; mpPintar(); mpTarNovaCard(); };
 /* Inicio F1 (celular): a data como titulo, setas de um dia, fio de progresso, lista unica */
 function mpIniMobileHTML(){
   const hoje=tkHoje(); if(!MP.iniDia) MP.iniDia=hoje;
@@ -14024,16 +13453,12 @@ function mpIniMobileHTML(){
      academia 06:00 amanhece no topo. Sem horario fica embaixo, na ordem de sempre. */
   const itens=[];
   const hh=(x)=>x&&/^\d{2}:\d{2}/.test(String(x))?String(x).slice(0,5):'';
-  ts.forEach(t=>{ const f=mpFeita(t), na=mpAdiadaN(t);
-    itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+(na?'<span class="mp-adi">adiada '+na+'\u00d7</span>':'')+'<small>tarefa'+(na?' \u00b7 era pra '+fmtDate(mpAdiadaDias(t)[0]):'')+'</small></span>'+(hh(t.hora)?'<span class="h">'+hh(t.hora)+'</span>':'')+'</div>'}); });
-  /* dia que ja passou: a demanda adiada continua aparecendo ali, marcada como nao
-     concluida — e o registro visivel de que aquele dia nao fechou */
-  if(passado) mpTarAdiadasDe(dia).forEach(t=>{
-    itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it adi"><span class="o x"></span><span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa \u00b7 n\u00e3o conclu\u00edda \u00b7 foi pra '+fmtDate(String(t.prazo||'').slice(0,10))+'</small></span></div>'}); });
+  ts.forEach(t=>{ const f=mpFeita(t);
+    itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa</small></span>'+(hh(t.hora)?'<span class="h">'+hh(t.hora)+'</span>':'')+'</div>'}); });
   hs.forEach(h=>{ const fr=mpFrac(h,dia), f=fr>=1, et=mpEtapas(h);
     const oh=(fr>0&&fr<1)?(passado?'<span class="o" style="'+mpCkStyle(fr)+'"></span>':'<button type="button" class="o" style="'+mpCkStyle(fr)+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"></button>'):o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')');
     const sub=et.length?(Math.round(fr*et.length)+' de '+et.length+' etapas'):'hábito';
-    itens.push({g:'hab',fr:fr,hora:hh(h.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+oh+'<span class="tt" onclick="mpHabAbrir(\''+h.id+'\',\''+dia+'\')">'+esc(h.nome||'')+'<small>'+esc(sub)+'</small></span>'+(hh(h.hora)?'<span class="h">'+hh(h.hora)+'</span>':'')+'</div>'}); });
+    itens.push({g:'hab',fr:fr,hora:hh(h.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+oh+'<span class="tt" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'<small>'+esc(sub)+'</small></span>'+(hh(h.hora)?'<span class="h">'+hh(h.hora)+'</span>':'')+'</div>'}); });
   itens.sort((a,b)=>(a.hora&&b.hora)?a.hora.localeCompare(b.hora):(a.hora?-1:(b.hora?1:0)));
   /* habito que ainda nao comecou mas comeca em breve: mostra pra pessoa saber que existe */
   if(ehHoje) MP.habitos.filter(h=>!mpProg(h,dia)&&mpIni(h)>dia).forEach(h=>{
@@ -14045,27 +13470,28 @@ function mpIniMobileHTML(){
   const vem=ehHoje?mpPorHora(MP.habitos.filter(h=>!mpProg(h,dia)&&mpIni(h)>dia)):[];
   if(HB.length||vem.length){
     const fh=HB.reduce((a,h)=>a+mpFrac(h,dia),0);
-    /* Volta o cartaozinho (Gabriel 08/09), mas em grade que se ajusta: a fileira
-       que rolava pro lado cortava o 4o no meio. 4 habitos viram 2x2, 3 ou 5+ ficam
-       em 3 colunas — sempre linha cheia, nada cortado e nada de deslizar. */
-    const tile=(h,depois)=>{ const fr=depois?0:mpFrac(h,dia), on=fr>=1, et=mpEtapas(h);
-      const sub=depois?mpComeca(mpIni(h))
-        :(et.length?(Math.round(fr*et.length)+'/'+et.length+(hh(h.hora)?' · '+hh(h.hora):'')):(hh(h.hora)||''));
+    /* Lista em pe, com o mesmo cartao das abas Habitos e Tarefas (Gabriel 08/09).
+       A fileira que rolava pro lado cortava o 4o habito e deixava meia tela vazia. */
+    const linhaHab=(h,depois)=>{
+      const fr=depois?0:mpFrac(h,dia), on=fr>=1, et=mpEtapas(h);
+      const p=[]; if(hh(h.hora)) p.push(hh(h.hora));
+      if(depois) p.push(mpComeca(mpIni(h)));
+      else if(et.length) p.push(Math.round(fr*et.length)+' de '+et.length+' etapas');
       const pode=!passado&&!futuro&&!depois;
-      const ring=pode
-        ? '<button type="button" class="ring" style="--p:'+Math.round(fr*100)+'%" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"><i>'+(on?svgIco('check',11):'')+'</i></button>'
-        : '<span class="ring" style="--p:'+Math.round(fr*100)+'%'+(depois?';border:1.5px dashed var(--fraco);background:none':'')+'"><i'+(depois?' style="background:none"':'')+'>'+(on?svgIco('check',11):'')+'</i></span>';
-      return '<div class="f1-tile'+(on?' on':'')+((futuro||depois)?' ro':'')+'">'+ring+
-        '<span class="nm" onclick="'+(depois?'mpHabitoModal':'mpHabAbrir')+'(\''+h.id+'\',\''+dia+'\')"><b>'+esc(h.nome||'')+'</b><small>'+esc(sub)+'</small></span></div>'; };
-    const tiles=HB.map(h=>tile(h,false)).concat(vem.map(h=>tile(h,true)));
-    /* L2 de novo (Gabriel 08/09, "publica nesse formato L2"): fileira que rola pro lado.
-       Ate 4 habitos: todos cabem na tela, sem rolar e sem cortar. 5 ou mais: 3 inteiros
-       + uma ponta do 4o aparecendo (36px), pra ficar obvio que tem mais a direita. */
-    const n=tiles.length, rola=n>4;
-    const w=rola?'calc((100% - 44px)/3)':'calc((100% - '+((n-1)*8)+'px)/'+n+')';
-    linhas.push('<section class="f1-grp hab"><div class="f1-lbl"><span>Hábitos</span><small>'+(HB.length?mpFmtN(fh)+' de '+HB.length:'')+(rola?' · desliza ›':'')+'</small></div>'+
-      '<div class="f1-row ini'+(rola?'':' fim')+'" onscroll="mpRowSb(this)" style="--tw:'+w+'">'+tiles.join('')+'</div>'+
-      (rola?'<div class="f1-sb">'+Array.from({length:Math.ceil(n/3)},(_,i)=>'<i'+(i?'':' class="on"')+'></i>').join('')+'</div>':'')+'</section>');
+      const alvo='mpCheck(\''+h.id+'\',\''+dia+'\')';
+      const cir=pode
+        ? '<button class="mp-hchk'+(on?' on':'')+'" style="'+mpCkStyle(fr,'var(--brand)')+'" title="'+(on?'Feito — toque pra desfazer':'Marcar')+'" onclick="'+alvo+'">'+svgIco('check',13)+'</button>'
+        : '<span class="mp-hchk'+(on?' on':'')+'" style="'+mpCkStyle(fr,'var(--brand)')+(depois?';border-style:dashed':'')+'">'+(on?svgIco('check',13):'')+'</span>';
+      return '<div class="mp-hab2'+(depois?' off':'')+'">'+
+        '<div class="mp-hic" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,18)+'</div>'+
+        '<div><div class="mp-hnm" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'</div>'+
+        '<div class="mp-hsub">'+esc(p.join(' · ')||'sem hora')+'</div></div>'+
+        '<div class="mp-h2pct">'+(et.length?Math.round(fr*et.length)+'/'+et.length:'')+'</div>'+
+        cir+
+        (et.length?'<div class="mp-h2bar"><i style="width:'+Math.round(fr*100)+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div>':'')+
+        '</div>'; };
+    linhas.push('<section class="f1-grp hab"><div class="f1-lbl"><span>Hábitos</span><small>'+(HB.length?mpFmtN(fh)+' de '+HB.length:'')+'</small></div>'+
+      HB.map(h=>linhaHab(h,false)).join('')+vem.map(h=>linhaHab(h,true)).join('')+'</section>');
   }
   const T=itens.filter(x=>x.g==='tar');
   if(T.length){ const nf=T.filter(x=>/f1-it done/.test(x.html)).length;
@@ -14076,17 +13502,12 @@ function mpIniMobileHTML(){
       '<button type="button" class="ar" onclick="mpIniNav(1)">›</button></div>'+
     (ehHoje?'':'<button type="button" class="f1-hoje" onclick="mpIniHoje()">Voltar pra hoje</button>')+
     '<div class="f1-pb"><i style="width:'+pct+'%"></i></div>'+
-    ((ehHoje&&window.__mpAdiadas)?'<div class="f1-aviso">\u21bb <span><b>'+window.__mpAdiadas+'</b> '+(window.__mpAdiadas===1?'demanda veio':'demandas vieram')+' de dias anteriores. O dia que ficou pra tr\u00e1s guarda a falha.</span></div>':'')+
     '<div class="f1-l">'+(linhas.length?linhas.join(''):(ehHoje&&!MP.habitos.length?'':'<div class="f1-vz">Nada neste dia.</div>'))+'</div>'+
     (ehHoje&&!MP.habitos.length?mpZeroHTML():'')+
     '</div>';
 }
-window.mpRowSb=(r)=>{ const max=r.scrollWidth-r.clientWidth; const fim=max<=2||r.scrollLeft>=max-2;
-  r.classList.toggle('fim',fim); r.classList.toggle('ini',r.scrollLeft<=2);
-  const sb=r.nextElementSibling; if(!sb||!sb.classList.contains('f1-sb')) return;
-  const ds=sb.children, pg=ds.length; if(!pg) return;
-  const at=max<=2?0:Math.round(r.scrollLeft/max*(pg-1));
-  for(let i=0;i<pg;i++) ds[i].classList.toggle('on',i===at); };
+window.mpRowSb=(r)=>{ const sb=r.nextElementSibling; if(!sb) return; const cabe=r.scrollWidth<=r.clientWidth+2; sb.style.display=cabe?'none':'';
+  if(cabe) return; const t=sb.firstElementChild; t.style.width=Math.max(12,Math.round(r.clientWidth/r.scrollWidth*100))+'%'; t.style.left=Math.round(r.scrollLeft/r.scrollWidth*100)+'%'; };
 window.mpIniNav=async(d)=>{ MP.iniDia=tkDiaMais(MP.iniDia||tkHoje(),d); mpPintar();
   if(!MP.evtsPorDia[MP.iniDia]){ try{ await mpEvtsDia(MP.iniDia); }catch(_){} if(MP.aba==='inicio') mpPintar(); } };
 window.mpIniHoje=()=>{ MP.iniDia=tkHoje(); mpPintar(); };
@@ -14102,14 +13523,13 @@ function mpInicioHTML(){
     (n.prev>0?'<div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
       '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota do dia</div><div class="xp">'+mpFmtN(n.feit)+'/'+n.prev+' feitos</div></div></div>':'')+
     (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:10px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+
-    (window.__mpAdiadas?'<div class="f1-aviso">\u21bb <span><b>'+window.__mpAdiadas+'</b> '+(window.__mpAdiadas===1?'demanda veio':'demandas vieram')+' de dias anteriores. O dia que ficou pra tr\u00e1s guarda a falha.</span></div>':'')+
     '</div>'+
     (MP.habitos.length?mpHabCards():mpZeroHTML())+
     '<div class="mp-sech" style="margin-top:26px">Tarefas de hoje · '+ts.length+'<button class="mp-add" onclick="mpIrTarNova()">+ Nova tarefa</button></div>'+
-    (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>');
-    /* KPI saiu do Inicio tambem no PC (Gabriel 01/09). Ele ja estava fora no celular;
-       no desktop enchia o fim da tela com um bloco que ninguem rolava ate. Continua
-       inteiro na tela propria — botao do grafico na barra de cima (mpIrKpi). */
+    (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>')+
+    /* KPI mora aqui também: o Início é o lugar único — semana, nota por período e comparativo.
+       Sem habito ele nao aparece (3A): era um bloco inteiro de controle morto. */
+    (MP.habitos.length?'<div class="mp-sech" id="mpKpi" style="margin-top:34px">KPI · Progresso</div>'+mpProgHTML():'');
 }
 
 /* ---------- aba Progresso ---------- */
@@ -14225,43 +13645,44 @@ function mpRotSem(seg){
   if(dif===1) return 'semana que vem';
   return dif<0?(-dif)+' semanas atrás':'daqui a '+dif+' semanas';
 }
-/* KPI enxuto (Gabriel 08/09, "K3 com filtros do K1 + personalizado"): filtro de periodo,
-   nota grande com variacao, UMA linha com a nota de cada dia, e a lista de habitos com %.
-   Saiu: grade da semana, placar de 5 barras, resumo (dias perfeitos/melhor/travando) e constancia. */
 function mpProgHTML(){
-  const hoje=tkHoje(), fx=mpFaixaAtual(), np=mpNotaFaixa(fx[0],fx[1]);
-  const ant=mpFaixaAntes(fx[0],fx[1],0), na=mpNotaFaixa(ant[0],ant[1]);
-  const dif=(np.nota!=null&&na.nota!=null)?Math.round((np.nota-na.nota)*10)/10:null;
+  const seg=MP.sem, ds=mpDias7(seg), hoje=tkHoje();
+  const ns=mpNotaFaixa(seg,ds[6]);
+  const ordem=[1,2,3,4,5,6,0];
+  const dias=ordem.map(i=>ds.filter(x=>mpDow(x)===i)[0]);
+  /* uma linha por habito: nome, dias seguidos e a semana em 7 blocos.
+     Substitui a tabela — com 1 ou 2 habitos a grade era quase toda espaco morto. */
+  const cab='<div class="mp-hrow cab"><span></span><span></span><div class="mp-hsem">'+
+    dias.map((d,ix)=>'<div class="lb'+(d===hoje?' hj':'')+'">'+MP_SEMD[ordem[ix]].toUpperCase()+'</div>').join('')+'</div></div>';
+  const linhas=mpPorHora(MP.habitos).map(h=>{
+    const sq=mpSeq(h);
+    return '<div class="mp-hrow">'+
+      '<div class="mp-hrnm"><span style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,14)+'</span>'+esc(h.nome)+'</div>'+
+      '<span class="mp-seq'+(sq>1?'':' off')+'" title="dias seguidos">'+svgIco('raio',11)+(sq>1?sq:'')+'</span>'+
+      '<div class="mp-hsem">'+dias.map(d=>{
+        const c=mpCelCls(h,d,hoje);
+        const clk=(c==='ok'||c==='miss')?' onclick="mpCheck(\''+h.id+'\',\''+d+'\')"':'';
+        let tit=esc(h.nome)+' · '+mpCurto(d);
+        if(c==='ok') tit+=' — feito'; else if(c==='miss') tit+=(d===hoje?' — marcar':' — ficou pra trás');
+        else if(c==='fut') tit+=' — programado';
+        return '<div class="mp-cel '+c+(d===hoje?' hj':'')+'" title="'+tit+'"'+clk+'></div>';
+      }).join('')+'</div></div>';
+  }).join('');
+  const fx=mpFaixaAtual(), np=mpNotaFaixa(fx[0],fx[1]);
   const pers=MP.per==='pers';
-  const rotAnt={hoje:'vs. ontem','7d':'vs. 7 dias antes','30d':'vs. 30 dias antes',pers:'vs. período anterior'}[MP.per]||'vs. período anterior';
-  /* a linha precisa de chao: com "Hoje" ou periodo curto, mostra os ultimos 14 dias */
-  let li=fx[0], lf=fx[1]>hoje?hoje:fx[1];
-  if(Math.round((mpDe(lf)-mpDe(li))/864e5)+1<7) li=tkDiaMais(lf,-13);
-  const pts=[]; let d=li,g=0; while(d<=lf&&g++<400){ const n=mpNotaDia(d); pts.push({d,nota:n.prev?n.nota:null}); d=tkDiaMais(d,1); }
-  const W=300,H=70,n=pts.length, x=(k)=>n>1?Math.round(k/(n-1)*W*10)/10:W, y=(v)=>Math.round((64-v*6)*10)/10;
-  let linha='',area='',ult=null;
-  pts.forEach((p,k)=>{ if(p.nota==null) return; const c=x(k)+' '+y(p.nota); linha+=(linha?' L':'M')+c; area+=(area?' L':'M')+c; ult={k,p}; });
-  const prim=pts.findIndex(p=>p.nota!=null);
-  if(area&&ult) area+=' L'+x(ult.k)+' '+H+' L'+x(prim)+' '+H+' Z';
-  const svg=linha?'<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
-      '<defs><linearGradient id="kpg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a78bfa" stop-opacity=".35"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs>'+
-      '<path d="'+area+'" fill="url(#kpg)"/><path d="'+linha+'" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'+
-      (ult?'<circle cx="'+x(ult.k)+'" cy="'+y(ult.p.nota)+'" r="3.5" fill="var(--txt)"/>':'')+'</svg>'
-    :'<div class="kp-vz">Sem dias marcados nesse período ainda.</div>';
-  const porHab=MP.habitos.map(h=>{ let prev=0,feit=0,d=fx[0],g=0; const fim=fx[1]>hoje?hoje:fx[1];
-    while(d<=fim&&g++<1100){ if(mpProg(h,d)){ prev++; feit+=mpFrac(h,d); } d=tkDiaMais(d,1); } return {h,prev,feit,pct:prev?Math.round(feit/prev*100):0}; })
-    .filter(o=>o.prev).sort((a,b)=>b.pct-a.pct);
-  const rotLista={hoje:'hoje','7d':'7 dias','30d':'30 dias',pers:mpCurto(fx[0])+' – '+mpCurto(fx[1])}[MP.per]||'';
-  return '<div class="kp">'+
-    '<div class="mp-pills kp-pills">'+[['hoje','Hoje'],['7d','7 dias'],['30d','30 dias'],['pers','Personalizado']].map(p=>'<button class="mp-pill '+(MP.per===p[0]?'on':'')+'" onclick="mpPer(\''+p[0]+'\')">'+p[1]+'</button>').join('')+'</div>'+
-    (pers?'<div class="kp-dts"><input type="date" class="ini-dt" value="'+esc(fx[0])+'" onchange="mpPerIni(this.value)"><span>até</span><input type="date" class="ini-dt" value="'+esc(fx[1])+'" onchange="mpPerFim(this.value)"></div>':'')+
-    '<div class="kp-big"><b>'+mpNotaFmt(np.nota)+'</b><div class="v">'+
-      (dif!=null?'<em style="color:'+(dif>0?'var(--ok)':(dif<0?'var(--danger)':'var(--muted)'))+'">'+(dif>0?'▲':(dif<0?'▼':'='))+' '+mpNotaFmt(Math.abs(dif))+'</em>':'<em style="color:var(--muted)">—</em>')+
-      '<small>'+esc(rotAnt)+' · '+mpFmtN(np.feit)+' de '+np.prev+'</small></div></div>'+
-    '<div class="kp-spark">'+svg+'<div class="lb"><span>'+esc(mpCurto(li))+'</span><span>'+(lf===hoje?'hoje':esc(mpCurto(lf)))+'</span></div></div>'+
-    (porHab.length?'<div class="kp-sec"><span>Por hábito</span><small>'+esc(rotLista)+'</small></div>'+
-      '<div class="kp-hl">'+porHab.map(o=>'<div class="r" onclick="mpHabitoModal(\''+o.h.id+'\')"><span class="ic" style="background:'+esc(o.h.cor||'#a78bfa')+'"></span><span class="nm">'+esc(o.h.nome)+'</span><span class="pc">'+o.pct+'%</span></div>').join('')+'</div>':'')+
-    '</div>';
+  return '<div class="mp-per"><button class="mp-nav" onclick="mpSemNav(-1)">‹</button>'+
+    '<div><div class="mp-pttl">'+mpCurto(seg)+' – '+mpCurto(ds[6])+'</div><div class="mp-psub">'+mpRotSem(seg)+'</div></div>'+
+    '<button class="mp-nav" onclick="mpSemNav(1)">›</button>'+
+    '<span class="mp-pnota">Nota da semana: <b>'+mpNotaFmt(ns.nota)+'</b> · '+mpFmtN(ns.feit)+'/'+ns.prev+'</span></div>'+
+    cab+linhas+
+    '<div class="mp-sech" style="margin-top:24px">Como você está indo</div>'+
+    '<div class="mp-pills">'+[['hoje','Hoje'],['7d','7 dias'],['30d','30 dias'],['pers','Personalizado']].map(p=>'<button class="mp-pill '+(MP.per===p[0]?'on':'')+'" onclick="mpPer(\''+p[0]+'\')">'+p[1]+'</button>').join('')+
+    (pers?'<input type="date" class="ini-dt" value="'+esc(fx[0])+'" onchange="mpPerIni(this.value)"><span style="color:var(--muted)">até</span><input type="date" class="ini-dt" value="'+esc(fx[1])+'" onchange="mpPerFim(this.value)">':'')+
+    '</div>'+mpPlacarHTML()+
+    /* constancia fica fechada: e pra olhar de vez em quando, nao todo dia */
+    '<details class="fch-g" style="margin-top:22px"><summary><span class="fch-cv"></span>'+
+    '<span class="fch-t">Constância — últimos 90 dias</span><span class="fch-s">clique para abrir</span></summary>'+
+    '<div class="fch-corpo" style="padding:10px 14px 14px">'+mpMapaHTML()+'</div></details>';
 }
 window.mpSemNav=(n)=>{ MP.sem=tkDiaMais(MP.sem,n*7); mpPintar(); };
 window.mpPer=(p)=>{ MP.per=p; mpPintar(); };
@@ -14271,16 +13692,12 @@ window.mpCmp=(m)=>{ MP.cmp=m; mpPintar(); };
 
 /* ---------- checks ---------- */
 /* Lista de etapas do dia: marca uma a uma; a bolinha do habito enche na proporcao */
-/* Toque no habito (Gabriel 08/09): com etapas abre o checklist do dia, pra ir preenchendo;
-   sem etapas abre o cadastro. Cada dia nasce com o checklist zerado (a marcacao e por dia). */
-window.mpHabAbrir=(hid,iso)=>{ const h=MP.habitos.find(x=>String(x.id)===String(hid)); iso=iso||tkHoje();
-  if(h&&mpEtapas(h).length&&iso<=tkHoje()&&mpProg(h,iso)) mpEtapasModal(hid,iso); else mpHabitoModal(hid); };
 window.mpEtapasModal=(hid,iso)=>{
   const h=MP.habitos.find(x=>String(x.id)===String(hid)); if(!h) return;
   const et=mpEtapas(h);
   modal(h.nome||'Hábito',
     '<div class="tc">'+
-    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click();mpHabitoModal(\''+h.id+'\')">Editar</button><span class="hint" style="margin:0">'+esc(mpTcRotDia(iso))+'</span><button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button></div>'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Fechar</button><span class="hint" style="margin:0">'+esc(mpTcRotDia(iso))+'</span></div>'+
     '<div class="tc-tit"><span class="mph-icbt" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,20)+'</span><b style="font-size:20px;font-weight:800">'+esc(h.nome||'')+'</b></div>'+
     '<div class="tc-prog"><i id="mpe_prog"></i></div>'+
     '<div id="mpe_lista"></div>'+
@@ -14416,9 +13833,8 @@ window.mpHabitoModal=(id)=>{
     '<div id="mph_box_'+k+'" class="tc-box mph-box" hidden>'+extra+'</div>';
   modal(h?'Editar hábito':'Novo hábito',
     '<div class="tc">'+
-    '<div class="tc-top">'+
-      (h?'<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpHabMenu(event,\''+h.id+'\')">···</button>':'<span></span>')+
-      '<button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button>'+'</div>'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button>'+
+      (h?'<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpHabMenu(event,\''+h.id+'\')">···</button>':'<span></span>')+'</div>'+
     '<div class="tc-tit"><button type="button" class="mph-icbt" id="mphv_icbt" onclick="mpHTgl(\'ic\')"></button>'+
       '<input id="mph_nm" class="tc-in" value="'+esc(h?h.nome:'')+'" placeholder="Nome do hábito"/></div>'+
     '<div class="tc-props">'+
@@ -14534,12 +13950,11 @@ function mpTarSub(t){
   if(tot) p.push(okn+' de '+tot+' etapas');
   return {sub:p.join(' · '),tot:tot,okn:okn,atr:!!(dia&&dia<hoje&&!mpFeita(t))};
 }
-function mpTarRow(t){ const f=mpFeita(t), d=mpTarSub(t), na=mpAdiadaN(t);
+function mpTarRow(t){ const f=mpFeita(t), d=mpTarSub(t);
   const fr=f?1:(d.tot?d.okn/d.tot:0), pct=Math.round(fr*100);
   return '<div class="mp-hab2 tar'+(f?' done':'')+(d.atr?' atr':'')+'">'+
     '<div class="mp-hic" style="color:'+(d.atr?'var(--danger)':'var(--brand2)')+'">'+MP_TARICO+'</div>'+
     '<div><div class="mp-hnm" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+
-      (na?'<span class="mp-adi" title="Era pra '+esc(fmtDate(mpAdiadaDias(t)[0]))+'">adiada '+na+'\u00d7</span>':'')+
       '<span class="mp-hmenu" onclick="event.stopPropagation();mpTarMenu(event,\''+t.id+'\')">⋯</span></div>'+
       '<div class="mp-hsub">'+esc(d.sub)+'</div></div>'+
     '<div class="mp-h2pct">'+(d.tot?d.okn+'/'+d.tot:'')+'</div>'+
@@ -14590,7 +14005,7 @@ window.mpTarNovaCard=(diaIni)=>{
   const chips=[['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Seg '+Number(tkDiaMais(mpSegDa(hj),7).slice(8,10)),tkDiaMais(mpSegDa(hj),7)],['Sem dia','']];
   modal('Nova tarefa',
     '<div class="tc">'+
-    '<div class="tc-top"><span></span><button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button></div>'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button></div>'+
     '<div class="tc-tit"><span class="tc-o vz"></span>'+
       '<input id="mtc_tt" class="tc-in" value="" placeholder="O que precisa ser feito?"/></div>'+
     '<div class="tc-props">'+
@@ -14662,7 +14077,7 @@ window.mpTarPraDia=async(id)=>{
 const mpTcT=()=>(TK.tarefas||[]).find(x=>String(x.id)===String(window.__mpTc||''));
 /* Cartao da tarefa (Gabriel 07/09, opcao C): titulo com o circulo de concluir, propriedades
    em linha (Dia, Hora) que abrem o seletor ao tocar, notas, checklist e subtarefas como listas.
-   Pronto salva; o x no canto direito fecha; Apagar mora no rodape, longe do resto. */
+   Pronto salva; Cancelar fecha; Apagar mora no rodape, longe do resto. */
 const mpTcRotDia=(iso)=>{ if(!iso) return 'Sem dia'; const hj=tkHoje(); if(iso===hj) return 'Hoje'; if(iso===tkDiaMais(hj,1)) return 'Amanhã';
   if(iso===tkDiaMais(hj,-1)) return 'Ontem'; const t=mpDataExt(iso); return t.charAt(0).toUpperCase()+t.slice(1); };
 window.mpTcDiaTgl=()=>{ const b=$('#mtc_dtbox'); if(b) b.hidden=!b.hidden; if(b&&!b.hidden){ const h=$('#mtc_hrbox'); if(h) h.hidden=true; } };
@@ -14682,9 +14097,8 @@ window.mpTarCard=(id)=>{
   const chips=[['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Seg '+Number(tkDiaMais(mpSegDa(hj),7).slice(8,10)),tkDiaMais(mpSegDa(hj),7)],['Sem dia','']];
   modal('Tarefa',
     '<div class="tc">'+
-    '<div class="tc-top">'+
-      '<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpTcMenu(event)">···</button>'+
-      '<button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button>'+'</div>'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button>'+
+      '<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpTcMenu(event)">···</button></div>'+
     '<div class="tc-tit"><button type="button" class="tc-o'+(f?' on':'')+'" title="'+(f?'Concluída — toque pra reabrir':'Concluir')+'" onclick="mpTarVirar(\''+t.id+'\');this.classList.toggle(\'on\')">'+svgIco('check',12)+'</button>'+
       '<input id="mtc_tt" class="tc-in" value="'+esc(t.titulo||'')+'" placeholder="Título"/></div>'+
     '<div class="tc-props">'+
@@ -14857,7 +14271,7 @@ function mpAgendaHTML(){
     if(it.tipo==='hab'){ const h=it.o, f=mpCk(h.id,dia);
       return '<div class="ga-bl hab'+(f?' done':'')+'">'+
         '<button class="o'+(f?' on':'')+'" style="'+mpCkStyle(mpFrac(h,dia),'#06231a')+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')">'+svgIco('check',10)+'</button>'+
-        '<span class="tt abre" onclick="mpHabAbrir(\''+h.id+'\',\''+dia+'\')">'+esc(h.nome||'')+'</span><span class="h">'+esc(String(h.hora).slice(0,5))+'</span><span class="g">hábito</span></div>'; }
+        '<span class="tt abre" onclick="mpHabitoModal(\''+h.id+'\')">'+esc(h.nome||'')+'</span><span class="h">'+esc(String(h.hora).slice(0,5))+'</span><span class="g">hábito</span></div>'; }
     const t=it.o, f=mpFeita(t);
     return '<div class="ga-bl tar'+(f?' done':'')+'">'+
       '<button class="o'+(f?' on':'')+'" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',10)+'</button>'+
@@ -14925,7 +14339,7 @@ window.mpEvtSheetAntigo=(h)=>{
   o.onclick=(e)=>{ if(e.target===o) shFecha(); };
   o.innerHTML='<div class="sheet">'+
     '<div class="sh-hand"></div>'+
-    '<div class="sh-top"><b>Novo evento</b><button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="shFecha()">&times;</button></div>'+
+    '<div class="sh-top"><b>Novo evento</b><button type="button" onclick="shFecha()">Cancelar</button></div>'+
     '<input class="sh-tit" id="sh_nm" placeholder="Título" autocomplete="off" enterkeyhint="done" onkeydown="if(event.key===\'Enter\'){event.preventDefault();shCriar();}">'+
     '<div class="sh-lab">Início · '+esc(mpDataExt(dia))+'</div>'+
     '<div class="sh-chips" id="sh_hrs"></div>'+
@@ -14975,7 +14389,7 @@ window.mpEvtSlot=(h)=>{
   window.__mpE={dur:60};
   modal('Novo evento',
     '<div class="tc">'+
-    '<div class="tc-top"><span></span><button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button></div>'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button><span></span></div>'+
     '<div class="tc-tit"><input id="gce_nm" class="tc-in" placeholder="Título" onkeydown="if(event.key===\'Enter\'){event.preventDefault();document.querySelector(\'.overlay .msave\').click();}"/></div>'+
     '<div class="tc-props">'+
       '<button type="button" class="tc-p" onclick="mpETgl(\'dt\')"><small>Dia</small><b id="gcev_dt">'+esc(mpTcRotDia(dia))+'</b><i>›</i></button>'+
@@ -15354,7 +14768,6 @@ function confirmar(titulo, texto, op){
   return new Promise((ok)=>{
     const o=document.createElement('div'); o.className='overlay';
     o.innerHTML=`<div class="modal cf-m">
-      <button class="x cf-fechar" title="Fechar" aria-label="Fechar">&times;</button>
       <div class="mbody">
         <div class="cf-t">${esc(titulo)}</div>
         ${texto?`<p class="cf-x">${esc(texto)}</p>`:''}
@@ -15367,7 +14780,6 @@ function confirmar(titulo, texto, op){
     const fim=(v)=>{ document.removeEventListener('keydown',tecla); o.remove(); ok(v); };
     const tecla=(e)=>{ if(e.key==='Escape'){ e.preventDefault(); fim(false); }
                        else if(e.key==='Enter'){ e.preventDefault(); fim(true); } };
-    o.querySelector('.cf-fechar').onclick=()=>fim(false);
     o.querySelector('.cf-n').onclick=()=>fim(false);
     o.querySelector('.cf-s').onclick=()=>fim(true);
     o.onclick=(e)=>{ if(e.target===o) fim(false); };
@@ -15379,11 +14791,10 @@ function confirmar(titulo, texto, op){
 function escolher(titulo,texto,ops){
   return new Promise((ok)=>{
     const o=document.createElement('div'); o.className='overlay';
-    o.innerHTML=`<div class="modal cf-m">
-      <button class="x" data-x="1" title="Fechar" aria-label="Fechar">&times;</button>
-      <div class="mbody" style="padding-top:22px">
+    o.innerHTML=`<div class="modal cf-m"><div class="mbody" style="padding-top:22px">
         <div class="cf-t">${esc(titulo)}</div>${texto?`<p class="cf-x">${esc(texto)}</p>`:''}</div>
       <div class="mfoot" style="flex-wrap:wrap;gap:8px">
+        <button class="btn secondary small" data-x="1">Cancelar</button>
         ${ops.map(b=>`<button class="btn small" data-v="${esc(b.v)}">${esc(b.rot)}</button>`).join('')}
       </div></div>`;
     document.body.appendChild(o);
@@ -15397,15 +14808,13 @@ function escolher(titulo,texto,ops){
 }
 function modal(title, bodyHTML, onSave){
   const o=document.createElement('div'); o.className='overlay';
-  /* O x carrega a classe mcancel de proposito: varias telas fecham o modal com
-     .overlay .mcancel .click(), e assim continuam funcionando sem tocar em ninguem. */
-  o.innerHTML=`<div class="modal"><div class="mhead"><h3>${title}</h3><button class="x mcancel" title="Fechar" aria-label="Fechar">&times;</button></div>
+  o.innerHTML=`<div class="modal"><div class="mhead"><h3>${title}</h3><button class="x">&times;</button></div>
     <div class="mbody">${bodyHTML}</div>
-    <div class="mfoot"><button class="btn small msave">Salvar</button></div></div>`;
+    <div class="mfoot"><button class="btn secondary small mcancel">Cancelar</button><button class="btn small msave">Salvar</button></div></div>`;
   if(bodyHTML.indexOf('class="tkm"')>=0) o.classList.add('folha'); /* tarefa abre como painel lateral, estilo ClickUp */
   document.body.appendChild(o);
   const close=()=>{ if(o.querySelector('.tkm')) window.TK_ABERTA=''; o.remove(); };
-  o.querySelector('.x').onclick=close;
+  o.querySelector('.x').onclick=close; o.querySelector('.mcancel').onclick=close;
   o.onclick=e=>{if(e.target===o)close();};
   o.querySelector('.msave').onclick=async ()=>{ const ok=await onSave(); if(ok!==false)close(); };
 }
