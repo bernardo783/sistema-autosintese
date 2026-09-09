@@ -1498,7 +1498,7 @@
     opacity:0;pointer-events:none;transition:opacity .12s;z-index:200;
     box-shadow:0 8px 20px rgba(0,0,0,.55)}
   /* os dois últimos ficam à direita: alinham pela outra ponta pra não sair da janela */
-  .pc-icos .pc-ic:nth-last-child(-n+2)::after{left:auto;right:-4px}
+  .pc-icos .pc-ic.dir::after{left:auto;right:-4px}
   .pc-ic:hover::after{opacity:1}
   .pc-div{width:1px;height:22px;background:var(--line);margin:0 4px;flex:none}
   .pc-tabs{padding:0 20px;margin:38px 0 0;gap:20px;border-bottom:1px solid var(--line)}
@@ -1509,6 +1509,66 @@
   .pc-tabs .ftab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;
     background:var(--brand2);border-radius:2px}
   .pc-n{color:var(--fraco);font-size:12px;margin-left:4px}
+  /* ===== FICHA COM LINHA DO TEMPO (Gabriel 09/09) =====
+     Icones menores e mudos (o nome so no hover); o time a direita deles; uma faixa com
+     conta de anuncio, verba, gasto e saldo; e a linha do tempo como aba de entrada. */
+  .pc-icos{padding:14px 20px 0;gap:6px}
+  .pc-icos .pc-ic{width:29px;height:29px;border-radius:8px}
+  .pc-icos .pc-ic svg{width:15px;height:15px}
+  .pc-icos .pc-ic .pc-bdg{min-width:15px;height:15px;font-size:9.5px}
+  .pc-time{margin-left:auto;display:inline-flex;align-items:center;gap:10px;color:var(--muted);
+    font-size:12.5px;font-weight:600;min-width:0;flex-wrap:wrap;justify-content:flex-end}
+  .pc-time .pc-tm{display:inline-flex;align-items:center;white-space:nowrap;cursor:default}
+  .pc-time .pc-tm.vz{color:var(--fraco);font-weight:500;cursor:pointer}
+  .pc-time .pc-tm.vz:hover{color:var(--txt)}
+  .pc-time i{width:3px;height:3px;border-radius:50%;background:var(--fraco);display:block;flex:none}
+  .pc-strip{display:grid;grid-template-columns:repeat(4,1fr);margin:14px 20px 0;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;background:var(--panel2)}
+  .pc-strip .s{padding:10px 13px;min-width:0;border-left:1px solid var(--line);cursor:pointer;transition:background .12s}
+  .pc-strip .s:first-child{border-left:none}
+  .pc-strip .s:hover{background:var(--panel)}
+  .pc-strip b{display:block;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+  .pc-strip em{display:block;font-style:normal;font-size:14.5px;font-weight:800;margin-top:3px;letter-spacing:-.01em;
+    font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt)}
+  .pc-strip em.vz{color:var(--fraco);font-weight:500;font-size:13px}
+  .pc-strip small{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  @media (max-width:640px){
+    .pc-strip{grid-template-columns:1fr 1fr}
+    .pc-strip .s:nth-child(3){border-left:none}
+    .pc-strip .s:nth-child(n+3){border-top:1px solid var(--line)}
+    .pc-time{width:100%;margin-left:0;justify-content:flex-start;margin-top:2px}
+  }
+  .pc-tabs{margin-top:22px}
+  /* linha do tempo */
+  .lt-nova{display:flex;gap:8px;align-items:flex-end;margin:2px 0 6px}
+  .lt-nova textarea{flex:1;min-height:42px;max-height:160px;resize:vertical;font-family:inherit;font-size:13.5px;
+    padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);line-height:1.45}
+  .lt-nova textarea:focus{outline:none;border-color:var(--brand2)}
+  .lt-dica{font-size:11.5px;color:var(--muted);margin:0 0 16px}
+  .lt-feed{position:relative;padding-left:22px}
+  .lt-feed::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:var(--line);border-radius:2px}
+  .lt-dia{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+  .lt-dia:first-child{margin-top:0}
+  .lt-ev{position:relative;padding:8px 12px;border-radius:10px;margin-bottom:6px;font-size:13.5px;line-height:1.5;
+    background:var(--panel2);border:1px solid var(--line)}
+  .lt-ev::before{content:'';position:absolute;left:-22px;top:13px;width:8px;height:8px;border-radius:50%;
+    background:var(--muted);border:2px solid var(--panel);box-sizing:content-box}
+  .lt-ev.nota{background:transparent}
+  .lt-ev.nota::before{background:var(--brand2)}
+  .lt-ev.feito::before{background:var(--ok)}
+  .lt-ev.alerta::before{background:var(--warn)}
+  .lt-ev.critico::before{background:var(--danger)}
+  .lt-ev.abre{cursor:pointer}
+  .lt-ev.abre:hover{border-color:var(--brand2)}
+  .lt-ev.fin{opacity:.72}
+  .lt-ev .h{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);margin-bottom:2px;flex-wrap:wrap;
+    font-variant-numeric:tabular-nums}
+  .lt-ev .h strong{color:var(--txt);font-weight:700}
+  .lt-ev .h .x{margin-left:auto;opacity:0;padding:0 6px;font-size:13px;line-height:1.3}
+  .lt-ev:hover .h .x{opacity:1}
+  .lt-ev .t{white-space:pre-wrap;word-break:break-word}
+  .lt-ev .t .men{color:var(--brand2);font-weight:700}
+  .lt-ev .t small{color:var(--muted)}
   /* CATEGORIA: faixa + barra */
   .pc-cat{display:flex;align-items:center;gap:10px;background:var(--panel2);
     margin:22px -20px 4px;padding:9px 20px 9px 17px;position:relative;
@@ -3807,6 +3867,7 @@ window.metaCarregar=async (auto)=>{
     window.__mtQuando=Date.now();
     window.__mtPreset=p; mtSalvarCache();
     aprenderLimites().catch(()=>{});
+    ltGastos().catch(()=>{});
     if(currentView==='trafego'){ metaDesenhar(); mtStatusTxt(); }
   }catch(e){ if(st) st.textContent=window.__mtDados?'Sem conexão — tentando de novo no próximo ciclo.':'Erro de rede — tente de novo.'; }
   finally{ window.__mtBuscando=false; }
@@ -6284,6 +6345,11 @@ window.tkAddKey=async (ev,key)=>{
   if(ev.key==='Escape'){ tkDesenhar($('#content')); return; }
   if(ev.key!=='Enter') return;
   const tit=ev.target.value.trim(); if(!tit) return;
+  if(exigeDaLista(TK.listaSel).indexOf('cliente')>=0){
+    tkAbrirSt(key);
+    setTimeout(()=>{ const e=$('#tk_tit'); if(e) e.value=tit; const s2=$('#tk_ficha'); if(s2) try{ s2.focus(); }catch(_){}
+      toast('Essa lista pede o cliente — escolha pra salvar.'); },120);
+    return; }
   ev.target.disabled=true;
   const v={titulo:TIT_CLI(TK.listaSel,tit),lista_id:TK.listaSel,prioridade:'med',valores:{},tipo_id:tipoPadraoDe(TK.listaSel)};
   if(tkStatus1(key)){ v.status_id=key; v.status='todo'; } else { v.status=key||'todo'; v.status_id=null; }
@@ -7665,6 +7731,7 @@ async function renderNotificacoes(c){
 window.ntfAbrir=async (id)=>{
   const n=(window.__ntf||{})[id]; if(!n) return;
   if(!n.lida_em){ try{ await sb.from('notificacoes').update({lida_em:new Date().toISOString()}).eq('id',id); }catch(_){} ntfBadge(); }
+  if(n.ficha_id&&fichaDe(n.ficha_id)){ abrirCliente(n.ficha_id,'linha'); return; }
   if(n.tarefa_id){
     const t=(TK.tarefas||[]).find(x=>x.id===n.tarefa_id);
     if(t){ spSelLista(t.lista_id); setTimeout(()=>tkAbrir(t.id),80); return; }
@@ -8399,7 +8466,8 @@ async function tkmSalvar(t,lid,cps,silencioso){
       v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
       if(exigeSquad(v.lista_id)&&!v.squad){ aviso('Falta o squad'); if(!silencioso) return false; }
       const exig=exigeDaLista(v.lista_id);
-      if(exig.indexOf('cliente')>=0&&!v.ficha_id){ aviso('Falta o cliente'); if(!silencioso){ const e0=$('#tk_ficha'); if(e0) e0.focus(); return false; } }
+      if(exig.indexOf('cliente')>=0&&!v.ficha_id){ aviso('Falta o cliente'); if(!silencioso){ const e0=$('#tk_ficha'); if(e0) e0.focus(); return false; }
+        if(!t) return false;   /* tarefa nova so nasce depois de escolher o cliente */ }
       if(exig.indexOf('responsavel')>=0&&!(v.responsaveis||[]).length){ aviso('Falta o responsável'); if(!silencioso) return false; }
       if(exig.indexOf('entrega')>=0){
         const ce=(TK.campos||[]).find(c=>c.lista_id===v.lista_id&&c.nome==='Entrega');
@@ -8427,6 +8495,10 @@ async function tkmSalvar(t,lid,cps,silencioso){
       else { const r=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
              error=r.error; criada=r.data||null; }
       if(error){ aviso('Erro ao salvar: '+error.message); if(!silencioso) toast('Erro: '+error.message); return false; }
+      /* linha do tempo do cliente: status mudou (concluida ja entra sozinha pelo concluida_em) */
+      if(t&&v.ficha_id&&v.status!=='feito'&&(String(t.status_id||'')!==String(v.status_id||'')||t.status!==v.status)){
+        const _s=v.status_id?tkStatus1(v.status_id):null;
+        ltRegistrar(v.ficha_id,'tarefa','Tarefa '+v.titulo+' → '+(_s?_s.nome:(v.status==='fazendo'?'Em andamento':'A fazer'))); }
       /* so avisa se a tarefa CONTINUA na mesma lista — trocou de lista junto, nao vale */
       /* aviso agora nasce no banco (trg_ntf_tarefas) */
       if(criada){
@@ -11359,8 +11431,8 @@ window.prjMove=async (id,st)=>{
 };
 /* ======================= FICHA DO CLIENTE (entidade principal) =======================
    Abre o cliente com suas relações: contas de anúncio, acessos, campanhas e financeiro. */
-let cliAba='geral';
-window.abrirCliente=(fid,aba)=>{ cliAba=aba||'geral'; const ov=document.querySelector('.overlay'); if(ov) ov.remove(); openProjCard(fid); };
+let cliAba='linha';
+window.abrirCliente=(fid,aba)=>{ cliAba=aba||'linha'; const ov=document.querySelector('.overlay'); if(ov) ov.remove(); openProjCard(fid); };
 window.cliIrPara=(fid,aba)=>{ cliAba=aba; const ov=document.querySelector('.overlay'); if(ov) ov.remove(); openProjCard(fid); };
 function abaContasCliente(f){
   const contas=contasDoCliente(f.id);
@@ -11462,6 +11534,149 @@ function abaFinCliente(f){
        <td>${r.recebido?'<span class="tag concluido">🟢 Recebido</span>':r.sinal?'<span class="tag st">🔵 Sinal</span>':'<span class="tag pausado">🟡 A receber</span>'}</td></tr>`).join('')}
    </tbody></table></div>`:'<div style="color:var(--muted);font-size:12.5px">Nenhum recebimento lançado.</div>'}
    <button class="btn ghost small" style="margin-top:12px" onclick="document.querySelector('.overlay').remove();projFin('${cli.id}')">Ver lançamentos deste cliente →</button>`;
+}
+/* ===== LINHA DO TEMPO DO CLIENTE (Gabriel 09/09) =====
+   Tudo que tem cliente aparece aqui sem ninguem registrar: tarefa criada/concluida
+   (tarefas.ficha_id), pagamento (so master) e o que o app grava em cliente_eventos:
+   nota com @mencao, mudanca na ficha, checklist marcado, gasto do Meta (1x por dia). */
+const LT_LIM=150;
+const LT_PER={today:'hoje',yesterday:'ontem',last_7d:'últimos 7 dias',last_14d:'últimos 14 dias',last_30d:'últimos 30 dias',this_month:'este mês',last_month:'mês passado'};
+const ltPerTxt=(per)=>(per||'semanal')==='diario'?'por dia':'por semana';
+const ltPrim=(n)=>String(n||'').trim().split(/\s+/)[0];
+/* time (gestor · gerente) a direita dos icones */
+function pcTime(it){
+  const ps=[['Gestor de tráfego',it.responsavel],['Gerente',it.gerente]].map(x=>[x[0],String(x[1]||'').trim()]).filter(x=>x[1]);
+  if(!ps.length) return `<span class="pc-tm vz" onclick="pcAbrirCampo('pc_resp')">definir o time</span>`;
+  return ps.map(x=>`<span class="pc-tm" title="${esc(x[0]+': '+x[1])}">${avatarDoNome(x[1],'lc-av')}${esc(ltPrim(x[1]))}</span>`).join('<i></i>');
+}
+/* faixa: conta de anuncio · verba · gasto · saldo — com o que a Central da agencia ja le do Meta */
+function pcFaixa(it){
+  const contas=contasDoCliente(it.id), c0=contas[0]||null;
+  const viva=c0?(window.__mtDados||[]).find(x=>x.id===c0.id):null;
+  const ins=(viva&&viva.ins)||{}; const gasto=+(ins.spend||0);
+  const leads=(ins.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
+  let pg=null, rk=null; if(viva){ try{ pg=pagConta(viva); rk=risco(viva); }catch(_){} }
+  const per=LT_PER[window.__mtPreset||'last_7d']||'no período';
+  const cel=(rot,val,sub,click,vz)=>`<div class="s" onclick="${click}"><b>${rot}</b><em${vz?' class="vz"':''}>${val}</em><small>${sub||'&nbsp;'}</small></div>`;
+  const conta=c0?cel('Conta de anúncio',esc(c0.nome||c0.id),esc(c0.id)+(pg?' · '+(pg.prepago?'⚡ Pix':'💳 cartão'):'')+(contas.length>1?' · +'+(contas.length-1):''),`cliIrPara('${it.id}','contas')`)
+                :cel('Conta de anúncio','vincular','nenhuma ligada',`cliIrPara('${it.id}','contas')`,true);
+  const verba=it.orcamento?cel('Verba',brl(it.orcamento)+' <span style="font-size:11px;font-weight:600;color:var(--muted)">'+((it.orcPer||'semanal')==='diario'?'/dia':'/sem')+'</span>','avisar em '+(it.avisoPct||20)+'%',`pcAbrirCampo('pc_orc')`)
+                :cel('Verba','definir','sem verba cadastrada',`pcAbrirCampo('pc_orc')`,true);
+  const gas=viva?cel('Gasto no período',gasto?brl(gasto):'—',per+(leads?' · '+leads+' lead'+(leads===1?'':'s'):''),`cliIrPara('${it.id}','contas')`)
+              :cel('Gasto no período',c0?'…':'—',c0?'buscando no Meta':'sem conta',`cliIrPara('${it.id}','contas')`,true);
+  let sal;
+  if(rk){ const cor=RISCO_COR[rk.nivel]||'var(--txt)';
+    const sub=rk.pg&&rk.pg.prepago?((rk.saldo!=null?brl(rk.saldo):'')+(rk.dias!=null?' · ~'+Math.max(0,Math.round(rk.dias))+' dias':'')):(rk.motivo||(rk.pg&&rk.pg.cartao?rk.pg.cartao:'cartão'));
+    sal=`<div class="s" onclick="cliIrPara('${it.id}','contas')"><b>Saldo</b><em style="color:${cor}">${esc(RISCO_TXT[rk.nivel]||'—')}</em><small>${esc(sub||'')||'&nbsp;'}</small></div>`; }
+  else sal=cel('Saldo','—',c0?'sem dado ainda':'sem conta',`cliIrPara('${it.id}','contas')`,true);
+  return `<div class="pc-strip">${conta}${verba}${gas}${sal}</div>`;
+}
+function abaLinhaCliente(it){
+  return `<div class="lt-nova"><textarea id="ltTxt" rows="1" placeholder="Nota… @Nome pra avisar" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();ltPublicar('${it.id}')}"></textarea><button class="btn small" onclick="ltPublicar('${it.id}')">Publicar</button></div>
+    <p class="lt-dica">Enter publica · Shift+Enter quebra a linha · @Nome vira aviso no sino da pessoa</p>
+    <div class="lt-feed" id="ltFeed"><p class="hint">Carregando…</p></div>`;
+}
+function ltDia(iso){ const d=new Date(iso); if(isNaN(d)) return '';
+  const dia=tkISO(d), hoje=new Date(), ont=new Date(); ont.setDate(ont.getDate()-1);
+  if(dia===tkISO(hoje)) return 'Hoje'; if(dia===tkISO(ont)) return 'Ontem';
+  return d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'}).replace(/\./g,'')+(d.getFullYear()!==hoje.getFullYear()?' '+d.getFullYear():''); }
+const ltHora=(iso)=>{ const d=new Date(iso); return isNaN(d)?'':String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+const ltTexto=(s)=>esc(s).replace(/(^|[\s(])@([\p{L}\d._-]+)/gu,'$1<span class="men">@$2</span>');
+function ltDeEvento(e,eu,master){
+  const d=e.dados||{}; const o={q:e.criado_em,cls:e.tipo||'ev',quem:tkNomeUser(e.autor)||'',html:'',del:(e.autor&&String(e.autor)===String(eu))||master?e.id:null};
+  if(e.tipo==='nota') o.html=ltTexto(e.texto||'');
+  else if(e.tipo==='ficha') o.html=esc(d.campo||'Ficha')+': '+(d.de&&d.de!=='—'?esc(d.de)+' → ':'')+'<b>'+esc(d.para||'—')+'</b>';
+  else if(e.tipo==='check'){ o.cls=d.feito?'check feito':'check'; o.html='Checklist: <b>'+esc(d.item||'')+'</b> '+(d.feito?'✓ feito':'reaberto'); }
+  else if(e.tipo==='gasto'){ o.cls='gasto'+(d.nivel==='critico'?' critico':d.nivel==='atencao'?' alerta':''); o.html='Meta · '+esc(e.texto||''); o.quem=''; o.del=null; }
+  else o.html=esc(e.texto||'');
+  return o;
+}
+window.ltCarregar=async (fid)=>{
+  const box=document.getElementById('ltFeed'); if(!box) return;
+  const it=fichaDe(fid); if(!it) return;
+  const master=!!(currentUser&&currentUser.role==='master'); const eu=(currentUser||{}).id;
+  let evs=[];
+  try{ const {data,error}=await sb.from('cliente_eventos').select('*').eq('ficha_id',fid).order('criado_em',{ascending:false}).limit(LT_LIM);
+    if(error) throw error; evs=data||[]; }
+  catch(e){ box.innerHTML='<div class="hint">Não consegui carregar a linha do tempo: '+esc(e.message||'')+'</div>'; return; }
+  if(!document.getElementById('ltFeed')) return;   /* fechou enquanto buscava */
+  const L=evs.map(e=>ltDeEvento(e,eu,master));
+  (TK.tarefas||[]).filter(t=>t.ficha_id===fid&&!ehListaCli(t.lista_id)).forEach(t=>{
+    const lst=(TK.listas||[]).find(l=>l.id===t.lista_id); const ln=lst?spNome(lst):'';
+    if(t.criado_em) L.push({q:t.criado_em,cls:'tarefa abre',html:'Tarefa <b>'+esc(t.titulo)+'</b> criada'+(ln?' em '+esc(ln):''),quem:tkNomeUser(t.criado_por)||'',abrir:t.id});
+    if(t.concluida_em) L.push({q:t.concluida_em,cls:'feito abre',html:'Tarefa <b>'+esc(t.titulo)+'</b> concluída'+(ln?' em '+esc(ln):''),quem:tkNomeUser((t.responsaveis||[])[0]||t.responsavel_id)||'',abrir:t.id});
+  });
+  if(master){ const cli=finDaFicha(it);
+    if(cli) (DB.recebimentos||[]).filter(r=>r.clienteId===cli.id&&r.recebido&&r.recebidoEm).forEach(r=>{
+      const q=String(r.recebidoEm).length<=10?r.recebidoEm+'T12:00:00':r.recebidoEm;
+      L.push({q,cls:'fin',html:'Pagamento de <b>'+esc(r.comp||'')+'</b> recebido · '+brl(r.valor)+' <small>(só master vê)</small>'}); }); }
+  L.sort((a,b)=>(Date.parse(b.q)||0)-(Date.parse(a.q)||0));
+  if(!L.length){ box.innerHTML='<p class="hint">Nada registrado ainda. Tarefas com este cliente, mudanças na ficha, checklist e notas aparecem aqui sozinhos.</p>'; return; }
+  let ultimo=''; const out=[];
+  L.slice(0,LT_LIM).forEach(x=>{
+    const dia=ltDia(x.q); if(dia!==ultimo){ out.push('<div class="lt-dia">'+esc(dia)+'</div>'); ultimo=dia; }
+    out.push('<div class="lt-ev '+x.cls+'"'+(x.abrir?' onclick="ltAbrirTarefa(\''+x.abrir+'\')"':'')+'>'
+      +'<div class="h"><span>'+ltHora(x.q)+'</span>'+(x.quem?'<strong>'+esc(x.quem)+'</strong>':'')
+      +(x.del?'<button class="iconbtn del x" title="Apagar" onclick="event.stopPropagation();ltApagar(\''+x.del+'\',\''+fid+'\')">&times;</button>':'')+'</div>'
+      +'<div class="t">'+x.html+'</div></div>'); });
+  box.innerHTML=out.join('');
+};
+window.ltAbrirTarefa=(tid)=>{ const t=(TK.tarefas||[]).find(x=>String(x.id)===String(tid)); if(!t){ toast('Essa tarefa não está mais visível pra você.'); return; }
+  const ov=document.querySelector('.overlay'); if(ov) ov.remove();
+  spSelLista(t.lista_id); setTimeout(()=>tkAbrir(t.id),80); };
+window.ltPublicar=async (fid)=>{
+  const el=document.getElementById('ltTxt'); const txt=String((el&&el.value)||'').trim(); if(!txt){ toast('Escreva a nota.'); return; }
+  el.disabled=true;
+  const mens=[]; (txt.match(/@[\p{L}\d._-]+/gu)||[]).forEach(m=>{ const u=userPorNome(m.slice(1).replace(/[._-]+/g,' ')); if(u&&!mens.find(x=>String(x.id)===String(u.id))) mens.push(u); });
+  const eu=(currentUser||{}).id;
+  const {error}=await sb.from('cliente_eventos').insert({ficha_id:fid,tipo:'nota',texto:txt,dados:{mencoes:mens.map(u=>u.id)},autor:eu});
+  el.disabled=false;
+  if(error){ toast('Erro: '+error.message); return; }
+  const f=fichaDe(fid);
+  ntfCriar(mens.filter(u=>String(u.id)!==String(eu)).map(u=>({para:u.id,titulo:(tkNomeUser(eu)||'Alguém')+' te mencionou em '+((f&&f.nome)||'um cliente'),texto:txt.slice(0,240),criado_por:eu,ficha_id:fid})));
+  el.value=''; ltCarregar(fid);
+};
+window.ltApagar=async (id,fid)=>{
+  if(!confirm('Apagar este registro da linha do tempo?')) return;
+  const {error}=await sb.from('cliente_eventos').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  ltCarregar(fid);
+};
+/* grava um evento e, se a linha do tempo desse cliente esta aberta, redesenha */
+async function ltRegistrar(fid,tipo,texto,dados){
+  if(!fid) return;
+  try{ await sb.from('cliente_eventos').insert({ficha_id:fid,tipo,texto:texto||null,dados:dados||{},autor:(currentUser||{}).id}); }catch(_){ return; }
+  const m=document.getElementById('pcModal'); if(m&&m.dataset.pid===fid&&document.getElementById('ltFeed')) ltCarregar(fid);
+}
+/* o que mudou na ficha (de -> para) */
+function ltDiffFicha(it,a){
+  const rot={responsavel:'Gestor de tráfego',gerente:'Gerente',squad:'Squad',status:'Status',nivel:'NPS',orcamento:'Verba'};
+  const val=(k,v,per)=>{ if(k==='status') return ST_LABEL[PRJ_NORM(v)]||'—';
+    if(k==='nivel') return (v&&LC_NIVEL[v])?LC_NIVEL[v].rot:'—';
+    if(k==='orcamento') return (+v)?brl(v)+' '+ltPerTxt(per):'—';
+    return String(v||'').trim()||'—'; };
+  Object.keys(rot).forEach(k=>{
+    const de=val(k,a[k],a.orcPer), para=val(k,it[k],it.orcPer);
+    if(de===para) return;
+    ltRegistrar(it.id,'ficha',null,{campo:rot[k],de,para});
+  });
+}
+/* gasto do Meta: 1 registro por conta por dia — `chave` unica impede repetir */
+async function ltGastos(){
+  const hoje=tkHoje(); const per=LT_PER[window.__mtPreset||'last_7d']||'no período';
+  const rows=[];
+  (window.__mtDados||[]).forEach(c=>{
+    const m=contaMarca(c.id); if(!m||!m.fichaId) return;
+    const i=c.ins||{}; const g=+(i.spend||0);
+    const n=(i.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
+    let rk=null; try{ rk=risco(c); }catch(_){}
+    if(!g&&!(rk&&rk.nivel!=='ok')) return;
+    let txt=(m.nome||c.nome||c.id)+': '+brl(g)+' '+per+(n?' · '+n+' lead'+(n===1?'':'s'):'');
+    if(rk&&rk.nivel!=='ok') txt+=' · '+(rk.motivo||RISCO_TXT[rk.nivel]);
+    rows.push({ficha_id:m.fichaId,tipo:'gasto',texto:txt,dados:{conta:c.id,gasto:g,leads:n,nivel:rk?rk.nivel:'ok',preset:window.__mtPreset||'last_7d'},chave:'gasto:'+c.id+':'+hoje,autor:(currentUser||{}).id});
+  });
+  if(!rows.length) return;
+  await sb.from('cliente_eventos').upsert(rows,{onConflict:'chave',ignoreDuplicates:true});
 }
 /* ===== RENOMEAR CLIENTE (Gabriel 31/08, so master) =====
    O nome do cliente mora em quatro lugares: cadastro financeiro (clientes), ficha
@@ -11712,18 +11927,21 @@ window.openProjCard=(id)=>{
       ${icoLk('dr','Drive',drLk,I_DR,'pc_drive')}
       <span class="pc-div"></span>
       <button type="button" class="pc-ic ads" data-t="Contas de anúncio${nContas?' · '+nContas:''}" onclick="cliIrPara('${it.id}','contas')">${I_ADS}</button>
-      <button type="button" class="pc-ic" data-t="Acessos e senhas" onclick="cliIrPara('${it.id}','acessos')">${I_KEY}</button>
-      <button type="button" class="pc-ic" data-t="Copiar link deste cliente" onclick="lkCopiar('c','${it.id}')">${I_LINK}</button>
+      <button type="button" class="pc-ic dir" data-t="Acessos e senhas" onclick="cliIrPara('${it.id}','acessos')">${I_KEY}</button>
+      <button type="button" class="pc-ic dir" data-t="Copiar link deste cliente" onclick="lkCopiar('c','${it.id}')">${I_LINK}</button>
+      <span class="pc-time">${pcTime(it)}</span>
     </div>
+    ${pcFaixa(it)}
 
     <div class="fin-tabs pc-tabs">
-      <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">Visão geral</button>
+      <button class="ftab ${cliAba==='linha'?'active':''}" onclick="cliIrPara('${it.id}','linha')">Linha do tempo</button>
+      <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">Ficha</button>
       <button class="ftab ${cliAba==='contas'?'active':''}" onclick="cliIrPara('${it.id}','contas')">Contas${nContas?' <span class="pc-n">'+nContas+'</span>':''}</button>
       <button class="ftab ${cliAba==='acessos'?'active':''}" onclick="cliIrPara('${it.id}','acessos')">Acessos</button>
       ${master?`<button class="ftab ${cliAba==='fin'?'active':''}" onclick="cliIrPara('${it.id}','fin')">Financeiro</button>`:''}
     </div>
     <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
-     ${cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):(cliAba==='fin'&&master)?abaFinCliente(it):`
+     ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):(cliAba==='fin'&&master)?abaFinCliente(it):`
 
       ${cat('Time')}
       <div class="pc-dl">
@@ -11750,7 +11968,7 @@ window.openProjCard=(id)=>{
         ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk, 'pc_drive')}
       </div>
 
-      ${temTraf?`${cat('Tráfego pago')}
+      ${(temTraf||it.orcamento||catDe(it)==='trafego'||catDe(it)==='full')?`${cat('Tráfego pago')}
       <div class="pc-dl">
         ${li('Orçamento', it.orcamento?(brl(it.orcamento)+' '+((it.orcPer||'semanal')==='diario'?'por dia':'por semana')):'definir',
           `<div style="display:flex;gap:8px"><input type="number" step="0.01" min="0" id="pc_orc" value="${it.orcamento||''}" placeholder="Ex.: 350,00" style="flex:1"><select id="pc_orcper" style="max-width:120px"><option value="semanal"${(it.orcPer||'semanal')==='semanal'?' selected':''}>por semana</option><option value="diario"${it.orcPer==='diario'?' selected':''}>por dia</option></select></div>`, !it.orcamento, 'pc_orc')}
@@ -11800,6 +12018,10 @@ window.openProjCard=(id)=>{
     await saveDB(); close(); render('clientes'); toast('Cliente salvo.');
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
+  if(cliAba==='linha'){ ltCarregar(it.id);
+    /* faixa sem dado do Meta: busca em segundo plano e redesenha a faixa */
+    if(!(window.__mtDados&&window.__mtDados.length)&&contasDoCliente(it.id).length&&typeof metaCarregar==='function')
+      metaCarregar(true).then(()=>{ const f=document.querySelector('#pcModal .pc-strip'); if(f) f.outerHTML=pcFaixa(it); }).catch(()=>{}); }
 };
 /* Leitura x edição no card do cliente: o formulário existe sempre no DOM (o Salvar
    continua lendo os mesmos ids), o CSS só decide qual metade aparece. */
@@ -11832,7 +12054,9 @@ window.pcInline=(ev,el)=>{
 };
 /* Atalho dos icones do topo: rola ate o campo vazio e ja abre para digitar. */
 window.pcAbrirCampo=(fid)=>{
-  const el=document.querySelector('#pcModal [data-f="'+fid+'"]'); if(!el) return;
+  let el=document.querySelector('#pcModal [data-f="'+fid+'"]');
+  if(!el){ const m=document.getElementById('pcModal'); if(!m||cliAba==='geral') return;
+    cliIrPara(m.dataset.pid,'geral'); el=document.querySelector('#pcModal [data-f="'+fid+'"]'); if(!el) return; }
   try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){}
   pcInline(null,el);
 };
@@ -11845,6 +12069,7 @@ window.pcAplicar=async (pid)=>{
   const mb=document.querySelector('#pcModal .mbody'); const sc=mb?mb.scrollTop:0;
   /* se o clique ja abriu outro campo, ele volta aberto depois do redesenho */
   const _ab=document.querySelector('#pcModal .ed1'); const _abF=_ab?_ab.getAttribute('data-f'):'';
+  const _antes={responsavel:it.responsavel,gerente:it.gerente,squad:it.squad,status:it.status,nivel:it.nivel,orcamento:it.orcamento,orcPer:it.orcPer};
   if(g('pc_resp')!==null) it.responsavel=g('pc_resp').trim();
   if(g('pc_ger')!==null) it.gerente=g('pc_ger').trim();
   if(g('pc_squad')!==null) it.squad=g('pc_squad').trim();
@@ -11865,6 +12090,7 @@ window.pcAplicar=async (pid)=>{
     cli.produtos=it.produtos; if(it.produtos) cli.servico=it.produtos;
     cli.instagram=it.instagram; cli.drive=it.drive; }
   await saveDB();
+  try{ ltDiffFicha(it,_antes); }catch(_){}
   const catIA=(it.categoria==='ia'||it.categoria==='outro');
   const falta=[(!String(it.responsavel||'').trim()&&!catIA)?'gestor de tráfego':'',
                !String(it.gerente||'').trim()?'gerente':'',
@@ -11879,7 +12105,7 @@ window.pcAplicar=async (pid)=>{
 window.pcEditar=(ligar)=>{ const el=document.getElementById('pcModal'); if(!el) return;
   el.classList.toggle('ed',!!ligar); el.classList.toggle('ver',!ligar);
   if(ligar){ const f=el.querySelector('.pc-dl .campo select,.pc-dl .campo input'); if(f) try{ f.focus(); }catch(_){} } };
-window.prjCkToggle=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const ck=(p.checklist||[]).find(x=>x.id===cid); if(!ck)return; ck.feito=!ck.feito; await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
+window.prjCkToggle=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const ck=(p.checklist||[]).find(x=>x.id===cid); if(!ck)return; ck.feito=!ck.feito; await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); ltRegistrar(pid,'check',null,{item:ck.txt,feito:ck.feito}); };
 window.prjCkDel=async (pid,cid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; p.checklist=(p.checklist||[]).filter(x=>x.id!==cid); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
 window.prjCkAdd=async (pid)=>{ const p=DB.projetos.find(x=>x.id===pid); if(!p)return; const inp=document.getElementById('pcNovo'); const t=(inp&&inp.value.trim())||''; if(!t){toast('Escreva o item.');return;} p.checklist=p.checklist||[]; p.checklist.push({id:uid(),txt:t,feito:false}); await saveDB(); if(window.__pcRedraw)window.__pcRedraw(); };
 window.openProjModal=(id)=>{
