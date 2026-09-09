@@ -2206,8 +2206,13 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
     color:var(--muted);font:inherit;font-size:10px;font-weight:700;padding:6px 0;border-radius:14px;position:relative;cursor:pointer}
   .mp-tabbar button svg{width:20px;height:20px}
   .mp-tabbar button.on{color:var(--brand2)}
-  .mp-tabbar button.on::before{content:'';position:absolute;top:2px;width:34px;height:34px;border-radius:12px;
-    background:color-mix(in srgb,var(--brand) 16%,transparent);z-index:-1}
+  /* Marca da aba aberta: um traco encostado na borda de cima (Gabriel, 08/09).
+     O quadrado que morava aqui tinha z-index:-1 e caia ATRAS do vidro da barra, e
+     era posicionado so pelo top, sem left/transform, entao ficava torto. Alem disso
+     era um quadrado de raio 12 dentro de uma barra que e toda pilula. */
+  .mp-tabbar button.on::before{content:'';position:absolute;top:-1px;left:50%;
+    transform:translateX(-50%);width:26px;height:3px;border-radius:0 0 3px 3px;
+    background:var(--brand2)}
   .mp-fab{position:fixed;right:18px;bottom:calc(138px + env(safe-area-inset-bottom,0px));z-index:901;
     width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
     background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:0;
