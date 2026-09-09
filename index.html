@@ -2361,6 +2361,13 @@
 .f1-it .o svg{width:11px;height:11px}
 .f1-it .tt{flex:1;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em}
 .f1-it .tt small{display:block;font-size:11px;color:var(--fraco);font-weight:500;margin-top:1px}
+/* pendencia arrastada de um dia anterior: etiqueta no cartao e faixa no topo do dia */
+.mp-adi{display:inline-flex;align-items:center;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  color:#f3ce7a;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.34);border-radius:99px;padding:1px 7px;margin-left:7px;vertical-align:1px}
+.f1-aviso{display:flex;align-items:center;gap:9px;margin:12px 0 0;padding:9px 12px;border-radius:11px;
+  background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.30);color:#f3ce7a;font-size:12px;font-weight:700;line-height:1.35}
+.f1-aviso b{font-weight:900}
+.f1-it.adi .tt{color:var(--fraco)}
 .f1-it.done .tt{color:var(--fraco);text-decoration:line-through}
 .f1-it .h{font-size:11.5px;color:var(--fraco);font-variant-numeric:tabular-nums;flex:none}
 .f1-vz{padding:28px 0 8px;text-align:center;color:var(--fraco);font-size:13px}
@@ -13727,12 +13734,45 @@ const mpTarefas=()=>{ const ids=mpListaIds();
   return (TK.tarefas||[]).filter(t=>!t.arquivada_em&&!t.pai_id&&ids.indexOf(String(t.lista_id))>=0); };
 const mpSubsDe=(id)=>(TK.tarefas||[]).filter(x=>String(x.pai_id||'')===String(id)&&!x.arquivada_em);
 const mpTarDia=(iso)=>mpTarefas().filter(t=>String(t.prazo||'').slice(0,10)===iso);
+/* ---------- ARRASTO DE PENDENCIA (Gabriel 08/09) ----------
+   Demanda do Pessoal que o dia acabou e nao foi concluida nao some: ela anda pro dia
+   de hoje. Mas o dia que ficou pra tras precisa continuar registrando a falha, senao
+   a nota daquele dia melhorava sozinha quando a tarefa saia dele. Por isso o prazo
+   muda E o dia antigo entra em 'adiada_de'.
+   So entra o dia em que ela estava DE FATO prevista: se ficou parada tres dias com
+   prazo vencido, os dias do meio nao a tinham em lista nenhuma — nao seria honesto
+   cobrar deles. Vale so no workspace pessoal (mpTarefas ja filtra por isso). */
+const mpAdiadaDias=(t)=>(Array.isArray(t&&t.adiada_de)?t.adiada_de:[]).map(d=>String(d).slice(0,10)).filter(Boolean);
+const mpAdiadaN=(t)=>mpAdiadaDias(t).length;
+const mpTarAdiadasDe=(iso)=>mpTarefas().filter(t=>mpAdiadaDias(t).indexOf(iso)>=0&&String(t.prazo||'').slice(0,10)!==iso);
+window.__mpAdiadas=0;
+async function mpArrastarPendentes(){
+  const hoje=tkHoje();
+  const alvo=mpTarefas().filter(t=>{ const p=String(t.prazo||'').slice(0,10);
+    return p&&p<hoje&&!mpFeita(t); });
+  window.__mpAdiadas=0;
+  if(!alvo.length) return;
+  let n=0;
+  for(const t of alvo){
+    const de=String(t.prazo).slice(0,10);
+    const dias=mpAdiadaDias(t); if(dias.indexOf(de)<0) dias.push(de);
+    const patch={prazo:hoje,adiada_de:dias};
+    if(!t.prazo_orig) patch.prazo_orig=dias[0]||de;   /* o primeiro dia em que ficou pendente */
+    const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
+    if(error) continue;
+    Object.assign(t,patch); n++;
+  }
+  window.__mpAdiadas=n;
+}
 const mpTarSemData=()=>mpTarefas().filter(t=>!t.prazo);
 const mpFeita=(t)=>t.status==='feito'||!!t.concluida_em;
 
 function mpNotaDia(iso){
   const hs=MP.habitos.filter(h=>mpProg(h,iso)), ts=mpTarDia(iso);
-  const prev=hs.length+ts.length;
+  /* o que foi adiado DESTE dia continua contando como previsto e nao feito:
+     arrastar a demanda pra frente nao pode limpar a nota do dia que passou */
+  const ad=mpTarAdiadasDe(iso);
+  const prev=hs.length+ts.length+ad.length;
   const feit=hs.reduce((s,h)=>s+mpFrac(h,iso),0)+ts.filter(mpFeita).length;
   return {prev,feit:Math.round(feit*100)/100,nota:prev?Math.round(feit/prev*100)/10:null};
 }
@@ -13777,6 +13817,9 @@ async function renderPessoal(c){
     c.innerHTML='<div class="empty">Carregando seu Modo Pessoal…</div>';
     try{ await mpCarregar(); }catch(e){ if(currentView==='pessoal') c.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
   }
+  /* pendencia de ontem chega no dia de hoje antes da tela ser pintada */
+  try{ await mpArrastarPendentes(); }catch(_){ }
+  if(currentView!=='pessoal') return;
   mpPintar();
 }
 window.mpCriarWs=async()=>{ const l=await pessoalGarantir(); if(l){ spDesenhar(); render('pessoal'); } };
@@ -13974,8 +14017,12 @@ function mpIniMobileHTML(){
      academia 06:00 amanhece no topo. Sem horario fica embaixo, na ordem de sempre. */
   const itens=[];
   const hh=(x)=>x&&/^\d{2}:\d{2}/.test(String(x))?String(x).slice(0,5):'';
-  ts.forEach(t=>{ const f=mpFeita(t);
-    itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa</small></span>'+(hh(t.hora)?'<span class="h">'+hh(t.hora)+'</span>':'')+'</div>'}); });
+  ts.forEach(t=>{ const f=mpFeita(t), na=mpAdiadaN(t);
+    itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+(na?'<span class="mp-adi">adiada '+na+'\u00d7</span>':'')+'<small>tarefa'+(na?' \u00b7 era pra '+fmtDate(mpAdiadaDias(t)[0]):'')+'</small></span>'+(hh(t.hora)?'<span class="h">'+hh(t.hora)+'</span>':'')+'</div>'}); });
+  /* dia que ja passou: a demanda adiada continua aparecendo ali, marcada como nao
+     concluida — e o registro visivel de que aquele dia nao fechou */
+  if(passado) mpTarAdiadasDe(dia).forEach(t=>{
+    itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it adi"><span class="o x"></span><span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa \u00b7 n\u00e3o conclu\u00edda \u00b7 foi pra '+fmtDate(String(t.prazo||'').slice(0,10))+'</small></span></div>'}); });
   hs.forEach(h=>{ const fr=mpFrac(h,dia), f=fr>=1, et=mpEtapas(h);
     const oh=(fr>0&&fr<1)?(passado?'<span class="o" style="'+mpCkStyle(fr)+'"></span>':'<button type="button" class="o" style="'+mpCkStyle(fr)+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"></button>'):o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')');
     const sub=et.length?(Math.round(fr*et.length)+' de '+et.length+' etapas'):'hábito';
@@ -14022,6 +14069,7 @@ function mpIniMobileHTML(){
       '<button type="button" class="ar" onclick="mpIniNav(1)">›</button></div>'+
     (ehHoje?'':'<button type="button" class="f1-hoje" onclick="mpIniHoje()">Voltar pra hoje</button>')+
     '<div class="f1-pb"><i style="width:'+pct+'%"></i></div>'+
+    ((ehHoje&&window.__mpAdiadas)?'<div class="f1-aviso">\u21bb <span><b>'+window.__mpAdiadas+'</b> '+(window.__mpAdiadas===1?'demanda veio':'demandas vieram')+' de dias anteriores. O dia que ficou pra tr\u00e1s guarda a falha.</span></div>':'')+
     '<div class="f1-l">'+(linhas.length?linhas.join(''):(ehHoje&&!MP.habitos.length?'':'<div class="f1-vz">Nada neste dia.</div>'))+'</div>'+
     (ehHoje&&!MP.habitos.length?mpZeroHTML():'')+
     '</div>';
@@ -14047,6 +14095,7 @@ function mpInicioHTML(){
     (n.prev>0?'<div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
       '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota do dia</div><div class="xp">'+mpFmtN(n.feit)+'/'+n.prev+' feitos</div></div></div>':'')+
     (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:10px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+
+    (window.__mpAdiadas?'<div class="f1-aviso">\u21bb <span><b>'+window.__mpAdiadas+'</b> '+(window.__mpAdiadas===1?'demanda veio':'demandas vieram')+' de dias anteriores. O dia que ficou pra tr\u00e1s guarda a falha.</span></div>':'')+
     '</div>'+
     (MP.habitos.length?mpHabCards():mpZeroHTML())+
     '<div class="mp-sech" style="margin-top:26px">Tarefas de hoje · '+ts.length+'<button class="mp-add" onclick="mpIrTarNova()">+ Nova tarefa</button></div>'+
@@ -14478,11 +14527,12 @@ function mpTarSub(t){
   if(tot) p.push(okn+' de '+tot+' etapas');
   return {sub:p.join(' · '),tot:tot,okn:okn,atr:!!(dia&&dia<hoje&&!mpFeita(t))};
 }
-function mpTarRow(t){ const f=mpFeita(t), d=mpTarSub(t);
+function mpTarRow(t){ const f=mpFeita(t), d=mpTarSub(t), na=mpAdiadaN(t);
   const fr=f?1:(d.tot?d.okn/d.tot:0), pct=Math.round(fr*100);
   return '<div class="mp-hab2 tar'+(f?' done':'')+(d.atr?' atr':'')+'">'+
     '<div class="mp-hic" style="color:'+(d.atr?'var(--danger)':'var(--brand2)')+'">'+MP_TARICO+'</div>'+
     '<div><div class="mp-hnm" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+
+      (na?'<span class="mp-adi" title="Era pra '+esc(fmtDate(mpAdiadaDias(t)[0]))+'">adiada '+na+'\u00d7</span>':'')+
       '<span class="mp-hmenu" onclick="event.stopPropagation();mpTarMenu(event,\''+t.id+'\')">⋯</span></div>'+
       '<div class="mp-hsub">'+esc(d.sub)+'</div></div>'+
     '<div class="mp-h2pct">'+(d.tot?d.okn+'/'+d.tot:'')+'</div>'+
