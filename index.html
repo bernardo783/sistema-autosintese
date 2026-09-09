@@ -2267,13 +2267,16 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .f1-hoje{display:block;margin:8px auto 0;font:inherit;font-size:11.5px;font-weight:800;color:var(--brand2);background:none;border:none;cursor:pointer;padding:4px 10px}
 .f1-pb{margin-top:14px;height:3px;background:var(--panel2);border-radius:99px;overflow:hidden}
 .f1-pb i{display:block;height:100%;background:var(--txt);transition:width .3s}
+.f1-pbl{display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.f1-pbl b{color:var(--txt);font-weight:800}
 .f1-l{margin-top:6px}
 /* Inicio celular, L2 (Gabriel 08/09): habitos em fileira que rola, tarefas em lista */
 .f1-grp{margin-top:18px}
 .f1-grp:first-child{margin-top:10px}
 /* Rotulo de secao do Inicio (Gabriel 08/09): estava em --fraco, sumia no fundo. */
-.f1-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--txt)}
+.f1-lbl{display:flex;justify-content:flex-start;gap:8px;align-items:baseline;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--txt)}
 .f1-lbl small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);font-variant-numeric:tabular-nums}
+.f1-lbl small::before{content:'· ';color:var(--fraco)}
 .f1-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:8px 16px 4px;margin:0 -16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
 .f1-row::-webkit-scrollbar{display:none}
 .f1-tile{flex:none;width:104px;scroll-snap-align:start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 10px 9px;display:flex;flex-direction:column;gap:8px;color:var(--txt)}
@@ -13599,11 +13602,13 @@ function mpIniMobileHTML(){
     linhas.push('<section class="f1-grp tar"><div class="f1-lbl"><span>Tarefas</span><small>'+nf+' de '+T.length+'</small></div>'+T.map(x=>x.html).join('')+'</section>'); }
   return '<div class="f1">'+
     '<div class="f1-h"><button type="button" class="ar" onclick="mpIniNav(-1)">‹</button>'+
-      '<button type="button" class="dt" onclick="mpIniCalToggle()" title="Escolher o dia"><b>'+esc(tit)+'<span class="cv">'+(MP.iniCal?'▴':'▾')+'</span></b><small>'+esc(sub)+(sub?' · ':'')+mpFmtN(feit)+' de '+tot+'</small></button>'+
+      '<button type="button" class="dt" onclick="mpIniCalToggle()" title="Escolher o dia"><b>'+esc(tit)+'<span class="cv">'+(MP.iniCal?'▴':'▾')+'</span></b><small>'+esc(sub)+'</small></button>'+
       '<button type="button" class="ar" onclick="mpIniNav(1)">›</button></div>'+
     (MP.iniCal?mpCalMesHTML('inicio'):'')+
     (ehHoje?'':'<button type="button" class="f1-hoje" onclick="mpIniHoje()">Voltar pra hoje</button>')+
     '<div class="f1-pb"><i style="width:'+pct+'%"></i></div>'+
+    /* placar do dia com nome (Gabriel 08/09, opcao P2): "6 de 11 concluidas" e o % nos dois lados da barra */
+    (tot?'<div class="f1-pbl"><span><b>'+mpFmtN(feit)+' de '+tot+'</b> '+(tot===1?'concluída':'concluídas')+'</span><span>'+pct+'%</span></div>':'')+
     ((ehHoje&&window.__mpAdiadas)?'<div class="f1-aviso">\u21bb <span><b>'+window.__mpAdiadas+'</b> '+(window.__mpAdiadas===1?'demanda veio':'demandas vieram')+' de dias anteriores. O dia que ficou pra tr\u00e1s guarda a falha.</span></div>':'')+
     '<div class="f1-l">'+(linhas.length?linhas.join(''):(ehHoje&&!MP.habitos.length?'':'<div class="f1-vz">Nada neste dia.</div>'))+'</div>'+
     (ehHoje&&!MP.habitos.length?mpZeroHTML():'')+
