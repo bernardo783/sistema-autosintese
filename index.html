@@ -2454,7 +2454,11 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .mp-h2bar{grid-column:1/-1;height:6px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:12px}
 .mp-h2bar i{display:block;height:100%;border-radius:99px}
 .mp-addrow{display:inline-block;padding:8px 2px;border:0;background:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;margin-top:8px;opacity:.75}
+/* PADRAO (Gabriel 09/09): titulo de secao de nivel 1 e SEMPRE .mp-tit — 23px,
+   com o contador ao lado na gramatica "feitos de previstos". .mp-sech (caixa alta
+   pequena) e so pra subgrupo dentro de uma lista, nunca pra irmao de .mp-tit. */
 .mp-tit{display:flex;align-items:baseline;gap:10px;margin:4px 0 4px}
+.mp-tit.mt{margin-top:26px}
 .mp-tit b{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
 .mp-tit small{font-size:12.5px;font-weight:600;color:var(--muted)}
 .mp-hab2.tar .mp-hnm{cursor:pointer}
@@ -13439,7 +13443,7 @@ function mpPintar(){
     '<span class="mp-bar-dt">'+esc(mpDataExt(tkHoje()))+'</span>'+
     '<span class="mp-bar-sp"></span>'+
     '<div class="mp-seg mp-abas">'+abas.map(a=>'<button type="button" class="'+(MP.aba===a[0]?'on':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
-    '<div class="toolbar mp-topo-acao"><button class="btn small" onclick="'+ac[1]+'">'+ac[0]+'</button></div>'+
+    '<div class="toolbar mp-topo-acao">'+(MP.aba==='inicio'?[MP_ACAO.habitos,MP_ACAO.tarefas]:[ac]).map(a=>'<button class="btn small" onclick="'+a[1]+'">'+a[0]+'</button>').join('')+'</div>'+
     '</div>'+
     '<div id="mpCorpo"></div>'+mpTabbarHTML();
   /* sino de avisos no topo do celular (4A): copia o contador da railbar, que fica escondida */
@@ -13501,6 +13505,9 @@ function mpHabRow(h,iso,podeCheck){
     (podeCheck?'<button class="mp-hchk'+(ck?' on':'')+'" title="'+(ck?'Feito — toque pra desfazer':'Marcar como feito')+'" onclick="mpCheck(\''+h.id+'\',\''+iso+'\')">'+svgIco('check',13)+'</button>':'')+
     '</div>';
 }
+/* Um so cabecalho de secao pro Pessoal: titulo + "feitos de previstos". Quem
+   precisar de secao nova usa isto, nao monta HTML na mao. */
+const mpSecao=(tit,sub,cls)=>'<div class="mp-tit'+(cls?' '+cls:'')+'"><b>'+esc(tit)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</div>';
 function mpHabCards(){
   const hoje=tkHoje();
   const rows=mpPorHora(MP.habitos).map(h=>{
@@ -13517,8 +13524,9 @@ function mpHabCards(){
       '<div class="mp-h2bar"><i style="width:'+pct+'%;background:'+esc(h.cor||'#a78bfa')+'"></i></div>'+
       '</div>';
   }).join('');
-  const ativos=MP.habitos.filter(h=>mpProg(h,hoje)).length;
-  return '<div class="mp-tit"><b>Hábitos</b><small>'+MP.habitos.length+(ativos?' · '+ativos+' hoje':'')+'</small></div>'+
+  const hojeL=MP.habitos.filter(h=>mpProg(h,hoje)), ativos=hojeL.length;
+  const feitosH=hojeL.filter(h=>mpFrac(h,hoje)>=1).length;
+  return mpSecao('Hábitos', ativos?(feitosH+' de '+ativos+' hoje'):(MP.habitos.length?'nenhum hoje':''))+
     /* o "+" roxo (celular) e o botao do topo (tela grande) ja criam — a linha
        "+ Adicionar" no rodape virou repeticao (Gabriel 08/09) */
     (rows||'<button class="mp-vazio" onclick="mpHabitoModal()">Nenhum hábito ainda · criar o primeiro</button>');
@@ -13624,7 +13632,7 @@ function mpInicioHTML(){
     (n.prev>0?'<div class="mp-linha"><div class="pb"><i style="width:'+pct+'%"></i></div><span>nota <b>'+mpNotaFmt(n.nota)+'</b> · <b>'+mpFmtN(n.feit)+' de '+n.prev+'</b> feitos</span></div>':'')+
     (adi?'<div class="f1-aviso" style="margin:0 0 18px">\u21bb <span><b>'+adi+'</b> '+(adi===1?'demanda veio':'demandas vieram')+' de dias anteriores. O dia que ficou pra tr\u00e1s guarda a falha.</span></div>':'')+
     (MP.habitos.length?mpHabCards():mpZeroHTML())+
-    '<div class="mp-sech" style="margin-top:26px">Tarefas de hoje · '+ts.length+'<button class="mp-add" onclick="mpIrTarNova()">+ Nova tarefa</button></div>'+
+    mpSecao('Tarefas', ts.length?(feitas.length+' de '+ts.length+' hoje'):'nenhuma hoje','mt')+
     (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>');
   /* KPI saiu do Inicio no PC (Gabriel 01/09): vive na tela propria, botao do grafico na barra de cima */
 }
