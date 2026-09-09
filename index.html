@@ -2219,7 +2219,9 @@
 .f1-h .ar{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--txt);
   font:inherit;font-size:18px;display:grid;place-items:center;cursor:pointer;flex:none;line-height:1}
 .f1-h .ar:active{background:var(--hov2)}
-.f1-h .dt{flex:1;min-width:0;text-align:center}
+.f1-h .dt{flex:1;min-width:0;text-align:center;background:none;border:none;color:inherit;font:inherit;padding:2px 4px;border-radius:12px;cursor:pointer}
+.f1-h .dt:active{background:var(--hov1)}
+.f1-h .dt .cv{font-size:12px;color:var(--fraco);margin-left:5px;vertical-align:2px;font-weight:700}
 .f1-h .dt b{display:block;font-size:22px;font-weight:900;letter-spacing:-.035em;line-height:1.05}
 .f1-h .dt small{display:block;font-size:11px;color:var(--fraco);font-weight:600;margin-top:4px}
 .f1-hoje{display:block;margin:8px auto 0;font:inherit;font-size:11.5px;font-weight:800;color:var(--brand2);background:none;border:none;cursor:pointer;padding:4px 10px}
@@ -13498,8 +13500,9 @@ function mpIniMobileHTML(){
     linhas.push('<section class="f1-grp tar"><div class="f1-lbl"><span>Tarefas</span><small>'+nf+' de '+T.length+'</small></div>'+T.map(x=>x.html).join('')+'</section>'); }
   return '<div class="f1">'+
     '<div class="f1-h"><button type="button" class="ar" onclick="mpIniNav(-1)">‹</button>'+
-      '<div class="dt"><b>'+esc(tit)+'</b><small>'+esc(sub)+(sub?' · ':'')+mpFmtN(feit)+' de '+tot+'</small></div>'+
+      '<button type="button" class="dt" onclick="mpIniCalToggle()" title="Escolher o dia"><b>'+esc(tit)+'<span class="cv">'+(MP.iniCal?'▴':'▾')+'</span></b><small>'+esc(sub)+(sub?' · ':'')+mpFmtN(feit)+' de '+tot+'</small></button>'+
       '<button type="button" class="ar" onclick="mpIniNav(1)">›</button></div>'+
+    (MP.iniCal?mpCalMesHTML('inicio'):'')+
     (ehHoje?'':'<button type="button" class="f1-hoje" onclick="mpIniHoje()">Voltar pra hoje</button>')+
     '<div class="f1-pb"><i style="width:'+pct+'%"></i></div>'+
     '<div class="f1-l">'+(linhas.length?linhas.join(''):(ehHoje&&!MP.habitos.length?'':'<div class="f1-vz">Nada neste dia.</div>'))+'</div>'+
@@ -13510,7 +13513,16 @@ window.mpRowSb=(r)=>{ const sb=r.nextElementSibling; if(!sb) return; const cabe=
   if(cabe) return; const t=sb.firstElementChild; t.style.width=Math.max(12,Math.round(r.clientWidth/r.scrollWidth*100))+'%'; t.style.left=Math.round(r.scrollLeft/r.scrollWidth*100)+'%'; };
 window.mpIniNav=async(d)=>{ MP.iniDia=tkDiaMais(MP.iniDia||tkHoje(),d); mpPintar();
   if(!MP.evtsPorDia[MP.iniDia]){ try{ await mpEvtsDia(MP.iniDia); }catch(_){} if(MP.aba==='inicio') mpPintar(); } };
-window.mpIniHoje=()=>{ MP.iniDia=tkHoje(); mpPintar(); };
+window.mpIniHoje=()=>{ MP.iniDia=tkHoje(); MP.iniCal=false; mpPintar(); };
+/* Calendario do Inicio: toca na data e escolhe qualquer dia — da pra ver o que cai
+   daqui a 30 dias sem clicar 30 vezes na setinha (Gabriel, 08/09). */
+window.mpIniCalToggle=()=>{ MP.iniCal=!MP.iniCal;
+  if(MP.iniCal) MP.iniCalMes=(MP.iniDia||tkHoje()).slice(0,7); mpPintar(); };
+window.mpIniCalNav=(n)=>{ const base=MP.iniCalMes||(MP.iniDia||tkHoje()).slice(0,7);
+  const [y,m]=base.split('-').map(Number), d=new Date(y,m-1+n,1);
+  MP.iniCalMes=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); mpPintar(); };
+window.mpIniCalDia=async(iso)=>{ MP.iniCal=false; MP.iniDia=iso; mpPintar();
+  if(!MP.evtsPorDia[iso]){ try{ await mpEvtsDia(iso); }catch(_){} if(MP.aba==='inicio') mpPintar(); } };
 function mpInicioHTML(){
   const hoje=tkHoje(), n=mpNotaDia(hoje);
   const deg=n.nota==null?0:Math.round(n.nota*36);
@@ -14305,7 +14317,7 @@ function mpAgendaHTML(){
     '</div>'+
     /* Com o mes aberto a tira da semana e repeticao: os mesmos 7 dias, duas vezes,
        um embaixo do outro (Gabriel, 08/09). Some enquanto o calendario esta aberto. */
-    (MP.calAberto?mpCalMesHTML():faixa)+conectar+
+    (MP.calAberto?mpCalMesHTML('agenda'):faixa)+conectar+
     (sem.length?'<div class="mp-sech">Dia inteiro</div>'+sem.map(mpEvtRow).join(''):'')+
     '<div class="ga">'+linhas+'</div>'+
     (tarsS.length?'<div class="mp-sech" style="margin-top:18px">Sem horário · '+tarsS.length+'</div>'+tarsS.filter(t=>!mpFeita(t)).map(mpTarRow).join('')+tarsS.filter(mpFeita).map(mpTarRow).join(''):'');
@@ -14370,17 +14382,22 @@ window.mpCalToggle=()=>{ MP.calAberto=!MP.calAberto; if(MP.calAberto) MP.calMes=
 window.mpCalNav=(n)=>{ const [y,m]=(MP.calMes||MP.dia.slice(0,7)).split('-').map(Number); const d=new Date(y,m-1+n,1);
   MP.calMes=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); mpPintar(); };
 window.mpCalDia=(iso)=>{ MP.calAberto=false; mpDiaSel(iso); if(!MP.evtsPorDia[iso]) mpAgendaSync(); };
-function mpCalMesHTML(){
-  const ym=MP.calMes||MP.dia.slice(0,7), [y,m]=ym.split('-').map(Number), hoje=tkHoje();
+/* Mesmo calendario para a Agenda e para o Inicio. Cada aba tem o proprio dia
+   (MP.dia x MP.iniDia) e o proprio mes aberto, entao o contexto vem por parametro. */
+function mpCalMesHTML(ctx){
+  const ini=(ctx==='inicio');
+  const sel=ini?(MP.iniDia||tkHoje()):MP.dia;
+  const fnDia=ini?'mpIniCalDia':'mpCalDia', fnNav=ini?'mpIniCalNav':'mpCalNav';
+  const ym=(ini?MP.iniCalMes:MP.calMes)||sel.slice(0,7), [y,m]=ym.split('-').map(Number), hoje=tkHoje();
   const prim=new Date(y,m-1,1), off=(prim.getDay()+6)%7, ult=new Date(y,m,0).getDate();
   const temEv=(d)=>((MP.evtsPorDia[d]||[]).length>0)||mpTarDia(d).length>0;
   let cel='';
   for(let i=0;i<off;i++) cel+='<span></span>';
   for(let d=1;d<=ult;d++){ const iso=ym+'-'+String(d).padStart(2,'0');
-    cel+='<button type="button" class="'+(iso===MP.dia?'on':'')+(iso===hoje?' hj':'')+'" onclick="mpCalDia(\''+iso+'\')">'+d+'<i class="'+(temEv(iso)?'pt':'')+'"></i></button>'; }
+    cel+='<button type="button" class="'+(iso===sel?'on':'')+(iso===hoje?' hj':'')+'" onclick="'+fnDia+'(\''+iso+'\')">'+d+'<i class="'+(temEv(iso)?'pt':'')+'"></i></button>'; }
   return '<div class="ga-cal">'+
-    '<div class="ga-calh"><button type="button" class="mp-nav" onclick="mpCalNav(-1)">‹</button><b>'+esc(DT_MES[m-1].charAt(0).toUpperCase()+DT_MES[m-1].slice(1))+' '+y+'</b><button type="button" class="mp-nav" onclick="mpCalNav(1)">›</button>'+
-    '<button type="button" class="mp-pill" onclick="mpCalDia(\''+hoje+'\')">Hoje</button></div>'+
+    '<div class="ga-calh"><button type="button" class="mp-nav" onclick="'+fnNav+'(-1)">‹</button><b>'+esc(DT_MES[m-1].charAt(0).toUpperCase()+DT_MES[m-1].slice(1))+' '+y+'</b><button type="button" class="mp-nav" onclick="'+fnNav+'(1)">›</button>'+
+    '<button type="button" class="mp-pill" onclick="'+fnDia+'(\''+hoje+'\')">Hoje</button></div>'+
     '<div class="ga-calg">'+['S','T','Q','Q','S','S','D'].map(x=>'<small>'+x+'</small>').join('')+cel+'</div></div>';
 }
 window.mpEvtSlot=(h)=>{
