@@ -2140,6 +2140,15 @@
    3A  sem habito, sem KPI: um card so
    4A  topo = "Pessoal" + busca + avisos; sem avatar (no computador ele fica) */
 .mp-tabbar,.mp-fab,.mp-fabm,.mp-sino,.mp-kpibt{display:none}
+/* KPI e tela propria nos dois tamanhos (Gabriel, 08/09): no computador ele morava
+   grudado no fim do Inicio e a tela nao acabava nunca. O atalho do grafico fica no
+   topo, do lado do seletor de workspace. O sino continua so no celular — no
+   computador quem avisa e a railbar. */
+body.mob-pessoal .mp-kpibt{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
+  border:1px solid var(--line);background:var(--panel);color:var(--txt);position:relative;flex:none;cursor:pointer}
+body.mob-pessoal .mp-kpibt svg{width:16px;height:16px}
+body.mob-pessoal .mp-kpibt:hover{background:var(--panel2)}
+body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 @media(max-width:720px){
   body.mob-pessoal .railbar{display:none}
   body.mob-pessoal .topbar{padding:calc(10px + env(safe-area-inset-top,0px)) 14px 0;gap:8px}
@@ -2156,10 +2165,9 @@
   body.mob-pessoal .overlay{z-index:980}
   body.mob-pessoal .overlay .modal{max-height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
   body.mob-pessoal .mp-abas,body.mob-pessoal .mp-topo-acao{display:none}
-  body.mob-pessoal .mp-sino,body.mob-pessoal .mp-kpibt{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
+  body.mob-pessoal .mp-sino{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
     border:1px solid var(--line);background:var(--panel);color:var(--txt);position:relative;flex:none;cursor:pointer}
-  body.mob-pessoal .mp-sino svg,body.mob-pessoal .mp-kpibt svg{width:16px;height:16px}
-  body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
+  body.mob-pessoal .mp-sino svg{width:16px;height:16px}
   body.mob-pessoal .mp-sino .bdg{position:absolute;top:-4px;right:-4px}
   .mp-tabbar{position:fixed;left:14px;right:14px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:900;
     display:flex;justify-content:space-around;align-items:center;height:60px;padding:0 6px;
@@ -13389,13 +13397,11 @@ function mpPintar(){
   else{ b.innerHTML=mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
   Object.keys(mem).forEach(id=>{ const el=document.getElementById(id);
     if(el){ el.value=mem[id].v; if(mem[id].f){ el.focus(); try{ el.setSelectionRange(el.value.length,el.value.length); }catch(_){} } } });
-  if(MP.rolarKpi){ MP.rolarKpi=false; const k=document.getElementById('mpKpi');
-    if(k) setTimeout(()=>{ try{ k.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){ k.scrollIntoView(); } },30); }
 }
 window.mpAba=(a)=>{ MP.aba=a; MP.tarNova=false; MP.evtNovo=false; mpPintar(); };
 window.mpIrAgenda=()=>{ MP.aba='agenda'; render('pessoal'); };
-/* atalho KPI da railbar foi descontinuado: o bloco vive no Início (#mpKpi) */
-window.mpIrKpi=()=>{ MP.aba='progresso'; MP.rolarKpi=false; render('pessoal'); };
+/* KPI e tela propria, nos dois tamanhos — nao rola mais ate um bloco no fim do Inicio */
+window.mpIrKpi=()=>{ MP.aba='progresso'; render('pessoal'); };
 function mpKpiTelaHTML(){
   if(!MP.habitos.length) return '<div class="mp-kpitopo"><button class="mp-nav" onclick="mpAba(\'inicio\')">‹</button>'+
     '<div><div class="mp-pttl">KPI</div><div class="mp-psub">seu progresso</div></div></div>'+mpZeroHTML();
@@ -13538,10 +13544,9 @@ function mpInicioHTML(){
     '</div>'+
     (MP.habitos.length?mpHabCards():mpZeroHTML())+
     '<div class="mp-sech" style="margin-top:26px">Tarefas de hoje · '+ts.length+'<button class="mp-add" onclick="mpIrTarNova()">+ Nova tarefa</button></div>'+
-    (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>')+
-    /* KPI mora aqui também: o Início é o lugar único — semana, nota por período e comparativo.
-       Sem habito ele nao aparece (3A): era um bloco inteiro de controle morto. */
-    (MP.habitos.length?'<div class="mp-sech" id="mpKpi" style="margin-top:34px">KPI · Progresso</div>'+mpProgHTML():'');
+    (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>');
+    /* O KPI saiu daqui (Gabriel, 08/09): virou tela propria, igual no celular, aberta
+       pelo botao do grafico no topo. O Inicio volta a ser o dia, e so. */
 }
 
 /* ---------- aba Progresso ---------- */
