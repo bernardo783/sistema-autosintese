@@ -11003,34 +11003,41 @@ window.fcProgresso=()=>{
    em Contratos. Por isso puxar aqui NAO arquiva nem consome o registro — quem
    arquiva e o Contratos, quando o contrato sai. Leitura so, sem mexer em RLS. */
 let FC_FORMS=[];
+/* Rotulo do estado do formulario. Arquivar acontece no Contratos e nao quer dizer
+   nada aqui — o dado do cliente continua valendo pra abrir projeto (Gabriel, 09/09). */
+const FC_STFORM={novo:['novo','Novo'],usado:['ativo','Já virou contrato'],arquivado:['planejado','Arquivado']};
+const fcStForm=(st)=>FC_STFORM[String(st||'novo')]||['st',String(st||'')];
 async function fcCarregarForms(){
   try{
     const {data}=await sb.from('contratos_form').select('*')
-      .not('enviado_em','is',null).neq('status','arquivado')
-      .order('criado_em',{ascending:false}).limit(20);
-    FC_FORMS=data||[];
+      .not('enviado_em','is',null)
+      .order('criado_em',{ascending:false}).limit(40);
+    /* quem ainda nao virou contrato aparece primeiro; dentro de cada grupo, o mais
+       recente em cima (o sort do JS e estavel, entao a ordem da data se mantem) */
+    const pri=(st)=>{ const o={novo:0,usado:1,arquivado:2}[String(st||'novo')]; return o===undefined?3:o; };
+    FC_FORMS=(data||[]).sort((a,b)=>pri(a.status)-pri(b.status));
   }catch(_){ FC_FORMS=[]; }
 }
 function fcFaixaForms(){
   const box=$('#fc_puxar'); if(!box) return;
   if(!FC_FORMS.length){ box.innerHTML=''; return; }
-  const n=FC_FORMS.length;
+  const n=FC_FORMS.length, nv=FC_FORMS.filter(f=>String(f.status||'novo')==='novo').length;
   box.innerHTML=`<div class="fc-puxar"><span class="ic">📥</span>
-    <div class="tx"><b>${n} formulário${n===1?'':'s'} preenchido${n===1?'':'s'} pelo cliente</b>
+    <div class="tx"><b>${n} formulário${n===1?'':'s'} preenchido${n===1?'':'s'} pelo cliente${nv?' · '+nv+' sem contrato':''}</b>
       <em>Puxe a empresa, o representante e os dados de cobrança em vez de redigitar.</em></div>
     <button type="button" class="btn small" onclick="fcEscolherForm()">Puxar dados</button></div>`;
 }
 window.fcEscolherForm=()=>{
   if(!FC_FORMS.length){ toast('Nenhum formulário novo por enquanto.'); return; }
   const o=document.createElement('div'); o.className='overlay';
-  o.innerHTML=`<div class="modal"><div class="mhead"><h3>Puxar dados do formulário</h3><button class="x">&times;</button></div>
+  o.innerHTML=`<div class="modal"><div class="mhead"><h3>Puxar dados do formulário</h3><button class="x mcancel" title="Fechar" aria-label="Fechar">&times;</button></div>
     <div class="mbody">
-      <p class="hint" style="margin:0 0 6px">Enviados pelo cliente em <strong>${CT_LINK}</strong>. Escolher um preenche a Empresa e o Financeiro aqui — o formulário continua disponível em Contratos.</p>
-      ${FC_FORMS.map(f=>`<div class="fc-lead">
-        <div style="flex:1;min-width:0"><strong>${esc(f.razao_social||'sem razão social')}</strong>
+      <p class="hint" style="margin:0 0 6px">Enviados pelo cliente em <strong>${CT_LINK}</strong>. Escolher um preenche a Empresa e o Financeiro aqui — nada é consumido nem arquivado. Os já arquivados em Contratos aparecem também: arquivar é do contrato, o dado do cliente continua valendo.</p>
+      ${FC_FORMS.map(f=>{ const st=fcStForm(f.status); return `<div class="fc-lead">
+        <div style="flex:1;min-width:0"><strong>${esc(f.razao_social||'sem razão social')}</strong> <span class="tag ${st[0]}">${esc(st[1])}</span>
           <div class="s">${esc(ctMascCNPJ(f.cnpj||'')||'sem CNPJ')} · ${esc(f.representante||'sem representante')} · ${fmtDate(String(f.criado_em||'').slice(0,10))}</div></div>
         <button type="button" class="btn small" onclick="fcUsarForm('${f.id}')">Usar</button>
-      </div>`).join('')}
+      </div>`;}).join('')}
     </div></div>`;
   document.body.appendChild(o);
   const fechar=()=>o.remove();
