@@ -724,24 +724,6 @@
   .railbar .rl .bdg{position:absolute;top:2px;right:7px;background:var(--brand);color:#fff;border-radius:999px;
     font-size:8.5px;font-weight:800;padding:1px 4px;min-width:15px;line-height:1.35}
   .railbar .rl .bdg:empty{display:none}
-  /* K1 (Gabriel 08/09, padrao ClickUp): no computador a barra de icones some no workspace da
-     empresa. O que era dela vira a secao "Voce" no topo da lateral, e as ferramentas do
-     sistema (Comercial, Contratos, Financeiro...) entram DENTRO do espaco/departamento. */
-  @media(min-width:721px){
-    #app.nav-k1{grid-template-columns:0 var(--sbw,276px) 1fr}
-    #app.nav-k1 .railbar{display:none}
-  }
-  .sp-voce{display:flex;flex-direction:column;gap:1px;margin:0 0 4px}
-  .sp-voce .tk-lista{padding:6px 9px;font-weight:600}
-  .sp-voce .tk-lista svg{width:15px;height:15px;flex:none;opacity:.75}
-  .sp-voce .tk-lista.on svg{opacity:1}
-  .sp-voce.mini{align-items:center}
-  .sp-voce.mini .tk-lista{width:40px;justify-content:center;padding:8px 0}
-  .tk-bdg{margin-left:auto;background:var(--brand);color:#fff;border-radius:999px;font-size:10px;font-weight:800;padding:1px 6px;min-width:18px;text-align:center;line-height:16px}
-  .tk-bdg:empty{display:none}
-  .tk-ferr .tk-ic{color:#c4b5fd;opacity:1;display:inline-flex}
-  .tk-ferr .tk-ic svg{width:12px;height:12px}
-  .sp-mais{color:var(--muted);font-weight:600;margin-top:6px}
   .sidebar{background:var(--panel);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;position:relative}
   /* alça de arrasto: ajusta a largura da barra (igual ao ClickUp) */
   .sb-grip{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:30;background:transparent}
@@ -1084,7 +1066,11 @@
     border-radius:14px;padding:14px 12px;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;text-align:left}
   .tk-addcol:hover{background:var(--panel2);color:var(--txt);border-color:var(--brand2)}
   /* ---------- CONFIRMAÇÃO DO SISTEMA ---------- */
-  .cf-m{max-width:430px}
+  /* Regra da casa (Gabriel, 08/09): fechar e SEMPRE o x no canto direito — nunca a
+     palavra "Cancelar". E os tres pontinhos moram no canto esquerdo. */
+  .cf-m{max-width:430px;position:relative}
+  .cf-m>.x{position:absolute;top:8px;right:11px;font-size:21px;padding:4px 7px;border-radius:8px;z-index:2}
+  .cf-m>.x:hover{background:var(--panel2);color:var(--txt)}
   .cf-m .mbody{padding-top:22px}
   .cf-t{font-size:16.5px;font-weight:800;line-height:1.35;letter-spacing:-.01em}
   .cf-x{color:var(--muted);font-size:13.5px;line-height:1.6;margin-top:9px}
@@ -1395,6 +1381,50 @@
   .pes-sep{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
     font-weight:800;padding:10px 14px 4px;border-top:1px solid var(--line)}
   .ini-prog{font-size:11.5px;color:var(--muted);font-weight:600;padding:9px 14px 2px}
+  /* Inicio com a linguagem do Pessoal (Gabriel 08/09): data como titulo, fio de
+     progresso, numeros numa linha e secao sem caixa — so rotulo e contador. */
+  .ini-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:2px}
+  .ini-dia{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+  .ini-dsub{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .ini-fio{height:3px;border-radius:99px;background:var(--panel2);overflow:hidden;margin:14px 0 0}
+  .ini-fio i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .25s}
+  .ini-nums{display:flex;flex-wrap:wrap;gap:6px 20px;margin:12px 0 6px;font-size:11.5px;color:var(--muted)}
+  .ini-nums b{font-size:13.5px;font-weight:800;color:var(--txt);margin-right:4px;font-variant-numeric:tabular-nums}
+  .ini-lbl{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco);margin:24px 2px 2px}
+  .ini-lbl small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);font-variant-numeric:tabular-nums}
+  .ini-lbl.atraso{color:var(--danger)}
+  .ini-box{background:none;border:0;border-radius:0;padding:0;margin-bottom:0}
+  .ini-box.atraso{background:none;border:0}
+  .ini-it{padding:12px 2px;border-radius:0;border-top:1px solid var(--line);gap:12px}
+  .ini-it+.ini-it{border-top:1px solid var(--line)}
+  .ini-it:hover{background:var(--panel)}
+  .ini-ok{width:34px;height:34px;border-width:1.5px}
+  .ini-ok svg{width:15px;height:15px}
+  .ini-ok::after{width:9px;height:9px}
+  .ini-tit{font-size:14.5px;font-weight:600;white-space:normal}
+  .ini-sub{font-size:12px;margin-top:2px}
+  .ini-it.atrasada .ini-ok{border-color:var(--danger)}
+  .ini-it.atrasada .ini-sub{color:var(--danger)}
+  .ini-zero{padding:26px 2px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
+  .ini-hoje{border:1px solid var(--line);background:none;color:var(--muted);border-radius:999px;
+    padding:4px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .ini-hoje:hover{color:var(--brand2);border-color:var(--brand)}
+  .ini-tiles{display:grid;gap:10px;margin:6px 0 2px}
+  .ini-tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 13px;
+    display:flex;flex-direction:column;gap:9px;cursor:pointer;min-width:0}
+  .ini-tile:hover{border-color:var(--brand)}
+  .ini-tile.ativo{border-color:rgba(77,163,255,.5)}
+  .ini-tile b{font-size:13px;font-weight:800;letter-spacing:-.01em;line-height:1.25;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .ini-tile small{font-size:11px;color:var(--fraco);font-weight:600;font-variant-numeric:tabular-nums;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ini-tile .ini-ok{width:26px;height:26px}
+  .ini-tile .ini-ok svg{width:12px;height:12px}
+  .ini-bar{flex-basis:100%;height:4px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:8px}
+  .ini-bar i{display:block;height:100%;background:var(--brand);border-radius:99px}
+  .ini-it{flex-wrap:wrap}
+  .pes-novo{margin-top:8px}
   .ini-tit{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ini-sub{color:var(--muted);font-size:11.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ini-tag{flex:none;font-size:11px;font-weight:700;color:var(--muted);background:var(--panel2);border-radius:7px;padding:3px 9px;white-space:nowrap}
@@ -2200,6 +2230,16 @@
   .mp-mini{display:none}
   body.mob-pessoal .topbar .tb-esp::after{content:'Pessoal \25BE';font-weight:800}
   body.mob-pessoal .main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}
+  body.mob-pessoal .mp-saud{font-size:20px;line-height:1.25}
+  body.mob-pessoal .mp-saud small{font-size:12.5px;margin-top:2px}
+  body.mob-pessoal .mp-topo{margin:6px 0 14px}
+  body.mob-pessoal .mp-topo .mp-anel{width:112px;height:112px;margin:12px 0 0 auto}
+  body.mob-pessoal .mp-topo .mp-anel::after{inset:9px}
+  body.mob-pessoal .mp-topo .mp-anel .nv{font-size:26px}
+  body.mob-pessoal .mp-topo .mp-anel .lb{font-size:8.5px;letter-spacing:1.2px}
+  body.mob-pessoal .mp-topo .mp-anel .xp{font-size:10.5px;margin-top:2px}
+  body.mob-pessoal .mp-sech{margin-top:18px!important}
+  body.mob-pessoal .mp-sech .mp-add{display:none}
   /* modal por cima da pilula e do FAB: o Salvar do "Novo habito" ficava escondido atras deles */
   body.mob-pessoal .overlay{z-index:980}
   body.mob-pessoal .overlay .modal{max-height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
@@ -2219,8 +2259,12 @@
     color:var(--muted);font:inherit;font-size:10px;font-weight:700;padding:6px 0;border-radius:14px;position:relative;cursor:pointer}
   .mp-tabbar button svg{width:20px;height:20px}
   .mp-tabbar button.on{color:var(--brand2)}
-  .mp-tabbar button.on::before{content:'';position:absolute;top:2px;width:34px;height:34px;border-radius:12px;
-    background:color-mix(in srgb,var(--brand) 16%,transparent);z-index:-1}
+  /* Marca da aba aberta: um traco encostado na borda de cima (Gabriel, 08/09).
+     O quadrado que morava aqui tinha z-index:-1 e caia ATRAS do vidro da barra, e
+     era posicionado so pelo top, sem centralizar — ficava torto e meio comido. */
+  .mp-tabbar button.on::before{content:'';position:absolute;top:-1px;left:50%;
+    transform:translateX(-50%);width:26px;height:3px;border-radius:0 0 3px 3px;
+    background:var(--brand2)}
   .mp-fab{position:fixed;right:18px;bottom:calc(138px + env(safe-area-inset-bottom,0px));z-index:901;
     width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
     background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:0;
@@ -2604,6 +2648,7 @@
 .tc-top{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px}
 .tc-lk{background:none;border:none;color:var(--muted);font:inherit;font-size:15px;cursor:pointer;padding:4px 0}
 .tc-lk.ok{color:var(--brand2);font-weight:800}
+.tc-lk.tc-x{font-size:23px;line-height:1;padding:0 2px}
 .tc-tit{display:flex;align-items:flex-start;gap:12px;margin:2px 0 8px}
 .tc-o{width:24px;height:24px;border-radius:50%;border:2px solid var(--fraco);background:none;color:transparent;flex:none;
   display:grid;place-items:center;cursor:pointer;margin-top:4px}
@@ -6818,8 +6863,6 @@ function spDesenhar(){
   const el=document.getElementById('spTree'); if(!el) return;
   const wn=document.getElementById('wsNm'); if(wn) wn.textContent=wsNome();
   const rb=document.querySelector('.railbar'); if(rb) rb.classList.toggle('ws-pessoal',(wsAtual()||{}).tipo==='pessoal');
-  const ehEmpresa=(wsAtual()||{}).tipo!=='pessoal';
-  { const ap=document.getElementById('app'); if(ap) ap.classList.toggle('nav-k1',ehEmpresa); }
   const bp=document.querySelector('#navPessoal .t');
   if(bp){ const mw=(wsMinhas()||[])[0]; bp.textContent=mw?String(mw.nome).split(' ')[0].slice(0,10):'Pessoal'; }
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
@@ -6846,27 +6889,10 @@ function spDesenhar(){
       <span class="tk-acts">
         <button title="Nova tarefa" onclick="event.stopPropagation();spSelLista('${l.id}');setTimeout(tkAbrir,50)">+</button>
       </span></div>`; };
-  /* ---- secao "Voce" (o que era da barra de icones) ---- */
-  const svgDe=(id)=>{ const b=document.getElementById(id); const sv=b&&b.querySelector('svg'); return sv?sv.outerHTML:''; };
-  const ntfN=((document.getElementById('ntfBdg')||{}).textContent||'').trim();
-  const vItem=(svg,txt,on,bdg,click,mini)=>`<button class="tk-lista${on?' on':''}" title="${esc(txt)}" onclick="${click}">${svg}${mini?'':`<span class="tk-nome">${esc(txt)}</span><span class="tk-bdg">${esc(bdg||'')}</span>`}</button>`;
-  const secVoce=(mini)=>(!ehEmpresa||(!mini&&window.innerWidth<=720))?'':`<div class="sp-voce${mini?' mini':''}">`+
-    vItem(svgDe('rlInicio'),'Início',noInicio,'','spInicio()',mini)+
-    vItem(svgDe('rlNtf'),'Avisos',currentView==='notificacoes',ntfN,"render('notificacoes')",mini)+
-    vItem(svgDe('rlInbox'),'Minhas tarefas',naCaixa,String(spMinhas().length||''),'spCaixa()',mini)+
-    vItem(svgDe('navPessoal'),'Pessoal',false,'',"render('pessoal')",mini)+'</div>';
-  /* ---- ferramentas dentro do espaco (K1): quem ve e quem tinha o botao na barra ---- */
-  const FERR={projetos:[['carteira','Carteira'],['daily','Daily do squad']],administrativo:[['financeiro','Financeiro'],['reembolsos','Reembolsos'],['processos','Processos'],['usuarios','Usuários']],marketing:[['funil','Comercial'],['fechamento','Fechamento de contrato'],['contratos','Contratos'],['agente','Agente IA']],tecnologia:[['acessos','Acessos e senhas']]};
-  const normN=(x)=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  const ferrVisivel=(v)=>{ const b=document.querySelector('.railbar .navlink[data-view="'+v+'"]'); return !!b&&!b.classList.contains('hidden'); };
-  const ferrDe=(e)=>{ const k=Object.keys(FERR).find(k=>normN(e.nome).indexOf(k)>=0); return k?FERR[k].filter(([v])=>ferrVisivel(v)):[]; };
-  const RAIO='<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>';
-  const ferrOn=(v)=>currentView===v||(v==='financeiro'&&!!(typeof FIN_TAB!=='undefined'&&FIN_TAB[currentView]))||(v==='funil'&&String(currentView).indexOf('funil/')===0);
-  const ferrItem=([v,t])=>`<button class="tk-lista tk-ferr${ferrOn(v)?' on':''}" onclick="spIrFerr('${v}')"><span class="tk-ic">${RAIO}</span><span class="tk-nome">${esc(t)}</span></button>`;
-  if(!TK.espacos.length){ el.innerHTML=secVoce(false)+'<div class="hint" style="margin:0;padding:8px 6px">Nenhum espaço ainda.</div>'; return; }
+  if(!TK.espacos.length){ el.innerHTML='<div class="hint" style="margin:0;padding:8px 6px">Nenhum espaço ainda.</div>'; return; }
   if(SP_MINI){
     const lsel=TK.listas.find(x=>x.id===TK.listaSel);
-    el.innerHTML=secVoce(true)+'<div class="sp-rail">'+TK.espacos.map(e=>`<button class="sp-railb${(lsel&&lsel.espaco_id===e.id)?' on':''}" title="${esc(e.nome)}" onclick="spExpandir('${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')">${espIcone(e)}</button>`).join('')+'</div>';
+    el.innerHTML='<div class="sp-rail">'+TK.espacos.map(e=>`<button class="sp-railb${(lsel&&lsel.espaco_id===e.id)?' on':''}" title="${esc(e.nome)}" onclick="spExpandir('${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')">${espIcone(e)}</button>`).join('')+'</div>';
     return; }
   /* Busca: um no aparece se ele bate, ou se algum filho bate. Com busca ativa, tudo fica aberto. */
   const lVis=(l)=>!SP_Q||spBate(l.nome);
@@ -6902,19 +6928,12 @@ function spDesenhar(){
             </span>
           </div>
           ${abP?`<div class="tk-filhos">${ls.map(l=>item(l)).join('')||'<div class="hint" style="margin:0;padding:2px 10px">sem listas</div>'}</div>`:''}
-        </div>`;}).join('')}${soltas.map(l=>item(l)).join('')}${ferrDe(e).map(ferrItem).join('')}</div>`:''}
+        </div>`;}).join('')}${soltas.map(l=>item(l)).join('')}</div>`:''}
     </div>`;}).join('')
     :`<div class="hint" style="margin:0;padding:8px 6px">Nada encontrado para “${esc(SP_Q)}”.</div>`;
-  /* ferramenta sem espaco com o nome certo cai no "Mais" do rodape */
-  const colocadas=new Set(); esps.forEach(e=>ferrDe(e).forEach(([v])=>colocadas.add(v)));
-  const sobras=ehEmpresa?Object.values(FERR).flat().filter(([v])=>ferrVisivel(v)&&!colocadas.has(v)):[];
-  window.__spSobras=sobras;
-  const mais=sobras.length?`<button class="tk-lista sp-mais" onclick="spMaisMenu(event)">•••<span class="tk-nome">Mais</span></button>`:'';
-  el.innerHTML=secVoce(false)+secFav+secEsp+'<div class="tk-tree">'+corpo+'</div>'+mais
+  el.innerHTML=secFav+secEsp+'<div class="tk-tree">'+corpo+'</div>'
     +'<div class="hint" style="margin:14px 6px 4px;opacity:.5;font-size:11px">Botão direito abre renomear, cor, duplicar e excluir.</div>';
 }
-window.spIrFerr=(v)=>{ const b=document.querySelector('.railbar .navlink[data-view="'+v+'"]'); if(b) b.click(); else render(v); };
-window.spMaisMenu=(ev)=>{ ev.stopPropagation(); ctxAbrir(ev,(window.__spSobras||[]).map(([v,t])=>({ic:MI('<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>'),t,f:()=>spIrFerr(v)}))); };
 window.spSelLista=(id,semAbrir)=>{
   TK.listaSel=id; TK.escopo='lista'; searchTerm=''; TK.arqVista=false; spMarcarAtalho(''); if(!semAbrir) spAbrirCaminho(id);
   if(LFIN[id]){ render(LFIN[id]); return; }
@@ -6927,6 +6946,7 @@ window.spSelLista=(id,semAbrir)=>{
    Cada pessoa abre o sistema no que é dela: o que vence hoje, o que está em andamento
    e o que já concluiu. Atrasado aparece sempre, mesmo filtrando só o dia. */
 let inicioPer='hoje';   /* 'hoje' | '7d' | 'per' */
+let inicioDia='';       /* dia que as setas estao mostrando; vazio = hoje */
 let inicioDe='', inicioAte='';
 /* ---------- TEMPO ÚTIL ----------
    Só conta segunda a sexta, das 8h às 18h. Demanda criada 19h e concluída 9h do dia
@@ -7049,9 +7069,8 @@ function pessoalBloco(){
       <span class="pes-t">${esc(t.titulo)}</span>
       <button type="button" class="pes-x" title="Apagar" onclick="pessoalApagar('${t.id}')">&#10005;</button>
     </div>`;
-  return `<div class="ini-box">
-     <div class="ini-h">✎ Só minhas
-       <span class="hint" style="margin:0;font-weight:600">anotações suas, ninguém mais vê</span></div>
+  return `<div>
+     <div class="ini-lbl"><span>Só minhas</span><small>${abertas.length}${feitas.length?' · '+feitas.length+' feita'+(feitas.length>1?'s':''):''}</small></div>
      <div class="pes-novo">
        <input id="pes_novo" placeholder="Escreva e dê Enter" autocomplete="off"
          onkeydown="pessoalEnter(event,this)">
@@ -7092,6 +7111,8 @@ window.iniConcluir=async (ev,id)=>{
   toast('Concluída: '+t.titulo);
   renderInicio($('#content')); spDesenhar();
 };
+window.inicioDiaNav=(n)=>{ inicioDia=tkDiaMais(inicioDia||tkHoje(),n); renderInicio($('#content')); };
+window.inicioDiaHoje=()=>{ inicioDia=''; renderInicio($('#content')); };
 window.inicioPeriodo=(p)=>{
   inicioPer=p;
   if(p==='per'&&!inicioDe){ inicioDe=isoMais(-29); inicioAte=tkHoje(); }
@@ -7108,8 +7129,9 @@ function renderInicio(c){
     return tkCarregar().then(()=>{ spDesenhar(); renderInicio(c); }).catch(e=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(e.message)+'</div>'; }); }
   currentView='inicio'; spMarcarAtalho('inicio');
   const hoje=tkHoje();
-  const de = inicioPer==='7d'?isoMais(-6) : inicioPer==='per'?(inicioDe||hoje) : hoje;
-  const ate= inicioPer==='per'?(inicioAte||hoje) : hoje;
+  const dia = inicioPer==='hoje' ? (inicioDia||hoje) : hoje;
+  const de = inicioPer==='7d'?isoMais(-6) : inicioPer==='per'?(inicioDe||hoje) : dia;
+  const ate= inicioPer==='per'?(inicioAte||hoje) : dia;
   const noPeriodo=(d)=>!!d && String(d).slice(0,10)>=de && String(d).slice(0,10)<=ate;
   const todas=minhasTarefas();
   const abertas=todas.filter(t=>faseDe(t)!=='feito'&&faseDe(t)!=='fechado'&&!ehPessoal(t));
@@ -7122,80 +7144,94 @@ function renderInicio(c){
   /* média só do que dá para medir: precisa de abertura e conclusão com hora */
   const comTempo=feitas.filter(t=>t.criado_em&&t.concluida_em);
   const medUteis=comTempo.length?comTempo.reduce((s,t)=>s+minUteis(t.criado_em,t.concluida_em),0)/comTempo.length:0;
-  const atrasadas=abertas.filter(t=>t.prazo&&String(t.prazo).slice(0,10)<hoje)
+  const atrasadas=(inicioPer==='hoje'&&dia!==hoje)?[]:abertas.filter(t=>t.prazo&&String(t.prazo).slice(0,10)<hoje)
                          .sort((a,b)=>String(a.prazo).localeCompare(String(b.prazo)));
+  /* ordem do relogio, igual aos habitos: quem tem hora primeiro, do mais cedo pro mais tarde */
+  const horaDe=(t)=>{ const v=String((t&&t.hora)||''); return /^\d{2}:\d{2}/.test(v)?v.slice(0,5):''; };
+  const porHora=(arr)=>arr.slice().sort((a,b)=>{ const x=horaDe(a),y=horaDe(b);
+    if(x&&y) return x.localeCompare(y);
+    if(x) return -1; if(y) return 1;
+    return String(a.prazo||'').localeCompare(String(b.prazo||''))||String(a.titulo||'').localeCompare(String(b.titulo||'')); });
+  /* Para hoje + Em andamento viram uma lista so, na ordem do relogio (Gabriel 08/09) */
+  const doDia=porHora(pendentes.concat(andamento.filter(t=>pendentes.indexOf(t)<0)));
+  const etapasDe=(t)=>{ const L=Array.isArray(t.checklist)?t.checklist:[];
+    return {tot:L.length, ok:L.filter(i=>i&&i.ok).length}; };
   const primeiro=String((currentUser||{}).nome||'').trim().split(/\s+/)[0]||'';
   const h=new Date().getHours();
   const ola=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
   const item=(t,tipo)=>{
     const dias=t.prazo?Math.round((new Date(hoje)-new Date(String(t.prazo).slice(0,10)))/86400000):0;
-    return `<div class="ini-it${tipo==='ok'?' feita':''}" onclick="tkAbrir('${t.id}')">
+    return `<div class="ini-it${tipo==='ok'?' feita':''}${tipo==='atraso'?' atrasada':''}" onclick="tkAbrir('${t.id}')">
       <button type="button" class="ini-ok${tipo==='ok'?' feito':''}" title="${tipo==='ok'?'Desmarcar':'Marcar como concluída'}"
         style="--bol:${tipo==='atraso'?'var(--danger)':faseDe(t)==='ativo'?'var(--info)':'#8b8b95'}"
         onclick="${tipo==='ok'?`iniDesfazer(event,'${t.id}')`:`iniConcluir(event,'${t.id}')`}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>
       <div style="flex:1;min-width:0">
         <div class="ini-tit">${esc(t.titulo)}</div>
-        <div class="ini-sub">${esc(tkCaminho(t.lista_id))}${t.ficha_id?' · '+esc(tkNomeFicha(t.ficha_id)):''}</div>
+        <div class="ini-sub">${tipo==='atraso'?((dias===1?'1 dia atrasada':dias+' dias atrasada')+' · '):''}${(()=>{ const e=etapasDe(t); return e.tot?e.ok+' de '+e.tot+' etapas · ':''; })()}${esc(tkCaminho(t.lista_id))}${t.ficha_id?' · '+esc(tkNomeFicha(t.ficha_id)):''}</div>
       </div>
-      ${tipo==='atraso'
-        ? `<span class="ini-tag atraso">${dias===1?'1 dia atrasada':dias+' dias atrasada'}</span>`
-        : `<span class="ini-tag">${t.prazo?(String(t.prazo).slice(0,10)===hoje?'hoje':fmtDate(t.prazo).slice(0,5)):'sem prazo'}</span>`}
+      ${tipo==='atraso'?'':`<span class="ini-tag">${horaDe(t)||(t.prazo?(String(t.prazo).slice(0,10)===hoje?'hoje':fmtDate(t.prazo).slice(0,5)):'sem prazo')}</span>`}
+      ${(()=>{ const e=etapasDe(t); return e.tot?`<div class="ini-bar"><i style="width:${Math.round(e.ok/e.tot*100)}%"></i></div>`:''; })()}
     </div>`;
   };
   c.innerHTML=`
-   <div class="page-head">
-     <div><h2>${ola}${primeiro?', '+esc(primeiro):''} 👋</h2>
-       <div class="desc">${inicioPer==='hoje'?'O que é seu para hoje':'O que é seu nos últimos 7 dias'}</div></div>
+   <div class="ini-topo">
+     <div style="display:flex;align-items:center;gap:12px">
+       ${inicioPer==='hoje'?`<button type="button" class="mp-nav" onclick="inicioDiaNav(-1)" title="Dia anterior">‹</button>`:''}
+     <div>
+       <div class="ini-dia">${inicioPer==='hoje'?(dia===hoje?'Hoje':(dia===tkDiaMais(hoje,1)?'Amanhã':(dia===tkDiaMais(hoje,-1)?'Ontem':fmtDate(dia)))):(inicioPer==='7d'?'Últimos 7 dias':'Período')}</div>
+       <div class="ini-dsub">${esc(typeof mpDataExt==='function'?mpDataExt(dia):dia)}${(doDia.length+feitas.length)?' · '+feitas.length+' de '+(doDia.length+feitas.length)+' concluída'+((doDia.length+feitas.length)>1?'s':''):''}</div>
+     </div>
+       ${inicioPer==='hoje'?`<button type="button" class="mp-nav" onclick="inicioDiaNav(1)" title="Próximo dia">›</button>
+         ${dia!==hoje?`<button type="button" class="ini-hoje" onclick="inicioDiaHoje()">Hoje</button>`:''}`:''}
+     </div>
      <div class="fin-tabs" style="margin:0">
        <button class="ftab ${inicioPer==='hoje'?'active':''}" onclick="inicioPeriodo('hoje')">Hoje</button>
-       <button class="ftab ${inicioPer==='7d'?'active':''}" onclick="inicioPeriodo('7d')">Últimos 7 dias</button>
+       <button class="ftab ${inicioPer==='7d'?'active':''}" onclick="inicioPeriodo('7d')">7 dias</button>
        <button class="ftab ${inicioPer==='per'?'active':''}" onclick="inicioPeriodo('per')">Personalizado</button>
        ${inicioPer==='per'?`<input type="date" class="ini-dt" id="iniDe" value="${esc(de)}" onchange="inicioData()">
          <span style="color:var(--muted);font-size:12px">até</span>
          <input type="date" class="ini-dt" id="iniAte" value="${esc(ate)}" onchange="inicioData()">`:''}
      </div>
    </div>
-   <div class="cards">
-     <div class="card"><div class="k">Demandas ${inicioPer==='hoje'?'de hoje':'do período'}</div>
-       <div class="v">${pendentes.length}</div><div class="sub">${pendentes.length?'esperando você':'nada pendente 🎉'}</div></div>
-     <div class="card"><div class="k">Em andamento</div>
-       <div class="v" style="color:var(--info)">${andamento.length}</div><div class="sub">já começadas</div></div>
-     <div class="card"><div class="k">Concluídas</div>
-       <div class="v pos">${feitas.length}</div><div class="sub">${inicioPer==='hoje'?'hoje':inicioPer==='7d'?'nos últimos 7 dias':'no período'}</div></div>
-     <div class="card"><div class="k">Tempo médio por demanda</div>
-       <div class="v">${comTempo.length?esc(fmtUteis(medUteis)):'—'}</div>
-       <div class="sub">${comTempo.length
-         ? ('em '+comTempo.length+' concluída'+(comTempo.length>1?'s':'')+' · só 8h–18h, dias úteis')
-         : 'ainda sem concluída no período'}</div></div>
+   <div class="ini-fio"><i style="width:${(doDia.length+feitas.length)?Math.round(feitas.length/(doDia.length+feitas.length)*100):0}%"></i></div>
+   <div class="ini-nums">
+     <span><b>${doDia.length}</b> aberta${doDia.length===1?'':'s'}</span>
+     <span><b style="color:var(--info)">${andamento.length}</b> em andamento</span>
+     <span><b class="pos">${feitas.length}</b> concluída${feitas.length===1?'':'s'}</span>
+     <span><b>${comTempo.length?esc(fmtUteis(medUteis)):'—'}</b> ${comTempo.length?'média por demanda':'sem média ainda'}</span>
    </div>
+
    ${atrasadas.length?`
-   <div class="ini-box atraso">
-     <div class="ini-h">⚠️ ${atrasadas.length===1?'1 demanda atrasada':atrasadas.length+' demandas atrasadas'}
-       <span class="hint" style="margin:0;font-weight:600">venceram antes de hoje e continuam abertas</span></div>
-     ${atrasadas.slice(0,8).map(t=>item(t,'atraso')).join('')}
-     ${atrasadas.length>8?`<div class="hint" style="margin:8px 0 0">e mais ${atrasadas.length-8}…</div>`:''}
+   <div class="ini-lbl atraso"><span>Atrasadas</span><small>${atrasadas.length}</small></div>
+   ${atrasadas.slice(0,8).map(t=>item(t,'atraso')).join('')}
+   ${atrasadas.length>8?`<div class="hint">e mais ${atrasadas.length-8}…</div>`:''}`:''}
+
+   ${doDia.length>=3?`
+   <div class="ini-lbl"><span>A seguir</span><small>${doDia.length>4?'próximas 4 de '+doDia.length:doDia.length}</small></div>
+   <div class="ini-tiles" style="grid-template-columns:repeat(${Math.min(4,Math.max(1,doDia.length))},minmax(0,1fr))">
+     ${doDia.slice(0,4).map(t=>{ const e=etapasDe(t);
+       return `<div class="ini-tile${faseDe(t)==='ativo'?' ativo':''}" onclick="tkAbrir('${t.id}')">
+         <button type="button" class="ini-ok" style="--bol:${faseDe(t)==='ativo'?'var(--info)':'#8b8b95'}" title="Concluir"
+           onclick="iniConcluir(event,'${t.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+           stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>
+         <b>${esc(t.titulo)}</b>
+         <small>${horaDe(t)||(e.tot?e.ok+'/'+e.tot+' etapas':esc(tkCaminho(t.lista_id)))}</small></div>`; }).join('')}
    </div>`:''}
-   <div class="ini-box">
-     <div class="ini-h">📋 ${inicioPer==='hoje'?'Para hoje':'Do período'}</div>
-     ${(pendentes.length||feitas.length)
-       ? pendentes.sort((a,b)=>String(a.prazo||'').localeCompare(String(b.prazo||''))).map(t=>item(t,'')).join('')
-         + feitas.sort((a,b)=>String(b.concluida_em||'').localeCompare(String(a.concluida_em||''))).map(t=>item(t,'ok')).join('')
-       : '<div class="empty" style="padding:18px">Nada com prazo '+(inicioPer==='hoje'?'para hoje':'no período')+'.</div>'}
-     ${(pendentes.length&&feitas.length)?`<div class="ini-prog">${feitas.length} de ${pendentes.length+feitas.length} concluídas</div>`:''}
-   </div>
-   ${andamento.length?`
-   <div class="ini-box">
-     <div class="ini-h">🔵 Em andamento</div>
-     ${andamento.slice(0,10).map(t=>item(t,'')).join('')}
-   </div>`:''}
+
+   ${(doDia.length||feitas.length)?`
+   <div class="ini-lbl"><span>${inicioPer==='hoje'?(dia===hoje?'Do dia':'Do dia '+fmtDate(dia).slice(0,5)):'Do período'}</span><small>${feitas.length} de ${doDia.length+feitas.length}</small></div>
+   ${doDia.map(t=>item(t,'')).join('')}
+   ${feitas.sort((a,b)=>String(b.concluida_em||'').localeCompare(String(a.concluida_em||''))).map(t=>item(t,'ok')).join('')}`:''}
+
    ${semPrazo.length?`
-   <div class="ini-box">
-     <div class="ini-h">◻ Sem prazo definido
-       <span class="hint" style="margin:0;font-weight:600">é sua, mas ninguém marcou quando</span></div>
-     ${semPrazo.slice(0,10).map(t=>item(t,'')).join('')}
-     ${semPrazo.length>10?`<div class="hint" style="margin:8px 0 0">e mais ${semPrazo.length-10}…</div>`:''}
-   </div>`:''}
+   <div class="ini-lbl"><span>Sem prazo</span><small>${semPrazo.length}</small></div>
+   ${semPrazo.slice(0,10).map(t=>item(t,'')).join('')}
+   ${semPrazo.length>10?`<div class="hint">e mais ${semPrazo.length-10}…</div>`:''}`:''}
+
+   ${(!atrasadas.length&&!doDia.length&&!feitas.length&&!semPrazo.length)
+     ?'<div class="ini-zero">Nada atribuído a você '+(inicioPer==='hoje'?'para hoje':'no período')+'.</div>':''}
+
    ${pessoalBloco()}
    <p class="hint" style="margin-top:14px">Clique numa demanda para abrir. Tudo que aparece aqui está atribuído a você.</p>`;
   spDesenhar();   /* sem isto o realce do rail nao acompanha o clique em Inicio */
@@ -7760,7 +7796,7 @@ window.tpPick=(b,i)=>{ $('#tp_icone').value=i; document.querySelectorAll('#tp_ig
 window.tkTipoExcluir=async (id)=>{
   const t=tipoDe(id); if(!t) return;
   const usando=(TK.tarefas||[]).filter(x=>String(x.tipo_id)===String(id)).length;
-  const ok=await confirmar('Excluir o tipo "'+t.nome+'"?', usando?(usando+' tarefa(s) usam este tipo — elas ficam sem tipo, nada é apagado.'):'',{sim:'Excluir',nao:'Cancelar',perigo:true});
+  const ok=await confirmar('Excluir o tipo "'+t.nome+'"?', usando?(usando+' tarefa(s) usam este tipo — elas ficam sem tipo, nada é apagado.'):'',{sim:'Excluir',nao:'Não',perigo:true});
   if(!ok) return;
   const {error}=await sb.from('tipos_tarefa').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
@@ -8673,7 +8709,7 @@ window.tkmAnxPrever=async (id)=>{
 };
 window.tkmAnxApagar=async (id,tid)=>{
   const x=(window.__anx||{})[id]; if(!x) return;
-  const ok=await confirmar('Remover "'+x.nome+'"?', x.tipo==='link'?'':'O arquivo sai do armazenamento também.',{sim:'Remover',nao:'Cancelar',perigo:true});
+  const ok=await confirmar('Remover "'+x.nome+'"?', x.tipo==='link'?'':'O arquivo sai do armazenamento também.',{sim:'Remover',nao:'Não',perigo:true});
   if(!ok) return;
   const {error}=await sb.from('tarefa_anexos').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
@@ -9634,7 +9670,7 @@ window.agObs=async (id,el)=>{
 };
 window.agExcluir=async (id)=>{
   const l=AG.leads.find(x=>x.id===id); if(!l) return;
-  const ok=await confirmar('Excluir o lead "'+(l.nome||'')+'"?','Some de vez. Se só quer tirar da lista, marque como Descartado.',{sim:'Excluir',nao:'Cancelar',perigo:true});
+  const ok=await confirmar('Excluir o lead "'+(l.nome||'')+'"?','Some de vez. Se só quer tirar da lista, marque como Descartado.',{sim:'Excluir',nao:'Não',perigo:true});
   if(!ok) return;
   const {error}=await sb.from('agente_leads').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
@@ -11662,7 +11698,7 @@ window.zapRemover=async (fid,zid)=>{
   const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
   const z=zapsDe(f).find(x=>String(x.id)===String(zid));
   const ok=await confirmar('Remover '+((z&&z.nome)||'este contato')+'?','O número sai da agenda deste cliente.',
-    {sim:'Remover',nao:'Cancelar',perigo:true});
+    {sim:'Remover',nao:'Não',perigo:true});
   if(!ok) return;
   f.zaps=zapsDe(f).filter(x=>String(x.id)!==String(zid));
   await saveDB(); zapPintar(fid);
@@ -12722,7 +12758,7 @@ function ctEdPintar(){
       <div><strong>${esc(CT_MODELOS[e.slug]||e.slug)}</strong>
         <span class="hint" style="margin:0 0 0 10px">clique em qualquer parágrafo para corrigir · <span id="ctEdN">0</span> alterado(s)</span></div>
       <div style="display:flex;gap:8px">
-        <button class="btn secondary small" onclick="ctEdFechar()">Cancelar</button>
+        <button class="x" title="Fechar" aria-label="Fechar" onclick="ctEdFechar()">&times;</button>
         <button class="btn secondary small" id="ctEdDocx" onclick="ctEdBaixar('docx')">Baixar .docx</button>
         <button class="btn small" id="ctEdBaixar" onclick="ctEdBaixar('pdf')">Baixar PDF</button>
       </div>
@@ -13719,6 +13755,15 @@ function mpMetaProg(h){
 /* ---------- tela ---------- */
 async function renderPessoal(c){
   if(!currentUser) return;
+  /* Sem isto, TK.ws chegava vazio quando o Pessoal era a primeira tela aberta e o
+     mpWsAtivo() devolvia null — a tela oferecia "Criar meu workspace pessoal" pra
+     quem ja tem um. Mesma guarda que renderInicio e spAbrirClientes ja usam. */
+  if(!(TK.ws||[]).length){
+    c.innerHTML='<div class="empty">Carregando seu Modo Pessoal…</div>';
+    try{ await tkCarregar(); spDesenhar(); }
+    catch(e){ if(currentView==='pessoal') c.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
+    if(currentView!=='pessoal') return;
+  }
   const ws=mpWsAtivo();
   if(!ws){
     c.innerHTML='<div class="page-head"><div><h2>Modo Pessoal</h2><div class="desc">Seus hábitos, tarefas e agenda — privados, nem o administrador vê.</div></div></div>'+
@@ -14179,7 +14224,7 @@ window.mpEtapasModal=(hid,iso)=>{
   const et=mpEtapas(h);
   modal(h.nome||'Hábito',
     '<div class="tc">'+
-    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Fechar</button><span class="hint" style="margin:0">'+esc(mpTcRotDia(iso))+'</span><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click();mpHabitoModal(\''+h.id+'\')">Editar</button></div>'+
+    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click();mpHabitoModal(\''+h.id+'\')">Editar</button><span class="hint" style="margin:0">'+esc(mpTcRotDia(iso))+'</span><button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button></div>'+
     '<div class="tc-tit"><span class="mph-icbt" style="color:'+esc(h.cor||'#a78bfa')+'">'+mpIco(h.icone,20)+'</span><b style="font-size:20px;font-weight:800">'+esc(h.nome||'')+'</b></div>'+
     '<div class="tc-prog"><i id="mpe_prog"></i></div>'+
     '<div id="mpe_lista"></div>'+
@@ -14315,8 +14360,9 @@ window.mpHabitoModal=(id)=>{
     '<div id="mph_box_'+k+'" class="tc-box mph-box" hidden>'+extra+'</div>';
   modal(h?'Editar hábito':'Novo hábito',
     '<div class="tc">'+
-    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button>'+
-      (h?'<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpHabMenu(event,\''+h.id+'\')">···</button>':'<span></span>')+'</div>'+
+    '<div class="tc-top">'+
+      (h?'<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpHabMenu(event,\''+h.id+'\')">···</button>':'<span></span>')+
+      '<button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button>'+'</div>'+
     '<div class="tc-tit"><button type="button" class="mph-icbt" id="mphv_icbt" onclick="mpHTgl(\'ic\')"></button>'+
       '<input id="mph_nm" class="tc-in" value="'+esc(h?h.nome:'')+'" placeholder="Nome do hábito"/></div>'+
     '<div class="tc-props">'+
@@ -14487,7 +14533,7 @@ window.mpTarNovaCard=(diaIni)=>{
   const chips=[['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Seg '+Number(tkDiaMais(mpSegDa(hj),7).slice(8,10)),tkDiaMais(mpSegDa(hj),7)],['Sem dia','']];
   modal('Nova tarefa',
     '<div class="tc">'+
-    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button></div>'+
+    '<div class="tc-top"><span></span><button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button></div>'+
     '<div class="tc-tit"><span class="tc-o vz"></span>'+
       '<input id="mtc_tt" class="tc-in" value="" placeholder="O que precisa ser feito?"/></div>'+
     '<div class="tc-props">'+
@@ -14559,7 +14605,7 @@ window.mpTarPraDia=async(id)=>{
 const mpTcT=()=>(TK.tarefas||[]).find(x=>String(x.id)===String(window.__mpTc||''));
 /* Cartao da tarefa (Gabriel 07/09, opcao C): titulo com o circulo de concluir, propriedades
    em linha (Dia, Hora) que abrem o seletor ao tocar, notas, checklist e subtarefas como listas.
-   Pronto salva; Cancelar fecha; Apagar mora no rodape, longe do resto. */
+   Pronto salva; o x no canto direito fecha; Apagar mora no rodape, longe do resto. */
 const mpTcRotDia=(iso)=>{ if(!iso) return 'Sem dia'; const hj=tkHoje(); if(iso===hj) return 'Hoje'; if(iso===tkDiaMais(hj,1)) return 'Amanhã';
   if(iso===tkDiaMais(hj,-1)) return 'Ontem'; const t=mpDataExt(iso); return t.charAt(0).toUpperCase()+t.slice(1); };
 window.mpTcDiaTgl=()=>{ const b=$('#mtc_dtbox'); if(b) b.hidden=!b.hidden; if(b&&!b.hidden){ const h=$('#mtc_hrbox'); if(h) h.hidden=true; } };
@@ -14579,8 +14625,9 @@ window.mpTarCard=(id)=>{
   const chips=[['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Seg '+Number(tkDiaMais(mpSegDa(hj),7).slice(8,10)),tkDiaMais(mpSegDa(hj),7)],['Sem dia','']];
   modal('Tarefa',
     '<div class="tc">'+
-    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button>'+
-      '<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpTcMenu(event)">···</button></div>'+
+    '<div class="tc-top">'+
+      '<button type="button" class="tc-lk tc-mais" title="Mais" onclick="mpTcMenu(event)">···</button>'+
+      '<button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button>'+'</div>'+
     '<div class="tc-tit"><button type="button" class="tc-o'+(f?' on':'')+'" title="'+(f?'Concluída — toque pra reabrir':'Concluir')+'" onclick="mpTarVirar(\''+t.id+'\');this.classList.toggle(\'on\')">'+svgIco('check',12)+'</button>'+
       '<input id="mtc_tt" class="tc-in" value="'+esc(t.titulo||'')+'" placeholder="Título"/></div>'+
     '<div class="tc-props">'+
@@ -14821,7 +14868,7 @@ window.mpEvtSheetAntigo=(h)=>{
   o.onclick=(e)=>{ if(e.target===o) shFecha(); };
   o.innerHTML='<div class="sheet">'+
     '<div class="sh-hand"></div>'+
-    '<div class="sh-top"><b>Novo evento</b><button type="button" onclick="shFecha()">Cancelar</button></div>'+
+    '<div class="sh-top"><b>Novo evento</b><button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="shFecha()">&times;</button></div>'+
     '<input class="sh-tit" id="sh_nm" placeholder="Título" autocomplete="off" enterkeyhint="done" onkeydown="if(event.key===\'Enter\'){event.preventDefault();shCriar();}">'+
     '<div class="sh-lab">Início · '+esc(mpDataExt(dia))+'</div>'+
     '<div class="sh-chips" id="sh_hrs"></div>'+
@@ -14871,7 +14918,7 @@ window.mpEvtSlot=(h)=>{
   window.__mpE={dur:60};
   modal('Novo evento',
     '<div class="tc">'+
-    '<div class="tc-top"><button type="button" class="tc-lk" onclick="document.querySelector(\'.overlay .mcancel\').click()">Cancelar</button><span></span></div>'+
+    '<div class="tc-top"><span></span><button type="button" class="tc-lk tc-x" title="Fechar" aria-label="Fechar" onclick="document.querySelector(\'.overlay .mcancel\').click()">&times;</button></div>'+
     '<div class="tc-tit"><input id="gce_nm" class="tc-in" placeholder="Título" onkeydown="if(event.key===\'Enter\'){event.preventDefault();document.querySelector(\'.overlay .msave\').click();}"/></div>'+
     '<div class="tc-props">'+
       '<button type="button" class="tc-p" onclick="mpETgl(\'dt\')"><small>Dia</small><b id="gcev_dt">'+esc(mpTcRotDia(dia))+'</b><i>›</i></button>'+
@@ -15250,6 +15297,7 @@ function confirmar(titulo, texto, op){
   return new Promise((ok)=>{
     const o=document.createElement('div'); o.className='overlay';
     o.innerHTML=`<div class="modal cf-m">
+      <button class="x cf-fechar" title="Fechar" aria-label="Fechar">&times;</button>
       <div class="mbody">
         <div class="cf-t">${esc(titulo)}</div>
         ${texto?`<p class="cf-x">${esc(texto)}</p>`:''}
@@ -15262,6 +15310,7 @@ function confirmar(titulo, texto, op){
     const fim=(v)=>{ document.removeEventListener('keydown',tecla); o.remove(); ok(v); };
     const tecla=(e)=>{ if(e.key==='Escape'){ e.preventDefault(); fim(false); }
                        else if(e.key==='Enter'){ e.preventDefault(); fim(true); } };
+    o.querySelector('.cf-fechar').onclick=()=>fim(false);
     o.querySelector('.cf-n').onclick=()=>fim(false);
     o.querySelector('.cf-s').onclick=()=>fim(true);
     o.onclick=(e)=>{ if(e.target===o) fim(false); };
@@ -15273,10 +15322,11 @@ function confirmar(titulo, texto, op){
 function escolher(titulo,texto,ops){
   return new Promise((ok)=>{
     const o=document.createElement('div'); o.className='overlay';
-    o.innerHTML=`<div class="modal cf-m"><div class="mbody" style="padding-top:22px">
+    o.innerHTML=`<div class="modal cf-m">
+      <button class="x" data-x="1" title="Fechar" aria-label="Fechar">&times;</button>
+      <div class="mbody" style="padding-top:22px">
         <div class="cf-t">${esc(titulo)}</div>${texto?`<p class="cf-x">${esc(texto)}</p>`:''}</div>
       <div class="mfoot" style="flex-wrap:wrap;gap:8px">
-        <button class="btn secondary small" data-x="1">Cancelar</button>
         ${ops.map(b=>`<button class="btn small" data-v="${esc(b.v)}">${esc(b.rot)}</button>`).join('')}
       </div></div>`;
     document.body.appendChild(o);
@@ -15290,13 +15340,15 @@ function escolher(titulo,texto,ops){
 }
 function modal(title, bodyHTML, onSave){
   const o=document.createElement('div'); o.className='overlay';
-  o.innerHTML=`<div class="modal"><div class="mhead"><h3>${title}</h3><button class="x">&times;</button></div>
+  /* O x carrega a classe mcancel de proposito: varias telas fecham o modal com
+     .overlay .mcancel .click(), e assim continuam funcionando sem tocar em ninguem. */
+  o.innerHTML=`<div class="modal"><div class="mhead"><h3>${title}</h3><button class="x mcancel" title="Fechar" aria-label="Fechar">&times;</button></div>
     <div class="mbody">${bodyHTML}</div>
-    <div class="mfoot"><button class="btn secondary small mcancel">Cancelar</button><button class="btn small msave">Salvar</button></div></div>`;
+    <div class="mfoot"><button class="btn small msave">Salvar</button></div></div>`;
   if(bodyHTML.indexOf('class="tkm"')>=0) o.classList.add('folha'); /* tarefa abre como painel lateral, estilo ClickUp */
   document.body.appendChild(o);
   const close=()=>{ if(o.querySelector('.tkm')) window.TK_ABERTA=''; o.remove(); };
-  o.querySelector('.x').onclick=close; o.querySelector('.mcancel').onclick=close;
+  o.querySelector('.x').onclick=close;
   o.onclick=e=>{if(e.target===o)close();};
   o.querySelector('.msave').onclick=async ()=>{ const ok=await onSave(); if(ok!==false)close(); };
 }
