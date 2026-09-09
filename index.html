@@ -2108,6 +2108,33 @@
 /* ===== modo pessoal ===== */
 .mp-ini{display:grid;grid-template-columns:210px 1fr;gap:26px;align-items:start}
 @media(max-width:860px){.mp-ini{grid-template-columns:1fr}}
+/* ---- INICIO NO PC, opcao G (Gabriel 09/09): o topo diz o que fazer AGORA ----
+   Sai a saudacao com o anel de 170px (comia um terco da tela). Entra: uma barra de
+   uma linha (data, seletor de abas, botao), o cartao "Agora" com o proximo habito
+   pela hora e um botao grande de concluir, e a nota do dia numa linha fina. */
+.mp-bar{display:flex;align-items:center;gap:14px;margin:0 0 18px}
+.mp-bar-dt{font-size:13px;color:var(--muted);font-weight:600;text-transform:capitalize}
+.mp-bar-sp{flex:1}
+.mp-seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px}
+.mp-seg button{padding:6px 13px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--muted);background:none;border:0;cursor:pointer;font-family:inherit;transition:color .12s,background .12s}
+.mp-seg button:hover{color:var(--txt)}
+.mp-seg button.on{background:var(--panel2);color:var(--txt)}
+.mp-agora{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;background:linear-gradient(135deg,rgba(123,104,238,.16),rgba(167,139,250,.06));border:1px solid rgba(167,139,250,.35);border-radius:18px;padding:18px 22px;margin:0 0 14px}
+.mp-agora .k{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand2);font-weight:800;margin-bottom:5px}
+.mp-agora h3{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;cursor:pointer;line-height:1.15}
+.mp-agora p{margin:4px 0 0;font-size:12.5px;color:var(--muted)}
+.mp-ag-ic{width:56px;height:56px;border-radius:50%;position:relative;display:grid;place-items:center;flex:none;background:var(--panel2)}
+.mp-ag-ic::after{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--panel)}
+.mp-ag-ic i{position:relative;z-index:1;display:grid;place-items:center;font-style:normal}
+.mp-ag-ok{width:54px;height:54px;border-radius:50%;background:var(--brand);border:0;display:grid;place-items:center;color:#fff;cursor:pointer;box-shadow:0 8px 22px rgba(123,104,238,.45);transition:transform .12s;flex:none}
+.mp-ag-ok:hover{transform:scale(1.06)}
+.mp-agora.feito{background:rgba(63,207,142,.08);border-color:rgba(63,207,142,.32)}
+.mp-agora.feito .k{color:var(--ok)}
+.mp-agora.feito .mp-ag-ic{background:rgba(63,207,142,.18);color:var(--ok)} .mp-agora.feito .mp-ag-ic::after{display:none}
+.mp-linha{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--muted);margin:0 0 22px}
+.mp-linha .pb{flex:1;max-width:240px;height:6px;border-radius:99px;background:var(--panel2);overflow:hidden}
+.mp-linha .pb i{display:block;height:100%;background:var(--txt);border-radius:99px;transition:width .3s}
+.mp-linha b{color:var(--txt);font-variant-numeric:tabular-nums}
 .mp-anel{width:158px;height:158px;border-radius:50%;display:grid;place-items:center;margin:6px auto 0;position:relative}
 .mp-anel::after{content:'';position:absolute;inset:12px;background:var(--bg);border-radius:50%}
 .mp-anel>div{position:relative;z-index:1;text-align:center}
@@ -2115,7 +2142,7 @@
 .mp-anel .lb{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .mp-anel .xp{font-size:11px;color:var(--brand2);margin-top:3px}
 .mp-perf{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:12px;font-weight:800;color:var(--warn)}
-.mp-sech{font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.mp-sech{font-size:10.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--txt);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
 .mp-add{margin-left:auto;color:var(--brand2);letter-spacing:0;text-transform:none;font-size:12px;font-weight:700;cursor:pointer;background:none;border:0;font-family:inherit}
 .mp-hab{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
 .mp-hab:first-of-type{border-top:none}
@@ -2164,7 +2191,7 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
   /* modal por cima da pilula e do FAB: o Salvar do "Novo habito" ficava escondido atras deles */
   body.mob-pessoal .overlay{z-index:980}
   body.mob-pessoal .overlay .modal{max-height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
-  body.mob-pessoal .mp-abas,body.mob-pessoal .mp-topo-acao{display:none}
+  body.mob-pessoal .mp-abas,body.mob-pessoal .mp-topo-acao,body.mob-pessoal .mp-bar{display:none}
   body.mob-pessoal .mp-sino{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
     border:1px solid var(--line);background:var(--panel);color:var(--txt);position:relative;flex:none;cursor:pointer}
   body.mob-pessoal .mp-sino svg{width:16px;height:16px}
@@ -2239,7 +2266,8 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 /* Inicio celular, L2 (Gabriel 08/09): habitos em fileira que rola, tarefas em lista */
 .f1-grp{margin-top:18px}
 .f1-grp:first-child{margin-top:10px}
-.f1-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco)}
+/* Rotulo de secao do Inicio (Gabriel 08/09): estava em --fraco, sumia no fundo. */
+.f1-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--txt)}
 .f1-lbl small{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);font-variant-numeric:tabular-nums}
 .f1-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:8px 16px 4px;margin:0 -16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
 .f1-row::-webkit-scrollbar{display:none}
@@ -2271,6 +2299,13 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .f1-it .o svg{width:11px;height:11px}
 .f1-it .tt{flex:1;min-width:0;font-size:14px;font-weight:600;letter-spacing:-.01em}
 .f1-it .tt small{display:block;font-size:11px;color:var(--fraco);font-weight:500;margin-top:1px}
+/* pendencia arrastada de um dia anterior: etiqueta no cartao e faixa no topo do dia */
+.mp-adi{display:inline-flex;align-items:center;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  color:#f3ce7a;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.34);border-radius:99px;padding:1px 7px;margin-left:7px;vertical-align:1px}
+.f1-aviso{display:flex;align-items:center;gap:9px;margin:12px 0 0;padding:9px 12px;border-radius:11px;
+  background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.30);color:#f3ce7a;font-size:12px;font-weight:700;line-height:1.35}
+.f1-aviso b{font-weight:900}
+.f1-it.adi .tt{color:var(--fraco)}
 .f1-it.done .tt{color:var(--fraco);text-decoration:line-through}
 .f1-it .h{font-size:11.5px;color:var(--fraco);font-variant-numeric:tabular-nums;flex:none}
 .f1-vz{padding:28px 0 8px;text-align:center;color:var(--fraco);font-size:13px}
@@ -13227,12 +13262,45 @@ const mpTarefas=()=>{ const ids=mpListaIds();
   return (TK.tarefas||[]).filter(t=>!t.arquivada_em&&!t.pai_id&&ids.indexOf(String(t.lista_id))>=0); };
 const mpSubsDe=(id)=>(TK.tarefas||[]).filter(x=>String(x.pai_id||'')===String(id)&&!x.arquivada_em);
 const mpTarDia=(iso)=>mpTarefas().filter(t=>String(t.prazo||'').slice(0,10)===iso);
+/* ---------- ARRASTO DE PENDENCIA (Gabriel 08/09) ----------
+   Demanda do Pessoal que o dia acabou e nao foi concluida nao some: ela anda pro dia
+   de hoje. Mas o dia que ficou pra tras precisa continuar registrando a falha, senao
+   a nota daquele dia melhorava sozinha quando a tarefa saia dele. Por isso o prazo
+   muda E o dia antigo entra em 'adiada_de'.
+   So entra o dia em que ela estava DE FATO prevista: se ficou parada tres dias com
+   prazo vencido, os dias do meio nao a tinham em lista nenhuma — nao seria honesto
+   cobrar deles. Vale so no workspace pessoal (mpTarefas ja filtra por isso). */
+const mpAdiadaDias=(t)=>(Array.isArray(t&&t.adiada_de)?t.adiada_de:[]).map(d=>String(d).slice(0,10)).filter(Boolean);
+const mpAdiadaN=(t)=>mpAdiadaDias(t).length;
+const mpTarAdiadasDe=(iso)=>mpTarefas().filter(t=>mpAdiadaDias(t).indexOf(iso)>=0&&String(t.prazo||'').slice(0,10)!==iso);
+window.__mpAdiadas=0;
+async function mpArrastarPendentes(){
+  const hoje=tkHoje();
+  const alvo=mpTarefas().filter(t=>{ const p=String(t.prazo||'').slice(0,10);
+    return p&&p<hoje&&!mpFeita(t); });
+  window.__mpAdiadas=0;
+  if(!alvo.length) return;
+  let n=0;
+  for(const t of alvo){
+    const de=String(t.prazo).slice(0,10);
+    const dias=mpAdiadaDias(t); if(dias.indexOf(de)<0) dias.push(de);
+    const patch={prazo:hoje,adiada_de:dias};
+    if(!t.prazo_orig) patch.prazo_orig=dias[0]||de;   /* o primeiro dia em que ficou pendente */
+    const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
+    if(error) continue;
+    Object.assign(t,patch); n++;
+  }
+  window.__mpAdiadas=n;
+}
 const mpTarSemData=()=>mpTarefas().filter(t=>!t.prazo);
 const mpFeita=(t)=>t.status==='feito'||!!t.concluida_em;
 
 function mpNotaDia(iso){
   const hs=MP.habitos.filter(h=>mpProg(h,iso)), ts=mpTarDia(iso);
-  const prev=hs.length+ts.length;
+  /* o que foi adiado DESTE dia continua contando como previsto e nao feito:
+     arrastar a demanda pra frente nao pode limpar a nota do dia que passou */
+  const ad=mpTarAdiadasDe(iso);
+  const prev=hs.length+ts.length+ad.length;
   const feit=hs.reduce((s,h)=>s+mpFrac(h,iso),0)+ts.filter(mpFeita).length;
   return {prev,feit:Math.round(feit*100)/100,nota:prev?Math.round(feit/prev*100)/10:null};
 }
@@ -13268,6 +13336,9 @@ async function renderPessoal(c){
     c.innerHTML='<div class="empty">Carregando seu Modo Pessoal…</div>';
     try{ await mpCarregar(); }catch(e){ if(currentView==='pessoal') c.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
   }
+  /* pendencia de ontem chega no dia de hoje antes da tela ser pintada */
+  try{ await mpArrastarPendentes(); }catch(_){ }
+  if(currentView!=='pessoal') return;
   mpPintar();
 }
 window.mpCriarWs=async()=>{ const l=await pessoalGarantir(); if(l){ spDesenhar(); render('pessoal'); } };
@@ -13357,9 +13428,14 @@ function mpPintar(){
   const ac=MP_ACAO[MP.aba]||MP_ACAO.inicio;
   document.body.classList.add('mob-pessoal');
   const nB=(document.getElementById('ntfBdg')||{}).textContent||'';
-  c.innerHTML='<div class="page-head"><div></div>'+
-    '<div class="toolbar mp-topo-acao"><button class="btn small" onclick="'+ac[1]+'">'+ac[0]+'</button></div></div>'+
-    '<div class="fin-tabs mp-abas">'+abas.map(a=>'<button class="ftab '+(MP.aba===a[0]?'active':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
+  /* barra de uma linha (opcao G): data | seletor de abas | botao. No celular some
+     inteira — la o Inicio tem cabecalho proprio e a barra de baixo faz as abas. */
+  c.innerHTML='<div class="mp-bar">'+
+    '<span class="mp-bar-dt">'+esc(mpDataExt(tkHoje()))+'</span>'+
+    '<span class="mp-bar-sp"></span>'+
+    '<div class="mp-seg mp-abas">'+abas.map(a=>'<button type="button" class="'+(MP.aba===a[0]?'on':'')+'" onclick="mpAba(\''+a[0]+'\')">'+a[1]+'</button>').join('')+'</div>'+
+    '<div class="toolbar mp-topo-acao"><button class="btn small" onclick="'+ac[1]+'">'+ac[0]+'</button></div>'+
+    '</div>'+
     '<div id="mpCorpo"></div>'+mpTabbarHTML();
   /* sino de avisos no topo do celular (4A): copia o contador da railbar, que fica escondida */
   (function(){ const tb=document.getElementById('topbar'); if(!tb||tb.querySelector('.mp-sino')) return;
@@ -13461,8 +13537,12 @@ function mpIniMobileHTML(){
      academia 06:00 amanhece no topo. Sem horario fica embaixo, na ordem de sempre. */
   const itens=[];
   const hh=(x)=>x&&/^\d{2}:\d{2}/.test(String(x))?String(x).slice(0,5):'';
-  ts.forEach(t=>{ const f=mpFeita(t);
-    itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa</small></span>'+(hh(t.hora)?'<span class="h">'+hh(t.hora)+'</span>':'')+'</div>'}); });
+  ts.forEach(t=>{ const f=mpFeita(t), na=mpAdiadaN(t);
+    itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it'+(f?' done':'')+'">'+o(f,'mpTarVirar(\''+t.id+'\')')+'<span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+(na?'<span class="mp-adi">adiada '+na+'\u00d7</span>':'')+'<small>tarefa'+(na?' \u00b7 era pra '+fmtDate(mpAdiadaDias(t)[0]):'')+'</small></span>'+(hh(t.hora)?'<span class="h">'+hh(t.hora)+'</span>':'')+'</div>'}); });
+  /* dia que ja passou: a demanda adiada continua aparecendo ali, marcada como nao
+     concluida — e o registro visivel de que aquele dia nao fechou */
+  if(passado) mpTarAdiadasDe(dia).forEach(t=>{
+    itens.push({g:'tar',hora:hh(t.hora),html:'<div class="f1-it adi"><span class="o x"></span><span class="tt" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+'<small>tarefa \u00b7 n\u00e3o conclu\u00edda \u00b7 foi pra '+fmtDate(String(t.prazo||'').slice(0,10))+'</small></span></div>'}); });
   hs.forEach(h=>{ const fr=mpFrac(h,dia), f=fr>=1, et=mpEtapas(h);
     const oh=(fr>0&&fr<1)?(passado?'<span class="o" style="'+mpCkStyle(fr)+'"></span>':'<button type="button" class="o" style="'+mpCkStyle(fr)+'" onclick="mpCheck(\''+h.id+'\',\''+dia+'\')"></button>'):o(f,'mpCheck(\''+h.id+'\',\''+dia+'\')');
     const sub=et.length?(Math.round(fr*et.length)+' de '+et.length+' etapas'):'hábito';
@@ -13511,6 +13591,7 @@ function mpIniMobileHTML(){
     (MP.iniCal?mpCalMesHTML('inicio'):'')+
     (ehHoje?'':'<button type="button" class="f1-hoje" onclick="mpIniHoje()">Voltar pra hoje</button>')+
     '<div class="f1-pb"><i style="width:'+pct+'%"></i></div>'+
+    ((ehHoje&&window.__mpAdiadas)?'<div class="f1-aviso">\u21bb <span><b>'+window.__mpAdiadas+'</b> '+(window.__mpAdiadas===1?'demanda veio':'demandas vieram')+' de dias anteriores. O dia que ficou pra tr\u00e1s guarda a falha.</span></div>':'')+
     '<div class="f1-l">'+(linhas.length?linhas.join(''):(ehHoje&&!MP.habitos.length?'':'<div class="f1-vz">Nada neste dia.</div>'))+'</div>'+
     (ehHoje&&!MP.habitos.length?mpZeroHTML():'')+
     '</div>';
@@ -13531,22 +13612,51 @@ window.mpIniCalDia=async(iso)=>{ MP.iniCal=false; MP.iniDia=iso; mpPintar();
   if(!MP.evtsPorDia[iso]){ try{ await mpEvtsDia(iso); }catch(_){} if(MP.aba==='inicio') mpPintar(); } };
 function mpInicioHTML(){
   const hoje=tkHoje(), n=mpNotaDia(hoje);
-  const deg=n.nota==null?0:Math.round(n.nota*36);
-  const hAgora=new Date().getHours();
-  const saud=hAgora<12?'Bom dia':(hAgora<18?'Boa tarde':'Boa noite');
-  const nome=String((currentUser||{}).nome||'').split(' ')[0]||'';
   const ts=mpTarDia(hoje), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
-  return '<div class="mp-topo">'+
-    '<div class="mp-saud">'+saud+', '+esc(nome)+'.<small>'+mpDataExt(hoje)+'</small></div>'+
-    (n.prev>0?'<div class="mp-anel" style="background:conic-gradient(var(--brand) 0 '+deg+'deg, var(--panel2) '+deg+'deg 360deg)">'+
-      '<div><div class="nv">'+mpNotaFmt(n.nota)+'</div><div class="lb">nota do dia</div><div class="xp">'+mpFmtN(n.feit)+'/'+n.prev+' feitos</div></div></div>':'')+
-    (n.nota===10&&n.prev>0?'<div class="mp-perf" style="justify-content:flex-start;margin-top:10px">'+svgIco('trofeu',14)+' Dia Perfeito</div>':'')+
-    '</div>'+
+  const pct=n.prev?Math.round(n.feit/n.prev*100):0;
+  const adi=window.__mpAdiadas||0;
+  return mpAgoraHTML(hoje,n,pend)+
+    (n.prev>0?'<div class="mp-linha"><div class="pb"><i style="width:'+pct+'%"></i></div><span>nota <b>'+mpNotaFmt(n.nota)+'</b> · <b>'+mpFmtN(n.feit)+' de '+n.prev+'</b> feitos</span></div>':'')+
+    (adi?'<div class="f1-aviso" style="margin:0 0 18px">\u21bb <span><b>'+adi+'</b> '+(adi===1?'demanda veio':'demandas vieram')+' de dias anteriores. O dia que ficou pra tr\u00e1s guarda a falha.</span></div>':'')+
     (MP.habitos.length?mpHabCards():mpZeroHTML())+
     '<div class="mp-sech" style="margin-top:26px">Tarefas de hoje · '+ts.length+'<button class="mp-add" onclick="mpIrTarNova()">+ Nova tarefa</button></div>'+
     (ts.length?pend.map(mpTarRow).join('')+feitas.map(mpTarRow).join(''):'<div class="hint">Nada pra hoje.</div>');
-    /* O KPI saiu daqui (Gabriel, 08/09): virou tela propria, igual no celular, aberta
-       pelo botao do grafico no topo. O Inicio volta a ser o dia, e so. */
+  /* KPI saiu do Inicio no PC (Gabriel 01/09): vive na tela propria, botao do grafico na barra de cima */
+}
+/* O cartao "Agora": o proximo habito na ordem do relogio que ainda nao fechou. Sem
+   habito pendente, a proxima tarefa. Tudo feito: o dia fechado, com a nota. */
+function mpAgoraHTML(hoje,n,pend){
+  const hs=mpPorHora(MP.habitos.filter(h=>mpProg(h,hoje)));
+  const hPend=hs.filter(h=>mpFrac(h,hoje)<1);
+  const falta=[];
+  if(hPend.length) falta.push(hPend.length+(hPend.length===1?' hábito':' hábitos'));
+  if(pend.length) falta.push(pend.length+(pend.length===1?' tarefa':' tarefas'));
+  const faltaTxt=falta.length?'faltam '+falta.join(' e '):'';
+  /* o que ja esta em andamento (etapas marcadas) vem antes do proximo pela hora */
+  const prox=hPend.find(h=>mpFrac(h,hoje)>0)||hPend[0];
+  if(prox){
+    const fr=mpFrac(prox,hoje), et=mpEtapas(prox), deg=Math.round(fr*360), cor=esc(prox.cor||'#a78bfa');
+    const sub=et.length?(Math.round(fr*et.length)+' de '+et.length+' etapas'):(mpHoraDe(prox)?'às '+mpHoraDe(prox):'hoje');
+    return '<div class="mp-agora">'+
+      '<div class="mp-ag-ic" style="background:conic-gradient('+cor+' 0 '+deg+'deg,var(--panel2) '+deg+'deg 360deg)"><i style="color:'+cor+'">'+mpIco(prox.icone,20)+'</i></div>'+
+      '<div><div class="k">Agora · próximo hábito</div><h3 onclick="mpHabAbrir(\''+prox.id+'\',\''+hoje+'\')">'+esc(prox.nome||'')+'</h3><p>'+esc(sub)+(faltaTxt?' · '+esc(faltaTxt):'')+'</p></div>'+
+      '<button type="button" class="mp-ag-ok" title="Marcar feito" onclick="mpCheck(\''+prox.id+'\',\''+hoje+'\')">'+svgIco('check',22)+'</button>'+
+      '</div>';
+  }
+  const t=pend[0];
+  if(t){
+    const na=mpAdiadaN(t);
+    return '<div class="mp-agora">'+
+      '<div class="mp-ag-ic"><i style="color:var(--brand2)">'+MP_TARICO+'</i></div>'+
+      '<div><div class="k">Agora · próxima tarefa</div><h3 onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+(na?'<span class="mp-adi">adiada '+na+'\u00d7</span>':'')+'</h3><p>'+(mpHoraDe(t)?'às '+mpHoraDe(t):'hoje')+(faltaTxt?' · '+esc(faltaTxt):'')+'</p></div>'+
+      '<button type="button" class="mp-ag-ok" title="Concluir" onclick="mpTarVirar(\''+t.id+'\')">'+svgIco('check',22)+'</button>'+
+      '</div>';
+  }
+  if(n.prev>0) return '<div class="mp-agora feito">'+
+      '<div class="mp-ag-ic"><i>'+svgIco('trofeu',22)+'</i></div>'+
+      '<div><div class="k">Dia fechado</div><h3 style="cursor:default">'+(n.nota===10?'Dia Perfeito.':'Tudo o que estava previsto, feito.')+'</h3><p>nota '+mpNotaFmt(n.nota)+' · '+mpFmtN(n.feit)+' de '+n.prev+'</p></div>'+
+      '<span></span></div>';
+  return '';
 }
 
 /* ---------- aba Progresso ---------- */
@@ -13967,11 +14077,12 @@ function mpTarSub(t){
   if(tot) p.push(okn+' de '+tot+' etapas');
   return {sub:p.join(' · '),tot:tot,okn:okn,atr:!!(dia&&dia<hoje&&!mpFeita(t))};
 }
-function mpTarRow(t){ const f=mpFeita(t), d=mpTarSub(t);
+function mpTarRow(t){ const f=mpFeita(t), d=mpTarSub(t), na=mpAdiadaN(t);
   const fr=f?1:(d.tot?d.okn/d.tot:0), pct=Math.round(fr*100);
   return '<div class="mp-hab2 tar'+(f?' done':'')+(d.atr?' atr':'')+'">'+
     '<div class="mp-hic" style="color:'+(d.atr?'var(--danger)':'var(--brand2)')+'">'+MP_TARICO+'</div>'+
     '<div><div class="mp-hnm" onclick="mpTarCard(\''+t.id+'\')">'+esc(t.titulo||'')+
+      (na?'<span class="mp-adi" title="Era pra '+esc(fmtDate(mpAdiadaDias(t)[0]))+'">adiada '+na+'\u00d7</span>':'')+
       '<span class="mp-hmenu" onclick="event.stopPropagation();mpTarMenu(event,\''+t.id+'\')">⋯</span></div>'+
       '<div class="mp-hsub">'+esc(d.sub)+'</div></div>'+
     '<div class="mp-h2pct">'+(d.tot?d.okn+'/'+d.tot:'')+'</div>'+
