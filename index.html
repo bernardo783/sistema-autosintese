@@ -7811,7 +7811,44 @@ window.tkSetStatus=async (id,sid)=>{
   /* aviso agora nasce no banco (trg_ntf_tarefas): qualquer caminho conta, sem duplicar */
   if(ok) await lcSincronizarFicha(id,sid);
   if(ok&&sid===LC_CHURN) chPerguntarChurn(id);
+  if(ok&&String(sid)===ED_APROVADO) await edVideoParaTrafego(id);
 };
+/* ---------- Vídeo APROVADO -> demanda de tráfego (Gabriel, 10/09) ----------
+   O card do video FICA na linha editorial: ele e o historico do que a Maria produziu.
+   O que nasce e uma demanda nova em Marketing > Tráfego Pago > Campanhas, ja no
+   gestor e no squad do cliente, em Pendente, com o link do video final junto.
+   A editorial ja exige cliente, responsavel, entrega e squad pra criar o card,
+   entao aqui o dado chega completo — se faltar cliente, avisa e nao inventa card. */
+const CAMP_ID='cd04ad6e-0cd2-4838-b050-49fcfebafe05';
+const CAMP_PEND='4bcaa499-0d3b-4f7c-a371-44fcde20c3ca';
+const CAMP_GEST='23e19830-84d4-4fc1-be91-c6b8fceb1fbb';
+const ED_APROVADO='12788b6d-bdbd-4207-bc8d-b118c8ea7179';
+const ED_VIDEO='60f41d3f-0dd5-4700-90f1-87729c60808b';
+async function edVideoParaTrafego(id){
+  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id));
+  if(!t||String(t.lista_id)!==LISTA_EDICAO) return;
+  const marca='vid:'+t.id;
+  /* aprovar duas vezes (ou voltar e reaprovar) nao pode gerar duas demandas */
+  if((TK.tarefas||[]).some(x=>String(x.lista_id)===CAMP_ID&&String(((x.valores||{}).__origem)||'')===marca)) return;
+  const f=t.ficha_id?fichaDe(t.ficha_id):null;
+  if(!f){ toast('Vídeo sem cliente na ficha — a demanda de tráfego não foi aberta.'); return; }
+  const lc=(TK.tarefas||[]).find(x=>String(x.lista_id)===LC_ID&&String(x.ficha_id)===String(t.ficha_id));
+  const gest=(((lc&&lc.valores)||{})[LC_GEST])||dlAcharUser(f.responsavel)||'';
+  const squad=String(t.squad||f.squad||'')||null;
+  const link=String((t.valores||{})[ED_VIDEO]||'').trim();
+  const val={__origem:marca}; if(gest) val[CAMP_GEST]=gest;
+  if(link) val[ED_VIDEO]=link;   /* guarda o link junto, mesmo sem coluna propria em Campanhas */
+  const reg={titulo:'[VÍDEO] '+String(t.titulo||'').trim(),lista_id:CAMP_ID,ficha_id:t.ficha_id,
+    status_id:CAMP_PEND,status:'todo',prioridade:t.prioridade||'med',squad:squad,valores:val,
+    responsavel_id:gest||null,responsaveis:gest?[gest]:[],
+    descricao:'Vídeo aprovado na linha editorial.'+(link?('\nVídeo final: '+link):''),
+    criado_por:(currentUser||{}).id||null,ordem:(TK.tarefas||[]).length};
+  const {data,error}=await sb.from('tarefas').insert(reg).select().single();
+  if(error){ toast('Não consegui abrir a demanda de tráfego: '+error.message); return; }
+  TK.tarefas.push(data);
+  try{ spDesenhar(); }catch(_){}
+  toast(gest?('Demanda aberta em Campanhas para '+tkNomeUser(gest)+'.'):'Demanda aberta em Campanhas — falta o gestor.');
+}
 /* ---------- CHURN: marcou "8. CHURN" na Controle de Clientes -> pergunta e move ---------- */
 const CH_ID='c1000000-0000-4000-8000-000000000001';
 const CH_FIM='c1000000-0000-4000-8000-000000000014';
