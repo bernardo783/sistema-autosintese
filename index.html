@@ -2815,6 +2815,8 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span class="t">Fechamento</span></button>
     <button class="rl navlink hidden" data-view="contratos" id="navContratos" title="Contratos — puxa o formulário do cliente e gera o .docx">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span class="t">Contratos</span></button>
+    <button class="rl navlink hidden" data-view="leads" id="navLeads" title="Leads — quem preencheu o formulário da landing autosintese.app.br/ads">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/><circle cx="18" cy="6" r="3" fill="var(--brand)" stroke="none"/></svg><span class="t">Leads</span></button>
     <button class="rl navlink hidden" data-view="funil" id="navFunil" title="Comercial: pipeline, agenda e origem da receita">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg><span class="t">Comercial</span></button>
     <button class="rl navlink hidden" data-view="agente" id="navAgente" title="Agente IA — lojistas interessados (captação por QR code)">
@@ -3222,6 +3224,7 @@ async function enterApp(){
   /* Comercial (crm.js): master e quem tem papel no CRM (SDR, closer, gestor) */
   if(currentUser.papel_crm) show($('#navFunil'));
   if(podeContratos()){ show($('#navContratos')); } else { hide($('#navContratos')); } /* Contratos: master + comercial (José) */
+  if(podeContratos()){ show($('#navLeads')); } else { hide($('#navLeads')); }   /* Leads da landing: mesmo acesso de Contratos */
   tlAplicar();   /* tira da barra as telas que essa pessoa não tem */
   if(souGerente()){ show($('#navDaily')); show($('#navCarteira')); } else { hide($('#navDaily')); hide($('#navCarteira')); } /* Daily: só master e gerentes (regra do Gabriel, 10/08) */
   try{ await tkCarregar(); }catch(e){}
@@ -3465,6 +3468,10 @@ function render(view){
   if(view==='contratos'){
     if(!podeContratos()){ c.innerHTML='<div class="empty">Acesso restrito.</div>'; return; }
     return renderContratos(c);
+  }
+  if(view==='leads'){
+    if(!podeContratos()){ c.innerHTML='<div class="empty">Acesso restrito.</div>'; return; }
+    return renderLeads(c);
   }
   if(tlBloqueada(view)){ c.innerHTML='<div class="empty">Esta tela não faz parte do seu acesso.</div>'; return; }
   if(view==='acessos') return renderAcessos(c);
@@ -12932,6 +12939,88 @@ async function ctCarregarLeads(){
     contratante_razao:r.razao_social||'', contratante_cnpj:r.cnpj||'', contratante_endereco:r.endereco||'',
     rep_cargo:'', rep_nome:r.representante||'', rep_rg:r.rg||'', rep_cpf:r.cpf||'', rep_nascimento:r.nascimento||'',
     contratante_tel:r.telefone||'', contratante_email:r.email||''}}));
+}
+/* ---------- Leads da landing autosintese.app.br/ads ----------
+   O formulario "Quero acelerar" grava em ads_leads (edge function lead-ads). Aqui e a caixa
+   de entrada: mesmo desenho dos lojistas do Agente IA, mesmo acesso de Contratos. */
+const LD={leads:[],carregou:false,erro:'',filtro:'abertos'};
+const LD_STATUS={novo:['Novo','var(--info)'],contatado:['Contatado','var(--brand2)'],fechado:['Fechou','var(--ok)'],descartado:['Descartado','var(--muted)']};
+const LD_URL='https://autosintese.app.br/ads/';
+async function ldCarregar(){
+  try{ const {data,error}=await sb.from('ads_leads').select('*').order('criado_em',{ascending:false}); if(error) throw error;
+    LD.leads=data||[]; LD.erro=''; }
+  catch(e){ LD.leads=[]; LD.erro=(e&&e.message)||'falha ao carregar'; }
+  LD.carregou=true;
+}
+window.ldFiltro=(f)=>{ LD.filtro=f; renderLeads($('#content')); };
+window.ldStatus=async(id,st)=>{
+  const {error}=await sb.from('ads_leads').update({status:st,atualizado_em:new Date().toISOString(),atualizado_por:currentUser.id}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const l=LD.leads.find(x=>x.id===id); if(l) l.status=st; renderLeads($('#content'));
+};
+window.ldObs=async(id,el)=>{
+  const obs=(el.value||'').trim();
+  const {error}=await sb.from('ads_leads').update({obs:obs||null,atualizado_em:new Date().toISOString(),atualizado_por:currentUser.id}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  const l=LD.leads.find(x=>x.id===id); if(l) l.obs=obs;
+};
+window.ldExcluir=async(id)=>{
+  const l=LD.leads.find(x=>x.id===id);
+  const ok=await confirmar('Excluir o lead "'+((l||{}).nome||'')+'"?','Some de vez. Se só quer tirar da lista, marque como Descartado.',{sim:'Excluir',nao:'Não',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('ads_leads').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  LD.leads=LD.leads.filter(x=>x.id!==id); renderLeads($('#content'));
+};
+window.ldCopiar=()=>{ try{ navigator.clipboard.writeText(LD_URL); toast('Link copiado.'); }catch(_){ prompt('Copie o link:',LD_URL); } };
+function renderLeads(c){
+  if(!LD.carregou){ c.innerHTML='<div class="empty">Carregando leads…</div>'; ldCarregar().then(()=>{ if(currentView==='leads') renderLeads($('#content')); }); return; }
+  const L=LD.leads, n=(s)=>L.filter(x=>x.status===s).length;
+  const abertos=L.filter(x=>x.status==='novo'||x.status==='contatado');
+  const lista=LD.filtro==='abertos'?abertos:LD.filtro==='todos'?L:L.filter(x=>x.status===LD.filtro);
+  const tab=(f,r,q)=>`<button class="ftab ${LD.filtro===f?'active':''}" onclick="ldFiltro('${f}')">${r}${q!==undefined?` <span class="fbad">${q}</span>`:''}</button>`;
+  const quando=(iso)=>{ if(!iso) return ''; const d=new Date(iso); return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+  const utmTxt=(u)=>{ if(!u||typeof u!=='object') return ''; const p=[u.utm_source,u.utm_campaign].filter(Boolean); return p.length?p.join(' · '):(u.fbclid?'Meta Ads':''); };
+  const item=(l)=>{ const st=LD_STATUS[l.status]||LD_STATUS.novo; const wa=agWa(l.whatsapp);
+    const ig=String(l.instagram||'').replace(/^@+/,'');
+    return `<div class="ag-lead">
+      <div class="ag-l1">
+        <div class="ag-nome"><strong>${esc(l.nome)}</strong>${l.cargo?` <span class="ag-loja">· ${esc(l.cargo)}</span>`:''}</div>
+        <span class="tag" style="color:${st[1]};background:color-mix(in srgb,${st[1]} 16%,transparent)">${st[0]}</span>
+      </div>
+      <div class="ag-l2">
+        ${wa?`<a class="ag-wa" href="${wa}?text=${encodeURIComponent('Olá, '+String(l.nome||'').split(' ')[0]+'! Aqui é da AutoSíntese. Vi que você preencheu o formulário e quer acelerar as vendas da loja.')}" target="_blank" rel="noopener">💬 ${esc(l.whatsapp)}</a>`:esc(l.whatsapp||'')}
+        ${ig?`<a class="ag-chip" href="https://www.instagram.com/${encodeURIComponent(ig)}/" target="_blank" rel="noopener" style="text-decoration:none">@${esc(ig)}</a>`:''}
+        ${utmTxt(l.utm)?`<span class="ag-chip">${esc(utmTxt(l.utm))}</span>`:''}
+        <span class="ag-dt">${quando(l.criado_em)}</span>
+      </div>
+      <div class="ag-l3">
+        <div class="ag-acoes">
+          ${Object.keys(LD_STATUS).filter(k=>k!==l.status).map(k=>`<button class="btn ghost small" onclick="ldStatus('${l.id}','${k}')">${LD_STATUS[k][0]}</button>`).join('')}
+          ${currentUser.role==='master'?`<button class="iconbtn del" title="Excluir de vez" onclick="ldExcluir('${l.id}')">&times;</button>`:''}
+        </div>
+        <input class="ag-obs" placeholder="Anotação (ex.: ligar quinta, pediu proposta)…" value="${esc(l.obs||'')}" maxlength="2000" onchange="ldObs('${l.id}',this)">
+      </div>
+    </div>`; };
+  c.innerHTML=`
+   <div class="page-head"><div><h2>Leads da landing</h2><div class="desc">Quem preencheu o formulário em <strong>${LD_URL.replace('https://','')}</strong> · cai aqui na hora</div></div>
+     <div class="toolbar">
+       <button class="btn secondary small" onclick="ldCopiar()">🔗 Copiar link da landing</button>
+       <a class="btn secondary small" href="${LD_URL}" target="_blank" rel="noopener">Abrir landing</a>
+       <button class="btn secondary small" onclick="LD.carregou=false;renderLeads(document.getElementById('content'))">Atualizar</button>
+     </div></div>
+   <div class="cards fn-topo" style="margin-bottom:14px">
+     <div class="card fn-card"><div class="k">Novos</div><div class="v" style="color:var(--info)">${n('novo')}</div><div class="sub">ninguém chamou ainda</div></div>
+     <div class="card fn-card"><div class="k">Contatados</div><div class="v" style="color:var(--brand2)">${n('contatado')}</div><div class="sub">em conversa</div></div>
+     <div class="card fn-card"><div class="k">Fecharam</div><div class="v" style="color:var(--ok)">${n('fechado')}</div><div class="sub">viraram cliente</div></div>
+     <div class="card fn-card"><div class="k">Total</div><div class="v">${L.length}</div><div class="sub">${n('descartado')} descartado${n('descartado')===1?'':'s'}</div></div>
+   </div>
+   ${LD.erro?`<div class="card" style="border-color:var(--danger);margin-bottom:12px">Não carregou: ${esc(LD.erro)}</div>`:''}
+   <div class="fin-tabs" style="margin-bottom:12px">
+     ${tab('abertos','Abertos',abertos.length)}${tab('novo','Novos',n('novo'))}${tab('contatado','Contatados',n('contatado'))}${tab('fechado','Fecharam',n('fechado'))}${tab('descartado','Descartados',n('descartado'))}${tab('todos','Todos',L.length)}
+   </div>
+   ${lista.length?lista.map(item).join(''):'<div class="empty">Nenhum lead aqui.</div>'}
+   <p class="hint">Clique no WhatsApp pra abrir a conversa já com a primeira mensagem escrita. Marque o status conforme avança; a anotação salva sozinha.</p>`;
 }
 /* Contratos: master (você) + comercial (o José, que fecha e gera os contratos). */
 function podeContratos(){ return !!currentUser && (currentUser.role==='master' || /comerc/i.test(currentUser.cargo||'')); }
