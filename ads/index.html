@@ -1,0 +1,263 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta property="og:title" content="AutoSíntese | Acelere suas vendas"><meta property="og:description" content="Anúncio, atendimento e agendamento pra sua loja de veículos. Preencha o formulário e entraremos em contato."><meta property="og:image" content="https://autosintese.app.br/ads/assets/logo-horizontal-preta-fundo.png"><meta property="og:url" content="https://autosintese.app.br/ads/"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoSíntese | Anúncio, atendimento e agendamento pra sua loja de veículos</title><meta name="description" content="Anúncio, atendimento e agendamento pra sua loja de veículos. Preencha o formulário e entraremos em contato.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="assets/simbolo-roxo.png">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+html{scroll-behavior:smooth}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+section{padding:88px 0;border-top:1px solid var(--line)}
+.sec-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.sec-head .kicker{margin-bottom:0}
+.sec-num{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--muted)}
+.hero{position:relative;overflow:hidden;background:#0A0A0A}
+.hero::before{content:"";position:absolute;top:0;bottom:0;right:0;width:46%;background:var(--grad-marca);clip-path:polygon(18% 0,100% 0,100% 100%,0 100%);pointer-events:none}
+.hero .linhas{inset:0 0 0 auto;width:46%;clip-path:polygon(18% 0,100% 0,100% 100%,0 100%)}
+.linhas{position:absolute;inset:-20%;background:repeating-linear-gradient(-30deg,transparent 0 26px,rgba(255,255,255,.07) 26px 28px);pointer-events:none}
+.kicker{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--as-roxo);padding:4px 8px;border-radius:3px;margin-bottom:14px}
+h1,h2{text-wrap:pretty}
+h1{font-size:clamp(34px,4.6vw,60px)}
+h2{font-size:clamp(26px,3vw,40px)}
+.lt{font-weight:300}
+.lead{font-size:18px;line-height:1.5;color:var(--muted)}
+.hero .lead{color:rgba(255,255,255,.85)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.rail{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;scrollbar-width:none;margin:0 -24px;padding-left:24px;padding-right:24px}
+.rail::-webkit-scrollbar{display:none}
+.arw{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:var(--txt);display:grid;place-items:center;cursor:pointer;transition:all var(--dur) var(--ease)}
+.arw:hover{background:var(--brand);border-color:var(--brand);color:#fff}
+.arw:active{transform:scale(.96)}
+.rail>*{scroll-snap-align:start;flex:0 0 240px}
+.video{aspect-ratio:9/14;border-radius:18px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;position:relative;overflow:hidden}
+.video .play{width:56px;height:56px;border-radius:50%;background:var(--brand);display:grid;place-items:center;box-shadow:var(--shadow-roxa)}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.step{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.step .n{background:var(--as-roxo);color:#fff;font-size:34px;font-weight:800;letter-spacing:-.03em;padding:18px 22px 14px;line-height:1}
+.step>div:last-child{padding:22px 22px 26px}
+.step h3{font-size:19px;margin:0 0 10px;line-height:1.2}
+.step p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.step .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);color:var(--txt)}
+.marquee{overflow:hidden;mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.marquee .track{display:flex;gap:14px;width:max-content;animation:mq 36s linear infinite}
+.marquee.rev .track{animation-direction:reverse;animation-duration:30s}
+@keyframes mq{to{transform:translateX(-50%)}}
+.tile{width:150px;height:56px;border-radius:10px;padding:10px 16px;box-sizing:border-box;background:#fff;overflow:hidden;flex:none}
+.tile img{width:100%;height:100%;object-fit:contain;display:block}
+.faq details{border-top:1px solid var(--line);padding:16px 0}
+.faq details:last-child{border-bottom:1px solid var(--line)}
+.faq summary{cursor:pointer;font-weight:700;font-size:17px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.faq summary::after{content:"+";font-weight:300;font-size:26px;color:var(--as-roxo-claro)}
+.faq details[open] summary::after{content:"–"}
+.faq p{color:var(--muted);margin:10px 0 0;font-size:15px}
+select.sel{background:var(--bg-2);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:14px 20px;font-size:16px;font-family:var(--font);width:100%;appearance:none}
+.sticky{display:none}
+footer{border-top:1px solid rgba(255,255,255,.18);padding:36px 0 100px;color:var(--muted);font-size:13px;background:#000}
+.fade{opacity:0;transform:translateY(12px);animation:up .5s var(--ease) forwards}
+@keyframes up{to{opacity:1;transform:none}}
+.selo{display:inline-flex;align-items:center;gap:12px;padding:6px 20px 6px 6px;border-radius:999px;background:#fff;color:var(--as-roxo);font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 0 0 0 rgba(255,255,255,.6),0 14px 40px -12px rgba(0,0,0,.6);animation:selo 2.4s ease-out infinite}
+@keyframes selo{0%{box-shadow:0 0 0 0 rgba(255,255,255,.55),0 14px 40px -12px rgba(0,0,0,.6)}60%{box-shadow:0 0 0 12px rgba(255,255,255,0),0 14px 40px -12px rgba(0,0,0,.6)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0),0 14px 40px -12px rgba(0,0,0,.6)}}
+.speed{position:relative;display:inline-block;animation:dash .7s var(--ease) both}
+@keyframes dash{from{opacity:0;transform:translateX(-60px)}to{opacity:1;transform:none}}
+.speed .trail{position:absolute;right:calc(100% + 18px);height:.11em;border-radius:999px;background:linear-gradient(90deg,rgba(169,108,255,0) 0%,#A96CFF 45%,#fff 100%);box-shadow:0 0 18px rgba(169,108,255,.9);animation:trail 1.6s cubic-bezier(.2,.8,.2,1) infinite}
+.speed .trail:nth-child(1){top:18%;width:.9em;animation-delay:0s}
+.speed .trail:nth-child(2){top:46%;width:2.2em;animation-delay:.12s}
+.speed .trail:nth-child(3){top:74%;width:1.4em;animation-delay:.24s}
+@keyframes trail{0%{opacity:0;transform:translateX(-1.2em) scaleX(.2);transform-origin:right}25%{opacity:1}55%{opacity:1;transform:translateX(0) scaleX(1)}80%,100%{opacity:0;transform:translateX(.4em) scaleX(1)}}
+@media(max-width:900px){.speed .trail{right:calc(100% + 8px)}.speed .trail:nth-child(2){width:1.2em}.speed .trail:nth-child(1){width:.6em}.speed .trail:nth-child(3){width:.8em}}
+.topnav{display:flex;flex:1;margin-left:24px;font-size:14px;font-weight:600}
+.topnav a{flex:1;text-align:center;padding:8px 12px;border-left:1px solid rgba(255,255,255,.18);white-space:nowrap}
+nav{max-width:calc(54% - 40px)}
+@media(max-width:1100px){nav{max-width:100%}}
+.topnav a{color:rgba(255,255,255,.78);text-decoration:none;transition:color var(--dur) var(--ease)}
+.topnav a:hover{color:#fff;text-decoration:none}
+.pulse{animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(106,0,244,.7),var(--shadow-roxa)}70%{box-shadow:0 0 0 16px rgba(106,0,244,0),var(--shadow-roxa)}100%{box-shadow:0 0 0 0 rgba(106,0,244,0),var(--shadow-roxa)}}
+@media(min-width:901px){footer{padding-bottom:28px}}
+@media(max-width:1100px){
+  .hero-grid{grid-template-columns:1fr!important;gap:36px!important;padding:40px 0 64px!important}
+  .hero-grid #form{max-width:520px}
+}
+@media(max-width:900px){
+  section{padding:52px 0}
+  .steps{grid-template-columns:1fr;gap:12px;padding:24px 0}
+  .steps::before{display:none}
+  .step{border-left:0;grid-template-columns:48px 1fr}
+  .grid2,.grid4{grid-template-columns:1fr}
+  .hero-grid{grid-template-columns:1fr!important;gap:28px!important;padding:24px 0 40px!important}
+  .lead{font-size:16px}
+  .rail>*{flex-basis:78vw;max-width:300px}
+  .sticky{display:none;position:fixed;left:0;right:0;bottom:0;z-index:50;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,10,10,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+  .sticky button{width:100%;justify-content:center}
+  .desk{display:none!important}
+}
+</style></head><body><div id="root"></div>
+<script type="text/plain" id="app-src">
+const {Button,Tag,Card,Input}=NS;
+const I=({n,s=20})=><i data-lucide={n} style={{width:s,height:s}}></i>;
+const depo=[
+  {nome:'Diego',cargo:'Vendedor',loja:'@juliocabralautomoveis',insta:'https://www.instagram.com/juliocabralautomoveis/',video:'assets/depoimentos/julio-cabral.mp4',avatar:'assets/depoimentos/julio-cabral-avatar.png',poster:'assets/depoimentos/julio-cabral-poster-v3.png',txt:<>Diego, vendedor da <b>Julio Cabral Automóveis</b>, conta como a <b>Lara agendou a visita sozinha</b>. A cliente chegou na loja só pra retirar o carro.</>},
+  {nome:'Matheus',cargo:'Dono',loja:'@car4.oficial',insta:'https://www.instagram.com/car4.oficial/',video:'assets/depoimentos/car4.mp4',avatar:'assets/depoimentos/car4-avatar.png',poster:'assets/depoimentos/car4-poster.png',txt:<>Matheus, dono da <b>Car4</b>, pergunta a um cliente como foi ser atendido pela Lara: <b>agendado sem nenhuma interação humana</b>. E saiu com o carro.</>},
+  {nome:'Matheus',cargo:'Dono',loja:'@jrmotors',insta:'https://www.instagram.com/jrmotors/',video:'assets/depoimentos/jr-motors.mp4',avatar:'assets/depoimentos/jr-motors-avatar.png',poster:'assets/depoimentos/jr-motors-poster.png',txt:<>Matheus, dono da <b>JR Motors</b>, conta como as estratégias de marketing da AutoSíntese <b>aumentaram as vendas</b> da loja.</>},
+  {nome:'Vitor',cargo:'Dono',loja:'@newprimeautos',insta:'https://www.instagram.com/newprimeautos/',video:'assets/depoimentos/new-prime.mp4',avatar:'assets/depoimentos/new-prime-avatar.png',poster:'assets/depoimentos/new-prime-poster.png',txt:<>Vitor, dono da <b>New Prime Autos</b>, conta como os agendamentos chegam prontos pro time.</>},
+  {nome:'Marcius',cargo:'Vendedor',loja:'@inkarautomoveis',insta:'https://www.instagram.com/inkarautomoveis/',video:'assets/depoimentos/inkar.mp4',avatar:'assets/depoimentos/inkar-avatar.png',poster:'assets/depoimentos/inkar-poster.png',txt:<>Marcius, vendedor da <b>Inkar Automóveis</b>, conta como os agendamentos chegam prontos pra ele.</>},
+];
+const Apple=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-label="App Store"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.9-.8-3.1-.8C6 7.4 3.5 9.4 3.5 13.3c0 1.2.2 2.5.7 3.8.6 1.7 2.7 5.8 4.9 5.7 1.1 0 1.9-.8 3.4-.8 1.4 0 2.1.8 3.4.8 2.2 0 4.1-3.8 4.7-5.5-3-1.4-3.7-4.1-3.7-4.7ZM14.2 5.6c1.1-1.3.9-2.6.9-3-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-1 2.9 1 .1 2-.5 2.7-1.2Z"/></svg>;
+const Play=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-label="Google Play"><path d="M3.6 2.3c-.4.2-.6.6-.6 1.1v17.2c0 .5.2.9.6 1.1l9.6-9.7-9.6-9.7Zm11 8.3L5.8 1.8l10.4 6-1.6 2.8Zm0 2.8l1.6 2.8-10.4 6 8.8-8.8Zm5.7-2.6-2.9-1.7-1.9 2.9 1.9 2.9 2.9-1.7c.9-.5.9-1.9 0-2.4Z"/></svg>;
+const Insta=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-label="Instagram"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>;
+const Face=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-label="Facebook"><path d="M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.4c-.3 0-1.3-.1-2.5-.1-2.5 0-4.1 1.5-4.1 4.2v2.3H7.4V14h2.8v8h3.3Z"/></svg>;
+const passos=[
+  ['Anúncios magnéticos no Meta Ads','Atraia público comprador.',<div style={{display:'flex',gap:14,marginTop:14,color:'var(--txt)',alignItems:'center'}}><span style={{background:'#fff',borderRadius:6,padding:'3px 8px',display:'flex',alignItems:'center'}}><img src="assets/portais/meta.png" alt="Meta" style={{height:14,display:'block'}}/></span><Insta/><Face/></div>],
+  ['Lead cai no CRM','Mobiauto, Webmotors e Mercado Livre em uma central só. Rodízio automático entre os vendedores.',<div style={{display:'flex',gap:14,marginTop:14,color:'var(--txt)',alignItems:'center'}}><Apple/><Play/><I n="monitor" s={18}/></div>],
+  ['A Lara agenda a visita','Nossa atendente com inteligência artificial responde em segundos, manda foto e preço e marca a visita na loja.',<div style={{display:'flex',gap:14,marginTop:14,color:'var(--txt)',alignItems:'center'}}><I n="bot" s={18}/><I n="message-circle" s={18}/></div>],
+  ['Acompanhamos os KPIs até a venda','Leads, agendamentos, visitas e vendas revisados com você todo mês. Suporte no WhatsApp e treinamento do time.',<div style={{display:'flex',gap:14,marginTop:14,color:'var(--txt)',alignItems:'center'}}><I n="bar-chart-3" s={18}/><I n="target" s={18}/></div>],
+];
+const portais=[['webmotors.png','Webmotors','#fff'],['olx.png','OLX','#6E0AD6'],['mercadolivre.png','Mercado Livre','#FFE600'],['napista.png','Na Pista','#fff'],['mobiauto.png','Mobiauto','#fff'],['meta.png','Meta','#fff']];
+const sistemas=[['bndv.png','BNDV','#fff'],['autoconf.png','Autoconf','#fff'],['altimus.jpg','Altimus','#fff'],['revendamais-crop.png','Revenda Mais','#fff'],['autocerto-crop.png','AutoCerto','#0F8BD6']];
+const faq=[
+  ['Vocês só atendem lojas de veículos?','Sim. A AutoSíntese trabalha exclusivamente com lojas de veículos seminovos: carros, motos e motos elétricas. O método e o sistema foram construídos sob medida pra esse mercado e validados em mais de 300 lojas ao longo de 3 anos. Você compra algo pronto, não algo a ser construído.'],
+  ['Vocês atendem lojas da minha região?','Sim. Temos clientes nos 26 estados do Brasil. Todo o trabalho é remoto: anúncio, CRM, suporte no WhatsApp e treinamento por videoconferência. A distância não é impedimento.'],
+  ['O Método AutoSíntese realmente dá resultado?','Sim. Os depoimentos acima são de lojas reais, e a base tem mais de 300 lojistas vendendo com o método todo mês.'],
+  ['Vocês são uma agência de marketing?','Não. Agência entrega apenas anúncio. A AutoSíntese entrega o processo inteiro: anúncio, lead no CRM, atendimento, agendamento e treinamento do time.'],
+  ['Preciso trocar de vendedores pra funcionar?','Não. O Método AutoSíntese funciona com o time que você já tem, mesmo que ele ainda não saiba vender.'],
+];
+function Video({d}){
+  const [on,setOn]=React.useState(false); const ref=React.useRef();
+  React.useEffect(()=>{if(on&&ref.current){ref.current.play();}},[on]);
+  return <div className="video" style={{cursor:'pointer'}} onClick={()=>!on&&setOn(true)}>
+    {on ? <video ref={ref} src={d.video} poster={d.poster} controls playsInline style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/> :
+    <><img src={d.poster} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',filter:'brightness(.7)'}}/><div className="play" style={{position:'relative'}}><I n="play" s={24}/></div></>}
+  </div>;
+}
+function Form({compact}){
+  const [ok,setOk]=React.useState(false);
+  const [fone,setFone]=React.useState('');
+  const [insta,setInsta]=React.useState('');
+  const mask=v=>{const d=v.replace(/\D/g,'').slice(0,11);if(d.length<=2)return d.length?'('+d:'';if(d.length<=6)return '('+d.slice(0,2)+') '+d.slice(2);if(d.length<=10)return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);};
+  const handle=v=>{const s=v.replace(/\s|@/g,'').replace(/[^a-zA-Z0-9._]/g,'').slice(0,30);return s?'@'+s:'';};
+  if(ok) return <Card kicker="Recebido" title="Recebemos seus dados.">Entraremos em contato pelo WhatsApp.</Card>;
+  return <form onSubmit={e=>{e.preventDefault();if(fone.replace(/\D/g,'').length<10)return;setOk(true);}} style={{background:'#0F0D14',border:'1px solid rgba(255,255,255,.12)',borderRadius:22,padding:28,display:'flex',flexDirection:'column',gap:14,boxShadow:'0 40px 100px -30px rgba(0,0,0,.9)'}}>
+    <div><h3 style={{fontSize:20,marginBottom:4}}>Preencha o formulário!</h3><span style={{fontSize:13,color:'var(--muted)'}}>Entraremos em contato.</span></div>
+    <Input label="Seu nome" placeholder="Seu nome completo" autoComplete="name" required/>
+    <Input label="WhatsApp (com DDD)" type="tel" inputMode="numeric" placeholder="(11) 99999-9999" maxLength={15} value={fone} onChange={e=>setFone(mask(e.target.value))} autoComplete="tel" required/>
+    <Input label="Instagram da loja" placeholder="@sualoja" value={insta} onChange={e=>setInsta(handle(e.target.value))} autoCapitalize="none" required/>
+    <label style={{display:'flex',flexDirection:'column',gap:8}}><span style={{fontSize:13,fontWeight:700,letterSpacing:'.06em',textTransform:'uppercase',color:'var(--txt)'}}>Qual o seu cargo na loja?</span><select className="sel" required defaultValue=""><option value="" disabled>Selecionar</option><option>Proprietário</option><option>Gerente</option><option>Vendedor</option><option>Marketing</option></select></label>
+    <Button type="submit" size="lg" className="pulse" style={{justifyContent:'center'}}>QUERO ACELERAR <I n="arrow-right" s={18}/></Button>
+    <span style={{fontSize:12,color:'var(--muted)',textAlign:'center'}}>Seus dados servem só pra entrarmos em contato.</span>
+  </form>;
+}
+function App(){
+  React.useEffect(()=>{window.lucide&&lucide.createIcons();});
+  const go=()=>{const f=document.getElementById('form');if(f)window.scrollTo({top:f.getBoundingClientRect().top+window.scrollY-16,behavior:'smooth'});};
+  return <>
+    <header className="hero">
+      <div className="linhas"></div>
+      <div className="wrap" style={{position:'relative'}}>
+      <nav style={{display:'flex',alignItems:'center',padding:'22px 0 18px',borderBottom:'1px solid rgba(255,255,255,.14)'}}>
+        <img src="assets/logo-horizontal-branca.png" alt="AutoSíntese" style={{height:40}}/>
+        <div className="desk topnav">{[['#resultados','Depoimentos'],['#como','Como funciona?'],['#integracoes','Integrações']].map(([href,l])=><a key={href} href={href} onClick={e=>{e.preventDefault();const s=document.querySelector(href);if(s)window.scrollTo({top:s.getBoundingClientRect().top+window.scrollY-12,behavior:'smooth'});}}>{l}</a>)}</div>
+      </nav>
+      <div className="hero-grid" style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(300px,420px)',gap:48,alignItems:'center',padding:'56px 0 88px'}}>
+        <div className="fade">
+          <span className="kicker" style={{marginBottom:0}}>Só para lojas de veículos</span>
+          <h1 style={{marginTop:22,fontSize:'clamp(36px,4.2vw,58px)',lineHeight:1.02,letterSpacing:'-.03em',maxWidth:'100%',overflowWrap:'break-word'}}><span className="speed"><span className="trail"></span><span className="trail"></span><span className="trail"></span>Acelere suas vendas</span><br/><span style={{whiteSpace:'nowrap',display:'inline-block',color:'#fff',background:'var(--as-roxo)',padding:'.06em .26em .1em',lineHeight:1,marginTop:'.1em'}}>Método AutoSíntese</span></h1>
+          <p className="lead" style={{maxWidth:480,margin:'22px 0 30px',fontSize:18,color:'rgba(255,255,255,.88)'}}>Somos <b style={{color:'#fff',fontWeight:700}}>especialistas</b> em gerar vendas na sua loja utilizando <b style={{color:'#fff',fontWeight:700}}>marketing e tecnologia comercial</b>.</p>
+          <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:28}}>
+            <div style={{display:'flex'}}>{depo.map((d,i)=><img key={d.loja} src={d.avatar} alt="" style={{width:44,height:44,borderRadius:'50%',border:'2px solid #0A0A0A',marginLeft:i?-12:0,objectFit:'cover',background:'#000'}}/>)}</div>
+            <div style={{fontSize:15,lineHeight:1.3}}><b style={{color:'#fff',fontSize:16}}>+ de 300 lojas</b><br/><span style={{color:'rgba(255,255,255,.75)'}}>já estão conosco</span></div>
+          </div>
+          <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}>
+            <Button size="lg" className="pulse" onClick={go}><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.4.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>QUERO ACELERAR</Button>
+          </div>
+        </div>
+        <div id="form" className="fade" style={{animationDelay:'.1s'}}><Form/></div>
+      </div>
+    </div></header>
+
+    <section id="resultados" style={{background:'var(--bg-2)'}}><div className="wrap">
+            <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:24,marginBottom:28}}>
+        <h2 style={{maxWidth:760,color:'#fff'}}><b>Clientes com resultado.</b> <span className="lt">Isso é o Método AutoSíntese.</span></h2>
+        <div className="desk" style={{display:'flex',gap:8,flex:'none',paddingBottom:6}}>
+          <button aria-label="Anterior" onClick={()=>{const r=document.getElementById('rail');r&&r.scrollBy({left:-r.clientWidth*.8,behavior:'smooth'});}} className="arw"><I n="chevron-left" s={22}/></button>
+          <button aria-label="Próximo" onClick={()=>{const r=document.getElementById('rail');r&&r.scrollBy({left:r.clientWidth*.8,behavior:'smooth'});}} className="arw"><I n="chevron-right" s={22}/></button>
+        </div>
+      </div>
+      <div className="rail" id="rail">{depo.map(d=><div key={d.loja} style={{display:'flex',flexDirection:'column',gap:12}}>
+        <Video d={d}/>
+        <a href={d.insta} target="_blank" rel="noopener" style={{display:'flex',alignItems:'center',gap:10,textDecoration:'none',color:'var(--txt)'}}>
+          <div style={{width:40,height:40,borderRadius:'50%',padding:2,background:'conic-gradient(from 200deg,#f9ce34,#ee2a7b,#6228d7,#f9ce34)',flex:'none'}}><img src={d.avatar} alt="" style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover',display:'block'}}/></div>
+          <div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:13,lineHeight:1.2,wordBreak:'break-all'}}>{d.loja.replace('@','')}</div><div style={{fontSize:12,color:'var(--muted)'}}>{d.nome} · {d.cargo}</div></div>
+        </a>
+        <p style={{margin:0,color:'var(--muted)',fontSize:14}}>{d.txt}</p>
+      </div>)}</div>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginTop:14,fontSize:13,color:'var(--muted)'}}><I n="move-horizontal" s={16}/>Arraste pro lado pra ver mais depoimentos</div>
+    </div></section>
+
+    <section id="como"><div className="wrap">
+            <h2 style={{maxWidth:760,marginBottom:48}}>Do anúncio à visita na loja, <span className="lt">em 4 passos.</span></h2>
+      <div className="steps">{passos.map(([t,d,extra],i)=><div key={i} className="step">
+        <div className="n">{String(i+1).padStart(2,'0')}</div>
+        <div><h3 style={{display:'flex',alignItems:'center',gap:8}}>{t}</h3><p>{d}</p>{extra}</div>
+      </div>)}</div>
+    </div></section>
+
+    <section id="integracoes" style={{overflow:'hidden',background:'var(--bg-2)'}}><div className="wrap">
+            <h2 style={{maxWidth:760,marginBottom:12}}><b>Integrado com os portais</b> <span className="lt">e com o sistema que sua loja já usa.</span></h2>
+      <p className="lead" style={{maxWidth:640,fontSize:16,marginBottom:36}}>O lead que vem do portal cai direto no CRM. Seu estoque, com fotos e ficha técnica, é puxado do integrador: você não cadastra carro de novo.</p>
+      <div className="kicker" style={{marginBottom:16}}>Portais homologados</div>
+      <div className="marquee" style={{margin:'0 -24px',padding:'0 24px'}}><div className="track">{[...portais,...portais,...portais].map(([f,n,bg],i)=><div key={i} className="tile" title={n} style={{background:bg,width:180,height:68}}><img src={'assets/portais/'+f} alt={n}/></div>)}</div></div>
+      <div className="kicker" style={{margin:'36px 0 16px'}}>Integradores parceiros</div>
+      <div className="marquee rev" style={{margin:'0 -24px',padding:'0 24px'}}><div className="track">{[...sistemas,...sistemas,...sistemas,...sistemas].map(([f,n,bg],i)=><div key={i} className="tile" title={n} style={{background:bg,width:180,height:68}}><img src={'assets/integracoes/'+f} alt={n}/></div>)}</div></div>
+    </div></section>
+
+    <section id="time"><div className="wrap grid2" style={{alignItems:'center'}}>
+      <div style={{position:'relative',borderRadius:20,overflow:'hidden',border:'1px solid var(--line)',aspectRatio:'4/3'}}><img src="assets/fotos/time.jpg" alt="Time AutoSíntese" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/></div>
+      <div>
+        <div className="sec-head"><div className="kicker">Quem cuida da sua loja?</div></div>
+        <h2><b>Uma assessoria com propósito.</b> <span className="lt">Marketing e tecnologia são o meio.</span> <b style={{color:'#fff'}}>Venda é o fim.</b></h2>
+        <p className="lead" style={{marginTop:16}}>A AutoSíntese <b style={{color:'var(--txt)'}}>não entrega ferramenta e vai embora</b>. Fica do seu lado até a engrenagem da loja virar sozinha: <b style={{color:'var(--txt)'}}>carro anunciado, cliente atendido, visita marcada, venda fechada.</b></p>
+        <div style={{marginTop:28}}><Button size="lg" className="pulse" onClick={go}>QUERO ACELERAR</Button></div>
+
+      </div>
+    </div></section>
+
+    <section id="faq" style={{background:'var(--bg-2)'}}><div className="wrap" style={{maxWidth:760}}>
+            <h2 style={{marginBottom:20}}>Ficou com dúvida? <span className="lt">Talvez ela esteja aqui.</span></h2>
+            <div className="faq">{faq.map(([q,a])=><details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div>
+      <div style={{marginTop:32,display:'flex',gap:12,flexWrap:'wrap'}}><Button size="lg" className="pulse" onClick={go}>QUERO ACELERAR</Button></div>
+    </div></section>
+
+    <footer><div className="wrap">
+      <div style={{display:'flex',alignItems:'center',gap:28,flexWrap:'wrap',paddingBottom:20,borderBottom:'1px solid var(--line)'}}>
+        <img src="assets/logo-horizontal-branca.png" alt="AutoSíntese" style={{height:30}}/>
+        <div style={{display:'flex',gap:24,marginLeft:'auto',fontSize:14,fontWeight:600,flexWrap:'wrap'}}>{[['#resultados','Depoimentos'],['#como','Como funciona?'],['#integracoes','Integrações'],['#time','Time'],['#faq','Perguntas frequentes']].map(([href,l])=><a key={href} href={href} style={{color:'rgba(255,255,255,.85)'}}>{l}</a>)}</div>
+      </div>
+      <div style={{paddingTop:16}}>2026 © AutoSíntese. Todos os direitos reservados</div>
+    </div></footer>
+    <div className="sticky"><Button size="lg" className="pulse" onClick={go}>QUERO ACELERAR</Button></div>
+  </>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+(async()=>{
+  const rel='./';
+  let NS=window.AutoSintese||window.Autosintese||window.autosintese;
+  if(!NS){ NS={};
+    for(const n of ['Button','Tag','Card','Input','Nav']){
+      let src=await (await fetch(rel+'components/core/'+n+'.jsx?v='+Date.now())).text();
+      src=src.split('\n').filter(l=>!/^\s*import\s/.test(l)).join('\n').replace(/export function/g,'function'); if(n==='Nav') src='const {Button}=NS;\n'+src;
+      const code=Babel.transform('function __m(React,NS){'+src+'\nreturn '+n+';}',{presets:[['react',{runtime:'classic'}]]}).code;
+      NS[n]=new Function(code+'\nreturn __m;')()(React,NS);
+    }
+    window.AutoSintese=NS;
+  }
+  const app=Babel.transform(document.getElementById('app-src').textContent,{presets:[['react',{runtime:'classic'}]]}).code;
+  try{ new Function('React','ReactDOM','NS',app)(React,ReactDOM,NS); }
+  catch(e){ console.error('app', e); document.getElementById('root').textContent=String(e); }
+})().catch(e=>{console.error('load',e);document.getElementById('root').textContent=String(e);});
+</script>
+</body></html>
