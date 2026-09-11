@@ -202,7 +202,11 @@ function Form({compact}){
       const r=await fetch('https://fuieonexmdupupcsyowg.supabase.co/functions/v1/lead-ads',{method:'POST',headers:{'content-type':'application/json'},
         body:JSON.stringify({nome:fd.get('nome'),whatsapp:fone,instagram:insta,cargo:fd.get('cargo'),site:fd.get('site'),pagina:location.pathname,utm})});
       const j=await r.json().catch(()=>({}));
-      if(r.ok&&j.ok){setOk(true);try{window.fbq&&fbq('track','Lead');}catch(_){}}
+      if(r.ok&&j.ok){
+        // thank-you page: URL propria pra Meta e Google rastrearem a conversao. O Lead dispara la,
+        // uma vez so; a marca no sessionStorage evita contar de novo se a pessoa recarregar.
+        try{sessionStorage.setItem('as_lead',String(j.id||Date.now()));}catch(_){}
+        setOk(true); location.assign('obrigado/'); }
       else setErro('Não deu pra enviar. Confere o WhatsApp e tenta de novo.');
     }catch(_){setErro('Sem conexão. Tenta de novo em instantes.');}
     setEnviando(false);};
