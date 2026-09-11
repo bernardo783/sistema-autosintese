@@ -133,7 +133,15 @@ const {Button,Tag,Card,Input}=NS;
 const WHATS='5535984034438';
 const ZAP_URL='https://wa.me/'+WHATS+'?text='+encodeURIComponent('Olá! Vim pela página da AutoSíntese e quero acelerar as vendas da minha loja.');
 const ZapIcon=({s=28})=><svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.4.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>;
-const I=({n,s=20})=><i data-lucide={n} style={{width:s,height:s}}></i>;
+/* Icone montado pelo proprio React (svg via lucide.createElement). Antes o <i> era trocado por <svg>
+   por fora do React; na hora de desmontar o formulario (tela "Recebido") ou fechar o modal, o React
+   tentava remover um no que ja nao existia e a pagina quebrava. */
+const I=({n,s=20})=>{
+  const key=String(n||'').split('-').map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join('');
+  let html='';
+  try{ const L=window.lucide, ic=L&&L.icons&&L.icons[key]; if(ic) html=L.createElement(ic,{width:s,height:s}).outerHTML; }catch(_){}
+  return <span style={{display:'inline-flex',width:s,height:s,verticalAlign:'middle',flex:'none'}} dangerouslySetInnerHTML={{__html:html}}/>;
+};
 const depo=[
   {nome:'Diego',cargo:'Vendedor',loja:'@juliocabralautomoveis',insta:'https://www.instagram.com/juliocabralautomoveis/',video:'assets/depoimentos/julio-cabral.mp4',avatar:'assets/depoimentos/julio-cabral-avatar.png',poster:'assets/depoimentos/julio-cabral-poster-v3.png',txt:<>Diego, vendedor da <b>Julio Cabral Automóveis</b>, conta como a <b>Lara agendou a visita sozinha</b>. A cliente chegou na loja só pra retirar o carro.</>},
   {nome:'Matheus',cargo:'Dono',loja:'@car4.oficial',insta:'https://www.instagram.com/car4.oficial/',video:'assets/depoimentos/car4.mp4',avatar:'assets/depoimentos/car4-avatar.png',poster:'assets/depoimentos/car4-poster.png',txt:<>Matheus, dono da <b>Car4</b>, pergunta a um cliente como foi ser atendido pela Lara: <b>agendado sem nenhuma interação humana</b>. E saiu com o carro.</>},
@@ -203,7 +211,6 @@ function Form({compact}){
   </form>;
 }
 function App(){
-  React.useEffect(()=>{window.lucide&&lucide.createIcons();});
   const [modal,setModal]=React.useState(false);
   React.useEffect(()=>{document.body.style.overflow=modal?'hidden':'';const k=e=>e.key==='Escape'&&setModal(false);window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);},[modal]);
   const go=()=>{if(window.matchMedia('(max-width:900px)').matches){setModal(true);return;}const f=document.getElementById('form');if(f)window.scrollTo({top:f.getBoundingClientRect().top+window.scrollY-16,behavior:'smooth'});};
