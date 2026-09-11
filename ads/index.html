@@ -68,8 +68,9 @@ footer{border-top:1px solid rgba(255,255,255,.18);padding:36px 0 100px;color:var
 .speed .trail:nth-child(2){top:46%;width:2.2em;animation-delay:.12s}
 .speed .trail:nth-child(3){top:74%;width:1.4em;animation-delay:.24s}
 @keyframes trail{0%{opacity:0;transform:translateX(-1.2em) scaleX(.2);transform-origin:right}25%{opacity:1}55%{opacity:1;transform:translateX(0) scaleX(1)}80%,100%{opacity:0;transform:translateX(.4em) scaleX(1)}}
-@media(max-width:900px){.speed .trail{display:none}.speed{animation:none;position:relative;padding-bottom:.18em}.speed::after{content:"";position:absolute;left:0;bottom:0;height:4px;width:0;border-radius:2px;background:var(--as-roxo);animation:risco .7s var(--ease) .2s forwards}}
+@media(max-width:900px){.speed .trail{display:none}.speed{animation:none;position:relative;padding-bottom:.18em}.speed::after{content:"";position:absolute;left:0;bottom:0;height:4px;width:0;border-radius:2px;background:linear-gradient(90deg,var(--as-roxo) 0%,var(--as-roxo) 38%,#fff 50%,var(--as-roxo) 62%,var(--as-roxo) 100%);background-size:250% 100%;box-shadow:0 0 12px rgba(169,108,255,.7);animation:risco .7s var(--ease) .2s forwards,brilho 1.5s linear .9s infinite}}
 @keyframes risco{to{width:2.2em}}
+@keyframes brilho{from{background-position:125% 0}to{background-position:-125% 0}}
 .topnav{display:flex;flex:1;margin-left:24px;font-size:14px;font-weight:600}
 .topnav a{flex:1;text-align:center;padding:8px 12px;border-left:1px solid rgba(255,255,255,.18);white-space:nowrap}
 nav{max-width:calc(54% - 40px)}
