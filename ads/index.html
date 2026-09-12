@@ -224,7 +224,7 @@ function Form({compact}){
     <label style={{display:'flex',flexDirection:'column',gap:8}}><span style={{fontSize:13,fontWeight:700,letterSpacing:'.06em',textTransform:'uppercase',color:'var(--txt)'}}>Qual o seu cargo na loja?</span><select className="sel" name="cargo" required defaultValue=""><option value="" disabled>Selecionar</option><option>Proprietário</option><option>Gerente</option><option>Vendedor</option><option>Marketing</option></select></label>
     <input type="text" name="site" tabIndex={-1} autoComplete="off" style={{position:'absolute',left:-9999,opacity:0,height:0}} aria-hidden="true"/>
     {erro&&<span style={{fontSize:13,color:'#f87171'}}>{erro}</span>}
-    <Button type="submit" size="lg" className="pulse" disabled={enviando} style={{justifyContent:'center',opacity:enviando?.7:1}}>{enviando?'ENVIANDO…':<>QUERO ACELERAR <I n="arrow-right" s={18}/></>}</Button>
+    <Button type="submit" size="lg" className="pulse" disabled={enviando} style={{justifyContent:'center',opacity:enviando?.7:1}}>{enviando?'ENVIANDO…':<>ENVIAR FORMULÁRIO <I n="arrow-right" s={18}/></>}</Button>
     <span style={{fontSize:12,color:'var(--muted)',textAlign:'center'}}>Seus dados servem só pra entrarmos em contato.</span>
   </form>;
 }
