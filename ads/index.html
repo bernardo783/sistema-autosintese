@@ -203,7 +203,8 @@ function Form({compact}){
     setEnviando(true);setErro('');
     try{
       const r=await fetch('https://fuieonexmdupupcsyowg.supabase.co/functions/v1/lead-ads',{method:'POST',headers:{'content-type':'application/json'},
-        body:JSON.stringify({nome:fd.get('nome'),whatsapp:fone,instagram:insta,cargo:fd.get('cargo'),site:fd.get('site'),pagina:location.pathname,utm})});
+        body:JSON.stringify({nome:fd.get('nome'),whatsapp:fone,instagram:insta,cargo:fd.get('cargo'),site:fd.get('site'),pagina:location.pathname,url:location.href,utm,
+          fbp:(document.cookie.match(/(?:^|; )_fbp=([^;]+)/)||[])[1]||'', fbc:(document.cookie.match(/(?:^|; )_fbc=([^;]+)/)||[])[1]||''})});
       const j=await r.json().catch(()=>({}));
       if(r.ok&&j.ok){
         // thank-you page: URL propria pra Meta e Google rastrearem a conversao. O Lead dispara la,
