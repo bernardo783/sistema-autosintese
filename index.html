@@ -12993,6 +12993,10 @@ function renderLeads(c){
         ${wa?`<a class="ag-wa" href="${wa}?text=${encodeURIComponent('Olá, '+String(l.nome||'').split(' ')[0]+'! Aqui é da AutoSíntese. Vi que você preencheu o formulário e quer acelerar as vendas da loja.')}" target="_blank" rel="noopener">💬 ${esc(l.whatsapp)}</a>`:esc(l.whatsapp||'')}
         ${ig?`<a class="ag-chip" href="https://www.instagram.com/${encodeURIComponent(ig)}/" target="_blank" rel="noopener" style="text-decoration:none">@${esc(ig)}</a>`:''}
         ${utmTxt(l.utm)?`<span class="ag-chip">${esc(utmTxt(l.utm))}</span>`:''}
+        ${l.whats?(l.whats.ok
+          ?`<span class="ag-chip" style="color:var(--ok)" title="Mensagem automática enviada pelo WhatsApp do Kennedy (UAZAPI)">✓ msg automática ${l.whats.quando?quando(l.whats.quando).slice(11):''}</span>`
+          :`<span class="ag-chip" style="color:var(--danger)" title="${esc(l.whats.erro||l.whats.motivo||'')}">✗ msg automática falhou</span>`)
+          :''}
         <span class="ag-dt">${quando(l.criado_em)}</span>
       </div>
       <div class="ag-l3">
@@ -13021,7 +13025,7 @@ function renderLeads(c){
      ${tab('abertos','Abertos',abertos.length)}${tab('novo','Novos',n('novo'))}${tab('contatado','Contatados',n('contatado'))}${tab('fechado','Fecharam',n('fechado'))}${tab('descartado','Descartados',n('descartado'))}${tab('todos','Todos',L.length)}
    </div>
    ${lista.length?lista.map(item).join(''):'<div class="empty">Nenhum lead aqui.</div>'}
-   <p class="hint">Clique no WhatsApp pra abrir a conversa já com a primeira mensagem escrita. Marque o status conforme avança; a anotação salva sozinha.</p>`;
+   <p class="hint">Todo lead novo recebe uma mensagem automática no WhatsApp pelo número do Kennedy uns 20 s depois de preencher — o selo verde mostra que saiu. Clique no WhatsApp pra continuar a conversa. Marque o status conforme avança; a anotação salva sozinha.</p>`;
 }
 /* Contratos: master (você) + comercial (o José, que fecha e gera os contratos). */
 function podeContratos(){ return !!currentUser && (currentUser.role==='master' || /comerc/i.test(currentUser.cargo||'')); }
