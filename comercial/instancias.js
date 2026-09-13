@@ -3,7 +3,7 @@
    O navegador nunca vê token: tudo passa pela função wa-uazapi com o login do usuário. */
 (function(){
   const URL_='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/wa-uazapi';
-  const IN={lista:[],envio:'',erro:'',carregou:false,carregando:false,qr:null,qrNome:'',qrTimer:null,ativa:false};
+  const IN={lista:[],envio:'',servidor:'',erro:'',carregou:false,carregando:false,qr:null,qrNome:'',qrTimer:null,ativa:false};
   const $=(s)=>document.querySelector(s);
   const barra=(c)=>[...c.querySelectorAll('.fin-tabs')].find(t=>t.innerHTML.includes('crmAba('))||null;
   const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -20,7 +20,7 @@
   }
   async function carregar(){
     if(IN.carregando) return; IN.carregando=true;
-    try{ const d=await api('listar'); IN.lista=d.instancias||[]; IN.envio=d.envio||''; IN.erro=''; }
+    try{ const d=await api('listar'); IN.lista=d.instancias||[]; IN.envio=d.envio||''; IN.servidor=d.servidor||''; IN.erro=''; }
     catch(e){ IN.erro=e.message||'falha'; }
     IN.carregou=true; IN.carregando=false;
   }
@@ -46,7 +46,7 @@
       </div></div>`;
     return `${IN.erro?`<div class="crm-hint" style="color:var(--danger);margin:0 0 10px">${esc(IN.erro)}</div>`:''}
     <div class="crm-intg"><div class="crm-ic wide">
-      <div class="hd"><div class="lg" style="font-size:22px">📲</div><div><h4>Instâncias de WhatsApp (UAZAPI)</h4><div class="sub">Um número por SDR · ${on}/${L.length} conectado${L.length===1?'':'s'} · servidor autosintese001.uazapi.com</div></div>
+      <div class="hd"><div class="lg" style="font-size:22px">📲</div><div><h4>Instâncias de WhatsApp (UAZAPI)</h4><div class="sub">Um número por SDR · ${on}/${L.length} conectado${L.length===1?'':'s'}${IN.servidor?' · servidor '+esc(IN.servidor):''}</div></div>
         <div class="acts">${podeAdmin()?'<button class="btn small" onclick="instNova()">+ Nova instância</button>':''}<button class="btn secondary small" onclick="instRecarregar()" title="Recarregar">↻</button></div></div>
       ${L.length?L.map(linha).join(''):'<div class="crm-vazio">Nenhuma instância ainda. Crie uma e conecte o número pelo QR code.</div>'}
       <div class="crm-hint">Pra conectar: clique em <b>Conectar (QR)</b>, e no celular do SDR abra <b>WhatsApp › Dispositivos conectados › Conectar dispositivo</b> e aponte pro código. O número marcado como <b>envio da landing</b> é o que manda a primeira mensagem automática pra quem preenche o formulário em autosintese.app.br/ads.</div>
