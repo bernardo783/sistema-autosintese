@@ -1,6 +1,8 @@
 /* Comercial › Instâncias — números de WhatsApp na UAZAPI (QR code, status, envio da landing).
    Arquivo separado do crm.js de propósito: ele só acrescenta a aba, sem mexer no módulo.
-   O navegador nunca vê token: tudo passa pela função wa-uazapi com o login do usuário. */
+   O navegador nunca vê token: tudo passa pela função wa-uazapi com o login do usuário.
+   O servidor UAZAPI é compartilhado com o CRM do grupo: aqui não existe criar, apagar nem
+   desconectar número — isso derrubaria o número lá também. Só status, QR, teste e envio. */
 (function(){
   const URL_='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/wa-uazapi';
   const IN={lista:[],envio:'',servidor:'',erro:'',carregou:false,carregando:false,qr:null,qrNome:'',qrTimer:null,ativa:false};
@@ -35,42 +37,28 @@
       <div style="width:40px;height:40px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;overflow:hidden;flex:none">${i.foto?`<img src="${esc(i.foto)}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:18px">📱</span>'}</div>
       <div class="g"><b>${esc(i.name)}</b> ${i.dono?'· '+esc(fmtFone(i.dono)):''} ${i.perfil?`<span style="color:var(--muted)">· ${esc(i.perfil)}</span>`:''}
         ${i.envioLanding?'<span class="crm-badge info" title="É este número que manda a mensagem automática pro lead da landing /ads">envio da landing</span>':''}
-        <small>${i.conectado?'conectado':(i.status||'desconectado')}${i.ultimaQueda&&!i.conectado?' · caiu '+esc(quando(i.ultimaQueda))+(i.motivoQueda?' ('+esc(i.motivoQueda)+')':''):''}${i.nota?' · '+esc(i.nota):''}</small></div>
-      <span class="crm-badge ${i.conectado?'ok':'bad'}">${i.conectado?'conectado':'desconectado'}</span>
+        <small>${i.erro?esc(i.erro):(i.conectado?'conectado':(i.status||'desconectado'))}${i.ultimaQueda&&!i.conectado&&!i.erro?' · caiu '+esc(quando(i.ultimaQueda))+(i.motivoQueda?' ('+esc(i.motivoQueda)+')':''):''}${i.nomeUazapi&&i.nomeUazapi!==i.name?' · '+esc(i.nomeUazapi):''}</small></div>
+      <span class="crm-badge ${i.conectado?'ok':(i.erro?'warn':'bad')}">${i.conectado?'conectado':(i.erro?'erro':'desconectado')}</span>
       <div class="acts">
-        ${i.conectado
-          ?`<button class="btn secondary small" onclick="instTestar('${esc(i.name)}')">Testar</button><button class="btn secondary small" onclick="instDesconectar('${esc(i.name)}')">Desconectar</button>`
-          :`<button class="btn small" onclick="instConectar('${esc(i.name)}')">Conectar (QR)</button>`}
-        ${podeAdmin()&&!i.envioLanding?`<button class="btn secondary small" title="Usar este número na mensagem automática da landing" onclick="instEnvio('${esc(i.name)}')">Usar na landing</button>`:''}
-        ${podeAdmin()&&!i.envioLanding?`<button class="iconbtn del" title="Apagar instância" onclick="instApagar('${esc(i.name)}')">&times;</button>`:''}
+        ${i.erro?'':(i.conectado
+          ?`<button class="btn secondary small" onclick="instTestar('${esc(i.name)}')">Testar</button>`
+          :`<button class="btn small" onclick="instConectar('${esc(i.name)}')">Conectar (QR)</button>`)}
+        ${podeAdmin()&&!i.envioLanding&&!i.erro?`<button class="btn secondary small" title="Usar este número na mensagem automática da landing" onclick="instEnvio('${esc(i.name)}')">Usar na landing</button>`:''}
       </div></div>`;
     return `${IN.erro?`<div class="crm-hint" style="color:var(--danger);margin:0 0 10px">${esc(IN.erro)}</div>`:''}
     <div class="crm-intg"><div class="crm-ic wide">
       <div class="hd"><div class="lg" style="font-size:22px">📲</div><div><h4>Instâncias de WhatsApp (UAZAPI)</h4><div class="sub">Um número por SDR · ${on}/${L.length} conectado${L.length===1?'':'s'}${IN.servidor?' · servidor '+esc(IN.servidor):''}</div></div>
-        <div class="acts">${podeAdmin()?'<button class="btn small" onclick="instNova()">+ Nova instância</button>':''}<button class="btn secondary small" onclick="instRecarregar()" title="Recarregar">↻</button></div></div>
-      ${L.length?L.map(linha).join(''):'<div class="crm-vazio">Nenhuma instância ainda. Crie uma e conecte o número pelo QR code.</div>'}
-      <div class="crm-hint">Pra conectar: clique em <b>Conectar (QR)</b>, e no celular do SDR abra <b>WhatsApp › Dispositivos conectados › Conectar dispositivo</b> e aponte pro código. O número marcado como <b>envio da landing</b> é o que manda a primeira mensagem automática pra quem preenche o formulário em autosintese.app.br/ads.</div>
+        <div class="acts"><button class="btn secondary small" onclick="instRecarregar()" title="Recarregar">↻</button></div></div>
+      ${L.length?L.map(linha).join(''):'<div class="crm-vazio">Nenhum número cadastrado. Pra incluir um, o token da instância entra no cofre do servidor (peça ao administrador).</div>'}
+      <div class="crm-hint">Pra conectar: clique em <b>Conectar (QR)</b>, e no celular do SDR abra <b>WhatsApp › Dispositivos conectados › Conectar dispositivo</b> e aponte pro código. O número marcado como <b>envio da landing</b> é o que manda a primeira mensagem automática pra quem preenche o formulário em autosintese.app.br/ads. Esses números também atendem o CRM do grupo — por isso desconectar ou apagar só pelo painel da UAZAPI.</div>
     </div></div>`;
   }
 
   /* ---- ações ---- */
   window.instRecarregar=()=>{ IN.carregou=false; if(window.crmPintar) crmPintar(); carregar().then(()=>window.crmPintar&&crmPintar()); };
-  window.instNova=async()=>{
-    const nome=prompt('Nome da instância (ex.: kennedy, maria-sdr):',''); if(!nome) return;
-    try{ await api('criar',{name:nome}); toast('Instância criada. Agora conecte pelo QR.'); instRecarregar(); }catch(e){ toast('Erro: '+e.message); }
-  };
   window.instEnvio=async(name)=>{
     if(!confirm('Usar "'+name+'" pra mandar a mensagem automática da landing /ads?')) return;
     try{ await api('envio',{name}); toast('Landing agora envia por '+name+'.'); instRecarregar(); }catch(e){ toast('Erro: '+e.message); }
-  };
-  window.instApagar=async(name)=>{
-    const ok=window.confirmar?await confirmar('Apagar a instância "'+name+'"?','O número é desconectado e a instância some da UAZAPI.',{sim:'Apagar',nao:'Não',perigo:true}):confirm('Apagar "'+name+'"?');
-    if(!ok) return;
-    try{ await api('apagar',{name}); toast('Apagada.'); instRecarregar(); }catch(e){ toast('Erro: '+e.message); }
-  };
-  window.instDesconectar=async(name)=>{
-    if(!confirm('Desconectar o WhatsApp de "'+name+'"? As mensagens automáticas param até reconectar.')) return;
-    try{ await api('desconectar',{name}); toast('Desconectado.'); instRecarregar(); }catch(e){ toast('Erro: '+e.message); }
   };
   window.instTestar=async(name)=>{
     const num=prompt('Mandar mensagem de teste pra qual número? (com DDD)', ''); if(!num) return;
