@@ -13070,6 +13070,7 @@ function renderLeads(c){
      <div class="card fn-card"><div class="k">Novos</div><div class="v" style="color:var(--info)">${n('novo')}</div><div class="sub">ninguém chamou ainda</div></div>
      <div class="card fn-card"><div class="k">Contatados</div><div class="v" style="color:var(--brand2)">${n('contatado')}</div><div class="sub">em conversa</div></div>
      <div class="card fn-card"><div class="k">Fecharam</div><div class="v" style="color:var(--ok)">${n('fechado')}</div><div class="sub">viraram cliente</div></div>
+     <div class="card fn-card"><div class="k">Não enviaram</div><div class="v" style="color:#f0c869">${L.filter(x=>x.parcial).length}</div><div class="sub">preencheram e saíram</div></div>
      <div class="card fn-card"><div class="k">Total</div><div class="v">${L.length}</div><div class="sub">${n('descartado')} descartado${n('descartado')===1?'':'s'}</div></div>
    </div>
    ${LD.erro?`<div class="card" style="border-color:var(--danger);margin-bottom:12px">Não carregou: ${esc(LD.erro)}</div>`:''}
@@ -13077,7 +13078,9 @@ function renderLeads(c){
      ${tab('abertos','Abertos',abertos.length)}${tab('novo','Novos',n('novo'))}${tab('contatado','Contatados',n('contatado'))}${tab('fechado','Fecharam',n('fechado'))}${tab('descartado','Descartados',n('descartado'))}${tab('todos','Todos',L.length)}
    </div>
    ${lista.length?lista.map(item).join(''):'<div class="empty">Nenhum lead aqui.</div>'}
-   <p class="hint">Todo lead novo recebe uma mensagem automática no WhatsApp pelo número do Kennedy uns 20 s depois de preencher — o selo verde mostra que saiu. Clique no WhatsApp pra continuar a conversa. Marque o status conforme avança; a anotação salva sozinha.</p>`;
+   <p class="hint">Todo lead novo recebe uma mensagem automática no WhatsApp uns 20 s depois de preencher, revezando entre Kennedy e Luana — o selo verde mostra por quem saiu.
+     Quem aparece como <b>não enviou</b> digitou o WhatsApp na landing e saiu antes de apertar Enviar formulário: esses recebem, 3 minutos depois, um texto mais leve de retomada.
+     Clique no WhatsApp pra continuar a conversa. Marque o status conforme avança; a anotação salva sozinha.</p>`;
 }
 /* Contratos: master (você) + comercial (o José, que fecha e gera os contratos). */
 function podeContratos(){ return !!currentUser && (currentUser.role==='master' || /comerc/i.test(currentUser.cargo||'')); }
