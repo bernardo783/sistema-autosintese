@@ -1457,7 +1457,8 @@
   .rc-leg{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);
     margin-top:5px;font-variant-numeric:tabular-nums;gap:10px}
   .rc-leg b{color:var(--txt);font-weight:700}
-  .rc-prazo{text-align:right;min-width:130px}
+  .rc-prazo{text-align:right;min-width:130px;background:none;border:1px solid transparent;border-radius:8px;padding:4px 8px;cursor:pointer;font:inherit;color:inherit}
+.rc-prazo:hover{border-color:var(--line);background:var(--panel2)}
   .rc-prazo .d{font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums}
   .rc-prazo .q{font-size:11px;margin-top:2px}
   /* Linha do tempo do combinado, na ficha do cliente */
@@ -12266,8 +12267,9 @@ function rcBlocoEntradas(R,comp){
         <div class="rc-trilho"><div class="rc-fill" style="width:${pc}%"></div></div>
         <div class="rc-leg"><span><b>${brl(pago)}</b> em ${fmtDate(r.sinalEm)}</span><span>de ${brl(tot)}</span></div>
       </div>
-      <div class="rc-prazo"><div class="d" style="color:${pz.cor}">${brl(resta)}</div>
-        <div class="q" style="color:${pz.cor}">${esc(pz.txt)}${rcRestVenc(r)?' · '+fmtDate(rcRestVenc(r)):''}</div></div>
+      <button class="rc-prazo" onclick="rcRestanteData('${cli.id}')" title="Mudar a data combinada do restante">
+        <div class="d" style="color:${pz.cor}">${brl(resta)}</div>
+        <div class="q" style="color:${pz.cor}">${esc(pz.txt)}${r.restanteVenc?' · '+fmtDate(r.restanteVenc):''}</div></button>
       <button class="btn small" onclick="rcStatusCli('${cli.id}','recebido')">Recebi o restante</button>
     </div>`;
   };
@@ -12275,8 +12277,8 @@ function rcBlocoEntradas(R,comp){
     <div class="rc-bh">💰 Entradas em aberto
       <span class="rc-cnt">${lista.length} cliente${lista.length===1?'':'s'} · ${brl(totalResta)} a receber</span></div>
     ${lista.map(linha).join('')}
-    <p class="hint" style="margin:12px 0 0">Ao marcar o restante como recebido, o dia daquele pagamento
-      vira o dia de vencimento do cliente e a mensalidade cheia passa a correr do mês seguinte.</p>
+    <p class="hint" style="margin:12px 0 0">Clique no valor que falta para mudar a data combinada. Ao marcar o restante
+      como recebido, o dia daquele pagamento vira o dia de vencimento do cliente e a mensalidade cheia passa a correr do mês seguinte.</p>
   </div>`;
 }
 function renderRecebimentos(c){
@@ -12519,6 +12521,57 @@ window.openCliModal=(id)=>{
     }catch(_){ }
   },60);
 };
+/* Sinal (Gabriel 14/09): alem do valor, a gente combina NA HORA a data do restante.
+   Antes era um prompt() so com o valor e o restante herdava o vencimento da cobranca —
+   o combinado real ("ele paga dia 20") ficava so na cabeca de quem atendeu. */
+function rcSinalModal(c,r){
+  const tot=Number(r.valor)||0;
+  const padrao=(()=>{ const d=new Date(hojeISO()+'T12:00:00'); d.setDate(d.getDate()+7);
+    return d.toISOString().slice(0,10); })();
+  return new Promise((ok)=>{
+    let fechou=false;
+    modal('Sinal de '+esc(c.nome||'cliente'),
+      `<p class="hint" style="margin:0 0 12px">Mensalidade cheia de <b>${brl(tot)}</b>. O que entrar agora fica como entrada; o resto vira uma cobrança com data própria.</p>
+       <div class="row2">
+         <div class="field"><label>Valor do sinal (R$)</label><input id="sn_v" type="number" step="0.01" min="0" placeholder="0,00" autocomplete="off"></div>
+         <div class="field"><label>Recebido em</label><input id="sn_d" type="date" value="${hojeISO()}"></div>
+       </div>
+       <div class="field"><label>Restante combinado para</label><input id="sn_r" type="date" value="${esc(r.restanteVenc||((r.venc&&r.venc>hojeISO())?r.venc:padrao))}"></div>
+       <div id="sn_calc" class="hint" style="margin:2px 0 0">Falta <b>${brl(tot)}</b>.</div>`,
+      async ()=>{
+        const v=parseFloat(String(($('#sn_v')||{}).value||'').replace(',','.'));
+        if(!(v>0)){ toast('Informe o valor do sinal.'); return false; }
+        if(v>=tot){ toast('Sinal maior ou igual ao total — use 🟢 Recebido.'); return false; }
+        const dSinal=($('#sn_d')||{}).value||hojeISO();
+        const dRest=($('#sn_r')||{}).value||'';
+        if(dRest&&dRest<dSinal){ toast('A data do restante não pode ser antes do sinal.'); return false; }
+        fechou=true; ok({valor:v,sinalEm:dSinal,restanteVenc:dRest}); return true;
+      });
+    const ov=[...document.querySelectorAll('.overlay')].pop();
+    if(ov){ const fim=()=>{ if(!fechou){ fechou=true; ok(null); } };
+      ov.querySelector('.x').addEventListener('click',fim); ov.addEventListener('click',e=>{ if(e.target===ov) fim(); }); }
+    setTimeout(()=>{ const e=$('#sn_v'); if(e) e.focus();
+      const calc=()=>{ const v=parseFloat(String(($('#sn_v')||{}).value||'').replace(',','.'))||0;
+        const el=$('#sn_calc'); if(el) el.innerHTML='Falta <b>'+brl(Math.max(0,tot-v))+'</b>.'; };
+      const i=$('#sn_v'); if(i) i.addEventListener('input',calc); },40);
+  });
+}
+/* Mudar a data do restante depois: o cliente liga e pede mais uns dias. */
+window.rcRestanteData=async (cliId)=>{
+  const comp=cliComp, c=DB.clientes.find(x=>x.id===cliId); if(!c) return;
+  const r=DB.recebimentos.find(x=>x.comp===comp&&x.clienteId===cliId); if(!r) return;
+  const atual=rcRestVenc(r);
+  modal('Restante de '+esc(c.nome||'cliente'),
+    `<p class="hint" style="margin:0 0 12px">Falta <b>${brl(rcRestante(r))}</b>${atual?', combinado para <b>'+fmtDate(atual)+'</b>':''}.</p>
+     <div class="field"><label>Nova data combinada</label><input id="rd_d" type="date" value="${esc(atual)}"></div>`,
+    async ()=>{
+      const d=($('#rd_d')||{}).value||'';
+      if(!d){ toast('Escolha uma data.'); return false; }
+      if(r.sinalEm&&d<r.sinalEm){ toast('A data não pode ser antes do sinal.'); return false; }
+      r.restanteVenc=d; await saveDB(); render('recebimentos');
+      toast('Restante de '+(c.nome||'cliente')+' combinado para '+fmtDate(d)+'.'); return true;
+    });
+};
 window.rcStatusCli=async (cliId,novo)=>{
   if(!novo)return;
   const comp=cliComp; const c=DB.clientes.find(x=>x.id===cliId); if(!c)return;
@@ -12530,19 +12583,18 @@ window.rcStatusCli=async (cliId,novo)=>{
     DB.recebimentos.push(r);
   }
   if(novo==='sinal'){
-    const sv=parseFloat((prompt('Valor do sinal recebido (R$):','')||'').replace(',','.'));
-    if(!(sv>0)){ toast('Sinal cancelado — valor inválido.'); render('recebimentos'); return; }
-    if(sv>=(Number(r.valor)||0)){ toast('Sinal maior ou igual ao total — use 🟢 Recebido.'); render('recebimentos'); return; }
-    r.status='sinal'; r.sinal=sv; r.sinalEm=hojeISO();
+    const d=await rcSinalModal(c,r);
+    if(!d){ render('recebimentos'); return; }
+    r.status='sinal'; r.sinal=d.valor; r.sinalEm=d.sinalEm; r.restanteVenc=d.restanteVenc||'';
     r.recebido=false; r.recebidoEm=null;
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
-    DB.financeiro.push({id:'rcs_'+r.id,data:(r.venc||vencOf(comp,c.diaVenc)),comp:comp,pagoEm:r.sinalEm,tipo:'receita',descricao:'Sinal: '+r.nome,categoria:'Mensalidade Clientes',valor:sv});
+    DB.financeiro.push({id:'rcs_'+r.id,data:(r.venc||vencOf(comp,c.diaVenc)),comp:comp,pagoEm:r.sinalEm,tipo:'receita',descricao:'Sinal: '+r.nome,categoria:'Mensalidade Clientes',valor:d.valor});
   } else if(novo==='churn'){
     const okChurn=await confirmar('Marcar '+c.nome+' como churn em '+fmtComp(comp)+'?',
       'O valor deste mês entra como receita perdida, e o cliente para de gerar cobrança a partir do mês seguinte.',
       {sim:'Sim, marcar churn',nao:'Não',perigo:true});
     if(!okChurn){ render('recebimentos'); return; }
-    r.status='churn'; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.churnEm=hojeISO();
+    r.status='churn'; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.restanteVenc=''; r.churnEm=hojeISO();
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
     c.churnComp=comp; c.fim=comp;
     const pj=DB.projetos.find(x=>x.clienteId===c.id); if(pj) pj.status='churn';
@@ -12586,11 +12638,11 @@ window.rcStatusCli=async (cliId,novo)=>{
     }
   } else if(novo==='carencia'){
     if(!confirm('Marcar '+c.nome+' em CARENCIA em '+fmtComp(comp)+'?\n\nO cliente continua ativo, mas o mes nao gera receita e nao conta como inadimplencia nem como churn.')){ render('recebimentos'); return; }
-    r.status='carencia'; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.churnEm=null; r.carenciaEm=hojeISO();
+    r.status='carencia'; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.restanteVenc=''; r.churnEm=null; r.carenciaEm=hojeISO();
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
     const pjc=DB.projetos.find(x=>x.clienteId===c.id); if(pjc&&pjc.status==='churn') pjc.status='ativo';
   } else {
-    r.status=novo; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null;
+    r.status=novo; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.restanteVenc='';
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
   }
   if(novo!=='churn' && novo!=='churnpago' && c.churnComp && comp>=c.churnComp){ c.churnComp=null; c.fim=''; await chVoltarDeChurns(c); }
