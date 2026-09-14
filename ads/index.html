@@ -197,8 +197,28 @@ function Form({compact}){
   const handle=v=>{const s=v.replace(/\s|@/g,'').replace(/[^a-zA-Z0-9._]/g,'').slice(0,30);return s?'@'+s:'';};
   const [enviando,setEnviando]=React.useState(false);
   const [erro,setErro]=React.useState('');
+  /* Rascunho (Gabriel 14/09): quem digita o WhatsApp e sai sem enviar tambem chega no sistema.
+     Vai com sendBeacon porque fetch normal morre quando a aba fecha. So dispara com telefone
+     completo, uma vez por conteudo, e nunca depois do formulario ter sido enviado de verdade. */
+  const enviadoRef=React.useRef(false), rascunhoRef=React.useRef('');
+  React.useEffect(()=>{
+    const solta=()=>{
+      if(enviadoRef.current) return;
+      const f=document.getElementById('as-form'); if(!f) return;
+      const d=new FormData(f), tel=String(d.get('whatsapp')||'').replace(/\D/g,'');
+      if(tel.length<10||tel.length>11) return;
+      const corpo={nome:d.get('nome')||'',whatsapp:d.get('whatsapp')||'',instagram:d.get('instagram')||'',cargo:d.get('cargo')||'',
+        pagina:location.pathname,url:location.href};
+      const chave=JSON.stringify(corpo); if(chave===rascunhoRef.current) return; rascunhoRef.current=chave;
+      try{ navigator.sendBeacon('https://fuieonexmdupupcsyowg.supabase.co/functions/v1/lead-ads/rascunho',
+        new Blob([chave],{type:'application/json'})); }catch(_){}
+    };
+    const sai=()=>{ if(document.visibilityState==='hidden') solta(); };
+    document.addEventListener('visibilitychange',sai); window.addEventListener('pagehide',solta);
+    return()=>{ document.removeEventListener('visibilitychange',sai); window.removeEventListener('pagehide',solta); };
+  },[]);
   // envia pro sistema (edge function lead-ads -> tabela ads_leads); a tela "Recebido" so aparece depois de gravar
-  const enviar=async e=>{e.preventDefault();if(fone.replace(/\D/g,'').length<10)return;if(enviando)return;
+  const enviar=async e=>{e.preventDefault();if(fone.replace(/\D/g,'').length<10)return;if(enviando)return;enviadoRef.current=true;
     const fd=new FormData(e.target); const q=new URLSearchParams(location.search); const utm={};
     ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid'].forEach(k=>{if(q.get(k))utm[k]=q.get(k);});
     setEnviando(true);setErro('');
@@ -216,7 +236,7 @@ function Form({compact}){
     }catch(_){setErro('Sem conexão. Tenta de novo em instantes.');}
     setEnviando(false);};
   if(ok) return <Card kicker="Recebido" title="Recebemos seus dados.">Entraremos em contato pelo WhatsApp.</Card>;
-  return <form onSubmit={enviar} style={{background:'#0F0D14',border:'1px solid rgba(255,255,255,.12)',borderRadius:22,padding:28,display:'flex',flexDirection:'column',gap:14,boxShadow:'0 40px 100px -30px rgba(0,0,0,.9)'}}>
+  return <form id="as-form" onSubmit={enviar} style={{background:'#0F0D14',border:'1px solid rgba(255,255,255,.12)',borderRadius:22,padding:28,display:'flex',flexDirection:'column',gap:14,boxShadow:'0 40px 100px -30px rgba(0,0,0,.9)'}}>
     <div><h3 style={{fontSize:20,marginBottom:4}}>Preencha o formulário!</h3><span style={{fontSize:13,color:'var(--muted)'}}>Entraremos em contato.</span></div>
     <Input label="Seu nome" name="nome" placeholder="Seu nome completo" autoComplete="name" required/>
     <Input label="WhatsApp (com DDD)" name="whatsapp" type="tel" inputMode="numeric" placeholder="(11) 99999-9999" maxLength={15} value={fone} onChange={e=>setFone(mask(e.target.value))} autoComplete="tel" required/>
