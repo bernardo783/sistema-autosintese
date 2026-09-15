@@ -150,3 +150,8 @@
 .crm-copy{cursor:pointer;color:var(--brand2)}
 .crm-fase{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--line);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--fraco)}
 @media (max-width:900px){.crm-intg{grid-template-columns:1fr}}
+/* Painel Comercial — grupos de opção do lançamento de call (o que faltou / o que foi vendido) */
+.cc-rds{display:flex;flex-wrap:wrap;gap:6px 14px;padding:2px 0}
+.cc-rd{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.cc-rd input{width:14px;height:14px;accent-color:var(--brand2);margin:0}
+.cc-rd:hover{color:var(--txt)}
