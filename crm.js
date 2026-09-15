@@ -32,7 +32,9 @@ const crmSalvarFiltros=()=>{ try{ localStorage.setItem('crm_filtros_v1',JSON.str
    Replica o painel que o time tocava fora do sistema: cada reuniao vira uma linha
    em crm_calls e o Painel le so isso. Nao conversa com o pipeline (opportunities):
    la o registro nasce do lead; aqui nasce da call que o SDR agendou. */
-const CC_ORIGENS=[['inbound','Inbound'],['outbound','Outbound'],['indicacao','Indicação'],['repescagem','Repescagem'],['lancamento','Lançamento']];
+const CC_ORIGENS=[['inbound','Inbound'],['outbound','Outbound'],['indicacao','Indicação'],['parceria','Parceria'],
+  ['prospeccao_closer','Prospecção Closer'],['prospeccao_sdr','Prospecção SDR'],['social_selling','Social Selling'],
+  ['repescagem','Repescagem'],['organico','Orgânico'],['landing_page','Landing Page']];
 const CC_CALL=[['agendado','Agendado','info'],['show','Show','ok'],['no_show','No-show','bad']];
 const CC_LEAD=[['follow_up','Follow up','info'],['remarcar','Remarcar','warn'],['futuro','Futuro',''],['negociacao','Negociação','warn'],['ganho','Ganho','ok'],['perdido','Perdido','bad']];
 const CC_FALTOU=[['authority','Authority'],['budget','Budget'],['timing','Timing'],['need','Need']];
