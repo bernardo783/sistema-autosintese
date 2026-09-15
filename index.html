@@ -343,6 +343,23 @@
   .nc-regras ol{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.65}
   .nc-regras ol li{margin-bottom:2px}
   .nc-regras strong{color:var(--txt);font-weight:600}
+  /* Suporte: a pessoa escolhe o que precisa antes de encarar formulario.
+     Cartao grande porque e a porta de entrada de quem nao mexe no sistema todo dia. */
+  .sup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:14px;max-width:860px;margin-top:4px}
+  .sup-card{display:flex;flex-direction:column;gap:9px;text-align:left;background:var(--panel);
+    border:1px solid var(--line);border-radius:15px;padding:20px;cursor:pointer;color:var(--txt);
+    font:inherit;transition:border-color .14s,transform .14s}
+  .sup-card:hover{border-color:var(--brand);transform:translateY(-2px)}
+  .sup-card>svg{width:24px;height:24px;color:var(--brand2);flex:none}
+  .sup-card>b{font-size:15.5px;font-weight:700}
+  .sup-card>span{font-size:12.5px;color:var(--fraco);line-height:1.45}
+  .sup-card.breve{cursor:default;opacity:.55}
+  .sup-card.breve:hover{border-color:var(--line);transform:none}
+  .sup-breve{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--warn);
+    border:1px solid var(--line);border-radius:999px;padding:2px 8px;align-self:flex-start}
+  .sup-volta{background:none;border:0;color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer;
+    padding:6px 0;display:inline-flex;align-items:center;gap:6px}
+  .sup-volta:hover{color:var(--txt)}
   .nc-dica{background:rgba(123,104,238,.12);border:1px solid rgba(123,104,238,.35);border-radius:9px;
     padding:10px 13px;margin:0 0 14px;font-size:12.5px;line-height:1.55;color:var(--txt)}
   .nc-dica strong{font-weight:700}
@@ -7094,11 +7111,56 @@ function ncFormulario(c){
 }
 /* Atalho 💸 da barra lateral: mesmo canal de solicitação, já em Reembolso.
    (o roteador chamava renderReembolsos, que não existia — a tela quebrava sem renderizar nada) */
-window.renderReembolsos=(c)=>{
+/* ---------- SUPORTE ----------
+   O botao da barra abre aqui: a pessoa diz o que precisa e so entao ve formulario.
+   Antes caia direto no formulario de reembolso, que e so um dos pedidos possiveis.
+   Cartao com `breve:true` aparece apagado — existe pra dizer que esta vindo,
+   nao pra enganar quem clica. */
+const SUP_ICO={
+  dinheiro:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+  nota:'<path d="M4 3h16v18l-3-2-2 2-3-2-3 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  agenda:'<path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M12 14v4M10 16h4"/>',
+  bug:'<path d="M8 6a4 4 0 018 0v1H8zM7 7h10v6a5 5 0 01-10 0z"/><path d="M4 11h3M17 11h3M5 17l2.5-2M19 17l-2.5-2M12 18v4"/>',
+  duvida:'<circle cx="12" cy="12" r="10"/><path d="M9.2 9a3 3 0 015.6 1.4c0 2-2.8 2.4-2.8 4.1M12 17.5h.01"/>'
+};
+const supIco=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SUP_ICO[k]||''}</svg>`;
+/* quem ve cada cartao: vazio = todo mundo */
+const supOpcoes=()=>[
+  {k:'reembolso', ic:'dinheiro', t:'Reembolso',
+   d:'Você gastou do seu bolso e quer de volta. Anexe a nota ou o comprovante.'},
+  {k:'conta',     ic:'nota',     t:'Conta nova',
+   d:'Um fornecedor ou serviço novo que a empresa precisa começar a pagar.'},
+  {k:'venc',      ic:'agenda',   t:'Mudar vencimento',
+   d:'Cliente pediu outra data de cobrança da mensalidade.', quem:'gerente', breve:true},
+  {k:'bug',       ic:'bug',      t:'Problema no sistema',
+   d:'Alguma coisa quebrou, sumiu ou está mostrando número errado.', breve:true},
+  {k:'duvida',    ic:'duvida',   t:'Dúvida',
+   d:'Não sabe como fazer alguma coisa aqui dentro? Pergunte.', breve:true}
+].filter(o=>o.quem!=='gerente'||souGerente());
+
+window.supEscolher=(k)=>{
+  const c=$('#content'); if(!c) return;
+  if(k==='reembolso'||k==='conta') return supFormulario(c,k);
+};
+window.supVoltar=()=>renderReembolsos($('#content'));
+
+/* o formulario de sempre, com a natureza ja escolhida e um jeito de voltar */
+function supFormulario(c,tipo){
   ncFormulario(c);
-  const t=c.querySelector('.page-head h2'); if(t) t.textContent='Solicitações e reembolsos';
+  const h=c.querySelector('.page-head h2');
+  if(h) h.textContent = tipo==='reembolso' ? 'Reembolso' : 'Conta nova';
+  const ph=c.querySelector('.page-head');
+  if(ph) ph.insertAdjacentHTML('beforebegin','<button class="sup-volta" onclick="supVoltar()">← Suporte</button>');
   const n=document.getElementById('nc_nat');
-  if(n&&!n.value){ n.value='Reembolso'; if(window.ncNat) ncNat(); }
+  if(n){ n.value = tipo==='reembolso' ? 'Reembolso' : 'Conta nova'; if(window.ncNat) ncNat(); }
+}
+
+window.renderReembolsos=(c)=>{
+  const cartao=(o)=>o.breve
+    ? `<div class="sup-card breve">${supIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span><span class="sup-breve">em breve</span></div>`
+    : `<button class="sup-card" onclick="supEscolher('${o.k}')">${supIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span></button>`;
+  c.innerHTML=`<div class="page-head"><div><h2>Suporte</h2><div class="desc">O que você precisa?</div></div></div>
+    <div class="sup-grid">${supOpcoes().map(cartao).join('')}</div>`;
 };
 window.ncLimpar=()=>{ ['nc_forn','nc_val','nc_venc','nc_mot','nc_desc','nc_obs','nc_anexo','nc_nat','nc_dep','nc_pag','nc_parc','nc_rec'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
   window.__ncAnexos=[]; ncPintarAnexos(); };
