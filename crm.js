@@ -39,7 +39,7 @@ const CC_CALL=[['agendado','Agendado','info'],['show','Show','ok'],['no_show','N
 const CC_LEAD=[['follow_up','Follow up','info'],['remarcar','Remarcar','warn'],['futuro','Futuro',''],['negociacao','Negociação','warn'],['ganho','Ganho','ok'],['perdido','Perdido','bad']];
 const CC_FALTOU=[['authority','Authority'],['budget','Budget'],['timing','Timing'],['need','Need']];
 const CC_VENDIDO=[['agent_ia','Agent IA'],['trafego','Tráfego'],['crm','CRM'],['maquina','Máquina de Vendas'],['agent_trafego','Agent IA + Tráfego'],['agent_crm','Agent IA + CRM']];
-const CC_BANT=[['4','4 de 4 critérios'],['3','3 de 4 critérios'],['2','2 de 4 critérios'],['1','1 de 4 critérios'],['0','nenhum critério']];
+const CC_BANT=[['1','BANT 1'],['2','BANT 2'],['3','BANT 3'],['4','BANT 4']];
 const ccNome=(tab,v)=>{ const r=(tab||[]).find(x=>x[0]===String(v||'')); return r?r[1]:''; };
 const ccCor=(tab,v)=>{ const r=(tab||[]).find(x=>x[0]===String(v||'')); return r&&r[2]?r[2]:''; };
 CRM.cc={mes:'',sdr:'',status:'',de:'',ate:''};
