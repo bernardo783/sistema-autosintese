@@ -2926,7 +2926,7 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.3-8.3M17 6l3 3M14 9l3 3"/></svg><span class="t">Acessos</span></button>
     <button class="rl navlink" data-view="processos" id="navProcessos" title="Processos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/></svg><span class="t">Processos</span></button>
-    <button class="rl navlink" data-view="reembolsos" title="Solicitações e reembolsos">
+    <button class="rl navlink" data-view="reembolsos" id="navReembolsos" title="Solicitações e reembolsos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h16v18l-3-2-2 2-3-2-3 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span class="t">Reembolsos</span></button>
     <button class="rl navlink hidden" data-view="financeiro" id="navFin" title="Financeiro">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14" r="1.2"/></svg><span class="t">Financeiro</span></button>
@@ -3316,9 +3316,13 @@ async function enterApp(){
   catch(e){ $('#loginErr').textContent='Erro ao carregar dados: '+(e.message||e); show($('#loginView')); return; }
   hide($('#login')); show($('#app'));
   pintarWhoami();
-  if(currentUser.role==='master'){ show($('#navUsuarios')); } else { hide($('#navUsuarios')); }
+
   hide($('#navFin'));      /* Financeiro mora em Administrativo > Financeiro na arvore (Gabriel 15/09) */
   hide($('#navAcessos')); hide($('#navProcessos'));   /* idem: Administrativo > Acessos / Processos */
+  hide($('#navUsuarios'));                            /* Administrativo > Usuarios */
+  /* Reembolsos foi pra dentro da pasta Financeiro, que so master enxerga na arvore.
+     Quem nao e master mantem o atalho na barra — senao perderia a tela. */
+  if(currentUser.role==='master'){ hide($('#navReembolsos')); } else { show($('#navReembolsos')); }
   hide($('#navFunil'));    /* Comercial virou espaco na arvore (Gabriel 15/09) */
   hide($('#navAgente'));   /* Agente IA saiu da barra (Gabriel 15/09); a tela continua em #v/agente */
 
@@ -5177,7 +5181,8 @@ const ehCom=(lid)=>!!LCOM[lid];
 /* Acessos e Processos tambem moram na arvore, em Administrativo (Gabriel 15/09).
    Mesma ideia das listas do Financeiro, mas sem o recorte de master: quem nao
    pode ver alguma coisa la dentro ja e barrado pela propria tela. */
-const LTEL={'f1e2d3c4-0000-4a00-8b00-00000000a001':'acessos','f1e2d3c4-0000-4a00-8b00-00000000a002':'processos'};
+const LTEL={'f1e2d3c4-0000-4a00-8b00-00000000a001':'acessos','f1e2d3c4-0000-4a00-8b00-00000000a002':'processos',
+  'f1e2d3c4-0000-4a00-8b00-00000000a003':'usuarios','f1e2d3c4-0000-4a00-8b00-00000000a004':'reembolsos'};
 const ehTela=(lid)=>!!LTEL[lid]||!!LCOM[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
