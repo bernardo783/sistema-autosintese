@@ -3316,7 +3316,8 @@ async function enterApp(){
   catch(e){ $('#loginErr').textContent='Erro ao carregar dados: '+(e.message||e); show($('#loginView')); return; }
   hide($('#login')); show($('#app'));
   pintarWhoami();
-  if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); } else { hide($('#navUsuarios')); hide($('#navFin')); }
+  if(currentUser.role==='master'){ show($('#navUsuarios')); } else { hide($('#navUsuarios')); }
+  hide($('#navFin'));      /* Financeiro mora em Administrativo > Financeiro na arvore (Gabriel 15/09) */
   hide($('#navFunil'));    /* Comercial virou espaco na arvore (Gabriel 15/09) */
   hide($('#navAgente'));   /* Agente IA saiu da barra (Gabriel 15/09); a tela continua em #v/agente */
 
