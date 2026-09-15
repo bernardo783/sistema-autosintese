@@ -2922,9 +2922,9 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
     <button class="rl navlink hidden" data-view="carteira" id="navCarteira" title="Minha carteira — clientes que você gerencia e a comissão do mês">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg><span class="t">Carteira</span></button>
     <div class="sep"></div>
-    <button class="rl navlink" data-view="acessos" title="Acessos e senhas">
+    <button class="rl navlink" data-view="acessos" id="navAcessos" title="Acessos e senhas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.3-8.3M17 6l3 3M14 9l3 3"/></svg><span class="t">Acessos</span></button>
-    <button class="rl navlink" data-view="processos" title="Processos">
+    <button class="rl navlink" data-view="processos" id="navProcessos" title="Processos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/></svg><span class="t">Processos</span></button>
     <button class="rl navlink" data-view="reembolsos" title="Solicitações e reembolsos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h16v18l-3-2-2 2-3-2-3 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span class="t">Reembolsos</span></button>
@@ -3318,6 +3318,7 @@ async function enterApp(){
   pintarWhoami();
   if(currentUser.role==='master'){ show($('#navUsuarios')); } else { hide($('#navUsuarios')); }
   hide($('#navFin'));      /* Financeiro mora em Administrativo > Financeiro na arvore (Gabriel 15/09) */
+  hide($('#navAcessos')); hide($('#navProcessos'));   /* idem: Administrativo > Acessos / Processos */
   hide($('#navFunil'));    /* Comercial virou espaco na arvore (Gabriel 15/09) */
   hide($('#navAgente'));   /* Agente IA saiu da barra (Gabriel 15/09); a tela continua em #v/agente */
 
@@ -5173,6 +5174,11 @@ const LCOM={'f1e2d3c4-0000-4a00-8b00-00000000c001':'painel','f1e2d3c4-0000-4a00-
   'f1e2d3c4-0000-4a00-8b00-00000000c005':'fechamento','f1e2d3c4-0000-4a00-8b00-00000000c006':'contratos',
   'f1e2d3c4-0000-4a00-8b00-00000000c007':'leads'};
 const ehCom=(lid)=>!!LCOM[lid];
+/* Acessos e Processos tambem moram na arvore, em Administrativo (Gabriel 15/09).
+   Mesma ideia das listas do Financeiro, mas sem o recorte de master: quem nao
+   pode ver alguma coisa la dentro ja e barrado pela propria tela. */
+const LTEL={'f1e2d3c4-0000-4a00-8b00-00000000a001':'acessos','f1e2d3c4-0000-4a00-8b00-00000000a002':'processos'};
+const ehTela=(lid)=>!!LTEL[lid]||!!LCOM[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
 try{ SP_MINI=localStorage.getItem('sp_mini')==='1'; }catch(_){}
@@ -5320,7 +5326,7 @@ window.wsNovo=()=>{
     });
 };
 /* Listas que o sistema usa como tela propria: renomear ate pode, apagar nao (levaria as tarefas junto). */
-const spFixas=()=>[LC_ID,LF_ID,LCT_ID,NC_LISTA,'7381fb45-8d78-458d-b432-77dd88972338'].concat(Object.keys(LFIN)).concat(Object.keys(LCOM));
+const spFixas=()=>[LC_ID,LF_ID,LCT_ID,NC_LISTA,'7381fb45-8d78-458d-b432-77dd88972338'].concat(Object.keys(LFIN)).concat(Object.keys(LCOM)).concat(Object.keys(LTEL));
 const spProtegido=(tipo,id)=>(tipo==='lista'&&spFixas().indexOf(id)>=0)||(tipo==='pasta'&&id===PASTA_FIN)||(tipo==='espaco'&&id===ESP_COM);
 const spTab=(tipo)=>tipo==='espaco'?'espacos':tipo==='pasta'?'pastas':'listas';
 const spNo=(tipo,id)=>(tipo==='espaco'?TK.espacos:tipo==='pasta'?TK.pastas:TK.listas).find(x=>x.id===id)||null;
@@ -7087,8 +7093,8 @@ function spDesenhar(){
     const cor=l.cor||'';
     const ic=l.icone?`<span class="tk-ic${String(l.icone).slice(0,4)==='svg:'?'':' emo'}"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${icHtml(l.icone)}</span>`
                     :`<span class="tk-ic"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${SVG_LISTA}</span>`;
-    const cont=(l.id===LF_ID||ehFin(l.id)||ehCom(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
-    const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)||ehCom(l.id)))?' on':'';
+    const cont=(l.id===LF_ID||ehFin(l.id)||ehTela(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
+    const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)||ehTela(l.id)||currentView===LTEL[l.id]))?' on':'';
     const dnd=fav?'':` draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()"`;
     return `<div class="tk-lista${on}" role="button" tabindex="0"${dnd} onclick="spSelLista('${l.id}')" oncontextmenu="spNoMenu(event,'lista','${l.id}')" title="${esc(tkCaminho(l.id))}">
       ${ic}<span class="tk-nome">${esc(spNome(l))}</span>${favTem(l.id)&&!fav?'<span class="tk-star">★</span>':''}${cont}
@@ -7143,6 +7149,7 @@ function spDesenhar(){
 window.spSelLista=(id,semAbrir)=>{
   TK.listaSel=id; TK.escopo='lista'; searchTerm=''; TK.arqVista=false; spMarcarAtalho(''); if(!semAbrir) spAbrirCaminho(id);
   if(LCOM[id]){ currentView='funil'; lkHash('l',id); render('funil/aba/'+LCOM[id]); spDesenhar(); return; }
+  if(LTEL[id]){ lkHash('l',id); render(LTEL[id]); spDesenhar(); return; }
   if(LFIN[id]){ render(LFIN[id]); return; }
   if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
   /* Lista de fluxo (4+ status proprios) abre no Board, como a linha editorial do ClickUp.
