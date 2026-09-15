@@ -2927,6 +2927,8 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
       <span class="t">Avisos</span><span class="bdg" id="ntfBdg"></span></button>
     <button class="rl" id="rlInbox" title="Tarefas atribuídas a mim" onclick="spCaixa()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg><span class="t">Tarefas</span><span class="bdg" id="spInboxN"></span></button>
+    <button class="rl navlink" data-view="reembolsos" id="navSuporte" title="Suporte — pedir reembolso ou abrir uma solicitação">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0116 0"/><path d="M4 13v3a2 2 0 002 2h1v-5H6a2 2 0 00-2 2zM20 13v3a2 2 0 01-2 2h-1v-5h1a2 2 0 012 2z"/><path d="M18 18v1a3 3 0 01-3 3h-2"/></svg><span class="t">Suporte</span></button>
     <button class="rl navlink" data-view="pessoal" id="navPessoal" title="Modo Pessoal — seus hábitos e tarefas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12h.01"/></svg><span class="t">Pessoal</span></button>
     <button class="rl" id="rlAgenda" title="Agenda do dia" onclick="mpIrAgenda()">
@@ -2950,8 +2952,6 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.3-8.3M17 6l3 3M14 9l3 3"/></svg><span class="t">Acessos</span></button>
     <button class="rl navlink" data-view="processos" id="navProcessos" title="Processos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/></svg><span class="t">Processos</span></button>
-    <button class="rl navlink" data-view="reembolsos" id="navReembolsos" title="Solicitações e reembolsos">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h16v18l-3-2-2 2-3-2-3 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span class="t">Reembolsos</span></button>
     <button class="rl navlink hidden" data-view="financeiro" id="navFin" title="Financeiro">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14" r="1.2"/></svg><span class="t">Financeiro</span></button>
     <button class="rl navlink hidden" data-view="usuarios" id="navUsuarios" title="Usuários">
@@ -3344,9 +3344,9 @@ async function enterApp(){
   hide($('#navFin'));      /* Financeiro mora em Administrativo > Financeiro na arvore (Gabriel 15/09) */
   hide($('#navAcessos')); hide($('#navProcessos'));   /* idem: Administrativo > Acessos / Processos */
   hide($('#navUsuarios'));                            /* Administrativo > Usuarios */
-  /* Reembolsos foi pra dentro da pasta Financeiro, que so master enxerga na arvore.
-     Quem nao e master mantem o atalho na barra — senao perderia a tela. */
-  if(currentUser.role==='master'){ hide($('#navReembolsos')); } else { show($('#navReembolsos')); }
+  /* Suporte e o caminho de todo mundo pra pedir reembolso (Gabriel 15/09): fica
+     logo abaixo de Tarefas e nao depende de cargo nem de alcançar o Administrativo. */
+  show($('#navSuporte'));
   hide($('#navFunil'));    /* Comercial virou espaco na arvore (Gabriel 15/09) */
   hide($('#navAgente'));   /* Agente IA saiu da barra (Gabriel 15/09); a tela continua em #v/agente */
 
@@ -15384,15 +15384,19 @@ window.inSet=async (uid,campo,v)=>{
    fora de proposito: sem eles a pessoa nao navega. */
 const TL_RAIL=[{v:'tarefas',nome:'Tarefas (as suas)',el:'rlInbox'}];
 const tlLista=()=>Array.from(document.querySelectorAll('.navlink[data-view]'))
+  .filter(b=>b.id!=='navSuporte')   /* Suporte nao se desliga: e por onde a pessoa pede */
   .map(b=>({v:b.dataset.view,nome:(b.getAttribute('title')||b.dataset.view),
             master:['financeiro','usuarios','funil','agente'].indexOf(b.dataset.view)>=0}))
   .concat(TL_RAIL.filter(r=>document.getElementById(r.el)).map(r=>({v:r.v,nome:r.nome,master:false})));
 const tlOff=(u)=>((u&&u.telas_off)||[]);
-const tlBloqueada=(v)=>tlOff(currentUser).indexOf(String(v))>=0;
+/* Reembolsos virou o Suporte: e por onde qualquer pessoa pede alguma coisa.
+   Nao entra na lista de telas ocultaveis nem pode ser bloqueada por telas_off. */
+const tlBloqueada=(v)=>String(v)!=='reembolsos'&&tlOff(currentUser).indexOf(String(v))>=0;
 /* esconde os atalhos que essa pessoa não tem — chamado no login */
 function tlAplicar(){
   const off=tlOff(currentUser);
   document.querySelectorAll('.navlink[data-view]').forEach(b=>{
+    if(b.id==='navSuporte') return;                 /* Suporte fica sempre */
     if(off.indexOf(b.dataset.view)>=0) b.classList.add('hidden');
   });
   TL_RAIL.forEach(r=>{ const el=document.getElementById(r.el);
