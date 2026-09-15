@@ -19,7 +19,8 @@ const CRM_TIPOS_EVENTO={
 const CRM_PRESETS=[['7d','7 dias'],['30d','30 dias'],['mes','Este mês'],['mes_ant','Mês passado'],['90d','90 dias'],['tudo','Tudo']];
 
 const CRM={
-  aba:'pipeline',
+  /* Comercial abre no Painel: e a tela que o time olha todo dia (Gabriel 15/09) */
+  aba:'painel',
   f:{periodo:'30d',origem:'',sdr:'',closer:'',campanha:'',busca:''},
   d:{opps:[],estagios:[],motivos:[],origens:[],equipe:[],appts:[],google:[],origensMes:[]},
   carregou:false, carregando:false, erro:'', sel:null, semana:0, tl:{}, ocup:{}
