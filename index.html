@@ -304,6 +304,10 @@
   .tk-datas input[type=date]{width:122px;flex:none}
   .tk-seta{color:var(--muted);font-size:12px}
   .tk-curto{width:110px}
+  .tk-esph.on{background:var(--hov2)}
+  /* a seta tem clique proprio: nome abre a tela, seta abre o galho */
+  .tk-esph .tk-cv{padding:3px 4px;margin:-3px -4px;border-radius:4px}
+  .tk-esph .tk-cv:hover{background:var(--hov3)}
   .tk-sec{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
     font-weight:800;margin:18px 0 10px;padding-top:16px;border-top:1px solid var(--line)}
   .tk-sec.sub{margin:16px 0 6px;padding-top:14px}
@@ -343,6 +347,22 @@
   .nc-regras ol{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.65}
   .nc-regras ol li{margin-bottom:2px}
   .nc-regras strong{color:var(--txt);font-weight:600}
+  /* Tela do espaco: cartao pra cada lista, com o que ela e e quantas tarefas tem.
+     Usa o mesmo cartao do Suporte — irmaos usam o mesmo componente. */
+  .esp-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+  .esp-topo h2{display:flex;align-items:center;gap:12px;margin:0}
+  .esp-logo{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;overflow:hidden;
+    font-size:13px;font-weight:900;color:#fff;flex:none}
+  .esp-logo img{width:100%;height:100%;object-fit:cover}
+  .esp-sec{display:flex;align-items:center;gap:9px;font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--fraco);font-weight:800;margin:24px 0 11px}
+  .esp-sec::after{content:"";flex:1;height:1px;background:var(--line)}
+  .esp-sec:first-of-type{margin-top:6px}
+  .sup-card>.esp-n{position:absolute;top:16px;right:17px;font-size:11.5px;font-weight:800;
+    color:var(--brand2);font-variant-numeric:tabular-nums}
+  .sup-card>.esp-n.vazio{color:var(--fraco);opacity:.55;font-weight:700}
+  .sup-card.esp-tela{border-style:dashed}
+  .sup-card{position:relative}
   /* Suporte: a pessoa escolhe o que precisa antes de encarar formulario.
      Cartao grande porque e a porta de entrada de quem nao mexe no sistema todo dia. */
   .sup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:14px;max-width:860px;margin-top:4px}
@@ -3646,6 +3666,7 @@ function render(view){
     if(!ehComercial()){ c.innerHTML='<div class="empty">Acesso restrito ao time comercial.</div>'; return; }
     return renderVendas(c);
   }
+  if(view==='espaco') return renderEspaco(c);
   if(view==='acessos') return renderAcessos(c);
   if(view==='fichas') return renderProjetos(c);
   if(view==='funil'||String(view).indexOf('funil/')===0){
@@ -7212,6 +7233,73 @@ function supFormulario(c,tipo){
   if(n){ n.value = tipo==='reembolso' ? 'Reembolso' : 'Conta nova'; if(window.ncNat) ncNat(); }
 }
 
+/* ---------- TELA DO ESPACO ----------
+   Clicar no nome do espaco na arvore cai aqui (Gabriel 15/09). Mostra o que tem
+   dentro em cartoes, agrupado pelas pastas que ja existem. Nao muda nada na
+   arvore nem nas tarefas — e so uma porta de entrada pra quem nao decorou onde
+   cada coisa mora. */
+let SP_ESP='';
+/* o que cada tela do sistema faz, em uma linha. So pras listas que abrem tela;
+   lista de tarefa se explica pelo contador. */
+const ESP_DESC={
+  'financeiro':'Entrada e saída do mês, em regime de competência.',
+  'recebimentos':'O que cada cliente deve e o que já caiu.',
+  'folha':'Quanto cada pessoa recebe no mês.',
+  'contratos':'Puxa o formulário do cliente e gera o documento.',
+  'acessos':'Senhas, links e IDs de tráfego.',
+  'processos':'Como a casa faz cada coisa.',
+  'usuarios':'Quem entra no sistema e o que cada um alcança.',
+  'reembolsos':'Pedidos da equipe, do envio ao pagamento.',
+  'painel':'Shows, no-shows, conversão e ticket do mês.',
+  'calls':'Toda reunião registrada, com resultado e valor.',
+  'pipeline':'Oportunidade por etapa, do lead ao ganho.',
+  'agenda':'As sessões estratégicas da semana.',
+  'fechamento':'Cliente novo entra por aqui.',
+  'leads':'Quem preencheu o formulário da landing.'
+};
+const espDesc=(l)=>{
+  if(l.id===LF_ID) return 'Cliente que acabou de fechar e ainda está entrando.';
+  if(LFIN[l.id]) return ESP_DESC[LFIN[l.id]]||'';
+  if(LCOM[l.id]) return ESP_DESC[LCOM[l.id]]||'';
+  if(LTEL[l.id]) return ESP_DESC[LTEL[l.id]]||'';
+  return '';
+};
+const espAbertas=(lid)=>(TK.tarefas||[]).filter(t=>t.lista_id===lid&&t.status!=='feito'&&!t.arquivada_em).length;
+
+window.spVerEspaco=(id)=>{
+  SP_ESP=id; SP_MINI=false; TK.fechadas['e'+id]=false; spSalvarArvore();
+  currentView='espaco'; lkHash('e',id);
+  renderEspaco($('#content')); spDesenhar();
+};
+window.renderEspaco=(c)=>{
+  const e=(TK.espacos||[]).find(x=>String(x.id)===String(SP_ESP));
+  if(!e){ c.innerHTML='<div class="empty">Espaço não encontrado.</div>'; return; }
+  const mst=!!(currentUser&&currentUser.role==='master');
+  const cartao=(l)=>{
+    const tela=ehFin(l.id)||ehTela(l.id)||l.id===LF_ID;
+    const n=tela?null:espAbertas(l.id);
+    const d=espDesc(l);
+    return `<button class="sup-card${tela?' esp-tela':''}" onclick="spSelLista('${l.id}')">
+      <span style="font-size:24px;line-height:1">${l.icone?icHtml(l.icone):'▤'}</span>
+      ${tela?'<span class="esp-n vazio">tela</span>'
+            :`<span class="esp-n${n?'':' vazio'}">${n}</span>`}
+      <b>${esc(spNome(l))}</b>
+      <span>${d?esc(d):(n===0?'Nenhuma tarefa aberta.':(n===1?'1 tarefa aberta.':n+' tarefas abertas.'))}</span>
+    </button>`; };
+  const soltas=(TK.listas||[]).filter(l=>String(l.espaco_id)===String(e.id)&&!l.pasta_id&&(!ehFin(l.id)||mst));
+  const pastas=(TK.pastas||[]).filter(p=>String(p.espaco_id)===String(e.id)&&(p.id!==PASTA_FIN||mst));
+  const bloco=(titulo,ls)=>ls.length?`${titulo?`<div class="esp-sec">${esc(titulo)}</div>`:''}
+    <div class="sup-grid">${ls.map(cartao).join('')}</div>`:'';
+  const corpo=bloco('',soltas)+pastas.map(p=>bloco(spNome(p),
+      (TK.listas||[]).filter(l=>String(l.pasta_id)===String(p.id)&&(!ehFin(l.id)||mst)))).join('');
+  c.innerHTML=`<div class="esp-topo">
+      <div><h2><span class="esp-logo" style="background:${esc(e.cor||'var(--brand)')}">${
+        e.foto?`<img src="${esc(e.foto)}" alt="">`:esc(inicial(spNome(e)))}</span>${esc(spNome(e))}</h2>
+        <div class="desc">${(soltas.length+pastas.reduce((s,p)=>s+(TK.listas||[]).filter(l=>String(l.pasta_id)===String(p.id)).length,0))} lista(s) neste espaço</div></div>
+      <div class="toolbar"><button class="btn small" onclick="tkNovoNo('${e.id}')">+ Nova lista ou pasta</button></div>
+    </div>${corpo||'<div class="empty">Nada neste espaço ainda.</div>'}`;
+};
+
 /* ---------- VENDAS ----------
    Mesmo desenho do Suporte: a pessoa escolhe o que vai fazer. As duas telas ja
    existiam soltas na barra; aqui elas ganham um lugar com nome. */
@@ -7338,8 +7426,8 @@ function spDesenhar(){
     const pas=TK.pastas.filter(p=>p.espaco_id===e.id&&(p.id!==PASTA_FIN||mst)&&pVis(p));
     const abE=aberto('e'+e.id);
     return `<div class="tk-esp">
-      <div class="tk-esph" draggable="true" ondragstart="dndEspaco(event,'${e.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarEspaco(event,'${e.id}')" ondragend="dndFim()" onclick="tkToggle('e','${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')">
-        <span class="tk-cv${abE?' ab':''}">&#9656;</span>
+      <div class="tk-esph${(currentView==='espaco'&&String(SP_ESP)===String(e.id))?' on':''}" draggable="true" ondragstart="dndEspaco(event,'${e.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarEspaco(event,'${e.id}')" ondragend="dndFim()" onclick="spVerEspaco('${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')" title="Abrir o espaço">
+        <span class="tk-cv${abE?' ab':''}" onclick="event.stopPropagation();tkToggle('e','${e.id}')" title="Abrir e fechar">&#9656;</span>
         ${espIcone(e)}
         <span class="tk-nome">${esc(spNome(e))}</span>
         <span class="tk-acts">
