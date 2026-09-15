@@ -112,6 +112,10 @@
   .ua-chip.fechado{background:rgba(230,177,63,.16);color:#f0cb7d}
   .ua-ck{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer}
   .ua-ck input{width:15px;height:15px;accent-color:var(--brand2)}
+  /* quantos filhos ja entraram: so aparece em espaco/pasta que tem filho privado */
+  .ua-cnt{font-size:10.5px;font-weight:800;color:var(--fraco);font-variant-numeric:tabular-nums;flex:none;white-space:nowrap}
+  .ua-cnt.parcial{color:var(--warn)}
+  .ua-cnt.cheio{color:var(--ok)}
   .ua-a select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
     border-radius:7px;padding:4px 6px;font-size:11.5px;font-family:inherit}
   .nm-link{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
@@ -15281,6 +15285,46 @@ function tlBloco(uid){
    Nó aberto vale para todo mundo — só nó fechado tem lista de convidados. */
 const uaNo=(tipo,id)=>({espaco:TK.espacos,pasta:TK.pastas,lista:TK.listas}[tipo]||[]).find(x=>x.id===id);
 const uaTem=(uid,tipo,id)=>(TK.membros||[]).find(m=>m.tipo===tipo&&String(m.no_id)===String(id)&&String(m.user_id)===String(uid))||null;
+/* ---------- CASCATA DE ACESSO (Gabriel 15/09) ----------
+   Liberar o espaco "Projetos" tem que liberar Novos Contratos, Controle de Clientes
+   e o resto de uma vez — ninguem quer marcar sete caixinhas pra dizer uma coisa so.
+   Desligar faz o contrario, pelo mesmo motivo.
+   So no privado: no aberto nao existe convite, todo mundo ja entra. */
+function uaFilhos(tipo,id){
+  const out=[];
+  if(tipo==='espaco'){
+    (TK.pastas||[]).filter(p=>String(p.espaco_id)===String(id)).forEach(p=>{
+      out.push({tipo:'pasta',id:p.id,o:p});
+      (TK.listas||[]).filter(l=>String(l.pasta_id)===String(p.id)).forEach(l=>out.push({tipo:'lista',id:l.id,o:l}));
+    });
+    (TK.listas||[]).filter(l=>String(l.espaco_id)===String(id)&&!l.pasta_id).forEach(l=>out.push({tipo:'lista',id:l.id,o:l}));
+  }else if(tipo==='pasta'){
+    (TK.listas||[]).filter(l=>String(l.pasta_id)===String(id)).forEach(l=>out.push({tipo:'lista',id:l.id,o:l}));
+  }
+  return out.filter(x=>x.o&&x.o.privado);
+}
+/* A cadeia acima. Liberar so a pasta "Financeiro" nao adianta nada se o espaco
+   "Administrativo" continua fechado pra pessoa: a regra do banco (lista_visivel)
+   exige espaco E pasta E lista liberados. Entao ligar um no liga os pais junto —
+   senao o convite existe no banco e nao vale na tela. Desligar nao sobe: outros
+   filhos do mesmo pai podem depender dele. */
+function uaPais(tipo,id){
+  const out=[];
+  if(tipo==='lista'){
+    const l=(TK.listas||[]).find(x=>String(x.id)===String(id)); if(!l) return out;
+    if(l.pasta_id){ const p=(TK.pastas||[]).find(x=>String(x.id)===String(l.pasta_id)); if(p) out.push({tipo:'pasta',id:p.id,o:p}); }
+    const e=(TK.espacos||[]).find(x=>String(x.id)===String(l.espaco_id)); if(e) out.push({tipo:'espaco',id:e.id,o:e});
+  }else if(tipo==='pasta'){
+    const p=(TK.pastas||[]).find(x=>String(x.id)===String(id)); if(!p) return out;
+    const e=(TK.espacos||[]).find(x=>String(x.id)===String(p.espaco_id)); if(e) out.push({tipo:'espaco',id:e.id,o:e});
+  }
+  return out.filter(x=>x.o&&x.o.privado);
+}
+/* quantos filhos privados ja tem acesso — vira o "3 de 7" da linha */
+function uaConta(uid,tipo,id){
+  const f=uaFilhos(tipo,id);
+  return {tot:f.length,com:f.filter(x=>uaTem(uid,x.tipo,x.id)).length};
+}
 window.usAcessos=async (uid)=>{
   const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{nome:'usuário'};
   if(!TK.listas.length){ try{ await tkCarregar(); }catch(_){} }
@@ -15308,7 +15352,11 @@ function uaCorpo(uid){
             <option value="editar"${m.permissao==='editar'?' selected':''}>edita</option>
             <option value="ver"${m.permissao==='ver'?' selected':''}>só vê</option></select>`:''}`
       : `<button class="btn ghost small" onclick="uaFechar('${uid}','${tipo}','${o.id}')">Restringir</button>`;
-    return `<div class="ua-l n${nivel}"><span class="ua-nm">${esc(spNome(o))}</span>${est}<span class="ua-a">${acao}</span></div>`;
+    /* espaco e pasta ganham o contador dos filhos: diz de relance se entrou tudo,
+       parte, ou nada — sem isso a cascata vira caixa-preta */
+    const c=(tipo==='lista')?{tot:0,com:0}:uaConta(uid,tipo,o.id);
+    const cnt=c.tot?`<span class="ua-cnt ${c.com===c.tot?'cheio':(c.com?'parcial':'')}">${c.com} de ${c.tot}</span>`:'';
+    return `<div class="ua-l n${nivel}"><span class="ua-nm">${esc(spNome(o))}</span>${est}${cnt}<span class="ua-a">${acao}</span></div>`;
   };
   const corpo=TK.espacos.map(e=>{
     const pas=TK.pastas.filter(p=>p.espaco_id===e.id);
@@ -15319,7 +15367,8 @@ function uaCorpo(uid){
   }).join('');
   return `<p class="hint" style="margin:0 0 12px">O que está <strong>aberto</strong> todo mundo vê — não precisa marcar.
     Use <strong>Restringir</strong> para fechar e daí escolher quem entra.
-    O recorte por <strong>squad</strong> continua valendo por cima disso.</p>
+    Marcar um <strong>espaço</strong> ou uma <strong>pasta</strong> libera tudo que está dentro de uma vez —
+    depois dá para desmarcar item por item. O recorte por <strong>squad</strong> continua valendo por cima disso.</p>
     <div class="ua-tree">${corpo||'<div class="hint">Nenhum espaço.</div>'}</div>
     ${tlBloco(uid)}
     ${lkBloco(uid)}
@@ -15333,16 +15382,27 @@ window.uaFechar=async (uid,tipo,id)=>{
   o.privado=true; uaPintar(uid); spDesenhar(); toast('"'+spNome(o)+'" agora é privado.');
 };
 window.uaMarcar=async (uid,tipo,id,ligado)=>{
-  const m=uaTem(uid,tipo,id);
-  if(ligado&&!m){
-    const {data,error}=await sb.from('no_membros')
-      .insert({tipo:tipo,no_id:id,user_id:uid,permissao:'editar',criado_por:(currentUser||{}).id||null}).select().single();
+  /* o proprio no + tudo que mora dentro dele, numa ida so ao banco */
+  const eu=uaNo(tipo,id);
+  const alvos=(eu&&eu.privado?[{tipo,id,o:eu}]:[]).concat(uaFilhos(tipo,id));
+  /* ao ligar, os pais entram junto: sem eles o acesso nao chega na tela */
+  const todos=ligado?alvos.concat(uaPais(tipo,id)):alvos;
+  if(!todos.length){ uaPintar(uid); return; }
+  if(ligado){
+    const novos=todos.filter(x=>!uaTem(uid,x.tipo,x.id))
+      .map(x=>({tipo:x.tipo,no_id:x.id,user_id:uid,permissao:'editar',criado_por:(currentUser||{}).id||null}));
+    if(!novos.length){ uaPintar(uid); return; }
+    const {data,error}=await sb.from('no_membros').insert(novos).select();
     if(error){ toast('Erro: '+error.message); uaPintar(uid); return; }
-    TK.membros.push(data); toast('Acesso liberado.');
-  }else if(!ligado&&m){
-    const {error}=await sb.from('no_membros').delete().eq('id',m.id);
+    (data||[]).forEach(m=>TK.membros.push(m));
+    toast(novos.length>1?('Liberado — '+novos.length+' itens.'):'Acesso liberado.');
+  }else{
+    const ids=todos.map(x=>uaTem(uid,x.tipo,x.id)).filter(Boolean).map(m=>String(m.id));
+    if(!ids.length){ uaPintar(uid); return; }
+    const {error}=await sb.from('no_membros').delete().in('id',ids);
     if(error){ toast('Erro: '+error.message); uaPintar(uid); return; }
-    TK.membros=TK.membros.filter(x=>x.id!==m.id); toast('Acesso removido.');
+    TK.membros=TK.membros.filter(x=>ids.indexOf(String(x.id))<0);
+    toast(ids.length>1?('Removido — '+ids.length+' itens.'):'Acesso removido.');
   }
   uaPintar(uid);
 };
