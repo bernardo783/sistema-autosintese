@@ -961,6 +961,26 @@
     box-shadow:0 0 0 3px rgba(124,104,238,.16)}
   .tkf-pv input[type=checkbox]{width:16px;height:16px;accent-color:var(--brand2)}
   .tkf-divi{height:1px;background:linear-gradient(90deg,var(--line),transparent);margin:18px 0 14px}
+  /* CLIENTE DO CARD (Gabriel 15/09): lista suspensa com 80 clientes nao se procura —
+     o campo virou busca. Clica, digita o nome, Enter pega o primeiro. */
+  .tkf-cli{width:100%;display:flex;align-items:center;gap:8px;background:transparent;
+    border:1px solid var(--line);border-radius:9px;color:var(--txt);padding:7px 10px;
+    font-size:12.5px;font-family:inherit;cursor:pointer;text-align:left;
+    transition:background .12s,border-color .12s}
+  .tkf-cli:hover{background:var(--panel2);border-color:var(--fraco)}
+  .tkf-cli.falta{border-color:rgba(230,177,63,.5);background:rgba(230,177,63,.06)}
+  .tkf-cli > svg{width:14px;height:14px;flex:none;opacity:.65}
+  .tkf-cli .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .tkf-cli .nm.vz{color:var(--fraco);font-weight:500}
+  .tkf-cli .lm{flex:none;color:var(--fraco);font-size:15px;line-height:1;padding:0 2px}
+  .tkf-cli .lm:hover{color:var(--danger)}
+  .tkp-busca{position:relative;margin:0 0 8px}
+  .tkp-busca > svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    width:14px;height:14px;opacity:.5;pointer-events:none}
+  .tkp-busca .tkp-b{width:100%;min-width:0;margin:0;padding-left:33px}
+  .tkp-row .tkp-sq{flex:none;font-size:10.5px;font-weight:700;color:var(--muted)}
+  .tkp-row .tkp-av{width:19px;height:19px;border-radius:6px;flex:none;display:grid;place-items:center;
+    font-size:10px;font-weight:800;color:#fff}
 
   /* cartao comercial: o dinheiro para de se perder entre Canal e Situacao */
   .tkf-fin{border:1px solid rgba(230,177,63,.26);border-radius:13px;padding:13px 14px 9px;margin:2px 0 6px;
@@ -4013,6 +4033,56 @@ const selPessoa=(id,atual,papel)=>{
 const espIcone=(e)=>e&&e.foto
   ? `<span class="sp-ic ft"><img src="${esc(e.foto)}" alt=""></span>`
   : `<span class="sp-ic" style="background:${esc((e&&e.cor)||'#7c3aed')}">${(e&&e.icone)?icHtml(e.icone,12):esc(inicial(spNome(e)))}</span>`;
+/* ---------- CLIENTE DA TAREFA: campo de busca (lupa) ----------
+   O mesmo valor de antes (input escondido com id tk_ficha, para todo mundo que ja
+   lia .value continuar lendo), so que quem escolhe e uma lista com busca. */
+const I_LUPA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.2 20.2 16.9 16.9"/></svg>';
+const fichaAv=(n)=>`<span class="tkp-av" style="background:${corDoNome(n)}">${esc(String(n||'?').trim().charAt(0).toUpperCase()||'?')}</span>`;
+const selFichaBusca=(id,atual,obr)=>`<input type="hidden" id="${id}" value="${esc(atual||'')}">`
+  +`<button type="button" class="tkf-cli" id="${id}Btn" data-obr="${obr?1:0}" onclick="tkFichaMenu(event,'${id}')"></button>`;
+function tkFichaPinta(id){
+  const inp=document.getElementById(id), b=document.getElementById(id+'Btn'); if(!inp||!b) return;
+  const f=inp.value?fichaDe(inp.value):null, obr=b.dataset.obr==='1';
+  b.classList.toggle('falta',!f&&obr);
+  b.title=f?'Trocar o cliente':'Escolher o cliente';
+  b.innerHTML=I_LUPA
+    +`<span class="nm${f?'':' vz'}">${f?esc(f.nome):(obr?'Escolher o cliente…':'Buscar cliente…')}</span>`
+    +(f?`<span class="lm" title="Tirar o cliente" onclick="event.stopPropagation();tkFichaSet('','${id}')">&times;</span>`:'');
+}
+window.tkFichaSet=(fid,id)=>{
+  id=id||'tk_ficha'; const inp=document.getElementById(id); if(!inp) return;
+  const pop=document.getElementById('tkFichaPop'); if(pop) pop.remove();
+  inp.value=fid||''; tkFichaPinta(id);
+  if(id==='tk_ficha'){ try{ tkPuxaCliente(); }catch(_){} }
+  try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){}   /* autosave + relacionamentos */
+};
+window.tkFichaMenu=(ev,id)=>{
+  if(ev) ev.stopPropagation();
+  id=id||'tk_ficha';
+  const b=(ev&&ev.currentTarget&&ev.currentTarget.id===id+'Btn')?ev.currentTarget:document.getElementById(id+'Btn');
+  if(!b) return;
+  const vel=document.getElementById('tkFichaPop'); if(vel){ vel.remove(); if(ev) return; }
+  const inp=document.getElementById(id), atual=inp?inp.value:'', obr=b.dataset.obr==='1';
+  const r=b.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='tkFichaPop'; el.className='tkpop'; el.style.zIndex=3000;
+  el.style.width=Math.max(250,Math.min(340,r.width||260))+'px';
+  const fs=[...(DB.projetos||[])].sort((a,b2)=>String(a.nome||'').localeCompare(String(b2.nome||''),'pt-BR'));
+  el.innerHTML=`<div class="tkp-sec">Cliente${obr?'<span class="cp-obr" style="margin-left:auto">obrigatório</span>':''}</div>
+    <div class="tkp-busca">${I_LUPA}<input class="search tkp-b" placeholder="Digite o nome do cliente…" oninput="popFiltrar(this)" onkeydown="popTecla(event,this)" onclick="event.stopPropagation()"></div>
+    ${obr?'':`<label class="tkp-row" data-fixo="1" onclick="tkFichaSet('','${id}')"><span class="tkp-nm" style="color:var(--fraco);font-weight:500">— sem cliente —</span>${atual?'':'<span class="tkp-n">•</span>'}</label>`}
+    ${fs.map(f=>`<label class="tkp-row" onclick="tkFichaSet('${f.id}','${id}')">${fichaAv(f.nome)}<span class="tkp-nm">${esc(f.nome)}</span>${f.squad?`<span class="tkp-sq">SQ ${esc(f.squad)}</span>`:''}${atual===f.id?'<span class="tkp-n">•</span>':''}</label>`).join('')}
+    <div class="tkp-vazio">Nenhum cliente com esse nome.</div>`;
+  document.body.appendChild(el); popPor(el,r);
+  const b0=el.querySelector('.tkp-b'); if(b0) try{ b0.focus(); }catch(_){}
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+/* leva o olho ate o campo e ja abre a busca */
+window.tkFichaAbrir=(id)=>{ id=id||'tk_ficha';
+  const b=document.getElementById(id+'Btn'); if(!b) return;
+  if(typeof tkmAba==='function') try{ tkmAba('Det'); }catch(_){}
+  try{ b.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){}
+  setTimeout(()=>tkFichaMenu(null,id),60);
+};
 const selFicha=(idCampo,atual,aoTrocar)=>`<select id="${idCampo}"${aoTrocar?` onchange="${aoTrocar}"`:''}><option value="">Todo o time vê</option>`+
   [...(DB.projetos||[])].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(f=>`<option value="${f.id}"${atual===f.id?' selected':''}>${esc(f.nome)}</option>`).join('')+`</select>`;
 const fichaDaConta=(accId)=>{ const m=contaMarca(accId); return m&&m.fichaId?fichaDe(m.fichaId):null; };
@@ -6356,8 +6426,8 @@ window.tkAddKey=async (ev,key)=>{
   const tit=ev.target.value.trim(); if(!tit) return;
   if(exigeDaLista(TK.listaSel).indexOf('cliente')>=0){
     tkAbrirSt(key);
-    setTimeout(()=>{ const e=$('#tk_tit'); if(e) e.value=tit; const s2=$('#tk_ficha'); if(s2) try{ s2.focus(); }catch(_){}
-      toast('Essa lista pede o cliente — escolha pra salvar.'); },120);
+    setTimeout(()=>{ const e=$('#tk_tit'); if(e) e.value=tit;
+      toast('Essa lista pede o cliente — escolha pra salvar.'); tkFichaAbrir(); },180);
     return; }
   ev.target.disabled=true;
   const v={titulo:TIT_CLI(TK.listaSel,tit),lista_id:TK.listaSel,prioridade:'med',valores:{},tipo_id:tipoPadraoDe(TK.listaSel)};
@@ -8396,7 +8466,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <div class="tkf-side">
         <div class="tkf-sec">Propriedades<span class="ln"></span></div>
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.cliente} Cliente${exigeDaLista(lid).indexOf('cliente')>=0?'<span class="cp-obr">obrigatório</span>':''}</div>
-          <div class="tkf-pv">${selFicha('tk_ficha',it.ficha_id||'',"tkPuxaCliente()")}</div></div>
+          <div class="tkf-pv">${selFichaBusca('tk_ficha',it.ficha_id||'',exigeDaLista(lid).indexOf('cliente')>=0)}</div></div>
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</div>
           <div class="tkf-pv"><select id="tk_squad"><option value="">Todo o time vê</option>${sqOpc.map(x=>`<option value="${esc(x)}"${sqAtual===x?' selected':''}>Squad ${esc(x)}</option>`).join('')}</select></div></div>
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.tag} Etiquetas</div>
@@ -8489,6 +8559,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   }
   ckPintar();
   window.__tkmTarefaId=t?t.id:'';
+  tkFichaPinta('tk_ficha');
   setTimeout(()=>{ if(t){ tkmAtvCarregar(t.id); tkmAnxCarregar(t.id); } tkmRelPintar();
     const sel=document.getElementById('tk_ficha'); if(sel) sel.addEventListener('change',tkmRelPintar); },40);
 };
@@ -8512,7 +8583,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
       v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
       if(exigeSquad(v.lista_id)&&!v.squad){ aviso('Falta o squad'); if(!silencioso) return false; }
       const exig=exigeDaLista(v.lista_id);
-      if(exig.indexOf('cliente')>=0&&!v.ficha_id){ aviso('Falta o cliente'); if(!silencioso){ const e0=$('#tk_ficha'); if(e0) e0.focus(); return false; }
+      if(exig.indexOf('cliente')>=0&&!v.ficha_id){ aviso('Falta o cliente'); if(!silencioso){ tkFichaAbrir(); return false; }
         if(!t) return false;   /* tarefa nova so nasce depois de escolher o cliente */ }
       if(exig.indexOf('responsavel')>=0&&!(v.responsaveis||[]).length){ aviso('Falta o responsável'); if(!silencioso) return false; }
       if(exig.indexOf('entrega')>=0){
@@ -8815,7 +8886,7 @@ window.tkmRelPintar=()=>{
     if(b) b.textContent='';
     box.innerHTML=`<p class="rel-sub">Veja do que esta tarefa faz parte: o projeto, o financeiro do cliente e as outras demandas dele.</p>
       <div class="rel-sec"><div class="rel-h"><span class="rel-i">${relIco.proj}</span>Projeto</div>
-        <div class="rel-body"><button class="rel-add" type="button" onclick="tkmAba('Det');setTimeout(()=>{const s=document.getElementById('tk_ficha'); if(s) s.focus();},60)">+ Vincular a um projeto</button></div></div>`;
+        <div class="rel-body"><button class="rel-add" type="button" onclick="tkFichaAbrir()">+ Vincular a um projeto</button></div></div>`;
     return;
   }
   const master=!!(currentUser&&currentUser.role==='master');
@@ -8877,7 +8948,7 @@ window.tkmRelPintar=()=>{
 /* Nova demanda ja amarrada ao mesmo cliente, na lista atual. */
 window.tkmNovaDemanda=(fid)=>{
   const o=document.querySelector('.overlay'); if(o) o.remove();
-  setTimeout(()=>{ tkAbrir(); setTimeout(()=>{ const s=document.getElementById('tk_ficha'); if(s){ s.value=fid; tkmRelPintar(); } },80); },40);
+  setTimeout(()=>{ tkAbrir(); setTimeout(()=>{ tkFichaSet(fid); },80); },40);
 };
 /* ---------- ARQUIVAR E EXCLUIR (fluxo do Trello) ----------
    Arquivar tira o cartão da vista sem destruir nada; excluir de vez só acontece
