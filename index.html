@@ -7223,7 +7223,8 @@ const vendasOpcoes=()=>[
 ].filter(o=>o.quem!=='contratos'||podeContratos());
 
 const VEN_ICO={
-  aperto:'<path d="M11 17l2 2a1.5 1.5 0 002-2M13 15l3 3a1.5 1.5 0 002-2M15 13l3 3a1.5 1.5 0 002-2l-5-5"/><path d="M2 9l4-4 5 5-2 2a1.5 1.5 0 002 2l2-2"/><path d="M15 6l3-3 4 4-3 3"/>',
+  /* sino: fechou contrato, toca o sino (Gabriel 15/09) */
+  aperto:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   papel:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/>'
 };
 const venIco=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${VEN_ICO[k]||''}</svg>`;
