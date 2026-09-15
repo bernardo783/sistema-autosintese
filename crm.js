@@ -812,6 +812,13 @@ function ccCallsHTML(){
     </table></div>`;
 }
 
+/* clicar no botao ja marcado desmarca: sem isso, quem erra a opcao fica preso
+   com ela (radio nativo nao desmarca sozinho e nao ha "nenhum" na lista). */
+window.ccTog=(el)=>{
+  if(el.dataset.on==='1') el.checked=false;
+  document.querySelectorAll('input[name="'+el.name+'"]').forEach(x=>{ x.dataset.on=x.checked?'1':'0'; });
+};
+
 /* ---------- modal de lançamento ---------- */
 window.crmCallModal=(id)=>{
   const c=(CRM.d.calls||[]).find(x=>String(x.id)===String(id))||{};
@@ -819,10 +826,10 @@ window.crmCallModal=(id)=>{
   const opt=(tab,v)=>tab.map(o=>`<option value="${esc(o[0])}"${String(v||'')===o[0]?' selected':''}>${esc(o[1])}</option>`).join('');
   const pessoas=ccPessoas();
   const dl=`<datalist id="ccPessoas">${pessoas.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
-  /* opcao = circulo vazado + rotulo, igual ao painel original. O input fica
-     invisivel por cima do circulo desenhado no ::before do label. */
-  const ops=(nome,tab,v)=>`<div class="cc-ops">${tab.map(o=>
-    `<label class="cc-op"><input type="radio" name="${nome}" value="${esc(o[0])}"${String(v||'')===o[0]?' checked':''}><span>${esc(o[1])}</span></label>`).join('')}</div>`;
+  /* cada opcao e um botao: clicar marca, clicar de novo desmarca (Gabriel 15/09).
+     O radio continua ali, invisivel, pra manter teclado e leitor de tela. */
+  const ops=(nome,tab,v)=>`<div class="pc-ops">${tab.map(o=>
+    `<label class="pc-opt"><input type="radio" name="${nome}" value="${esc(o[0])}"${String(v||'')===o[0]?' checked data-on="1"':' data-on="0"'} onclick="ccTog(this)"><span>${esc(o[1])}</span></label>`).join('')}</div>`;
   const campo=(lab,html)=>`<div class="cc-f"><label>${esc(lab)}</label>${html}</div>`;
   const inp=(id2,val,ph,extra)=>`<input id="${id2}" value="${esc(val==null?'':val)}"${ph?` placeholder="${esc(ph)}"`:''}${extra||''}>`;
 
