@@ -201,17 +201,17 @@
 .cc-f>select.cx{text-transform:uppercase;letter-spacing:.03em;font-weight:600;font-size:13px}
 .cc-f>input:focus,.cc-f>select:focus,.cc-f>textarea:focus{border-color:var(--brand2);outline:none}
 .cc-f>input::placeholder,.cc-f>textarea::placeholder{color:var(--fraco)}
-/* opção: circulo vazado roxo + rotulo em caixa alta, alinhados na mesma linha */
-.cc-form .cc-ops{display:flex;flex-wrap:wrap;gap:14px 28px;padding:2px 0 0;margin:0}
-.cc-form .cc-ops>.cc-op{display:inline-flex;align-items:center;gap:10px;margin:0;padding:0;
-  font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;user-select:none;line-height:1}
-.cc-form .cc-ops>.cc-op>input{appearance:none;-webkit-appearance:none;width:17px;height:17px;min-width:17px;
-  margin:0;padding:0;flex:none;border:1.6px solid var(--brand2);border-radius:50%;background:transparent;cursor:pointer}
-.cc-form .cc-ops>.cc-op>input:checked{background:var(--brand2);box-shadow:inset 0 0 0 3.5px var(--panel)}
-.cc-form .cc-ops>.cc-op>input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-.cc-form .cc-ops>.cc-op>span{letter-spacing:.05em;text-transform:uppercase;color:inherit;line-height:1.2}
-.cc-form .cc-ops>.cc-op:hover{color:var(--txt)}
-.cc-form .cc-ops>.cc-op:has(input:checked){color:var(--txt)}
+/* cada opção é um botão (pill): mais fácil de acertar que bolinha, e sem o
+   problema de alinhamento que a bolinha trouxe duas vezes. */
+.pc-ops{display:flex;flex-wrap:wrap;gap:9px;padding:2px 0 0}
+.pc-opt{position:relative;display:inline-flex;align-items:center;margin:0;cursor:pointer}
+.pc-opt>input{position:absolute;opacity:0;width:0;height:0;margin:0;pointer-events:none}
+.pc-opt>span{display:inline-block;padding:9px 16px;border:1px solid var(--line);border-radius:999px;
+  background:var(--panel2);color:var(--muted);font-size:12.5px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;line-height:1.1;white-space:nowrap;transition:background .12s,border-color .12s,color .12s}
+.pc-opt:hover>span{border-color:var(--brand2);color:var(--txt)}
+.pc-opt>input:checked+span{background:rgba(167,139,250,.16);border-color:var(--brand2);color:var(--txt)}
+.pc-opt>input:focus-visible+span{outline:2px solid var(--brand);outline-offset:2px}
 @media (max-width:640px){.cc-2{grid-template-columns:1fr;gap:16px}.cc-form{gap:16px}}
 /* Painel Comercial — tabela de calls, no desenho do painel original.
    Linha alta, cabecalho em caixa alta, origem discreta, pilula so no status do
