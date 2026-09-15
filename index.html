@@ -3316,10 +3316,10 @@ async function enterApp(){
   catch(e){ $('#loginErr').textContent='Erro ao carregar dados: '+(e.message||e); show($('#loginView')); return; }
   hide($('#login')); show($('#app'));
   pintarWhoami();
-  if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); show($('#navFunil')); } else { hide($('#navUsuarios')); hide($('#navFin')); hide($('#navFunil')); }
+  if(currentUser.role==='master'){ show($('#navUsuarios')); show($('#navFin')); } else { hide($('#navUsuarios')); hide($('#navFin')); }
+  hide($('#navFunil'));    /* Comercial virou espaco na arvore (Gabriel 15/09) */
   hide($('#navAgente'));   /* Agente IA saiu da barra (Gabriel 15/09); a tela continua em #v/agente */
-  /* Comercial (crm.js): master e quem tem papel no CRM (SDR, closer, gestor) */
-  if(currentUser.papel_crm) show($('#navFunil'));
+
   /* Fechamento, Contratos e Leads agora sao abas do Comercial. Quem enxerga o
      Comercial usa por la; quem nao enxerga mantem o atalho, pra nao perder acesso. */
   const noComercial=!!(currentUser.role==='master'||currentUser.papel_crm);
@@ -5163,6 +5163,15 @@ const LCT_ID='acce64a7-7fca-4f9f-9cef-92961542ae3e';
 const LFIN={'f1e2d3c4-0000-4a00-8b00-00000000f001':'financeiro','f1e2d3c4-0000-4a00-8b00-00000000f002':'recebimentos','f1e2d3c4-0000-4a00-8b00-00000000f003':'folha',[LCT_ID]:'contratos'};
 const FIN_LISTA={financeiro:'f1e2d3c4-0000-4a00-8b00-00000000f001',recebimentos:'f1e2d3c4-0000-4a00-8b00-00000000f002',folha:'f1e2d3c4-0000-4a00-8b00-00000000f003',contratos:LCT_ID};
 const ehFin=(lid)=>!!LFIN[lid];
+/* Comercial mora na arvore igual ao Financeiro: um espaco proprio cujas listas
+   nao guardam tarefa — cada uma abre uma aba do modulo comercial (Gabriel 15/09).
+   Por isso o Comercial saiu da barra de icones: o lugar dele e aqui. */
+const ESP_COM='c0e2d3c4-0000-4a00-8b00-000000000001';
+const LCOM={'f1e2d3c4-0000-4a00-8b00-00000000c001':'painel','f1e2d3c4-0000-4a00-8b00-00000000c002':'calls',
+  'f1e2d3c4-0000-4a00-8b00-00000000c003':'pipeline','f1e2d3c4-0000-4a00-8b00-00000000c004':'agenda',
+  'f1e2d3c4-0000-4a00-8b00-00000000c005':'fechamento','f1e2d3c4-0000-4a00-8b00-00000000c006':'contratos',
+  'f1e2d3c4-0000-4a00-8b00-00000000c007':'leads'};
+const ehCom=(lid)=>!!LCOM[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
 try{ SP_MINI=localStorage.getItem('sp_mini')==='1'; }catch(_){}
@@ -5310,8 +5319,8 @@ window.wsNovo=()=>{
     });
 };
 /* Listas que o sistema usa como tela propria: renomear ate pode, apagar nao (levaria as tarefas junto). */
-const spFixas=()=>[LC_ID,LF_ID,LCT_ID,NC_LISTA,'7381fb45-8d78-458d-b432-77dd88972338'].concat(Object.keys(LFIN));
-const spProtegido=(tipo,id)=>(tipo==='lista'&&spFixas().indexOf(id)>=0)||(tipo==='pasta'&&id===PASTA_FIN);
+const spFixas=()=>[LC_ID,LF_ID,LCT_ID,NC_LISTA,'7381fb45-8d78-458d-b432-77dd88972338'].concat(Object.keys(LFIN)).concat(Object.keys(LCOM));
+const spProtegido=(tipo,id)=>(tipo==='lista'&&spFixas().indexOf(id)>=0)||(tipo==='pasta'&&id===PASTA_FIN)||(tipo==='espaco'&&id===ESP_COM);
 const spTab=(tipo)=>tipo==='espaco'?'espacos':tipo==='pasta'?'pastas':'listas';
 const spNo=(tipo,id)=>(tipo==='espaco'?TK.espacos:tipo==='pasta'?TK.pastas:TK.listas).find(x=>x.id===id)||null;
 const spRotulo=(tipo)=>tipo==='espaco'?'espaço':tipo==='pasta'?'pasta':'lista';
@@ -7058,8 +7067,8 @@ function spDesenhar(){
     const cor=l.cor||'';
     const ic=l.icone?`<span class="tk-ic${String(l.icone).slice(0,4)==='svg:'?'':' emo'}"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${icHtml(l.icone)}</span>`
                     :`<span class="tk-ic"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${SVG_LISTA}</span>`;
-    const cont=(l.id===LF_ID||ehFin(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
-    const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)))?' on':'';
+    const cont=(l.id===LF_ID||ehFin(l.id)||ehCom(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
+    const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)||ehCom(l.id)))?' on':'';
     const dnd=fav?'':` draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()"`;
     return `<div class="tk-lista${on}" role="button" tabindex="0"${dnd} onclick="spSelLista('${l.id}')" oncontextmenu="spNoMenu(event,'lista','${l.id}')" title="${esc(tkCaminho(l.id))}">
       ${ic}<span class="tk-nome">${esc(spNome(l))}</span>${favTem(l.id)&&!fav?'<span class="tk-star">★</span>':''}${cont}
@@ -7113,6 +7122,7 @@ function spDesenhar(){
 }
 window.spSelLista=(id,semAbrir)=>{
   TK.listaSel=id; TK.escopo='lista'; searchTerm=''; TK.arqVista=false; spMarcarAtalho(''); if(!semAbrir) spAbrirCaminho(id);
+  if(LCOM[id]){ currentView='funil'; lkHash('l',id); render('funil/aba/'+LCOM[id]); spDesenhar(); return; }
   if(LFIN[id]){ render(LFIN[id]); return; }
   if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
   /* Lista de fluxo (4+ status proprios) abre no Board, como a linha editorial do ClickUp.
@@ -15842,7 +15852,7 @@ initLoginScreen();
   setInterval(checa,5*60*1000);
 })();
 </script>
-<script src="crm.js?v=12" defer></script>
+<script src="crm.js?v=13" defer></script>
 <script src="comercial/instancias.js?v=3" defer></script>
 <script src="comercial/conversas.js?v=1" defer></script>
 </body>
