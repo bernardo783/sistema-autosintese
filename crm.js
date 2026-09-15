@@ -156,6 +156,8 @@ window.crmRender=function(c,viewPedida){
   if(!crmPode()){ c.innerHTML='<div class="empty">Acesso restrito ao time comercial. Peça ao administrador para liberar seu papel no CRM.</div>'; return; }
   const v=String(viewPedida||''); const mOpp=v.match(/^funil\/opp\/([0-9a-f-]{36})/);
   if(mOpp){ CRM.sel=mOpp[1]; }
+  /* #funil/aba/<nome>: e assim que as listas do espaco Comercial abrem cada tela */
+  const mAba=v.match(/^funil\/aba\/([a-z_]+)$/); if(mAba) CRM.aba=mAba[1];
   if(!CRM.carregou){ if(!CRM.carregando) crmCarregar().then(crmPintar); c.innerHTML=`<div class="page-head"><div><h2>Comercial</h2><div class="desc">Carregando o funil…</div></div></div>`; return; }
   /* Fechamento, Contratos e Leads sao telas do index.html que agora moram aqui
      (Gabriel 15/09): o fluxo comercial inteiro numa tela so. Contratos e Leads
