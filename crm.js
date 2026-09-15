@@ -27,6 +27,21 @@ const CRM={
 try{ Object.assign(CRM.f, JSON.parse(localStorage.getItem('crm_filtros_v1')||'{}')); }catch(_){ /* sem filtro salvo */ }
 const crmSalvarFiltros=()=>{ try{ localStorage.setItem('crm_filtros_v1',JSON.stringify(CRM.f)); }catch(_){ /* sem storage */ } };
 
+/* ---------- PAINEL COMERCIAL (calls) ----------
+   Replica o painel que o time tocava fora do sistema: cada reuniao vira uma linha
+   em crm_calls e o Painel le so isso. Nao conversa com o pipeline (opportunities):
+   la o registro nasce do lead; aqui nasce da call que o SDR agendou. */
+const CC_ORIGENS=[['inbound','Inbound'],['outbound','Outbound'],['indicacao','Indicação'],['repescagem','Repescagem'],['lancamento','Lançamento']];
+const CC_CALL=[['agendado','Agendado','info'],['show','Show','ok'],['no_show','No-show','bad']];
+const CC_LEAD=[['follow_up','Follow up','info'],['remarcar','Remarcar','warn'],['futuro','Futuro',''],['negociacao','Negociação','warn'],['ganho','Ganho','ok'],['perdido','Perdido','bad']];
+const CC_FALTOU=[['authority','Authority'],['budget','Budget'],['timing','Timing'],['need','Need']];
+const CC_VENDIDO=[['agent_ia','Agent IA'],['trafego','Tráfego'],['crm','CRM'],['maquina','Máquina de Vendas'],['agent_trafego','Agent IA + Tráfego'],['agent_crm','Agent IA + CRM']];
+const CC_BANT=[['4','4 de 4 critérios'],['3','3 de 4 critérios'],['2','2 de 4 critérios'],['1','1 de 4 critérios'],['0','nenhum critério']];
+const ccNome=(tab,v)=>{ const r=(tab||[]).find(x=>x[0]===String(v||'')); return r?r[1]:''; };
+const ccCor=(tab,v)=>{ const r=(tab||[]).find(x=>x[0]===String(v||'')); return r&&r[2]?r[2]:''; };
+CRM.cc={mes:'',sdr:'',status:'',de:'',ate:''};
+CRM.d.calls=[];
+
 /* ---------- permissões ---------- */
 const crmPode=()=>!!(currentUser&&(currentUser.role==='master'||currentUser.papel_crm));
 const crmAdmin=()=>!!(currentUser&&(currentUser.role==='master'||['admin','gestor'].includes(currentUser.papel_crm)));
@@ -69,16 +84,19 @@ async function crmCarregar(){
   if(CRM.carregando) return; CRM.carregando=true; CRM.erro='';
   try{
     const desde=new Date(); desde.setDate(desde.getDate()-60);
-    const [e,m,o,q,a,g,v]=await Promise.all([
+    const [e,m,o,q,a,g,v,cc]=await Promise.all([
       sb.from('wa_estagios').select('*').eq('ativo',true).order('ordem'),
       sb.from('lost_reasons').select('*').eq('ativo',true).order('ordem'),
       sb.from('lead_sources').select('*').eq('ativo',true).order('ordem'),
       sb.from('perfis').select('id,nome,foto,papel_crm,role').eq('aprovado',true).order('nome'),
       sb.from('appointments').select('*').gte('scheduled_start',desde.toISOString()).order('scheduled_start'),
       sb.rpc('crm_google_conectados'),
-      sb.from('v_crm_origens').select('*')
+      sb.from('v_crm_origens').select('*'),
+      sb.from('crm_calls').select('*').order('data',{ascending:false}).limit(5000)
     ]);
     const erro=[e,m,o,q,a,g,v].find(r=>r&&r.error); if(erro) throw erro.error;
+    /* a tabela de calls e nova: se ainda nao existir no banco, o resto da tela continua de pe */
+    CRM.d.calls=(cc&&!cc.error&&cc.data)||[];
     CRM.d.estagios=e.data||[]; CRM.d.motivos=m.data||[]; CRM.d.origens=o.data||[]; CRM.d.equipe=q.data||[];
     CRM.d.appts=a.data||[]; CRM.d.google=g.data||[]; CRM.d.origensMes=v.data||[];
     const ano=new Date(); ano.setDate(ano.getDate()-365);
@@ -132,11 +150,11 @@ window.crmRender=function(c,viewPedida){
   const v=String(viewPedida||''); const mOpp=v.match(/^funil\/opp\/([0-9a-f-]{36})/);
   if(mOpp){ CRM.sel=mOpp[1]; }
   if(!CRM.carregou){ if(!CRM.carregando) crmCarregar().then(crmPintar); c.innerHTML=`<div class="page-head"><div><h2>Comercial</h2><div class="desc">Carregando o funil…</div></div></div>`; return; }
-  const abas=[['pipeline','Pipeline'],['agenda','Agenda'],['origens','Origem da receita']].concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[]);
+  const abas=[['painel','Painel'],['calls','Calls'],['pipeline','Pipeline'],['agenda','Agenda'],['origens','Origem da receita']].concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[]);
   const tabs=`<div class="fin-tabs" style="margin:0 0 14px">${abas.map(a=>`<button class="ftab${CRM.aba===a[0]?' active':''}" onclick="crmAba('${a[0]}')">${a[1]}</button>`).join('')}
     <span style="margin-left:auto"></span>
     ${crmAdmin()?`<button class="btn secondary small" onclick="crmEquipeModal()">Equipe comercial</button>`:''}
-    <button class="btn small" onclick="crmNovoLead()">+ Lead</button></div>`;
+    ${CRM.aba==='painel'||CRM.aba==='calls'?`<button class="btn small" onclick="crmCallModal()">+ Nova call</button>`:`<button class="btn small" onclick="crmNovoLead()">+ Lead</button>`}</div>`;
   if(CRM.aba==='anuncios'&&typeof renderFunil==='function'){
     FN.sub='meta'; renderFunil(c);
     /* esconde as sub-abas antigas (Anúncios/WhatsApp) e põe as novas no lugar */
@@ -145,10 +163,10 @@ window.crmRender=function(c,viewPedida){
   }
   const j=crmJanela();
   c.innerHTML=`<div class="page-head">
-      <div><h2>Comercial</h2><div class="desc">${CRM.aba==='pipeline'?'Pipeline de oportunidades':CRM.aba==='agenda'?'Sessões estratégicas':CRM.aba==='integracoes'?'WhatsApp · Meta Ads · Google Agenda · Google Meet · Conversions API':'De onde vem a receita'}${CRM.aba==='integracoes'?'':` · ${esc(crmDia(j.de.toISOString()))} a ${esc(crmDia(new Date(j.ate-1).toISOString()))}`}${CRM.erro?` · <span style="color:var(--danger)">${esc(CRM.erro)}</span>`:''}</div></div>
+      <div><h2>Comercial</h2><div class="desc">${CRM.aba==='painel'?ccMesNome():CRM.aba==='calls'?'Calls registradas':CRM.aba==='pipeline'?'Pipeline de oportunidades':CRM.aba==='agenda'?'Sessões estratégicas':CRM.aba==='integracoes'?'WhatsApp · Meta Ads · Google Agenda · Google Meet · Conversions API':'De onde vem a receita'}${CRM.aba==='integracoes'||CRM.aba==='painel'||CRM.aba==='calls'?'':` · ${esc(crmDia(j.de.toISOString()))} a ${esc(crmDia(new Date(j.ate-1).toISOString()))}`}${CRM.erro?` · <span style="color:var(--danger)">${esc(CRM.erro)}</span>`:''}</div></div>
       <div class="toolbar"><button class="btn secondary small" onclick="crmRecarregar()" title="Recarregar">↻</button></div>
-    </div>${tabs}${CRM.aba==='origens'||CRM.aba==='integracoes'?'':crmFiltrosHTML()}
-    ${CRM.aba==='pipeline'?crmPipelineHTML():CRM.aba==='agenda'?crmAgendaHTML():CRM.aba==='integracoes'?crmIntgHTML():crmOrigensHTML()}`;
+    </div>${tabs}${CRM.aba==='origens'||CRM.aba==='integracoes'||CRM.aba==='painel'||CRM.aba==='calls'?'':crmFiltrosHTML()}
+    ${CRM.aba==='painel'?ccPainelHTML():CRM.aba==='calls'?ccCallsHTML():CRM.aba==='pipeline'?crmPipelineHTML():CRM.aba==='agenda'?crmAgendaHTML():CRM.aba==='integracoes'?crmIntgHTML():crmOrigensHTML()}`;
   if(CRM.aba==='integracoes') crmIntgCarregar();
   if(CRM.sel) crmAbrirFicha(CRM.sel);
 };
@@ -608,6 +626,216 @@ window.crmWaWebhook=async ()=>{ try{ const j=await crmAdminEdge({acao:'wa_webhoo
 window.crmWaLogs=async ()=>{ try{ const j=await crmAdminEdge({acao:'wa_logs',n:40}); const box=document.getElementById('crmWaExtra'); if(!box) return;
     box.innerHTML=`<div class="crm-box" style="margin-top:10px"><h4>Últimos webhooks <button class="btn secondary small" onclick="this.closest('.crm-box').remove()">fechar</button></h4><div class="crm-log">${(j.logs||[]).length?j.logs.map(l=>`${esc(crmQuando(l.received_at))}  ${esc((l.event_type||'').padEnd(18))}  ${esc(l.status.padEnd(10))}  ${l.attempts?'tent.'+l.attempts:''}  ${esc(l.error||'')}`).join('\n'):'Nenhum webhook registrado ainda (o registro bruto entra com o novo endpoint da Fase 3).'}</div></div>`; }catch(e){ toast(e.message); } };
 window.crmMetaTestar=async ()=>{ try{ const j=await crmAdminEdge({acao:'meta_testar'}); toast(j.ok?`Meta ok: ${j.usuario||''} · ${j.conta?j.conta.nome:''}`:'Meta: '+(j.detalhe||j.erro)); }catch(e){ toast(e.message); } await crmIntgCarregar(); };
+
+/* =====================================================================
+   PAINEL COMERCIAL — Painel (métricas) e Calls (lançamento)
+   ===================================================================== */
+
+/* mes de trabalho do Painel: vazio = mes corrente */
+const ccMes=()=>CRM.cc.mes||crmIsoLocal(new Date()).slice(0,7);
+function ccMesNome(){ const [y,m]=ccMes().split('-').map(Number);
+  const n=new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  return n.charAt(0).toUpperCase()+n.slice(1); }
+window.ccPular=(n)=>{ const [y,m]=ccMes().split('-').map(Number); const d=new Date(y,m-1+n,1);
+  CRM.cc.mes=crmIsoLocal(d).slice(0,7); crmPintar(); };
+const ccDoMes=()=>(CRM.d.calls||[]).filter(c=>String(c.data||'').slice(0,7)===ccMes());
+const ccNum=(v)=>Number(v||0);
+/* quem aparece nos seletores: quem ja foi lançado + a equipe com papel no CRM.
+   A planilha tem gente sem login aqui, entao o nome e texto, nao id. */
+function ccPessoas(){
+  const s=new Set();
+  (CRM.d.calls||[]).forEach(c=>{ if(c.sdr) s.add(c.sdr); if(c.closer) s.add(c.closer); });
+  crmSdrs().concat(crmClosers()).forEach(p=>s.add(p.nome.split(' ')[0]));
+  return [...s].filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+
+/* ---------- PAINEL ---------- */
+function ccPainelHTML(){
+  const cs=ccDoMes();
+  const agendadas=cs.length;
+  const shows=cs.filter(c=>c.status_call==='show').length;
+  const noShows=cs.filter(c=>c.status_call==='no_show').length;
+  const realizadas=shows+noShows;                      /* agendado ainda nao aconteceu */
+  const ganhos=cs.filter(c=>c.status_lead==='ganho');
+  const tcv=ganhos.reduce((s,c)=>s+ccNum(c.valor),0);
+  const mrr=ganhos.reduce((s,c)=>s+ccNum(c.fee),0);
+  const pct=(a,b)=>b?Math.round(a/b*1000)/10:0;
+  const vg=(n)=>String(n).replace('.',',');
+
+  /* agendamentos por SDR: todo mundo que agendou algo no mes, do maior pro menor */
+  const porSdr={}; cs.forEach(c=>{ const k=c.sdr||'sem SDR'; porSdr[k]=(porSdr[k]||0)+1; });
+  const sdrs=Object.entries(porSdr).sort((a,b)=>b[1]-a[1]);
+
+  /* motivos de perda: so quem foi marcado como perdido conta */
+  const perdidos=cs.filter(c=>c.status_lead==='perdido');
+  const motivos=CC_FALTOU.map(([k,n])=>({k,n,q:perdidos.filter(c=>c.faltou===k).length}))
+    .sort((a,b)=>b.q-a.q);
+
+  const kpi=(k,v,s,cor,hi)=>`<div class="crm-kpi${hi?' hi':''}"><div class="k">${esc(k)}</div><div class="v"${cor?` style="color:var(--${cor})"`:''}>${v}</div><div class="s">${s||''}</div></div>`;
+
+  return `<div class="toolbar" style="margin:0 0 14px;gap:8px">
+      <button class="btn secondary small" onclick="ccPular(-1)" title="Mês anterior">‹</button>
+      <b style="font-size:14px">${esc(ccMesNome())}</b>
+      <button class="btn secondary small" onclick="ccPular(1)" title="Próximo mês">›</button>
+      <span class="crm-hint" style="margin:0 0 0 8px">${agendadas} call${agendadas===1?'':'s'} no mês</span></div>
+
+    <div class="tk-sec">Volume</div>
+    <div class="crm-kpis">
+      ${kpi('Total agendadas',agendadas,realizadas?realizadas+' de '+agendadas+' já aconteceram':'nenhuma realizada ainda')}
+      ${kpi('Shows',shows,realizadas?shows+' de '+realizadas+' realizadas':'—','ok')}
+      ${kpi('No-shows',noShows,realizadas?noShows+' de '+realizadas+' realizadas':'—','danger')}
+      ${kpi('Taxa de no-show',realizadas?vg(pct(noShows,realizadas))+'%':'—','sobre as realizadas','warn')}
+    </div>
+
+    <div class="tk-sec">Resultado</div>
+    <div class="crm-kpis">
+      ${kpi('Ganhos',ganhos.length,shows?ganhos.length+' de '+shows+' shows':'nenhum show ainda','ok')}
+      ${kpi('Taxa de conversão',shows?vg(pct(ganhos.length,shows))+'%':'—','ganhos sobre shows','brand2')}
+      ${kpi('TCV total',tcv?esc(brl(tcv)):'—','valor fechado no mês')}
+      ${kpi('MRR gerado',mrr?esc(brl(mrr)):'—','fee mensal recorrente','info2')}
+      ${kpi('Ticket médio',ganhos.length?esc(brl((tcv+mrr)/ganhos.length)):'—','TCV + MRR ÷ '+ganhos.length+' ganho'+(ganhos.length===1?'':'s'),'',1)}
+    </div>
+
+    <div class="tk-sec">Agendamentos por SDR</div>
+    ${sdrs.length?`<div class="crm-kpis">${sdrs.map(([n,q])=>kpi(n,q,agendadas?vg(pct(q,agendadas))+'% do mês':'')).join('')}</div>`
+      :'<div class="hint" style="margin-bottom:14px">Ninguém agendou neste mês.</div>'}
+
+    <div class="tk-sec">Motivos de perda</div>
+    ${perdidos.length?`<div class="crm-box"><table class="crm-tbl">
+        ${motivos.map(m=>`<tr><td style="width:150px">${esc(m.n)}</td>
+          <td><div class="crm-share"><i style="width:${perdidos.length?Math.round(m.q/perdidos.length*100):0}%"></i></div></td>
+          <td class="r" style="width:130px">${m.q} de ${perdidos.length} · ${vg(pct(m.q,perdidos.length))}%</td></tr>`).join('')}
+      </table></div>`
+      :'<div class="hint">Nenhuma call perdida neste mês.</div>'}
+
+    <p class="crm-hint">Mês = data da call. Taxa de no-show e conversão ignoram as calls ainda agendadas — só entram depois que a reunião acontece. Ticket médio soma o valor à vista com o fee mensal do que foi ganho.</p>`;
+}
+
+/* ---------- CALLS (lançamento) ---------- */
+window.ccFiltro=(k,v)=>{ CRM.cc[k]=v; crmPintar(); };
+window.ccLimpar=()=>{ CRM.cc={mes:CRM.cc.mes,sdr:'',status:'',de:'',ate:''}; crmPintar(); };
+function ccFiltradas(){
+  const f=CRM.cc;
+  return (CRM.d.calls||[]).filter(c=>{
+    if(f.sdr&&c.sdr!==f.sdr) return false;
+    if(f.status&&c.status_lead!==f.status) return false;
+    const d=String(c.data||'');
+    if(f.de&&d<f.de) return false;
+    if(f.ate&&d>f.ate) return false;
+    return true;
+  });
+}
+function ccCallsHTML(){
+  const todas=CRM.d.calls||[], vis=ccFiltradas();
+  const ativos=['sdr','status','de','ate'].filter(k=>CRM.cc[k]).length;
+  const et=(tab,v)=>{ const n=ccNome(tab,v); return n?`<span class="crm-badge ${ccCor(tab,v)}">${esc(n)}</span>`:'<span class="crm-badge">—</span>'; };
+  const linha=(c)=>`<tr>
+    <td>${esc(fmtDate(String(c.data||'').slice(0,10)))}</td>
+    <td><span class="crm-badge">${esc(ccNome(CC_ORIGENS,c.origem)||'—')}</span></td>
+    <td><b>${esc(c.lead||'—')}</b></td>
+    <td>${esc(c.empresa||'—')}</td>
+    <td>${esc(c.sdr||'—')}</td>
+    <td>${esc(c.closer||'—')}</td>
+    <td>${et(CC_CALL,c.status_call)}</td>
+    <td>${et(CC_LEAD,c.status_lead)}</td>
+    <td class="r">${c.valor?esc(brl(c.valor)):'—'}</td>
+    <td class="r">${c.fee?esc(brl(c.fee)):'—'}</td>
+    <td><span class="rowact">
+      <button class="iconbtn" title="Editar esta call" onclick="crmCallModal('${c.id}')">Editar</button>
+      <button class="iconbtn del" title="Excluir esta call" onclick="ccExcluir('${c.id}')">&times;</button></span></td></tr>`;
+
+  return `<div class="crm-filtros">
+      <input type="date" class="${CRM.cc.de?'on':''}" value="${esc(CRM.cc.de)}" title="De" onchange="ccFiltro('de',this.value)">
+      <input type="date" class="${CRM.cc.ate?'on':''}" value="${esc(CRM.cc.ate)}" title="Até" onchange="ccFiltro('ate',this.value)">
+      <select class="${CRM.cc.status?'on':''}" onchange="ccFiltro('status',this.value)" title="Status do lead"><option value="">Status: todos</option>${CC_LEAD.map(s=>`<option value="${s[0]}"${CRM.cc.status===s[0]?' selected':''}>${esc(s[1])}</option>`).join('')}</select>
+      <select class="${CRM.cc.sdr?'on':''}" onchange="ccFiltro('sdr',this.value)" title="SDR"><option value="">SDR: todos</option>${ccPessoas().map(n=>`<option value="${esc(n)}"${CRM.cc.sdr===n?' selected':''}>${esc(n)}</option>`).join('')}</select>
+      ${ativos?`<button class="crm-limpar" onclick="ccLimpar()">limpar ${ativos} filtro${ativos>1?'s':''}</button>`:''}
+      <span style="margin-left:auto"></span>
+      <span class="crm-hint" style="margin:0">${vis.length} de ${todas.length} call${todas.length===1?'':'s'}</span>
+    </div>
+    <div class="card" style="padding:0;overflow:auto"><table class="crm-tbl">
+      <tr><th>Data</th><th>Origem</th><th>Lead</th><th>Empresa</th><th>SDR</th><th>Closer</th><th>Call</th><th>Lead</th><th class="r">Venda</th><th class="r">Fee</th><th></th></tr>
+      ${vis.length?vis.map(linha).join('')
+        :`<tr><td colspan="11" style="text-align:center;color:var(--fraco);padding:24px">${todas.length?'Nenhuma call com esses filtros.':'Nenhuma call lançada ainda · use “+ Nova call”.'}</td></tr>`}
+    </table></div>`;
+}
+
+/* ---------- modal de lançamento ---------- */
+window.crmCallModal=(id)=>{
+  const c=(CRM.d.calls||[]).find(x=>String(x.id)===String(id))||{};
+  const novo=!c.id;
+  const opt=(tab,v)=>tab.map(o=>`<option value="${esc(o[0])}"${String(v||'')===o[0]?' selected':''}>${esc(o[1])}</option>`).join('');
+  const pessoas=ccPessoas();
+  const dl=`<datalist id="ccPessoas">${pessoas.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
+  const radio=(nome,tab,v)=>tab.map(o=>`<label class="cc-rd"><input type="radio" name="${nome}" value="${esc(o[0])}"${String(v||'')===o[0]?' checked':''}> ${esc(o[1])}</label>`).join('');
+
+  modal(novo?'Nova call':'Editar call',`<div class="crm-form">${dl}
+    <div class="row2">
+      <div class="field"><label>Data da call</label><input type="date" id="cc_data" value="${esc(String(c.data||'').slice(0,10)||crmIsoLocal(new Date()))}"></div>
+      <div class="field"><label>Origem do lead</label><select id="cc_origem">${opt(CC_ORIGENS,c.origem||'inbound')}</select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Quem agendou (SDR)</label><input id="cc_sdr" list="ccPessoas" value="${esc(c.sdr||'')}" placeholder="nome de quem agendou"></div>
+      <div class="field"><label>Quem vendeu (closer)</label><input id="cc_closer" list="ccPessoas" value="${esc(c.closer||'')}" placeholder="deixe vazio se não vendeu"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Status da call</label><select id="cc_scall">${opt(CC_CALL,c.status_call||'agendado')}</select></div>
+      <div class="field"><label>Status do lead</label><select id="cc_slead">${opt(CC_LEAD,c.status_lead||'follow_up')}</select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Nome do lead</label><input id="cc_lead" value="${esc(c.lead||'')}" placeholder="com quem você falou"></div>
+      <div class="field"><label>Empresa</label><input id="cc_empresa" value="${esc(c.empresa||'')}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>BANT</label><select id="cc_bant"><option value="">—</option>${opt(CC_BANT,c.bant)}</select></div>
+      <div class="field"><label>Nicho</label><input id="cc_nicho" value="${esc(c.nicho||'')}" placeholder="ex.: concessionária"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Valor da venda (R$)</label><input type="number" step="0.01" min="0" id="cc_valor" value="${c.valor||''}" placeholder="0"></div>
+      <div class="field"><label>Fee mensal (R$)</label><input type="number" step="0.01" min="0" id="cc_fee" value="${c.fee||''}" placeholder="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Prazo do projeto</label><input id="cc_pproj" value="${esc(c.prazo_projeto||'')}" placeholder="ex.: 30 dias"></div>
+      <div class="field"><label>Prazo de implementação</label><input id="cc_pimpl" value="${esc(c.prazo_impl||'')}" placeholder="ex.: 10 dias"></div>
+    </div>
+    <div class="field"><label>O que faltou (só em perdido)</label><div class="cc-rds">${radio('cc_faltou',CC_FALTOU,c.faltou)}</div></div>
+    <div class="field"><label>O que foi vendido</label><div class="cc-rds">${radio('cc_vendido',CC_VENDIDO,c.vendido)}</div></div>
+    <div class="field"><label>Observações</label><textarea id="cc_obs" rows="3">${esc(c.obs||'')}</textarea></div>
+  </div>`, async ()=>{
+    const rd=(n)=>{ const e=document.querySelector(`input[name="${n}"]:checked`); return e?e.value:null; };
+    const num=(k)=>{ const v=crmVal(k); return v===''?null:Number(v); };
+    const row={
+      data:crmVal('cc_data')||null, origem:crmVal('cc_origem')||'inbound',
+      sdr:crmVal('cc_sdr')||null, closer:crmVal('cc_closer')||null,
+      status_call:crmVal('cc_scall'), status_lead:crmVal('cc_slead'),
+      lead:crmVal('cc_lead')||null, empresa:crmVal('cc_empresa')||null,
+      bant:crmVal('cc_bant')||null, nicho:crmVal('cc_nicho')||null,
+      valor:num('cc_valor'), fee:num('cc_fee'),
+      prazo_projeto:crmVal('cc_pproj')||null, prazo_impl:crmVal('cc_pimpl')||null,
+      faltou:rd('cc_faltou'), vendido:rd('cc_vendido'), obs:crmVal('cc_obs')||null
+    };
+    if(!row.data){ toast('Informe a data da call.'); return false; }
+    if(novo) row.criado_por=(currentUser||{}).id||null;
+    const r=novo ? await sb.from('crm_calls').insert(row).select().single()
+                 : await sb.from('crm_calls').update(row).eq('id',c.id).select().single();
+    if(r.error){ toast('Erro: '+r.error.message); return false; }
+    if(novo) CRM.d.calls.unshift(r.data);
+    else { const i=CRM.d.calls.findIndex(x=>String(x.id)===String(c.id)); if(i>=0) CRM.d.calls[i]=r.data; }
+    CRM.d.calls.sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+    toast(novo?'Call lançada.':'Call atualizada.'); crmPintar(); return true;
+  });
+};
+window.ccExcluir=async (id)=>{
+  const c=(CRM.d.calls||[]).find(x=>String(x.id)===String(id))||{};
+  const ok=await confirmar('Excluir esta call?',
+    `${c.lead?c.lead+' · ':''}${c.empresa||''}${c.data?' · '+fmtDate(String(c.data).slice(0,10)):''}. Ela sai do Painel e das contas do mês. Não dá para desfazer.`,
+    {sim:'Sim, excluir',nao:'Não'});
+  if(!ok) return;
+  const {error}=await sb.from('crm_calls').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  CRM.d.calls=CRM.d.calls.filter(x=>String(x.id)!==String(id));
+  toast('Call excluída.'); crmPintar();
+};
 
 /* boot: se a tela do funil já estava aberta quando este arquivo carregou, redesenha */
 try{ if(typeof currentView!=='undefined'&&String(currentView).indexOf('funil')===0){ const c=$('#content'); if(c) crmRender(c,currentView); } }catch(_){ /* ainda sem sessão */ }
