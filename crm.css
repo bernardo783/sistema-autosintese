@@ -159,7 +159,7 @@
 .pc-mes{margin:2px 0 3px;font-size:30px;font-weight:700;letter-spacing:-.6px;color:var(--txt);line-height:1.1}
 .pc-sub{font-size:12.5px;color:var(--fraco)}
 .pc-sel{display:flex;align-items:center;gap:8px}
-.pc-sel select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 12px;font:inherit;font-size:13px}
+.pc-sel>select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 12px;font:inherit;font-size:13px}
 .pc-sec{display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);font-weight:700;margin:26px 0 10px}
 .pc-sec .pc-ico{width:14px;height:14px;opacity:.9}
 .pc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
@@ -175,7 +175,7 @@
 .pc-perdas{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
 .pc-perda+.pc-perda{margin-top:16px}
 .pc-pl{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:7px}
-.pc-pl span{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt);font-weight:700}
+.pc-pl>span{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt);font-weight:700}
 .pc-pl b{font-size:12px;color:var(--fraco);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pc-bar{height:9px;border-radius:5px;background:var(--panel2);overflow:hidden}
 .pc-bar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--brand),var(--brand2));min-width:3px}
@@ -213,3 +213,52 @@
 .cc-form .cc-ops>.cc-op:hover{color:var(--txt)}
 .cc-form .cc-ops>.cc-op:has(input:checked){color:var(--txt)}
 @media (max-width:640px){.cc-2{grid-template-columns:1fr;gap:16px}.cc-form{gap:16px}}
+/* Painel Comercial — tabela de calls, no desenho do painel original.
+   Linha alta, cabecalho em caixa alta, origem discreta, pilula so no status do
+   lead (o status da call e texto). Seletor generico sempre com '>'. */
+.pc-fbox{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 18px;margin-bottom:16px}
+.pc-filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pc-fl{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);font-weight:600;margin-right:2px}
+.pc-fl>svg{width:15px;height:15px;opacity:.75}
+.pc-filtros>input,.pc-filtros>select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+  border-radius:9px;padding:9px 13px;font:inherit;font-size:13px;min-width:150px}
+.pc-filtros>select{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:32px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.pc-filtros>input.on,.pc-filtros>select.on{border-color:var(--brand)}
+.pc-filtros>input:focus,.pc-filtros>select:focus{border-color:var(--brand2);outline:none}
+.pc-limpar{background:none;border:0;color:var(--fraco);font:inherit;font-size:12.5px;cursor:pointer;padding:6px 8px}
+.pc-limpar:hover{color:var(--txt)}
+
+.pc-tbox{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:auto}
+.pc-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.pc-tbl>thead>tr>th{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--fraco);
+  text-align:left;font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--panel2)}
+.pc-tbl>tbody>tr>td{padding:15px 16px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.pc-tbl>tbody>tr:last-child>td{border-bottom:0}
+.pc-tbl>tbody>tr:hover>td{background:var(--hov1)}
+.pc-tbl>thead>tr>th.r,.pc-tbl>tbody>tr>td.r{text-align:right}
+.pc-tbl .pc-dt{color:var(--txt);white-space:nowrap}
+.pc-tbl .pc-org{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fraco);white-space:nowrap}
+.pc-tbl .pc-lead{color:var(--txt);font-weight:700;font-size:14px}
+.pc-tbl .pc-emp{color:var(--muted)}
+.pc-tbl .pc-call{font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.pc-tbl .r{color:var(--txt);white-space:nowrap}
+.pc-vazio{color:var(--fraco)}
+.pc-nada{text-align:center;color:var(--fraco);padding:34px 16px}
+/* pilula de status do lead */
+.pc-pill{display:inline-block;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;
+  background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+.pc-pill.ok{background:rgba(63,207,142,.13);color:var(--ok);border-color:rgba(63,207,142,.3)}
+.pc-pill.bad{background:rgba(239,91,107,.13);color:var(--danger);border-color:rgba(239,91,107,.3)}
+.pc-pill.warn{background:rgba(230,177,63,.14);color:var(--warn);border-color:rgba(230,177,63,.32)}
+.pc-pill.info{background:rgba(96,165,250,.14);color:var(--info);border-color:rgba(96,165,250,.32)}
+/* acoes da linha: lapis e lixeira */
+.pc-acoes{display:inline-flex;gap:4px;justify-content:flex-end}
+.pc-ib{background:none;border:0;padding:6px;border-radius:8px;cursor:pointer;color:var(--muted);line-height:0}
+.pc-ib>svg{width:16px;height:16px;display:block}
+.pc-ib:hover{background:var(--hov2);color:var(--brand2)}
+.pc-ib.del:hover{color:var(--danger)}
+@media (max-width:640px){.pc-filtros>input,.pc-filtros>select{min-width:0;flex:1 1 140px}}
