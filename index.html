@@ -7020,7 +7020,7 @@ function ncFormulario(c){
   const envs=TK.tarefas.filter(t=>t.lista_id===NC_LISTA).slice().sort((x,y)=>String(y.criado_em||'').localeCompare(String(x.criado_em||''))).slice(0,10);
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Novas Contas</h2><div class="desc">Canal oficial de solicitação — todo pedido fica rastreado, do envio ao pagamento</div></div>
+     <div><h2>Novas Contas</h2></div>
    </div>
    <div class="nc-regras">
      <h4>Antes de enviar</h4>
