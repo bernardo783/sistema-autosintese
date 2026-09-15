@@ -147,6 +147,9 @@ function crmFiltrosHTML(){
   </div>`;
 }
 
+/* abas que na verdade sao telas do index.html, emprestadas pro Comercial */
+const CRM_EXT={fechamento:'renderFechamento',contratos:'renderContratos',leads:'renderLeads'};
+
 /* ---------- render principal ---------- */
 window.crmAba=(a)=>{ CRM.aba=a; crmPintar(); };
 window.crmRender=function(c,viewPedida){
@@ -154,11 +157,31 @@ window.crmRender=function(c,viewPedida){
   const v=String(viewPedida||''); const mOpp=v.match(/^funil\/opp\/([0-9a-f-]{36})/);
   if(mOpp){ CRM.sel=mOpp[1]; }
   if(!CRM.carregou){ if(!CRM.carregando) crmCarregar().then(crmPintar); c.innerHTML=`<div class="page-head"><div><h2>Comercial</h2><div class="desc">Carregando o funil…</div></div></div>`; return; }
-  const abas=[['painel','Painel'],['calls','Calls'],['pipeline','Pipeline'],['agenda','Agenda'],['origens','Origem da receita']].concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[]);
+  /* Fechamento, Contratos e Leads sao telas do index.html que agora moram aqui
+     (Gabriel 15/09): o fluxo comercial inteiro numa tela so. Contratos e Leads
+     seguem a mesma regra de antes — podeContratos(). */
+  const temCt=(typeof podeContratos==='function')&&podeContratos();
+  const abas=[['painel','Painel'],['calls','Calls'],['pipeline','Pipeline'],['agenda','Agenda']]
+    .concat(typeof renderFechamento==='function'?[['fechamento','Fechamento']]:[])
+    .concat(temCt&&typeof renderContratos==='function'?[['contratos','Contratos']]:[])
+    .concat(temCt&&typeof renderLeads==='function'?[['leads','Leads']]:[])
+    .concat([['origens','Origem da receita']])
+    .concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[]);
   const tabs=`<div class="fin-tabs" style="margin:0 0 14px">${abas.map(a=>`<button class="ftab${CRM.aba===a[0]?' active':''}" onclick="crmAba('${a[0]}')">${a[1]}</button>`).join('')}
     <span style="margin-left:auto"></span>
     ${crmAdmin()?`<button class="btn secondary small" onclick="crmEquipeModal()">Equipe comercial</button>`:''}
-    ${CRM.aba==='painel'||CRM.aba==='calls'?`<button class="btn small" onclick="crmCallModal()">+ Nova call</button>`:`<button class="btn small" onclick="crmNovoLead()">+ Lead</button>`}</div>`;
+    ${CRM_EXT[CRM.aba]?'':(CRM.aba==='painel'||CRM.aba==='calls'?`<button class="btn small" onclick="crmCallModal()">+ Nova call</button>`:`<button class="btn small" onclick="crmNovoLead()">+ Lead</button>`)}</div>`;
+  /* tela emprestada: deixa ela desenhar tudo e so recoloca a barra de abas
+     logo abaixo do cabecalho dela, pra dar pra voltar pras outras. */
+  if(CRM_EXT[CRM.aba]){
+    const fn=window[CRM_EXT[CRM.aba]];
+    if(typeof fn==='function'){
+      fn(c);
+      const ph=c.querySelector('.page-head');
+      if(ph) ph.insertAdjacentHTML('afterend',tabs); else c.insertAdjacentHTML('afterbegin',tabs);
+      return;
+    }
+  }
   if(CRM.aba==='anuncios'&&typeof renderFunil==='function'){
     FN.sub='meta'; renderFunil(c);
     /* esconde as sub-abas antigas (Anúncios/WhatsApp) e põe as novas no lugar */
