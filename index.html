@@ -100,7 +100,77 @@
   .page-head h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
   .hint,.desc{font-size:12.5px}
 
-  .ua-tree{max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:9px}
+  /* ---------- MODAL DE ACESSOS, redesenho (Gabriel 15/09) ----------
+     A lista antiga repetia "privado" e "acesso" em toda linha — o padrao nao precisa
+     se anunciar. Agora: resumo no topo, abas no lugar dos quatro blocos empilhados,
+     busca, e espaco como cabecalho de grupo. A etiqueta so aparece na EXCECAO. */
+  .overlay.ua-w .modal{max-width:700px}
+  .ua-cab{display:grid;grid-template-columns:auto 1fr;gap:13px;align-items:center;background:var(--panel2);
+    border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin:0 0 14px}
+  .ua-cab .av{width:38px;height:38px;border-radius:50%;overflow:hidden;flex:none}
+  .ua-cab b{display:block;font-size:14px;line-height:1.2}
+  .ua-cab .m{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:4px}
+  .ua-pill{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;
+    padding:2px 8px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+  .ua-pill.al{background:rgba(239,91,107,.14);border-color:rgba(239,91,107,.36);color:#ff9aa5}
+  .ua-pill.ok{background:rgba(63,207,142,.13);border-color:rgba(63,207,142,.34);color:#7fe4bb}
+
+  .ua-abas{display:flex;gap:2px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;margin:0 0 13px}
+  .ua-abas button{flex:1;padding:7px 8px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--muted);
+    background:none;border:0;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .ua-abas button:hover{color:var(--txt)}
+  .ua-abas button.on{background:var(--panel);color:var(--txt);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .ua-abas b{color:var(--fraco);font-weight:800;margin-left:5px;font-size:11px;font-variant-numeric:tabular-nums}
+  .ua-abas button.on b{color:var(--brand2)}
+
+  .ua-bq{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:9px;padding:0 11px;margin:0 0 11px}
+  .ua-bq svg{width:13px;height:13px;flex:none;color:var(--fraco)}
+  .ua-bq input{flex:1;background:none;border:0;color:var(--txt);font-family:inherit;font-size:12.5px;padding:8px 0;outline:none}
+  .ua-bq input::placeholder{color:var(--fraco)}
+
+  .ua-tree{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:11px}
+  /* grupo = um espaco e tudo dentro dele */
+  .ua-g{border-bottom:1px solid var(--line)}
+  .ua-g:last-child{border-bottom:none}
+  .ua-h{display:grid;grid-template-columns:22px 1fr auto auto;gap:11px;align-items:center;padding:11px 13px;background:var(--panel2)}
+  .ua-h .ic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:11px;flex:none;
+    background:var(--panel);color:var(--fraco)}
+  .ua-h.tem .ic{background:rgba(123,104,238,.2);color:var(--brand2)}
+  .ua-h .nm{font-size:13.5px;font-weight:800;letter-spacing:-.01em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ua-i{display:grid;grid-template-columns:18px 1fr auto auto;gap:11px;align-items:center;
+    padding:8px 13px 8px 20px;border-top:1px solid var(--line);font-size:12.5px}
+  .ua-i.l2{padding-left:38px}
+  .ua-i .pt{width:5px;height:5px;border-radius:50%;background:var(--line);margin-left:6px}
+  .ua-i.tem .pt{background:var(--ok)}
+  .ua-i .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+  .ua-i.tem .nm{color:var(--txt)}
+  .ua-n{font-size:11px;color:var(--fraco);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ua-n.parcial{color:var(--warn)} .ua-n.cheio{color:var(--ok)}
+  /* etiqueta so na excecao */
+  .ua-t{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:2px 7px;white-space:nowrap}
+  .ua-t.ab{background:rgba(63,207,142,.14);color:#7fe4bb}
+  .ua-t.presa{background:rgba(239,91,107,.13);color:#ff9aa5}
+  /* interruptor de largura fixa: o select nao muda mais a largura da linha */
+  .ua-sw{width:34px;height:20px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);
+    position:relative;flex:none;cursor:pointer;padding:0;transition:background .15s,border-color .15s}
+  .ua-sw::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:var(--fraco);transition:left .15s,background .15s}
+  .ua-sw.on{background:var(--brand);border-color:var(--brand)}
+  .ua-sw.on::after{left:17px;background:#fff}
+  .ua-sw:disabled{opacity:.32;cursor:not-allowed}
+  .ua-pm{background:none;border:0;color:var(--fraco);font-family:inherit;font-size:11px;font-weight:700;
+    cursor:pointer;padding:0;min-width:46px;text-align:right}
+  .ua-pm.on{color:var(--brand2)}
+  .ua-vz{padding:22px 14px;text-align:center;color:var(--fraco);font-size:12.5px}
+  .ua-rod{display:flex;align-items:center;gap:12px;margin:11px 0 0;font-size:11px;color:var(--fraco);flex-wrap:wrap}
+  .ua-rod .k{display:inline-flex;align-items:center;gap:5px}
+  .ua-rod .ua-sw{width:24px;height:14px} .ua-rod .ua-sw::after{width:9px;height:9px;top:1.5px;left:1.5px}
+  .ua-rod .ua-sw.on::after{left:12px}
+  @media(max-width:620px){
+    .ua-abas{flex-wrap:wrap} .ua-abas button{flex:1 1 44%}
+    .ua-h,.ua-i{grid-template-columns:auto 1fr auto auto}
+  }
   .ua-l{display:flex;align-items:center;gap:9px;padding:8px 11px;border-bottom:1px solid var(--line);font-size:13px}
   .ua-l:last-child{border-bottom:none}
   .ua-l.n1{padding-left:28px} .ua-l.n2{padding-left:46px}
@@ -15171,8 +15241,7 @@ function inBloco(uid){
   const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{};
   const ls=(TK.listas||[]).slice().sort((a,b)=>tkCaminho(a.id).localeCompare(tkCaminho(b.id)));
   const opt=(v,txt,sel)=>`<option value="${esc(v)}"${String(sel||'')===String(v)?' selected':''}>${esc(txt)}</option>`;
-  return `<div class="nm-sec" style="margin-top:16px">Onde essa pessoa começa</div>
-    <div class="ua-tree">
+  return `<div class="ua-tree">
       <div class="ua-l"><span class="ua-nm">Ao entrar e no botão Início</span><span class="ua-a">
         <select onchange="inSet('${uid}','inicio',this.value)">
           ${opt('','Demandas do dia (padrão)',u.inicio)}
@@ -15238,8 +15307,7 @@ function lkBloco(uid){
   const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{};
   if(u.role==='master') return `<div class="nm-sec" style="margin-top:16px">Links</div>
     <p class="hint" style="margin:0">Master vê todos os links, sempre.</p>`;
-  return `<div class="nm-sec" style="margin-top:16px">Links</div>
-    <div class="ua-tree">${ls.map(l=>{
+  return `<div class="ua-tree">${ls.map(l=>{
       const p=lkPara(l), aberto=!p.length, tem=aberto||p.indexOf(String(uid))>=0;
       return `<div class="ua-l"><span class="ua-nm">${esc(l.titulo||'(sem título)')}</span>
         ${aberto?'<span class="ua-chip aberto">todos</span>':'<span class="ua-chip fechado">escolhidos</span>'}
@@ -15270,8 +15338,7 @@ function tlBloco(uid){
   const telas=tlLista().filter(t=>!t.master);
   if(!telas.length) return '';
   const off=tlOff(u);
-  return `<div class="nm-sec" style="margin-top:16px">Telas do sistema</div>
-    <div class="ua-tree">${telas.map(t=>`<div class="ua-l">
+  return `<div class="ua-tree">${telas.map(t=>`<div class="ua-l">
       <span class="ua-nm">${esc(t.nome)}</span>
       <span class="ua-a"><label class="ua-ck"><input type="checkbox" ${off.indexOf(t.v)<0?'checked':''}
         onchange="tlMarcar('${uid}','${t.v}',this.checked)"> vê</label></span>
@@ -15329,13 +15396,37 @@ window.usAcessos=async (uid)=>{
   const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{nome:'usuário'};
   if(!TK.listas.length){ try{ await tkCarregar(); }catch(_){} }
   try{ await uaExtras(); }catch(_){}
-  modal('Acessos de '+esc(u.nome),`<div id="uaCorpo">${uaCorpo(uid)}</div>`,async()=>true);
+  UA={uid:uid,aba:'espacos',busca:''};
+  modal('Acessos',`<div id="uaCorpo">${uaCorpo(uid)}</div>`,async()=>true);
   setTimeout(()=>{ const ov=document.querySelectorAll('.overlay'); const el=ov[ov.length-1]; if(!el) return;
+    el.classList.add('ua-w');   /* modal largo: 700px em vez de 480 */
     const s=el.querySelector('.msave'); if(s) s.textContent='Concluído';
     const c=el.querySelector('.mcancel'); if(c) c.style.display='none'; },0);
 };
-function uaPintar(uid){ const el=document.getElementById('uaCorpo'); if(el) el.innerHTML=uaCorpo(uid); }
+function uaPintar(uid){
+  const el=document.getElementById('uaCorpo'); if(el) el.innerHTML=uaCorpo(uid);
+  /* devolve o cursor pra busca: repintar a arvore nao pode derrubar quem esta digitando */
+  const b=document.getElementById('uaBq');
+  if(b&&UA.busca){ b.focus(); try{ b.setSelectionRange(b.value.length,b.value.length); }catch(_){ } }
+}
+let UA={uid:'',aba:'espacos',busca:''};
+window.uaAba=(a)=>{ UA.aba=a; uaPintar(UA.uid); };
+window.uaBuscaSet=(v)=>{ UA.busca=v;
+  const el=document.getElementById('uaArv'); if(el) el.innerHTML=uaArvore(UA.uid); };
+/* Alcance real: a regra do banco (lista_visivel) exige espaco E pasta E lista
+   liberados. Sem isso a tela dizia "aberto" numa lista presa por um espaco fechado
+   — e o master achava que tinha liberado quando nao tinha. */
+function uaAlcanca(uid,l){
+  const ok=(o,t)=>!o||!o.privado||!!uaTem(uid,t,o.id);
+  const e=uaNo('espaco',l.espaco_id), p=l.pasta_id?uaNo('pasta',l.pasta_id):null;
+  return ok(e,'espaco')&&ok(p,'pasta')&&ok(l,'lista');
+}
+const uaListasTodas=()=>{ const ids=(TK.espacos||[]).map(e=>String(e.id));
+  return (TK.listas||[]).filter(l=>ids.indexOf(String(l.espaco_id))>=0); };
+const uaCasa=(s)=>!UA.busca||chaveNome(String(s||'')).indexOf(chaveNome(UA.busca))>=0;
+
 function uaCorpo(uid){
+  UA.uid=uid;
   const u=(PERFIS||[]).find(x=>String(x.id)===String(uid))||{};
   if(u.role==='master') return `<div class="nm-estado aberto"><b>Master enxerga tudo</b>
     <p>Usuário master passa por cima de qualquer recorte — de squad e de compartilhamento.
@@ -15343,37 +15434,93 @@ function uaCorpo(uid){
   if(TK.espacos.length&&TK.espacos[0].privado===undefined)
     return `<div class="nm-estado fechado"><b>Compartilhamento ainda não ativado</b>
       <p>Falta rodar a migração <code>migracao-compartilhar.sql</code> no Supabase.</p></div>`;
-  const linha=(tipo,o,nivel)=>{
-    const priv=!!o.privado, m=uaTem(uid,tipo,o.id);
-    const est=priv?`<span class="ua-chip fechado">privado</span>`:`<span class="ua-chip aberto">aberto</span>`;
-    const acao=priv
-      ? `<label class="ua-ck"><input type="checkbox" ${m?'checked':''} onchange="uaMarcar('${uid}','${tipo}','${o.id}',this.checked)"> acesso</label>
-         ${m?`<select onchange="uaPerm('${m.id}','${uid}',this.value)">
-            <option value="editar"${m.permissao==='editar'?' selected':''}>edita</option>
-            <option value="ver"${m.permissao==='ver'?' selected':''}>só vê</option></select>`:''}`
-      : `<button class="btn ghost small" onclick="uaFechar('${uid}','${tipo}','${o.id}')">Restringir</button>`;
-    /* espaco e pasta ganham o contador dos filhos: diz de relance se entrou tudo,
-       parte, ou nada — sem isso a cascata vira caixa-preta */
-    const c=(tipo==='lista')?{tot:0,com:0}:uaConta(uid,tipo,o.id);
-    const cnt=c.tot?`<span class="ua-cnt ${c.com===c.tot?'cheio':(c.com?'parcial':'')}">${c.com} de ${c.tot}</span>`:'';
-    return `<div class="ua-l n${nivel}"><span class="ua-nm">${esc(spNome(o))}</span>${est}${cnt}<span class="ua-a">${acao}</span></div>`;
-  };
-  const corpo=TK.espacos.map(e=>{
-    const pas=TK.pastas.filter(p=>p.espaco_id===e.id);
-    const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id);
-    return linha('espaco',e,0)
-      + pas.map(p=>linha('pasta',p,1)+TK.listas.filter(l=>l.pasta_id===p.id).map(l=>linha('lista',l,2)).join('')).join('')
-      + soltas.map(l=>linha('lista',l,1)).join('');
-  }).join('');
-  return `<p class="hint" style="margin:0 0 12px">O que está <strong>aberto</strong> todo mundo vê — não precisa marcar.
-    Use <strong>Restringir</strong> para fechar e daí escolher quem entra.
-    Marcar um <strong>espaço</strong> ou uma <strong>pasta</strong> libera tudo que está dentro de uma vez —
-    depois dá para desmarcar item por item. O recorte por <strong>squad</strong> continua valendo por cima disso.</p>
-    <div class="ua-tree">${corpo||'<div class="hint">Nenhum espaço.</div>'}</div>
-    ${tlBloco(uid)}
-    ${lkBloco(uid)}
-    ${inBloco(uid)}`;
+
+  const todas=uaListasTodas(), alc=todas.filter(l=>uaAlcanca(uid,l)).length;
+  const telas=tlLista().filter(t=>!t.master), off=tlOff(u);
+  const lks=(DB.links||[]);
+  const abas=[['espacos','Espaços',alc+'/'+todas.length],
+              ['telas','Telas',(telas.length-off.length)+'/'+telas.length],
+              ['links','Links',''],['inicio','Início','']];
+  const sq=(u.squads||[]).length?('Squad '+(u.squads||[]).join(' · ')):'Todos os squads';
+  return `<div class="ua-cab">
+      <span class="av">${avatar(uid,u.nome,'')}</span>
+      <div><b>${esc(u.nome||'')}</b><div class="m">
+        <span class="ua-pill">Usuário</span><span class="ua-pill">${esc(sq)}</span>
+        <span class="ua-pill ${alc?'ok':'al'}">Alcança ${alc} de ${todas.length} listas</span>
+      </div></div></div>
+    <div class="ua-abas">${abas.map(a=>`<button type="button" class="${UA.aba===a[0]?'on':''}" onclick="uaAba('${a[0]}')">${a[1]}${a[2]?`<b>${a[2]}</b>`:''}</button>`).join('')}</div>
+    ${UA.aba==='espacos'?uaAbaEspacos(uid)
+     :UA.aba==='telas'?tlBloco(uid)
+     :UA.aba==='links'?lkBloco(uid):inBloco(uid)}`;
 }
+
+function uaAbaEspacos(uid){
+  return `<div class="ua-bq">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="uaBq" placeholder="Buscar espaço, pasta ou lista…" value="${esc(UA.busca)}"
+        oninput="uaBuscaSet(this.value)"></div>
+    <div class="ua-tree" id="uaArv">${uaArvore(uid)}</div>
+    <div class="ua-rod">
+      <span class="k"><span class="ua-sw on"></span> tem acesso</span>
+      <span class="k"><span class="ua-sw"></span> não tem</span>
+      <span class="k"><span class="ua-sw" style="opacity:.32"></span> decidido acima</span>
+    </div>
+    <p class="hint" style="margin:9px 0 0">Ligar um espaço ou uma pasta libera tudo que está dentro
+      — e o que estiver acima, para o acesso valer de verdade. Depois dá para desligar item por item.
+      O recorte por <strong>squad</strong> continua valendo por cima disso.</p>`;
+}
+
+/* Uma linha da arvore. O estado padrao (privado) nao se anuncia: so a excecao
+   ganha etiqueta — "aberta a todos" ou "presa" por um pai fechado. */
+function uaLinha(uid,tipo,o,nivel){
+  const tem=!!uaTem(uid,tipo,o.id);
+  const c=(tipo==='lista')?null:uaConta(uid,tipo,o.id);
+  const cnt=(c&&c.tot)?`<span class="ua-n ${c.com===c.tot?'cheio':(c.com?'parcial':'')}">${c.com} de ${c.tot}</span>`:'';
+  let etq='', trava='', ligado=tem;
+  if(!o.privado){
+    /* aberto: ninguem precisa de convite. Mas se um pai fechado o prende, avise. */
+    const presa=(tipo==='lista')?!uaAlcanca(uid,o):false;
+    etq=presa?'<span class="ua-t presa">presa acima</span>':'<span class="ua-t ab">aberta a todos</span>';
+    trava=' disabled title="Nó aberto: todo mundo entra. Use Restringir para fechar."';
+    ligado=!presa;
+  }
+  const sw=`<button type="button" class="ua-sw${ligado?' on':''}"${trava}
+      onclick="uaMarcar('${uid}','${tipo}','${o.id}',${tem?'false':'true'})"
+      aria-label="${tem?'Tirar acesso':'Dar acesso'}"></button>`;
+  const pm=(tipo!=='lista'||!tem)?''
+    :`<button type="button" class="ua-pm on" onclick="uaPermGira('${uid}','${tipo}','${o.id}')"
+        title="Trocar entre editar e só ver">${uaTem(uid,tipo,o.id).permissao==='ver'?'só vê':'edita'}</button>`;
+  /* a coluna do meio: etiqueta na excecao, senao o contador (espaco/pasta)
+     ou o "edita / so ve" (lista com acesso). Sempre um span, pra grade nao pular. */
+  const meio=etq||cnt||pm||'<span></span>';
+  if(nivel===0) return `<div class="ua-h${tem?' tem':''}"><span class="ic">▣</span>
+      <span class="nm">${esc(spNome(o))}</span>${meio}${sw}</div>`;
+  return `<div class="ua-i${nivel>1?' l2':''}${tem?' tem':''}"><span class="pt"></span>
+      <span class="nm">${esc(spNome(o))}</span>${meio}${sw}</div>`;
+}
+
+function uaArvore(uid){
+  const grupos=(TK.espacos||[]).map(e=>{
+    const pas=(TK.pastas||[]).filter(p=>String(p.espaco_id)===String(e.id));
+    const soltas=(TK.listas||[]).filter(l=>String(l.espaco_id)===String(e.id)&&!l.pasta_id);
+    const filhos=[];
+    pas.forEach(p=>{
+      const ls=(TK.listas||[]).filter(l=>String(l.pasta_id)===String(p.id));
+      const casa=uaCasa(spNome(p))||ls.some(l=>uaCasa(spNome(l)));
+      if(casa) filhos.push(uaLinha(uid,'pasta',p,1)+ls.filter(l=>uaCasa(spNome(p))||uaCasa(spNome(l))).map(l=>uaLinha(uid,'lista',l,2)).join(''));
+    });
+    soltas.filter(l=>uaCasa(spNome(l))||uaCasa(spNome(e))).forEach(l=>filhos.push(uaLinha(uid,'lista',l,1)));
+    if(!filhos.length&&!uaCasa(spNome(e))) return '';
+    return `<div class="ua-g">${uaLinha(uid,'espaco',e,0)}${filhos.join('')}</div>`;
+  }).filter(Boolean).join('');
+  return grupos||'<div class="ua-vz">Nada com esse nome.</div>';
+}
+
+/* um clique gira entre editar e so ver — o select aparecia e sumia, mudando a linha */
+window.uaPermGira=async (uid,tipo,id)=>{
+  const m=uaTem(uid,tipo,id); if(!m) return;
+  await uaPerm(m.id,uid,m.permissao==='ver'?'editar':'ver');
+};
 window.uaFechar=async (uid,tipo,id)=>{
   const o=uaNo(tipo,id); if(!o) return;
   if(!confirm('Fechar "'+spNome(o)+'"?\n\nEle sai da vista de todo mundo (menos masters). Depois você marca quem entra.')) return;
