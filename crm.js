@@ -631,13 +631,29 @@ window.crmMetaTestar=async ()=>{ try{ const j=await crmAdminEdge({acao:'meta_tes
    PAINEL COMERCIAL — Painel (métricas) e Calls (lançamento)
    ===================================================================== */
 
+/* ---------- PAINEL ---------- */
+/* icones de linha dos cartoes, no tamanho do rotulo */
+const PC_ICO={
+  cal:'<path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>',
+  ok:'<circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>',
+  no:'<circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>',
+  alerta:'<path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  trofeu:'<path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M6 2h12v7a6 6 0 01-12 0V2zM9 22h6M12 15v7"/>',
+  pct:'<path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  cifrao:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+  ciclo:'<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>',
+  gente:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>'
+};
+const pcIco=(k)=>`<svg class="pc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${PC_ICO[k]||''}</svg>`;
 /* mes de trabalho do Painel: vazio = mes corrente */
 const ccMes=()=>CRM.cc.mes||crmIsoLocal(new Date()).slice(0,7);
+const CC_MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 function ccMesNome(){ const [y,m]=ccMes().split('-').map(Number);
-  const n=new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  return n.charAt(0).toUpperCase()+n.slice(1); }
+  const n=CC_MESES[m-1]||''; return n.charAt(0).toUpperCase()+n.slice(1)+' '+y; }
 window.ccPular=(n)=>{ const [y,m]=ccMes().split('-').map(Number); const d=new Date(y,m-1+n,1);
   CRM.cc.mes=crmIsoLocal(d).slice(0,7); crmPintar(); };
+window.ccIrMes=(qual,v)=>{ const [y,m]=ccMes().split('-').map(Number);
+  CRM.cc.mes=(qual==='m'? y+'-'+String(+v).padStart(2,'0') : v+'-'+String(m).padStart(2,'0')); crmPintar(); };
 const ccDoMes=()=>(CRM.d.calls||[]).filter(c=>String(c.data||'').slice(0,7)===ccMes());
 const ccNum=(v)=>Number(v||0);
 /* quem aparece nos seletores: quem ja foi lançado + a equipe com papel no CRM.
@@ -648,8 +664,13 @@ function ccPessoas(){
   crmSdrs().concat(crmClosers()).forEach(p=>s.add(p.nome.split(' ')[0]));
   return [...s].filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR'));
 }
+/* anos que aparecem no seletor: os que tem call + o corrente */
+function ccAnos(){
+  const s=new Set((CRM.d.calls||[]).map(c=>String(c.data||'').slice(0,4)).filter(Boolean));
+  s.add(String(new Date().getFullYear())); s.add(ccMes().slice(0,4));
+  return [...s].sort().reverse();
+}
 
-/* ---------- PAINEL ---------- */
 function ccPainelHTML(){
   const cs=ccDoMes();
   const agendadas=cs.length;
@@ -661,6 +682,7 @@ function ccPainelHTML(){
   const mrr=ganhos.reduce((s,c)=>s+ccNum(c.fee),0);
   const pct=(a,b)=>b?Math.round(a/b*1000)/10:0;
   const vg=(n)=>String(n).replace('.',',');
+  const [ay,am]=ccMes().split('-').map(Number);
 
   /* agendamentos por SDR: todo mundo que agendou algo no mes, do maior pro menor */
   const porSdr={}; cs.forEach(c=>{ const k=c.sdr||'sem SDR'; porSdr[k]=(porSdr[k]||0)+1; });
@@ -671,41 +693,57 @@ function ccPainelHTML(){
   const motivos=CC_FALTOU.map(([k,n])=>({k,n,q:perdidos.filter(c=>c.faltou===k).length}))
     .sort((a,b)=>b.q-a.q);
 
-  const kpi=(k,v,s,cor,hi)=>`<div class="crm-kpi${hi?' hi':''}"><div class="k">${esc(k)}</div><div class="v"${cor?` style="color:var(--${cor})"`:''}>${v}</div><div class="s">${s||''}</div></div>`;
+  const card=(rot,val,sub,ico,cor)=>`<div class="pc-card">
+      <div class="pc-k">${esc(rot)}${ico?pcIco(ico):''}</div>
+      <div class="pc-v"${cor?` style="color:var(--${cor})"`:''}>${val}</div>
+      ${sub?`<div class="pc-s">${sub}</div>`:''}</div>`;
 
-  return `<div class="toolbar" style="margin:0 0 14px;gap:8px">
-      <button class="btn secondary small" onclick="ccPular(-1)" title="Mês anterior">‹</button>
-      <b style="font-size:14px">${esc(ccMesNome())}</b>
-      <button class="btn secondary small" onclick="ccPular(1)" title="Próximo mês">›</button>
-      <span class="crm-hint" style="margin:0 0 0 8px">${agendadas} call${agendadas===1?'':'s'} no mês</span></div>
-
-    <div class="tk-sec">Volume</div>
-    <div class="crm-kpis">
-      ${kpi('Total agendadas',agendadas,realizadas?realizadas+' de '+agendadas+' já aconteceram':'nenhuma realizada ainda')}
-      ${kpi('Shows',shows,realizadas?shows+' de '+realizadas+' realizadas':'—','ok')}
-      ${kpi('No-shows',noShows,realizadas?noShows+' de '+realizadas+' realizadas':'—','danger')}
-      ${kpi('Taxa de no-show',realizadas?vg(pct(noShows,realizadas))+'%':'—','sobre as realizadas','warn')}
+  return `<div class="pc-topo">
+      <div>
+        <div class="pc-eyebrow">Painel</div>
+        <h3 class="pc-mes">${esc(ccMesNome())}</h3>
+        <div class="pc-sub">${agendadas} call${agendadas===1?'':'s'} no período</div>
+      </div>
+      <div class="pc-sel">
+        <button class="btn secondary small" onclick="ccPular(-1)" title="Mês anterior">‹</button>
+        <select onchange="ccIrMes('m',this.value)" title="Mês">${CC_MESES.map((n,i)=>`<option value="${i+1}"${am===i+1?' selected':''}>${n.charAt(0).toUpperCase()+n.slice(1)}</option>`).join('')}</select>
+        <select onchange="ccIrMes('a',this.value)" title="Ano">${ccAnos().map(a=>`<option value="${a}"${String(ay)===a?' selected':''}>${a}</option>`).join('')}</select>
+        <button class="btn secondary small" onclick="ccPular(1)" title="Próximo mês">›</button>
+      </div>
     </div>
 
-    <div class="tk-sec">Resultado</div>
-    <div class="crm-kpis">
-      ${kpi('Ganhos',ganhos.length,shows?ganhos.length+' de '+shows+' shows':'nenhum show ainda','ok')}
-      ${kpi('Taxa de conversão',shows?vg(pct(ganhos.length,shows))+'%':'—','ganhos sobre shows','brand2')}
-      ${kpi('TCV total',tcv?esc(brl(tcv)):'—','valor fechado no mês')}
-      ${kpi('MRR gerado',mrr?esc(brl(mrr)):'—','fee mensal recorrente','info2')}
-      ${kpi('Ticket médio',ganhos.length?esc(brl((tcv+mrr)/ganhos.length)):'—','TCV + MRR ÷ '+ganhos.length+' ganho'+(ganhos.length===1?'':'s'),'',1)}
+    <div class="pc-sec">Volume</div>
+    <div class="pc-grid">
+      ${card('Total agendadas',agendadas,realizadas?realizadas+' de '+agendadas+' já aconteceram':'nenhuma realizada ainda','cal')}
+      ${card('Shows',shows,realizadas?shows+' de '+realizadas+' realizadas':'—','ok','ok')}
+      ${card('No-shows',noShows,realizadas?noShows+' de '+realizadas+' realizadas':'—','no','danger')}
+      ${card('Taxa de no-show',realizadas?vg(pct(noShows,realizadas))+'%':'—','sobre as realizadas','alerta')}
     </div>
 
-    <div class="tk-sec">Agendamentos por SDR</div>
-    ${sdrs.length?`<div class="crm-kpis">${sdrs.map(([n,q])=>kpi(n,q,agendadas?vg(pct(q,agendadas))+'% do mês':'')).join('')}</div>`
+    <div class="pc-sec">Resultado</div>
+    <div class="pc-grid">
+      ${card('Ganhos',ganhos.length,shows?ganhos.length+' de '+shows+' shows':'nenhum show ainda','trofeu','ok')}
+      ${card('Taxa de conversão',shows?vg(pct(ganhos.length,shows))+'%':'—','ganhos sobre shows','pct','brand2')}
+      ${card('TCV total',tcv?esc(brl(tcv)):'—','valor fechado no mês','cifrao')}
+      ${card('MRR gerado',mrr?esc(brl(mrr)):'—','fee mensal recorrente','ciclo','info2')}
+    </div>
+
+    <div class="pc-sec">Ticket médio</div>
+    <div class="pc-banner">
+      <div class="pc-k">Ticket médio</div>
+      <div class="pc-big">${ganhos.length?esc(brl((tcv+mrr)/ganhos.length)):'—'}</div>
+      <div class="pc-s">${ganhos.length?'MRR + Ganhos · '+ganhos.length+' venda'+(ganhos.length===1?'':'s')+' no mês':'nenhuma venda no mês'}</div>
+    </div>
+
+    <div class="pc-sec">${pcIco('gente')} Agendamentos por SDR</div>
+    ${sdrs.length?`<div class="pc-grid">${sdrs.map(([n,q])=>card(n,q,agendadas?vg(pct(q,agendadas))+'% do mês':'')).join('')}</div>`
       :'<div class="hint" style="margin-bottom:14px">Ninguém agendou neste mês.</div>'}
 
-    <div class="tk-sec">Motivos de perda</div>
-    ${perdidos.length?`<div class="crm-box"><table class="crm-tbl">
-        ${motivos.map(m=>`<tr><td style="width:150px">${esc(m.n)}</td>
-          <td><div class="crm-share"><i style="width:${perdidos.length?Math.round(m.q/perdidos.length*100):0}%"></i></div></td>
-          <td class="r" style="width:130px">${m.q} de ${perdidos.length} · ${vg(pct(m.q,perdidos.length))}%</td></tr>`).join('')}
-      </table></div>`
+    <div class="pc-sec">Motivos de perda</div>
+    ${perdidos.length?`<div class="pc-perdas">${motivos.map(m=>`<div class="pc-perda">
+        <div class="pc-pl"><span>${esc(m.n)}</span><b>${m.q} de ${perdidos.length} · ${vg(pct(m.q,perdidos.length))}%</b></div>
+        <div class="pc-bar"><i style="width:${perdidos.length?Math.round(m.q/perdidos.length*100):0}%"></i></div>
+      </div>`).join('')}</div>`
       :'<div class="hint">Nenhuma call perdida neste mês.</div>'}
 
     <p class="crm-hint">Mês = data da call. Taxa de no-show e conversão ignoram as calls ainda agendadas — só entram depois que a reunião acontece. Ticket médio soma o valor à vista com o fee mensal do que foi ganho.</p>`;
