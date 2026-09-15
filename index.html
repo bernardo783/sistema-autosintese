@@ -7015,9 +7015,29 @@ window.ncNat=()=>{
   const t=NC_DICA[ncV('nc_nat')]||'';
   el.innerHTML=t?`<div class="nc-dica">${t}</div>`:'';
 };
+/* Solicitacoes de reembolso/conta nova: quem pede usa o Suporte; quem PAGA
+   acompanha aqui, junto das outras contas a pagar (Gabriel 15/09). Antes ficava
+   no pe do proprio formulario, onde o financeiro nunca ia olhar. */
+function ncUltimasHTML(n){
+  const envs=TK.tarefas.filter(t=>t.lista_id===NC_LISTA).slice()
+    .sort((x,y)=>String(y.criado_em||'').localeCompare(String(x.criado_em||''))).slice(0,n||20);
+  const linha=(t)=>{
+      const vv=t.valores||{}; const rec=vv[NC_C.rec]||''; const anx=String(vv[NC_C.anexo]||'');
+      const lista=anx?anx.split('\n').filter(Boolean):[];
+      return `<tr>
+      <td><strong>${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">${esc(vv[NC_C.sol]||'')}${rec&&rec!=='Não é recorrente'?' · <span style="color:var(--brand2)">🔁 '+esc(rec)+'</span>':''}</div></td>
+      <td>${tkSelo(t)}</td>
+      <td>${esc(vv[NC_C.dep]||'—')}</td>
+      <td style="text-align:right">${brl(vv[NC_C.val])}</td>
+      <td>${fmtDate(vv[NC_C.venc]||'')||'—'}</td>
+      <td>${lista.length?lista.map((p,i)=>`<button class="iconbtn" onclick="ncAbrirAnexo('${esc(p)}')" title="${esc(p.split('/').pop())}">${/^https?:/i.test(p)?'🔗':'📎'} ${lista.length>1?(i+1):'ver'}</button>`).join(' '):'<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`; };
+  return `<h2 style="font-size:15px;margin:26px 0 8px">Solicitações da equipe<small style="font-weight:600;color:var(--fraco);font-size:12px;margin-left:8px">reembolsos e contas novas pedidas pelo Suporte</small></h2>
+   <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th style="text-align:right">Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead>
+   <tbody>${envs.map(linha).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
+}
 function ncFormulario(c){
   const meu=(window.currentUser&&currentUser.nome)||'';
-  const envs=TK.tarefas.filter(t=>t.lista_id===NC_LISTA).slice().sort((x,y)=>String(y.criado_em||'').localeCompare(String(x.criado_em||''))).slice(0,10);
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Novas Contas</h2></div>
@@ -7070,19 +7090,7 @@ function ncFormulario(c){
        <button class="btn secondary" onclick="ncLimpar()">Limpar</button>
      </div>
    </div>
-${(currentUser&&currentUser.role==='master')?`
-   <h2 style="font-size:15px;margin:20px 0 8px">Últimas solicitações</h2>
-   <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th style="text-align:right">Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead><tbody>${envs.map(t=>{
-      const vv=t.valores||{}; const rec=vv[NC_C.rec]||''; const anx=String(vv[NC_C.anexo]||'');
-      const lista=anx?anx.split('\n').filter(Boolean):[];
-      return `<tr>
-      <td><strong>${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">${esc(vv[NC_C.sol]||'')}${rec&&rec!=='Não é recorrente'?' · <span style="color:#a855f7">🔁 '+esc(rec)+'</span>':''}</div></td>
-      <td>${tkSelo(t)}</td>
-      <td>${esc(vv[NC_C.dep]||'—')}</td>
-      <td style="text-align:right">${brl(vv[NC_C.val])}</td>
-      <td>${fmtDate(vv[NC_C.venc]||'')||'—'}</td>
-      <td>${lista.length?lista.map((p,i)=>`<button class="iconbtn" onclick="ncAbrirAnexo('${esc(p)}')" title="${esc(p.split('/').pop())}">${/^https?:/i.test(p)?'🔗':'📎'} ${lista.length>1?(i+1):'ver'}</button>`).join(' '):'<span style="color:var(--muted)">—</span>'}</td>
-    </tr>`;}).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`:''}`;
+`;
 }
 /* Atalho 💸 da barra lateral: mesmo canal de solicitação, já em Reembolso.
    (o roteador chamava renderReembolsos, que não existia — a tela quebrava sem renderizar nada) */
@@ -10778,7 +10786,8 @@ async function renderFinAPagar(c){
    <div class="tablewrap"><table><thead><tr><th>Descrição</th><th>Departamento</th><th>Categoria</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
    <tbody>${atrasadasAntigas.map(p=>linha(p,true)).join('')}${doMes.map(p=>linha(p,false)).join('')}</tbody></table>
    ${(doMes.length+atrasadasAntigas.length)?'':'<div class="empty">Nenhuma conta em '+fmtComp(APG.comp)+'. As recorrências ativas entram sozinhas ao abrir o mês; avulsas e parceladas nascem no “+ Despesa”.</div>'}</div>
-   <p class="hint" style="margin-top:12px">Pagar aqui lança a despesa nos <strong>Lançamentos</strong> automaticamente (competência + data real do pagamento) — nunca em dobro. Cancelamento preserva o histórico.</p>`;
+   <p class="hint" style="margin-top:12px">Pagar aqui lança a despesa nos <strong>Lançamentos</strong> automaticamente (competência + data real do pagamento) — nunca em dobro. Cancelamento preserva o histórico.</p>
+   ${ncUltimasHTML(20)}`;
   const m=$('#apgComp'); if(m) m.onchange=e=>{ APG.comp=e.target.value||compNow(); renderFinAPagar($('#finSub')); };
 }
 const apgSelCat=(id,val)=>`<select id="${id}"><option value="">— categoria —</option>${APG.cats.map(x=>`<option value="${x.id}"${val===x.id?' selected':''} data-dep="${esc(x.departamento_padrao||'')}">${esc(x.nome)}</option>`).join('')}</select>`;
