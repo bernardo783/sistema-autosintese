@@ -5395,11 +5395,28 @@ function spRepintar(){ spDesenhar(); if(currentView==='lista') tkDesenhar($('#co
    no que a RLS ja deixou esta pessoa ver. */
 const gsNorm=(x)=>String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const gsBate=(q,txt)=>{ const n=gsNorm(txt); return q.every(w=>n.indexOf(w)>=0); };
+/* Quao bom e o acerto (Gabriel 15/09). Buscar "comerc" trazia oito tarefas de
+   Tecnologia — que casam pela descricao — na frente do espaco Comercial. O que
+   decide a ordem agora e ONDE casou, nao a categoria:
+     4 o nome e exatamente o termo · 3 o nome comeca com ele
+     2 o nome contem · 1 casou so em campo secundario (descricao, tag, url) */
+function gsNota(q,nome){
+  const n=gsNorm(nome); if(!n) return 1;
+  const alvo=q.join(' ');
+  if(n===alvo) return 4;
+  if(n.indexOf(alvo)===0||q.every(w=>n.split(/[^a-z0-9]+/).some(p=>p.indexOf(w)===0))) return 3;
+  if(q.every(w=>n.indexOf(w)>=0)) return 2;
+  return 1;
+}
 function gsBuscar(qRaw){
   const q=gsNorm(qRaw).split(/\s+/).filter(Boolean);
   if(!q.length) return [];
   const G=[], MAX=8;
-  const add=(rot,ic,itens)=>{ if(itens.length) G.push({rot,ic,itens:itens.slice(0,MAX),mais:Math.max(0,itens.length-MAX)}); };
+  /* dentro do grupo, o melhor acerto primeiro; o grupo herda a nota do seu melhor */
+  const add=(rot,ic,itens)=>{ if(!itens.length) return;
+    itens.forEach(it=>{ it.__n=gsNota(q,it.t); });
+    itens.sort((a,b)=>b.__n-a.__n);
+    G.push({rot,ic,itens:itens.slice(0,MAX),mais:Math.max(0,itens.length-MAX),nota:itens[0].__n}); };
   /* tarefas: titulo, descricao, tags, nome do cliente */
   add('Tarefas','▤',(TK.tarefas||[]).filter(t=>gsBate(q,[t.titulo,t.descricao,(t.tags||[]).join(' '),tkNomeFicha(t.ficha_id)].join(' ')))
     .map(t=>{ const st=t.status_id?tkStatus1(t.status_id):null; return {
@@ -5420,6 +5437,8 @@ function gsBuscar(qRaw){
   /* leads do funil, se ja carregados */
   if(window.WA&&Array.isArray(WA.leads)) add('Leads','◔',WA.leads.filter(l=>gsBate(q,[l.nome,l.telefone,l.empresa].join(' ')))
     .map(l=>({ t:l.nome||l.telefone, sub:'funil', go:()=>{ render('funil'); setTimeout(()=>waAbrir(l.id),80); } })));
+  /* empate mantem a ordem de sempre (Tarefas, Clientes, Listas...): sort estavel */
+  G.sort((a,b)=>(b.nota||0)-(a.nota||0));
   return G;
 }
 /* ---- busca no workspace PESSOAL (Gabriel 07/09): so o que e seu ----
