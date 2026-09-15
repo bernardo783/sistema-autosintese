@@ -5,8 +5,12 @@
    Token nunca chega no navegador: tudo passa pela função wa-uazapi com o login do usuário. */
 (function(){
   const URL_='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/wa-uazapi';
+  /* de qual anuncio veio cada conversa (Gabriel 15/09): a UAZAPI manda isso dentro
+     da mensagem, o banco extrai pra wa_chats e a Meta devolve os nomes. */
+  const URL_AD='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/wa-ads/Wd7nQx2pLm5R';
   const CV={aba:false,num:'',nums:[],chats:[],total:0,busca:'',carregando:false,carregou:false,erro:'',
-            sel:null,msgs:[],carregandoMsgs:false,enviando:false,inscrito:false,rascunho:{}};
+            sel:null,msgs:[],carregandoMsgs:false,enviando:false,inscrito:false,rascunho:{},
+            ads:{},adsCarregou:false,fAd:'',resolvendo:false};
   const $=(s)=>document.querySelector(s);
   const cu=()=>{ try{ return currentUser; }catch(_){ return null; } };
   const ses=()=>{ try{ return SESSION; }catch(_){ return null; } };
@@ -41,12 +45,41 @@
     CV.nums=(d.instancias||[]).filter(i=>!i.erro);
     if(!CV.num){ const c=CV.nums.find(i=>i.conectado); CV.num=(c||CV.nums[0]||{}).name||''; }
   }
+  /* de onde veio cada conversa: chatid -> {campanha, conjunto, anuncio} */
+  async function carregarAds(){
+    const S=ses(); if(!S||!S.access_token) return;
+    try{
+      const r=await fetch(URL_AD+'/listar',{headers:{authorization:'Bearer '+S.access_token}});
+      const d=await r.json().catch(()=>({}));
+      if(d&&d.ok){ CV.ads={}; (d.conversas||[]).forEach(c=>{ CV.ads[c.chatid]=c; }); }
+    }catch(_){ /* sem rastreio nao impede de conversar */ }
+    CV.adsCarregou=true;
+  }
+  /* so o admin pede: uma ida a Meta por anuncio novo, o resto vem do cache */
+  window.cvResolverAds=async ()=>{
+    const S=ses(); if(!S||!S.access_token||CV.resolvendo) return;
+    CV.resolvendo=true; if(window.crmPintar) crmPintar();
+    try{
+      const r=await fetch(URL_AD+'/resolver',{headers:{authorization:'Bearer '+S.access_token}});
+      const d=await r.json().catch(()=>({}));
+      if(typeof toast==='function') toast(d&&d.ok
+        ? ((d.resolvidos||0)+' de '+(d.consultados||0)+' anúncios identificados.')
+        : ('Meta: '+((d&&d.erro)||'falhou')));
+      await carregarAds();
+    }catch(e){ if(typeof toast==='function') toast('Erro: '+e.message); }
+    CV.resolvendo=false; if(window.crmPintar) crmPintar();
+  };
+  window.cvFiltroAd=(v)=>{ CV.fAd=v; if(window.crmPintar) crmPintar(); };
+  const adDe=(chatid)=>CV.ads[chatid]||null;
+  const adNome=(a)=>a?(a.ad_nome||a.ad_titulo||('anúncio '+String(a.ad_id).slice(-6))):'';
+
   async function carregarChats(){
     if(!CV.num||CV.carregando) return; CV.carregando=true;
     try{ const d=await api('chats',{name:CV.num,busca:CV.busca||undefined,limit:40});
       CV.chats=d.chats||[]; CV.total=d.total||0; CV.erro=''; }
     catch(e){ CV.erro=e.message||'falha'; CV.chats=[]; }
     CV.carregando=false; CV.carregou=true;
+    if(!CV.adsCarregou) carregarAds().then(()=>{ if(CV.aba&&window.crmPintar) crmPintar(); });
   }
   async function carregarMsgs(silencioso){
     if(!CV.sel) return;
@@ -72,16 +105,31 @@
   function listaHTML(){
     if(CV.carregando&&!CV.chats.length) return '<div class="cv-vazio">Carregando conversas…</div>';
     if(!CV.chats.length) return `<div class="cv-vazio">${CV.busca?'Nada com esse nome.':'Nenhuma conversa neste número.'}</div>`;
-    return CV.chats.map(c=>`<button class="cv-item${CV.sel&&CV.sel.chatid===c.chatid?' on':''}" onclick="cvAbrir('${esc(c.chatid)}')">
+    const vis=CV.fAd?CV.chats.filter(c=>{ const a=adDe(c.chatid); return a&&String(a.ad_id)===CV.fAd; }):CV.chats;
+    if(!vis.length) return '<div class="cv-vazio">Nenhuma conversa desse anúncio nesta lista.</div>';
+    return vis.map(c=>{ const a=adDe(c.chatid);
+      return `<button class="cv-item${CV.sel&&CV.sel.chatid===c.chatid?' on':''}" onclick="cvAbrir('${esc(c.chatid)}')">
       <span class="cv-av">${c.foto?`<img src="${esc(c.foto)}" alt="" loading="lazy">`:esc(inicial(c.nome))}</span>
       <span class="cv-txt"><span class="cv-l1"><b>${esc(c.nome||fmtFone(c.fone))}</b><i>${esc(hora(c.quando))}</i></span>
-        <span class="cv-l2"><span>${esc(c.previa||'—')}</span>${c.naoLidas?`<em>${c.naoLidas}</em>`:''}</span></span></button>`).join('');
+        <span class="cv-l2"><span>${esc(c.previa||'—')}</span>${c.naoLidas?`<em>${c.naoLidas}</em>`:''}</span>
+        ${a?`<span class="cv-ad" title="${esc((a.campanha_nome||'campanha não identificada')+' › '+(a.adset_nome||'conjunto não identificado'))}">${esc(a.ad_app||'meta')} · ${esc(adNome(a))}</span>`:''}
+      </span></button>`; }).join('');
+  }
+  /* faixa "veio deste anuncio" no topo da conversa: campanha > conjunto > anuncio */
+  function origemHTML(){
+    const a=CV.sel?adDe(CV.sel.chatid):null; if(!a) return '';
+    const kv=(r,v)=>`<span class="cv-ok"><i>${esc(r)}</i>${esc(v||'não identificado')}</span>`;
+    return `<div class="cv-origem">
+      <span class="cv-oico">◎</span>
+      ${kv('Campanha',a.campanha_nome)}${kv('Conjunto',a.adset_nome)}${kv('Anúncio',a.ad_nome||a.ad_titulo)}
+      <span class="cv-ofim">${esc(a.ad_app||'')}${a.ad_em?' · '+esc(hora(a.ad_em)):''}</span>
+    </div>`;
   }
   function threadHTML(){
     if(!CV.sel) return '<div class="cv-nada">Escolha uma conversa à esquerda.</div>';
-    if(CV.carregandoMsgs) return '<div class="cv-nada">Carregando mensagens…</div>';
-    if(!CV.msgs.length) return '<div class="cv-nada">Sem mensagens nesta conversa.</div>';
-    let dia='', out='';
+    if(CV.carregandoMsgs) return origemHTML()+'<div class="cv-nada">Carregando mensagens…</div>';
+    if(!CV.msgs.length) return origemHTML()+'<div class="cv-nada">Sem mensagens nesta conversa.</div>';
+    let dia='', out=origemHTML();
     CV.msgs.forEach(m=>{
       const d=diaDe(m.quando);
       if(d!==dia){ dia=d; out+=`<div class="cv-dia"><span>${esc(d)}</span></div>`; }
@@ -97,6 +145,12 @@
     return `${CV.erro?`<div class="crm-hint" style="color:var(--danger);margin:0 0 10px">${esc(CV.erro)}</div>`:''}
     <div class="cv-top"><div class="fin-tabs" style="margin:0">${seletor}</div>
       <span style="margin-left:auto"></span>
+      ${(()=>{ const m={}; Object.values(CV.ads).forEach(a=>{ if(a&&a.ad_id) m[a.ad_id]=adNome(a); });
+        const ids=Object.keys(m); if(!ids.length) return '';
+        return `<select class="cv-fad${CV.fAd?' on':''}" onchange="cvFiltroAd(this.value)" title="Filtrar por anúncio">
+          <option value="">Todos os anúncios (${ids.length})</option>
+          ${ids.map(id=>`<option value="${esc(id)}"${CV.fAd===id?' selected':''}>${esc(m[id])}</option>`).join('')}</select>`; })()}
+      ${cu()&&(cu().role==='master'||cu().papel_crm==='admin')?`<button class="btn secondary small" onclick="cvResolverAds()" ${CV.resolvendo?'disabled':''} title="Busca na Meta o nome de campanha, conjunto e anúncio">${CV.resolvendo?'buscando…':'↻ nomes dos anúncios'}</button>`:''}
       <input class="cv-busca" placeholder="Buscar conversa…" value="${esc(CV.busca)}" oninput="cvBuscar(this.value)">
       <button class="btn secondary small" onclick="cvRecarregar()" title="Recarregar">↻</button></div>
     <div class="cv-grid">
@@ -153,6 +207,17 @@
   .cv-busca{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 11px;font-size:13px;min-width:190px}
   .cv-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:14px;height:min(66vh,620px)}
   .cv-lista{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow-y:auto;padding:6px}
+  .cv-ad{display:block;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--brand2);
+    font-weight:700;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cv-fad{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;
+    padding:6px 12px;font:inherit;font-size:12.5px;max-width:230px;cursor:pointer}
+  .cv-fad.on{border-color:var(--brand)}
+  .cv-origem{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--panel2);
+    border:1px solid var(--line);border-radius:11px;padding:10px 14px;margin:0 0 12px}
+  .cv-oico{color:var(--brand2);font-size:13px}
+  .cv-ok{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--txt);min-width:0}
+  .cv-ok>i{font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fraco);font-weight:700;font-style:normal}
+  .cv-ofim{margin-left:auto;font-size:11px;color:var(--fraco);text-transform:uppercase;letter-spacing:.06em}
   .cv-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:9px 10px;cursor:pointer;color:var(--txt)}
   .cv-item:hover{background:var(--panel2)} .cv-item.on{background:var(--cardh)}
   .cv-av{width:38px;height:38px;flex:none;border-radius:50%;background:var(--panel2);display:grid;place-items:center;overflow:hidden;font-weight:700;font-size:14px;color:var(--muted)}
