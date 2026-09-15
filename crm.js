@@ -806,40 +806,45 @@ window.crmCallModal=(id)=>{
   const opt=(tab,v)=>tab.map(o=>`<option value="${esc(o[0])}"${String(v||'')===o[0]?' selected':''}>${esc(o[1])}</option>`).join('');
   const pessoas=ccPessoas();
   const dl=`<datalist id="ccPessoas">${pessoas.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
-  const radio=(nome,tab,v)=>tab.map(o=>`<label class="cc-rd"><input type="radio" name="${nome}" value="${esc(o[0])}"${String(v||'')===o[0]?' checked':''}> ${esc(o[1])}</label>`).join('');
+  /* opcao = circulo vazado + rotulo, igual ao painel original. O input fica
+     invisivel por cima do circulo desenhado no ::before do label. */
+  const ops=(nome,tab,v)=>`<div class="cc-ops">${tab.map(o=>
+    `<label class="cc-op"><input type="radio" name="${nome}" value="${esc(o[0])}"${String(v||'')===o[0]?' checked':''}><span>${esc(o[1])}</span></label>`).join('')}</div>`;
+  const campo=(lab,html)=>`<div class="cc-f"><label>${esc(lab)}</label>${html}</div>`;
+  const inp=(id2,val,ph,extra)=>`<input id="${id2}" value="${esc(val==null?'':val)}"${ph?` placeholder="${esc(ph)}"`:''}${extra||''}>`;
 
-  modal(novo?'Nova call':'Editar call',`<div class="crm-form">${dl}
-    <div class="row2">
-      <div class="field"><label>Data da call</label><input type="date" id="cc_data" value="${esc(String(c.data||'').slice(0,10)||crmIsoLocal(new Date()))}"></div>
-      <div class="field"><label>Origem do lead</label><select id="cc_origem">${opt(CC_ORIGENS,c.origem||'inbound')}</select></div>
+  modal(novo?'Nova call':'Editar call',`<div class="cc-form">${dl}
+    <div class="cc-2">
+      ${campo('Data da Call',`<input type="date" id="cc_data" value="${esc(String(c.data||'').slice(0,10)||crmIsoLocal(new Date()))}">`)}
+      ${campo('Origem do Lead',`<select id="cc_origem" class="cx">${opt(CC_ORIGENS,c.origem||'inbound')}</select>`)}
     </div>
-    <div class="row2">
-      <div class="field"><label>Quem agendou (SDR)</label><input id="cc_sdr" list="ccPessoas" value="${esc(c.sdr||'')}" placeholder="nome de quem agendou"></div>
-      <div class="field"><label>Quem vendeu (closer)</label><input id="cc_closer" list="ccPessoas" value="${esc(c.closer||'')}" placeholder="deixe vazio se não vendeu"></div>
+    <div class="cc-2">
+      ${campo('Quem Agendou',inp('cc_sdr',c.sdr,'nome de quem agendou',' list="ccPessoas"'))}
+      ${campo('Quem Vendeu',inp('cc_closer',c.closer,'— nenhum —',' list="ccPessoas"'))}
     </div>
-    <div class="row2">
-      <div class="field"><label>Status da call</label><select id="cc_scall">${opt(CC_CALL,c.status_call||'agendado')}</select></div>
-      <div class="field"><label>Status do lead</label><select id="cc_slead">${opt(CC_LEAD,c.status_lead||'follow_up')}</select></div>
+    <div class="cc-2">
+      ${campo('Status da Call',`<select id="cc_scall" class="cx">${opt(CC_CALL,c.status_call||'agendado')}</select>`)}
+      ${campo('Status do Lead',`<select id="cc_slead" class="cx">${opt(CC_LEAD,c.status_lead||'follow_up')}</select>`)}
     </div>
-    <div class="row2">
-      <div class="field"><label>Nome do lead</label><input id="cc_lead" value="${esc(c.lead||'')}" placeholder="com quem você falou"></div>
-      <div class="field"><label>Empresa</label><input id="cc_empresa" value="${esc(c.empresa||'')}"></div>
+    <div class="cc-2">
+      ${campo('Nome do Lead',inp('cc_lead',c.lead,'com quem você falou'))}
+      ${campo('Empresa',inp('cc_empresa',c.empresa,''))}
     </div>
-    <div class="row2">
-      <div class="field"><label>BANT</label><select id="cc_bant"><option value="">—</option>${opt(CC_BANT,c.bant)}</select></div>
-      <div class="field"><label>Nicho</label><input id="cc_nicho" value="${esc(c.nicho||'')}" placeholder="ex.: concessionária"></div>
+    <div class="cc-2">
+      ${campo('BANT',`<select id="cc_bant"><option value="">—</option>${opt(CC_BANT,c.bant)}</select>`)}
+      ${campo('Nicho',inp('cc_nicho',c.nicho,'ex.: concessionária'))}
     </div>
-    <div class="row2">
-      <div class="field"><label>Valor da venda (R$)</label><input type="number" step="0.01" min="0" id="cc_valor" value="${c.valor||''}" placeholder="0"></div>
-      <div class="field"><label>Fee mensal (R$)</label><input type="number" step="0.01" min="0" id="cc_fee" value="${c.fee||''}" placeholder="0"></div>
+    <div class="cc-2">
+      ${campo('Valor da Venda (R$)',`<input type="number" step="0.01" min="0" id="cc_valor" value="${c.valor||''}" placeholder="0">`)}
+      ${campo('Fee Mensal (R$)',`<input type="number" step="0.01" min="0" id="cc_fee" value="${c.fee||''}" placeholder="0">`)}
     </div>
-    <div class="row2">
-      <div class="field"><label>Prazo do projeto</label><input id="cc_pproj" value="${esc(c.prazo_projeto||'')}" placeholder="ex.: 30 dias"></div>
-      <div class="field"><label>Prazo de implementação</label><input id="cc_pimpl" value="${esc(c.prazo_impl||'')}" placeholder="ex.: 10 dias"></div>
+    <div class="cc-2">
+      ${campo('Prazo do Projeto',inp('cc_pproj',c.prazo_projeto,'Ex: 30 dias'))}
+      ${campo('Prazo de Implementação',inp('cc_pimpl',c.prazo_impl,'Ex: 10 dias'))}
     </div>
-    <div class="field"><label>O que faltou (só em perdido)</label><div class="cc-rds">${radio('cc_faltou',CC_FALTOU,c.faltou)}</div></div>
-    <div class="field"><label>O que foi vendido</label><div class="cc-rds">${radio('cc_vendido',CC_VENDIDO,c.vendido)}</div></div>
-    <div class="field"><label>Observações</label><textarea id="cc_obs" rows="3">${esc(c.obs||'')}</textarea></div>
+    ${campo('O Que Faltou',ops('cc_faltou',CC_FALTOU,c.faltou))}
+    ${campo('O Que Foi Vendido',ops('cc_vendido',CC_VENDIDO,c.vendido))}
+    ${campo('Observações',`<textarea id="cc_obs" rows="3">${esc(c.obs||'')}</textarea>`)}
   </div>`, async ()=>{
     const rd=(n)=>{ const e=document.querySelector(`input[name="${n}"]:checked`); return e?e.value:null; };
     const num=(k)=>{ const v=crmVal(k); return v===''?null:Number(v); };
