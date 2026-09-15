@@ -36,7 +36,7 @@ const CC_ORIGENS=[['inbound','Inbound'],['outbound','Outbound'],['indicacao','In
   ['prospeccao_closer','Prospecção Closer'],['prospeccao_sdr','Prospecção SDR'],['social_selling','Social Selling'],
   ['repescagem','Repescagem'],['organico','Orgânico'],['landing_page','Landing Page']];
 const CC_CALL=[['agendado','Agendado','info'],['show','Show','ok'],['no_show','No-show','bad']];
-const CC_LEAD=[['follow_up','Follow up','info'],['remarcar','Remarcar','warn'],['futuro','Futuro',''],['negociacao','Negociação','warn'],['ganho','Ganho','ok'],['perdido','Perdido','bad']];
+const CC_LEAD=[['follow_up','Follow up','info'],['remarcar','Remarcar',''],['futuro','Futuro',''],['negociacao','Negociação','warn'],['ganho','Ganho','ok'],['perdido','Perdido','bad']];
 /* rotulo em portugues; a chave segue em ingles (BANT) pra nao mexer no que ja foi lancado */
 const CC_FALTOU=[['authority','Autoridade'],['budget','Orçamento'],['timing','Momento'],['need','Necessidade']];
 const CC_VENDIDO=[['agent_ia','Agent IA'],['trafego','Tráfego'],['crm','CRM'],['maquina','Máquina de Vendas'],['agent_trafego','Agent IA + Tráfego'],['agent_crm','Agent IA + CRM']];
@@ -770,35 +770,45 @@ function ccFiltradas(){
 function ccCallsHTML(){
   const todas=CRM.d.calls||[], vis=ccFiltradas();
   const ativos=['sdr','status','de','ate'].filter(k=>CRM.cc[k]).length;
-  const et=(tab,v)=>{ const n=ccNome(tab,v); return n?`<span class="crm-badge ${ccCor(tab,v)}">${esc(n)}</span>`:'<span class="crm-badge">—</span>'; };
+  /* so o status do lead vira pilula; o da call e texto, como no painel original */
+  const pil=(v)=>{ const n=ccNome(CC_LEAD,v); return n?`<span class="pc-pill ${ccCor(CC_LEAD,v)}">${esc(n)}</span>`:'<span class="pc-vazio">—</span>'; };
   const linha=(c)=>`<tr>
-    <td>${esc(fmtDate(String(c.data||'').slice(0,10)))}</td>
-    <td><span class="crm-badge">${esc(ccNome(CC_ORIGENS,c.origem)||'—')}</span></td>
-    <td><b>${esc(c.lead||'—')}</b></td>
-    <td>${esc(c.empresa||'—')}</td>
+    <td class="pc-dt">${esc(fmtDate(String(c.data||'').slice(0,10)))}</td>
+    <td class="pc-org">${esc(ccNome(CC_ORIGENS,c.origem)||'—')}</td>
+    <td class="pc-lead">${esc(c.lead||'—')}</td>
+    <td class="pc-emp">${esc(c.empresa||'—')}</td>
     <td>${esc(c.sdr||'—')}</td>
-    <td>${esc(c.closer||'—')}</td>
-    <td>${et(CC_CALL,c.status_call)}</td>
-    <td>${et(CC_LEAD,c.status_lead)}</td>
-    <td class="r">${c.valor?esc(brl(c.valor)):'—'}</td>
-    <td class="r">${c.fee?esc(brl(c.fee)):'—'}</td>
-    <td><span class="rowact">
-      <button class="iconbtn" title="Editar esta call" onclick="crmCallModal('${c.id}')">Editar</button>
-      <button class="iconbtn del" title="Excluir esta call" onclick="ccExcluir('${c.id}')">&times;</button></span></td></tr>`;
+    <td>${c.closer?esc(c.closer):'<span class="pc-vazio">—</span>'}</td>
+    <td class="pc-call">${esc(ccNome(CC_CALL,c.status_call)||'—')}</td>
+    <td>${pil(c.status_lead)}</td>
+    <td class="r">${c.valor?esc(brl(c.valor)):'<span class="pc-vazio">—</span>'}</td>
+    <td class="r">${c.fee?esc(brl(c.fee)):'<span class="pc-vazio">—</span>'}</td>
+    <td class="r"><span class="pc-acoes">
+      <button class="pc-ib" title="Editar esta call" onclick="crmCallModal('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
+      <button class="pc-ib del" title="Excluir esta call" onclick="ccExcluir('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+    </span></td></tr>`;
 
-  return `<div class="crm-filtros">
-      <input type="date" class="${CRM.cc.de?'on':''}" value="${esc(CRM.cc.de)}" title="De" onchange="ccFiltro('de',this.value)">
-      <input type="date" class="${CRM.cc.ate?'on':''}" value="${esc(CRM.cc.ate)}" title="Até" onchange="ccFiltro('ate',this.value)">
-      <select class="${CRM.cc.status?'on':''}" onchange="ccFiltro('status',this.value)" title="Status do lead"><option value="">Status: todos</option>${CC_LEAD.map(s=>`<option value="${s[0]}"${CRM.cc.status===s[0]?' selected':''}>${esc(s[1])}</option>`).join('')}</select>
-      <select class="${CRM.cc.sdr?'on':''}" onchange="ccFiltro('sdr',this.value)" title="SDR"><option value="">SDR: todos</option>${ccPessoas().map(n=>`<option value="${esc(n)}"${CRM.cc.sdr===n?' selected':''}>${esc(n)}</option>`).join('')}</select>
-      ${ativos?`<button class="crm-limpar" onclick="ccLimpar()">limpar ${ativos} filtro${ativos>1?'s':''}</button>`:''}
-      <span style="margin-left:auto"></span>
-      <span class="crm-hint" style="margin:0">${vis.length} de ${todas.length} call${todas.length===1?'':'s'}</span>
+  return `<div class="pc-topo">
+      <div>
+        <div class="pc-eyebrow">Lançamentos</div>
+        <h3 class="pc-mes">Calls Registradas</h3>
+        <div class="pc-sub">${vis.length} de ${todas.length} call${todas.length===1?'':'s'}${ativos?' · '+ativos+' filtro'+(ativos>1?'s':'')+' ativo'+(ativos>1?'s':''):''}</div>
+      </div>
     </div>
-    <div class="card" style="padding:0;overflow:auto"><table class="crm-tbl">
-      <tr><th>Data</th><th>Origem</th><th>Lead</th><th>Empresa</th><th>SDR</th><th>Closer</th><th>Call</th><th>Lead</th><th class="r">Venda</th><th class="r">Fee</th><th></th></tr>
-      ${vis.length?vis.map(linha).join('')
-        :`<tr><td colspan="11" style="text-align:center;color:var(--fraco);padding:24px">${todas.length?'Nenhuma call com esses filtros.':'Nenhuma call lançada ainda · use “+ Nova call”.'}</td></tr>`}
+
+    <div class="pc-fbox"><div class="pc-filtros">
+      <span class="pc-fl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z"/></svg>Filtros</span>
+      <input type="date" class="${CRM.cc.de?'on':''}" value="${esc(CRM.cc.de)}" title="A partir de" onchange="ccFiltro('de',this.value)">
+      <input type="date" class="${CRM.cc.ate?'on':''}" value="${esc(CRM.cc.ate)}" title="Até" onchange="ccFiltro('ate',this.value)">
+      <select class="${CRM.cc.status?'on':''}" onchange="ccFiltro('status',this.value)" title="Status do lead"><option value="">Todos os status</option>${CC_LEAD.map(s=>`<option value="${s[0]}"${CRM.cc.status===s[0]?' selected':''}>${esc(s[1])}</option>`).join('')}</select>
+      <select class="${CRM.cc.sdr?'on':''}" onchange="ccFiltro('sdr',this.value)" title="SDR"><option value="">Todos os SDRs</option>${ccPessoas().map(n=>`<option value="${esc(n)}"${CRM.cc.sdr===n?' selected':''}>${esc(n)}</option>`).join('')}</select>
+      ${ativos?`<button class="pc-limpar" onclick="ccLimpar()">limpar filtros</button>`:''}
+    </div></div>
+
+    <div class="pc-tbox"><table class="pc-tbl">
+      <thead><tr><th>Data</th><th>Origem</th><th>Lead</th><th>Empresa</th><th>SDR</th><th>Closer</th><th>Call</th><th>Lead</th><th class="r">Venda</th><th class="r">Fee</th><th></th></tr></thead>
+      <tbody>${vis.length?vis.map(linha).join('')
+        :`<tr><td colspan="11" class="pc-nada">${todas.length?'Nenhuma call com esses filtros.':'Nenhuma call lançada ainda — use “+ Nova call”.'}</td></tr>`}</tbody>
     </table></div>`;
 }
 
