@@ -37,7 +37,8 @@ const CC_ORIGENS=[['inbound','Inbound'],['outbound','Outbound'],['indicacao','In
   ['repescagem','Repescagem'],['organico','Orgânico'],['landing_page','Landing Page']];
 const CC_CALL=[['agendado','Agendado','info'],['show','Show','ok'],['no_show','No-show','bad']];
 const CC_LEAD=[['follow_up','Follow up','info'],['remarcar','Remarcar','warn'],['futuro','Futuro',''],['negociacao','Negociação','warn'],['ganho','Ganho','ok'],['perdido','Perdido','bad']];
-const CC_FALTOU=[['authority','Authority'],['budget','Budget'],['timing','Timing'],['need','Need']];
+/* rotulo em portugues; a chave segue em ingles (BANT) pra nao mexer no que ja foi lancado */
+const CC_FALTOU=[['authority','Autoridade'],['budget','Orçamento'],['timing','Momento'],['need','Necessidade']];
 const CC_VENDIDO=[['agent_ia','Agent IA'],['trafego','Tráfego'],['crm','CRM'],['maquina','Máquina de Vendas'],['agent_trafego','Agent IA + Tráfego'],['agent_crm','Agent IA + CRM']];
 const CC_BANT=[['1','BANT 1'],['2','BANT 2'],['3','BANT 3'],['4','BANT 4']];
 const ccNome=(tab,v)=>{ const r=(tab||[]).find(x=>x[0]===String(v||'')); return r?r[1]:''; };
