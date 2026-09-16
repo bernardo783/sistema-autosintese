@@ -37,7 +37,9 @@ const CC_ORIGENS=[['inbound','Inbound'],['outbound','Outbound'],['indicacao','In
   ['repescagem','Repescagem'],['organico','Orgânico'],['landing_page','Landing Page'],
   /* ChatGPT: lead que chegou perguntando pra IA e caiu na gente (Gabriel 16/09) */
   ['chatgpt','ChatGPT']];
-const CC_CALL=[['agendado','Agendado','info'],['show','Show','ok'],['no_show','No-show','bad']];
+/* "Remarcada" veio da planilha do comercial: a call nao aconteceu e nao foi
+   no-show — foi adiada. Nao entra na conta de show nem de no-show. */
+const CC_CALL=[['agendado','Agendado','info'],['show','Show','ok'],['no_show','No-show','bad'],['remarcar','Remarcada','']];
 const CC_LEAD=[['follow_up','Follow up','info'],['remarcar','Remarcar',''],['futuro','Futuro',''],['negociacao','Negociação','warn'],['ganho','Ganho','ok'],['perdido','Perdido','bad']];
 /* rotulo em portugues; a chave segue em ingles (BANT) pra nao mexer no que ja foi lancado */
 const CC_FALTOU=[['authority','Autoridade'],['budget','Orçamento'],['timing','Momento'],['need','Necessidade']];
@@ -721,7 +723,9 @@ function ccPainelHTML(){
 
   /* motivos de perda: so quem foi marcado como perdido conta */
   const perdidos=cs.filter(c=>c.status_lead==='perdido');
-  const motivos=CC_FALTOU.map(([k,n])=>({k,n,q:perdidos.filter(c=>c.faltou===k).length}))
+  /* um perdido pode ter mais de um motivo; cada um conta no seu */
+  const temFaltou=(c,k)=>String(c.faltou||'').split('|').includes(k);
+  const motivos=CC_FALTOU.map(([k,n])=>({k,n,q:perdidos.filter(c=>temFaltou(c,k)).length}))
     .sort((a,b)=>b.q-a.q);
 
   const card=(rot,val,sub,ico,cor)=>`<div class="pc-card">
@@ -855,8 +859,12 @@ window.crmCallModal=(id)=>{
   const dl=`<datalist id="ccPessoas">${pessoas.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
   /* cada opcao e um botao: clicar marca, clicar de novo desmarca (Gabriel 15/09).
      O radio continua ali, invisivel, pra manter teclado e leitor de tela. */
-  const ops=(nome,tab,v)=>`<div class="pc-ops">${tab.map(o=>
-    `<label class="pc-opt"><input type="radio" name="${nome}" value="${esc(o[0])}"${String(v||'')===o[0]?' checked data-on="1"':' data-on="0"'} onclick="ccTog(this)"><span>${esc(o[1])}</span></label>`).join('')}</div>`;
+  /* `multi` liga caixa de marcar em vez de radio: na planilha do comercial um
+     lead perdido some por mais de um motivo ("orcamento E momento"), entao O Que
+     Faltou aceita varios. Guardado como "budget|timing". */
+  const ops=(nome,tab,v,multi)=>{ const sel=String(v||'').split('|').filter(Boolean);
+    return `<div class="pc-ops">${tab.map(o=>{ const on=multi?sel.includes(o[0]):String(v||'')===o[0];
+      return `<label class="pc-opt"><input type="${multi?'checkbox':'radio'}" name="${nome}" value="${esc(o[0])}"${on?' checked data-on="1"':' data-on="0"'}${multi?'':' onclick="ccTog(this)"'}><span>${esc(o[1])}</span></label>`;}).join('')}</div>`; };
   const campo=(lab,html)=>`<div class="cc-f"><label>${esc(lab)}</label>${html}</div>`;
   const inp=(id2,val,ph,extra)=>`<input id="${id2}" value="${esc(val==null?'':val)}"${ph?` placeholder="${esc(ph)}"`:''}${extra||''}>`;
 
@@ -889,11 +897,12 @@ window.crmCallModal=(id)=>{
       ${campo('Prazo do Projeto',inp('cc_pproj',c.prazo_projeto,'Ex: 30 dias'))}
       ${campo('Prazo de Implementação',inp('cc_pimpl',c.prazo_impl,'Ex: 10 dias'))}
     </div>
-    ${campo('O Que Faltou',ops('cc_faltou',CC_FALTOU,c.faltou))}
+    ${campo('O Que Faltou',ops('cc_faltou',CC_FALTOU,c.faltou,true))}
     ${campo('O Que Foi Vendido',ops('cc_vendido',CC_VENDIDO,c.vendido))}
     ${campo('Observações',`<textarea id="cc_obs" rows="3">${esc(c.obs||'')}</textarea>`)}
   </div>`, async ()=>{
     const rd=(n)=>{ const e=document.querySelector(`input[name="${n}"]:checked`); return e?e.value:null; };
+    const rdm=(n)=>{ const v=[...document.querySelectorAll(`input[name="${n}"]:checked`)].map(e=>e.value); return v.length?v.join('|'):null; };
     const num=(k)=>{ const v=crmVal(k); return v===''?null:Number(v); };
     const row={
       data:crmVal('cc_data')||null, origem:crmVal('cc_origem')||'inbound',
@@ -903,7 +912,7 @@ window.crmCallModal=(id)=>{
       bant:crmVal('cc_bant')||null, nicho:crmVal('cc_nicho')||null,
       valor:num('cc_valor'), fee:num('cc_fee'),
       prazo_projeto:crmVal('cc_pproj')||null, prazo_impl:crmVal('cc_pimpl')||null,
-      faltou:rd('cc_faltou'), vendido:rd('cc_vendido'), obs:crmVal('cc_obs')||null
+      faltou:rdm('cc_faltou'), vendido:rd('cc_vendido'), obs:crmVal('cc_obs')||null
     };
     if(!row.data){ toast('Informe a data da call.'); return false; }
     if(novo) row.criado_por=(currentUser||{}).id||null;
