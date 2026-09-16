@@ -3464,7 +3464,7 @@ async function enterApp(){
   /* Vendas e do comercial: master, quem tem cargo comercial ou papel no CRM.
      O gerador de contratos, la dentro, ainda respeita podeContratos(). */
   if(ehComercial()){ show($('#navVendas')); } else { hide($('#navVendas')); }
-  if(ehCrm()){ show($('#navPainel')); } else { hide($('#navPainel')); }
+  if(ehCrm()&&ehTimeComercial()){ show($('#navPainel')); } else { hide($('#navPainel')); }
   hide($('#navFunil'));    /* Comercial virou espaco na arvore (Gabriel 15/09) */
   hide($('#navAgente'));   /* Agente IA saiu da barra (Gabriel 15/09); a tela continua em #v/agente */
 
@@ -13969,6 +13969,8 @@ function podeContratos(){ return !!currentUser && (currentUser.role==='master' |
    tela cobra la dentro — botao visivel que da "acesso restrito" e pior que
    botao escondido. */
 function ehCrm(){ return !!currentUser && (currentUser.role==='master' || !!currentUser.papel_crm); }
+/* Quem é do comercial de verdade — sem o atalho de master. */
+function ehTimeComercial(){ return !!currentUser && (!!currentUser.papel_crm || /comerc/i.test(currentUser.cargo||'')); }
 /* Quem e do comercial (Gabriel 15/09): master, cargo comercial ou papel no CRM.
    Mais largo que podeContratos() de proposito — o SDR fecha contrato, mas nao
    precisa gerar o documento. */
