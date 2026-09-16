@@ -7227,19 +7227,19 @@ function ncAprovarHTML(){
   return `<div class="nc-fila">
     <div class="nc-fh">📥 Chegou pelo link público<span class="nc-cnt">${fila.length} aguardando aprovação</span></div>
     ${fila.map(linha).join('')}
-    <p class="hint" style="margin:10px 0 0">Aprovar manda pra <b>2. EM ANÁLISE</b> com o Bernardo como responsável — aparece nas tarefas dele. Recusar apaga o pedido.</p></div>`;
+    <p class="hint" style="margin:10px 0 0">Aprovar manda pra <b>2. EM ANÁLISE</b> com o financeiro como responsável — aparece nas tarefas dele. Recusar apaga o pedido.</p></div>`;
 }
 window.ncAprovar=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
   const v=t.valores||{};
   const ok=await confirmar('Aprovar '+(v[NC_C.forn]||t.titulo)+'?',
-    brl(v[NC_C.val])+' com vencimento em '+(fmtDate(v[NC_C.venc]||'')||'—')+'. Vai pra fila de pagamento com o Bernardo como responsável.',
+    brl(v[NC_C.val])+' com vencimento em '+(fmtDate(v[NC_C.venc]||'')||'—')+'. Vai pra fila de pagamento com o financeiro como responsável.',
     {sim:'Sim, aprovar',nao:'Não'});
   if(!ok) return;
   const {error}=await sb.from('tarefas').update({status_id:NC_ANALISE,responsavel_id:NC_PAGADOR}).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
   t.status_id=NC_ANALISE; t.responsavel_id=NC_PAGADOR;
-  toast('Aprovado — agora é tarefa do Bernardo.');
+  toast('Aprovado — agora é tarefa do financeiro.');
   const alvo=document.getElementById('finSub')||document.getElementById('content');
   if(typeof renderFinAPagar==='function'&&document.getElementById('finSub')) renderFinAPagar(document.getElementById('finSub')); else render(currentView);
   if(window.spDesenhar) spDesenhar();
@@ -7382,13 +7382,21 @@ const SUP_MUD=[['vencimento','Só a data de cobrança'],['upsell','Upsell — me
 let supMudTipo='vencimento';
 const supCliAtivos=()=>(DB.clientes||[]).filter(c=>!cliArq(c))
   .sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
-const supCliAtual=()=>supCliAtivos().find(c=>String(c.id)===String((document.getElementById('sv_cli')||{}).value||''))||null;
+/* Digitar e mais rapido que rolar 100 nomes (Gabriel 16/09). O <datalist> da a
+   sugestao enquanto a pessoa digita e continua aceitando o nome escrito na mao;
+   por isso o casamento e por nome normalizado, sem acento e sem caixa. */
+const supNorm=(x)=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+const supCliAtual=()=>{
+  const t=supNorm((document.getElementById('sv_cli')||{}).value||''); if(!t) return null;
+  const ls=supCliAtivos();
+  return ls.find(c=>supNorm(c.nome)===t) || (t.length>=3?ls.find(c=>supNorm(c.nome).includes(t)):null) || null;
+};
 window.supMudSet=(t)=>{ supMudTipo=t; supVencForm($('#content')); };
 window.supVencPinta=()=>{
   const c=supCliAtual(), box=document.getElementById('sv_hoje'); if(!box) return;
   box.innerHTML = c
-    ? `Hoje: mensalidade <b>${brl(Number(c.valor)||0)}</b> · vence <b>dia ${esc(String(c.diaVenc||'—'))}</b>`
-    : 'Escolha o cliente para ver o que está valendo hoje.';
+    ? `<b>${esc(c.nome||'')}</b> — hoje: mensalidade <b>${brl(Number(c.valor)||0)}</b> · vence <b>dia ${esc(String(c.diaVenc||'—'))}</b>`
+    : 'Digite o nome para ver o que está valendo hoje.';
   const nv=document.getElementById('sv_valor');
   if(nv&&!nv.value&&c&&supMudTipo!=='vencimento') nv.value=ctMoeda(Number(c.valor)||0);
 };
@@ -7397,16 +7405,14 @@ function supVencForm(c){
   const soData=supMudTipo==='vencimento';
   c.innerHTML=`<button class="sup-volta" onclick="supVoltar()">← Suporte</button>
     <div class="page-head"><div><h2>Mudar vencimento ou valor</h2>
-      <div class="desc">Vai pro Bernardo ajustar a cobrança, e fica registrado como upsell ou downsell.</div></div></div>
+      <div class="desc">Vai pro financeiro ajustar a cobrança, e fica registrado como upsell ou downsell.</div></div></div>
     <div class="card sup-form" style="padding:22px">
       <div class="field"><label>O que muda</label>
         <div class="fin-tabs">${SUP_MUD.map(([k,r])=>`<button class="ftab ${supMudTipo===k?'active':''}" onclick="supMudSet('${k}')">${esc(r)}</button>`).join('')}</div></div>
-      <div class="field"><label>Cliente</label>
-        <select id="sv_cli" onchange="supVencPinta()">
-          <option value="">Escolha…</option>
-          ${cls.map(x=>`<option value="${esc(x.id)}">${esc(x.nome)}</option>`).join('')}
-        </select>
-        <div class="hint" id="sv_hoje" style="margin:6px 0 0">Escolha o cliente para ver o que está valendo hoje.</div></div>
+      <div class="field"><label>Cliente<small>digite o nome</small></label>
+        <input id="sv_cli" list="svClientes" autocomplete="off" placeholder="comece a digitar…" oninput="supVencPinta()" onchange="supVencPinta()">
+        <datalist id="svClientes">${cls.map(x=>`<option value="${esc(x.nome)}">`).join('')}</datalist>
+        <div class="hint" id="sv_hoje" style="margin:6px 0 0">Digite o nome para ver o que está valendo hoje.</div></div>
       <div class="row2">
         <div class="field"><label>Novo dia de vencimento<small>1 a 31${soData?'':' — deixe vazio se a data não muda'}</small></label>
           <input id="sv_venc" type="number" min="1" max="31" placeholder="ex.: 10"></div>
@@ -7445,9 +7451,9 @@ window.supEnviarVenc=async ()=>{
   const alvo=$('#content'); if(!alvo) return;
   alvo.innerHTML=`<button class="sup-volta" onclick="supVoltar()">← Suporte</button>
     <div class="page-head"><div><h2>Registrado</h2></div></div>
-    <div class="sup-ok"><b>✓ Chegou pro Bernardo.</b>
+    <div class="sup-ok"><b>✓ Chegou pro financeiro.</b>
       <p class="hint" style="margin:0">${esc(c.nome||'O cliente')} entrou na fila com o pedido de mudança${supMudTipo==='vencimento'?'':' e ficou registrado como '+(supMudTipo==='upsell'?'upsell':'downsell')}.
-      A cobrança no Asaas só muda quando ele aplicar — a ficha do cliente continua como está até lá.</p></div>`;
+      A cobrança no Asaas só muda quando o financeiro aplicar — a ficha do cliente continua como está até lá.</p></div>`;
   try{ if(window.tkCarregar) await tkCarregar(); }catch(_){}
 };
 
@@ -7738,7 +7744,7 @@ window.ncEnviar=async ()=>{
     p_titulo:forn+' — '+nat, p_descricao:mot||null, p_prazo:venc||null, p_valores:v});
   if(error){ toast('Erro: '+error.message); return; }
   ncLimpar();
-  toast('Solicitação enviada — chegou pro Bernardo.');
+  toast('Solicitação enviada — chegou pro financeiro.');
   /* recarrega em vez de empilhar na mao: quem nao enxerga a lista nao recebe a
      linha de volta, e a tela tem que refletir isso em vez de mentir */
   try{ if(window.tkCarregar) await tkCarregar(); }catch(_){}
