@@ -353,7 +353,6 @@
   .sup-card.sup-copia:hover{border-color:var(--line);transform:none}
   .sup-pe{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:13px;
     border-top:1px solid var(--line)}
-  .sup-pe>.sp-url{font-size:12px;color:var(--muted);font-weight:600;word-break:break-all;flex:1;min-width:0}
   .sup-pe>button{background:var(--panel2);border:1px solid var(--line);color:var(--brand2);
     border-radius:8px;padding:6px 13px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;flex:none}
   .sup-pe>button:hover{border-color:var(--brand2)}
@@ -7335,9 +7334,9 @@ window.venEscolher=(k)=>{
 const VEN_FORM='https://autosintese.app.br/contrato';
 window.venCopiarLink=async ()=>{
   try{ await navigator.clipboard.writeText(VEN_FORM); toast('Link copiado — é só colar pro cliente.'); }
-  catch(_){ /* sem permissao de area de transferencia: mostra pra copiar na mao */
-    const i=document.getElementById('venUrl'); if(i){ i.focus(); i.select&&i.select(); }
-    toast('Copie o link da tela — o navegador bloqueou a cópia automática.'); }
+  catch(_){ /* o navegador bloqueou a copia: o link nao esta mais na tela, entao
+               mostramos ele no proprio aviso pra pessoa copiar na mao */
+    toast('Não consegui copiar. O link é: '+VEN_FORM); }
 };
 window.renderVendas=(c)=>{
   c.innerHTML=`<div class="page-head"><div><h2>Vendas</h2><div class="desc">O que você vai fazer?</div></div></div>
@@ -7345,10 +7344,7 @@ window.renderVendas=(c)=>{
       <div class="sup-card sup-copia">${venIco('form')}
         <b>Formulário de informações contratuais</b>
         <span>Mande para o cliente preencher antes da reunião. O que vier dali já entra no Fechamento.</span>
-        <span class="sup-pe">
-          <span class="sp-url" id="venUrl" tabindex="0">${esc(VEN_FORM)}</span>
-          <button onclick="venCopiarLink()">copiar</button>
-        </span>
+        <span class="sup-pe"><button onclick="venCopiarLink()">Copiar link</button></span>
       </div>
       ${vendasOpcoes().map(o=>
       `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span></button>`).join('')}</div>`;
