@@ -13173,8 +13173,8 @@ window.rcStatusCli=async (cliId,novo)=>{
 /* O modelo .docx vive em contrato_modelos, em base64. Preencher acontece no
    navegador: docx e zip, entao troca-se {{campo}} dentro de word/document.xml
    e rezipa. O vocabulario de campos e o do MODELO_CONTRATO_SINTESE. */
-const CT_MODELOS={full:'Marketing + IA (Tráfego Pago)',marketing:'Marketing / Tráfego Pago',ia_crm:'Agente de IA e CRM'};
-const CT_ICONE={full:'🔀',marketing:'📣',ia_crm:'🤖'};
+const CT_MODELOS={maquina_vendas:'Máquina de Vendas',marketing:'Tráfego Meta Ads',full:'Marketing + IA (Tráfego Pago)',ia_crm:'Agente de IA e CRM'};
+const CT_ICONE={maquina_vendas:'🚀',marketing:'🎯',full:'🔀',ia_crm:'🤖'};
 /* Unica contratada do grupo — entra sozinha em todo contrato. */
 /* Razao social sem acento, decisao do Gabriel. No corpo do contrato sai em caixa alta;
    no bloco de assinatura sai em caixa normal, por isso as duas formas. */
@@ -13205,7 +13205,9 @@ const CT_NEGOCIO=[
   ['data_vencimento','Dia do vencimento (1 a 31)',''],
   ['data_primeira_parcela','Vencimento da 1ª parcela',''],
   ['forma_pagamento','Forma de pagamento','Boleto Bancário ou PIX'],
-  ['verba_minima','Verba mínima semanal de mídia (R$)','350,00']];
+  ['verba_minima','Verba mínima semanal de mídia (R$)','350,00'],
+  /* so o Máquina de Vendas usa hoje; nos outros modelos o marcador nem existe */
+  ['aviso_previo','Aviso prévio para rescisão','30 (trinta) dias corridos']];
 
 /* ---- numero por extenso (pt-BR) ---- */
 const CT_U=['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
@@ -13289,7 +13291,8 @@ const CT_DATA={rep_nascimento:1,data_inicio:1};
 const CT_VIGENCIAS=(()=>{ const e=['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze'];
   return e.map((x,i)=>(i+1)+' ('+x+') '+(i?'meses':'mês')); })();
 const CT_PAGAMENTOS=['Boleto Bancário ou PIX','Boleto Bancário','PIX','Cartão de Crédito','Boleto Bancário ou Cartão de Crédito'];
-const CT_OPCOES={vigencia:CT_VIGENCIAS,forma_pagamento:CT_PAGAMENTOS};
+const CT_AVISOS=['30 (trinta) dias corridos','60 (sessenta) dias corridos','15 (quinze) dias corridos'];
+const CT_OPCOES={vigencia:CT_VIGENCIAS,forma_pagamento:CT_PAGAMENTOS,aviso_previo:CT_AVISOS};
 function ctConfereDocs(cnpj,cpf){
   if(cnpj&&ctSoDig(cnpj).length!==14) return 'O CNPJ precisa ter 14 dígitos — você digitou '+ctSoDig(cnpj).length+'.';
   if(cpf&&ctSoDig(cpf).length!==11) return 'O CPF precisa ter 11 dígitos — você digitou '+ctSoDig(cpf).length+'.';
@@ -13314,11 +13317,16 @@ function ctResolver(dados){
   d.valor_mensal=ctMoeda(c.mensal); d.valor_mensal_extenso=ctExtenso(c.mensal);
   d.valor_total='R$ '+ctMoeda(c.total); d.valor_total_extenso=ctExtenso(c.total);
   d.parcelas=String(c.meses); d.valor_parcela=ctMoeda(c.mensal);
+  d.valor_parcela_extenso=ctExtenso(c.mensal);
   d.forma_parcelamento=c.parcelamento;
   const vm=ctNum(d.verba_minima);
   d.verba_minima='R$ '+ctMoeda(vm); d.verba_minima_extenso=ctExtenso(vm);
   /* Garantia de retorno (§6 do Marketing): o prazo da clausula acompanha a vigencia
      e o valor e sempre mensalidade x meses — nao existe valor fechado aqui. */
+  /* Máquina de Vendas: o treinamento é quinzenal, então o número de encontros
+     sai do prazo — 3 meses = 6 encontros. Ninguém digita, ninguém erra. */
+  const enc=c.meses*2;
+  d.treino_encontros=enc?(enc+' ('+(ctTrio(enc)||enc)+')'):'';
   d.garantia_meses=String(c.meses||'');
   d.garantia_meses_extenso=CT_U[c.meses]||String(c.meses||'');
   d.valor_garantia='R$ '+ctMoeda(c.total);
@@ -13352,6 +13360,13 @@ async function ctModeloZip(slug){
   if(!data||!data.conteudo_b64) throw new Error('O modelo "'+CT_MODELOS[slug]+'" ainda não foi enviado. Use ⚙️ Modelos.');
   const JSZipC=await ctJSZip();
   return {zip:await JSZipC.loadAsync(ctB64Bytes(data.conteudo_b64)),arquivo:data.arquivo};
+}
+/* [[assim]] e como o contrato chega do jurídico: marca do que falta preencher.
+   O gerador so troca {{assim}}, entao sobrou colchete = vai sair cru pro cliente. */
+async function ctSobrouColchete(zip){
+  for(const alvo of CT_ALVOS){ const f=zip.file(alvo); if(!f) continue;
+    const m=(await f.async('string')).match(/\[\[([^\]<]{1,60})\]\]/); if(m) return m[1]; }
+  return '';
 }
 /* le quais {{campos}} o modelo pede — usado na validacao do upload */
 async function ctCamposDoZip(zip){
@@ -13488,7 +13503,7 @@ window.ctEdBaixar=async ()=>{
 };
 
 /* ---- tela ---- */
-let ctModelo='full'; let ctCliSel=''; let ctSignatario='bernardo'; let ctRasc={}; let ctLeads=[];
+let ctModelo='maquina_vendas'; let ctCliSel=''; let ctSignatario='bernardo'; let ctRasc={}; let ctLeads=[];
 const CT_LINK='https://autosintese.app.br/contrato';
 
 function ctDoCliente(cliId){
@@ -13751,10 +13766,12 @@ window.ctModelosModal=async ()=>{
     for(const k of Object.keys(CT_MODELOS)){
       const inp=$('#ctf_'+k); const f=inp&&inp.files&&inp.files[0]; if(!f) continue;
       if(!/\.docx$/i.test(f.name)){ toast('“'+f.name+'” não é .docx.'); return false; }
-      let campos=[];
-      try{ const JSZipC=await ctJSZip(); campos=await ctCamposDoZip(await JSZipC.loadAsync(f)); }
+      let campos=[], sobrou='';
+      try{ const JSZipC=await ctJSZip(); const z=await JSZipC.loadAsync(f);
+           campos=await ctCamposDoZip(z); sobrou=await ctSobrouColchete(z); }
       catch(e){ toast('Não consegui abrir “'+f.name+'” como .docx.'); return false; }
       if(!campos.length){ alert('“'+f.name+'” não tem nenhum marcador {{campo}} dentro.\n\nÉ o contrato cru, não o modelo. Suba o arquivo que tem {{contratante_razao}}, {{valor_total}} e afins.'); return false; }
+      if(sobrou&&!confirm('“'+f.name+'” ainda tem [['+sobrou+']] dentro.\n\nColchete duplo é marca de campo a preencher — o gerador não troca isso, sai assim no contrato do cliente.\n\nSubir mesmo assim?')) return false;
       const b64=await ctBlobB64(f);
       const {error}=await sb.from('contrato_modelos').update({conteudo_b64:b64,arquivo:f.name,bytes:f.size,atualizado:new Date().toISOString()}).eq('slug',k);
       if(error){ toast('Erro ao salvar: '+error.message); return false; }
