@@ -7359,8 +7359,8 @@ const supOpcoes=()=>[
    d:'Você gastou do seu bolso e quer de volta. Anexe a nota ou o comprovante.'},
   {k:'conta',     ic:'nota',     t:'Conta nova',
    d:'Um fornecedor ou serviço novo que a empresa precisa começar a pagar.'},
-  {k:'venc',      ic:'agenda',   t:'Mudar vencimento',
-   d:'Cliente pediu outra data de cobrança da mensalidade.', quem:'gerente', breve:true},
+  {k:'venc',      ic:'agenda',   t:'Mudar vencimento ou valor',
+   d:'Outra data de cobrança, ou upsell e downsell na mensalidade.', quem:'gerente'},
   {k:'bug',       ic:'bug',      t:'Problema no sistema',
    d:'Alguma coisa quebrou, sumiu ou está mostrando número errado. Crítica e ideia também valem.'},
   {k:'duvida',    ic:'duvida',   t:'Dúvida',
@@ -7371,6 +7371,84 @@ window.supEscolher=(k)=>{
   const c=$('#content'); if(!c) return;
   if(k==='reembolso'||k==='conta') return supFormulario(c,k);
   if(k==='bug') return supBugForm(c);
+  if(k==='venc') return supVencForm(c);
+};
+
+/* Mudar vencimento ou valor da mensalidade.
+   O valor e o dia de hoje saem da ficha do cliente, entao o gerente so digita o
+   que muda — e o registro sempre tem o "de → para", que e o que faz upsell e
+   downsell virarem numero depois. */
+const SUP_MUD=[['vencimento','Só a data de cobrança'],['upsell','Upsell — mensalidade sobe'],['downsell','Downsell — mensalidade desce']];
+let supMudTipo='vencimento';
+const supCliAtivos=()=>(DB.clientes||[]).filter(c=>!cliArq(c))
+  .sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+const supCliAtual=()=>supCliAtivos().find(c=>String(c.id)===String((document.getElementById('sv_cli')||{}).value||''))||null;
+window.supMudSet=(t)=>{ supMudTipo=t; supVencForm($('#content')); };
+window.supVencPinta=()=>{
+  const c=supCliAtual(), box=document.getElementById('sv_hoje'); if(!box) return;
+  box.innerHTML = c
+    ? `Hoje: mensalidade <b>${brl(Number(c.valor)||0)}</b> · vence <b>dia ${esc(String(c.diaVenc||'—'))}</b>`
+    : 'Escolha o cliente para ver o que está valendo hoje.';
+  const nv=document.getElementById('sv_valor');
+  if(nv&&!nv.value&&c&&supMudTipo!=='vencimento') nv.value=ctMoeda(Number(c.valor)||0);
+};
+function supVencForm(c){
+  const cls=supCliAtivos();
+  const soData=supMudTipo==='vencimento';
+  c.innerHTML=`<button class="sup-volta" onclick="supVoltar()">← Suporte</button>
+    <div class="page-head"><div><h2>Mudar vencimento ou valor</h2>
+      <div class="desc">Vai pro Bernardo ajustar a cobrança, e fica registrado como upsell ou downsell.</div></div></div>
+    <div class="card sup-form" style="padding:22px">
+      <div class="field"><label>O que muda</label>
+        <div class="fin-tabs">${SUP_MUD.map(([k,r])=>`<button class="ftab ${supMudTipo===k?'active':''}" onclick="supMudSet('${k}')">${esc(r)}</button>`).join('')}</div></div>
+      <div class="field"><label>Cliente</label>
+        <select id="sv_cli" onchange="supVencPinta()">
+          <option value="">Escolha…</option>
+          ${cls.map(x=>`<option value="${esc(x.id)}">${esc(x.nome)}</option>`).join('')}
+        </select>
+        <div class="hint" id="sv_hoje" style="margin:6px 0 0">Escolha o cliente para ver o que está valendo hoje.</div></div>
+      <div class="row2">
+        <div class="field"><label>Novo dia de vencimento<small>1 a 31${soData?'':' — deixe vazio se a data não muda'}</small></label>
+          <input id="sv_venc" type="number" min="1" max="31" placeholder="ex.: 10"></div>
+        ${soData?'':`<div class="field"><label>Nova mensalidade (R$)</label>
+          <input id="sv_valor" placeholder="ex.: 1.200,00"></div>`}
+      </div>
+      <div class="field"><label>Por quê<small>o Bernardo vai ler isso antes de mexer na cobrança</small></label>
+        <textarea id="sv_mot" placeholder="ex.: cliente pediu para casar com o faturamento dele; ou renegociamos o fee para segurar o contrato"></textarea></div>
+      <div class="toolbar"><button class="btn" id="svEnv" onclick="supEnviarVenc()">Enviar</button>
+        <button class="btn secondary" onclick="supVoltar()">Cancelar</button></div>
+    </div>`;
+  supVencPinta();
+}
+window.supEnviarVenc=async ()=>{
+  const c=supCliAtual();
+  if(!c){ toast('Escolha o cliente.'); return; }
+  const vTxt=(document.getElementById('sv_venc')||{}).value||'';
+  const venc=vTxt?parseInt(vTxt,10):null;
+  if(venc!==null&&!(venc>=1&&venc<=31)){ toast('O dia do vencimento vai de 1 a 31.'); return; }
+  const valAtual=Number(c.valor)||0;
+  let valNovo=null;
+  if(supMudTipo!=='vencimento'){
+    valNovo=ctNum((document.getElementById('sv_valor')||{}).value||'');
+    if(!valNovo){ toast('Diga a nova mensalidade.'); return; }
+    if(supMudTipo==='upsell'&&valNovo<=valAtual){ toast('Upsell é mensalidade maior que a de hoje ('+brl(valAtual)+').'); return; }
+    if(supMudTipo==='downsell'&&valNovo>=valAtual){ toast('Downsell é mensalidade menor que a de hoje ('+brl(valAtual)+').'); return; }
+  }
+  if(supMudTipo==='vencimento'&&venc===null){ toast('Diga o novo dia de vencimento.'); return; }
+  const mot=String((document.getElementById('sv_mot')||{}).value||'').trim();
+  const b=document.getElementById('svEnv'); if(b){ b.disabled=true; b.textContent='Enviando…'; }
+  const {error}=await sb.rpc('suporte_mudar_mensalidade',{
+    p_cliente_id:String(c.id), p_cliente_nome:c.nome||'', p_tipo:supMudTipo,
+    p_valor_antes:valAtual||null, p_valor_novo:valNovo,
+    p_venc_antes:Number(c.diaVenc)||null, p_venc_novo:venc, p_motivo:mot||null});
+  if(error){ toast('Erro: '+error.message); if(b){ b.disabled=false; b.textContent='Enviar'; } return; }
+  const alvo=$('#content'); if(!alvo) return;
+  alvo.innerHTML=`<button class="sup-volta" onclick="supVoltar()">← Suporte</button>
+    <div class="page-head"><div><h2>Registrado</h2></div></div>
+    <div class="sup-ok"><b>✓ Chegou pro Bernardo.</b>
+      <p class="hint" style="margin:0">${esc(c.nome||'O cliente')} entrou na fila com o pedido de mudança${supMudTipo==='vencimento'?'':' e ficou registrado como '+(supMudTipo==='upsell'?'upsell':'downsell')}.
+      A cobrança no Asaas só muda quando ele aplicar — a ficha do cliente continua como está até lá.</p></div>`;
+  try{ if(window.tkCarregar) await tkCarregar(); }catch(_){}
 };
 
 /* Problema no sistema: um titulo e o texto. Nada de prioridade nem categoria —
