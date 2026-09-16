@@ -3055,6 +3055,8 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
     <div class="sep"></div>
     <button class="rl navlink" data-view="reembolsos" id="navSuporte" title="Suporte — pedir reembolso ou abrir uma solicitação">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0116 0"/><path d="M4 13v3a2 2 0 002 2h1v-5H6a2 2 0 00-2 2zM20 13v3a2 2 0 01-2 2h-1v-5h1a2 2 0 012 2z"/><path d="M18 18v1a3 3 0 01-3 3h-2"/></svg><span class="t">Suporte</span></button>
+    <button class="rl navlink hidden" data-view="funil/aba/painel" id="navPainel" title="Painel comercial — shows, conversão e ticket do mês">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3.5-4 3 3L21 7"/></svg><span class="t">Painel</span></button>
     <button class="rl navlink hidden" data-view="vendas" id="navVendas" title="Vendas — fechar contrato e gerar documento">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="t">Vendas</span></button>
     <button class="rl navlink" data-view="acessos" id="navAcessos" title="Acessos e senhas">
@@ -3462,6 +3464,7 @@ async function enterApp(){
   /* Vendas e do comercial: master, quem tem cargo comercial ou papel no CRM.
      O gerador de contratos, la dentro, ainda respeita podeContratos(). */
   if(ehComercial()){ show($('#navVendas')); } else { hide($('#navVendas')); }
+  if(ehCrm()){ show($('#navPainel')); } else { hide($('#navPainel')); }
   hide($('#navFunil'));    /* Comercial virou espaco na arvore (Gabriel 15/09) */
   hide($('#navAgente'));   /* Agente IA saiu da barra (Gabriel 15/09); a tela continua em #v/agente */
 
@@ -13962,6 +13965,10 @@ function renderLeads(c){
 }
 /* Contratos: master (você) + comercial (o José, que fecha e gera os contratos). */
 function podeContratos(){ return !!currentUser && (currentUser.role==='master' || /comerc/i.test(currentUser.cargo||'')); }
+/* Quem abre o Painel/Pipeline: master ou papel no CRM. E a mesma linha que a
+   tela cobra la dentro — botao visivel que da "acesso restrito" e pior que
+   botao escondido. */
+function ehCrm(){ return !!currentUser && (currentUser.role==='master' || !!currentUser.papel_crm); }
 /* Quem e do comercial (Gabriel 15/09): master, cargo comercial ou papel no CRM.
    Mais largo que podeContratos() de proposito — o SDR fecha contrato, mas nao
    precisa gerar o documento. */
