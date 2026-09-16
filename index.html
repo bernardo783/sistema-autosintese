@@ -7538,6 +7538,13 @@ const espDesc=(l)=>{
 const espAbertas=(lid)=>(TK.tarefas||[]).filter(t=>t.lista_id===lid&&t.status!=='feito'&&!t.arquivada_em).length;
 
 window.spVerEspaco=(id)=>{
+  /* Clicar de novo no espaco que ja esta aberto FECHA o galho (Gabriel 16/09).
+     Antes so a setinha fazia isso, e ninguem achava a setinha — o clique no nome
+     abria e nao tinha volta. Nao navega nem empilha: nada mudou de tela, so a
+     arvore encolheu. */
+  if(currentView==='espaco' && String(SP_ESP)===String(id) && !TK.fechadas['e'+id]){
+    TK.fechadas['e'+id]=true; spSalvarArvore(); spDesenhar(); return;
+  }
   navPush('e',id);
   SP_ESP=id; SP_MINI=false; TK.fechadas['e'+id]=false; spSalvarArvore();
   currentView='espaco'; lkHash('e',id);
