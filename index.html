@@ -485,9 +485,25 @@
   .fc-puxar .tx{flex:1;min-width:0}
   .fc-puxar .tx b{display:block;font-size:13px;font-weight:800;line-height:1.3}
   .fc-puxar .tx em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);margin-top:2px}
+  /* o mesmo aviso, quando nao ha nada de novo: informa sem puxar o olho */
+  .fc-quieto{margin:0 0 16px;padding:9px 13px;border-radius:10px;background:var(--panel2);
+    border:1px solid var(--line);font-size:12.5px;color:var(--fraco)}
+  .fc-quieto button{background:none;border:0;color:var(--brand2);font:inherit;cursor:pointer;padding:0}
+  .fc-quieto button:hover{text-decoration:underline}
   .fc-lead{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
   .fc-lead:last-child{border-bottom:none}
   .fc-lead .s{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+  /* lista de formulários recebidos */
+  .fm-item{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:9px}
+  .fm-tx{flex:1;min-width:210px}
+  .fm-tx>b{font-size:14.5px;font-weight:700}
+  .fm-s{font-size:12px;color:var(--fraco);margin-top:3px}
+  .fm-ac{display:flex;gap:7px;flex-wrap:wrap}
+  .fm-l{display:flex;gap:14px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .fm-l:last-child{border-bottom:none}
+  .fm-l>span{color:var(--fraco);min-width:170px;flex:none}
+  .fm-l>b{font-weight:600;word-break:break-word}
   /* linha do Asaas: opcao no formulario e resultado na tela de sucesso */
   .fc-ck{display:flex;align-items:flex-start;gap:10px;margin:0 0 15px;padding:11px 13px;border-radius:11px;
     background:var(--panel2);border:1px solid var(--line);cursor:pointer}
@@ -3687,6 +3703,10 @@ function render(view){
     return renderLeads(c);
   }
   if(tlBloqueada(view)){ c.innerHTML='<div class="empty">Esta tela não faz parte do seu acesso.</div>'; return; }
+  if(view==='formularios'){
+    if(!ehComercial()){ c.innerHTML='<div class="empty">Acesso restrito ao time comercial.</div>'; return; }
+    return renderFormularios(c);
+  }
   if(view==='vendas'){
     if(!ehComercial()){ c.innerHTML='<div class="empty">Acesso restrito ao time comercial.</div>'; return; }
     return renderVendas(c);
@@ -7387,27 +7407,97 @@ window.renderEspaco=(c)=>{
     </div>${corpo||'<div class="empty">Nada neste espaço ainda.</div>'}`;
 };
 
+/* ---------- FORMULÁRIOS RECEBIDOS ----------
+   Tudo que chegou por autosintese.app.br/contrato, em um lugar só. Dá pra gerar
+   contrato a partir de qualquer um — inclusive de um já usado, que é o caso de
+   aditivo e de contrato refeito. Reaproveita o FC_FORMS, que já carrega os 40
+   mais recentes com qualquer estado. */
+let FM_FILTRO='novo';
+const FM_ROT={novo:'Novos',usado:'Viraram contrato',arquivado:'Arquivados',todos:'Todos'};
+window.fmFiltro=(f)=>{ FM_FILTRO=f; render('formularios'); };
+window.renderFormularios=(c)=>{
+  if(!ehComercial()){ c.innerHTML='<div class="empty">Acesso restrito ao time comercial.</div>'; return; }
+  const pinta=()=>{
+    const cnt=(st)=>FC_FORMS.filter(f=>String(f.status||'novo')===st).length;
+    const lista=FM_FILTRO==='todos'?FC_FORMS:FC_FORMS.filter(f=>String(f.status||'novo')===FM_FILTRO);
+    const linha=(f)=>{ const st=fcStForm(f.status), arq=String(f.status||'novo')==='arquivado';
+      return `<div class="fm-item">
+        <div class="fm-tx">
+          <b>${esc(f.razao_social||'sem razão social')}</b> <span class="tag ${st[0]}">${esc(st[1])}</span>
+          <div class="fm-s">${esc(ctMascCNPJ(f.cnpj||'')||'sem CNPJ')} · ${esc(f.representante||'sem representante')} · ${fmtDate(String(f.criado_em||'').slice(0,10))}</div>
+          <div class="fm-s">${esc(f.telefone||'')}${f.telefone&&f.email?' · ':''}${esc(f.email||'')}</div>
+        </div>
+        <div class="fm-ac">
+          ${podeContratos()?`<button class="btn small" onclick="fmGerar('${f.id}')">Gerar contrato</button>`:''}
+          <button class="btn secondary small" onclick="fmVer('${f.id}')">Ver tudo</button>
+          <button class="btn secondary small" onclick="fmArquivar('${f.id}',${arq?'false':'true'})">${arq?'Desarquivar':'Arquivar'}</button>
+        </div>
+      </div>`; };
+    c.innerHTML=`<div class="page-head">
+        <div><h2>Formulários recebidos</h2><div class="desc">Tudo que o cliente preencheu em autosintese.app.br/contrato.</div></div>
+        <div class="toolbar"><button class="btn secondary small" onclick="venCopiarLink()">Copiar link do formulário</button></div>
+      </div>
+      <div class="fin-tabs" style="margin-bottom:16px">
+        ${['novo','usado','arquivado','todos'].map(k=>`<button class="ftab ${FM_FILTRO===k?'active':''}" onclick="fmFiltro('${k}')">${FM_ROT[k]}${k==='todos'?` (${FC_FORMS.length})`:(cnt(k)?` (${cnt(k)})`:'')}</button>`).join('')}
+      </div>
+      ${lista.length?lista.map(linha).join(''):`<div class="empty">Nenhum formulário ${esc((FM_ROT[FM_FILTRO]||'').toLowerCase())} por aqui.</div>`}
+      <p class="hint">Arquivar só tira da fila — o dado do cliente continua valendo, e dá pra desarquivar.</p>`;
+  };
+  pinta();
+  fcCarregarForms().then(pinta).catch(()=>{});
+};
+window.fmVer=(id)=>{
+  const f=FC_FORMS.find(x=>String(x.id)===String(id)); if(!f) return;
+  const L=[['Razão social',f.razao_social],['CNPJ',ctMascCNPJ(f.cnpj||'')],['Endereço',f.endereco],
+    ['Representante',f.representante],['RG',f.rg],['CPF',ctMascCPF(f.cpf||'')],['Nascimento',ctBR(f.nascimento||'')],
+    ['Responsável financeiro',f.resp_financeiro],['Telefone',ctMascTel(f.telefone||'')],['E-mail',f.email],
+    ['Enviado em',fmtDate(String(f.criado_em||'').slice(0,10))]];
+  /* so leitura: o modal exige um onSave, entao devolve true e fecha */
+  modal('Formulário de '+(f.razao_social||'cliente sem razão social'),
+    L.map(([r,v])=>`<div class="fm-l"><span>${esc(r)}</span><b>${esc(v||'—')}</b></div>`).join(''),
+    async()=>true);
+};
+window.fmGerar=(id)=>{
+  const f=FC_FORMS.find(x=>String(x.id)===String(id)); if(!f) return;
+  /* entra como preenchimento manual com os campos já carregados: assim funciona
+     também pra formulário já usado ou arquivado, que não está na fila do gerador */
+  ctOrigem='mao'; ctLeadSel=''; ctRasc=ctMapForm(f);
+  render('contratos'); ctForm();
+};
+window.fmArquivar=async (id,arquivar)=>{
+  const {error}=await sb.from('contratos_form').update({status:arquivar?'arquivado':'novo'}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  await fcCarregarForms(); try{ await ctCarregarLeads(); }catch(_){}
+  render('formularios');
+};
+
 /* ---------- VENDAS ----------
    Mesmo desenho do Suporte: a pessoa escolhe o que vai fazer. As duas telas ja
    existiam soltas na barra; aqui elas ganham um lugar com nome. */
+/* A venda tem uma ordem (Gabriel 16/09): o cliente preenche o formulário, o
+   closer gera o contrato, e só então o projeto passa pra operação. Os cartões
+   seguem essa ordem e dizem o número — antes o último aparecia primeiro. */
 const vendasOpcoes=()=>[
-  {k:'fechamento', ic:'aperto', t:'Fechamento de contrato',
-   d:'Cliente novo entra por aqui: dados, valores e forma de pagamento.'},
-  {k:'contratos',  ic:'papel',  t:'Gerador de contratos',
-   d:'Puxa o formulário que o cliente preencheu e gera o documento.', quem:'contratos'}
+  {k:'contratos',  ic:'papel',  n:'2', t:'Gerador de contratos',
+   d:'Escolhe o modelo, preenche e baixa o .docx pronto pra assinar.', quem:'contratos'},
+  {k:'fechamento', ic:'aperto', n:'3', t:'Passagem de bastão operacional',
+   d:'Contrato assinado: cadastra a cobrança no Asaas e abre o projeto pra operação.'}
 ].filter(o=>o.quem!=='contratos'||podeContratos());
 
 const VEN_ICO={
   /* sino: fechou contrato, toca o sino (Gabriel 15/09) */
   aperto:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   papel:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/>',
-  form:'<path d="M9 3h6a1 1 0 011 1v1a1 1 0 01-1 1H9a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><path d="M9 12l2 2 4-4"/>'
+  form:'<path d="M9 3h6a1 1 0 011 1v1a1 1 0 01-1 1H9a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><path d="M9 12l2 2 4-4"/>',
+  /* caixa de entrada: o que o cliente mandou cai aqui */
+  caixa:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>'
 };
 const venIco=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${VEN_ICO[k]||''}</svg>`;
 
 window.venEscolher=(k)=>{
   if(k==='fechamento'){ currentView='fechamento'; lkHash('v','fechamento'); return renderFechamento($('#content')); }
   if(k==='contratos')  return render('contratos');
+  if(k==='formularios')return render('formularios');
 };
 const VEN_FORM='https://autosintese.app.br/contrato';
 window.venCopiarLink=async ()=>{
@@ -7420,12 +7510,15 @@ window.renderVendas=(c)=>{
   c.innerHTML=`<div class="page-head"><div><h2>Vendas</h2><div class="desc">O que você vai fazer?</div></div></div>
     <div class="sup-grid">
       <div class="sup-card sup-copia">${venIco('form')}
-        <b>Formulário de informações contratuais</b>
-        <span>Mande para o cliente preencher antes da reunião. O que vier dali já entra no Fechamento.</span>
-        <span class="sup-pe"><button onclick="venCopiarLink()">Copiar link</button></span>
+        <b>1 · Formulário de informações contratuais</b>
+        <span>Mande para o cliente preencher antes da reunião. O que vier dali abastece as duas etapas seguintes.</span>
+        <span class="sup-pe"><button onclick="venCopiarLink()">Copiar link</button>
+          <button onclick="render('formularios')">Ver os recebidos${FC_FORMS.length?' ('+FC_FORMS.length+')':''}</button></span>
       </div>
       ${vendasOpcoes().map(o=>
-      `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span></button>`).join('')}</div>`;
+      `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.n?o.n+' · '+o.t:o.t)}</b><span>${esc(o.d)}</span></button>`).join('')}</div>`;
+  /* o contador do cartao 1 so aparece depois que a lista chega */
+  fcCarregarForms().then(()=>{ if(currentView==='vendas') renderVendas(c); }).catch(()=>{});
 };
 
 window.renderReembolsos=(c)=>{
@@ -11738,10 +11831,17 @@ function fcFaixaForms(){
   const box=$('#fc_puxar'); if(!box) return;
   if(!FC_FORMS.length){ box.innerHTML=''; return; }
   const n=FC_FORMS.length, nv=FC_FORMS.filter(f=>String(f.status||'novo')==='novo').length;
-  box.innerHTML=`<div class="fc-puxar"><span class="ic">📥</span>
-    <div class="tx"><b>${n} formulário${n===1?'':'s'} preenchido${n===1?'':'s'} pelo cliente${nv?' · '+nv+' sem contrato':''}</b>
-      <em>Puxe a empresa, o representante e os dados de cobrança em vez de redigitar.</em></div>
-    <button type="button" class="btn small" onclick="fcEscolherForm()">Puxar dados</button></div>`;
+  /* Só grita quando tem coisa nova. Antes a faixa ficava acesa pra sempre dizendo
+     "2 formulários preenchidos", mesmo com os dois já virados contrato — e aviso
+     que nunca apaga vira paisagem (Gabriel 16/09). */
+  box.innerHTML = nv
+    ? `<div class="fc-puxar">
+        <div class="tx"><b>${nv} formulário${nv===1?'':'s'} novo${nv===1?'':'s'} esperando</b>
+          <em>Puxe a empresa, o representante e os dados de cobrança em vez de redigitar.</em></div>
+        <button type="button" class="btn small" onclick="fcEscolherForm()">Puxar dados</button></div>`
+    : `<div class="fc-quieto">${n} formulário${n===1?'':'s'} recebido${n===1?'':'s'}, nenhum novo.
+        <button type="button" onclick="fcEscolherForm()">Puxar dados de um</button> ·
+        <button type="button" onclick="render('formularios')">ver todos</button></div>`;
 }
 window.fcEscolherForm=()=>{
   if(!FC_FORMS.length){ toast('Nenhum formulário novo por enquanto.'); return; }
@@ -13677,12 +13777,15 @@ function ctDoCliente(cliId){
 /* Os formulários que o cliente preencheu (autosintese.app.br/contrato -> contratos_form)
    entram aqui já mapeados para o formato que o gerador de .docx espera. Só os concluídos
    (enviado_em) e ainda 'novo'. Um clique em "Usar" puxa tudo; falta só valor e prazo. */
+/* uma linha de contratos_form no vocabulario do gerador. Fica sozinha porque a
+   tela de Formulários também precisa dela, pra um form já usado ou arquivado. */
+const ctMapForm=(r)=>({
+  contratante_razao:r.razao_social||'', contratante_cnpj:r.cnpj||'', contratante_endereco:r.endereco||'',
+  rep_cargo:'', rep_nome:r.representante||'', rep_rg:r.rg||'', rep_cpf:r.cpf||'', rep_nascimento:r.nascimento||'',
+  contratante_tel:r.telefone||'', contratante_email:r.email||''});
 async function ctCarregarLeads(){
   const {data}=await sb.from('contratos_form').select('*').not('enviado_em','is',null).eq('status','novo').order('criado_em',{ascending:false});
-  ctLeads=(data||[]).map(r=>({id:r.id,criado_em:r.criado_em,status:r.status,dados:{
-    contratante_razao:r.razao_social||'', contratante_cnpj:r.cnpj||'', contratante_endereco:r.endereco||'',
-    rep_cargo:'', rep_nome:r.representante||'', rep_rg:r.rg||'', rep_cpf:r.cpf||'', rep_nascimento:r.nascimento||'',
-    contratante_tel:r.telefone||'', contratante_email:r.email||''}}));
+  ctLeads=(data||[]).map(r=>({id:r.id,criado_em:r.criado_em,status:r.status,dados:ctMapForm(r)}));
 }
 /* ---------- Leads da landing autosintese.app.br/ads ----------
    O formulario "Quero acelerar" grava em ads_leads (edge function lead-ads). Aqui e a caixa
@@ -13787,6 +13890,7 @@ function renderContratos(c){
    <div class="page-head">
      <div><h2>Gerador de contratos</h2><div class="desc">Preenche e baixa o .docx pronto. Com o formulário que o cliente mandou ou digitando na mão — tanto faz.</div></div>
      <div class="toolbar">
+       <button class="btn secondary small" onclick="render('formularios')">Formulários recebidos</button>
        <button class="btn secondary small" onclick="ctCopiarLink()">Link do formulário</button>
        ${(currentUser&&currentUser.role==='master')?'<button class="btn secondary small" onclick="ctEmpresaModal()">Dados da Síntese</button>':''}
        <button class="btn secondary small" onclick="ctModelosModal()">Modelos</button>
