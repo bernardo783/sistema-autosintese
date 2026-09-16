@@ -347,14 +347,16 @@
   .nc-regras ol{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.65}
   .nc-regras ol li{margin-bottom:2px}
   .nc-regras strong{color:var(--txt);font-weight:600}
-  /* Link do formulário do cliente: uma linha, nao um cartao. O que o comercial
-     faz aqui e copiar e sair — nao precisa de caixa, borda nem paragrafo. */
-  .ven-link{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-4px 0 20px;
-    font-size:13px;color:var(--fraco)}
-  .ven-link>.vl-url{color:var(--muted);font-weight:600}
-  .ven-link>button{background:none;border:0;color:var(--brand2);font:inherit;font-size:13px;
-    font-weight:700;cursor:pointer;padding:2px 0}
-  .ven-link>button:hover{text-decoration:underline}
+  /* O formulário do cliente e um cartao como os outros — irmaos usam o mesmo
+     componente. So que o dele nao navega: o que se faz nele e copiar o link. */
+  .sup-card.sup-copia{cursor:default}
+  .sup-card.sup-copia:hover{border-color:var(--line);transform:none}
+  .sup-pe{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:13px;
+    border-top:1px solid var(--line)}
+  .sup-pe>.sp-url{font-size:12px;color:var(--muted);font-weight:600;word-break:break-all;flex:1;min-width:0}
+  .sup-pe>button{background:var(--panel2);border:1px solid var(--line);color:var(--brand2);
+    border-radius:8px;padding:6px 13px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;flex:none}
+  .sup-pe>button:hover{border-color:var(--brand2)}
   /* Tela do espaco: cartao pra cada lista, com o que ela e e quantas tarefas tem.
      Usa o mesmo cartao do Suporte — irmaos usam o mesmo componente. */
   .esp-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
@@ -7321,7 +7323,8 @@ const vendasOpcoes=()=>[
 const VEN_ICO={
   /* sino: fechou contrato, toca o sino (Gabriel 15/09) */
   aperto:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
-  papel:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/>'
+  papel:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/>',
+  form:'<path d="M9 3h6a1 1 0 011 1v1a1 1 0 01-1 1H9a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><path d="M9 12l2 2 4-4"/>'
 };
 const venIco=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${VEN_ICO[k]||''}</svg>`;
 
@@ -7338,12 +7341,16 @@ window.venCopiarLink=async ()=>{
 };
 window.renderVendas=(c)=>{
   c.innerHTML=`<div class="page-head"><div><h2>Vendas</h2><div class="desc">O que você vai fazer?</div></div></div>
-    <div class="ven-link">
-      <span>Formulário do cliente:</span>
-      <span class="vl-url" id="venUrl" tabindex="0">${esc(VEN_FORM)}</span>
-      <button onclick="venCopiarLink()">copiar</button>
-    </div>
-    <div class="sup-grid">${vendasOpcoes().map(o=>
+    <div class="sup-grid">
+      <div class="sup-card sup-copia">${venIco('form')}
+        <b>Formulário de informações contratuais</b>
+        <span>Mande para o cliente preencher antes da reunião. O que vier dali já entra no Fechamento.</span>
+        <span class="sup-pe">
+          <span class="sp-url" id="venUrl" tabindex="0">${esc(VEN_FORM)}</span>
+          <button onclick="venCopiarLink()">copiar</button>
+        </span>
+      </div>
+      ${vendasOpcoes().map(o=>
       `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span></button>`).join('')}</div>`;
 };
 
