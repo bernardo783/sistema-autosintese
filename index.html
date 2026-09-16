@@ -13173,8 +13173,10 @@ window.rcStatusCli=async (cliId,novo)=>{
 /* O modelo .docx vive em contrato_modelos, em base64. Preencher acontece no
    navegador: docx e zip, entao troca-se {{campo}} dentro de word/document.xml
    e rezipa. O vocabulario de campos e o do MODELO_CONTRATO_SINTESE. */
-const CT_MODELOS={maquina_vendas:'Máquina de Vendas',marketing:'Tráfego Meta Ads',full:'Marketing + IA (Tráfego Pago)',ia_crm:'Agente de IA e CRM'};
-const CT_ICONE={maquina_vendas:'🚀',marketing:'🎯',full:'🔀',ia_crm:'🤖'};
+/* Os 4 contratos que a casa faz, do menor escopo pro maior. Sem emoji: a aba
+   e uma escolha de contrato, nao um menu de figurinha. */
+const CT_MODELOS={marketing:'Tráfego',ia_crm:'Agente de IA + CRM',
+  full:'Tráfego + Agente de IA + CRM',maquina_vendas:'Máquina de Vendas'};
 /* Unica contratada do grupo — entra sozinha em todo contrato. */
 /* Razao social sem acento, decisao do Gabriel. No corpo do contrato sai em caixa alta;
    no bloco de assinatura sai em caixa normal, por isso as duas formas. */
@@ -13313,6 +13315,18 @@ function ctResolver(dados){
   d.foro_comarca=e.foro_comarca; d.foro_uf=e.foro_uf; d.cidade_assinatura=e.cidade;
   d.contratada_rep_nome=sig.nome; d.contratada_rep_rg=sig.rg; d.contratada_rep_cpf=sig.cpf;
   d.data_contrato_extenso=ctDataExtenso(d.data_contrato||'');
+  /* Quem é o contratante, em uma frase. Com CNPJ é empresa e entra a sede mais
+     o representante; sem CNPJ é pessoa física e entra RG, CPF e domicílio.
+     O contrato do Gui Motos é pessoa física — por isso a frase é montada aqui
+     em vez de ficar fixa no modelo. */
+  d.contratante_qualificacao = ctSoDig(d.contratante_cnpj).length
+    ? ('pessoa jurídica de direito privado, inscrita no CNPJ sob o n.º '+(d.contratante_cnpj||'')+
+       ', com sede na '+(d.contratante_endereco||'')+', neste ato representada por '+
+       (d.rep_nome||'')+', portador do RG n.º '+(d.rep_rg||'')+
+       ' e inscrito no CPF sob o n.º '+(d.rep_cpf||''))
+    : ('pessoa física, inscrito no CPF sob o n.º '+(d.rep_cpf||'')+
+       ', portador do RG n.º '+(d.rep_rg||'')+', residente e domiciliado na '+
+       (d.contratante_endereco||''));
   const c=ctCalcula(d.valor_mensal,d.vigencia);
   d.valor_mensal=ctMoeda(c.mensal); d.valor_mensal_extenso=ctExtenso(c.mensal);
   d.valor_total='R$ '+ctMoeda(c.total); d.valor_total_extenso=ctExtenso(c.total);
@@ -13648,7 +13662,7 @@ function renderContratos(c){
    <div class="card" style="margin-bottom:18px">
      <div class="k" style="margin-bottom:10px">1. Qual contrato?</div>
      <div class="fin-tabs" style="margin-bottom:18px">
-       ${Object.entries(CT_MODELOS).map(([k,v])=>`<button class="ftab ${ctModelo===k?'active':''}" onclick="ctSetModelo('${k}')">${CT_ICONE[k]} ${esc(v)}</button>`).join('')}
+       ${Object.entries(CT_MODELOS).map(([k,v])=>`<button class="ftab ${ctModelo===k?'active':''}" onclick="ctSetModelo('${k}')">${esc(v)}</button>`).join('')}
      </div>
      <div class="row2" style="margin-bottom:18px">
        <div class="field"><label>2. Para qual cliente?</label><select id="ctCli">
@@ -13757,7 +13771,7 @@ window.ctModelosModal=async ()=>{
     <p class="hint" style="margin-top:0">O .docx precisa ter os marcadores <code>{{campo}}</code> nos lugares a preencher. Se o arquivo não tiver nenhum, eu recuso — foi isso que deixou o sistema sem preencher nada.</p>
     ${Object.entries(CT_MODELOS).map(([k,v])=>{ const m=por[k]||{};
       return `<div class="field">
-        <label>${CT_ICONE[k]} ${esc(v)}</label>
+        <label>${esc(v)}</label>
         <div style="color:var(--muted);font-size:12px;margin-bottom:6px">${m.bytes?(esc(m.arquivo||'')+' · '+Math.round(m.bytes/1024)+' KB'):'<span style="color:var(--danger)">nenhum arquivo enviado</span>'}</div>
         <input type="file" id="ctf_${k}" accept=".docx">
       </div>`; }).join('')}`,
