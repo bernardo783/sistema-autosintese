@@ -13208,8 +13208,12 @@ const CT_NEGOCIO=[
   ['data_primeira_parcela','Vencimento da 1ª parcela',''],
   ['forma_pagamento','Forma de pagamento','Boleto Bancário ou PIX'],
   ['verba_minima','Verba mínima semanal de mídia (R$)','350,00'],
-  /* so o Máquina de Vendas usa hoje; nos outros modelos o marcador nem existe */
-  ['aviso_previo','Aviso prévio para rescisão','30 (trinta) dias corridos']];
+  ['aviso_previo','Aviso prévio para rescisão','30 (trinta) dias corridos'],
+  /* o foro era fixo em São Paulo – SP. Cliente de fora às vezes negocia o dele. */
+  ['foro','Foro (comarca – UF)','São Paulo - SP'],
+  /* fecham a última linha do contrato: "São Paulo, 16 de setembro de 2026." */
+  ['cidade_assinatura','Cidade da assinatura','São Paulo'],
+  ['data_contrato','Data do contrato','']];
 
 /* ---- numero por extenso (pt-BR) ---- */
 const CT_U=['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
@@ -13301,7 +13305,7 @@ function ctCPFValido(v){
   return dv(9)===Number(d[9])&&dv(10)===Number(d[10]);
 }
 const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_tel:'ctMascTel',rep_rg:'ctMascRG'};
-const CT_DATA={rep_nascimento:1,data_inicio:1};
+const CT_DATA={rep_nascimento:1,data_inicio:1,data_primeira_parcela:1,data_contrato:1};
 const CT_VIGENCIAS=(()=>{ const e=['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze'];
   return e.map((x,i)=>(i+1)+' ('+x+') '+(i?'meses':'mês')); })();
 const CT_PAGAMENTOS=['Boleto Bancário ou PIX','Boleto Bancário','PIX','Cartão de Crédito','Boleto Bancário ou Cartão de Crédito'];
@@ -13324,7 +13328,13 @@ function ctResolver(dados){
   const sig=CT_SIGNATARIOS[d._signatario]||CT_SIGNATARIOS.bernardo, e=CT_CONTRATADA;
   d.contratada_razao=e.razao; d.contratada_cnpj=e.cnpj; d.contratada_sede=e.sede;
   d.contratada_razao_assinatura=e.razao_assinatura||e.razao;
-  d.foro_comarca=e.foro_comarca; d.foro_uf=e.foro_uf; d.cidade_assinatura=e.cidade;
+  d.cidade_assinatura=String(d.cidade_assinatura||'').trim()||e.cidade;
+  /* Foro: vale o que foi digitado. Quebro em comarca e UF também porque os
+     modelos antigos ainda pedem {{foro_comarca}} e {{foro_uf}} separados. */
+  d.foro=String(d.foro||'').trim()||(e.foro_comarca+' - '+e.foro_uf);
+  const _fo=d.foro.split(/\s+[-–—]\s+/);
+  d.foro_comarca=(_fo[0]||e.foro_comarca).trim();
+  d.foro_uf=((_fo[1]||e.foro_uf).trim()).toUpperCase();
   d.contratada_rep_nome=sig.nome; d.contratada_rep_rg=sig.rg; d.contratada_rep_cpf=sig.cpf;
   d.data_contrato_extenso=ctDataExtenso(d.data_contrato||'');
   /* o cliente digita como quiser no formulario da landing; aqui tudo entra no padrao.
@@ -13363,7 +13373,7 @@ function ctResolver(dados){
   d.garantia_meses_extenso=CT_U[c.meses]||String(c.meses||'');
   d.valor_garantia='R$ '+ctMoeda(c.total);
   if(!d.data_termino) d.data_termino=ctBR(ctMaisMeses(d.data_inicio,c.meses));
-  ['rep_nascimento','data_inicio','data_primeira_parcela'].forEach(k=>{ if(d[k]) d[k]=ctBR(d[k]); });
+  ['rep_nascimento','data_inicio','data_primeira_parcela','data_contrato'].forEach(k=>{ if(d[k]) d[k]=ctBR(d[k]); });
   /* data_vencimento e o DIA do mes ("todo dia 10"), entao nao passa por ctBR nem herda a data de inicio */
   d.data_vencimento=String(d.data_vencimento||'').replace(/\D/g,'').slice(0,2);
   return d;
@@ -13722,6 +13732,8 @@ window.ctArquivarLead=async (id)=>{
 
 window.ctForm=()=>{
   const base=Object.assign(ctDoCliente(ctCliSel),ctRasc);
+  /* abre com hoje, mas da pra trocar — contrato assinado semana passada acontece */
+  if(!base.data_contrato) base.data_contrato=hojeISO();
   const campo=([k,rot,pad])=>{
     const v0=base[k]||pad||'', ops=CT_OPCOES[k], m=CT_MASC[k];
     if(ops) return `<div class="field"><label>${esc(rot)}</label><select id="ct_${k}" ${k==='vigencia'?'onchange="ctPrevia()"':''}>${ops.map(o=>`<option value="${esc(o)}"${o===v0?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
