@@ -403,14 +403,6 @@
   .sup-volta:hover{color:var(--txt)}
   .nc-dica{background:rgba(123,104,238,.12);border:1px solid rgba(123,104,238,.35);border-radius:9px;
     padding:10px 13px;margin:0 0 14px;font-size:12.5px;line-height:1.55;color:var(--txt)}
-.nc-fila{background:var(--panel);border:1px solid var(--aviso,#f0c869);border-radius:14px;padding:16px 18px;margin:22px 0 4px}
-.nc-fh{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;margin-bottom:6px}
-.nc-cnt{font-weight:600;font-size:11.5px;color:var(--fraco);background:var(--panel2);border-radius:20px;padding:2px 10px}
-.nc-apr{display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--line);flex-wrap:wrap}
-.nc-apr .g{flex:1;min-width:190px}
-.nc-apr .vl{text-align:right;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;min-width:110px}
-.nc-apr .vl .hint{font-weight:500}
-.nc-apr .ac{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
   .nc-dica strong{font-weight:700}
   /* ---------- DAILY DOS SQUADS ---------- */
   /* ---------- FECHAMENTO DE CONTRATO ----------
@@ -2115,6 +2107,7 @@
   .overlay.folha .mfoot{padding:14px 30px}
   @keyframes folhaIn{from{transform:translateX(26px);opacity:.5}to{transform:none;opacity:1}}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
   .x{background:transparent;border:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
   .x:hover{color:var(--txt)}
 
@@ -2147,7 +2140,7 @@
     body.sb-aberta::after{content:'';position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1100}
     /* ---- miolos (ago/2026): o esqueleto acima é da outra sessão; daqui pra baixo
        são os componentes de tela. Tudo só neste breakpoint — desktop intocado. ---- */
-    .row2{grid-template-columns:1fr}
+    .row2,.row3{grid-template-columns:1fr}
     .page-head h2{font-size:19px}
     .overlay{padding:10px}
     .modal{max-width:100%}
@@ -7020,15 +7013,7 @@ window.dndSoltarLinha=async (ev,alvoId)=>{
 /* ---------- NOVAS CONTAS: formulario aberto para toda a equipe ---------- */
 const NC_LISTA='c2000000-0000-4000-8000-0000000000b1';
 const NC_ABERTO='c2000000-0000-4000-8000-00000000b101';
-/* Link publico (Gabriel 16/09): quem esta de fora manda boleto/comprovante por
-   autosintese.app.br/enviar, sem login. Nasce em AGUARDANDO APROVACAO e so vira
-   solicitacao de verdade quando alguem aprova aqui — ai passa a EM ANALISE com o
-   Bernardo de responsavel, que e quem paga. */
-const NC_AGUARDA='c2000000-0000-4000-8000-00000000b100';
-const NC_ANALISE='c2000000-0000-4000-8000-00000000b102';
-const NC_PAGADOR='6b3b1d5d-2ee0-4529-a6c4-23d415678bff';   /* Bernardo Antunes */
-const NC_LINK='https://autosintese.app.br/enviar/';
-const NC_C={sol:'c2000000-0000-4000-8000-00000000b201',nat:'c2000000-0000-4000-8000-00000000b202',dep:'c2000000-0000-4000-8000-00000000b203',forn:'c2000000-0000-4000-8000-00000000b204',val:'c2000000-0000-4000-8000-00000000b205',pag:'c2000000-0000-4000-8000-00000000b206',parc:'c2000000-0000-4000-8000-00000000b207',venc:'c2000000-0000-4000-8000-00000000b208',mot:'c2000000-0000-4000-8000-00000000b209',desc:'c2000000-0000-4000-8000-00000000b20a',obs:'c2000000-0000-4000-8000-00000000b20b',anexo:'c2000000-0000-4000-8000-00000000b20c',rec:'c2000000-0000-4000-8000-00000000b20d',link:'c2000000-0000-4000-8000-00000000b20e'};
+const NC_C={sol:'c2000000-0000-4000-8000-00000000b201',nat:'c2000000-0000-4000-8000-00000000b202',dep:'c2000000-0000-4000-8000-00000000b203',forn:'c2000000-0000-4000-8000-00000000b204',val:'c2000000-0000-4000-8000-00000000b205',pag:'c2000000-0000-4000-8000-00000000b206',parc:'c2000000-0000-4000-8000-00000000b207',venc:'c2000000-0000-4000-8000-00000000b208',mot:'c2000000-0000-4000-8000-00000000b209',desc:'c2000000-0000-4000-8000-00000000b20a',obs:'c2000000-0000-4000-8000-00000000b20b',anexo:'c2000000-0000-4000-8000-00000000b20c',rec:'c2000000-0000-4000-8000-00000000b20d'};
 const NC_REC=['Não é recorrente','Semanal','Quinzenal','Mensal','Trimestral','Semestral','Anual'];
 /* ---------- Anexo: upload direto pro bucket privado 'comprovantes' ---------- */
 const NC_BUCKET='comprovantes';
@@ -7099,58 +7084,6 @@ window.ncNat=()=>{
   const t=NC_DICA[ncV('nc_nat')]||'';
   el.innerHTML=t?`<div class="nc-dica">${t}</div>`:'';
 };
-/* Chegou pelo link publico: fica separado, no topo, ate alguem aprovar ou recusar. */
-function ncAprovarHTML(){
-  const fila=TK.tarefas.filter(t=>t.lista_id===NC_LISTA&&t.status_id===NC_AGUARDA)
-    .sort((x,y)=>String(x.criado_em||'').localeCompare(String(y.criado_em||'')));
-  if(!fila.length) return '';
-  const linha=(t)=>{
-    const v=t.valores||{}; const anx=String(v[NC_C.anexo]||'').split('\n').filter(Boolean);
-    const quando=t.criado_em?new Date(t.criado_em).toLocaleDateString('pt-BR')+' '+new Date(t.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-    return `<div class="nc-apr">
-      <div class="g"><strong>${esc(v[NC_C.forn]||t.titulo)}</strong>
-        <div class="hint" style="margin:2px 0 0">de <b>${esc(v[NC_C.sol]||'—')}</b> · ${esc(quando)}${v[NC_C.mot]?' · '+esc(String(v[NC_C.mot]).slice(0,80)):''}</div></div>
-      <div class="vl">${brl(v[NC_C.val])}<div class="hint">vence ${fmtDate(v[NC_C.venc]||'')||'—'}</div></div>
-      <div class="ac">
-        ${anx.map((p,i)=>`<button class="btn secondary small" onclick="ncAbrirAnexo('${esc(p)}')">📎 Ver${anx.length>1?' '+(i+1):''}</button>`).join('')}
-        <button class="btn small" onclick="ncAprovar('${t.id}')">Aprovar</button>
-        <button class="iconbtn del" title="Recusar" onclick="ncRecusar('${t.id}')">&times;</button>
-      </div></div>`; };
-  return `<div class="nc-fila">
-    <div class="nc-fh">📥 Chegou pelo link público<span class="nc-cnt">${fila.length} aguardando aprovação</span></div>
-    ${fila.map(linha).join('')}
-    <p class="hint" style="margin:10px 0 0">Aprovar manda pra <b>2. EM ANÁLISE</b> com o Bernardo como responsável — aparece nas tarefas dele. Recusar apaga o pedido.</p></div>`;
-}
-window.ncAprovar=async (id)=>{
-  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
-  const v=t.valores||{};
-  const ok=await confirmar('Aprovar '+(v[NC_C.forn]||t.titulo)+'?',
-    brl(v[NC_C.val])+' com vencimento em '+(fmtDate(v[NC_C.venc]||'')||'—')+'. Vai pra fila de pagamento com o Bernardo como responsável.',
-    {sim:'Sim, aprovar',nao:'Não'});
-  if(!ok) return;
-  const {error}=await sb.from('tarefas').update({status_id:NC_ANALISE,responsavel_id:NC_PAGADOR}).eq('id',id);
-  if(error){ toast('Erro: '+error.message); return; }
-  t.status_id=NC_ANALISE; t.responsavel_id=NC_PAGADOR;
-  toast('Aprovado — agora é tarefa do Bernardo.');
-  const alvo=document.getElementById('finSub')||document.getElementById('content');
-  if(typeof renderFinAPagar==='function'&&document.getElementById('finSub')) renderFinAPagar(document.getElementById('finSub')); else render(currentView);
-  if(window.spDesenhar) spDesenhar();
-};
-window.ncRecusar=async (id)=>{
-  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
-  const ok=await confirmar('Recusar '+((t.valores||{})[NC_C.forn]||t.titulo)+'?',
-    'O pedido some da fila. Quem enviou não é avisado — se for o caso, fale com a pessoa.',{sim:'Recusar',nao:'Não',perigo:true});
-  if(!ok) return;
-  const {error}=await sb.from('tarefas').delete().eq('id',id);
-  if(error){ toast('Erro: '+error.message); return; }
-  TK.tarefas=TK.tarefas.filter(x=>x.id!==id);
-  toast('Recusado.');
-  if(typeof renderFinAPagar==='function'&&document.getElementById('finSub')) renderFinAPagar(document.getElementById('finSub')); else render(currentView);
-};
-window.ncCopiarLink=async ()=>{
-  try{ await navigator.clipboard.writeText(NC_LINK); toast('Link copiado: '+NC_LINK); }
-  catch(_){ prompt('Copie o link:',NC_LINK); }
-};
 /* Solicitacoes de reembolso/conta nova: quem pede usa o Suporte; quem PAGA
    acompanha aqui, junto das outras contas a pagar (Gabriel 15/09). Antes ficava
    no pe do proprio formulario, onde o financeiro nunca ia olhar. */
@@ -7168,9 +7101,7 @@ function ncUltimasHTML(n){
       <td>${fmtDate(vv[NC_C.venc]||'')||'—'}</td>
       <td>${lista.length?lista.map((p,i)=>`<button class="iconbtn" onclick="ncAbrirAnexo('${esc(p)}')" title="${esc(p.split('/').pop())}">${/^https?:/i.test(p)?'🔗':'📎'} ${lista.length>1?(i+1):'ver'}</button>`).join(' '):'<span style="color:var(--muted)">—</span>'}</td>
     </tr>`; };
-  return `${ncAprovarHTML()}
-   <h2 style="font-size:15px;margin:26px 0 8px">Solicitações da equipe<small style="font-weight:600;color:var(--fraco);font-size:12px;margin-left:8px">reembolsos e contas novas pedidas pelo Suporte</small>
-     <button class="btn secondary small" style="float:right;margin-top:-4px" onclick="ncCopiarLink()" title="Link pra quem está de fora mandar boleto sem login">🔗 Link de envio</button></h2>
+  return `<h2 style="font-size:15px;margin:26px 0 8px">Solicitações da equipe<small style="font-weight:600;color:var(--fraco);font-size:12px;margin-left:8px">reembolsos e contas novas pedidas pelo Suporte</small></h2>
    <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th style="text-align:right">Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead>
    <tbody>${envs.map(linha).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
 }
@@ -13257,6 +13188,32 @@ const CT_CONTRATADA={razao:'SINTESE SOLUCOES TECNOLOGICAS LTDA',
 const CT_SIGNATARIOS={
   bernardo:{nome:'Bernardo Rocha Antunes',rg:'25.852.419-8',cpf:'202.851.937-16'},
   jose:{nome:'José Carlos Divino',rg:'MG 14827248',cpf:'066.535.896-25'}};
+/* O que está acima é só o padrão de fábrica. O que vale é contrato_config, que o
+   master edita em ⚙️ Dados da Síntese. Uma leitura por sessão, igual aos logos —
+   fora do ciclo do DB/__snap de propósito, pra não fabricar conflito falso. */
+let CT_CFG=null, __ctCfgPend=null;
+function ctCfgCarregar(forcar){
+  if(CT_CFG&&!forcar) return Promise.resolve(CT_CFG);
+  if(__ctCfgPend&&!forcar) return __ctCfgPend;
+  __ctCfgPend=(async()=>{
+    try{
+      const {data}=await sb.from('contrato_config').select('dados').eq('id',1).maybeSingle();
+      CT_CFG=(data&&data.dados)||{};
+    }catch(_){ CT_CFG=CT_CFG||{}; }
+    __ctCfgPend=null; return CT_CFG;
+  })();
+  return __ctCfgPend;
+}
+/* Sempre leia por aqui, nunca direto no CT_CONTRATADA/CT_SIGNATARIOS. */
+const ctEmpresa=()=>Object.assign({},CT_CONTRATADA,(CT_CFG&&CT_CFG.contratada)||{});
+function ctSigs(){
+  const lista=(CT_CFG&&CT_CFG.signatarios)||null;
+  if(!lista||!lista.length) return CT_SIGNATARIOS;
+  const o={}; lista.forEach(s=>{ if(s&&s.nome) o[s.id||ctSlug(s.nome)]={nome:s.nome,rg:s.rg||'',cpf:s.cpf||''}; });
+  return Object.keys(o).length?o:CT_SIGNATARIOS;
+}
+const ctSlug=(s)=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,24)||'x';
 /* Dados do cliente — sao exatamente os que o formulario publico pergunta. */
 const CT_CLIENTE=[
   ['contratante_razao','Razão social',''],
@@ -13395,7 +13352,8 @@ function ctConfereDV(cnpj,cpf){
 /* ---- monta o dicionario final: o que voce digitou + tudo que da pra calcular ---- */
 function ctResolver(dados){
   const d=Object.assign({},dados);
-  const sig=CT_SIGNATARIOS[d._signatario]||CT_SIGNATARIOS.bernardo, e=CT_CONTRATADA;
+  const S=ctSigs(), e=ctEmpresa();
+  const sig=S[d._signatario]||S[Object.keys(S)[0]];
   d.contratada_razao=e.razao; d.contratada_cnpj=e.cnpj; d.contratada_sede=e.sede;
   d.contratada_razao_assinatura=e.razao_assinatura||e.razao;
   d.cidade_assinatura=String(d.cidade_assinatura||'').trim()||e.cidade;
@@ -13744,6 +13702,7 @@ function renderContratos(c){
      <div><h2>Contratos</h2><div class="desc">Preenche e baixa o .docx pronto. O valor total sai do mensal × prazo, sem redigitar.</div></div>
      <div class="toolbar">
        <button class="btn secondary small" onclick="ctCopiarLink()">🔗 Link do formulário</button>
+       ${(currentUser&&currentUser.role==='master')?'<button class="btn secondary small" onclick="ctEmpresaModal()">Dados da Síntese</button>':''}
        <button class="btn secondary small" onclick="ctModelosModal()">⚙️ Modelos</button>
      </div>
    </div>
@@ -13768,19 +13727,80 @@ function renderContratos(c){
          ${cls.map(x=>`<option value="${x.id}"${ctCliSel===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}
        </select></div>
        <div class="field"><label>3. Quem assina pela Síntese?</label><select id="ctSig">
-         ${Object.entries(CT_SIGNATARIOS).map(([k,s])=>`<option value="${k}"${ctSignatario===k?' selected':''}>${esc(s.nome)}</option>`).join('')}
+         ${Object.entries(ctSigs()).map(([k,s])=>`<option value="${k}"${ctSignatario===k?' selected':''}>${esc(s.nome)}</option>`).join('')}
        </select></div>
      </div>
      <div><button class="btn" onclick="ctForm()">✍️ Preencher e gerar contrato</button></div>
-     <div style="color:var(--muted);font-size:12px;margin-top:12px">${esc(CT_CONTRATADA.razao)} · CNPJ ${esc(CT_CONTRATADA.cnpj)} · foro ${esc(CT_CONTRATADA.foro_comarca)} – ${esc(CT_CONTRATADA.foro_uf)}</div>
+     <div style="color:var(--muted);font-size:12px;margin-top:12px">${esc(ctEmpresa().razao)} · CNPJ ${esc(ctEmpresa().cnpj)} · foro ${esc(ctEmpresa().foro_comarca)} – ${esc(ctEmpresa().foro_uf)}${
+       (currentUser&&currentUser.role==='master')?` · <button class="link" style="background:none;border:0;color:var(--brand2);cursor:pointer;font:inherit;padding:0" onclick="ctEmpresaModal()">alterar</button>`:''}</div>
    </div>
    <p class="hint">O link do formulário é sempre o mesmo: mande pro cliente, ele preenche os dados dele e cai aqui em cima pra você completar valor e prazo.</p>`;
     $('#ctCli').onchange=e=>{ ctCliSel=e.target.value; };
     $('#ctSig').onchange=e=>{ ctSignatario=e.target.value; };
   };
   pinta();
+  ctCfgCarregar().then(pinta).catch(()=>{});
   ctCarregarLeads().then(pinta).catch(()=>{});
 }
+
+/* ---- quem e a CONTRATADA: razao, CNPJ, sede, foro e quem assina ----
+   So master edita. O que esta aqui entra em todo contrato gerado, entao trocar
+   um digito do CNPJ estraga documento de cliente — por isso nao e do comercial. */
+window.ctEmpresaModal=async ()=>{
+  if(!(currentUser&&currentUser.role==='master')){ toast('Só master altera os dados da Síntese.'); return; }
+  await ctCfgCarregar(true);
+  const e=ctEmpresa();
+  const sigs=Object.entries(ctSigs()).map(([id,s])=>Object.assign({id},s));
+  while(sigs.length<4) sigs.push({id:'',nome:'',rg:'',cpf:''});   /* linhas em branco = espaço pra somar */
+  const campo=(id,rot,val,dica)=>`<div class="field"><label>${esc(rot)}</label>
+    <input id="ce_${id}" value="${esc(val||'')}"${dica?` placeholder="${esc(dica)}"`:''}></div>`;
+  modal('Dados da Síntese',`
+    <p class="hint" style="margin-top:0">Entra em todo contrato gerado daqui pra frente. Contrato já baixado não muda.</p>
+    <div class="k" style="margin:4px 0 10px">A empresa</div>
+    <div class="row2">
+      ${campo('razao','Razão social (corpo do contrato)',e.razao)}
+      ${campo('razao_assinatura','Razão social (bloco de assinatura)',e.razao_assinatura)}
+      ${campo('cnpj','CNPJ',e.cnpj)}
+      ${campo('sede','Endereço da sede',e.sede)}
+      ${campo('foro_comarca','Foro padrão — comarca',e.foro_comarca)}
+      ${campo('foro_uf','Foro padrão — UF',e.foro_uf)}
+      ${campo('cidade','Cidade da assinatura',e.cidade)}
+    </div>
+    <div class="k" style="margin:18px 0 10px">Quem assina pela Síntese</div>
+    <p class="hint" style="margin-top:0">Apaga o nome pra tirar alguém da lista. Linha em branco vira signatário novo.</p>
+    ${sigs.map((s,i)=>`<div class="row3" style="margin-bottom:8px">
+      <div class="field"><label>Nome</label><input id="cs_nome_${i}" value="${esc(s.nome||'')}"></div>
+      <div class="field"><label>RG</label><input id="cs_rg_${i}" value="${esc(s.rg||'')}"></div>
+      <div class="field"><label>CPF</label><input id="cs_cpf_${i}" value="${esc(s.cpf||'')}" oninput="this.value=ctMascCPF(this.value)"></div>
+      <input type="hidden" id="cs_id_${i}" value="${esc(s.id||'')}">
+    </div>`).join('')}`,
+  async ()=>{
+    const v=(id)=>{ const el=$('#'+id); return el?String(el.value||'').trim():''; };
+    const contratada={};
+    ['razao','razao_assinatura','cnpj','sede','foro_comarca','foro_uf','cidade'].forEach(k=>{ contratada[k]=v('ce_'+k); });
+    if(!contratada.razao||!contratada.cnpj){ toast('Razão social e CNPJ não podem ficar vazios.'); return false; }
+    if(ctSoDig(contratada.cnpj).length!==14){ toast('O CNPJ precisa ter 14 dígitos.'); return false; }
+    if(!ctConfereDV(contratada.cnpj,'')) return false;
+    contratada.cnpj=ctMascCNPJ(contratada.cnpj);
+    contratada.foro_uf=(contratada.foro_uf||'').toUpperCase().slice(0,2);
+    const signatarios=[];
+    for(let i=0;i<16;i++){
+      if(!$('#cs_nome_'+i)) break;
+      const nome=v('cs_nome_'+i); if(!nome) continue;
+      signatarios.push({id:v('cs_id_'+i)||ctSlug(nome),nome,rg:v('cs_rg_'+i),cpf:v('cs_cpf_'+i)});
+    }
+    if(!signatarios.length){ toast('Precisa sobrar pelo menos um signatário.'); return false; }
+    const {error}=await sb.from('contrato_config').upsert(
+      {id:1,dados:{contratada,signatarios},atualizado:new Date().toISOString(),atualizado_por:SESSION.user.id},
+      {onConflict:'id'});
+    if(error){ toast('Erro ao salvar: '+error.message); return false; }
+    CT_CFG={contratada,signatarios};
+    if(!ctSigs()[ctSignatario]) ctSignatario=Object.keys(ctSigs())[0];
+    toast('Dados da Síntese atualizados.');
+    render('contratos');
+    return true;
+  });
+};
 window.ctSetModelo=(m)=>{ ctModelo=m; render('contratos'); };
 window.ctCopiarLink=()=>{
   const t=document.createElement('textarea'); t.value=CT_LINK; document.body.appendChild(t); t.select();
