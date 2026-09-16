@@ -13270,6 +13270,18 @@ window.ctMascCNPJ=(v)=>{ const d=ctSoDig(v).slice(0,14); let s='';
 window.ctMascCPF=(v)=>{ const d=ctSoDig(v).slice(0,11); let s='';
   for(let i=0;i<d.length;i++){ if(i===3||i===6) s+='.'; else if(i===9) s+='-'; s+=d[i]; } return s; };
 window.ctMascCEP=(v)=>{ const d=ctSoDig(v).slice(0,8); return d.length>5?d.slice(0,5)+'-'+d.slice(5):d; };
+/* RG sai como 25.852.419-8. Mas RG muda de estado pra estado, entao so mexe no
+   que cabe no padrao: 9 digitos ganham ponto e traco, 8 digitos so os pontos
+   (45.206.525). RG com letra de estado ("MG 14827248") ou curto demais sai como
+   foi digitado — mascarar na forca so estragaria. */
+window.ctMascRG=(v)=>{
+  const s=String(v==null?'':v).trim();
+  if(/[a-z]/i.test(s)) return s;
+  const d=ctSoDig(s).slice(0,9);
+  if(d.length===9) return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'-'+d.slice(8);
+  if(d.length===8) return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8);
+  return s;
+};
 window.ctMascTel=(v)=>{ const d=ctSoDig(v).slice(0,11);
   if(!d) return ''; if(d.length<=2) return '('+d;
   if(d.length<=6) return '('+d.slice(0,2)+') '+d.slice(2);
@@ -13288,7 +13300,7 @@ function ctCPFValido(v){
     const r=(s*10)%11; return r===10?0:r; };
   return dv(9)===Number(d[9])&&dv(10)===Number(d[10]);
 }
-const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_tel:'ctMascTel'};
+const CT_MASC={contratante_cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',contratante_tel:'ctMascTel',rep_rg:'ctMascRG'};
 const CT_DATA={rep_nascimento:1,data_inicio:1};
 const CT_VIGENCIAS=(()=>{ const e=['um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze'];
   return e.map((x,i)=>(i+1)+' ('+x+') '+(i?'meses':'mês')); })();
@@ -13315,6 +13327,12 @@ function ctResolver(dados){
   d.foro_comarca=e.foro_comarca; d.foro_uf=e.foro_uf; d.cidade_assinatura=e.cidade;
   d.contratada_rep_nome=sig.nome; d.contratada_rep_rg=sig.rg; d.contratada_rep_cpf=sig.cpf;
   d.data_contrato_extenso=ctDataExtenso(d.data_contrato||'');
+  /* o cliente digita como quiser no formulario da landing; aqui tudo entra no padrao.
+     Sem isso sai "45474984820" no meio da qualificacao do contrato. */
+  if(d.rep_rg) d.rep_rg=window.ctMascRG(d.rep_rg);
+  if(d.rep_cpf) d.rep_cpf=window.ctMascCPF(d.rep_cpf);
+  if(d.contratante_cnpj) d.contratante_cnpj=window.ctMascCNPJ(d.contratante_cnpj);
+  if(d.contratante_tel) d.contratante_tel=window.ctMascTel(d.contratante_tel);
   /* Quem é o contratante, em uma frase. Com CNPJ é empresa e entra a sede mais
      o representante; sem CNPJ é pessoa física e entra RG, CPF e domicílio.
      O contrato do Gui Motos é pessoa física — por isso a frase é montada aqui
