@@ -7646,13 +7646,24 @@ window.ncEnviar=async ()=>{
   /* arquivos enviados + link colado, um por linha */
   const anexos=arquivos.concat(anx?[anx]:[]);
   if(anexos.length) v[NC_C.anexo]=anexos.join('\n');
-  const reg={lista_id:NC_LISTA,titulo:forn+' — '+nat,descricao:mot,status:'todo',status_id:NC_ABERTO,prioridade:'med',prazo:venc,ordem:TK.tarefas.filter(t=>t.lista_id===NC_LISTA).length,valores:v};
-  try{ if(window.SESSION&&SESSION.user) reg.criado_por=SESSION.user.id; }catch(_){}
-  const {data,error}=await sb.from('tarefas').insert(reg).select().single();
+  /* Tudo que sai do Suporte cai no Bernardo, que e quem paga (Gabriel 16/09).
+     Antes o pedido nascia sem dono e so ganhava um quando alguem aprovava — quem
+     pediu ficava sem saber com quem estava. Pedido que chega pelo link publico
+     segue diferente: nasce em AGUARDANDO APROVACAO e so vira pedido de verdade
+     depois do aval, e e ali que o responsavel entra. */
+  /* Passa por RPC, nao por insert direto (Gabriel 16/09). A lista "Novas Contas"
+     e a fila de pagamento: e privada, e so 4 pessoas do financeiro tinham acesso.
+     Quem pedia reembolso de fora disso levava "row-level security policy" na cara
+     e o pedido nao saia. Agora qualquer aprovado envia, o pedido ja nasce no
+     Bernardo — que e quem paga — e quem pediu continua sem enxergar a fila. */
+  const {error}=await sb.rpc('suporte_nova_solicitacao',{
+    p_titulo:forn+' — '+nat, p_descricao:mot||null, p_prazo:venc||null, p_valores:v});
   if(error){ toast('Erro: '+error.message); return; }
-  TK.tarefas.push(data);
   ncLimpar();
-  toast('Solicitação enviada.');
+  toast('Solicitação enviada — chegou pro Bernardo.');
+  /* recarrega em vez de empilhar na mao: quem nao enxerga a lista nao recebe a
+     linha de volta, e a tela tem que refletir isso em vez de mentir */
+  try{ if(window.tkCarregar) await tkCarregar(); }catch(_){}
   const alvo=document.getElementById('content');
   if(currentView==='reembolsos') renderReembolsos(alvo); else tkDesenhar(alvo);
   spDesenhar();
