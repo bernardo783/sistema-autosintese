@@ -347,6 +347,17 @@
   .nc-regras ol{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.65}
   .nc-regras ol li{margin-bottom:2px}
   .nc-regras strong{color:var(--txt);font-weight:600}
+  /* Link do formulário do cliente: o comercial precisa é COPIAR, não abrir.
+     Por isso o link em destaque e o botão de copiar antes de tudo. */
+  .ven-link{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--panel);
+    border:1px solid var(--line);border-left:3px solid var(--brand2);border-radius:14px;
+    padding:17px 19px;max-width:860px;margin-bottom:22px}
+  .ven-link>.vl-txt{flex:1;min-width:210px}
+  .ven-link .vl-rot{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--fraco);font-weight:800;margin-bottom:5px}
+  .ven-link .vl-url{font-size:15px;font-weight:700;color:var(--brand2);word-break:break-all;line-height:1.3}
+  .ven-link .vl-sub{font-size:12.5px;color:var(--fraco);margin-top:6px;line-height:1.45}
+  .ven-link>.vl-acao{display:flex;gap:8px;flex-wrap:wrap}
   /* Tela do espaco: cartao pra cada lista, com o que ela e e quantas tarefas tem.
      Usa o mesmo cartao do Suporte — irmaos usam o mesmo componente. */
   .esp-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
@@ -7321,8 +7332,28 @@ window.venEscolher=(k)=>{
   if(k==='fechamento'){ currentView='fechamento'; lkHash('v','fechamento'); return renderFechamento($('#content')); }
   if(k==='contratos')  return render('contratos');
 };
+const VEN_FORM='https://autosintese.app.br/contrato';
+window.venCopiarLink=async ()=>{
+  try{ await navigator.clipboard.writeText(VEN_FORM); toast('Link copiado — é só colar pro cliente.'); }
+  catch(_){ /* sem permissao de area de transferencia: mostra pra copiar na mao */
+    const i=document.getElementById('venUrl'); if(i){ i.focus(); i.select&&i.select(); }
+    toast('Copie o link da tela — o navegador bloqueou a cópia automática.'); }
+};
 window.renderVendas=(c)=>{
   c.innerHTML=`<div class="page-head"><div><h2>Vendas</h2><div class="desc">O que você vai fazer?</div></div></div>
+    <div class="ven-link">
+      <div class="vl-txt">
+        <div class="vl-rot">Formulário do cliente</div>
+        <div class="vl-url" id="venUrl" tabindex="0">${esc(VEN_FORM)}</div>
+        <div class="vl-sub">Mande antes da reunião. O que ele preencher aqui vira os dados da empresa
+          no Fechamento e no contrato — quanto mais vier preenchido, menos ida e volta depois.</div>
+      </div>
+      <div class="vl-acao">
+        <button class="btn small" onclick="venCopiarLink()">Copiar link</button>
+        <a class="btn secondary small" href="${esc(VEN_FORM)}" target="_blank" rel="noopener"
+           style="text-decoration:none;display:inline-flex;align-items:center">Abrir</a>
+      </div>
+    </div>
     <div class="sup-grid">${vendasOpcoes().map(o=>
       `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span></button>`).join('')}</div>`;
 };
