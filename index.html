@@ -811,6 +811,19 @@
   .tb-busca span{flex:1;text-align:left}
   .tb-busca kbd{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;color:var(--muted);
     background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+  /* Voltar: mesma pilula da busca, do lado esquerdo, com o nome do destino.
+     Seta sozinha nao diz pra onde leva — com o nome, ninguem precisa adivinhar. */
+  .tb-voltar{position:absolute;left:24px;top:12px;display:inline-flex;align-items:center;gap:8px;
+    background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 15px;
+    color:var(--muted);font-size:12.5px;font-weight:700;max-width:240px;cursor:pointer;
+    transition:border-color .13s,background .13s,color .13s}
+  .tb-voltar:hover{border-color:var(--brand2);background:var(--panel2);color:var(--txt)}
+  .tb-voltar>svg{width:14px;height:14px;flex:none}
+  .tb-voltar>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @media(max-width:760px){
+    .tb-voltar{position:static;padding:8px 11px;max-width:none}
+    .tb-voltar>span{display:none}
+  }
   .tb-esp{display:none;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
     border-radius:999px;padding:8px 14px;color:var(--muted);font-size:13px;font-weight:600}
   .tb-esp:hover{border-color:var(--brand2);color:var(--txt)}
@@ -3069,6 +3082,9 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
     <div class="sb-grip" id="sbGrip" title="Arraste para mudar a largura · 2 cliques volta ao padrão"></div>
   </aside>
   <div class="topbar" id="topbar">
+    <button class="tb-voltar hidden" id="tbVoltar" onclick="navVoltar()" title="Voltar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      <span id="tbVoltarTx">Voltar</span></button>
     <button class="tb-esp" onclick="spMovel()" title="Espaços">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span>Espaços</span></button>
     <button class="tb-busca" onclick="gsAbrir('')" title="Buscar em tudo">
@@ -3486,6 +3502,62 @@ window.lkCopiar=async (tipo,id)=>{
   try{ await navigator.clipboard.writeText(u); toast('Link copiado — é só colar pra pessoa.'); }
   catch(_){ try{ prompt('Copie o link:',u); }catch(e){ toast(u); } }
 };
+/* ---------- VOLTAR ----------
+   A tela troca sem recarregar a pagina, entao o voltar do navegador nao serve:
+   a pilha e nossa. Cada lugar e {k,id}: 'v' tela, 'l' lista, 'e' espaco — os
+   mesmos tres que o lkIr ja sabe restaurar.
+
+   Duas travas que evitam pilha suja:
+   - mesmo lugar duas vezes seguidas nao empilha (render repetido por carregamento
+     de dados acontece o tempo todo);
+   - navegacao aninhada conta uma vez so. spSelLista chama render por dentro; sem
+     isso um clique empilharia dois e o voltar precisaria de dois cliques. */
+let NAV=[], navVoltando=false, navTs=0;
+const navTituloAtual=()=>{ const h=document.querySelector('#content h2'); return h?String(h.textContent||'').trim().slice(0,38):''; };
+function navPush(k,id){
+  if(navVoltando||!id) return;
+  const atual=NAV[NAV.length-1];
+  if(atual&&atual.k===k&&String(atual.id)===String(id)) return;
+  const agora=Date.now();
+  if(NAV.length&&agora-navTs<150) return;   /* aninhada: vale a de fora */
+  navTs=agora;
+  /* carimba o nome da tela que estamos deixando — e ela que a seta vai mostrar */
+  if(atual) atual.rot=navTituloAtual()||atual.rot||'';
+  NAV.push({k,id,rot:''});
+  if(NAV.length>40) NAV.shift();
+  navDesenhar();
+}
+function navDesenhar(){
+  const b=document.getElementById('tbVoltar'); if(!b) return;
+  const p=NAV[NAV.length-2];
+  if(!p){ b.classList.add('hidden'); return; }
+  b.classList.remove('hidden');
+  const nome=p.rot||'tela anterior';
+  const t=document.getElementById('tbVoltarTx'); if(t) t.textContent=nome;
+  b.title='Voltar para '+nome+'  (Alt + ←)';
+}
+window.navVoltar=()=>{
+  if(NAV.length<2) return;
+  NAV.pop();
+  const p=NAV[NAV.length-1];
+  navVoltando=true;
+  try{
+    if(p.k==='l') spSelLista(p.id);
+    else if(p.k==='e') spVerEspaco(p.id);
+    else render(p.id);
+  }catch(e){ toast('Não consegui voltar pra essa tela.'); }
+  navVoltando=false; navTs=0;
+  navDesenhar();
+};
+/* Alt + seta esquerda: o mesmo atalho do navegador, sem sair da pagina */
+window.addEventListener('keydown',(e)=>{
+  if(!e.altKey||e.key!=='ArrowLeft') return;
+  if(document.querySelector('.overlay')) return;
+  const a=document.activeElement, tag=a?String(a.tagName||'').toLowerCase():'';
+  if(tag==='input'||tag==='textarea'||tag==='select'||(a&&a.isContentEditable)) return;
+  e.preventDefault(); navVoltar();
+});
+
 /* a barra de endereço acompanha o que está aberto, então dá pra copiar direto de lá */
 let lkEuMudei=false;
 function lkLimpar(){
@@ -3670,6 +3742,7 @@ function render(view){
   /* "Projetos" e "Clientes" viraram a lista Base de Clientes, dentro do espaço Projetos */
   if(view==='projetos'||view==='clientes') return spAbrirClientes();
   if(view==='tarefas') view='lista';
+  navPush('v',__telaPedida);
   currentView=view; searchTerm='';
   /* 'lista'/'tarefas' nao carimbam: quem manda ali e o #l/<id> que o spSelLista ja pos,
      senao o F5 perderia QUAL lista estava aberta e cairia numa generica */
@@ -7374,6 +7447,7 @@ const espDesc=(l)=>{
 const espAbertas=(lid)=>(TK.tarefas||[]).filter(t=>t.lista_id===lid&&t.status!=='feito'&&!t.arquivada_em).length;
 
 window.spVerEspaco=(id)=>{
+  navPush('e',id);
   SP_ESP=id; SP_MINI=false; TK.fechadas['e'+id]=false; spSalvarArvore();
   currentView='espaco'; lkHash('e',id);
   renderEspaco($('#content')); spDesenhar();
@@ -7476,11 +7550,11 @@ window.fmArquivar=async (id,arquivar)=>{
    existiam soltas na barra; aqui elas ganham um lugar com nome. */
 /* A venda tem uma ordem (Gabriel 16/09): o cliente preenche o formulário, o
    closer gera o contrato, e só então o projeto passa pra operação. Os cartões
-   seguem essa ordem e dizem o número — antes o último aparecia primeiro. */
+   seguem essa ordem — sem numerar, a sequência já conta a história. */
 const vendasOpcoes=()=>[
-  {k:'contratos',  ic:'papel',  n:'2', t:'Gerador de contratos',
+  {k:'contratos',  ic:'papel',  t:'Gerador de contratos',
    d:'Escolhe o modelo, preenche e baixa o .docx pronto pra assinar.', quem:'contratos'},
-  {k:'fechamento', ic:'aperto', n:'3', t:'Passagem de bastão operacional',
+  {k:'fechamento', ic:'aperto', t:'Passagem de bastão operacional',
    d:'Contrato assinado: cadastra a cobrança no Asaas e abre o projeto pra operação.'}
 ].filter(o=>o.quem!=='contratos'||podeContratos());
 
@@ -7510,13 +7584,13 @@ window.renderVendas=(c)=>{
   c.innerHTML=`<div class="page-head"><div><h2>Vendas</h2><div class="desc">O que você vai fazer?</div></div></div>
     <div class="sup-grid">
       <div class="sup-card sup-copia">${venIco('form')}
-        <b>1 · Formulário de informações contratuais</b>
+        <b>Formulário de informações contratuais</b>
         <span>Mande para o cliente preencher antes da reunião. O que vier dali abastece as duas etapas seguintes.</span>
         <span class="sup-pe"><button onclick="venCopiarLink()">Copiar link</button>
           <button onclick="render('formularios')">Ver os recebidos${FC_FORMS.length?' ('+FC_FORMS.length+')':''}</button></span>
       </div>
       ${vendasOpcoes().map(o=>
-      `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.n?o.n+' · '+o.t:o.t)}</b><span>${esc(o.d)}</span></button>`).join('')}</div>`;
+      `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span></button>`).join('')}</div>`;
   /* o contador do cartao 1 so aparece depois que a lista chega */
   fcCarregarForms().then(()=>{ if(currentView==='vendas') renderVendas(c); }).catch(()=>{});
 };
@@ -7646,6 +7720,7 @@ function spDesenhar(){
     +'<div class="hint" style="margin:14px 6px 4px;opacity:.5;font-size:11px">Botão direito abre renomear, cor, duplicar e excluir.</div>';
 }
 window.spSelLista=(id,semAbrir)=>{
+  navPush('l',id);
   TK.listaSel=id; TK.escopo='lista'; searchTerm=''; TK.arqVista=false; spMarcarAtalho(''); if(!semAbrir) spAbrirCaminho(id);
   if(LCOM[id]){ currentView='funil'; lkHash('l',id); render('funil/aba/'+LCOM[id]); spDesenhar(); return; }
   if(LTEL[id]){ lkHash('l',id); render(LTEL[id]); spDesenhar(); return; }
@@ -8249,9 +8324,8 @@ function tkCrumb(){
   return `<div class="crumb">${nos.join('')}</div>`;
 }
 /* Clicar no espaco/pasta do caminho abre o no na barra e cai na primeira lista dele. */
-window.spVerEspaco=(id)=>{ SP_MINI=false; TK.fechadas['e'+id]=false; spSalvarArvore();
-  const l=TK.listas.find(x=>x.espaco_id===id&&!x.pasta_id)||TK.listas.find(x=>x.espaco_id===id);
-  if(l) spSelLista(l.id); else spDesenhar(); };
+/* A versao antiga de spVerEspaco vivia aqui e, por ser avaliada depois, apagava
+   a tela de cartoes do espaco (15/09). Removida — quem vale e a de cima. */
 window.spVerPasta=(id)=>{ const p=TK.pastas.find(x=>x.id===id); if(!p) return;
   SP_MINI=false; TK.fechadas['e'+p.espaco_id]=false; TK.fechadas['p'+id]=false; spSalvarArvore();
   const l=TK.listas.find(x=>x.pasta_id===id);
