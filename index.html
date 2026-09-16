@@ -386,6 +386,25 @@
   .sup-card.breve:hover{border-color:var(--line);transform:none}
   .sup-breve{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--warn);
     border:1px solid var(--line);border-radius:999px;padding:2px 8px;align-self:flex-start}
+  /* Ficha do cliente escolhido: quem vai mexer na cobranca precisa ver de quem
+     se trata sem sair da tela. */
+  .sv-cli{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin:8px 0 0}
+  .sv-cli>b{font-size:15px;display:block}
+  .sv-cli .sv-meta{font-size:12px;color:var(--fraco);margin-top:3px}
+  .sv-cli .sv-hoje{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+  .sv-cli .sv-hoje div{font-size:12px;color:var(--fraco)}
+  .sv-cli .sv-hoje b{display:block;font-size:15px;color:var(--txt);font-variant-numeric:tabular-nums}
+  .sv-nada{font-size:12.5px;color:var(--fraco);margin-top:8px}
+  /* o de -> para, montado enquanto a pessoa digita */
+  .sv-prev{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand);
+    border-radius:12px;padding:13px 15px;margin:4px 0 16px}
+  .sv-prev .l{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;font-size:14px}
+  .sv-prev .l+.l{margin-top:6px}
+  .sv-prev .de{color:var(--fraco);text-decoration:line-through}
+  .sv-prev .para{font-weight:800;font-variant-numeric:tabular-nums}
+  .sv-prev .dif{font-size:12px;font-weight:800;border-radius:999px;padding:2px 9px}
+  .sv-prev .dif.sobe{color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}
+  .sv-prev .dif.desce{color:var(--danger);background:color-mix(in srgb,var(--danger) 15%,transparent)}
   /* formulario do chamado: campo grande porque o que importa e o texto */
   .sup-form{max-width:680px}
   .sup-form>.field{margin-bottom:16px}
@@ -7394,11 +7413,48 @@ const supCliAtual=()=>{
 window.supMudSet=(t)=>{ supMudTipo=t; supVencForm($('#content')); };
 window.supVencPinta=()=>{
   const c=supCliAtual(), box=document.getElementById('sv_hoje'); if(!box) return;
-  box.innerHTML = c
-    ? `<b>${esc(c.nome||'')}</b> — hoje: mensalidade <b>${brl(Number(c.valor)||0)}</b> · vence <b>dia ${esc(String(c.diaVenc||'—'))}</b>`
-    : 'Digite o nome para ver o que está valendo hoje.';
+  /* a ficha: de quem e este pedido, sem precisar abrir outra tela */
+  if(!c){
+    box.className='sv-nada';
+    box.innerHTML='Digite o nome do cliente para ver o contrato dele.';
+  }else{
+    box.className='sv-cli';
+    const meta=[c.nicho,c.servico,c.resp?('resp. '+c.resp):''].filter(Boolean).join(' · ');
+    box.innerHTML=`<b>${esc(c.nome||'')}</b>
+      ${meta?`<div class="sv-meta">${esc(meta)}</div>`:''}
+      <div class="sv-hoje">
+        <div>Mensalidade hoje<b>${brl(Number(c.valor)||0)}</b></div>
+        <div>Vence todo dia<b>${esc(String(c.diaVenc||'—'))}</b></div>
+        ${c.inicio?`<div>Cliente desde<b>${esc(fmtComp(c.inicio)||c.inicio)}</b></div>`:''}
+      </div>`;
+  }
   const nv=document.getElementById('sv_valor');
   if(nv&&!nv.value&&c&&supMudTipo!=='vencimento') nv.value=ctMoeda(Number(c.valor)||0);
+  window.supVencPrev();
+};
+/* O "de → para" montado enquanto se digita. Downsell de R$ 300 tem que aparecer
+   ANTES do enviar, nao depois. */
+window.supVencPrev=()=>{
+  const box=document.getElementById('sv_prev'); if(!box) return;
+  const c=supCliAtual();
+  if(!c){ box.innerHTML=''; return; }
+  const vAt=Number(c.valor)||0, dAt=Number(c.diaVenc)||0;
+  const dNovo=parseInt((document.getElementById('sv_venc')||{}).value||'',10);
+  const vNovo=supMudTipo==='vencimento'?null:ctNum((document.getElementById('sv_valor')||{}).value||'');
+  const linhas=[];
+  if(dNovo>=1&&dNovo<=31&&dNovo!==dAt){
+    linhas.push(`<div class="l">Vence <span class="de">dia ${dAt||'—'}</span> → <span class="para">dia ${dNovo}</span></div>`);
+  }
+  if(vNovo&&vNovo!==vAt){
+    const dif=vNovo-vAt, sobe=dif>0;
+    const pct=vAt?Math.round(Math.abs(dif)/vAt*100):0;
+    linhas.push(`<div class="l">Mensalidade <span class="de">${brl(vAt)}</span> → <span class="para">${brl(vNovo)}</span>
+      <span class="dif ${sobe?'sobe':'desce'}">${sobe?'+':'−'}${brl(Math.abs(dif))}/mês${pct?' · '+pct+'%':''}</span></div>`);
+    linhas.push(`<div class="l" style="font-size:12px;color:var(--fraco)">No ano isso dá ${sobe?'mais':'menos'} <b>${brl(Math.abs(dif)*12)}</b> de receita.</div>`);
+  }
+  box.innerHTML = linhas.length
+    ? `<div class="sv-prev">${linhas.join('')}</div>`
+    : '';
 };
 function supVencForm(c){
   const cls=supCliAtivos();
@@ -7412,13 +7468,14 @@ function supVencForm(c){
       <div class="field"><label>Cliente<small>digite o nome</small></label>
         <input id="sv_cli" list="svClientes" autocomplete="off" placeholder="comece a digitar…" oninput="supVencPinta()" onchange="supVencPinta()">
         <datalist id="svClientes">${cls.map(x=>`<option value="${esc(x.nome)}">`).join('')}</datalist>
-        <div class="hint" id="sv_hoje" style="margin:6px 0 0">Digite o nome para ver o que está valendo hoje.</div></div>
+        <div id="sv_hoje" class="sv-nada">Digite o nome do cliente para ver o contrato dele.</div></div>
       <div class="row2">
         <div class="field"><label>Novo dia de vencimento<small>1 a 31${soData?'':' — deixe vazio se a data não muda'}</small></label>
-          <input id="sv_venc" type="number" min="1" max="31" placeholder="ex.: 10"></div>
+          <input id="sv_venc" type="number" min="1" max="31" placeholder="ex.: 10" oninput="supVencPrev()"></div>
         ${soData?'':`<div class="field"><label>Nova mensalidade (R$)</label>
-          <input id="sv_valor" placeholder="ex.: 1.200,00"></div>`}
+          <input id="sv_valor" placeholder="ex.: 1.200,00" oninput="supVencPrev()"></div>`}
       </div>
+      <div id="sv_prev"></div>
       <div class="field"><label>Por quê</label>
         <textarea id="sv_mot" placeholder="ex.: cliente pediu para casar com o faturamento dele; ou renegociamos o fee para segurar o contrato"></textarea></div>
       <div class="toolbar"><button class="btn" id="svEnv" onclick="supEnviarVenc()">Enviar</button>
