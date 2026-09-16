@@ -500,6 +500,10 @@
   .fm-tx>b{font-size:14.5px;font-weight:700}
   .fm-s{font-size:12px;color:var(--fraco);margin-top:3px}
   .fm-ac{display:flex;gap:7px;flex-wrap:wrap}
+  .fm-barra{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .fm-cnt{font-size:12px;color:var(--fraco);font-variant-numeric:tabular-nums}
+  .fm-lim{background:none;border:0;color:var(--brand2);font:inherit;font-size:12px;cursor:pointer;padding:0}
+  .fm-lim:hover{text-decoration:underline}
   .fm-l{display:flex;gap:14px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
   .fm-l:last-child{border-bottom:none}
   .fm-l>span{color:var(--fraco);min-width:170px;flex:none}
@@ -7486,14 +7490,18 @@ window.renderEspaco=(c)=>{
    contrato a partir de qualquer um — inclusive de um já usado, que é o caso de
    aditivo e de contrato refeito. Reaproveita o FC_FORMS, que já carrega os 40
    mais recentes com qualquer estado. */
-let FM_FILTRO='novo';
-const FM_ROT={novo:'Novos',usado:'Viraram contrato',arquivado:'Arquivados',todos:'Todos'};
-window.fmFiltro=(f)=>{ FM_FILTRO=f; render('formularios'); };
+/* Uma lista só, do mais novo pro mais velho. O único filtro é a data — o estado
+   de cada um está escrito na própria linha, que é onde ele ajuda. */
+let FM_DE='', FM_ATE='';
+window.fmPer=(qual,v)=>{ if(qual==='de') FM_DE=v||''; else FM_ATE=v||''; render('formularios'); };
+window.fmLimpar=()=>{ FM_DE=''; FM_ATE=''; render('formularios'); };
 window.renderFormularios=(c)=>{
   if(!ehComercial()){ c.innerHTML='<div class="empty">Acesso restrito ao time comercial.</div>'; return; }
   const pinta=()=>{
-    const cnt=(st)=>FC_FORMS.filter(f=>String(f.status||'novo')===st).length;
-    const lista=FM_FILTRO==='todos'?FC_FORMS:FC_FORMS.filter(f=>String(f.status||'novo')===FM_FILTRO);
+    const dia=(f)=>String(f.criado_em||'').slice(0,10);
+    const lista=FC_FORMS
+      .filter(f=>(!FM_DE||dia(f)>=FM_DE)&&(!FM_ATE||dia(f)<=FM_ATE))
+      .slice().sort((a,b)=>dia(b).localeCompare(dia(a)));
     const linha=(f)=>{ const st=fcStForm(f.status), arq=String(f.status||'novo')==='arquivado';
       return `<div class="fm-item">
         <div class="fm-tx">
@@ -7511,11 +7519,13 @@ window.renderFormularios=(c)=>{
         <div><h2>Formulários recebidos</h2><div class="desc">Tudo que o cliente preencheu em autosintese.app.br/contrato.</div></div>
         <div class="toolbar"><button class="btn secondary small" onclick="venCopiarLink()">Copiar link do formulário</button></div>
       </div>
-      <div class="fin-tabs" style="margin-bottom:16px">
-        ${['novo','usado','arquivado','todos'].map(k=>`<button class="ftab ${FM_FILTRO===k?'active':''}" onclick="fmFiltro('${k}')">${FM_ROT[k]}${k==='todos'?` (${FC_FORMS.length})`:(cnt(k)?` (${cnt(k)})`:'')}</button>`).join('')}
+      <div class="fm-barra">
+        ${perCampo(FM_DE,FM_ATE,"fmPer('de',this.value)","fmPer('ate',this.value)")}
+        <span class="fm-cnt">${lista.length} de ${FC_FORMS.length}</span>
+        ${(FM_DE||FM_ATE)?`<button class="fm-lim" onclick="fmLimpar()">limpar</button>`:''}
       </div>
-      ${lista.length?lista.map(linha).join(''):`<div class="empty">Nenhum formulário ${esc((FM_ROT[FM_FILTRO]||'').toLowerCase())} por aqui.</div>`}
-      <p class="hint">Arquivar só tira da fila — o dado do cliente continua valendo, e dá pra desarquivar.</p>`;
+      ${lista.length?lista.map(linha).join(''):`<div class="empty">${(FM_DE||FM_ATE)?'Nenhum formulário nesse período.':'Nenhum formulário recebido ainda.'}</div>`}
+      <p class="hint">Arquivar só tira da fila do Fechamento — o dado do cliente continua valendo, e dá pra desarquivar.</p>`;
   };
   pinta();
   fcCarregarForms().then(pinta).catch(()=>{});
@@ -11894,7 +11904,7 @@ async function fcCarregarForms(){
   try{
     const {data}=await sb.from('contratos_form').select('*')
       .not('enviado_em','is',null)
-      .order('criado_em',{ascending:false}).limit(40);
+      .order('criado_em',{ascending:false}).limit(200);
     /* quem ainda nao virou contrato aparece primeiro; dentro de cada grupo, o mais
        recente em cima (o sort do JS e estavel, entao a ordem da data se mantem) */
     const pri=(st)=>{ const o={novo:0,usado:1,arquivado:2}[String(st||'novo')]; return o===undefined?3:o; };
