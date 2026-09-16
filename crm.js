@@ -205,6 +205,22 @@ window.crmRender=function(c,viewPedida){
 };
 
 /* ---------- PIPELINE ---------- */
+/* Icone por etapa do pipeline (Gabriel 16/09): mesma leitura do quadro que o time
+   usava fora do sistema. A cor sai do proprio estagio (wa_estagios.cor), como a
+   bolinha que ficava aqui antes — etapa sem icone conhecido volta pra bolinha. */
+const CRM_ICO_ET={
+  para_atender:'<path d="M3 4h18l-7 8.2V19l-4 2v-8.8z"/>',
+  ligacao:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  agendado:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/>',
+  follow_up:'<path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M20.5 3.5v5h-5"/>',
+  ganho:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5.5h3V7a3 3 0 0 1-3 3M7 5.5H4V7a3 3 0 0 0 3 3"/>',
+  perdido:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/>'
+};
+function crmIcoEtapa(e){
+  const cor=esc(e.cor||'#8a8a96'), d=CRM_ICO_ET[e.chave];
+  if(!d) return '<i style="background:'+cor+'"></i>';
+  return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="'+cor+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none">'+d+'</svg>';
+}
 function crmPipelineHTML(){
   const base=crmFiltrar(CRM.d.opps);
   const vis=base.filter(o=>o.status==='open'||crmNoPeriodo(o.closed_at));
@@ -234,7 +250,7 @@ function crmPipelineHTML(){
       <div class="crm-kpi hi"><div class="k">Receita</div><div class="v">${receita?esc(brl(receita)):'—'}</div><div class="s">${ganhos.length?'ticket '+esc(brl(receita/ganhos.length)):''}</div></div>
     </div>
     <div class="crm-board">${cols.map(c=>`<div class="crm-col" ondragover="event.preventDefault();this.classList.add('hover')" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');crmSoltar(event,'${c.e.chave}')">
-        <div class="crm-colh"><i style="background:${esc(c.e.cor)}"></i>${esc(c.e.nome)}<span>${c.its.length}</span></div>
+        <div class="crm-colh">${crmIcoEtapa(c.e)}${esc(c.e.nome)}<span>${c.its.length}</span></div>
         <div class="crm-cards">${c.its.map(card).join('')||'<div class="crm-vazio">arraste para cá</div>'}</div></div>`).join('')}</div>
     <p class="crm-hint">Cada movimento vira um evento imutável na linha do tempo. Ganho pede a receita; Perdido pede o motivo. Agendado, No-show e Compareceu também chegam pela Agenda.</p>`;
 }
