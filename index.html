@@ -2116,6 +2116,13 @@
   @keyframes folhaIn{from{transform:translateX(26px);opacity:.5}to{transform:none;opacity:1}}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .row3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+  /* Rotulo de duas linhas ("Data de nascimento do representante") empurrava o
+     campo pra baixo e a coluna do lado ficava torta. Aqui o rotulo sobe e o
+     campo desce: as colunas casam em cima E embaixo, com rotulo de 1 ou 2 linhas.
+     Usa `>` de proposito — sem isso pega label de dentro de qualquer filho. */
+  .row2>.field,.row3>.field{display:flex;flex-direction:column;margin-bottom:0}
+  .row2>.field>label,.row3>.field>label{margin-bottom:auto;padding-bottom:6px}
+  .row2,.row3{row-gap:16px}
   .x{background:transparent;border:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
   .x:hover{color:var(--txt)}
 
@@ -13284,33 +13291,37 @@ function ctSigs(){
 }
 const ctSlug=(s)=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
   .toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,24)||'x';
-/* Dados do cliente — sao exatamente os que o formulario publico pergunta. */
-const CT_CLIENTE=[
-  ['contratante_razao','Razão social',''],
-  ['contratante_cnpj','CNPJ',''],
-  ['contratante_endereco','Endereço completo (rua, nº, bairro, cidade/UF, CEP)',''],
-  ['rep_cargo','Cargo do representante','sócio-administrador'],
-  ['rep_nome','Nome completo do representante',''],
-  ['rep_rg','RG do representante',''],
-  ['rep_cpf','CPF do representante',''],
-  ['rep_nascimento','Data de nascimento do representante',''],
+/* Dados do cliente — sao exatamente os que o formulario publico pergunta.
+   Quebrados em dois blocos: o rotulo repetia "do representante" quatro vezes e
+   estourava em duas linhas. O 4o item, quando existe, e o texto de dentro do campo. */
+const CT_CLI_EMP=[
+  ['contratante_razao','Razão social ou nome',''],
+  ['contratante_cnpj','CNPJ','','vazio se for pessoa física'],
+  ['contratante_endereco','Endereço completo','','rua, nº, bairro, cidade/UF, CEP'],
   ['contratante_tel','Telefone',''],
   ['contratante_email','E-mail','']];
-/* Condicoes comerciais — so voce preenche, o cliente nunca ve. */
+const CT_CLI_REP=[
+  ['rep_nome','Nome',''],
+  ['rep_cargo','Cargo','sócio-administrador'],
+  ['rep_rg','RG',''],
+  ['rep_cpf','CPF',''],
+  ['rep_nascimento','Data de nascimento','']];
+const CT_CLIENTE=[...CT_CLI_EMP,...CT_CLI_REP];
+/* Condicoes comerciais — so voce preenche, o cliente nunca ve.
+   Na ordem em que a pessoa pensa, e aos pares pra fechar certo em duas colunas.
+   "Verba mínima semanal de mídia" saiu: nenhum dos 4 contratos usa mais. */
 const CT_NEGOCIO=[
   ['vigencia','Vigência','12 (doze) meses'],
-  ['valor_mensal','Valor mensal (R$)',''],
+  ['valor_mensal','Valor mensal (R$)','','1.000,00'],
   ['data_inicio','Início da vigência',''],
-  ['data_vencimento','Dia do vencimento (1 a 31)',''],
+  ['data_contrato','Data do contrato',''],
   ['data_primeira_parcela','Vencimento da 1ª parcela',''],
+  ['data_vencimento','Dia do vencimento das demais','','10'],
   ['forma_pagamento','Forma de pagamento','Boleto Bancário ou PIX'],
-  ['verba_minima','Verba mínima semanal de mídia (R$)','350,00'],
   ['aviso_previo','Aviso prévio para rescisão','30 (trinta) dias corridos'],
   /* o foro era fixo em São Paulo – SP. Cliente de fora às vezes negocia o dele. */
   ['foro','Foro (comarca – UF)','São Paulo - SP'],
-  /* fecham a última linha do contrato: "São Paulo, 16 de setembro de 2026." */
-  ['cidade_assinatura','Cidade da assinatura','São Paulo'],
-  ['data_contrato','Data do contrato','']];
+  ['cidade_assinatura','Cidade da assinatura','São Paulo']];
 
 /* ---- numero por extenso (pt-BR) ---- */
 const CT_U=['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
@@ -13643,6 +13654,11 @@ window.ctEdBaixar=async ()=>{
 };
 
 /* ---- tela ---- */
+/* De onde saem os dados do cliente. 'form' e o caminho normal — o cliente
+   preencheu autosintese.app.br/contrato. 'mao' e quando ele mandou por WhatsApp.
+   'renovacao' e o unico lugar que mostra a base de clientes: contrato novo nao
+   se faz a partir de quem ja e cliente (Gabriel 16/09). */
+let ctOrigem='form'; let ctLeadSel='';
 let ctModelo='maquina_vendas'; let ctCliSel=''; let ctSignatario='bernardo'; let ctRasc={}; let ctLeads=[];
 const CT_LINK='https://autosintese.app.br/contrato';
 
@@ -13769,43 +13785,49 @@ function renderContratos(c){
   const pinta=()=>{
     c.innerHTML=`
    <div class="page-head">
-     <div><h2>Contratos</h2><div class="desc">Preenche e baixa o .docx pronto. O valor total sai do mensal × prazo, sem redigitar.</div></div>
+     <div><h2>Gerador de contratos</h2><div class="desc">Preenche e baixa o .docx pronto. Com o formulário que o cliente mandou ou digitando na mão — tanto faz.</div></div>
      <div class="toolbar">
-       <button class="btn secondary small" onclick="ctCopiarLink()">🔗 Link do formulário</button>
+       <button class="btn secondary small" onclick="ctCopiarLink()">Link do formulário</button>
        ${(currentUser&&currentUser.role==='master')?'<button class="btn secondary small" onclick="ctEmpresaModal()">Dados da Síntese</button>':''}
-       <button class="btn secondary small" onclick="ctModelosModal()">⚙️ Modelos</button>
+       <button class="btn secondary small" onclick="ctModelosModal()">Modelos</button>
      </div>
    </div>
-   ${ctLeads.length?`
-   <div class="card" style="margin-bottom:18px;border-left:3px solid var(--brand)">
-     <div class="k" style="margin-bottom:10px">📥 ${ctLeads.length} formulário(s) que o cliente preencheu</div>
-     ${ctLeads.map(l=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--panel2)">
-        <div style="flex:1"><strong>${esc(l.dados.contratante_razao||'sem razão social')}</strong>
-          <div style="color:var(--muted);font-size:12px">${esc(l.dados.contratante_cnpj||'')} · ${esc(l.dados.rep_nome||'')} · ${fmtDate(String(l.criado_em||'').slice(0,10))}</div></div>
-        <button class="btn small" onclick="ctUsarLead('${l.id}')">Usar</button>
-        <button class="iconbtn del" onclick="ctArquivarLead('${l.id}')">Arquivar</button>
-      </div>`).join('')}
-   </div>`:''}
    <div class="card" style="margin-bottom:18px">
      <div class="k" style="margin-bottom:10px">1. Qual contrato?</div>
      <div class="fin-tabs" style="margin-bottom:18px">
        ${Object.entries(CT_MODELOS).map(([k,v])=>`<button class="ftab ${ctModelo===k?'active':''}" onclick="ctSetModelo('${k}')">${esc(v)}</button>`).join('')}
      </div>
+     <div class="fin-tabs" style="margin-bottom:14px">
+       <button class="ftab ${ctOrigem==='form'?'active':''}" onclick="ctSetOrigem('form')">Formulário recebido${ctLeads.length?' ('+ctLeads.length+')':''}</button>
+       <button class="ftab ${ctOrigem==='mao'?'active':''}" onclick="ctSetOrigem('mao')">Preencher na mão</button>
+       <button class="ftab ${ctOrigem==='renovacao'?'active':''}" onclick="ctSetOrigem('renovacao')">Renovação</button>
+     </div>
      <div class="row2" style="margin-bottom:18px">
-       <div class="field"><label>2. Para qual cliente?</label><select id="ctCli">
-         <option value="">Cliente novo, ainda não cadastrado</option>
-         ${cls.map(x=>`<option value="${x.id}"${ctCliSel===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}
-       </select></div>
+       <div class="field"><label>2. De onde vêm os dados do cliente?</label>
+         ${ctOrigem==='form'?(ctLeads.length?`<select id="ctLead">
+             ${ctLeads.map(l=>`<option value="${l.id}"${ctLeadSel===l.id?' selected':''}>${esc((l.dados.contratante_razao||'sem razão social'))} — ${fmtDate(String(l.criado_em||'').slice(0,10))}</option>`).join('')}
+           </select>
+           <div class="hint" style="margin:6px 0 0">Vem de autosintese.app.br/contrato. ${esc(ctLeadRes())}
+             · <button class="link" style="background:none;border:0;color:var(--brand2);cursor:pointer;font:inherit;padding:0" onclick="ctArquivarLead('${ctLeadSel||ctLeads[0].id}')">arquivar este</button></div>`
+          :`<div class="hint" style="margin:0">Nenhum formulário recebido. Copie o link e mande pro cliente, ou escolha <b>Preencher na mão</b>.</div>`)
+         :ctOrigem==='renovacao'?`<select id="ctCli">
+             <option value="">Escolha o cliente…</option>
+             ${cls.map(x=>`<option value="${x.id}"${ctCliSel===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}
+           </select>
+           <div class="hint" style="margin:6px 0 0">Puxa os dados da ficha. Dá pra corrigir tudo na tela seguinte.</div>`
+         :`<div class="hint" style="margin:0">Você digita tudo na tela seguinte. É o caminho de quando o cliente mandou os dados por WhatsApp, e-mail ou no papel.</div>`}
+       </div>
        <div class="field"><label>3. Quem assina pela Síntese?</label><select id="ctSig">
          ${Object.entries(ctSigs()).map(([k,s])=>`<option value="${k}"${ctSignatario===k?' selected':''}>${esc(s.nome)}</option>`).join('')}
        </select></div>
      </div>
-     <div><button class="btn" onclick="ctForm()">✍️ Preencher e gerar contrato</button></div>
+     <div><button class="btn" onclick="ctForm()">Preencher e gerar contrato</button></div>
      <div style="color:var(--muted);font-size:12px;margin-top:12px">${esc(ctEmpresa().razao)} · CNPJ ${esc(ctEmpresa().cnpj)} · foro ${esc(ctEmpresa().foro_comarca)} – ${esc(ctEmpresa().foro_uf)}${
        (currentUser&&currentUser.role==='master')?` · <button class="link" style="background:none;border:0;color:var(--brand2);cursor:pointer;font:inherit;padding:0" onclick="ctEmpresaModal()">alterar</button>`:''}</div>
    </div>
-   <p class="hint">O link do formulário é sempre o mesmo: mande pro cliente, ele preenche os dados dele e cai aqui em cima pra você completar valor e prazo.</p>`;
-    $('#ctCli').onchange=e=>{ ctCliSel=e.target.value; };
+   <p class="hint">O link do formulário é sempre o mesmo pra todos os clientes. Nada aqui espera por ele: se o cliente mandou os dados por fora, é só escolher <b>Preencher na mão</b>.</p>`;
+    const eCli=$('#ctCli'); if(eCli) eCli.onchange=e=>{ ctCliSel=e.target.value; };
+    const eLead=$('#ctLead'); if(eLead){ if(!ctLeadSel) ctLeadSel=eLead.value; eLead.onchange=e=>{ ctLeadSel=e.target.value; render('contratos'); }; }
     $('#ctSig').onchange=e=>{ ctSignatario=e.target.value; };
   };
   pinta();
@@ -13872,6 +13894,7 @@ window.ctEmpresaModal=async ()=>{
   });
 };
 window.ctSetModelo=(m)=>{ ctModelo=m; render('contratos'); };
+window.ctSetOrigem=(o)=>{ ctOrigem=o; if(o!=='renovacao') ctCliSel=''; if(o!=='form') ctLeadSel=''; render('contratos'); };
 window.ctCopiarLink=()=>{
   const t=document.createElement('textarea'); t.value=CT_LINK; document.body.appendChild(t); t.select();
   try{ document.execCommand('copy'); toast('Link copiado — é o mesmo pra todos os clientes.'); }
@@ -13880,29 +13903,42 @@ window.ctCopiarLink=()=>{
 };
 window.ctUsarLead=async (id)=>{
   const l=ctLeads.find(x=>x.id===id); if(!l) return;
-  ctRasc=Object.assign({},l.dados); ctRasc._lead=id;
+  ctOrigem='form'; ctLeadSel=id; ctRasc={};
   toast('Dados carregados. Agora preencha valor e prazo.');
   ctForm();
 };
 window.ctArquivarLead=async (id)=>{
   if(!confirm('Arquivar este formulário? Ele sai da lista.')) return;
   await sb.from('contratos_form').update({status:'arquivado'}).eq('id',id);
+  if(ctLeadSel===id) ctLeadSel='';
   render('contratos');
 };
 
+/* resumo de uma linha do formulario escolhido, pra pessoa ver que pegou o certo */
+function ctLeadRes(){
+  const l=ctLeads.find(x=>x.id===ctLeadSel)||ctLeads[0];
+  if(!l) return '';
+  return [l.dados.contratante_cnpj,l.dados.rep_nome].filter(Boolean).join(' · ');
+}
 window.ctForm=()=>{
-  const base=Object.assign(ctDoCliente(ctCliSel),ctRasc);
+  let de={};
+  if(ctOrigem==='renovacao'&&ctCliSel) de=ctDoCliente(ctCliSel);
+  else if(ctOrigem==='form'){ const l=ctLeads.find(x=>x.id===ctLeadSel)||ctLeads[0]; if(l) de=Object.assign({},l.dados); }
+  const base=Object.assign(de,ctRasc);
   /* abre com hoje, mas da pra trocar — contrato assinado semana passada acontece */
   if(!base.data_contrato) base.data_contrato=hojeISO();
-  const campo=([k,rot,pad])=>{
+  const campo=([k,rot,pad,ph])=>{
+    const dica=ph?` placeholder="${esc(ph)}"`:'';
     const v0=base[k]||pad||'', ops=CT_OPCOES[k], m=CT_MASC[k];
     if(ops) return `<div class="field"><label>${esc(rot)}</label><select id="ct_${k}" ${k==='vigencia'?'onchange="ctPrevia()"':''}>${ops.map(o=>`<option value="${esc(o)}"${o===v0?' selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
     const v=m?window[m](v0):v0;
     const extra=(k==='valor_mensal')?' oninput="ctPrevia()"':(m?` oninput="this.value=${m}(this.value);"`:'');
-    return `<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(v)}"${extra}${CT_DATA[k]?' type="date"':''}></div>`; };
+    return `<div class="field"><label>${esc(rot)}</label><input id="ct_${k}" value="${esc(v)}"${extra}${dica}${CT_DATA[k]?' type="date"':''}></div>`; };
   modal('Contrato — '+CT_MODELOS[ctModelo],`
     <div class="k" style="margin:4px 0 10px">Dados do cliente</div>
-    <div class="row2">${CT_CLIENTE.map(campo).join('')}</div>
+    <div class="row2">${CT_CLI_EMP.map(campo).join('')}</div>
+    <div class="k" style="margin:18px 0 10px">Quem assina pelo cliente</div>
+    <div class="row2">${CT_CLI_REP.map(campo).join('')}</div>
     <div class="k" style="margin:18px 0 10px">Condições comerciais</div>
     <div class="row2">${CT_NEGOCIO.map(campo).join('')}</div>
     <div id="ctPrev" class="card" style="margin-top:14px"></div>`,
@@ -13915,13 +13951,15 @@ window.ctForm=()=>{
     const vazios=todos.filter(([k])=>!d[k]).map(([,rot])=>rot);
     if(vazios.length&&!confirm('Estes campos ficaram em branco:\n\n• '+vazios.join('\n• ')+'\n\nGerar mesmo assim? Os marcadores vão aparecer no documento.')) return false;
     d._signatario=ctSignatario;
+    /* guarda aqui: logo abaixo ctRasc vira `d` e o _lead se perderia */
+    const leadUsado=(ctOrigem==='form')?(ctLeadSel||((ctLeads[0]||{}).id||'')):'';
     ctRasc=d;
     if(ctCliSel) await ctSalvarNaFicha(ctCliSel,d);
     try{
       const nome=(d.contratante_razao||'Contrato').replace(/[^\w\sÀ-ÿ-]/g,'').trim().slice(0,60);
       /* nao baixa direto: abre o editor pro closer conferir e corrigir antes */
       await ctEditor(ctModelo,d,'Contrato-'+ctModelo+'-'+nome);
-      if(ctRasc._lead){ await sb.from('contratos_form').update({status:'usado'}).eq('id',ctRasc._lead); }
+      if(leadUsado){ await sb.from('contratos_form').update({status:'usado'}).eq('id',leadUsado); ctLeadSel=''; await ctCarregarLeads(); }
       ctRasc={};
     }catch(e){ toast(e.message); return false; }
     return true;
