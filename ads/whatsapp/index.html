@@ -7,7 +7,7 @@
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;
 s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 fbq('init','1602416908008806');fbq('init','2786106281763172');fbq('track','PageView');
-document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href*="wa.me"]');if(a){try{fbq('track','Contact');}catch(_){}}},true);
+document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href*="wa.me"],a[href*="/zap/"]');if(a){try{fbq('track','Contact');}catch(_){}}},true);
 </script>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1602416908008806&ev=PageView&noscript=1"/><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=2786106281763172&ev=PageView&noscript=1"/></noscript>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -169,7 +169,11 @@ nav{max-width:calc(54% - 40px)}
 const {Button,Tag,Card,Input}=NS;
 const WHATS='5535984034438';
 const ZAP_MSG='Olá! Vim pela página da AutoSíntese e quero acelerar as vendas da minha loja.';
-const zapLink=(n)=>'https://wa.me/'+n+'?text='+encodeURIComponent(ZAP_MSG);
+/* Passagem antes da conversa (Gabriel 16/09): o clique vai para /ads/zap/, que espera
+   2s — tempo do pixel registrar o Contact — e so entao manda pro WhatsApp. O numero
+   sorteado viaja no ?u=, entao o rodizio continua valendo. */
+const zapDireto=(n)=>'https://wa.me/'+n+'?text='+encodeURIComponent(ZAP_MSG);
+const zapLink=(n)=>'../zap/?u='+encodeURIComponent(zapDireto(n));
 const ZAP_URL=zapLink(WHATS);                 /* plano B: vale ate o sorteio chegar */
 const ZAP_FILA='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/zap-numeros';
 const ZapCtx=React.createContext(ZAP_URL);
