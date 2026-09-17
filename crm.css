@@ -50,13 +50,32 @@
 .overlay.crm-ov{align-items:stretch;justify-content:flex-end;padding:0}
 .overlay.crm-ov .modal{max-width:min(470px,100vw);width:min(470px,100vw);max-height:100vh;height:100vh;
   margin:0;border-radius:0;border-top:0;border-right:0;border-bottom:0;display:flex;flex-direction:column}
+@media (max-width:560px){.overlay.crm-ov .modal{width:100vw;max-width:100vw}
+  .crm-acoes{padding:10px 14px}.crm-ficha{padding:14px}.crm-rod{padding:10px 14px}}
 .crm-acoes{padding:12px 16px;border-bottom:1px solid var(--line)}
 .crm-acoes .lb{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt);font-weight:700;margin:2px 0 8px}
 .crm-acoes .lb:not(:first-child){margin-top:14px}
 .crm-acoes .bts{display:flex;flex-wrap:wrap;gap:6px}
 .crm-acoes .bts .btn{display:inline-flex;align-items:center;gap:6px}
 .crm-acoes .bts .btn.on{border-color:var(--brand);color:var(--brand2)}
-.crm-ficha{display:grid;grid-template-columns:1fr 320px;gap:14px;padding:16px 20px 20px;overflow:auto}
+.crm-ficha{display:grid;grid-template-columns:1fr 320px;gap:14px;padding:16px 20px 20px;overflow:auto;
+  flex:1;min-height:0;container-type:inline-size}
+/* Duas colunas so quando o painel e largo de verdade. Antes a conta era pela janela:
+   numa tela grande com o painel de 470px, a coluna da esquerda sobrava ~90px e os
+   botoes viravam uma pilha torta (Gabriel 16/09). */
+@container (max-width:720px){.crm-ficha{grid-template-columns:1fr}.crm-facts{grid-template-columns:repeat(2,1fr)}}
+@supports not (container-type:inline-size){.crm-ficha{grid-template-columns:1fr}}
+.crm-rod{display:flex;gap:8px;padding:11px 16px;border-top:1px solid var(--line);background:var(--panel);
+  position:relative;flex:none}
+.crm-rod .btn{flex:1;padding:11px 12px;font-size:13px;justify-content:center}
+.crm-rod .btn.ganho{background:var(--ok);color:#0b2e1f;border:0;font-weight:700}
+.crm-rod .crm-mais{flex:none;width:46px;letter-spacing:1px}
+.crm-menu{position:absolute;right:16px;bottom:calc(100% + 6px);background:var(--panel2);border:1px solid var(--line);
+  border-radius:10px;padding:5px;min-width:190px;z-index:5;box-shadow:0 12px 32px rgba(0,0,0,.45)}
+.crm-menu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--txt);
+  font:inherit;font-size:13px;padding:9px 11px;border-radius:7px;cursor:pointer}
+.crm-menu button:hover{background:var(--cardh)}
+.crm-menu button.perda{color:var(--danger)}
 .crm-fh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .crm-fh .big{width:42px;height:42px;border-radius:12px;background:rgba(123,104,238,.16);color:var(--brand2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:none}
 .crm-fh h3{margin:0;font-size:17px}
@@ -67,7 +86,6 @@
 .crm-box{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
 .crm-box h4{margin:0 0 10px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .crm-box h4 .btn{padding:3px 8px;font-size:11px}
-.crm-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .crm-acoes .btn{padding:6px 11px;font-size:12px}
 .crm-acoes .btn.ganho{background:var(--ok);color:#0b2e1f}
 .crm-acoes .btn.perda{background:var(--panel2);color:var(--danger);border:1px solid var(--line)}
