@@ -110,7 +110,19 @@ nav{max-width:calc(54% - 40px)}
 #as-form{transition:box-shadow .35s ease,border-color .35s ease}
 .mira #as-form{border-color:var(--as-roxo-claro)!important;
   box-shadow:0 0 0 4px rgba(168,85,247,.28),0 40px 100px -30px rgba(0,0,0,.9)!important}
-@media(max-width:760px){ .topo-form{padding:32px 0 52px!important} .topo-form #form{margin-top:26px} }
+/* A /ads/ ESCONDE o formulario no celular (.hero #form{display:none}) porque la o
+   botao abre uma janelinha. Aqui nao existe janelinha: sem isto, o celular ficava
+   sem formulario nenhum — ou seja, sem a pagina. */
+@media(max-width:900px){
+  .hero .topo-form #form{display:block!important;max-width:100%;margin:24px auto 0}
+  .topo-form{padding:26px 0 44px!important}
+  .topo-form #as-form{padding:20px!important;gap:12px!important}
+  .topo-form .prova{flex-wrap:wrap;row-gap:10px}
+}
+@media(max-width:480px){
+  .topo-form #as-form{padding:18px 16px!important}
+  .topo-form #form{margin-top:20px}
+}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(106,0,244,.7),var(--shadow-roxa)}70%{box-shadow:0 0 0 16px rgba(106,0,244,0),var(--shadow-roxa)}100%{box-shadow:0 0 0 0 rgba(106,0,244,0),var(--shadow-roxa)}}
 @media(min-width:901px){footer{padding-bottom:28px}}
 @media(max-width:1100px){
