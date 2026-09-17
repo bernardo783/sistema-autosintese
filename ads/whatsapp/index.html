@@ -105,12 +105,19 @@ nav{max-width:calc(54% - 40px)}
 .zapcta{display:inline-flex;align-items:center;justify-content:center;gap:10px;
   padding:16px 32px;font-size:18px;font-weight:700;font-family:var(--font);
   border-radius:var(--r-pill);border:1px solid transparent;cursor:pointer;line-height:1.2;
+  box-sizing:border-box;                 /* sem isso o width:100% soma os 64px de padding e o botao vaza do cartao */
+  text-align:center;
   background:#25D366;color:#06210F;text-decoration:none;
   box-shadow:0 14px 34px -12px rgba(37,211,102,.75);
   animation:pulseverde 1.8s ease-out infinite;transition:filter var(--dur) var(--ease),transform var(--dur) var(--ease)}
 .zapcta:hover{filter:brightness(1.08)}
 .zapcta:active{transform:scale(.99);filter:brightness(.94)}
 .zapcta.bloco{display:flex;width:100%}
+/* Barra de baixo e celular: botao ocupa a linha toda. Antes era inline-flex e
+   sobrava margem diferente de cada lado (16 de um, 31 do outro) — o olho ve isso
+   como torto mesmo sem medir. */
+.sticky .zapcta{display:flex;width:100%}
+@media(max-width:900px){.zapcta{display:flex;width:100%}}
 @keyframes pulseverde{
   0%{box-shadow:0 0 0 0 rgba(37,211,102,.7),0 14px 34px -12px rgba(37,211,102,.75)}
   70%{box-shadow:0 0 0 16px rgba(37,211,102,0),0 14px 34px -12px rgba(37,211,102,.75)}
