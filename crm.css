@@ -1,5 +1,17 @@
 /* crm.css — módulo comercial (Pipeline · Agenda · Origens). Só usa os tokens do index.html. */
 .crm-filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.crm-barra{display:flex;gap:9px;align-items:center;margin:0 0 14px;flex-wrap:wrap}
+.crm-busca{position:relative;flex:1;min-width:190px;max-width:340px}
+.crm-busca i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--fraco);font-style:normal;font-size:14px}
+.crm-busca input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+  border-radius:9px;padding:8px 12px 8px 30px;font:inherit;font-size:13px}
+.crm-busca input:focus{outline:none;border-color:var(--brand)}
+.crm-per{margin:0!important;flex:none}
+.crm-bf.on{border-color:var(--brand);color:var(--brand2)}
+.crm-chip{background:rgba(123,104,238,.14);border:1px solid rgba(123,104,238,.4);color:var(--brand2);
+  border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.crm-chip i{font-style:normal;opacity:.7}
+.crm-chip:hover i{opacity:1}
 .crm-filtros select,.crm-filtros input{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:6px 12px;font:inherit;font-size:12.5px;max-width:200px}
 .crm-filtros select.on,.crm-filtros input.on{border-color:var(--brand);color:var(--txt)}
 .crm-filtros .crm-lab{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--fraco);font-weight:600;margin-left:4px}
@@ -23,13 +35,17 @@
 .crm-av.c{background:var(--warn);color:#1a1a1a}
 .crm-av.vazio{background:var(--panel2);color:var(--fraco);border:1px dashed var(--line)}
 /* kanban */
-.crm-board{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px;align-items:flex-start}
-.crm-col{flex:0 0 226px;background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;max-height:72vh}
+/* O quadro pega o que sobra da tela (Gabriel 16/09): antes as colunas tinham
+   226px e 72vh de teto, entao sobrava metade da tela vazia embaixo. */
+.crm-board{display:flex;gap:10px;align-items:stretch;overflow-x:auto;
+  height:calc(100vh - var(--crm-topo,232px));min-height:360px;padding-bottom:4px}
+.crm-col{flex:1 1 0;min-width:216px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  display:flex;flex-direction:column;min-height:0}
 .crm-col.hover{border-color:var(--brand)}
 .crm-colh{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:600}
 .crm-colh i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
 .crm-colh span{margin-left:auto;color:var(--fraco);font-weight:500;font-variant-numeric:tabular-nums}
-.crm-cards{padding:8px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:60px}
+.crm-cards{padding:8px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;min-height:0}
 .crm-lc{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;cursor:pointer;font-size:12.5px}
 .crm-lc:hover{border-color:var(--brand)}
 .crm-lc .n{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
