@@ -197,6 +197,25 @@ nav{max-width:calc(54% - 40px)}
   /* a barra fixa so cobriria o botao do proprio formulario, que agora esta na tela */
   .sticky{display:none!important}
 }
+/* Celular baixo (Android de 640px de altura): com 3 campos o botao caia 36px
+   abaixo da dobra. Aqui o topo encolhe mais — some a linha "Três campos", que e
+   explicacao, nunca o campo nem a altura do toque. Medido em 360x640. */
+@media(max-width:900px) and (max-height:700px){
+  .hero nav{padding:10px 0 8px!important}
+  .hero nav img{height:26px!important}
+  .hero h1{font-size:clamp(22px,6.4vw,27px)!important;margin-top:0!important}
+  .hero .lead{font-size:14px!important;margin:7px 0 0!important}
+  .hero .prova img{width:31px!important;height:31px!important}
+  .hero .prova{gap:9px!important}
+  .hero #form{margin-top:10px!important}
+  #form form{padding:14px!important;gap:9px!important}
+  #form form h3{font-size:17px!important}
+  #form form>div:first-child>span{display:none!important}
+  #form form label{margin-bottom:3px!important}
+  #form input,#form select.sel{padding:11px 14px!important}
+  #form form button{padding:14px 20px!important;font-size:16px!important}
+  #form form>span:last-child{font-size:10.5px!important}
+}
 </style></head><body><div id="root"></div>
 <script type="text/plain" id="app-src">
 const {Button,Tag,Card,Input}=NS;
