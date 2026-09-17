@@ -33,6 +33,13 @@
 .crm-lc{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;cursor:pointer;font-size:12.5px}
 .crm-lc:hover{border-color:var(--brand)}
 .crm-lc .n{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* card do pipeline: nome + etiqueta de temperatura na primeira linha, telefone embaixo */
+.crm-lch{display:flex;align-items:center;gap:8px}
+.crm-lch .n{flex:1;min-width:0}
+.crm-lc .tag{flex:none;font-size:10.5px}
+.tag.quente{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
+.tag.morno{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.tag.frio{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
 .crm-lc .t{color:var(--fraco);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .crm-lc .src{margin:7px 0 4px;display:flex;gap:5px;flex-wrap:wrap}
 .crm-lc .f{display:flex;align-items:center;justify-content:space-between;color:var(--fraco);font-size:11.5px;margin-top:6px;gap:6px}
