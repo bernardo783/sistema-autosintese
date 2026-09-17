@@ -269,49 +269,11 @@ window.crmAbrirFicha=async (id)=>{
   CRM.sel=id; lkHash('v','funil/opp/'+id);
   let ov=document.getElementById('crmOv');
   if(!ov){ ov=document.createElement('div'); ov.className='overlay crm-ov'; ov.id='crmOv'; ov.onclick=(e)=>{ if(e.target===ov) crmFechar(); }; document.body.appendChild(ov); }
-  ov.innerHTML=crmPainelHTML(o);
+  ov.innerHTML=`<div class="modal"><div class="mhead"><h3>${esc((o.contact||{}).name||crmFone((o.contact||{}).phone_e164))}</h3><button class="x" onclick="crmFechar()">&times;</button></div>${crmAcoesHTML(o)}${crmFichaHTML(o)}</div>`;
   if(!CRM.tl[id]){
     const {data}=await sb.from('funnel_events').select('*').eq('opportunity_id',id).order('occurred_at',{ascending:true}).limit(500);
-    /* o segundo render perdia as acoes e o nome do lead — agora as duas passadas usam o mesmo molde */
-    CRM.tl[id]=data||[]; const ov2=document.getElementById('crmOv'); if(ov2&&CRM.sel===id) ov2.innerHTML=crmPainelHTML(o);
+    CRM.tl[id]=data||[]; const ov2=document.getElementById('crmOv'); if(ov2&&CRM.sel===id) ov2.innerHTML=`<div class="modal"><div class="mhead"><h3>Oportunidade</h3><button class="x" onclick="crmFechar()">&times;</button></div>${crmFichaHTML(o)}</div>`;
   }
-};
-/* Molde do painel (Gabriel 16/09): cabecalho, o que fazer com o lead, a ficha rolando
-   e um rodape preso embaixo. Antes as acoes ficavam no meio da ficha e, no painel
-   estreito, viravam uma pilha de botoes de larguras diferentes. */
-function crmPainelHTML(o){
-  const c=o.contact||{};
-  return `<div class="modal">
-    <div class="mhead"><h3>${esc(c.name||crmFone(c.phone_e164))}</h3><button class="x" onclick="crmFechar()">&times;</button></div>
-    ${crmAcoesHTML(o)}${crmFichaHTML(o)}${crmRodapeHTML(o)}</div>`;
-}
-/* As duas acoes que fecham o dia ficam sempre a mao; o resto entra no "mais". */
-function crmRodapeHTML(o){
-  const c=o.contact||{}, fone=String(c.phone_e164||'').replace(/\D/g,'');
-  if(o.status!=='open') return `<div class="crm-rod">
-    <button class="btn secondary" onclick="crmMover('${o.id}','novo_lead')">↻ Reabrir</button>
-    <button class="btn secondary crm-mais" onclick="crmMaisMenu(event,'${o.id}')" aria-label="Mais ações">···</button></div>`;
-  return `<div class="crm-rod">
-    <button class="btn secondary" onclick="crmAgendarModal('${o.id}')">📅 Agendar</button>
-    <button class="btn ganho" onclick="crmGanhoModal('${o.id}')">🎉 Ganho</button>
-    <button class="btn secondary crm-mais" onclick="crmMaisMenu(event,'${o.id}')" aria-label="Mais ações">···</button></div>`;
-}
-window.crmMaisMenu=(ev,id)=>{
-  ev.stopPropagation();
-  const o=CRM.d.opps.find(x=>x.id===id); if(!o) return;
-  const c=o.contact||{}, fone=String(c.phone_e164||'').replace(/\D/g,'');
-  document.querySelectorAll('.crm-menu').forEach(x=>x.remove());
-  const itens=[
-    o.status==='open'?['Marcar como perdido',`crmPerdaModal('${id}')`,'perda']:null,
-    ['Responsáveis',`crmResponsavelModal('${id}')`],
-    ['Editar oportunidade',`crmEditarModal('${id}')`],
-    ['Adicionar nota',`crmNotaModal('${id}')`],
-    fone?['Abrir no WhatsApp',`window.open('https://wa.me/${fone}','_blank','noopener')`]:null,
-  ].filter(Boolean);
-  const m=document.createElement('div'); m.className='crm-menu';
-  m.innerHTML=itens.map(i=>`<button class="${i[2]||''}" onclick="document.querySelectorAll('.crm-menu').forEach(x=>x.remove());${i[1]}">${esc(i[0])}</button>`).join('');
-  ev.currentTarget.parentElement.appendChild(m);
-  setTimeout(()=>document.addEventListener('click',function fecha(){ document.querySelectorAll('.crm-menu').forEach(x=>x.remove()); document.removeEventListener('click',fecha); },{once:true}),0);
 };
 /* Painel do lead (Gabriel 16/09): abre encostado na direita e a primeira coisa
    que aparece e o que fazer com o lead — mover de etapa e definir responsavel. */
@@ -361,9 +323,21 @@ function crmFichaHTML(o){
       <div class="crm-fh"><div class="big">${esc(crmIni(c.name||'?'))}</div>
         <div><h3>${esc(c.name||crmFone(c.phone_e164))}</h3><div class="sub">${esc(crmFone(c.phone_e164))}${c.company?' · '+esc(c.company):''}${c.city?' · '+esc(c.city):''} · ciclo #${o.cycle}${ciclos>1?' de '+ciclos:''}</div></div>
         <span class="crm-badge ${o.status==='won'?'ok':o.status==='lost'?'bad':'info'}" style="margin-left:auto;font-size:12px"><i style="width:7px;height:7px;border-radius:50%;background:${esc(e.cor)};display:inline-block"></i> ${esc(e.nome)}</span></div>
+      <div class="crm-acoes">
+        ${o.status==='open'?`<select class="btn secondary small" style="padding:6px 10px" onchange="if(this.value)crmMover('${o.id}',this.value)"><option value="">Mover para…</option>${ativos.filter(x=>x.chave!==o.stage).map(x=>`<option value="${x.chave}">${esc(x.nome)}</option>`).join('')}</select>
+          <button class="btn secondary small" onclick="crmAgendarModal('${o.id}')">📅 Agendar sessão</button>
+          <button class="btn small ganho" onclick="crmGanhoModal('${o.id}')">🎉 Ganho</button>
+          <button class="btn small perda" onclick="crmPerdaModal('${o.id}')">Perdido</button>`:
+          `<button class="btn secondary small" onclick="crmMover('${o.id}','novo_lead')">↻ Reabrir</button>`}
+        <button class="btn secondary small" onclick="crmResponsavelModal('${o.id}')">Responsáveis</button>
+        <button class="btn secondary small" onclick="crmEditarModal('${o.id}')">Editar</button>
+        <button class="btn secondary small" onclick="crmNotaModal('${o.id}')">+ nota</button>
+        <a class="btn secondary small" href="https://wa.me/${esc(String(c.phone_e164||'').replace(/\D/g,''))}" target="_blank" rel="noopener" style="text-decoration:none">💬 WhatsApp</a>
+      </div>
       <div class="crm-facts">
         <div class="crm-fact"><div class="k">SDR</div><div class="v">${crmAv(o.sdr_id)} ${esc(o.sdr_id?crmNome(o.sdr_id):'—')}</div></div>
         <div class="crm-fact"><div class="k">Closer</div><div class="v">${crmAv(o.closer_id,'c')} ${esc(o.closer_id?crmNome(o.closer_id):'—')}</div></div>
+        <div class="crm-fact"><div class="k">Origem</div><div class="v"><span class="crm-badge ${org.paid?'pago':'org'}">${esc(org.name)}</span>${o.source_detail?' '+esc(o.source_detail):''}</div></div>
         <div class="crm-fact"><div class="k">Primeiro contato</div><div class="v">${esc(crmQuando(o.first_inbound_at||o.created_at))}</div></div>
         <div class="crm-fact"><div class="k">Próxima atividade</div><div class="v">${ap&&['scheduled','confirmed'].includes(ap.status)?'Sessão · '+esc(crmQuando(ap.scheduled_start)):o.next_activity?esc(o.next_activity)+(o.next_activity_at?' · '+esc(crmQuando(o.next_activity_at)):''):'<span style="color:var(--fraco)">—</span>'}</div></div>
         <div class="crm-fact"><div class="k">Valor estimado</div><div class="v">${o.value?esc(brl(o.value)):'<span style="color:var(--fraco)">—</span>'}</div></div>
@@ -399,6 +373,7 @@ function crmFichaHTML(o){
         :'<div class="crm-hint" style="margin:0">Nenhuma sessão marcada.</div>'}
       </div>
       <div class="crm-box"><h4>Contato</h4><div class="crm-mini">
+        <div><span>Telefone</span><b style="font-family:ui-monospace,monospace">${esc(c.phone_e164||'')}</b></div>
         ${c.email?`<div><span>E-mail</span><b>${esc(c.email)}</b></div>`:''}
         ${c.wa_profile_name?`<div><span>Nome no WhatsApp</span><b>${esc(c.wa_profile_name)}</b></div>`:''}
         <div><span>Ciclos comerciais</span><b>${ciclos}</b></div>
