@@ -161,13 +161,14 @@ window.crmRender=function(c,viewPedida){
   const v=String(viewPedida||''); const mOpp=v.match(/^funil\/opp\/([0-9a-f-]{36})/);
   if(mOpp){ CRM.sel=mOpp[1]; }
   /* #funil/aba/<nome>: e assim que as listas do espaco Comercial abrem cada tela */
-  const mAba=v.match(/^funil\/aba\/([a-z_]+)$/); if(mAba) CRM.aba=mAba[1];
+  const mAba=v.match(/^funil\/aba\/([a-z_]+)$/); if(mAba) CRM.aba=(mAba[1]==='calls'?'painel':mAba[1]);
   if(!CRM.carregou){ if(!CRM.carregando) crmCarregar().then(crmPintar); c.innerHTML=`<div class="page-head"><div><h2>Comercial</h2><div class="desc">Carregando o funil…</div></div></div>`; return; }
   /* Fechamento, Contratos e Leads sao telas do index.html que agora moram aqui
      (Gabriel 15/09): o fluxo comercial inteiro numa tela so. Contratos e Leads
      seguem a mesma regra de antes — podeContratos(). */
   const temCt=(typeof podeContratos==='function')&&podeContratos();
   const abas=[['painel','Painel'],['calls','Calls'],['pipeline','Pipeline'],['agenda','Agenda']]
+    .filter(a=>a[0]!=='calls')
     .concat(typeof renderFechamento==='function'?[['fechamento','Fechamento']]:[])
     .concat(temCt&&typeof renderContratos==='function'?[['contratos','Contratos']]:[])
     .concat(temCt&&typeof renderLeads==='function'?[['leads','Leads']]:[])
@@ -199,7 +200,7 @@ window.crmRender=function(c,viewPedida){
       <div><h2>Comercial</h2><div class="desc">${CRM.aba==='painel'?ccMesNome():CRM.aba==='calls'?'Calls registradas':CRM.aba==='pipeline'?'Pipeline de oportunidades':CRM.aba==='agenda'?'Sessões estratégicas':CRM.aba==='integracoes'?'WhatsApp · Meta Ads · Google Agenda · Google Meet · Conversions API':'De onde vem a receita'}${CRM.aba==='integracoes'||CRM.aba==='painel'||CRM.aba==='calls'?'':` · ${esc(crmDia(j.de.toISOString()))} a ${esc(crmDia(new Date(j.ate-1).toISOString()))}`}${CRM.erro?` · <span style="color:var(--danger)">${esc(CRM.erro)}</span>`:''}</div></div>
       <div class="toolbar"><button class="btn secondary small" onclick="crmRecarregar()" title="Recarregar">↻</button></div>
     </div>${tabs}${CRM.aba==='origens'||CRM.aba==='integracoes'||CRM.aba==='painel'||CRM.aba==='calls'?'':crmFiltrosHTML()}
-    ${CRM.aba==='painel'?ccPainelHTML():CRM.aba==='calls'?ccCallsHTML():CRM.aba==='pipeline'?crmPipelineHTML():CRM.aba==='agenda'?crmAgendaHTML():CRM.aba==='integracoes'?crmIntgHTML():crmOrigensHTML()}`;
+    ${CRM.aba==='painel'?(ccPainelHTML()+ccCallsHTML()):CRM.aba==='pipeline'?crmPipelineHTML():CRM.aba==='agenda'?crmAgendaHTML():CRM.aba==='integracoes'?crmIntgHTML():crmOrigensHTML()}`;
   if(CRM.aba==='integracoes') crmIntgCarregar();
   if(CRM.sel) crmAbrirFicha(CRM.sel);
 };
@@ -878,13 +879,9 @@ function ccCallsHTML(){
       <button class="pc-ib del" title="Excluir esta call" onclick="ccExcluir('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
     </span></td></tr>`;
 
-  return `<div class="pc-topo">
-      <div>
-        <div class="pc-eyebrow">Lançamentos</div>
-        <h3 class="pc-mes">Calls Registradas</h3>
-        <div class="pc-sub">${vis.length} de ${todas.length} call${todas.length===1?'':'s'}${ativos?' · '+ativos+' filtro'+(ativos>1?'s':'')+' ativo'+(ativos>1?'s':''):''}</div>
-      </div>
-    </div>
+  /* Calls viraram uma secao do Painel (Gabriel 16/09): era a mesma informacao em duas abas. */
+  return `<div class="pc-sec">Calls registradas</div>
+    <div class="pc-sub" style="margin:-6px 0 12px">${vis.length} de ${todas.length} call${todas.length===1?'':'s'}${ativos?' · '+ativos+' filtro'+(ativos>1?'s':'')+' ativo'+(ativos>1?'s':''):''}</div>
 
     <div class="pc-fbox"><div class="pc-filtros">
       <span class="pc-fl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z"/></svg>Filtros</span>
