@@ -319,7 +319,7 @@ function Form({compact}){
         // thank-you page: URL propria pra Meta e Google rastrearem a conversao. O Lead dispara la,
         // uma vez so; a marca no sessionStorage evita contar de novo se a pessoa recarregar.
         try{sessionStorage.setItem('as_lead',String(j.id||Date.now()));}catch(_){}
-        setOk(true); location.assign('obrigado/'); }
+        setOk(true); location.assign('../obrigado/'); }   /* a pagina mora em /ads/formulario/: sem o ../ ia pra /ads/formulario/obrigado/ e dava 404 */
       else setErro('Não deu pra enviar. Confere o WhatsApp e tenta de novo.');
     }catch(_){setErro('Sem conexão. Tenta de novo em instantes.');}
     setEnviando(false);};
