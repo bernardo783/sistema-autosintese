@@ -353,7 +353,7 @@ function crmFichaHTML(o){
       else if(ev.event_type==='lead_created') det=`${esc(crmOrigem(m.source).name)}${m.source_detail?' · '+esc(m.source_detail):''}`;
       else if(ev.event_type==='source_changed') det=`${esc(crmOrigem(m.de).name)} → <strong>${esc(crmOrigem(m.para).name)}</strong>`;
       else if(ev.event_type==='attendance_overridden') det=esc({attended:'Compareceu',no_show:'No-show',undetermined:'Indeterminado'}[m.para]||m.para||'');
-      return `<div class="e"><div class="h">${esc(crmDia(ev.occurred_at))}<br>${esc(crmHora(ev.occurred_at))}</div><i class="${t[1]}">${t[0]}</i>
+      return `<div class="e"><div class="h">${esc(crmDia(ev.occurred_at))} · ${esc(crmHora(ev.occurred_at))}</div><i class="${t[1]}">${t[0]}</i>
         <div><b>${esc(t[2])}</b> <span class="who">· ${ev.actor_user_id?esc(crmNome(ev.actor_user_id)):({webhook_whatsapp:'WhatsApp',calendar:'Google Agenda',meet:'Google Meet',cron:'sistema',capi:'Meta CAPI'}[ev.source]||'sistema')}</span>${det?`<div>${det}</div>`:''}</div></div>`; }).join('')}</div>`;
   const ativos=CRM.d.estagios.filter(x=>!x.fim);
   return `<div class="crm-ficha">
