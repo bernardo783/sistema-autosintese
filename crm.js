@@ -173,14 +173,9 @@ window.crmRender=function(c,viewPedida){
     .concat(temCt&&typeof renderContratos==='function'?[['contratos','Contratos']]:[])
     .concat(temCt&&typeof renderLeads==='function'?[['leads','Leads']]:[])
     .concat([['origens','Origem da receita']])
-    .concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[])
-    /* Comercial fica so com Painel e Pipeline (Gabriel 16/09). As telas continuam
-       existindo e abrem pela URL; o que saiu foi a aba no alto — voltar e tirar
-       esta linha. */
-    .filter(a=>['painel','pipeline'].indexOf(a[0])>=0);
+    .concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[]);
   const tabs=`<div class="fin-tabs" style="margin:0 0 14px">${abas.map(a=>`<button class="ftab${CRM.aba===a[0]?' active':''}" onclick="crmAba('${a[0]}')">${a[1]}</button>`).join('')}
     <span style="margin-left:auto"></span>
-    ${crmAdmin()?`<button class="btn secondary small" onclick="crmEquipeModal()">Equipe comercial</button>`:''}
     ${CRM_EXT[CRM.aba]?'':(CRM.aba==='painel'||CRM.aba==='calls'?`<button class="btn small" onclick="crmCallModal()">+ Nova call</button>`:`<button class="btn small" onclick="crmNovoLead()">+ Lead</button>`)}</div>`;
   /* tela emprestada: deixa ela desenhar tudo e so recoloca a barra de abas
      logo abaixo do cabecalho dela, pra dar pra voltar pras outras. */
@@ -202,7 +197,7 @@ window.crmRender=function(c,viewPedida){
   const j=crmJanela();
   c.innerHTML=`<div class="page-head">
       <div><h2>Comercial</h2><div class="desc">${CRM.aba==='painel'?ccMesNome():CRM.aba==='calls'?'Calls registradas':CRM.aba==='pipeline'?'Pipeline de oportunidades':CRM.aba==='agenda'?'Sessões estratégicas':CRM.aba==='integracoes'?'WhatsApp · Meta Ads · Google Agenda · Google Meet · Conversions API':'De onde vem a receita'}${CRM.aba==='integracoes'||CRM.aba==='painel'||CRM.aba==='calls'?'':` · ${esc(crmDia(j.de.toISOString()))} a ${esc(crmDia(new Date(j.ate-1).toISOString()))}`}${CRM.erro?` · <span style="color:var(--danger)">${esc(CRM.erro)}</span>`:''}</div></div>
-      <div class="toolbar"><button class="btn secondary small" onclick="crmRecarregar()" title="Recarregar">↻</button></div>
+      <div class="toolbar">${crmAdmin()?`<button class="btn secondary small" onclick="crmEquipeModal()" title="Quem é SDR e quem é closer">Equipe</button>`:''}<button class="btn secondary small" onclick="crmRecarregar()" title="Recarregar">↻</button></div>
     </div>${tabs}${CRM.aba==='origens'||CRM.aba==='integracoes'||CRM.aba==='painel'||CRM.aba==='calls'?'':crmFiltrosHTML()}
     ${CRM.aba==='painel'?(ccPainelHTML()+ccCallsHTML()):CRM.aba==='pipeline'?crmPipelineHTML():CRM.aba==='agenda'?crmAgendaHTML():CRM.aba==='integracoes'?crmIntgHTML():crmOrigensHTML()}`;
   if(CRM.aba==='integracoes') crmIntgCarregar();
