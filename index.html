@@ -14737,6 +14737,26 @@ function sqCelula(u){
   if(!ss.length) return '<span class="sq-todos aberto" title="Sem recorte: enxerga os clientes de todos os squads">Sem recorte — vê todos</span>';
   return '<span class="sq-lista">'+ss.map(sqChip).join('')+'</span>';
 }
+/* WhatsApp de cada pessoa (Gabriel 16/09): a instancia da UAZAPI saiu da aba
+   Comercial e passou a viver aqui, ao lado do login de quem usa o numero.
+   O vinculo e pelo primeiro nome: instancia "kennedy" e do Kennedy Lima. */
+let US_WA=null;
+const fmtFoneWa=(j)=>{ const d=String(j||'').replace(/\D/g,''); const n=d.startsWith('55')&&d.length>=12?d.slice(2):d;
+  return n.length===11?`(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`:n; };
+function usWaCelula(u){
+  if(!US_WA) return '<span style="color:var(--muted);font-size:12px">…</span>';
+  const i=window.instDe?instDe(u.nome):null;
+  if(!i) return '<span style="color:var(--muted);font-size:12px">sem número</span>';
+  if(i.erro) return `<span class="tag" style="color:var(--warn)" title="${esc(i.erro)}">erro</span>`;
+  if(i.conectado) return `<span class="tag" style="color:var(--ok)" title="${esc(i.dono?fmtFoneWa(i.dono):'')}">conectado</span>`;
+  return `<span class="tag" style="color:var(--danger)">desconectado</span> <button class="iconbtn" onclick="usWaConectar('${esc(i.name)}')" title="Mostrar o QR code para conectar">conectar</button>`;
+}
+window.usWaConectar=(nome)=>{ if(window.instConectar) instConectar(nome); else toast('Módulo de WhatsApp ainda carregando.'); };
+async function usWaCarregar(){
+  if(!window.instLista) return;
+  try{ US_WA=await instLista(); }catch(_){ US_WA=[]; }
+  (PERFIS||[]).forEach(u=>{ const td=document.getElementById('wa_'+u.id); if(td) td.innerHTML=usWaCelula(u); });
+}
 function drawUsuarios(c){
   const masters=PERFIS.filter(u=>u.role==='master').length;
   c.innerHTML=`
@@ -14744,7 +14764,7 @@ function drawUsuarios(c){
      <div><h2>Usuários</h2><div class="desc">Contas de acesso — criadas e mantidas por um master</div></div>
      <div class="toolbar"><button class="btn small" onclick="openUserModal()">+ Provisionar usuário</button></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>E-mail (login)</th><th>Senha</th><th>Função</th><th>Squads</th><th>Criado em</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>E-mail (login)</th><th>Senha</th><th>Função</th><th>Squads</th><th>WhatsApp</th><th>Criado em</th><th></th></tr></thead>
    <tbody>${PERFIS.map(u=>`<tr>
      <td><span style="display:inline-flex;align-items:center;gap:9px"><span class="uf-av" title="Trocar a foto de ${esc(u.nome)}" onclick="ufTrocar('${u.id}')">${u.foto?`<img src="${esc(u.foto)}" alt="">`:esc(inicial(u.nome))}</span><strong>${esc(u.nome)}</strong></span>${u.id===currentUser.id?' <span class="tag st">você</span>':''}</td>
      <td>${esc(u.email)||'<span style="color:var(--muted)">—</span>'}</td>
@@ -14752,6 +14772,7 @@ function drawUsuarios(c){
        ${u.temSenha?`<button class="iconbtn" onclick="toggleUserPw('${u.id}')">👁</button><button class="iconbtn" onclick="copyUserPw('${u.id}')">copiar</button>`:''}</div></td>
      <td><span class="tag ${u.role==='master'?'andamento':'st'}">${u.role==='master'?'Master':'Usuário'}</span></td>
      <td>${sqCelula(u)}</td>
+     <td id="wa_${u.id}">${usWaCelula(u)}</td>
      <td>${fmtDate((u.criado_em||'').slice(0,10))||'—'}</td>
      <td><div class="rowact">
        <button class="iconbtn" onclick="editSquads('${u.id}')">Squads</button>
@@ -14761,6 +14782,7 @@ function drawUsuarios(c){
      </div></td>
    </tr>`).join('')}</tbody></table></div>
    <p class="hint" style="margin-top:14px">O acesso só existe se um <strong>master</strong> criar aqui — não há autocadastro na tela de login. A senha fica <strong>cifrada no servidor</strong>: o 👁 pede a senha a uma função protegida que só responde a masters. Quem esquecer a senha pede a um master para <strong>Redefinir</strong>.${masters<=1?' <br><strong>Atenção:</strong> só existe um master hoje — promova alguém para não ficar sem acesso.':''}</p>`;
+  usWaCarregar();
 }
 /* ---------- ONDE CADA UM COMEÇA ----------
    perfis.inicio decide o pouso ao entrar e no botão Início: 'dash', vazio (Base de
