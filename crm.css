@@ -58,13 +58,10 @@
 .crm-acoes .bts{display:flex;flex-wrap:wrap;gap:6px}
 .crm-acoes .bts .btn{display:inline-flex;align-items:center;gap:6px}
 .crm-acoes .bts .btn.on{border-color:var(--brand);color:var(--brand2)}
-.crm-ficha{display:grid;grid-template-columns:1fr 320px;gap:14px;padding:16px 20px 20px;overflow:auto;
-  flex:1;min-height:0;container-type:inline-size}
-/* Duas colunas so quando o painel e largo de verdade. Antes a conta era pela janela:
-   numa tela grande com o painel de 470px, a coluna da esquerda sobrava ~90px e os
-   botoes viravam uma pilha torta (Gabriel 16/09). */
-@container (max-width:720px){.crm-ficha{grid-template-columns:1fr}.crm-facts{grid-template-columns:repeat(2,1fr)}}
-@supports not (container-type:inline-size){.crm-ficha{grid-template-columns:1fr}}
+/* UMA coluna, sempre. O painel tem 470px: duas colunas nunca couberam — a esquerda
+   sobrava com ~110px e o nome do lead quebrava letra a letra (Gabriel 16/09). */
+.crm-ficha{display:block;padding:16px 18px 20px;overflow:auto;flex:1;min-height:0}
+.crm-ficha>div{min-width:0}
 .crm-rod{display:flex;gap:8px;padding:11px 16px;border-top:1px solid var(--line);background:var(--panel);
   position:relative;flex:none}
 .crm-rod .btn{flex:1;padding:11px 12px;font-size:13px;justify-content:center}
@@ -76,11 +73,13 @@
   font:inherit;font-size:13px;padding:9px 11px;border-radius:7px;cursor:pointer}
 .crm-menu button:hover{background:var(--cardh)}
 .crm-menu button.perda{color:var(--danger)}
-.crm-fh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.crm-fh{display:flex;align-items:center;gap:11px;margin-bottom:4px}
+.crm-fh>div:nth-child(2){flex:1;min-width:0}
+.crm-fh h3{overflow-wrap:anywhere}
 .crm-fh .big{width:42px;height:42px;border-radius:12px;background:rgba(123,104,238,.16);color:var(--brand2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:none}
 .crm-fh h3{margin:0;font-size:17px}
 .crm-fh .sub{color:var(--fraco);font-size:12.5px}
-.crm-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 14px;margin:6px 0 12px}
+.crm-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;margin:10px 0 14px}
 .crm-fact .k{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--fraco);font-weight:600}
 .crm-fact .v{font-weight:600;margin-top:2px;font-size:13px;word-break:break-word}
 .crm-box{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
@@ -97,10 +96,12 @@
 .crm-orig .v{font-weight:600;font-size:13px}
 .crm-orig .id{display:none;font-size:11px;color:var(--fraco);font-family:ui-monospace,monospace;word-break:break-all}
 .crm-orig.ids .id{display:block}
-.crm-tl .e{display:grid;grid-template-columns:58px 20px 1fr;gap:10px;padding:7px 0;font-size:13px;position:relative}
-.crm-tl .e::before{content:"";position:absolute;left:67px;top:24px;bottom:-4px;width:2px;background:var(--line)}
+.crm-tl .e{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;padding:8px 0;font-size:13px;position:relative}
+.crm-tl .e::before{content:"";position:absolute;left:9px;top:24px;bottom:-4px;width:2px;background:var(--line)}
 .crm-tl .e:last-child::before{display:none}
-.crm-tl .h{color:var(--fraco);font-size:11.5px;padding-top:2px;line-height:1.3}
+.crm-tl .h{grid-column:2;color:var(--fraco);font-size:11px;order:-1;line-height:1.3}
+.crm-tl .h br{display:none}
+.crm-tl .h::after{content:''}
 .crm-tl i{width:20px;height:20px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:10px;font-style:normal;z-index:1}
 .crm-tl i.ev{border-color:var(--brand);color:var(--brand2)}.crm-tl i.ok{border-color:var(--ok)}.crm-tl i.bad{border-color:var(--danger)}.crm-tl i.cal{border-color:var(--warn)}
 .crm-tl .who{color:var(--fraco);font-size:11.5px}
@@ -151,7 +152,7 @@
 .crm-equipe div{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line)}
 .crm-equipe b{flex:1;font-weight:500}
 .crm-equipe select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px}
-@media (max-width:1000px){.crm-ficha{grid-template-columns:1fr}.crm-facts{grid-template-columns:repeat(2,1fr)}.crm-two{grid-template-columns:1fr}.crm-week{grid-template-columns:44px repeat(6,1fr)}}
+@media (max-width:1000px){.crm-ficha{grid-template-columns:1fr}.crm-two{grid-template-columns:1fr}.crm-week{grid-template-columns:44px repeat(6,1fr)}}
 @media (max-width:640px){.crm-form .row2,.crm-form .row3{grid-template-columns:1fr}}
 /* integrações */
 .crm-intg-saude{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
