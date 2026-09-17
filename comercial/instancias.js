@@ -117,11 +117,20 @@
     };
     novo.__inst=true; window.crmRender=novo; return true;
   }
-  function injeta(c){
-    const bar=barra(c); if(!bar||bar.querySelector('[data-inst]')) return;
-    const b=document.createElement('button'); b.className='ftab'+(IN.ativa?' active':''); b.dataset.inst='1'; b.textContent='Instâncias';
-    b.onclick=()=>{ if(window.crmAba) crmAba('instancias'); };
-    const sp=bar.querySelector('span[style*="margin-left:auto"]'); bar.insertBefore(b,sp||null);
-  }
+  /* Comercial nao tem mais essa aba (Gabriel 16/09): o lead do WhatsApp entra
+     direto na coluna "Para atender" do pipeline, e a instancia de cada pessoa
+     mora na tela Usuarios. A funcao fica aqui, desligada, porque o resto do
+     arquivo (QR, status, envio) continua sendo usado de la. */
+  function injeta(){ return; }
   if(!ligar()){ let t=0; const iv=setInterval(()=>{ if(ligar()||++t>50) clearInterval(iv); },200); }
+
+  /* Usado pela tela Usuarios: carrega a lista e devolve a instancia de uma pessoa.
+     O vinculo é pelo apelido da instancia (kennedy, luana) contra o primeiro nome. */
+  window.instLista=async()=>{ if(!IN.carregou) await carregar(); return IN.lista; };
+  window.instDe=(nome)=>{
+    const p=String(nome||'').trim().split(/\s+/)[0].toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return (IN.lista||[]).find(i=>i.name===p)||null;
+  };
+  window.instRecarregarLista=async()=>{ IN.carregou=false; await carregar(); return IN.lista; };
 })();
