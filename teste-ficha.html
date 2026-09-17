@@ -17,7 +17,7 @@
 .crm-orig .k{font-size:10px;text-transform:uppercase;color:var(--fraco);letter-spacing:.5px}
 .crm-orig .v{font-size:13px;font-weight:600}
 </style>
-<link rel="stylesheet" href="https://autosintese.app.br/crm.css?v=TESTE">
+<link rel="stylesheet" href="https://autosintese.app.br/crm.css?v=T2">
 </head><body>
 <div class="overlay crm-ov" id="ov"></div>
 <script>
@@ -26,7 +26,6 @@ var LT=[['16 de set','21:22','Mudou de estágio','Bernardo','Para atender → <s
         ['16 de set','21:06','Lead criado','sistema','Meta Ads']];
 function ficha(){
  return '<div class="crm-ficha"><div style="min-width:0">'+
-  '<div class="crm-fh"><div class="big">FA</div><div><h3>FELIPE ARAUJO</h3><div class="sub">(11) 98765-0002 · ciclo #1</div></div>'+
   '<span class="crm-badge info" style="margin-left:auto;font-size:12px">Ligação</span></div>'+
   '<div class="crm-facts">'+
    ['SDR|—','Closer|—','Primeiro contato|16 set, 21:06','Próxima atividade|—','Valor estimado|—','Receita|—','Atualizado|16 set, 21:22'].map(function(f){var p=f.split('|');
@@ -44,7 +43,7 @@ function ficha(){
   '</div></div>';
 }
 document.getElementById('ov').innerHTML='<div class="modal">'+
- '<div class="mhead"><h3>FELIPE ARAUJO</h3><button class="x">&times;</button></div>'+
+ '<div class="mhead crm-mh"><div class="big">FA</div><div class="q"><h3>FELIPE ARAUJO</h3><div class="sub">(11) 98765-0002 · ciclo #1</div></div><span class="crm-badge info">Ligação</span><button class="x">&times;</button></div>'+
  '<div class="crm-acoes"><div class="lb">Mover etapa</div><div class="bts">'+
   ['Para atender','Agendamento','Follow up','Ganhou','Perdeu'].map(function(t){return '<button class="btn secondary small">'+t+'</button>';}).join('')+'</div>'+
   '<div class="lb">Atribuir</div><div class="bts">'+['Bernardo Antunes','Claude (robô)','Gabriel','José','Kennedy Lima'].map(function(t){return '<button class="btn secondary small">'+t+'</button>';}).join('')+'</div></div>'+
