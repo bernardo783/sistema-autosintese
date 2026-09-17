@@ -825,8 +825,8 @@ function ccPainelHTML(){
     <div class="pc-sec">Ticket médio</div>
     <div class="pc-banner">
       <div class="pc-k">Ticket médio</div>
-      <div class="pc-big">${ganhos.length?esc(brl((tcv+mrr)/ganhos.length)):'—'}</div>
-      <div class="pc-s">${ganhos.length?'MRR + Ganhos · '+ganhos.length+' venda'+(ganhos.length===1?'':'s')+' no mês':'nenhuma venda no mês'}</div>
+      <div class="pc-big">${ganhos.length?esc(brl(mrr/ganhos.length)):'—'}</div>
+      <div class="pc-s">${ganhos.length?'MRR ÷ Ganhos · '+ganhos.length+' venda'+(ganhos.length===1?'':'s')+' no mês · contrato médio '+esc(brl(tcv/ganhos.length)):'nenhuma venda no mês'}</div>
     </div>
 
     <div class="pc-sec">${pcIco('gente')} Agendamentos por SDR</div>
@@ -840,7 +840,7 @@ function ccPainelHTML(){
       </div>`).join('')}</div>`
       :'<div class="hint">Nenhuma call perdida neste mês.</div>'}
 
-    <p class="crm-hint">Mês = data da call. Taxa de no-show e conversão ignoram as calls ainda agendadas — só entram depois que a reunião acontece. Ticket médio soma o valor à vista com o fee mensal do que foi ganho.</p>`;
+    <p class="crm-hint">Mês = data da call. Taxa de no-show e conversão ignoram as calls ainda agendadas — só entram depois que a reunião acontece. Ticket médio é o MRR do mês dividido pelas vendas — a mensalidade média de quem entrou. O contrato médio (TCV ÷ vendas) aparece ao lado: somar TCV com MRR contava o mesmo dinheiro duas vezes.</p>`;
 }
 
 /* ---------- CALLS (lançamento) ---------- */
