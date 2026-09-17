@@ -7,6 +7,10 @@
   border-radius:9px;padding:8px 12px 8px 30px;font:inherit;font-size:13px}
 .crm-busca input:focus{outline:none;border-color:var(--brand)}
 .crm-per{margin:0!important;flex:none}
+.crm-cal{position:relative;flex:none}
+.crm-cal .btn{display:inline-flex;align-items:center;gap:7px}
+.crm-menu-cal{left:0;right:auto;top:calc(100% + 6px);bottom:auto;min-width:200px}
+.crm-menu-cal button.on{color:var(--brand2)}
 .crm-bf.on{border-color:var(--brand);color:var(--brand2)}
 .crm-chip{background:rgba(123,104,238,.14);border:1px solid rgba(123,104,238,.4);color:var(--brand2);
   border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
@@ -37,8 +41,20 @@
 /* kanban */
 /* O quadro pega o que sobra da tela (Gabriel 16/09): antes as colunas tinham
    226px e 72vh de teto, entao sobrava metade da tela vazia embaixo. */
+/* O quadro pega o que sobra da tela (Gabriel 16/09): antes as colunas tinham
+   226px e 72vh de teto, entao sobrava metade da tela vazia embaixo. */
 .crm-board{display:flex;gap:10px;align-items:stretch;overflow-x:auto;
   height:calc(100vh - var(--crm-topo,232px));min-height:360px;padding-bottom:4px}
+/* Pipeline em tela cheia: some o cabecalho do sistema e o conteudo cola no topo.
+   A barra de abas + filtros vira o unico cabecalho (Gabriel 16/09). */
+body.crm-full .topbar{display:none}
+body.crm-full .main{padding:14px 18px 0}
+body.crm-full .crm-topo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+body.crm-full .crm-topo .fin-tabs{margin:0!important}
+body.crm-full .crm-topo .crm-barra{margin:0;flex:1;justify-content:flex-end}
+body.crm-full .crm-board{height:calc(100vh - 86px)}
+@media (max-width:820px){ body.crm-full .crm-topo .crm-barra{flex:1 0 100%;justify-content:flex-start}
+  body.crm-full .crm-board{height:calc(100vh - 140px)} }
 .crm-col{flex:1 1 0;min-width:216px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
   display:flex;flex-direction:column;min-height:0}
 .crm-col.hover{border-color:var(--brand)}
