@@ -123,12 +123,7 @@ nav{max-width:calc(54% - 40px)}
   70%{box-shadow:0 0 0 16px rgba(37,211,102,0),0 14px 34px -12px rgba(37,211,102,.75)}
   100%{box-shadow:0 0 0 0 rgba(37,211,102,0),0 14px 34px -12px rgba(37,211,102,.75)}}
 @media(prefers-reduced-motion:reduce){.zapcta{animation:none}}
-/* cartao que ocupa o lugar do formulario no alto da pagina */
-.zapbox{background:#0F0D14;border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:28px;
-  box-shadow:0 40px 100px -30px rgba(0,0,0,.9);text-align:center}
-.zapbox h3{margin:0 0 8px;font-size:22px;color:#fff;letter-spacing:-.02em}
-.zapbox p{margin:0 0 20px;color:rgba(255,255,255,.72);font-size:15px;line-height:1.5}
-.zapbox .sob{margin:14px 0 0;font-size:13px;color:rgba(255,255,255,.55)}
+
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(106,0,244,.7),var(--shadow-roxa)}70%{box-shadow:0 0 0 16px rgba(106,0,244,0),var(--shadow-roxa)}100%{box-shadow:0 0 0 0 rgba(106,0,244,0),var(--shadow-roxa)}}
 @media(min-width:901px){footer{padding-bottom:28px}}
 @media(max-width:1100px){
@@ -262,14 +257,6 @@ function App(){
           </div>
           <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}>
             <ZapCta>CHAMAR NO WHATSAPP</ZapCta>
-          </div>
-        </div>
-        <div id="form" className="fade" style={{animationDelay:'.1s'}}>
-          <div className="zapbox">
-            <h3>Fale com a gente agora</h3>
-            <p>Sem formulário, sem espera. Clique e caia direto na conversa com nosso time.</p>
-            <ZapCta bloco>CHAMAR NO WHATSAPP</ZapCta>
-            <p className="sob">Respondemos em horário comercial. É uma conversa, não um robô de cadastro.</p>
           </div>
         </div>
       </div>
