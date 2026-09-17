@@ -186,9 +186,7 @@ nav{max-width:calc(54% - 40px)}
   /* Tres campos e mais 60px: o formulario compensa apertando o proprio respiro,
      nunca a altura do campo — dedo grosso em campo baixo e lead perdido.
      Campo com 16px de fonte de proposito: abaixo disso o iPhone da zoom no toque. */
-  #form form{padding:18px 16px!important;gap:11px!important;border-radius:18px!important;
-    border-color:rgba(169,108,255,.45)!important;
-    box-shadow:0 24px 60px -24px rgba(106,0,244,.5),0 40px 100px -30px rgba(0,0,0,.9)!important}
+  #form form{padding:18px 16px!important;gap:11px!important;border-radius:18px!important}
   #form form h3{font-size:19px!important;margin-bottom:2px!important}
   #form form label{font-size:10.5px!important;margin-bottom:5px!important;letter-spacing:.08em!important}
   #form input,#form select.sel{padding:13px 15px!important;font-size:16px!important}
@@ -327,7 +325,7 @@ function Form({compact}){
     setEnviando(false);};
   if(ok) return <Card kicker="Recebido" title="Recebemos seus dados.">Entraremos em contato pelo WhatsApp.</Card>;
   return <form id="as-form" onSubmit={enviar} style={{background:'#0F0D14',border:'1px solid rgba(255,255,255,.12)',borderRadius:22,padding:28,display:'flex',flexDirection:'column',gap:14,boxShadow:'0 40px 100px -30px rgba(0,0,0,.9)'}}>
-    <div><h3 style={{fontSize:20,marginBottom:4}}>Fale com um especialista</h3><span style={{fontSize:13,color:'var(--muted)'}}>Três campos. A gente chama no seu WhatsApp.</span></div>
+    <div><h3 style={{fontSize:20,marginBottom:4}}>Preencha o formulário!</h3><span style={{fontSize:13,color:'var(--muted)'}}>Entraremos em contato.</span></div>
     <Input label="Seu nome" name="nome" placeholder="Seu nome completo" autoComplete="name" required/>
     <Input label="WhatsApp (com DDD)" name="whatsapp" type="tel" inputMode="numeric" placeholder="(11) 99999-9999" maxLength={15} value={fone} onChange={e=>setFone(mask(e.target.value))} autoComplete="tel" required/>
     {/* Nome, WhatsApp e Instagram (Gabriel, 16/09). O Instagram entra porque o
@@ -338,7 +336,6 @@ function Form({compact}){
     <input type="text" name="site" tabIndex={-1} autoComplete="off" style={{position:'absolute',left:-9999,opacity:0,height:0}} aria-hidden="true"/>
     {erro&&<span style={{fontSize:13,color:'#f87171'}}>{erro}</span>}
     <Button type="submit" size="lg" className="pulse" disabled={enviando} style={{justifyContent:'center',opacity:enviando?.7:1}}>{enviando?'ENVIANDO…':<>QUERO VENDER MAIS <I n="arrow-right" s={18}/></>}</Button>
-    <span style={{fontSize:12,color:'var(--muted)',textAlign:'center'}}>Seus dados servem só pra entrarmos em contato.</span>
   </form>;
 }
 function App(){
@@ -363,7 +360,6 @@ function App(){
       <div className="hero-grid topo-form" style={{padding:'56px 0 88px'}}>
         <div className="fade">
           <h1 style={{marginTop:0,fontSize:'clamp(36px,4.2vw,58px)',lineHeight:1.02,letterSpacing:'-.03em',maxWidth:'100%',overflowWrap:'break-word'}}><span className="speed"><span className="trail"></span><span className="trail"></span><span className="trail"></span>Venda de 5 a 10 carros</span><br/><span style={{whiteSpace:'nowrap',display:'inline-block',color:'#fff',background:'var(--as-roxo)',padding:'.06em .26em .1em',lineHeight:1,marginTop:'.1em'}}>nos próximos 30 dias</span></h1>
-          <p className="lead" style={{maxWidth:480,margin:'22px 0 30px',fontSize:18,color:'rgba(255,255,255,.88)'}}>com o <b style={{color:'#fff',fontWeight:700}}>Método AutoSíntese</b></p>
           <div className="prova" style={{display:'flex',alignItems:'center',gap:14,marginBottom:28}}>
             <div style={{display:'flex'}}>{depo.map((d,i)=><img key={d.loja} src={d.avatar} alt="" style={{width:44,height:44,borderRadius:'50%',border:'2px solid #0A0A0A',marginLeft:i?-12:0,objectFit:'cover',background:'#000'}}/>)}</div>
             <div style={{fontSize:15,lineHeight:1.3}}><b style={{color:'#fff',fontSize:16}}>+ de 300 lojas</b><br/><span style={{color:'rgba(255,255,255,.75)'}}>já estão conosco</span></div>
