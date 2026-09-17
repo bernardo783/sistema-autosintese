@@ -272,12 +272,10 @@
     };
     novo.__cv=true; if(orig.__inst) novo.__inst=true; window.crmRender=novo; return true;
   }
-  function injeta(c){
-    if(!podeVer()) return;
-    const bar=barra(c); if(!bar||bar.querySelector('[data-cv]')) return;
-    const b=document.createElement('button'); b.className='ftab'+(CV.aba?' active':''); b.dataset.cv='1'; b.textContent='Conversas';
-    b.onclick=()=>{ if(window.crmAba) crmAba('conversas'); };
-    const sp=bar.querySelector('span[style*="margin-left:auto"]'); bar.insertBefore(b,sp||null);
-  }
+  /* Comercial nao tem mais essa aba (Gabriel 16/09): o lead do WhatsApp entra
+     direto na coluna "Para atender" do pipeline, e a instancia de cada pessoa
+     mora na tela Usuarios. A funcao fica aqui, desligada, porque o resto do
+     arquivo (QR, status, envio) continua sendo usado de la. */
+  function injeta(){ return; }
   if(!ligar()){ let t=0; const iv=setInterval(()=>{ if(ligar()||++t>60) clearInterval(iv); },200); }
 })();
