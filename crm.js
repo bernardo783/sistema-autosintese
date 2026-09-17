@@ -136,20 +136,43 @@ function crmFiltrar(lista){
 const crmCampanhas=()=>{ const s=new Set(); CRM.d.opps.forEach(o=>{ const c=o.ft&&(o.ft.campaign_name||o.ft.campaign_id); if(c) s.add(c); }); return [...s].sort(); };
 window.crmFiltro=(k,v)=>{ CRM.f[k]=v; crmSalvarFiltros(); crmPintar(); };
 window.crmLimpar=()=>{ CRM.f={periodo:CRM.f.periodo,origem:'',sdr:'',closer:'',campanha:'',busca:''}; crmSalvarFiltros(); crmPintar(); };
+/* Uma linha (Gabriel 16/09): busca, periodo e um botao Filtros. Antes eram cinco
+   seletores pequenos lado a lado, cada um com um rotulo dentro, brigando por espaco. */
 function crmFiltrosHTML(){
-  const f=CRM.f, sel=(k,lab,ops)=>`<select class="${f[k]?'on':''}" onchange="crmFiltro('${k}',this.value)" title="${lab}"><option value="">${lab}: todos</option>${ops.map(([v,n])=>`<option value="${esc(v)}"${f[k]===v?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
-  const ativos=['origem','sdr','closer','campanha','busca'].filter(k=>f[k]).length;
-  return `<div class="crm-filtros">
-    ${sel('origem','Origem',CRM.d.origens.map(o=>[o.key,o.name]))}
-    ${sel('sdr','SDR',crmSdrs().map(p=>[p.id,p.nome]))}
-    ${sel('closer','Closer',crmClosers().map(p=>[p.id,p.nome]))}
-    ${sel('campanha','Campanha',crmCampanhas().map(c=>[c,c]))}
-    <input class="${f.busca?'on':''}" placeholder="Buscar nome, telefone, empresa…" value="${esc(f.busca)}" oninput="CRM.f.busca=this.value;crmSalvarFiltros();clearTimeout(CRM._t);CRM._t=setTimeout(crmPintar,250)">
-    ${ativos?`<button class="crm-limpar" onclick="crmLimpar()">limpar ${ativos} filtro${ativos>1?'s':''}</button>`:''}
-    <span style="margin-left:auto"></span>
-    <div class="fin-tabs" style="margin:0">${CRM_PRESETS.map(p=>`<button class="ftab${f.periodo===p[0]?' active':''}" onclick="crmFiltro('periodo','${p[0]}')">${p[1]}</button>`).join('')}</div>
+  const f=CRM.f;
+  const ativos=['origem','sdr','closer','campanha'].filter(k=>f[k]).length;
+  const nomeDe=(k)=>{ const v=f[k]; if(!v) return '';
+    if(k==='origem') return (CRM.d.origens.find(o=>o.key===v)||{}).name||v;
+    if(k==='sdr'||k==='closer') return crmNome(v);
+    return v; };
+  const chips=['origem','sdr','closer','campanha'].filter(k=>f[k])
+    .map(k=>`<button class="crm-chip" onclick="crmFiltro('${k}','')" title="Tirar este filtro">${esc(nomeDe(k))} <i>×</i></button>`).join('');
+  return `<div class="crm-barra">
+    <div class="crm-busca"><i>⌕</i><input placeholder="Buscar nome, telefone, empresa…" value="${esc(f.busca)}"
+      oninput="CRM.f.busca=this.value;crmSalvarFiltros();clearTimeout(CRM._t);CRM._t=setTimeout(crmPintar,250)"></div>
+    <div class="fin-tabs crm-per">${CRM_PRESETS.map(p=>`<button class="ftab${f.periodo===p[0]?' active':''}" onclick="crmFiltro('periodo','${p[0]}')">${p[1]}</button>`).join('')}</div>
+    <button class="btn secondary small crm-bf${ativos?' on':''}" onclick="crmFiltrosModal()">Filtros${ativos?' · '+ativos:''}</button>
+    ${chips}
   </div>`;
 }
+window.crmFiltrosModal=()=>{
+  const f=CRM.f, opt=(v,n,sel)=>`<option value="${esc(v)}"${sel===v?' selected':''}>${esc(n)}</option>`;
+  const campo=(id,lab,ops,val)=>`<div class="field"><label>${lab}</label><select id="${id}"><option value="">Todos</option>${ops.map(([v,n])=>opt(v,n,val)).join('')}</select></div>`;
+  modal('Filtrar o pipeline',
+    `<div class="crm-form">
+      <div class="row2">
+        ${campo('fl_origem','Origem',CRM.d.origens.map(o=>[o.key,o.name]),f.origem)}
+        ${campo('fl_campanha','Campanha',crmCampanhas().map(c=>[c,c]),f.campanha)}
+      </div>
+      <div class="row2">
+        ${campo('fl_sdr','SDR',crmSdrs().map(p=>[p.id,p.nome]),f.sdr)}
+        ${campo('fl_closer','Closer',crmClosers().map(p=>[p.id,p.nome]),f.closer)}
+      </div>
+      <div class="crm-hint">O período e a busca ficam na barra, fora daqui.</div>
+    </div>`,
+    async ()=>{ ['origem','campanha','sdr','closer'].forEach(k=>{ const e=document.getElementById('fl_'+k); CRM.f[k]=e?e.value:''; });
+      crmSalvarFiltros(); crmPintar(); return true; });
+};
 
 /* abas que na verdade sao telas do index.html, emprestadas pro Comercial */
 const CRM_EXT={fechamento:'renderFechamento',contratos:'renderContratos',leads:'renderLeads'};
@@ -173,7 +196,11 @@ window.crmRender=function(c,viewPedida){
     .concat(temCt&&typeof renderContratos==='function'?[['contratos','Contratos']]:[])
     .concat(temCt&&typeof renderLeads==='function'?[['leads','Leads']]:[])
     .concat([['origens','Origem da receita']])
-    .concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[]);
+    .concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[])
+    /* Comercial fica so com Painel e Pipeline (Gabriel 16/09). As telas continuam
+       existindo e abrem pela URL; o que saiu foi a aba no alto — voltar e tirar
+       esta linha. */
+    .filter(a=>['painel','pipeline'].indexOf(a[0])>=0);
   const tabs=`<div class="fin-tabs" style="margin:0 0 14px">${abas.map(a=>`<button class="ftab${CRM.aba===a[0]?' active':''}" onclick="crmAba('${a[0]}')">${a[1]}</button>`).join('')}
     <span style="margin-left:auto"></span>
     ${CRM_EXT[CRM.aba]?'':(CRM.aba==='painel'||CRM.aba==='calls'?`<button class="btn small" onclick="crmCallModal()">+ Nova call</button>`:`<button class="btn small" onclick="crmNovoLead()">+ Lead</button>`)}</div>`;
