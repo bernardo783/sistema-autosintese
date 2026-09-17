@@ -350,7 +350,7 @@ function Form({compact}){
     <datalist id="as-cargos"><option value="Proprietário"/><option value="Gerente"/><option value="Vendedor"/><option value="Marketing"/><option value="Sócio"/><option value="Gestor de tráfego"/></datalist>
     <input type="text" name="site" tabIndex={-1} autoComplete="off" style={{position:'absolute',left:-9999,opacity:0,height:0}} aria-hidden="true"/>
     {erro&&<span style={{fontSize:13,color:'#f87171'}}>{erro}</span>}
-    <Button type="submit" size="lg" className="pulse" disabled={enviando} style={{justifyContent:'center',opacity:enviando?.7:1}}>{enviando?'ENVIANDO…':<>QUERO VENDER MAIS <I n="arrow-right" s={18}/></>}</Button>
+    <Button type="submit" size="lg" className="pulse" disabled={enviando} style={{justifyContent:'center',gap:10,opacity:enviando?.7:1,background:'#25D366',borderColor:'#25D366',color:'#08301c',fontWeight:800,boxShadow:'0 12px 30px -10px rgba(37,211,102,.55)'}}>{enviando?'ENVIANDO…':<><ZapIcon s={20}/> ENVIAR FORMULÁRIO</>}</Button>
   </form>;
 }
 function App(){
