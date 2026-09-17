@@ -382,6 +382,9 @@
   .sup-card>svg{width:24px;height:24px;color:var(--brand2);flex:none}
   .sup-card>b{font-size:15.5px;font-weight:700}
   .sup-card>span{font-size:12.5px;color:var(--fraco);line-height:1.45}
+  /* etiqueta do cartao de Vendas: quantos leads esperam atendimento */
+  .ven-n{align-self:flex-start;margin-top:2px;font-size:11px;font-weight:800;letter-spacing:.04em;
+    color:var(--bg);background:var(--brand2);border-radius:999px;padding:3px 10px}
   .sup-card.breve{cursor:default;opacity:.55}
   .sup-card.breve:hover{border-color:var(--line);transform:none}
   .sup-breve{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--warn);
@@ -3801,7 +3804,9 @@ function render(view){
     return renderContratos(c);
   }
   if(view==='leads'){
-    if(!podeContratos()){ c.innerHTML='<div class="empty">Acesso restrito.</div>'; return; }
+    /* caixa de leads da landing: e o time comercial inteiro, nao so quem gera
+       contrato. O SDR estava trancado pra fora da propria fila. */
+    if(!ehComercial()){ c.innerHTML='<div class="empty">Acesso restrito ao time comercial.</div>'; return; }
     return renderLeads(c);
   }
   if(tlBloqueada(view)){ c.innerHTML='<div class="empty">Esta tela não faz parte do seu acesso.</div>'; return; }
@@ -7716,6 +7721,8 @@ window.fmArquivar=async (id,arquivar)=>{
    closer gera o contrato, e só então o projeto passa pra operação. Os cartões
    seguem essa ordem — sem numerar, a sequência já conta a história. */
 const vendasOpcoes=()=>[
+  {k:'leads',      ic:'lead',   t:'Leads da landing page',
+   d:'Quem preencheu o formulário de autosintese.app.br/ads. Com WhatsApp, Instagram e de qual anúncio veio.'},
   {k:'contratos',  ic:'papel',  t:'Gerador de contratos',
    d:'Escolhe o modelo, preenche e baixa o .docx pronto pra assinar.', quem:'contratos'},
   {k:'fechamento', ic:'aperto', t:'Passagem de bastão operacional',
@@ -7727,6 +7734,8 @@ const VEN_ICO={
   aperto:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   papel:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/>',
   form:'<path d="M9 3h6a1 1 0 011 1v1a1 1 0 01-1 1H9a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><path d="M9 12l2 2 4-4"/>',
+  /* ima: o lead que a landing puxou */
+  lead:'<path d="M4 4h16v5a8 8 0 01-16 0z"/><path d="M4 9h5M15 9h5"/><path d="M12 17v4M9 21h6"/>',
   /* caixa de entrada: o que o cliente mandou cai aqui */
   caixa:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>'
 };
@@ -7736,6 +7745,7 @@ window.venEscolher=(k)=>{
   if(k==='fechamento'){ currentView='fechamento'; lkHash('v','fechamento'); return renderFechamento($('#content')); }
   if(k==='contratos')  return render('contratos');
   if(k==='formularios')return render('formularios');
+  if(k==='leads')      return render('leads');
 };
 const VEN_FORM='https://autosintese.app.br/contrato';
 window.venCopiarLink=async ()=>{
@@ -7753,10 +7763,15 @@ window.renderVendas=(c)=>{
         <span class="sup-pe"><button onclick="venCopiarLink()">Copiar link</button>
           <button onclick="render('formularios')">Ver os recebidos${FC_FORMS.length?' ('+FC_FORMS.length+')':''}</button></span>
       </div>
-      ${vendasOpcoes().map(o=>
-      `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span></button>`).join('')}</div>`;
-  /* o contador do cartao 1 so aparece depois que a lista chega */
+      ${vendasOpcoes().map(o=>{
+        /* o cartao de leads diz quantos ainda nao foram atendidos — numero
+           parado nao conta nada, numero que sobe faz alguem abrir */
+        const n=o.k==='leads'?(LD.leads||[]).filter(x=>String(x.status||'novo')==='novo').length:0;
+        return `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span>${
+          n?`<span class="ven-n">${n} sem atender</span>`:''}</button>`; }).join('')}</div>`;
+  /* os dois contadores so aparecem depois que as listas chegam */
   fcCarregarForms().then(()=>{ if(currentView==='vendas') renderVendas(c); }).catch(()=>{});
+  if(!LD.carregou) ldCarregar().then(()=>{ if(currentView==='vendas') renderVendas(c); }).catch(()=>{});
 };
 
 window.renderReembolsos=(c)=>{
