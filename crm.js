@@ -16,12 +16,14 @@ const CRM_TIPOS_EVENTO={
   source_changed:['◎','','Origem alterada'], attendance_overridden:['✎','cal','Presença ajustada à mão'],
   whatsapp_first_message:['💬','ev','Primeira mensagem no WhatsApp']
 };
-const CRM_PRESETS=[['7d','7 dias'],['30d','30 dias'],['mes','Este mês'],['mes_ant','Mês passado'],['90d','90 dias'],['tudo','Tudo']];
+/* Quatro opcoes atras de um calendario (Gabriel 16/09). Eram seis botoes escritos
+   ocupando a barra inteira; agora e um botao so que abre o menu. */
+const CRM_PRESETS=[['hoje','Hoje'],['7d','Últimos 7 dias'],['30d','Últimos 30 dias'],['custom','Personalizado…']];
 
 const CRM={
   /* Comercial abre no Painel: e a tela que o time olha todo dia (Gabriel 15/09) */
   aba:'painel',
-  f:{periodo:'30d',origem:'',sdr:'',closer:'',campanha:'',busca:''},
+  f:{periodo:'7d',de:'',ate:'',origem:'',sdr:'',closer:'',campanha:'',busca:''},
   d:{opps:[],estagios:[],motivos:[],origens:[],equipe:[],appts:[],google:[],origensMes:[]},
   carregou:false, carregando:false, erro:'', sel:null, semana:0, tl:{}, ocup:{}
 };
@@ -78,12 +80,22 @@ function crmJanela(){
   const hoje=new Date(); hoje.setHours(0,0,0,0);
   const m=(n)=>{ const d=new Date(hoje); d.setDate(d.getDate()+n); return d; };
   const p=CRM.f.periodo;
+  if(p==='hoje') return {de:hoje,ate:m(1)};
+  if(p==='custom'&&CRM.f.de&&CRM.f.ate){ const a=new Date(CRM.f.de+'T00:00:00'), b=new Date(CRM.f.ate+'T00:00:00'); b.setDate(b.getDate()+1); return {de:a,ate:b}; }
   if(p==='7d') return {de:m(-6),ate:m(1)};
   if(p==='30d') return {de:m(-29),ate:m(1)};
   if(p==='90d') return {de:m(-89),ate:m(1)};
   if(p==='mes') return {de:new Date(hoje.getFullYear(),hoje.getMonth(),1),ate:new Date(hoje.getFullYear(),hoje.getMonth()+1,1)};
   if(p==='mes_ant') return {de:new Date(hoje.getFullYear(),hoje.getMonth()-1,1),ate:new Date(hoje.getFullYear(),hoje.getMonth(),1)};
   return {de:new Date(2020,0,1),ate:m(3650)};
+}
+/* liga/desliga a tela cheia e garante que ela nao vaza pra outras telas */
+function crmTelaCheia(on){
+  document.body.classList.toggle('crm-full',!!on);
+  if(on&&!crmTelaCheia._lig){
+    crmTelaCheia._lig=true;
+    addEventListener('hashchange',()=>{ if(String(location.hash).indexOf('funil')<0) document.body.classList.remove('crm-full'); });
+  }
 }
 const crmNoPeriodo=(iso)=>{ if(!iso) return false; const j=crmJanela(), d=new Date(iso); return d>=j.de&&d<j.ate; };
 
@@ -150,11 +162,40 @@ function crmFiltrosHTML(){
   return `<div class="crm-barra">
     <div class="crm-busca"><i>⌕</i><input placeholder="Buscar nome, telefone, empresa…" value="${esc(f.busca)}"
       oninput="CRM.f.busca=this.value;crmSalvarFiltros();clearTimeout(CRM._t);CRM._t=setTimeout(crmPintar,250)"></div>
-    <div class="fin-tabs crm-per">${CRM_PRESETS.map(p=>`<button class="ftab${f.periodo===p[0]?' active':''}" onclick="crmFiltro('periodo','${p[0]}')">${p[1]}</button>`).join('')}</div>
+    <div class="crm-cal"><button class="btn secondary small" onclick="crmPeriodoMenu(event)" title="Período">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+      ${esc(crmPeriodoRotulo())}</button></div>
     <button class="btn secondary small crm-bf${ativos?' on':''}" onclick="crmFiltrosModal()">Filtros${ativos?' · '+ativos:''}</button>
     ${chips}
   </div>`;
 }
+function crmPeriodoRotulo(){
+  const f=CRM.f, achou=CRM_PRESETS.find(p=>p[0]===f.periodo);
+  if(f.periodo==='custom') return (f.de&&f.ate)?(crmDia(f.de)+' a '+crmDia(f.ate)):'Personalizado';
+  return achou?achou[1]:'Últimos 7 dias';
+}
+window.crmPeriodoMenu=(ev)=>{
+  ev.stopPropagation();
+  document.querySelectorAll('.crm-menu').forEach(x=>x.remove());
+  const m=document.createElement('div'); m.className='crm-menu crm-menu-cal';
+  m.innerHTML=CRM_PRESETS.map(p=>`<button class="${CRM.f.periodo===p[0]?'on':''}" onclick="crmPeriodo('${p[0]}')">${esc(p[1])}</button>`).join('');
+  ev.currentTarget.parentElement.appendChild(m);
+  setTimeout(()=>document.addEventListener('click',function fecha(){ document.querySelectorAll('.crm-menu').forEach(x=>x.remove()); document.removeEventListener('click',fecha); },{once:true}),0);
+};
+window.crmPeriodo=(k)=>{
+  document.querySelectorAll('.crm-menu').forEach(x=>x.remove());
+  if(k!=='custom'){ CRM.f.periodo=k; CRM.f.de=''; CRM.f.ate=''; crmSalvarFiltros(); crmPintar(); return; }
+  const hoje=crmIsoLocal?crmIsoLocal(new Date()):new Date().toISOString().slice(0,10);
+  modal('Período personalizado',
+    `<div class="crm-form"><div class="row2">
+      <div class="field"><label>De</label><input id="pd_de" type="date" value="${esc(CRM.f.de||hoje)}"></div>
+      <div class="field"><label>Até</label><input id="pd_ate" type="date" value="${esc(CRM.f.ate||hoje)}"></div>
+    </div></div>`,
+    async ()=>{ const a=(document.getElementById('pd_de')||{}).value, b=(document.getElementById('pd_ate')||{}).value;
+      if(!a||!b){ toast('Escolha as duas datas.'); return false; }
+      if(a>b){ toast('A data inicial não pode ser depois da final.'); return false; }
+      CRM.f.periodo='custom'; CRM.f.de=a; CRM.f.ate=b; crmSalvarFiltros(); crmPintar(); return true; });
+};
 window.crmFiltrosModal=()=>{
   const f=CRM.f, opt=(v,n,sel)=>`<option value="${esc(v)}"${sel===v?' selected':''}>${esc(n)}</option>`;
   const campo=(id,lab,ops,val)=>`<div class="field"><label>${lab}</label><select id="${id}"><option value="">Todos</option>${ops.map(([v,n])=>opt(v,n,val)).join('')}</select></div>`;
@@ -222,6 +263,14 @@ window.crmRender=function(c,viewPedida){
     return;
   }
   const j=crmJanela();
+  /* Pipeline usa a tela toda (Gabriel 16/09): sem titulo, sem subtitulo e sem a
+     barra do sistema em cima — a primeira coluna comeca no topo da pagina. */
+  crmTelaCheia(CRM.aba==='pipeline');
+  if(CRM.aba==='pipeline'){
+    c.innerHTML=`<div class="crm-topo">${tabs}${crmFiltrosHTML()}</div>${crmPipelineHTML()}`;
+    if(CRM.sel) crmAbrirFicha(CRM.sel);
+    return;
+  }
   c.innerHTML=`<div class="page-head">
       <div><h2>Comercial</h2><div class="desc">${CRM.aba==='painel'?ccMesNome():CRM.aba==='calls'?'Calls registradas':CRM.aba==='pipeline'?'Pipeline de oportunidades':CRM.aba==='agenda'?'Sessões estratégicas':CRM.aba==='integracoes'?'WhatsApp · Meta Ads · Google Agenda · Google Meet · Conversions API':'De onde vem a receita'}${CRM.aba==='integracoes'||CRM.aba==='painel'||CRM.aba==='calls'?'':` · ${esc(crmDia(j.de.toISOString()))} a ${esc(crmDia(new Date(j.ate-1).toISOString()))}`}${CRM.erro?` · <span style="color:var(--danger)">${esc(CRM.erro)}</span>`:''}</div></div>
       <div class="toolbar">${crmAdmin()?`<button class="btn secondary small" onclick="crmEquipeModal()" title="Quem é SDR e quem é closer">Equipe</button>`:''}<button class="btn secondary small" onclick="crmRecarregar()" title="Recarregar">↻</button></div>
