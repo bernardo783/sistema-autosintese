@@ -173,7 +173,11 @@ window.crmRender=function(c,viewPedida){
     .concat(temCt&&typeof renderContratos==='function'?[['contratos','Contratos']]:[])
     .concat(temCt&&typeof renderLeads==='function'?[['leads','Leads']]:[])
     .concat([['origens','Origem da receita']])
-    .concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[]);
+    .concat(currentUser.role==='master'?[['anuncios','Anúncios (Meta)']]:[]).concat(crmAdmin()?[['integracoes','Integrações']]:[])
+    /* Comercial fica so com Painel e Pipeline (Gabriel 16/09). As telas continuam
+       existindo e abrem pela URL; o que saiu foi a aba no alto — voltar e tirar
+       esta linha. */
+    .filter(a=>['painel','pipeline'].indexOf(a[0])>=0);
   const tabs=`<div class="fin-tabs" style="margin:0 0 14px">${abas.map(a=>`<button class="ftab${CRM.aba===a[0]?' active':''}" onclick="crmAba('${a[0]}')">${a[1]}</button>`).join('')}
     <span style="margin-left:auto"></span>
     ${crmAdmin()?`<button class="btn secondary small" onclick="crmEquipeModal()">Equipe comercial</button>`:''}
