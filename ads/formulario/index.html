@@ -295,7 +295,7 @@ function Form({compact}){
       const f=document.getElementById('as-form'); if(!f) return;
       const d=new FormData(f), tel=String(d.get('whatsapp')||'').replace(/\D/g,'');
       if(tel.length<10||tel.length>11) return;
-      const corpo={nome:d.get('nome')||'',whatsapp:d.get('whatsapp')||'',instagram:d.get('instagram')||'',cargo:d.get('cargo')||'',
+      const corpo={nome:d.get('nome')||'',whatsapp:d.get('whatsapp')||'',loja:d.get('loja')||'',instagram:d.get('instagram')||'',cargo:d.get('cargo')||'',
         pagina:location.pathname,url:location.href};
       const chave=JSON.stringify(corpo); if(chave===rascunhoRef.current) return; rascunhoRef.current=chave;
       try{ navigator.sendBeacon('https://fuieonexmdupupcsyowg.supabase.co/functions/v1/lead-ads/rascunho',
@@ -312,7 +312,7 @@ function Form({compact}){
     setEnviando(true);setErro('');
     try{
       const r=await fetch('https://fuieonexmdupupcsyowg.supabase.co/functions/v1/lead-ads',{method:'POST',headers:{'content-type':'application/json'},
-        body:JSON.stringify({nome:fd.get('nome'),whatsapp:fone,instagram:insta,cargo:fd.get('cargo'),site:fd.get('site'),pagina:location.pathname,url:location.href,utm,
+        body:JSON.stringify({nome:fd.get('nome'),whatsapp:fone,loja:fd.get('loja'),instagram:insta,cargo:fd.get('cargo'),site:fd.get('site'),pagina:location.pathname,url:location.href,utm,
           fbp:(document.cookie.match(/(?:^|; )_fbp=([^;]+)/)||[])[1]||'', fbc:(document.cookie.match(/(?:^|; )_fbc=([^;]+)/)||[])[1]||''})});
       const j=await r.json().catch(()=>({}));
       if(r.ok&&j.ok){
@@ -331,8 +331,8 @@ function Form({compact}){
     {/* Nome, WhatsApp e Instagram (Gabriel, 16/09). O Instagram entra porque o
         closer abre o perfil antes de ligar e ja sabe com quem vai falar; cargo
         continua fora, esse a gente pergunta na conversa. */}
-    <Input label="Instagram da loja" name="instagram" placeholder="@sualoja" autoComplete="off"
-           value={insta} onChange={e=>setInsta(e.target.value)} inputMode="text"/>
+    <Input label="Nome da loja" name="loja" placeholder="Ex: Central Mais Multimarcas" autoComplete="organization" required/>
+    <label style={{display:'flex',flexDirection:'column',gap:8}}><span style={{fontSize:13,fontWeight:700,letterSpacing:'.06em',textTransform:'uppercase',color:'var(--txt)'}}>Seu cargo na loja</span><select className="sel" name="cargo" required defaultValue=""><option value="" disabled>Selecionar</option><option>Proprietário</option><option>Gerente</option><option>Vendedor</option><option>Marketing</option></select></label>
     <input type="text" name="site" tabIndex={-1} autoComplete="off" style={{position:'absolute',left:-9999,opacity:0,height:0}} aria-hidden="true"/>
     {erro&&<span style={{fontSize:13,color:'#f87171'}}>{erro}</span>}
     <Button type="submit" size="lg" className="pulse" disabled={enviando} style={{justifyContent:'center',opacity:enviando?.7:1}}>{enviando?'ENVIANDO…':<>QUERO VENDER MAIS <I n="arrow-right" s={18}/></>}</Button>
