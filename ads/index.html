@@ -7,6 +7,42 @@
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;
 s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 fbq('init','1602416908008806');fbq('init','2786106281763172');fbq('track','PageView');
+/* De qual anuncio a pessoa veio (Gabriel 16/09). Dois problemas resolvidos aqui:
+   1) os parametros so existiam na URL do primeiro clique — quem navegava pelo site ou
+      recarregava a pagina chegava no formulario sem origem nenhuma. Agora ficam guardados
+      90 dias e a primeira origem e a que vale (last-click nao sobrescreve a aquisicao).
+   2) o _fbc so existia se o pixel ja tivesse rodado antes; sem ele a API de Conversoes
+      nao casa a venda com o anuncio. Se chegou fbclid e nao ha cookie, monta na mao. */
+(function(){
+  var CHAVES=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','utm_id',
+              'ad_id','adset_id','campaign_id','placement','site_source_name','fbclid','gclid'];
+  var GUARDA='as_orig', DIAS=90;
+  function leia(){ try{ return JSON.parse(localStorage.getItem(GUARDA)||'{}')||{}; }catch(_){ return {}; } }
+  try{
+    var q=new URLSearchParams(location.search), veio={};
+    CHAVES.forEach(function(k){ var v=q.get(k); if(v) veio[k]=String(v).slice(0,150); });
+    var salvo=leia();
+    var venceu=salvo.primeiro_em && (Date.now()-Date.parse(salvo.primeiro_em))>DIAS*864e5;
+    if(Object.keys(veio).length && (venceu || !salvo.primeiro_em)){
+      veio.primeiro_em=new Date().toISOString();
+      veio.landing=location.pathname;
+      try{ localStorage.setItem(GUARDA,JSON.stringify(veio)); }catch(_){ }
+    }
+    var cid=q.get('fbclid');
+    if(cid && document.cookie.indexOf('_fbc=')<0){
+      document.cookie='_fbc=fb.1.'+Date.now()+'.'+cid+';path=/;max-age='+(DIAS*86400)+';SameSite=Lax';
+    }
+  }catch(_){ }
+  /* o que o formulario manda: o que esta na URL agora vence o guardado, campo a campo */
+  window.asUtm=function(){
+    var fora={}; try{ var q2=new URLSearchParams(location.search);
+      CHAVES.forEach(function(k){ var v=q2.get(k); if(v) fora[k]=String(v).slice(0,150); }); }catch(_){ }
+    var base=leia(), saida={};
+    Object.keys(base).forEach(function(k){ saida[k]=base[k]; });
+    Object.keys(fora).forEach(function(k){ saida[k]=fora[k]; });
+    return saida;
+  };
+})();
 document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href*="wa.me"]');if(a){try{fbq('track','Contact');}catch(_){}}},true);
 </script>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1602416908008806&ev=PageView&noscript=1"/><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=2786106281763172&ev=PageView&noscript=1"/></noscript>
@@ -220,6 +256,7 @@ function Form({compact}){
   // envia pro sistema (edge function lead-ads -> tabela ads_leads); a tela "Recebido" so aparece depois de gravar
   const enviar=async e=>{e.preventDefault();if(fone.replace(/\D/g,'').length<10)return;if(enviando)return;enviadoRef.current=true;
     const fd=new FormData(e.target); const q=new URLSearchParams(location.search); const utm={};
+    Object.assign(utm,(window.asUtm&&window.asUtm())||{});
     ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid'].forEach(k=>{if(q.get(k))utm[k]=q.get(k);});
     setEnviando(true);setErro('');
     try{
