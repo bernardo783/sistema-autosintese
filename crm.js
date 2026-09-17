@@ -221,6 +221,13 @@ function crmIcoEtapa(e){
   if(!d) return '<i style="background:'+cor+'"></i>';
   return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="'+cor+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none">'+d+'</svg>';
 }
+function crmTemp(o){
+  const base=o.first_lead_reply_at||o.first_inbound_at||o.created_at;
+  const dias=base?Math.floor((Date.now()-new Date(base).getTime())/864e5):999;
+  if(dias<=2) return {k:'quente',rot:'Quente'};
+  if(dias<=7) return {k:'morno',rot:'Morno'};
+  return {k:'frio',rot:'Frio'};
+}
 function crmPipelineHTML(){
   const base=crmFiltrar(CRM.d.opps);
   const vis=base.filter(o=>o.status==='open'||crmNoPeriodo(o.closed_at));
@@ -232,14 +239,12 @@ function crmPipelineHTML(){
   const compar=base.filter(o=>o.attended_at&&crmNoPeriodo(o.attended_at)).length;
   const pagos=noPer.filter(o=>crmOrigem(o.source).paid).length;
   const cols=CRM.d.estagios.map(e=>({e,its:vis.filter(o=>o.stage===e.chave)}));
-  const card=(o)=>{ const c=o.contact||{}, org=crmOrigem(o.source), ft=o.ft;
-    const ap=CRM.d.appts.find(a=>a.opportunity_id===o.id&&['scheduled','confirmed'].includes(a.status));
+  /* Temperatura do lead (Gabriel 16/09): sai do comportamento, nao de campo na mao.
+     Dias desde o ultimo sinal real — resposta do lead; se nunca respondeu, a entrada. */
+  const card=(o)=>{ const c=o.contact||{}, tp=crmTemp(o);
     return `<div class="crm-lc" draggable="true" ondragstart="CRM.arr='${o.id}'" onclick="crmAbrirFicha('${o.id}')">
-      <div class="n">${esc(c.name||crmFone(c.phone_e164))}</div>
-      <div class="t">${esc(c.company||(c.name?crmFone(c.phone_e164):''))}</div>
-      <div class="src"><span class="crm-badge ${org.paid?'pago':'org'}">${esc(org.name)}</span>${ft&&(ft.campaign_name||ft.ad_name)?`<span class="crm-badge" title="${esc(ft.campaign_name||'')} · ${esc(ft.ad_name||'')}">${esc(ft.ad_name||ft.campaign_name)}</span>`:o.source_detail?`<span class="crm-badge">${esc(o.source_detail)}</span>`:''}</div>
-      <div class="f"><span>${crmAv(o.sdr_id)}${o.closer_id?' '+crmAv(o.closer_id,'c'):''}</span>
-        <span class="r">${o.status==='won'?esc(brl(o.revenue)):ap?'📅 '+esc(crmQuando(ap.scheduled_start)):o.value?esc(brl(o.value)):crmDias(o.updated_at)+'d'}</span></div>
+      <div class="crm-lch"><div class="n">${esc(c.name||crmFone(c.phone_e164))}</div><span class="tag ${tp.k}">${tp.rot}</span></div>
+      <div class="t">${esc(crmFone(c.phone_e164))}</div>
     </div>`; };
   return `<div class="crm-kpis">
       <div class="crm-kpi"><div class="k">Leads no período</div><div class="v">${noPer.length}</div><div class="s">${pagos} de mídia paga · ${noPer.length-pagos} orgânico/indicação</div></div>
