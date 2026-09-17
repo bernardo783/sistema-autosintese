@@ -196,6 +196,9 @@ nav{max-width:calc(54% - 40px)}
   #form form>span:last-child{font-size:11px!important}
   /* a barra fixa so cobriria o botao do proprio formulario, que agora esta na tela */
   .sticky{display:none!important}
+  /* o circulo do WhatsApp estava caindo EM CIMA do botao de enviar: a barra fixa
+     sumiu e ele continuou reservando o espaco dela. Desce e encolhe. */
+  .zap{bottom:10px!important;right:12px!important;width:48px!important;height:48px!important}
 }
 /* Celular baixo (Android de 640px de altura): com 3 campos o botao caia 36px
    abaixo da dobra. Aqui o topo encolhe mais — some a linha "Três campos", que e
