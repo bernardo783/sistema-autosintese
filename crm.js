@@ -269,11 +269,29 @@ window.crmAbrirFicha=async (id)=>{
   CRM.sel=id; lkHash('v','funil/opp/'+id);
   let ov=document.getElementById('crmOv');
   if(!ov){ ov=document.createElement('div'); ov.className='overlay crm-ov'; ov.id='crmOv'; ov.onclick=(e)=>{ if(e.target===ov) crmFechar(); }; document.body.appendChild(ov); }
-  ov.innerHTML=`<div class="modal"><div class="mhead"><h3>Oportunidade</h3><button class="x" onclick="crmFechar()">&times;</button></div>${crmFichaHTML(o)}</div>`;
+  ov.innerHTML=`<div class="modal"><div class="mhead"><h3>${esc((o.contact||{}).name||crmFone((o.contact||{}).phone_e164))}</h3><button class="x" onclick="crmFechar()">&times;</button></div>${crmAcoesHTML(o)}${crmFichaHTML(o)}</div>`;
   if(!CRM.tl[id]){
     const {data}=await sb.from('funnel_events').select('*').eq('opportunity_id',id).order('occurred_at',{ascending:true}).limit(500);
     CRM.tl[id]=data||[]; const ov2=document.getElementById('crmOv'); if(ov2&&CRM.sel===id) ov2.innerHTML=`<div class="modal"><div class="mhead"><h3>Oportunidade</h3><button class="x" onclick="crmFechar()">&times;</button></div>${crmFichaHTML(o)}</div>`;
   }
+};
+/* Painel do lead (Gabriel 16/09): abre encostado na direita e a primeira coisa
+   que aparece e o que fazer com o lead — mover de etapa e definir responsavel. */
+function crmAcoesHTML(o){
+  const ets=(CRM.d.estagios||[]).filter(e=>e.chave!==o.stage);
+  const eq=(CRM.d.equipe||[]).filter(p=>p.papel_crm||p.role==='master');
+  return `<div class="crm-acoes">
+    <div class="lb">Mover etapa</div>
+    <div class="bts">${ets.map(e=>`<button class="btn secondary small" onclick="crmMover('${o.id}','${e.chave}')">${crmIcoEtapa(e)}${esc(e.nome)}</button>`).join('')}</div>
+    ${eq.length?`<div class="lb">Atribuir</div>
+    <div class="bts">${eq.map(p=>`<button class="btn secondary small${o.sdr_id===p.id?' on':''}" onclick="crmAtribuir('${o.id}','${p.id}')">${esc(p.nome)}</button>`).join('')}</div>`:''}
+  </div>`;
+}
+window.crmAtribuir=async (id,uid)=>{
+  const {error}=await sb.rpc('crm_atualizar',{p_opp:id,p:{sdr_id:uid}});
+  if(error){ toast('Erro: '+error.message); return; }
+  toast('Responsável: '+crmNome(uid));
+  await crmCarregar(); crmPintar(); crmAbrirFicha(id);
 };
 function crmFichaHTML(o){
   const c=o.contact||{}, org=crmOrigem(o.source), ft=o.ft, lt=o.lt, e=crmEst(o.stage);
