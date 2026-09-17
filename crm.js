@@ -246,18 +246,11 @@ function crmPipelineHTML(){
       <div class="crm-lch"><div class="n">${esc(c.name||crmFone(c.phone_e164))}</div><span class="tag ${tp.k}">${tp.rot}</span></div>
       <div class="t">${esc(crmFone(c.phone_e164))}</div>
     </div>`; };
-  return `<div class="crm-kpis">
-      <div class="crm-kpi"><div class="k">Leads no período</div><div class="v">${noPer.length}</div><div class="s">${pagos} de mídia paga · ${noPer.length-pagos} orgânico/indicação</div></div>
-      <div class="crm-kpi"><div class="k">Em aberto</div><div class="v" style="color:var(--info)">${abertos.length}</div><div class="s">no pipeline agora</div></div>
-      <div class="crm-kpi"><div class="k">Agendados</div><div class="v">${agend}</div><div class="s">${crmPct(agend,noPer.length)}% dos leads</div></div>
-      <div class="crm-kpi"><div class="k">Compareceram</div><div class="v">${compar}</div><div class="s">show rate ${crmPct(compar,agend)}%</div></div>
-      <div class="crm-kpi hi"><div class="k">Vendas</div><div class="v" style="color:var(--ok)">${ganhos.length}</div><div class="s">lead → venda ${crmPct(ganhos.length,noPer.length)}%</div></div>
-      <div class="crm-kpi hi"><div class="k">Receita</div><div class="v">${receita?esc(brl(receita)):'—'}</div><div class="s">${ganhos.length?'ticket '+esc(brl(receita/ganhos.length)):''}</div></div>
-    </div>
-    <div class="crm-board">${cols.map(c=>`<div class="crm-col" ondragover="event.preventDefault();this.classList.add('hover')" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');crmSoltar(event,'${c.e.chave}')">
+  /* Pipeline e so o quadro (Gabriel 16/09): KPI e explicacao saem daqui — numero
+     do periodo continua inteiro no Painel. */
+  return `<div class="crm-board">${cols.map(c=>`<div class="crm-col" ondragover="event.preventDefault();this.classList.add('hover')" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');crmSoltar(event,'${c.e.chave}')">
         <div class="crm-colh">${crmIcoEtapa(c.e)}${esc(c.e.nome)}<span>${c.its.length}</span></div>
-        <div class="crm-cards">${c.its.map(card).join('')||'<div class="crm-vazio">arraste para cá</div>'}</div></div>`).join('')}</div>
-    <p class="crm-hint">Cada movimento vira um evento imutável na linha do tempo. Ganho pede a receita; Perdido pede o motivo. Agendado, No-show e Compareceu também chegam pela Agenda.</p>`;
+        <div class="crm-cards">${c.its.map(card).join('')||'<div class="crm-vazio">arraste para cá</div>'}</div></div>`).join('')}</div>`;
 }
 window.crmSoltar=async (ev,est)=>{ ev.preventDefault(); const id=CRM.arr; CRM.arr=null; if(id) await crmMover(id,est); };
 window.crmMover=async (id,est,meta)=>{
