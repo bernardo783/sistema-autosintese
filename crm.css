@@ -76,6 +76,14 @@
 .crm-fh{display:flex;align-items:center;gap:11px;margin-bottom:4px}
 .crm-fh>div:nth-child(2){flex:1;min-width:0}
 .crm-fh h3{overflow-wrap:anywhere}
+.crm-mh{display:flex;align-items:center;gap:11px}
+.crm-mh .big{width:38px;height:38px;border-radius:11px;background:rgba(123,104,238,.16);color:var(--brand2);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none}
+.crm-mh .q{flex:1;min-width:0}
+.crm-mh .q h3{margin:0;font-size:16px;line-height:1.2;overflow-wrap:anywhere}
+.crm-mh .q .sub{color:var(--fraco);font-size:12px;margin-top:1px}
+.crm-mh .crm-badge{flex:none;font-size:11.5px}
+@media (max-width:420px){.crm-mh .crm-badge{display:none}}
 .crm-fh .big{width:42px;height:42px;border-radius:12px;background:rgba(123,104,238,.16);color:var(--brand2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:none}
 .crm-fh h3{margin:0;font-size:17px}
 .crm-fh .sub{color:var(--fraco);font-size:12.5px}
