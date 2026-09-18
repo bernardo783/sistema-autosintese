@@ -99,6 +99,7 @@ body.crm-full .crm-board{height:calc(100vh - 86px)}
 .crm-rod .btn{flex:1;padding:11px 12px;font-size:13px;justify-content:center}
 .crm-rod .btn.ganho{background:var(--ok);color:#0b2e1f;border:0;font-weight:700}
 .crm-rod .crm-mais{flex:none;width:46px;letter-spacing:1px}
+.crm-rod .crm-zap{flex:none;display:inline-flex;align-items:center;gap:7px;color:#25D366}
 .crm-menu{position:absolute;right:16px;bottom:calc(100% + 6px);background:var(--panel2);border:1px solid var(--line);
   border-radius:10px;padding:5px;min-width:190px;z-index:5;box-shadow:0 12px 32px rgba(0,0,0,.45)}
 .crm-menu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--txt);
