@@ -243,6 +243,16 @@
   .cv-resp{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
   .cv-resp textarea{flex:1;resize:none;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;font:inherit;font-size:13px;line-height:1.4;max-height:140px}
   .cv-vazio,.cv-nada{color:var(--fraco);font-size:13px;text-align:center;padding:26px 12px;margin:auto}
+  .wald{width:min(440px,100vw);background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;height:100vh}
+  .wald-h{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .wald-h .q{flex:1;min-width:0}
+  .wald-h b{display:block;font-size:15px;line-height:1.2;overflow-wrap:anywhere}
+  .wald-h small{color:var(--fraco);font-size:12px}
+  .wald-h .x{background:none;border:0;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+  .wald .cv-msgs{flex:1}
+  .wald-r{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+  .wald-r:empty{display:none}
+  .wald-r textarea{flex:1;resize:none;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;font:inherit;font-size:13px;line-height:1.4;max-height:140px}
   @media(max-width:860px){ .cv-grid{grid-template-columns:1fr;height:auto}
     .cv-lista{max-height:300px} .cv-conv{min-height:420px} }`;
   function estilo(){ if(document.getElementById('cvCss')) return;
@@ -278,4 +288,63 @@
      arquivo (QR, status, envio) continua sendo usado de la. */
   function injeta(){ return; }
   if(!ligar()){ let t=0; const iv=setInterval(()=>{ if(ligar()||++t>60) clearInterval(iv); },200); }
+
+  /* ---------- Conversa de UM lead, chamada pela ficha do pipeline (Gabriel 18/09) ----------
+     A aba geral saiu do Comercial, mas dentro do lead a conversa faz falta: e onde
+     esta o que a pessoa escreveu. A funcao /conversa acha sozinha em qual numero do
+     time (Kennedy ou Luana) esse contato falou. */
+  const LD={fone:'',nome:'',chatid:'',por:'',perfil:'',msgs:[],carregando:false,erro:'',enviando:false};
+  window.waDoLead=async (fone,nome)=>{
+    if(!podeVer()){ toast('As conversas do WhatsApp são visíveis só para master e gestor.'); return; }
+    LD.fone=String(fone||''); LD.nome=nome||''; LD.msgs=[]; LD.erro=''; LD.carregando=true; LD.chatid='';
+    estilo(); waLdModal(); waLdPinta();
+    try{ const d=await api('conversa',{fone:LD.fone});
+      if(!d.achou){ LD.erro='Nenhuma conversa com este número ainda — nem no WhatsApp do Kennedy, nem no da Luana.'; }
+      else { LD.msgs=d.mensagens||[]; LD.por=d.por||''; LD.perfil=d.perfil||d.por||''; LD.chatid=d.chatid||''; }
+    }catch(e){ LD.erro=e.message||'falha'; }
+    LD.carregando=false; waLdPinta();
+  };
+  function waLdModal(){
+    const ov=document.createElement('div'); ov.id='waLdOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:10600;background:rgba(0,0,0,.72);display:flex;align-items:stretch;justify-content:flex-end';
+    ov.innerHTML='<div class="wald"><div class="wald-h"><div class="q"><b id="waLdNome"></b><small id="waLdPor"></small></div>'+
+      '<a class="btn secondary small" id="waLdZap" target="_blank" rel="noopener">Abrir no WhatsApp</a>'+
+      '<button class="x" onclick="waLdFechar()" aria-label="Fechar">&times;</button></div>'+
+      '<div class="cv-msgs" id="waLdMsgs"></div><div class="wald-r" id="waLdResp"></div></div>';
+    ov.addEventListener('click',(e)=>{ if(e.target===ov) waLdFechar(); });
+    document.body.appendChild(ov);
+  }
+  window.waLdFechar=()=>{ const o=$('#waLdOv'); if(o) o.remove(); };
+  function waLdPinta(){
+    const c=$('#waLdMsgs'); if(!c) return;
+    const n=$('#waLdNome'), p=$('#waLdPor'), z=$('#waLdZap');
+    if(n) n.textContent=LD.nome||fmtFone(LD.fone);
+    if(p) p.textContent=LD.por?('conversa no WhatsApp de '+LD.perfil):(LD.carregando?'procurando…':'');
+    if(z) z.href='https://wa.me/'+String(LD.fone).replace(/\D/g,'');
+    if(LD.carregando){ c.innerHTML='<div class="cv-nada">Procurando a conversa…</div>'; }
+    else if(LD.erro){ c.innerHTML='<div class="cv-nada">'+esc(LD.erro)+'</div>'; }
+    else {
+      const guarda=CV.msgs, g2=CV.sel;
+      CV.msgs=LD.msgs; CV.sel={chatid:LD.chatid};
+      c.innerHTML=threadHTML();
+      CV.msgs=guarda; CV.sel=g2;
+      c.scrollTop=c.scrollHeight;
+    }
+    const r=$('#waLdResp');
+    if(r) r.innerHTML=LD.chatid?('<textarea id="waLdTexto" rows="1" placeholder="Responder…" oninput="waLdCresce(this)" onkeydown="waLdTecla(event)"></textarea>'+
+      '<button class="btn small" onclick="waLdEnviar()"'+(LD.enviando?' disabled':'')+'>'+(LD.enviando?'Enviando…':'Enviar')+'</button>'):'';
+  }
+  window.waLdCresce=(t)=>{ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,140)+'px'; };
+  window.waLdTecla=(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); waLdEnviar(); } };
+  window.waLdEnviar=async ()=>{
+    const t=$('#waLdTexto'); if(!t||LD.enviando||!LD.chatid) return;
+    const texto=t.value.trim(); if(!texto) return;
+    LD.enviando=true; t.value='';
+    LD.msgs.push({id:'tmp'+Date.now(),deNos:true,texto,quando:new Date().toISOString(),status:'enviando'});
+    waLdPinta();
+    try{ await api('responder',{name:LD.por,chatid:LD.chatid,texto});
+      const d=await api('conversa',{fone:LD.fone}); if(d.achou) LD.msgs=d.mensagens||LD.msgs;
+    }catch(e){ toast('Não enviou: '+e.message); LD.msgs.pop(); t.value=texto; }
+    LD.enviando=false; waLdPinta();
+  };
 })();
