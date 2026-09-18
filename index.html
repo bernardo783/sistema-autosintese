@@ -9438,7 +9438,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       return tkmSalvar(window.__tkmT,lid,cps,true); };
   }
   ckPintar();
-  window.__tkmTarefaId=t?t.id:'';
+  window.__tkmTarefaId=t?t.id:''; window.__tkmCriando=null;
   tkFichaPinta('tk_ficha');
   setTimeout(()=>{ if(t){ tkmAtvCarregar(t.id); tkmAnxCarregar(t.id); } tkmRelPintar();
     const sel=document.getElementById('tk_ficha'); if(sel) sel.addEventListener('change',tkmRelPintar); },40);
@@ -9449,6 +9449,15 @@ async function tkmSalvar(t,lid,cps,silencioso){
   const st=document.getElementById('tkmAuto');
   const aviso=(m)=>{ if(silencioso){ if(st){ st.textContent=m; st.className='tkm-auto falta'; } } else toast(m); };
   if(!$('#tk_tit')) return false;   /* painel ja fechou */
+  /* TAREFA NOVA NASCE UMA VEZ SO (Gabriel 18/09: "GAMBIRA BMW320I" saiu duplicada).
+     O autosave dispara a cada mudanca; digitar a data mandava dois saves com 0,2s de
+     diferenca e, como o primeiro insert ainda estava voando, os dois criavam a tarefa.
+     Agora quem chega no meio espera o insert terminar e vira update. */
+  if(!t){
+    if(window.__tkmCriando){ try{ await window.__tkmCriando; }catch(_){}
+      t=window.__tkmT||null;
+      if(!$('#tk_tit')) return false; }
+  }
   {
       const v={titulo:TIT_CLI($('#tk_lista').value,$('#tk_tit').value.trim()), lista_id:$('#tk_lista').value, ficha_id:$('#tk_ficha').value||null,
         prioridade:$('#tk_prio').value, prazo:$('#tk_prazo').value||null,
@@ -9483,13 +9492,18 @@ async function tkmSalvar(t,lid,cps,silencioso){
       cps.forEach(c=>{ const e2=$('#cp_'+c.id); if(!e2) return;
         let x=c.tipo==='checkbox'?e2.checked:e2.value;
         if(x===''||x===false||x===null) return;
+        /* campo de data dispara change a cada tecla do ano: "0020-09-18" e ano pela
+           metade, nao data. Mantem o que ja estava ate o ano ficar de pe. */
+        if(c.tipo==='data'&&String(x).slice(0,4)<'1900'){ const ja=t&&t.valores&&t.valores[c.id]; if(ja) val[c.id]=ja; return; }
         if(c.tipo==='numero'||c.tipo==='moeda') x=Number(x);
         val[c.id]=x; });
       v.valores=(v.lista_id!==lid)?{}:val;
       v.concluida_em = v.status==='feito' ? ((t&&t.concluida_em)||new Date().toISOString()) : null;
       let error=null, criada=null;
       if(t){ ({error}=await sb.from('tarefas').update(v).eq('id',t.id)); }
-      else { const r=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
+      else { const pr=(async()=>await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single())();
+             window.__tkmCriando=pr;
+             let r; try{ r=await pr; } finally { window.__tkmCriando=null; }
              error=r.error; criada=r.data||null; }
       if(error){ aviso('Erro ao salvar: '+error.message); if(!silencioso) toast('Erro: '+error.message); return false; }
       /* linha do tempo do cliente: status mudou (concluida ja entra sozinha pelo concluida_em) */
