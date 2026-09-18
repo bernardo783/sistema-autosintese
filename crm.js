@@ -369,11 +369,17 @@ function crmPainelHTML(o){
 /* As duas acoes que fecham o dia ficam sempre a mao; o resto entra no "mais". */
 function crmRodapeHTML(o){
   const c=o.contact||{}, fone=String(c.phone_e164||'').replace(/\D/g,'');
+  /* Ler a conversa sem sair do pipeline (Gabriel 18/09): a funcao acha sozinha se quem
+     falou com esse numero foi o Kennedy ou a Luana. So master/gestor enxerga. */
+  const zap=(fone&&window.waDoLead&&crmAdmin())
+    ? `<button class="btn secondary crm-zap" onclick="waDoLead('${fone}','${esc((c.name||'').replace(/'/g,''))}')" title="Ler e responder a conversa no WhatsApp">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.2 14.1c-.2.6-1.2 1.1-1.7 1.2-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.5-2.6-1.1-4.3-3.7-4.4-3.9-.1-.2-1-1.4-1-2.6 0-1.3.6-1.9.9-2.1.2-.3.5-.3.7-.3h.5c.2 0 .4-.1.7.5l.8 1.9c.1.1.1.3 0 .5l-.3.4-.4.4c-.1.1-.3.3-.1.6.1.2.6 1.1 1.4 1.8 1 .9 1.8 1.1 2.1 1.3.2.1.4.1.5-.1l.7-.9c.2-.2.4-.2.6-.1l1.8.9c.2.1.4.2.5.3 0 .1 0 .5-.2 1Z"/></svg>
+        Conversa</button>` : '';
   if(o.status!=='open') return `<div class="crm-rod">
-    <button class="btn secondary" onclick="crmMover('${o.id}','novo_lead')">↻ Reabrir</button>
+    <button class="btn secondary" onclick="crmMover('${o.id}','novo_lead')">↻ Reabrir</button>${zap}
     <button class="btn secondary crm-mais" onclick="crmMaisMenu(event,'${o.id}')" aria-label="Mais ações">···</button></div>`;
   return `<div class="crm-rod">
-    <button class="btn secondary" onclick="crmAgendarModal('${o.id}')">📅 Agendar</button>
+    <button class="btn secondary" onclick="crmAgendarModal('${o.id}')">📅 Agendar</button>${zap}
     <button class="btn ganho" onclick="crmGanhoModal('${o.id}')">🎉 Ganho</button>
     <button class="btn secondary crm-mais" onclick="crmMaisMenu(event,'${o.id}')" aria-label="Mais ações">···</button></div>`;
 }
