@@ -986,6 +986,19 @@ grupo('Novo contrato / upsell do gerente (Gabriel 23/09)');
   ok('função fechamento recusa gerente que não é o da ficha', /gerenteDaFicha\(fid, quem\.nome\)/.test(ed)&&/if \(!fid\) return erro/.test(ed));
 }
 
+/* ---------------- Controle de Clientes: dinheiro e total da carteira ---------------- */
+grupo('Controle de Clientes: colunas de dinheiro e total da carteira (Gabriel 23/09)');
+{
+  const cod=bloco('const moedaCurta=','window.tkMonEditar=');
+  const g=rodar(cod,{},['moedaCurta']);
+  ok('R$ colado e sem centavo quando é redondo', g.moedaCurta(1500)==='R$ 1.500');
+  ok('com centavo quando precisa', g.moedaCurta(1449.44)==='R$ 1.449,44');
+  ok('vazio fica vazio', g.moedaCurta('')===''&&g.moedaCurta(null)==='');
+  ok('total da carteira só pra master e gerente', /if\(lc&&souGerente\(\)&&total\)/.test(HTML));
+  ok('gerente vê "seus 10%", master vê "gerentes 10%"', HTML.indexOf("mst?'gerentes 10%':'seus 10%'")>0);
+  ok('títulos curtos das colunas de dinheiro', HTML.indexOf("'Remuneração Gerente (10%)':'Gerente 10%'")>0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
