@@ -1763,6 +1763,11 @@
   .pc-nome{font-size:23px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
   .pc-meta{color:var(--muted);font-size:12.5px;margin-top:8px;display:flex;gap:9px;
     align-items:center;flex-wrap:wrap}
+  .pc-tipo{font:inherit;font-size:12.5px;color:var(--txt);background:transparent;border:1px solid var(--line);border-radius:7px;
+    padding:1px 7px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .pc-tipo:hover{border-color:var(--brand2)}
+  .pc-tipo.vz{color:var(--warn);border-color:rgba(230,177,63,.45);border-style:dashed}
+  .pc-tipo-s{font-size:9px;opacity:.7}
   .pc-meta i{width:3px;height:3px;border-radius:50%;background:var(--fraco);display:block;flex:none}
   .pc-meta .tag{font-size:11px}
   /* fileira de icones: sem palavra, com o nome no hover */
@@ -13675,7 +13680,7 @@ window.openProjCard=(id)=>{
         <div class="pc-nome">${esc(it.nome)}${master?`<button class="pc-ren" title="Corrigir o nome do cliente" onclick="cliRenomear('${it.id}')">&#9998;</button>`:''}</div>
         <div class="pc-meta">
           <span class="tag ${PRJ_NORM(it.status)}">${ST_LABEL[PRJ_NORM(it.status)]}</span>
-          <i></i><span>${esc(CAT_LABEL[catDe(it)]||'-')}</span>
+          <i></i><button type="button" class="pc-tipo${CAT_LABEL[it.categoria]?'':' vz'}" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">${CAT_LABEL[it.categoria]?esc(CAT_LABEL[it.categoria]):'definir tipo'}<span class="pc-tipo-s">&#9662;</span></button>
           ${it.squad?`<i></i>${sqEtiqueta(it.squad)}`:''}
         </div>
       </div>
@@ -13880,6 +13885,26 @@ window.pcAplicar=async (pid)=>{
   const mb2=document.querySelector('#pcModal .mbody'); if(mb2) mb2.scrollTop=sc;
   if(_abF){ const el2=document.querySelector('#pcModal [data-f="'+_abF+'"]'); if(el2) pcInline(null,el2); }
   toast(falta.length?('Salvo: ainda falta: '+falta.join(', ')+'.'):'Salvo.');
+};
+/* Tipo de cliente direto no topo da ficha (Gabriel 23/09: "nao da pra mudar se e agent
+   ia ou trafego"). O campo Categoria existia, mas so dentro da aba Ficha; no topo o tipo
+   era texto e, sem categoria escolhida, mostrava um palpite que parecia definitivo. */
+window.pcTipoMenu=(ev,pid)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
+  ctxAbrir(ev,[{cab:'Tipo de cliente'}].concat(Object.keys(CAT_LABEL).map(k=>({
+    t:CAT_LABEL[k]+(it.categoria===k?' (atual)':''),f:()=>pcTipoSet(pid,k)}))));
+};
+window.pcTipoSet=async (pid,k)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it||!CAT_LABEL[k]) return;
+  if(it.categoria===k) return;
+  it.categoria=k;
+  await saveDB();
+  const mb=document.querySelector('#pcModal .mbody'); const sc=mb?mb.scrollTop:0;
+  const ov=document.querySelector('.overlay'); if(ov) ov.remove();
+  openProjCard(pid);
+  const mb2=document.querySelector('#pcModal .mbody'); if(mb2) mb2.scrollTop=sc;
+  try{ if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
+  toast('Tipo: '+CAT_LABEL[k]+'.');
 };
 window.pcEditar=(ligar)=>{ const el=document.getElementById('pcModal'); if(!el) return;
   el.classList.toggle('ed',!!ligar); el.classList.toggle('ver',!ligar);
