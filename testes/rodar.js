@@ -679,6 +679,26 @@ grupo('Controle de Clientes: filtro por tipo e selo "sem tipo" (Gabriel 23/09)')
   ok('o atalho "Agente" saiu das pílulas de pessoa', HTML.indexOf("pil('(ia)','Agente'")<0);
 }
 
+/* ---------------- contas do mesmo cliente (Alto Giro, Sabará) ---------------- */
+grupo('Contas do mesmo cliente: grupo, contas irmãs e conta do Meta sem ficha (Gabriel 23/09)');
+{
+  const cod=bloco("const LC_REM=",'function pcGrupoBarra(');
+  const P=[{id:'a',nome:'ALTOGIRO | JÔ ARAUJO',grupo:'ALTOGIRO'},{id:'b',nome:'ALTOGIRO │ DHIONATAS'},{id:'c',nome:'altogiro | marcos'},
+           {id:'d',nome:'SABARÁ | CAYMAN'},{id:'e',nome:'TOP TRADE'}];
+  const g=rodar(cod,{MAIUS:x=>String(x==null?'':x).toLocaleUpperCase('pt-BR'),DB:{projetos:P},
+    fichaDaConta:id=>id==='act_ligada'?P[0]:null,
+    window:{__mtDados:[{id:'act_ligada',status:1},{id:'act_solta',status:1},{id:'act_parada',status:2}]}},['grupoDe','irmasDe','contaSufixo','contasSemFicha']);
+  g.window.__mtDados=[{id:'act_ligada',status:1},{id:'act_solta',status:1},{id:'act_parada',status:2}];
+  ok('grupo explícito na ficha', g.grupoDe(P[0])==='ALTOGIRO');
+  ok('grupo pelo prefixo, com a barra │ também', g.grupoDe(P[1])==='ALTOGIRO');
+  ok('prefixo em minúscula vira o mesmo grupo', g.grupoDe(P[2])==='ALTOGIRO');
+  ok('cliente sem barra não tem grupo', g.grupoDe(P[4])==='');
+  ok('Altogiro tem 3 contas irmãs', g.irmasDe(P[0]).length===3);
+  ok('Sabará não mistura com Altogiro', g.irmasDe(P[3]).length===1);
+  ok('nome da conta sem o grupo', g.contaSufixo(P[1])==='DHIONATAS');
+  ok('só conta ativa e sem ficha entra no alerta', g.contasSemFicha().map(x=>x.id).join()==='act_solta');
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));

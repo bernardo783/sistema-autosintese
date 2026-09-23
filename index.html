@@ -1965,6 +1965,18 @@
   .rc-et .qd{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
   .rc-et .vl{font-size:14.5px;font-weight:800;margin:3px 0 2px;font-variant-numeric:tabular-nums}
   .rc-et .dt{font-size:11.5px;color:var(--muted)}
+  .pc-grupo{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:10px 0 2px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);font-size:12.5px}
+  .pc-gr-k{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .pc-gr-n{color:var(--muted);margin-right:4px}
+  .pc-gr-c{font:inherit;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--txt);cursor:pointer}
+  .pc-gr-c.on{background:rgba(124,104,238,.16);border-color:rgba(124,104,238,.45);cursor:default}
+  .lc-grupo-tag{font:inherit;display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;
+    color:#c4b5fd;background:rgba(124,104,238,.12);border:1px solid rgba(124,104,238,.35);vertical-align:1px;white-space:nowrap}
+  .lc-gr-res{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:0 0 12px;padding:9px 14px;border-radius:10px;border:1px solid rgba(124,104,238,.35);background:rgba(124,104,238,.08);font-size:13px}
+  .lc-gr-res span{color:var(--muted)} .lc-gr-res span b{color:var(--txt)}
+  .lc-alerta{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 12px;padding:9px 14px;border-radius:10px;cursor:pointer;font-size:13px;
+    color:var(--warn);background:rgba(230,177,63,.10);border:1px solid rgba(230,177,63,.35)}
+  .lc-alerta span{color:var(--muted)} .lc-alerta u{margin-left:auto}
   .lc-tipos-k{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center;margin-right:2px}
   .ftab.lc-semtipo{color:var(--warn);border-color:rgba(230,177,63,.45)}
   .lc-semtipo-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;
@@ -6564,7 +6576,7 @@ function tkCard(t){
     const sub=[f.gerente,soIA(f)?'':f.responsavel].filter(Boolean)
       .map(n=>`<span class="tk-pes">${avatarDoNome(n,'lc-av')}${esc(n)}</span>`).join('');
     return `<div class="tk-card" ${drag} onclick="abrirCliente('${t.ficha_id}')">
-      <div class="tk-tit">${esc(t.titulo)}${lcSeloTipo(t.ficha_id)}</div>
+      <div class="tk-tit">${esc(t.titulo)}${lcSeloTipo(t.ficha_id)}${lcSeloGrupo(t.ficha_id)}</div>
       ${sub?`<div class="tk-sub">${sub}</div>`:''}
       <div class="tk-chips so-hover">
         <button type="button" class="tk-chip" title="Mudar o estágio do cliente" onclick="event.stopPropagation();tkQaEstagio(event,'${t.id}')">&#8646; Mudar estágio</button>
@@ -7010,7 +7022,7 @@ function tkViewLista(){
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
-  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
+  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id)+lcSeloGrupo(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr style="--bar:${esc(tkCorLinha(t))}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
@@ -8561,7 +8573,7 @@ function tkDesenhar(c){
        </span>
      </div>
    </div>
-   ${cli?lcAtalhos()+lcChips():''}
+   ${cli?lcAlertaContas()+lcAtalhos()+lcChips()+lcGrupoResumo():''}
    ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}
    <p class="hint" style="margin-top:14px">${cli?'Cada card é um cliente, clique para abrir a ficha. Arrastar entre colunas muda o estágio.':'Espaço agrupa pastas; pasta agrupa listas; lista agrupa tarefas, cada lista tem seus próprios status e colunas. Tarefa com <strong>cliente</strong> só aparece para quem tem o squad daquele cliente.'}</p>`;
   if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
@@ -10680,6 +10692,137 @@ window.lcExcluirDeVez=async (fid)=>{
   if(t){ try{ await sb.from('tarefas').delete().eq('id',t.id); }catch(_){} }
   TK.tarefas=(TK.tarefas||[]).filter(x=>!(String(x.ficha_id)===String(fid)&&(ehLC(x.lista_id)||x.lista_id===CH_ID)));
   arqFechar(); arqRedesenhar(); toast('Cliente excluído de vez.');
+};
+/* ---------- CONTAS DO MESMO CLIENTE (Gabriel 23/09, relato do Luiz) ----------
+   Alto Giro e Sabara nao pagam por cliente, pagam por CONTA: cada conta de anuncio e
+   uma ficha propria, com cobranca, mensalidade e remuneracao proprias (e assim que a
+   contagem do Luan e a cobranca ja funcionam). O que faltava: (1) criar a conta nova
+   sem refazer o Fechamento inteiro, (2) ver as contas irmas juntas e (3) nao deixar
+   conta do Meta passar sem ficha. Grupo = ficha.grupo, ou o prefixo "GRUPO | CONTA". */
+const LC_REM='46c3b98b-6590-4aff-bf80-ed03801206c7';
+const GR_SEP=/\s+[|\u2502]\s+/;
+const grupoDe=(f)=>{ if(!f) return ''; const g=String(f.grupo||'').trim(); if(g) return MAIUS(g);
+  const m=String(f.nome||'').split(GR_SEP); return m.length>1?MAIUS(m[0].trim()):''; };
+const irmasDe=(f)=>{ const g=grupoDe(f); if(!g) return []; return (DB.projetos||[]).filter(p=>grupoDe(p)===g); };
+const contaSufixo=(f)=>{ const m=String((f&&f.nome)||'').split(GR_SEP); return m.length>1?m.slice(1).join(' | '):String((f&&f.nome)||''); };
+/* contas ativas no Meta sem ficha: nao entram na contagem, na remuneracao nem na cobranca */
+const contasSemFicha=()=>(window.__mtDados||[]).filter(c=>c&&c.status===1&&!fichaDaConta(c.id));
+function pcGrupoBarra(it){
+  if(!souGerente()&&!grupoDe(it)) return '';
+  const g=grupoDe(it), irm=irmasDe(it);
+  const chips=irm.map(p=>p.id===it.id?`<span class="pc-gr-c on">${esc(contaSufixo(p))}</span>`
+    :`<button type="button" class="pc-gr-c" onclick="abrirCliente('${esc(p.id)}')">${esc(contaSufixo(p))}</button>`).join('');
+  return `<div class="pc-grupo">
+    ${g?`<span class="pc-gr-k">Grupo</span><b>${esc(g)}</b><span class="pc-gr-n">${irm.length} conta${irm.length===1?'':'s'}</span>${chips}`
+       :`<span class="pc-gr-k">Contas</span><span class="pc-gr-n">este cliente paga por uma conta só</span>`}
+    ${souGerente()?`<button type="button" class="btn ghost small" style="margin-left:auto" onclick="novaContaCliente('${esc(it.id)}')">+ Nova conta deste cliente</button>`:''}
+  </div>`;
+}
+window.novaContaCliente=(fid,contaId)=>{
+  const f=fichaDe(fid); if(!f) return;
+  if(!souGerente()){ toast('Só master e gerentes criam conta nova.'); return; }
+  const mst=!!(currentUser&&currentUser.role==='master');
+  const g=grupoDe(f)||MAIUS(String(f.nome||'').trim());
+  const cli=f.clienteId?(DB.clientes||[]).find(c=>c.id===f.clienteId):null;
+  const card=lcCardDe(fid), cv=(card&&card.valores)||{};
+  const mens=Number(cv[LC_MENS])||Number(cli&&cli.valor)||'';
+  const rem=Number(cv[LC_REM])||'';
+  const dia=Number(cli&&cli.diaVenc)||0;
+  const venc=dia?vencOf(compNow(),dia):'';
+  const soltas=contasSemFicha();
+  const sug=contaId?soltas.find(c=>c.id===contaId):null;
+  const sufSug=sug?contaSufixo({nome:sug.nome}):'';
+  modal('Nova conta de '+g,`
+    <p class="hint" style="margin:0 0 12px">Nasce igual a <b>${esc(f.nome)}</b>: mesmo gerente, gestor, squad e serviço. Ganha ficha, card no Controle de Clientes e cobrança própria, e entra na contagem de contas e na remuneração.</p>
+    <div class="field"><label>Nome da conta</label>
+      <div style="display:flex;align-items:center;gap:8px"><b style="white-space:nowrap">${esc(g)} |</b><input id="nc2_suf" value="${esc(sufSug)}" placeholder="ex: MARCOS" style="flex:1;text-transform:uppercase"></div></div>
+    <div class="row2">
+      <div class="field"><label>Mensalidade (R$)</label><input id="nc2_val" type="number" step="0.01" min="0" value="${esc(String(mens))}"></div>
+      <div class="field"><label>Remuneração por conta (R$)</label><input id="nc2_rem" type="number" step="0.01" min="0" value="${esc(String(rem))}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>1ª cobrança</label><input id="nc2_venc" type="date" value="${esc(venc)}"></div>
+      <div class="field"><label>Conta de anúncio</label><select id="nc2_conta"><option value="">nenhuma por enquanto</option>
+        ${soltas.map(c=>`<option value="${esc(c.id)}"${contaId===c.id?' selected':''}>${esc(c.nome)}</option>`).join('')}</select></div>
+    </div>
+    ${mst?`<label class="tk-chkline" style="margin-top:6px"><input type="checkbox" id="nc2_asaas"> Criar também o cliente e a assinatura no Asaas <span class="hint" style="margin:0">(gera cobrança real)</span></label>`:''}`,
+    async ()=>{
+      const suf=MAIUS(String(($('#nc2_suf')||{}).value||'').trim());
+      const valor=Number(($('#nc2_val')||{}).value||0), remV=Number(($('#nc2_rem')||{}).value||0);
+      const dp=String(($('#nc2_venc')||{}).value||'');
+      if(suf.length<2){ toast('Escreva o nome da conta.'); return false; }
+      if(!(valor>0)){ toast('Informe a mensalidade.'); return false; }
+      if(!dp){ toast('Informe a data da 1ª cobrança.'); return false; }
+      const nome=g+' | '+suf;
+      if((DB.projetos||[]).some(p=>nomeChave(p.nome)===nomeChave(nome))){ toast('Já existe: '+nome+'.'); return false; }
+      const fch=(cli&&cli.fechamento)||{};
+      const plano=String(f.produtos||(cli&&cli.servico)||CAT_LABEL[catDe(f)]||'').trim()||'Tráfego Pago';
+      const asaas=!!(($('#nc2_asaas')||{}).checked);
+      const body={nome,plano,nicho:String(f.nicho||(cli&&cli.nicho)||''),tipoContrato:fch.tipoContrato||'Mensal',
+        valor:String(valor),dataPagamento:dp,formaPagamento:fch.formaPagamento||'Pix',statusPagamento:'aguardando',
+        sdr:'Conta adicional',closer:'Conta adicional',squad:String(f.squad||''),gestor:String(f.responsavel||''),
+        resumo:'Conta adicional do grupo '+g+', criada a partir de '+f.nome+' por '+((currentUser||{}).nome||'')+'.',
+        cnpj:fch.cnpj||'',cpf:fch.cpf||'',email:fch.email||'',endereco:fch.endereco||'',dono:(cli&&cli.resp)||'',telFin:(cli&&cli.tel)||'',
+        asaas:asaas?'sim':'nao'};
+      const b=document.querySelector('.overlay .msave'); if(b){ b.disabled=true; b.textContent='Criando...'; }
+      const {data,error}=await sb.functions.invoke('fechamento',{body});
+      if(error||!data||!data.ok){ let msg=(data&&data.erro)||(error&&error.message)||'falha';
+        try{ const j=error&&await error.context.json(); if(j&&j.erro) msg=j.erro; }catch(_){}
+        toast('Não consegui criar: '+msg); if(b){ b.disabled=false; b.textContent='Salvar'; } return false; }
+      const pid=data.projetoId;
+      try{ await loadDB(); }catch(_){}
+      /* a ficha nova herda o time da irma (o Fechamento usa o gerente do squad) e o grupo */
+      const nf=fichaDe(pid), of=fichaDe(fid);
+      if(nf){ nf.grupo=g; nf.gerente=of?of.gerente:nf.gerente; nf.responsavel=of?of.responsavel:nf.responsavel;
+        if(of&&of.categoria) nf.categoria=of.categoria; if(of&&of.produtos) nf.produtos=of.produtos; }
+      if(of&&!of.grupo) of.grupo=g;
+      const ct=String(($('#nc2_conta')||{}).value||'');
+      if(ct){ const m=(DB.contasMeta||[]).find(x=>x.id===ct);
+        if(m) m.fichaId=pid; else { const mt=(window.__mtDados||[]).find(x=>x.id===ct); DB.contasMeta=(DB.contasMeta||[]).concat([{id:ct,nome:(mt&&mt.nome)||nome,fichaId:pid}]); } }
+      await saveDB();
+      /* card no Controle de Clientes, na mesma coluna da irma, ja com mensalidade e remuneracao */
+      const val={}; val[LC_MENS]=valor; if(remV) val[LC_REM]=remV; if(card&&cv[LC_GEST]) val[LC_GEST]=cv[LC_GEST];
+      const reg={lista_id:LC_ID,ficha_id:String(pid),titulo:TIT_CLI(LC_ID,nome),status:(card&&card.status)||'todo',
+        status_id:(card&&card.status_id)||LC_NAOATIVO,prioridade:'med',squad:String(f.squad||'')||null,valores:val};
+      const r=await sb.from('tarefas').insert(reg);
+      if(r.error) toast('Conta criada, mas o card falhou: '+r.error.message);
+      try{ await tkCarregar(); spDesenhar(); }catch(_){}
+      toast(nome+' criada'+(asaas?' (e no Asaas)':'')+'.');
+      setTimeout(()=>abrirCliente(pid),120);
+      return true; });
+  const bs=document.querySelector('.overlay .msave'); if(bs) bs.textContent='Criar conta';
+};
+/* Controle de Clientes: selo do grupo no card, resumo do grupo buscado e alerta de conta sem ficha */
+const lcSeloGrupo=(fid)=>{ const f=fid?fichaDe(fid):null, g=grupoDe(f); if(!g) return '';
+  const n=irmasDe(f).length; if(n<2) return '';
+  return `<button type="button" class="lc-grupo-tag" title="Ver as ${n} contas de ${esc(g)}" onclick="event.stopPropagation();tkBusca('${esc(g)}')">${esc(g)} · ${n}</button>`; };
+function lcGrupoResumo(){
+  const q=MAIUS(String(TK.busca||'').trim()); if(!q) return '';
+  const irm=(DB.projetos||[]).filter(p=>grupoDe(p)===q); if(irm.length<2) return '';
+  const cards=irm.map(p=>lcCardDe(p.id)).filter(t=>t&&!arquivada(t));
+  const soma=cards.reduce((s,t)=>s+(Number((t.valores||{})[LC_MENS])||0),0);
+  const rem=cards.reduce((s,t)=>s+(Number((t.valores||{})[LC_REM])||0),0);
+  return `<div class="lc-gr-res"><b>${esc(q)}</b><span>${cards.length} conta${cards.length===1?'':'s'} ativa${cards.length===1?'':'s'}</span>
+    <span>mensalidade somada <b>${brl(soma)}</b></span>${rem?`<span>remuneração somada <b>${brl(rem)}</b></span>`:''}
+    <button type="button" class="btn ghost small" onclick="tkBusca('')">limpar</button></div>`;
+}
+function lcAlertaContas(){
+  if(!souGerente()) return '';
+  const s=contasSemFicha(); if(!s.length) return '';
+  return `<div class="lc-alerta" onclick="lcContasSemFicha()"><b>${s.length} conta${s.length===1?'':'s'} de anúncio ativa${s.length===1?'':'s'} sem ficha</b>
+    <span>não entra${s.length===1?'':'m'} na contagem de contas, na remuneração nem na cobrança.</span><u>Resolver</u></div>`;
+}
+window.lcContasSemFicha=()=>{
+  const s=contasSemFicha();
+  const grupos=Array.from(new Set((DB.projetos||[]).map(grupoDe).filter(Boolean)));
+  const linha=(c)=>{ const pre=MAIUS((String(c.nome||'').split(GR_SEP)[0]||'').trim());
+    const irma=grupos.indexOf(pre)>=0?(DB.projetos||[]).find(p=>grupoDe(p)===pre):null;
+    return `<div class="cx-item"><div style="flex:1;min-width:0"><div class="nm">${esc(c.nome)}</div>
+      <div class="id">${irma?'parece conta nova de <b>'+esc(pre)+'</b>':'ID: '+esc(String(c.id).replace('act_',''))}</div></div>
+      ${irma?`<button class="btn small" onclick="document.querySelector('.overlay').remove();novaContaCliente('${esc(irma.id)}','${esc(c.id)}')">Criar conta</button>`:''}
+      <button class="btn ghost small" onclick="document.querySelector('.overlay').remove();abrirVinculos('${esc(c.id)}')">Ligar a uma ficha</button></div>`; };
+  modal('Contas de anúncio sem ficha',`<p class="hint" style="margin:0 0 12px">Contas ativas no Meta que não estão ligadas a nenhum cliente. Conta nova de um grupo (ex.: ALTOGIRO | NOME) vira ficha em um clique; as outras você liga a uma ficha que já existe ou cadastra pelo Fechamento.</p>${s.map(linha).join('')||'<p class="hint">Nenhuma.</p>'}`,async()=>true);
+  const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Fechar';
 };
 /* ---------- MENU ··· DA LISTA (Trello, Gabriel 23/09) ----------
    Itens arquivados da lista e Fechar lista. Fechar e so do master (o banco trava:
@@ -13400,6 +13543,7 @@ window.openProjCard=(id)=>{
       <span class="pc-time">${pcTime(it)}</span>
     </div>
     ${pcFaixa(it)}
+    ${pcGrupoBarra(it)}
 
     <div class="fin-tabs pc-tabs">
       <button class="ftab ${cliAba==='linha'?'active':''}" onclick="cliIrPara('${it.id}','linha')">Linha do tempo</button>
