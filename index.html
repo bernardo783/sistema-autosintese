@@ -5533,7 +5533,9 @@ const LF_ID='f1e2d3c4-0000-4a00-8b00-000000000001';
    "+ Nova conta deste cliente" (contaAdicional), que segue com master e gerente. */
 const PODE_FECHAR=['ded3cac7-7462-4f76-9680-3af961b25344','6b3b1d5d-2ee0-4529-a6c4-23d415678bff'];
 const podeFechamento=()=>!!(currentUser&&PODE_FECHAR.indexOf(String(currentUser.id))>=0);
-const lsPode=(lid)=>lid!==LF_ID||podeFechamento();
+/* a lista "Fechamento" do espaco Comercial (c005) sai da arvore: o fechamento mora so no Administrativo */
+const LF_COMERCIAL='f1e2d3c4-0000-4a00-8b00-00000000c005';
+const lsPode=(lid)=>lid!==LF_COMERCIAL&&(lid!==LF_ID||podeFechamento());
 /* Financeiro mora na arvore: Administrativo > Financeiro > tres listas que abrem as telas do modulo. */
 const PASTA_FIN='f1e2d3c4-0000-4a00-8b00-00000000f000';
 const LCT_ID='acce64a7-7fca-4f9f-9cef-92961542ae3e';
@@ -8069,7 +8071,7 @@ function spDesenhar(){
      quem busca "finan" quer escolher onde entrar no Financeiro, nao ver "sem listas". */
   const corpo=esps.length?esps.map(e=>{
     const eBate=!!SP_Q&&spBate(e.nome);
-    const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id&&(eBate||lVis(l)));
+    const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id&&lsPode(l.id)&&(eBate||lVis(l)));
     const pas=TK.pastas.filter(p=>p.espaco_id===e.id&&(p.id!==PASTA_FIN||mst)&&(eBate||pVis(p)));
     const abE=aberto('e'+e.id);
     return `<div class="tk-esp">
