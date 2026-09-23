@@ -7449,6 +7449,8 @@ function tkViewLista(){
   const ncols=lc?(cps.length+2):(cps.length+7);
   /* Uma tabela só: o cabeçalho aparece uma vez e cada grupo vira uma faixa dentro dela.
      Antes cada grupo montava a própria tabela — com 1 tarefa, o cabeçalho pesava mais que o dado. */
+  /* Controle de Clientes (Gabriel 23/09): sem faixa de grupo, a lista é corrida na ordem
+     dos estágios; quem filtra por estágio é o funil do topo */
   const bloco=(g)=>{
     const fech=TK.fechadas['g'+g.k];
     const faixa=`<tr class="tk-faixa${g.its.length?'':' vazio'}" onclick="tkToggle('g','${g.k}')"><td colspan="${ncols}">
@@ -7495,7 +7497,7 @@ function tkViewLista(){
       :(TK.escopo==='lista'?`<span class="hint" style="margin:0">&#128274; colunas fixas, só master e gerente mudam</span>`:'')}
     <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
   </div>${grupos.length
-    ? `<div class="tablewrap rolavel"><table class="tk-tab" style="min-width:${largMin}px"><thead>${cab}</thead><tbody>${grupos.map(bloco).join('')}${totRow}</tbody></table></div>${porGest}`
+    ? `<div class="tablewrap rolavel"><table class="tk-tab" style="min-width:${largMin}px"><thead>${cab}</thead><tbody>${lc?grupos.map(g=>g.its.map(linha).join('')).join(''):grupos.map(bloco).join('')}${totRow}</tbody></table></div>${porGest}`
     : '<div class="empty">Nada por aqui.</div>'}`;
 }
 /* A arvore de espacos mora na barra lateral: ela e a navegacao principal do sistema. */
