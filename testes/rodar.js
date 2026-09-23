@@ -667,6 +667,18 @@ grupo('Nenhum emoji na tela: usar ícone da ICO_LIB (Gabriel 23/09, "definitivam
   ok('ícone novo entra na ICO_LIB (ex.: alerta, chat, lixeira)', /\n\s*alerta:'/.test(HTML)&&/\n\s*chat:'/.test(HTML)&&/\n\s*lixeira:'/.test(HTML));
 }
 
+/* ---------------- Situação do Controle de Clientes ---------------- */
+grupo('Situação: A receber / Inadimplente / Pago; valor antigo lido com o nome novo (Gabriel 23/09)');
+{
+  const g=rodar(bloco('const OPC_LEGADO=','const campoTexto='),{},['valCampo']);
+  const SIT={id:'06102f93-48d6-4e1f-96fc-ed8c0ed4da15'}, OUTRA={id:'x'};
+  ok('"OK" antigo aparece como Pago', g.valCampo(SIT,'OK')==='Pago');
+  ok('"INADIMPLENTE" antigo aparece como Inadimplente', g.valCampo(SIT,'INADIMPLENTE')==='Inadimplente');
+  ok('valor novo fica igual', g.valCampo(SIT,'A receber')==='A receber');
+  ok('outra coluna não é mexida', g.valCampo(OUTRA,'OK')==='OK');
+  ok('cores: A receber amarelo, Inadimplente vermelho, Pago verde', /'a receber':'#e6b13f',inadimplente:'#ef5b6b'/.test(HTML)&&/pago:'#3fcf8e'/.test(HTML));
+}
+
 /* ---------------- notificar responsável ---------------- */
 grupo('Notificar responsável (Gabriel 23/09)');
 {

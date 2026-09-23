@@ -7296,7 +7296,7 @@ function tkGrupos(){
 const ementarCor=(s)=>{ let h=0; for(let i=0;i<String(s).length;i++) h=(h*31+String(s).charCodeAt(i))%360; return 'hsl('+h+',55%,55%)'; };
 /* Cor de uma opcao de coluna. Palavra conhecida ganha semantica (verde/amarelo/vermelho);
    o resto pega um tom estavel da paleta pelo texto — mesma palavra, mesma cor sempre. */
-const OPC_SEM={ok:'#3fcf8e',sim:'#3fcf8e',bom:'#3fcf8e',otimo:'#3fcf8e',promotor:'#3fcf8e',ativo:'#3fcf8e',feito:'#3fcf8e',concluido:'#3fcf8e',aprovado:'#3fcf8e',pago:'#3fcf8e',
+const OPC_SEM={'a receber':'#e6b13f',inadimplente:'#ef5b6b',ok:'#3fcf8e',sim:'#3fcf8e',bom:'#3fcf8e',otimo:'#3fcf8e',promotor:'#3fcf8e',ativo:'#3fcf8e',feito:'#3fcf8e',concluido:'#3fcf8e',aprovado:'#3fcf8e',pago:'#3fcf8e',
   neutro:'#e6b13f',medio:'#e6b13f',atencao:'#e6b13f',pendente:'#e6b13f','em andamento':'#e6b13f',parcial:'#e6b13f',aguardando:'#e6b13f',
   detrator:'#ef5b6b',ruim:'#ef5b6b',nao:'#ef5b6b',critico:'#ef5b6b',atrasado:'#ef5b6b',cancelado:'#ef5b6b',risco:'#ef5b6b',churn:'#ef5b6b',reprovado:'#ef5b6b',parado:'#ef5b6b'};
 const OPC_PAL=['#7b68ee','#60a5fa','#2dd4bf','#f59e0b','#f472b6','#a78bfa','#34d399','#fb923c','#38bdf8','#c084fc'];
@@ -7320,7 +7320,11 @@ const souGerenteDaFicha=(fid)=>{ if(!currentUser||!currentUser.gerente) return f
   const f=fichaDe(fid), eu=primNome(currentUser.nome);
   return !!(f&&eu&&primNome(f.gerente)===eu); };
 const podeMexerCampo=(c,t)=>!(c&&c.so_master)||!!(currentUser&&currentUser.role==='master')||!!(t&&t.ficha_id&&souGerenteDaFicha(t.ficha_id));
-const campoTexto=(c,v)=>{
+/* Situacao do Controle de Clientes (Gabriel 23/09): A receber / Inadimplente / Pago. Valor
+   antigo gravado ("OK", "INADIMPLENTE") e lido com o nome novo; editar a celula grava o novo. */
+const OPC_LEGADO={'06102f93-48d6-4e1f-96fc-ed8c0ed4da15':{'OK':'Pago','INADIMPLENTE':'Inadimplente'}};
+const valCampo=(c,v)=>{ const m=c&&OPC_LEGADO[c.id]; return (m&&v!=null&&m[v]!==undefined)?m[v]:v; };
+const campoTexto=(c,v)=>{ v=valCampo(c,v);
   if(v==null||v==='') return '';
   if(c.tipo==='moeda') return brl(Number(v)||0);
   if(c.tipo==='numero') return String(v);
@@ -7331,7 +7335,7 @@ const campoTexto=(c,v)=>{
 };
 const tkCelula=(t,c)=>{
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
-  const v=(t.valores||{})[c.id];
+  const v=valCampo(c,(t.valores||{})[c.id]);
   const vazio=(v==null||v==='')?' vazio':'';
   if(!podeMexerCampo(c,t)){
     const txt=campoTexto(c,v), quem=`${esc(c.nome)}, só o master e o gerente do cliente alteram`;
@@ -8856,7 +8860,7 @@ window.lcGestorF=(g)=>{ TK.lcGestor=g; TK.lcVista=''; tkDesenhar($('#content'));
 window.lcPorF=(k)=>{ TK.lcPor=(k==='gerente')?'gerente':'gestor'; TK.lcGestor=''; TK.lcVista=''; tkDesenhar($('#content')); };
 window.lcVerGerentes=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
 const LC_NIVEL={promotor:{rot:'Promotor',cor:'#3fcf8e'},neutro:{rot:'Neutro',cor:'#8b95a5'},detrator:{rot:'Detrator',cor:'#ef5b6b'}};
-const LC_PG={recebido:{rot:'OK',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'}};
+const LC_PG={recebido:{rot:'PAGO',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'}};
 function lcVistaGerentes(){
   const por={};
   tkFiltradas().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
@@ -10474,7 +10478,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const lid=it.lista_id, sts=tkStatusDe(lid), cps=TK.campos.filter(k=>k.lista_id===lid);
   /* Tarefa nova ja nasce no meu squad; quem tem recorte so consegue escolher entre os seus. */
   const sqOpc=squadsQuePosso(), sqAtual=t?String(it.squad||''):(String(it.squad||'')||(meusSquads()[0]||''));
-  const campoHtml=(c)=>{ const v=(it.valores||{})[c.id];
+  const campoHtml=(c)=>{ const v=valCampo(c,(it.valores||{})[c.id]);
     if(!podeMexerCampo(c)){ const txt=campoTexto(c,v);
       return `<span class="tkf-trava" title="Esse número vem do controle financeiro, na área Administrativa, só o master altera."><span class="cad"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>${esc(txt||'-')}</span>`; }
     if(c.tipo==='select') return `<select id="cp_${c.id}"><option value="">-</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
