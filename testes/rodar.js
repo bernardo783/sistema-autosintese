@@ -637,6 +637,17 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
     fimDosTestes();
   })();
 }
+/* ---------------- notificar responsável ---------------- */
+grupo('Notificar responsável (Gabriel 23/09)');
+{
+  ok('botão só aparece pra gerente/master e em tarefa não arquivada', HTML.indexOf("${(t&&souGerente()&&!arquivada(t))?`<button class=\"btn ghost small\" type=\"button\" onclick=\"tkLembrar(event,")>0);
+  ok('o app manda só o id da tarefa (mensagem montada no servidor)', /lbApi\('enviar',\{tarefa_id:id\}\)/.test(HTML));
+  const fn=fs.readFileSync(path.join(__dirname,'..','funcoes','lembrete-tarefa','index.ts'),'utf8');
+  ok('servidor barra quem não é gerente nem master', /p\.role === 'master' \|\| p\.gerente/.test(fn));
+  ['tarefa:','responsaveis:','prazo:','data_prazo:','horario_prazo:','link:','flag:'].forEach(k=>ok('payload tem '+k.replace(':',''), fn.indexOf('    '+k)>0));
+  ok('trava de 10 minutos por tarefa', /ESPERA_MIN = 10/.test(fn));
+}
+
 function fimDosTestes(){
 /* ---------------- tipo de cliente no Controle de Clientes ---------------- */
 grupo('Controle de Clientes: filtro por tipo e selo "sem tipo" (Gabriel 23/09)');
