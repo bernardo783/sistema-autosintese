@@ -16488,15 +16488,18 @@ window.inSet=async (uid,campo,v)=>{
 /* Atalhos do rail que nao sao .navlink entram na mao. Inicio e Espacos ficam de
    fora de proposito: sem eles a pessoa nao navega. */
 const TL_RAIL=[{v:'tarefas',nome:'Tarefas (as suas)',el:'rlInbox'}];
+/* Telas que ninguem perde: Suporte (e por onde a pessoa pede) e Acessos (Gabriel 23/09:
+   "todos usuarios devem ter acesso a aba Acessos do Administrativo"). */
+const TL_FIXAS=['reembolsos','acessos'];
 const tlLista=()=>Array.from(document.querySelectorAll('.navlink[data-view]'))
-  .filter(b=>b.id!=='navSuporte')   /* Suporte nao se desliga: e por onde a pessoa pede */
+  .filter(b=>b.id!=='navSuporte'&&TL_FIXAS.indexOf(b.dataset.view)<0)
   .map(b=>({v:b.dataset.view,nome:(b.getAttribute('title')||b.dataset.view),
             master:['financeiro','usuarios','funil','agente'].indexOf(b.dataset.view)>=0}))
   .concat(TL_RAIL.filter(r=>document.getElementById(r.el)).map(r=>({v:r.v,nome:r.nome,master:false})));
 const tlOff=(u)=>((u&&u.telas_off)||[]);
 /* Reembolsos virou o Suporte: e por onde qualquer pessoa pede alguma coisa.
    Nao entra na lista de telas ocultaveis nem pode ser bloqueada por telas_off. */
-const tlBloqueada=(v)=>String(v)!=='reembolsos'&&tlOff(currentUser).indexOf(String(v))>=0;
+const tlBloqueada=(v)=>TL_FIXAS.indexOf(String(v))<0&&tlOff(currentUser).indexOf(String(v))>=0;
 /* esconde os atalhos que essa pessoa não tem — chamado no login */
 function tlAplicar(){
   const off=tlOff(currentUser);

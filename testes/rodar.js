@@ -540,6 +540,21 @@ grupo('Senhas: master e quem tem ve_senhas (João, 23/09)');
   ok('banco: leitura e escrita do cofre por pode_senhas()', (sql.match(/modulo = 'senhas' and pode_senhas\(\)/g)||[]).length===3);
 }
 
+/* ---------------- Acessos para todos ---------------- */
+grupo('Acessos: ninguém perde a tela (Gabriel 23/09)');
+{
+  const cod=bloco('const TL_FIXAS=','/* esconde os atalhos');
+  const bloq=(off,v)=>rodar('var currentUser={telas_off:'+JSON.stringify(off)+'};'
+    +cod.replace(/const tlLista=[\s\S]*?\n(?=const tlOff)/,''),{},['tlBloqueada']).tlBloqueada(v);
+  ok('Acessos marcado como desligado continua aberto', !bloq(['acessos'],'acessos'));
+  ok('Suporte segue aberto', !bloq(['reembolsos'],'reembolsos'));
+  ok('outra tela desligada continua bloqueada', bloq(['processos'],'processos'));
+  ok('Acessos saiu da lista de telas que se desligam', /TL_FIXAS\.indexOf\(b\.dataset\.view\)<0/.test(cod));
+  const sql=fs.readFileSync(path.join(__dirname,'..','migracao-acessos-todos.sql'),'utf8');
+  ok('banco: convite só "ver", só nos nós fechados', sql.indexOf("p_uid, 'ver'")>0 && sql.indexOf('where n.privado')>0);
+  ok('banco: quem for aprovado depois ganha sozinho', sql.indexOf('after insert or update of aprovado on public.perfis')>0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
