@@ -689,6 +689,47 @@ grupo('Controle de Clientes: filtro por tipo e selo "sem tipo" (Gabriel 23/09)')
   ok('aponta os 2 sem tipo', /Sem tipo<span class="lc-n">2</.test(h));
   ok('o atalho "Agente" saiu das pílulas de pessoa', HTML.indexOf("pil('(ia)','Agente'")<0);
 }
+/* ---------------- gerente é o master das contas dele ---------------- */
+grupo('Controle de Clientes: gerente mexe em tudo nos clientes dele (Gabriel 23/09)');
+{
+  const cod=bloco('const souGerenteDaFicha=','const campoTexto=');
+  const F={meu:{gerente:'Luiz Marcelo'},outro:{gerente:'João'}};
+  const trava={so_master:true}, livre={so_master:false};
+  const ctx=(u)=>rodar(cod,{currentUser:u,fichaDe:id=>F[id]||null,
+    primNome:x=>String(x||'').trim().split(/\s+/)[0].toLowerCase()},['souGerenteDaFicha','podeMexerCampo']);
+  const ger=ctx({nome:'Luiz',role:'membro',gerente:true});
+  ok('gerente mexe no campo travado do cliente dele', ger.podeMexerCampo(trava,{ficha_id:'meu'})===true);
+  ok('gerente NÃO mexe no cliente de outro gerente', ger.podeMexerCampo(trava,{ficha_id:'outro'})===false);
+  ok('sem a tarefa (formulário) continua só master', ger.podeMexerCampo(trava)===false);
+  const gest=ctx({nome:'Luiz',role:'membro',gerente:false});
+  ok('mesmo nome, mas sem ser gerente: não mexe', gest.podeMexerCampo(trava,{ficha_id:'meu'})===false);
+  const mst=ctx({nome:'Bernardo',role:'master'});
+  ok('master mexe em tudo', mst.podeMexerCampo(trava,{ficha_id:'outro'})===true);
+  ok('campo livre: todo mundo', gest.podeMexerCampo(livre,{ficha_id:'outro'})===true);
+}
+/* ---------------- prazo com horário (só hora cheia) ---------------- */
+grupo('Tarefas: prazo com horário, só hora cheia (23/09)');
+{
+  const cod=bloco('const HORAS_CHEIAS=','/* campo: botão com a data');
+  const g=rodar('const dtCurto=iso=>iso.slice(8,10)+"/"+iso.slice(5,7);'+cod,{esc:s=>String(s)},['HORAS_CHEIAS','horaCheia','horaOpcoes','dtRotulo']);
+  ok('24 opções, de 00:00 a 23:00', g.HORAS_CHEIAS.length===24&&g.HORAS_CHEIAS[0]==='00:00'&&g.HORAS_CHEIAS[23]==='23:00');
+  ok('nenhuma opção com minuto quebrado', g.HORAS_CHEIAS.every(h=>/:00$/.test(h)));
+  ok('15:17 vira 15:00', g.horaCheia('15:17')==='15:00');
+  ok('9 vira 09:00', g.horaCheia('9')==='09:00');
+  ok('vazio e lixo ficam vazios', g.horaCheia('')===''&&g.horaCheia(null)===''&&g.horaCheia('abc')===''&&g.horaCheia('25:00')==='');
+  ok('rótulo: 18/09 às 15:00', g.dtRotulo('2026-09-18','15:00')==='18/09 às 15:00');
+  ok('rótulo sem hora: só a data', g.dtRotulo('2026-09-18','')==='18/09');
+  ok('opção marcada é a hora da tarefa', /value="15:00" selected/.test(g.horaOpcoes('15:00')));
+  let pat=null;
+  const q=rodar('const dtCurto=iso=>iso;'+cod+bloco('window.tkQaPrazo=','/* bandeira abre menu'),
+    {esc:s=>String(s),tkPatch:(id,p)=>{pat=p;}},[]);
+  q.tkQaPrazo('x','2026-09-18','15:00');
+  ok('cartão grava data e hora juntas', pat&&pat.prazo==='2026-09-18'&&pat.hora==='15:00');
+  q.tkQaPrazo('x','2026-09-18','14:43');
+  ok('hora quebrada vinda de fora vira hora cheia', pat&&pat.hora==='14:00');
+  q.tkQaPrazo('x','');
+  ok('tirou o prazo: some o horário junto', pat&&pat.prazo===null&&pat.hora===null);
+}
 
 /* ---------------- contas do mesmo cliente (Alto Giro, Sabará) ---------------- */
 grupo('Contas do mesmo cliente: grupo, contas irmãs e conta do Meta sem ficha (Gabriel 23/09)');
@@ -708,6 +749,22 @@ grupo('Contas do mesmo cliente: grupo, contas irmãs e conta do Meta sem ficha (
   ok('Sabará não mistura com Altogiro', g.irmasDe(P[3]).length===1);
   ok('nome da conta sem o grupo', g.contaSufixo(P[1])==='DHIONATAS');
   ok('só conta ativa e sem ficha entra no alerta', g.contasSemFicha().map(x=>x.id).join()==='act_solta');
+}
+
+/* ---------------- gerente manda no que criou ---------------- */
+grupo('Espaços: gerente compartilha, duplica e exclui o que ELE criou (Gabriel 23/09)');
+{
+  const cod=bloco('const nmEhMaster=','window.spCompartilhar=');
+  const N={e1:{criado_por:'luiz'},e2:{criado_por:'bernardo'},e3:{}};
+  const ctx=(u)=>rodar(cod,{currentUser:u,spNo:(t,id)=>N[id]||null},['nmEhMaster','nmPodeGerir']);
+  const luiz=ctx({id:'luiz',role:'membro',gerente:true});
+  ok('gerente gerencia o espaço que criou', luiz.nmPodeGerir('espaco','e1')===true);
+  ok('gerente NÃO gerencia o que outro criou', luiz.nmPodeGerir('espaco','e2')===false);
+  ok('espaço antigo, sem criador: só master', luiz.nmPodeGerir('espaco','e3')===false);
+  const semGer=ctx({id:'luiz',role:'membro',gerente:false});
+  ok('quem não é gerente não gerencia nem o que criou', semGer.nmPodeGerir('espaco','e1')===false);
+  const mst=ctx({id:'bernardo',role:'master'});
+  ok('master gerencia tudo', mst.nmPodeGerir('espaco','e3')===true);
 }
 
 console.log('\n'+(falhas

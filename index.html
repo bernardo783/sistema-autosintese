@@ -238,6 +238,8 @@
     font-family:inherit;cursor:pointer;padding:4px 7px;border-radius:6px}
   .dt-f button:hover{background:var(--panel2);color:var(--txt)}
   .dt-f .dt-hoje{color:#c4b8ff}
+  .dt-hr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--muted)}
+  .dt-hr select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:5px 8px;font:inherit;cursor:pointer}
   .pr-box{display:flex;gap:6px;flex-wrap:wrap}
   .pr-chip{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);
     border-radius:999px;padding:6.5px 15px;font-size:12.5px;font-weight:600;color:var(--muted);
@@ -5296,12 +5298,23 @@ function dtGrade(ano,mes,sel,hoje){
   }
   return out;
 }
-/* campo: botão com a data + input escondido com o valor real */
-function dtCampo(id,valor,extra){
-  return `<span class="dtf" onclick="dtAbrir(event,'${id}')" title="Escolher data">
+/* PRAZO COM HORARIO (23/09): so hora cheia, de hora em hora, horario de Brasilia.
+   O banco recusa outra coisa (check tarefas_hora_cheia) e junta data+hora em
+   `tarefas.prazo_em` (timestamptz) pros webhooks. */
+const HORAS_CHEIAS=Array.from({length:24},(_,h)=>String(h).padStart(2,'0')+':00');
+const horaCheia=(v)=>{ const m=/^(\d{1,2})/.exec(String(v||'').trim()); if(!m) return '';
+  const h=+m[1]; return (h>=0&&h<=23)?String(h).padStart(2,'0')+':00':''; };
+const horaOpcoes=(sel,vazio)=>`<option value="">${esc(vazio||'Sem horário')}</option>`+
+  HORAS_CHEIAS.map(h=>`<option value="${h}"${h===sel?' selected':''}>${h}</option>`).join('');
+const dtRotulo=(iso,hora)=>iso?(dtCurto(iso)+(hora?' às '+hora:'')):'Escolher';
+/* campo: botão com a data + input escondido com o valor real.
+   Passando `hora` (mesmo ''), o campo ganha o horário: input escondido `<id>_hora`. */
+function dtCampo(id,valor,extra,hora){
+  const comHora=hora!==undefined, hh=comHora?horaCheia(hora):'';
+  return `<span class="dtf" onclick="dtAbrir(event,'${id}')" title="${comHora?'Escolher data e horário':'Escolher data'}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-      <span id="${id}_lbl">${valor?esc(dtCurto(valor)):'Escolher'}</span>
-    </span><input type="hidden" id="${id}" value="${esc(valor||'')}"${extra||''}>`;
+      <span id="${id}_lbl">${esc(dtRotulo(valor,hh))}</span>
+    </span><input type="hidden" id="${id}" value="${esc(valor||'')}"${extra||''}>${comHora?`<input type="hidden" id="${id}_hora" value="${esc(hh)}">`:''}`;
 }
 /* No cartão o que importa é "falta quanto", não a data seca: 45d diz mais que 23/09. */
 function dtRel(iso,hoje){
@@ -5337,10 +5350,21 @@ window.dtMes=(n)=>{ let m=DT.mes+n, a=DT.ano;
 window.dtEscolher=(iso)=>{
   const inp=document.getElementById(DT.id); if(!inp) return;
   inp.value=iso||'';
+  const hr=document.getElementById(DT.id+'_hora');
+  if(hr&&!iso) hr.value='';                 /* sem data, sem horario */
   const lbl=document.getElementById(DT.id+'_lbl');
-  if(lbl) lbl.textContent=iso?dtCurto(iso):'Escolher';
+  if(lbl) lbl.textContent=dtRotulo(iso,hr?hr.value:'');
   dtFechar();
   try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){}
+};
+/* Horario: grava na hora, sem fechar o calendario. Sem data ainda, o dia escolhido
+   depois leva o horario junto. */
+window.dtHora=(v)=>{
+  const hr=document.getElementById(DT.id+'_hora'), inp=document.getElementById(DT.id); if(!hr||!inp) return;
+  hr.value=horaCheia(v);
+  const lbl=document.getElementById(DT.id+'_lbl');
+  if(lbl) lbl.textContent=dtRotulo(inp.value,hr.value);
+  if(inp.value){ try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){} }
 };
 function dtPintar(){
   const pop=document.getElementById('dtPop'); if(!pop) return;
@@ -5348,6 +5372,7 @@ function dtPintar(){
   const sel=inp?String(inp.value||'').slice(0,10):'';
   const hoje=dtISO(new Date());
   const dias=dtGrade(DT.ano,DT.mes,sel,hoje);
+  const hr=document.getElementById(DT.id+'_hora');
   pop.innerHTML=`
     <div class="dt-h">
       <button type="button" onclick="dtMes(-1)" aria-label="Mês anterior">‹</button>
@@ -5357,6 +5382,7 @@ function dtPintar(){
     <div class="dt-sem">${DT_SEM.map(s=>`<span>${s}</span>`).join('')}</div>
     <div class="dt-g">${dias.map(d=>`<button type="button" class="dt-d${d.fora?' fora':''}${d.hoje?' hoje':''}${d.sel?' sel':''}"
       onclick="dtEscolher('${d.iso}')">${d.dia}</button>`).join('')}</div>
+    ${hr?`<label class="dt-hr"><span>Horário</span><select onchange="dtHora(this.value)">${horaOpcoes(horaCheia(hr.value))}</select></label>`:''}
     <div class="dt-f">
       <button type="button" onclick="dtEscolher('')">Limpar</button>
       <button type="button" class="dt-hoje" onclick="dtEscolher('${hoje}')">Hoje</button>
@@ -5943,6 +5969,11 @@ const nmArt={espaco:'este espaço',pasta:'esta pasta',lista:'esta lista'};
 const nmSigla={espaco:'e',pasta:'p',lista:'l'};
 const nmDe=(tipo,id)=>(TK.membros||[]).filter(m=>m.tipo===tipo&&String(m.no_id)===String(id));
 const nmEhMaster=()=>!!(currentUser&&currentUser.role==='master');
+/* Gabriel 23/09: o gerente manda no que ELE criou (compartilhar, fechar, duplicar,
+   excluir). A RLS aplica o mesmo (no_gerenciavel / policy no_membros_gerente). */
+const nmPodeGerir=(tipo,id)=>{ if(nmEhMaster()) return true;
+  const o=spNo(tipo,id);
+  return !!(o&&currentUser&&currentUser.gerente&&o.criado_por&&String(o.criado_por)===String(currentUser.id)); };
 
 window.spCompartilhar=(tipo,id)=>{
   const o=spNo(tipo,id); if(!o) return;
@@ -5956,7 +5987,7 @@ window.spCompartilhar=(tipo,id)=>{
 function nmPintar(tipo,id){ const el=document.getElementById('nmCorpo'); if(el) el.innerHTML=nmCorpo(tipo,id); }
 function nmCorpo(tipo,id){
   const o=spNo(tipo,id); if(!o) return '<div class="hint">Item não encontrado.</div>';
-  const priv=!!o.privado, membros=nmDe(tipo,id), mst=nmEhMaster();
+  const priv=!!o.privado, membros=nmDe(tipo,id), mst=nmPodeGerir(tipo,id);
   const jaTem=membros.map(m=>String(m.user_id));
   const livres=(TK.equipe||[]).filter(u=>jaTem.indexOf(String(u.id))<0);
   const linhaLink=`<div class="nm-link">
@@ -5977,7 +6008,7 @@ function nmCorpo(tipo,id){
          ${tipo==='lista'?'O recorte por squad continua valendo nas tarefas com cliente.':''}</p>
     </div>
     ${mst?`<button class="btn secondary" style="width:100%" onclick="nmPrivar('${tipo}','${id}',true)">🔒 Tornar privado</button>`
-        :`<p class="hint">Só um usuário master pode fechar ou liberar acesso.</p>`}`;
+        :`<p class="hint">Só um master, ou o gerente que criou, pode fechar ou liberar acesso.</p>`}`;
   return `
     ${linhaLink}
     <div class="nm-estado fechado">
@@ -6034,7 +6065,7 @@ window.nmPerm=async (mid,tipo,id,v)=>{
 
 window.spNoMenu=(ev,tipo,id)=>{
   const o=spNo(tipo,id); if(!o) return;
-  const m=!!(currentUser&&currentUser.role==='master');
+  const m=nmPodeGerir(tipo,id);   /* master, ou o gerente que criou */
   const it=[{cab:spNome(o)}];
   if(tipo==='espaco'){
     it.push({ic:MICO.pasta,t:'Nova pasta',f:()=>tkNovoNo(id,'pasta')});
@@ -6606,7 +6637,7 @@ function tkCard(t){
     ? `<button type="button" class="tk-chip avb" title="${esc(rsC.map(u=>tkNomeUser(u)).filter(Boolean).join(', '))}" onclick="${par(`tkQaResp(event,'${t.id}')`)}"><span class="avstack">${rsC.slice(0,4).map(u=>avatar(u,null,'sm')).join('')}</span>${rsC.length>4?`<span class="tk-mais">+${rsC.length-4}</span>`:''}</button>`
     : `<button type="button" class="tk-chip tk-vaz" title="Definir responsável" onclick="${par(`tkQaResp(event,'${t.id}')`)}">${USR}Responsável</button>`;
   const chPrazo=t.prazo
-    ? `<button type="button" class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}" onclick="${par(`dtCartao(event,'${t.id}','${t.prazo}')`)}">${CAL}${dtRel(t.prazo,hoje)}</button>`
+    ? `<button type="button" class="tk-chip${atrasada?' tarde':hojeP?' hoje':''}" title="${fmtDate(t.prazo)}${t.hora?' às '+esc(t.hora):''}" onclick="${par(`dtCartao(event,'${t.id}','${t.prazo}')`)}">${CAL}${dtRel(t.prazo,hoje)}${t.hora?' · '+esc(t.hora):''}</button>`
     : `<button type="button" class="tk-chip tk-vaz" title="Definir prazo" onclick="${par(`dtCartao(event,'${t.id}','')`)}">${CAL}Prazo</button>`;
   const chCli=t.ficha_id
     ? `<button type="button" class="tk-chip" title="${esc(tkNomeFicha(t.ficha_id))}" onclick="${par(`tkQaCli(event,'${t.id}')`)}">${TG}${esc(tkNomeFicha(t.ficha_id))||'cliente'}</button>`
@@ -6627,10 +6658,13 @@ function tkCard(t){
 /* No cartão não há formulário: o calendário grava direto na tarefa. */
 window.dtCartao=(ev,tid,atual)=>{
   ev.stopPropagation();
-  let esc0=document.getElementById('dtTmp'); if(esc0) esc0.remove();
+  ['dtTmp','dtTmp_hora'].forEach(k=>{ const e=document.getElementById(k); if(e) e.remove(); });
+  const t=(TK.tarefas||[]).find(x=>x.id===tid)||{};
   const tmp=document.createElement('input'); tmp.type='hidden'; tmp.id='dtTmp'; tmp.value=atual||'';
-  document.body.appendChild(tmp);
-  tmp.addEventListener('change',()=>{ tkQaPrazo(tid,tmp.value); tmp.remove(); });
+  const hr=document.createElement('input'); hr.type='hidden'; hr.id='dtTmp_hora'; hr.value=horaCheia(t.hora);
+  document.body.appendChild(tmp); document.body.appendChild(hr);
+  /* nao remove no change: o horario grava sem fechar o calendario e pode mudar de novo */
+  tmp.addEventListener('change',()=>{ tkQaPrazo(tid,tmp.value,hr.value); });
   dtAbrir(ev,'dtTmp');
 };
 /* Mudar o estágio sem arrastar. CHURN é a última das oito colunas e vive fora da
@@ -6643,7 +6677,10 @@ window.tkQaEstagio=(ev,id)=>{
     ic:s.id===t.status_id?'●':'○', t:s.nome, f:()=>tkSetStatus(id,s.id)
   }))));
 };
-window.tkQaPrazo=(id,v)=>{ tkPatch(id,{prazo:v||null},v?'Prazo definido.':'Prazo removido.'); };
+window.tkQaPrazo=(id,v,hora)=>{
+  const p={prazo:v||null};
+  if(hora!==undefined||!v) p.hora=v?(horaCheia(hora)||null):null;   /* sem data, sem horario */
+  tkPatch(id,p,v?('Prazo: '+dtRotulo(v,p.hora||'')+'.'):'Prazo removido.'); };
 /* bandeira abre menu escrito com as opções (pedido do Gabriel: ciclar ficava confuso) */
 /* ---------- MENUS FLUTUANTES: busca e posicao (Gabriel 31/08) ----------
    1) Todo menu de escolher pessoa ganha um campo de busca: com 10+ nomes, procurar
@@ -6968,8 +7005,14 @@ const corOpcao=(txt)=>{ const k=semAcento(txt); if(!k) return '#8e8e99';
   return OPC_PAL[h]; };
 /* Cor da barra do cartao: a mesma do status da linha. */
 const tkCorLinha=(t)=>{ const s=tkStatus1(t.status_id); return (s&&s.cor)||'#8e8e99'; };
-/* ---- campos travados: valor vem do financeiro, so master altera (Gabriel 01/09) ---- */
-const podeMexerCampo=(c)=>!(c&&c.so_master)||!!(currentUser&&currentUser.role==='master');
+/* ---- campos travados: valor vem do financeiro, so master altera (Gabriel 01/09) ----
+   Gabriel 23/09: o gerente e o master das contas dele: no cliente em que ele e o GERENTE
+   DA FICHA, mexe em tudo (mensalidade, remuneracao, situacao). A trava do banco
+   (tarefas_trava_campos) aplica a mesma regra. Sem a tarefa `t`, fica so master. */
+const souGerenteDaFicha=(fid)=>{ if(!currentUser||!currentUser.gerente) return false;
+  const f=fichaDe(fid), eu=primNome(currentUser.nome);
+  return !!(f&&eu&&primNome(f.gerente)===eu); };
+const podeMexerCampo=(c,t)=>!(c&&c.so_master)||!!(currentUser&&currentUser.role==='master')||!!(t&&t.ficha_id&&souGerenteDaFicha(t.ficha_id));
 const campoTexto=(c,v)=>{
   if(v==null||v==='') return '';
   if(c.tipo==='moeda') return brl(Number(v)||0);
@@ -6983,12 +7026,12 @@ const tkCelula=(t,c)=>{
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
   const v=(t.valores||{})[c.id];
   const vazio=(v==null||v==='')?' vazio':'';
-  if(!podeMexerCampo(c)){
-    const txt=campoTexto(c,v);
+  if(!podeMexerCampo(c,t)){
+    const txt=campoTexto(c,v), quem=`${esc(c.nome)}, só o master e o gerente do cliente alteram`;
     if(c.tipo==='select'&&txt){ const cS=corOpcao(v);
-      return `<span class="tag st" style="background-color:${esc(cS)};color:${esc(corTexto(cS))};cursor:not-allowed" title="${esc(c.nome)} vem do financeiro, só master altera">${esc(txt)}</span>`; }
-    if(c.tipo==='pessoa'&&v) return `<span class="tk-trava" title="${esc(c.nome)} vem do financeiro, só master altera">${avatar(v,txt,'sm')}</span>`;
-    return `<span class="tk-trava${txt?'':' vaz'}" title="${esc(c.nome)} vem do financeiro, só master altera"><span class="cad">🔒</span>${esc(txt||'-')}</span>`;
+      return `<span class="tag st" style="background-color:${esc(cS)};color:${esc(corTexto(cS))};cursor:not-allowed" title="${quem}">${esc(txt)}</span>`; }
+    if(c.tipo==='pessoa'&&v) return `<span class="tk-trava" title="${quem}">${avatar(v,txt,'sm')}</span>`;
+    return `<span class="tk-trava${txt?'':' vaz'}" title="${quem}"><span class="cad">🔒</span>${esc(txt||'-')}</span>`;
   }
   if(c.tipo==='select'){
     const ops=`<option value="">-</option>`+(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('');
@@ -7035,7 +7078,7 @@ function tkViewLista(){
       <td>${tkSelo(t)}</td>
       ${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}
       <td><span class="tag st" style="color:${PRIO_COR[t.prioridade]||'var(--muted)'};background:${(PRIO_COR[t.prioridade]||'#888888')}1a;font-weight:800">${TK_PRIO[t.prioridade]||'-'}</span></td>
-      <td>${t.prazo?`<span class="tag ${atr?'churn':'st'}">${fmtDate(t.prazo)}</span>`:'<span class="hint" style="margin:0">-</span>'}</td>
+      <td>${t.prazo?`<span class="tag ${atr?'churn':'st'}">${fmtDate(t.prazo)}${t.hora?' às '+esc(t.hora):''}</span>`:'<span class="hint" style="margin:0">-</span>'}</td>
       <td>${(()=>{ const rs=respDe(t); if(!rs.length) return '<span class="hint" style="margin:0">-</span>';
         return `<span class="avstack">${rs.slice(0,4).map(u=>`<span title="${esc(tkNomeUser(u))}" style="cursor:pointer" onclick="event.stopPropagation();verPerfil('${u}')">${avatar(u)}</span>`).join('')}</span>${rs.length>4?`<span class="tk-mais">+${rs.length-4}</span>`:''}`; })()}</td>
       <td><button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button></td>
@@ -8959,7 +9002,8 @@ window.recSalvar=async ()=>{
   const rec=recMontar(), extra=RE.primeira?{prazo:RE.primeira.prazo}:null;
   if(!(await recGravar(RE.id,rec,extra))) return;
   if(extra){ const inp=document.getElementById('tk_prazo'), lb=document.getElementById('tk_prazo_lbl');
-    if(inp) inp.value=extra.prazo; if(lb) lb.textContent=dtCurto(extra.prazo); }
+    const hr=document.getElementById('tk_prazo_hora');
+    if(inp) inp.value=extra.prazo; if(lb) lb.textContent=dtRotulo(extra.prazo,hr?hr.value:''); }
   const p=document.getElementById('recPop'); if(p) p.remove();
   recPintarBtn(); try{ tkDesenhar($('#content')); }catch(_){}
   toast('Repetição: '+recRotulo(rec)+(extra?' · começa '+dtCurto(extra.prazo):'')+'.'); recAgendar();
@@ -9169,6 +9213,24 @@ window.tkSetVal=async (id,campoId,v)=>{
      igual à ficha. A célula é espelho do cadastro, não um número solto. */
   if(ehLC(t.lista_id)&&/mensalidade/i.test(c.nome||'')&&t.ficha_id){
     const f=fichaDe(t.ficha_id), cli=f&&f.clienteId?DB.clientes.find(x=>x.id===f.clienteId):null;
+    /* Gerente do cliente (Gabriel 23/09): nao le o cadastro financeiro, entao aplica pelo
+       banco (cliente_mensalidade). O card acompanha sozinho, e a mudanca abre tarefa pro
+       financeiro ajustar a cobranca no Asaas. */
+    if(!cli&&souGerenteDaFicha(t.ficha_id)){
+      const atual=Number((t.valores||{})[campoId]||0);
+      if(v==null||Number(v)===atual){ tkDesenhar($('#content')); return; }
+      const comp=compNow();
+      const modo=await escolher('Mudar a mensalidade de '+((f&&f.nome)||'cliente')+'?',
+        brl(atual)+' → '+brl(v)+' · o financeiro recebe o aviso pra ajustar o Asaas',
+        [{v:'mes',rot:'Só '+fmtComp(comp)},{v:'rec',rot:'Recorrente, de '+fmtComp(comp)+' em diante'}]);
+      if(!modo){ tkDesenhar($('#content')); return; }
+      const {error}=await sb.rpc('cliente_mensalidade',{p_ficha:String(t.ficha_id),p_valor:Number(v),p_modo:modo,p_motivo:null});
+      if(error){ toast('Não salvou: '+error.message); tkDesenhar($('#content')); return; }
+      try{ await tkCarregar(); }catch(_){}
+      tkDesenhar($('#content'));
+      toast(modo==='mes'?('Só '+fmtComp(comp)+' mudou: o cadastro segue '+brl(atual)+'.'):('Mensalidade recorrente atualizada: '+brl(v)+'.'));
+      return;
+    }
     if(cli&&v!=null&&Number(v)!==Number(cli.valor||0)){
       const comp=compNow();
       const modo=await escolher('Mudar a mensalidade de '+(cli.nome||'cliente')+'?',
@@ -9956,7 +10018,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
 
     <div class="tkf-meta">
       <div class="tkf-mb"><span class="k">Datas</span>
-        <span class="v tk-datas">${dtCampo('tk_ini',it.iniciada_em||'')}<span class="tk-seta">→</span>${dtCampo('tk_prazo',it.prazo||'')}${recBtnHtml(t)}</span></div>
+        <span class="v tk-datas">${dtCampo('tk_ini',it.iniciada_em||'')}<span class="tk-seta">→</span>${dtCampo('tk_prazo',it.prazo||'','',it.hora||'')}${recBtnHtml(t)}</span></div>
       <div class="tkf-mb"><span class="k">Responsáveis${exigeDaLista(lid).indexOf('responsavel')>=0?' *':''}</span>
         <span class="v"><input type="hidden" id="tk_resps" value="${esc(respDe(it).join(','))}">
         <span class="rp-box" id="tk_respbox">${tkRespChips(respDe(it))}</span></span></div>
@@ -10132,6 +10194,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
       v.responsaveis=_rs; v.responsavel_id=_rs[0]||null;
       v.tipo_id=($('#tk_tipo')&&$('#tk_tipo').value)||null;
       if(v.iniciada_em&&v.prazo&&v.iniciada_em>v.prazo){ const x=v.iniciada_em; v.iniciada_em=v.prazo; v.prazo=x; }
+      if($('#tk_prazo_hora')) v.hora=v.prazo?(horaCheia($('#tk_prazo_hora').value)||null):null;
       if(!v.titulo){ aviso(silencioso?'Sem título ainda':'Informe o título.'); return false; }
       v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
       if(exigeSquad(v.lista_id)&&!v.squad){ aviso('Falta o squad'); if(!silencioso) return false; }
@@ -13739,6 +13802,16 @@ window.pcAplicar=async (pid)=>{
     cli.produtos=it.produtos; if(it.produtos) cli.servico=it.produtos;
     cli.instagram=it.instagram; cli.drive=it.drive; }
   await saveDB();
+  /* gerente do cliente nao le o cadastro financeiro: o banco leva servico, nicho e links pra la */
+  if(!cli&&it.clienteId&&souGerenteDaFicha(it.id)){
+    /* so o que esta preenchido: a ficha do gerente nao enxerga o cadastro, entao vazio
+       aqui nao quer dizer "apagar" */
+    const pt={};
+    if(it.produtos){ pt.produtos=it.produtos; pt.servico=it.produtos; }
+    ['nicho','instagram','drive'].forEach(k=>{ if(it[k]) pt[k]=String(it[k]); });
+    try{ const {error}=await sb.rpc('cliente_atualizar',{p_ficha:String(it.id),p_patch:pt});
+      if(error) toast('A ficha salvou, mas o cadastro não: '+error.message); }catch(_){}
+  }
   try{ ltDiffFicha(it,_antes); }catch(_){}
   const catIA=(it.categoria==='ia'||it.categoria==='outro');
   const falta=[(!String(it.responsavel||'').trim()&&!catIA)?'gestor de tráfego':'',
@@ -16431,7 +16504,7 @@ window.mpTarNovaCard=(diaIni)=>{
         '<button type="button" class="tc-chip" onclick="var i=document.getElementById(\'mtc_dt\');i.hidden=false;i.focus();try{i.showPicker&&i.showPicker()}catch(e){}">Outro</button></div>'+
         '<input type="date" id="mtc_dt" class="tc-date" value="'+esc(dia)+'" onchange="mpTcRotulos()" '+(chips.some(c=>c[1]===dia)?'hidden':'')+'/></div>'+
       '<button type="button" class="tc-p" onclick="mpTcHoraTgl()"><small>Hora</small><b id="mtc_hrl" class="vz">nenhuma</b><i>›</i></button>'+
-      '<div id="mtc_hrbox" class="tc-box" hidden><div class="tc-chips"><input type="time" id="mtc_hr" class="tc-date" value="" onchange="mpTcRotulos()"/>'+
+      '<div id="mtc_hrbox" class="tc-box" hidden><div class="tc-chips"><select id="mtc_hr" class="tc-date" onchange="mpTcRotulos()">'+horaOpcoes('','Escolher')+'</select>'+
         '<button type="button" class="tc-chip" onclick="mpTcHora(\'\')">Sem hora</button></div></div>'+
     '</div>'+
     '<div class="tc-sec">Notas</div>'+
@@ -16525,7 +16598,7 @@ window.mpTarCard=(id)=>{
         '<button type="button" class="tc-chip" onclick="var i=document.getElementById(\'mtc_dt\');i.hidden=false;i.focus();try{i.showPicker&&i.showPicker()}catch(e){}">Outro</button></div>'+
         '<input type="date" id="mtc_dt" class="tc-date" value="'+esc(dia)+'" onchange="mpTcRotulos()" '+(chips.some(c=>c[1]===dia)?'hidden':'')+'/></div>'+
       '<button type="button" class="tc-p" onclick="mpTcHoraTgl()"><small>Hora</small><b id="mtc_hrl" class="'+(t.hora?'':'vz')+'">'+esc(t.hora?String(t.hora).slice(0,5):'nenhuma')+'</b><i>›</i></button>'+
-      '<div id="mtc_hrbox" class="tc-box" hidden><div class="tc-chips"><input type="time" id="mtc_hr" class="tc-date" value="'+esc(t.hora||'')+'" onchange="mpTcRotulos()"/>'+
+      '<div id="mtc_hrbox" class="tc-box" hidden><div class="tc-chips"><select id="mtc_hr" class="tc-date" onchange="mpTcRotulos()">'+horaOpcoes(horaCheia(t.hora),'Escolher')+'</select>'+
         '<button type="button" class="tc-chip" onclick="mpTcHora(\'\')">Sem hora</button></div></div>'+
     '</div>'+
     '<div class="tc-sec">Notas</div>'+
