@@ -3280,8 +3280,9 @@ async function recarregarModulos(nomes){
 async function saveDBImpl(op){
   op=op||{};
   if(!SESSION){ toast('Sessão expirada — entre de novo.'); throw new Error('sem sessão'); }
-  /* senhas: o cofre é só do master. Membro nem lê nem regrava esse módulo. */
-  const livres=['projetos','links','trafego','contas_meta'];
+  /* senhas: o cofre é do master e de quem tem perfis.ve_senhas (Gabriel 23/09: João).
+     Quem não tem nem lê nem regrava esse módulo — a RLS do itens trava igual. */
+  const livres=['projetos','links','trafego','contas_meta'].concat(podeSenhas()?['senhas']:[]);
   const mods=(currentUser&&currentUser.role==='master')?MODMAP:MODMAP.filter(([m])=>livres.includes(m));
   DB.__snap=DB.__snap||{}; DB.__rev=DB.__rev||{};
   /* so grava o modulo que a acao realmente mudou — o save de um fixo nao arrasta
@@ -4267,6 +4268,9 @@ const lkPara=(r)=>Array.isArray(r&&r.users)?r.users.filter(Boolean).map(String):
 const lkMeu=(r)=>{ const p=lkPara(r); if(!p.length) return true;
   if(currentUser&&currentUser.role==='master') return true;
   return p.indexOf(String((currentUser||{}).id))>=0; };
+/* Cofre de senhas da equipe: master sempre; membro só com perfis.ve_senhas ligado.
+   A trava de verdade é a RLS do itens (pode_senhas()); isto só acompanha na tela. */
+const podeSenhas=()=>!!(currentUser&&(currentUser.role==='master'||currentUser.ve_senhas===true));
 const acessoVisivel=(r)=>(vejoTudo()||!r.fichaId||fichaNoMeuSquad(fichaDe(r.fichaId)))&&lkMeu(r);
 const SQUADS=()=>Array.from(new Set((DB.projetos||[]).map(p=>String(p.squad||'')).filter(Boolean))).sort();
 /* Gerente e um flag proprio (perfis.gerente), separado do role: manda na estrutura das listas
@@ -11867,8 +11871,8 @@ window.openFinModal=(id)=>{
 let acTab='senhas';
 window.acGo=(t)=>{ acTab=t; searchTerm=''; render('acessos'); };
 function renderAcessos(c){
-  /* Cofre da equipe é só do master. Membro vê as próprias senhas privadas e os links. */
-  const mst=!!(currentUser&&currentUser.role==='master');
+  /* Cofre da equipe: master e quem tem ve_senhas. O resto vê só os links. */
+  const mst=podeSenhas();
   if(!mst&&acTab==='senhas') acTab='links';
   /* "links" era o unico valor alem de senhas; agora ha uma terceira aba */
   const nS=(DB.senhas||[]).length+((DB.senhasPriv||[]).length);

@@ -525,6 +525,21 @@ grupo('Logos do cliente: guardadas na ficha, baixadas na Linha Editorial');
   ok('aba Logo acompanha a troca de cliente', HTML.indexOf("sel.addEventListener('change',lgTk)")>0);
 }
 
+/* ---------------- cofre de senhas por pessoa ---------------- */
+grupo('Senhas: master e quem tem ve_senhas (João, 23/09)');
+{
+  const cod=bloco('const podeSenhas=','const acessoVisivel=');
+  const pode=(u)=>rodar('var currentUser='+JSON.stringify(u)+';'+cod,{},['podeSenhas']).podeSenhas();
+  ok('master vê', pode({role:'master'}));
+  ok('membro com ve_senhas vê', pode({role:'membro',ve_senhas:true}));
+  ok('membro sem o campo não vê', !pode({role:'membro'}));
+  ok('sem login não vê', !pode(null));
+  ok('saveDB só grava o cofre de quem pode', HTML.indexOf(".concat(podeSenhas()?['senhas']:[])")>0);
+  ok('aba Senhas segue a mesma regra', HTML.indexOf('const mst=podeSenhas();')>0);
+  const sql=fs.readFileSync(path.join(__dirname,'..','migracao-ve-senhas.sql'),'utf8');
+  ok('banco: leitura e escrita do cofre por pode_senhas()', (sql.match(/modulo = 'senhas' and pode_senhas\(\)/g)||[]).length===3);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
