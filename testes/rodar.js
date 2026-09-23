@@ -555,7 +555,72 @@ grupo('Acessos: ninguém perde a tela (Gabriel 23/09)');
   ok('banco: quem for aprovado depois ganha sozinho', sql.indexOf('after insert or update of aprovado on public.perfis')>0);
 }
 
+
+/* ---------------- tarefas recorrentes ---------------- */
+grupo('Tarefas recorrentes (Gabriel 23/09)');
+{
+  const cod=bloco('const DT_MES=','/* 6 semanas fixas')+bloco('const TK_G2ST=','\n')+'\n'
+    +bloco('/* ======================= TAREFAS RECORRENTES','/* ---------- editor da repetição');
+  /* banco falso: update/insert com os filtros que a trava usa */
+  const BANCO=[];
+  const tab=()=>{ const st={f:[]}; const api={
+    update(p){st.op='u';st.p=p;return api;}, insert(r){st.op='i';st.r=r;return api;},
+    eq(k,v){st.f.push(r=>r[k]===v);return api;},
+    is(k){ if(k==='recorrencia->>gerou') st.f.push(r=>!(r.recorrencia&&r.recorrencia.gerou)); return api; },
+    select(){return api;}, single(){return api;},
+    then(res){ if(st.op==='u'){ const rs=BANCO.filter(r=>st.f.every(f=>f(r))); rs.forEach(r=>Object.assign(r,JSON.parse(JSON.stringify(st.p)))); res({data:rs.map(r=>({id:r.id})),error:null}); }
+      else { const r=JSON.parse(JSON.stringify(st.r)); BANCO.push(r); res({data:r,error:null}); } } }; return api; };
+  let avisos=[];
+  const g=rodar(cod,{sb:{from:tab},TK:{tarefas:[]},currentUser:{id:'eu'},currentView:'x',crypto:{randomUUID:()=>'n'+(BANCO.length+1)},
+    toast:m=>avisos.push(m),tkStatusDe:()=>[{id:'s1',grupo:'nao_iniciado'},{id:'s9',grupo:'feito'}],
+    respDe:t=>t.responsaveis||[t.responsavel_id],arquivada:t=>!!t.arquivada_em,primeiroNome:x=>String(x).split(' ')[0],
+    tkNomeUser:id=>({ls:'Luan',yg:'Yghor',jo:'João'}[id]||id),esc:x=>x,spDesenhar(){},tkDesenhar(){},renderInicio(){},$:()=>null,clearTimeout},
+    ['recProxima','recPresets','recRotulo','recVerificar','dtISO']);
+  const Q='2026-09-23';                                     /* uma quarta */
+  const P=(k)=>g.recPresets(Q).find(x=>x.k===k).r;
+  const seq=(rec,de,n)=>{ const o=[]; let r=Object.assign({},rec,{base:de,n:1}), t={prazo:de};
+    for(let i=0;i<n;i++){ const x=g.recProxima(r,t); if(!x) break; o.push(x.prazo.slice(8)+'/'+x.prazo.slice(5,7)); r=Object.assign({},r,{base:x.nom,n:r.n+1}); t={prazo:x.prazo}; }
+    return o.join(' '); };
+  secao('datas');
+  ok('semanal na quarta', seq({r:P('sem'),anc:Q,fds:true},Q,3)==='30/09 07/10 14/10');
+  ok('a cada 2 semanas', seq({r:P('quinz'),anc:Q,fds:true},Q,3)==='07/10 21/10 04/11');
+  ok('todo dia útil pula sábado e domingo', seq({r:P('util'),anc:Q,fds:true},'2026-09-25',2)==='28/09 29/09');
+  ok('mensal no dia 23, sábado empurra pra segunda', seq({r:P('mes'),anc:Q,fds:true},Q,4)==='23/10 23/11 23/12 25/01');
+  ok('dia 31 não escorrega depois de fevereiro', seq({r:{u:'m',cada:1,mes:'dia'},anc:'2026-01-31',fds:false},'2026-01-31',3)==='28/02 31/03 30/04');
+  ok('1º dia útil do mês', seq({r:P('mesu1'),anc:Q,fds:true},Q,3)==='01/10 02/11 01/12');
+  ok('segunda e quinta', seq({r:{u:'s',cada:1,dias:[1,4]},anc:Q,fds:true},Q,4)==='24/09 28/09 01/10 05/10');
+  ok('para na data de término', seq({r:P('sem'),anc:Q,fds:true,fim:{t:'data',d:'2026-10-10'}},Q,5)==='30/09 07/10');
+  ok('3 vezes ao todo = a atual + 2', seq({r:P('sem'),anc:Q,fds:true,fim:{t:'vezes',n:3}},Q,5)==='30/09 07/10');
+  ok('rótulo no jeito do ClickUp', g.recRotulo({p:'sem',anc:Q})==='Semanalmente na quarta'&&g.recRotulo({p:'sem',anc:'2026-09-26'})==='Semanalmente no sábado');
+  secao('criar a próxima');
+  (async()=>{
+    const t={id:'t1',lista_id:'L',titulo:'Saldo Meta',status:'feito',prazo:'2026-09-24',iniciada_em:'2026-09-22',responsaveis:['ls'],checklist:[{t:'a',ok:true}],
+      recorrencia:{p:'custom',r:{u:'s',cada:1,dias:[1,4]},anc:'2026-09-24',base:'2026-09-24',quem:{ids:['ls','yg','jo'],rev:true,i:1},gat:'concluir',nova:true,fds:true,fim:{t:'nunca'},n:1}};
+    BANCO.push(JSON.parse(JSON.stringify(t))); g.TK.tarefas=[t];
+    await g.recVerificar(); const n=g.TK.tarefas[1];
+    ok('concluiu: nasce a próxima na seg 28/09, início anda junto', n&&n.prazo==='2026-09-28'&&n.iniciada_em==='2026-09-26');
+    ok('revezando: a próxima é do Yghor', n&&n.responsavel_id==='yg');
+    ok('nasce no 1º status, checklist desmarcado', n&&n.status_id==='s1'&&n.checklist[0].ok===false);
+    await g.recVerificar(); ok('checar de novo não duplica', BANCO.length===2);
+    const velha=JSON.parse(JSON.stringify(t)); velha.recorrencia.gerou=null; g.TK.tarefas=[velha];
+    await g.recVerificar(); ok('outro navegador desatualizado não cria outra (trava no banco)', BANCO.length===2);
+    BANCO.length=0;
+    const f={id:'f1',lista_id:'L',titulo:'Fim',status:'feito',prazo:'2026-12-30',responsaveis:['x'],
+      recorrencia:{p:'sem',r:{u:'s',cada:1,dias:[3]},anc:'2026-12-30',base:'2026-12-30',quem:{ids:[]},gat:'concluir',nova:true,fds:true,fim:{t:'data',d:'2026-12-31'},n:4}};
+    BANCO.push(JSON.parse(JSON.stringify(f))); g.TK.tarefas=[f];
+    await g.recVerificar(); ok('passou da data de término: não nasce outra', g.TK.tarefas.length===1&&f.recorrencia.gerou==='fim');
+    BANCO.length=0;
+    const b={id:'b1',lista_id:'L',titulo:'Relatório',status:'feito',prazo:'2026-10-01',responsaveis:['ba'],checklist:[],
+      recorrencia:{p:'mesu1',r:{u:'m',cada:1,mes:'util1'},anc:'2026-10-01',base:'2026-10-01',quem:{ids:[]},gat:'concluir',nova:false,fds:true,fim:{t:'nunca'},n:1}};
+    BANCO.push(JSON.parse(JSON.stringify(b))); g.TK.tarefas=[b];
+    await g.recVerificar(); ok('modo reabrir: a mesma tarefa volta com prazo 02/11', g.TK.tarefas.length===1&&b.status==='todo'&&b.prazo==='2026-11-02');
+    ok('banco: migração cria a coluna recorrencia', /add column if not exists recorrencia jsonb/.test(fs.readFileSync(path.join(__dirname,'..','migracao-recorrencia.sql'),'utf8')));
+    fimDosTestes();
+  })();
+}
+function fimDosTestes(){
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
 process.exit(falhas?1:0);
+}

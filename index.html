@@ -1126,13 +1126,12 @@
   .tkf-stprox{font-size:11.5px;color:var(--fraco)}
   .tkf-stprox b{color:var(--muted);font-weight:700}
 
-  /* faixa de meta: o que muda todo dia, em compartimentos */
-  .tkf-meta{display:flex;align-items:stretch;flex-wrap:wrap;padding:0 30px;
+  /* campos da tarefa: um embaixo do outro, nome à esquerda e valor à direita (Gabriel 23/09).
+     Antes era uma faixa de compartimentos lado a lado que quebrava feio em tela estreita. */
+  .tkf-meta{display:flex;flex-direction:column;gap:2px;padding:10px 30px 14px;
     border-bottom:1px solid var(--line);background:var(--panel)}
-  .tkf-mb{display:flex;flex-direction:column;justify-content:center;gap:5px;
-    padding:12px 22px 12px 0;margin-right:22px;border-right:1px solid var(--line);min-height:62px}
-  .tkf-mb:last-child{border-right:none;margin-right:0;padding-right:0}
-  .tkf-mb .k{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--fraco);font-weight:800}
+  .tkf-mb{display:flex;align-items:center;gap:12px;padding:4px 0;min-height:36px}
+  .tkf-mb .k{width:120px;flex:none;font-size:12.5px;color:var(--fraco);font-weight:500}
   .tkf-mb .v{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700}
   .tkf-mb .v .dtf{font-size:12.5px}
 
@@ -1215,7 +1214,7 @@
     .tkf-side{width:auto;border-left:none;border-top:1px solid var(--line)}
     .tkf-capa,.tkf-meta{padding-left:18px;padding-right:18px}
     .tkf-main{padding:18px}
-    .tkf-mb{border-right:none;margin-right:16px;padding-right:0;min-height:54px}
+    .tkf-mb .k{width:100px}
     .tkf-capa .tk-tit{font-size:21px}
   }
   /* Arrastar arquivo vale em QUALQUER canto da folha, nao so na caixa de Anexos
@@ -1674,6 +1673,83 @@
   .tkp-n{color:var(--muted);font-size:11px;font-weight:700}
   .tkp-row input{accent-color:#7c3aed;width:15px;height:15px;cursor:pointer;flex:none}
   .tkp-chips{display:flex;flex-wrap:wrap;gap:6px}
+  /* ---- tarefas recorrentes: ícone colado no prazo, editor e aba Recorrentes ---- */
+  .tk-recb{display:inline-grid;place-items:center;width:26px;height:26px;margin-left:2px;border:1px solid transparent;border-radius:7px;
+    background:transparent;color:var(--fraco);opacity:.55;cursor:pointer;padding:0;flex:none}
+  .tk-recb svg{width:14px;height:14px}
+  .tk-recb:hover{opacity:1;background:var(--panel2);border-color:var(--line);color:var(--txt)}
+  .tk-recb.on{opacity:1;color:var(--brand2)}
+  .tk-recb.pausa{opacity:.6}
+  .tk-recico{display:inline-flex;vertical-align:-2px;margin-left:6px;color:var(--brand2)}
+  .tk-recico svg{width:13px;height:13px}
+  .tk-recico.pausa{color:var(--fraco)}
+  .recpop{width:392px;z-index:3000;display:flex;flex-direction:column;gap:10px}
+  .recpop .tkp-h{margin-bottom:0}
+  .recpop .tkp-h strong{display:flex;align-items:center;gap:8px}
+  .rc-tit{display:inline-flex;color:var(--brand2)} .rc-tit svg{width:15px;height:15px}
+  .rc-dd{display:flex;align-items:center;gap:9px;width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:9px 11px;font-size:13.5px;font-weight:700;cursor:pointer;text-align:left;font-family:inherit}
+  .rc-dd:hover,.rc-dd.ab{border-color:var(--brand2)}
+  .rc-ddt{flex:1;min-width:0}
+  .rc-car{color:var(--fraco);font-size:11px}
+  .rc-menu{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;padding:4px;margin-top:-4px}
+  .rc-mi{display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;color:var(--txt);text-align:left;
+    font-size:13px;font-family:inherit;padding:7px 10px;border-radius:7px;cursor:pointer}
+  .rc-mi:hover{background:var(--panel2)}
+  .rc-mi.on{color:var(--brand2);font-weight:700}
+  .rc-mi small{color:var(--fraco);font-size:11.5px}
+  .rc-mi.rc-del,.rc-del{color:var(--danger)}
+  .rc-sep{height:1px;background:var(--line);margin:4px 6px}
+  .rc-cust{display:flex;flex-direction:column;gap:8px}
+  .rc-ln{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+  .rc-k{font-size:12px;color:var(--fraco);min-width:92px}
+  .rc-sel,.rc-num{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font-size:12.5px;font-family:inherit}
+  .rc-num{width:58px}
+  .rc-circ{display:flex;gap:5px}
+  .rc-circ button{width:29px;height:29px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);
+    font-size:11px;font-weight:800;cursor:pointer;padding:0;font-family:inherit}
+  .rc-circ button:hover{border-color:var(--brand2)}
+  .rc-circ button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .rc-pes{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:transparent;color:var(--txt);border-radius:999px;
+    padding:3px 11px 3px 4px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;max-width:230px;overflow:hidden;white-space:nowrap}
+  .rc-pes:hover{border-color:var(--brand2)}
+  .rc-ico{width:22px;height:22px;border-radius:50%;border:1px dashed var(--fraco);display:inline-grid;place-items:center;color:var(--fraco);flex:none}
+  .rc-ico svg{width:12px;height:12px}
+  .rc-stk{display:inline-flex}
+  .rc-stk .av+.av{margin-left:-3px}
+  .rc-pbox{border:1px solid var(--line);border-radius:10px;padding:8px;max-height:260px;overflow-y:auto;margin-top:-4px}
+  .rc-cb{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);cursor:pointer}
+  .rc-cb input{accent-color:#7c3aed;width:15px;height:15px;margin:0}
+  .rc-cb small{color:var(--fraco)}
+  .rc-rev{border-top:1px solid var(--line);padding-top:8px;margin-top:6px}
+  .rc-mais{border:0;background:none;color:var(--fraco);font-size:12.5px;font-weight:700;cursor:pointer;padding:0;display:inline-flex;gap:6px;
+    align-items:center;align-self:flex-start;font-family:inherit}
+  .rc-mais:hover{color:var(--txt)}
+  .rc-mais .tri{display:inline-block;transition:transform .15s}
+  .rc-mais.ab .tri{transform:rotate(90deg)}
+  .rc-leva{display:flex;flex-direction:column;gap:6px;padding-left:16px}
+  .rc-res{background:var(--panel2);border-radius:10px;padding:10px 11px;font-size:12.5px;display:flex;flex-direction:column;gap:8px}
+  .rc-res p{margin:0;color:var(--muted);line-height:1.45}
+  .rc-res b{color:var(--txt)}
+  .rc-datas{display:flex;flex-wrap:wrap;gap:5px}
+  .rc-d{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:3px 6px;
+    background:var(--panel);font-variant-numeric:tabular-nums}
+  .rc-pe{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+  .rc-abas{margin-right:4px}
+  .rc-n{font-size:10.5px;color:var(--fraco);margin-left:2px}
+  .rc-tab{width:100%;border-collapse:collapse}
+  .rc-tab th,.rc-tab td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+  .rc-tab tbody tr:last-child td{border-bottom:0}
+  .rc-tab tbody tr:hover{background:var(--hov1)}
+  .rc-cam{font-size:11.5px;color:var(--fraco);margin-top:2px}
+  .rc-regra{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+  .rc-regra svg{width:13px;height:13px;color:var(--brand2);flex:none}
+  .rc-pz{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rc-pz.tarde{color:#ff8b97}
+  .rc-perto{color:var(--warn);font-weight:700;font-size:12.5px;white-space:nowrap}
+  .rc-fraco{color:var(--fraco);font-size:12.5px;white-space:nowrap}
+  .rc-pausa{opacity:.55}
+
   .tkp-chip{background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-size:12px;font-weight:600;border-radius:8px;padding:5px 10px}
   .tkp-chip:hover{border-color:var(--brand2)}
   .tkp-chip.on{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff}
@@ -6434,6 +6510,7 @@ async function tkCarregar(){
   const ws=await sb.from('workspaces').select('*'); TK.ws=(ws&&ws.data)||[];
   const tt=await sb.from('tarefa_tempos').select('*'); TK.tempos=(tt&&tt.data)||[];
   TK.equipe=alfab(q.data); TK.status=st.data||[]; TK.campos=cp.data||[];
+  setTimeout(()=>{ try{ recAgendar(); }catch(_){} },0);   /* repetições que venceram enquanto ninguém olhava */
   if(!TK.listaSel||!TK.listas.some(x=>x.id===TK.listaSel)) TK.listaSel=(TK.listas[0]||{}).id||'';
   if(!TK.semeado){ TK.semeado=true;
     /* Regra do Gabriel: abrir o sistema sempre com os espacos fechados. O que voce abre continua
@@ -6564,7 +6641,7 @@ function tkCard(t){
   const cheio=!!(rsC.length||t.prazo||t.ficha_id||sq||chCam);
   return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')" oncontextmenu="tkCardMenu(event,'${t.id}')">
     ${t.tipo_id?`<div class="tk-tpl">${tipoChip(t.tipo_id,'sm')}</div>`:''}
-    <div class="tk-tit">${esc(t.titulo)}</div>
+    <div class="tk-tit">${esc(t.titulo)}${recIco(t)}</div>
     ${meta?`<div class="tk-meta">${meta}</div>`:''}
     <div class="tk-chips${cheio?'':' so-hover'}">${chResp}${chPrazo}${chCli}${chSq}${chCam}${chPrio}</div>
   </div>`;
@@ -6969,7 +7046,7 @@ function tkViewLista(){
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
-  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
+  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr style="--bar:${esc(tkCorLinha(t))}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
@@ -7863,14 +7940,14 @@ function spDesenhar(){
   const app=document.getElementById('app'); if(app) app.classList.toggle('mini',SP_MINI);
   /* Um aceso por vez: o realce diz ONDE VOCÊ ESTÁ, não que a árvore está aberta.
      Antes o Espaços acendia só por estar aberta, e ficava aceso junto com o Início. */
-  const naCaixa=(TK.escopo==='minhas'&&currentView==='lista');
+  const naCaixa=((TK.escopo==='minhas'||TK.escopo==='recorrentes')&&currentView==='lista');
   const noInicio=(currentView==='inicio');
   const bi=document.getElementById('rlInicio'); if(bi) bi.classList.toggle('active',noInicio);
   const be=document.getElementById('rlEspacos'); if(be) be.classList.toggle('active',!SP_MINI&&!noInicio&&!naCaixa);
   const mst=!!(currentUser&&currentUser.role==='master');
   /* contador da caixa de entrada + estado do atalho */
   const bx=document.getElementById('rlInbox'), bn=document.getElementById('spInboxN');
-  if(bx) bx.classList.toggle('active',TK.escopo==='minhas'&&currentView==='lista');
+  if(bx) bx.classList.toggle('active',naCaixa);
   if(bn){ const n=spMinhas().length; bn.textContent=n||''; }
   const item=(l,fav)=>{
     const cor=l.cor||'';
@@ -8047,7 +8124,7 @@ window.pessoalVirar=async (id)=>{
   const patch=feito?{status:'feito',concluida_em:new Date().toISOString()}:{status:'todo',concluida_em:null};
   const {error}=await sb.from('tarefas').update(patch).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
-  Object.assign(t,patch); renderInicio($('#content')); spDesenhar();
+  Object.assign(t,patch); renderInicio($('#content')); spDesenhar(); recAgendar();
 };
 window.pessoalApagar=async (id)=>{
   const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
@@ -8111,7 +8188,7 @@ window.iniConcluir=async (ev,id)=>{
   if(error){ toast('Erro: '+error.message); return; }
   Object.assign(t,patch);
   toast('Concluída: '+t.titulo);
-  renderInicio($('#content')); spDesenhar();
+  renderInicio($('#content')); spDesenhar(); recAgendar();
 };
 window.inicioPeriodo=(p)=>{
   inicioPer=p;
@@ -8461,6 +8538,7 @@ window.tkFLimpar=()=>{ TK.filtro.prazo=''; TK.filtro.de=''; TK.filtro.ate=''; TK
 function tkFAplicar(){ try{ localStorage.setItem('tk_filtro',JSON.stringify(TK.filtro)); }catch(_){}
   tkDesenhar($('#content')); tkPopPintar(); }
 function tkDesenhar(c){
+  if(TK.escopo==='recorrentes') return recRender(c);
   if(TK.listaSel==='7381fb45-8d78-458d-b432-77dd88972338'&&TK.escopo==='lista'){ return renderTrafego(c); }
   if(TK.listaSel===NC_LISTA&&TK.escopo==='lista'){ return ncFormulario(c); }
   const lista=TK.listas.find(x=>x.id===TK.listaSel);
@@ -8485,7 +8563,7 @@ function tkDesenhar(c){
           fileira só, e como Ordem manual e Arquivados aparecem e somem, os botões
           escorregavam de lugar a cada troca de visão. -->
      <div class="toolbar tk-bar">
-       <span class="tk-g">${abas}</span>
+       <span class="tk-g">${TK.escopo==='minhas'?recAbas():''}${abas}</span>
        <span class="tk-g">${cli?lcBtnFiltro():tkBtnFiltro()}${cli?'':tkBtnResp()}${ordBtn}</span>
        <span class="tk-g tk-fim">
          <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
@@ -8503,8 +8581,403 @@ async function tkPatch(id,patch,msg){
   const {error}=await sb.from('tarefas').update(patch).eq('id',id);
   if(error){ toast('Erro: '+error.message); return false; }
   const t=TK.tarefas.find(x=>x.id===id); if(t) Object.assign(t,patch);
-  tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); return true;
+  tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); recAgendar(); return true;
 }
+/* ======================= TAREFAS RECORRENTES (Gabriel 23/09) =======================
+   A regra mora em tarefas.recorrencia (jsonb) na tarefa ATUAL da série. Quando ela é
+   concluída — ou chega o prazo, no modo "na data" — nasce a próxima com o prazo seguinte
+   e a regra passa pra ela; a antiga guarda recorrencia.gerou = id da nova.
+   Trava contra duplicar: o carimbo "gerou" é gravado ANTES do insert e só se ainda estiver
+   vazio (update ... where recorrencia->>gerou is null). Dois navegadores abertos nunca
+   criam a mesma próxima. Não tem cron no banco: quem abre o sistema materializa, igual ao
+   Contas a Pagar. Conclusão por qualquer caminho (lista, board, Início, painel) conta,
+   porque a checagem olha o ESTADO das tarefas, não o clique. */
+const REC_SEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+const REC_ORD=['1ª','2ª','3ª','4ª','última'];
+const REC_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>';
+const recAdd=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const recFds=(d)=>d.getDay()===0||d.getDay()===6;
+const recSeg=(d)=>d.getDay()===6?recAdd(d,2):d.getDay()===0?recAdd(d,1):d;
+const recUlt=(a,m)=>new Date(a,m+1,0).getDate();
+const recSem0=(d)=>recAdd(d,-((d.getDay()+6)%7));
+const recNa=(dow)=>(dow===0||dow===6?'no ':'na ')+REC_SEM[dow];
+const recNth=(d)=>{ const n=Math.floor((d.getDate()-1)/7), ult=d.getDate()+7>recUlt(d.getFullYear(),d.getMonth());
+  return {n:ult&&n>=3?4:n,dow:d.getDay()}; };
+/* ativa = é a tarefa da vez numa série que ainda vai gerar outra */
+const recAtiva=(t)=>!!(t&&t.recorrencia&&!t.recorrencia.gerou);
+function recNoMes(a,m,modo,anc){
+  if(modo==='util1'){ let d=new Date(a,m,1); while(recFds(d)) d=recAdd(d,1); return d; }
+  if(modo==='ultutil'){ let d=new Date(a,m,recUlt(a,m)); while(recFds(d)) d=recAdd(d,-1); return d; }
+  if(modo==='nth'){ const q=recNth(anc);
+    if(q.n===4){ let d=new Date(a,m,recUlt(a,m)); while(d.getDay()!==q.dow) d=recAdd(d,-1); return d; }
+    let d=new Date(a,m,1); while(d.getDay()!==q.dow) d=recAdd(d,1); return recAdd(d,7*q.n); }
+  return new Date(a,m,Math.min(anc.getDate(),recUlt(a,m)));
+}
+/* data "nominal" seguinte (antes de empurrar o fim de semana). base = nominal da atual. */
+function recNominal(rec,baseISO,concluidaISO){
+  const R=rec.r||{}, n=Math.max(1,+R.cada||1), base=dtDe(baseISO), anc=dtDe(rec.anc)||base;
+  if(!base) return null;
+  if(R.u==='c'){ const c=dtDe(String(concluidaISO||'').slice(0,10))||dtDe(dtISO(new Date())); return recAdd(c,n); }
+  if(R.u==='d'){
+    if(R.util||(rec.fds&&n===1)){ let d=recAdd(base,1); while(recFds(d)) d=recAdd(d,1); return d; }
+    return recAdd(base,n); }
+  if(R.u==='s'){ const ds=(R.dias&&R.dias.length)?R.dias:[anc.getDay()], s0=recSem0(anc);
+    for(let i=1;i<800;i++){ const d=recAdd(base,i), wk=Math.round((recSem0(d)-s0)/(7*864e5));
+      if(((wk%n)+n)%n===0&&ds.indexOf(d.getDay())>=0) return d; }
+    return null; }
+  if(R.u==='m'){ const k=(base.getFullYear()-anc.getFullYear())*12+(base.getMonth()-anc.getMonth());
+    const t=new Date(anc.getFullYear(),anc.getMonth()+k+n,1);
+    return recNoMes(t.getFullYear(),t.getMonth(),R.mes||'dia',anc); }
+  if(R.u==='a'){ const y=base.getFullYear()+n; return new Date(y,anc.getMonth(),Math.min(anc.getDate(),recUlt(y,anc.getMonth()))); }
+  return null;
+}
+/* próxima ocorrência: {nom, prazo} — ou null se a série já acabou */
+function recProxima(rec,t){
+  const nom=recNominal(rec,rec.base||t.prazo,t.concluida_em); if(!nom) return null;
+  const f=rec.fim||{}, iso=dtISO(nom);
+  if(f.t==='data'&&f.d&&iso>f.d) return null;
+  if(f.t==='vezes'&&(+rec.n||1)>=(+f.n||1)) return null;
+  return {nom:iso,prazo:dtISO((rec.fds&&recFds(nom))?recSeg(nom):nom)};
+}
+/* as frases prontas do menu, tiradas do prazo da tarefa (estilo ClickUp) */
+function recPresets(ancISO){
+  const d=dtDe(ancISO)||new Date(), dow=d.getDay(), dia=d.getDate();
+  return [
+    {k:'diaria',t:'Diariamente',r:{u:'d',cada:1}},
+    {k:'util',t:'Todo dia útil',s:'seg a sex',r:{u:'d',cada:1,util:true}},
+    {k:'sem',t:'Semanalmente '+recNa(dow),r:{u:'s',cada:1,dias:[dow]}},
+    {k:'quinz',t:'A cada 2 semanas '+recNa(dow),r:{u:'s',cada:2,dias:[dow]}},
+    {k:'mes',t:'Mensalmente no dia '+dia,r:{u:'m',cada:1,mes:'dia'}},
+    {k:'mesu1',t:'Mensalmente no 1º dia útil',r:{u:'m',cada:1,mes:'util1'}},
+    {k:'mesuu',t:'Mensalmente no último dia útil',r:{u:'m',cada:1,mes:'ultutil'}},
+    {k:'ano',t:'Anualmente em '+dia+' de '+DT_MES[d.getMonth()],r:{u:'a',cada:1}},
+    {sep:1},
+    {k:'apos',t:'Dias depois de concluir'},
+    {k:'custom',t:'Personalizado…'}];
+}
+function recMesTxt(m,ancISO){ const q=recNth(dtDe(ancISO)||new Date());
+  return m==='util1'?'no 1º dia útil':m==='ultutil'?'no último dia útil':m==='nth'?'na '+REC_ORD[q.n]+' '+REC_SEM[q.dow]:'no dia '+(dtDe(ancISO)||new Date()).getDate(); }
+const recLista=(a)=>a.length>1?a.slice(0,-1).join(', ')+' e '+a[a.length-1]:(a[0]||'');
+function recRotulo(rec){
+  if(!rec) return '';
+  const R=rec.r||{}, n=Math.max(1,+R.cada||1);
+  if(rec.p&&rec.p!=='custom'&&rec.p!=='apos'){ const p=recPresets(rec.anc).find(x=>x.k===rec.p); if(p) return p.t; }
+  if(R.u==='c') return n+(n===1?' dia':' dias')+' depois de concluir';
+  if(R.u==='d'&&R.util) return 'Todo dia útil';
+  const un={d:['Todo dia','dias'],s:['Toda semana','semanas'],m:['Todo mês','meses'],a:['Todo ano','anos']}[R.u]||['',''];
+  let t=n===1?un[0]:'A cada '+n+' '+un[1];
+  if(R.u==='s'){ const ds=((R.dias&&R.dias.length)?R.dias:[(dtDe(rec.anc)||new Date()).getDay()]).slice().sort((a,b)=>((a+6)%7)-((b+6)%7));
+    t+=(ds.length===5&&ds.indexOf(0)<0&&ds.indexOf(6)<0)?', de segunda a sexta':', '+recLista(ds.map(recNa)); }
+  if(R.u==='m') t+=', '+recMesTxt(R.mes,rec.anc);
+  return t;
+}
+function recFimTxt(rec){ const f=(rec&&rec.fim)||{};
+  if(f.t==='data'&&f.d) return 'até '+f.d.split('-').reverse().join('/');
+  if(f.t==='vezes'){ const r=Math.max(0,(+f.n||1)-(+rec.n||1)); return r?('mais '+r+(r===1?' vez':' vezes')):'última vez'; }
+  return ''; }
+const recDica=(rec)=>rec?(recRotulo(rec)+(recFimTxt(rec)?' · '+recFimTxt(rec):'')+(rec.pausada?' · pausada':'')):'Repetir';
+/* quem fica com a próxima */
+function recQuem(rec,t){
+  const q=rec.quem||{}, ids=(q.ids||[]).filter(Boolean);
+  if(!ids.length) return {ids:respDe(t).filter(Boolean),q:q};
+  if(q.rev&&ids.length>1){ const i=(+q.i||0)%ids.length; return {ids:[ids[i]],q:Object.assign({},q,{i:i+1})}; }
+  return {ids:ids,q:q};
+}
+function recStatusInicial(lid){
+  const sts=tkStatusDe(lid)||[];
+  const s=sts.find(x=>x.grupo==='nao_iniciado')||sts.find(x=>x.grupo!=='feito'&&x.grupo!=='fechado')||null;
+  return s?{status_id:s.id,status:TK_G2ST[s.grupo]||'todo'}:{status_id:null,status:'todo'};
+}
+/* a data de início anda junto com o prazo */
+function recMover(ini,de,para){
+  const a=dtDe(ini), b=dtDe(de), c=dtDe(para); if(!a||!b||!c) return null;
+  return dtISO(recAdd(a,Math.round((c-b)/864e5)));
+}
+const recUuid=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID()
+  :'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{ const r=Math.random()*16|0; return (c==='x'?r:(r&3|8)).toString(16); });
+
+let REC_RODANDO=false, REC_TIMER=null, REC_SEM_COLUNA=false;
+window.recAgendar=()=>{ if(REC_SEM_COLUNA) return; clearTimeout(REC_TIMER); REC_TIMER=setTimeout(recVerificar,350); };
+async function recVerificar(){
+  if(REC_RODANDO){ recAgendar(); return; }
+  REC_RODANDO=true; const feitas=[];
+  try{
+    const hoje=dtISO(new Date());
+    /* até 12 voltas: no modo "na data", quem ficou dias sem abrir recupera as que faltaram */
+    for(let volta=0;volta<12;volta++){
+      const alvo=(TK.tarefas||[]).filter(t=>{ const r=t.recorrencia;
+        if(!r||r.pausada||r.gerou||arquivada(t)) return false;
+        if(r.gat==='agenda'&&(r.r||{}).u!=='c') return !!t.prazo&&t.prazo<=hoje;
+        return t.status==='feito'; });
+      if(!alvo.length) break;
+      let fez=0;
+      for(const t of alvo){ const x=await recGerar(t); if(x){ fez++; if(x.id) feitas.push(x); } }
+      if(!fez) break;
+    }
+  }catch(e){ console.warn('recorrência:',e); }
+  finally{ REC_RODANDO=false; }
+  if(!feitas.length) return;
+  const u=feitas[feitas.length-1];
+  const quem=respDe(u).map(id=>primeiroNome(tkNomeUser(id))).filter(Boolean);
+  toast(feitas.length>1?feitas.length+' tarefas recorrentes criadas.':'Próxima criada: '+dtCurto(u.prazo)+(quem.length?' · '+recLista(quem):''));
+  try{
+    if(currentView==='lista'||currentView==='espaco') tkDesenhar($('#content'));
+    else if(currentView==='inicio') renderInicio($('#content'));
+    spDesenhar();
+  }catch(_){}
+}
+/* devolve a tarefa nova (ou true quando só carimbou/reabriu), false se não fez nada */
+async function recGerar(t){
+  const rec=t.recorrencia, px=recProxima(rec,t);
+  if(!px){ /* série terminou: carimba pra não tentar de novo */
+    const r2=Object.assign({},rec,{gerou:'fim'});
+    const {data,error}=await sb.from('tarefas').update({recorrencia:r2}).eq('id',t.id).is('recorrencia->>gerou',null).select('id');
+    if(error) return recErro(error);
+    if(data&&data.length) t.recorrencia=r2;
+    return !!(data&&data.length); }
+  const quem=recQuem(rec,t), leva=rec.leva||{};
+  const ck=leva.ck===false?[]:(t.checklist||[]).map(x=>({t:x.t,ok:false}));
+  const recNova=Object.assign({},rec,{base:px.nom,n:(+rec.n||1)+1,gerou:null,quem:quem.q,serie:rec.serie||t.id});
+  if(rec.nova===false){
+    /* reabre a mesma: só se ela continua do jeito que vimos (trava contra dois navegadores) */
+    const patch=Object.assign(recStatusInicial(t.lista_id),{prazo:px.prazo,iniciada_em:recMover(t.iniciada_em,t.prazo,px.prazo),
+      concluida_em:null,checklist:ck,responsaveis:quem.ids,responsavel_id:quem.ids[0]||null,recorrencia:recNova});
+    let q=sb.from('tarefas').update(patch).eq('id',t.id).is('recorrencia->>gerou',null);
+    q=(rec.gat==='agenda'&&(rec.r||{}).u!=='c')?q.eq('prazo',t.prazo):q.eq('status','feito');
+    const {data,error}=await q.select('id');
+    if(error) return recErro(error);
+    if(!data||!data.length) return false;
+    Object.assign(t,patch); return t;
+  }
+  const novoId=recUuid(), r1=Object.assign({},rec,{gerou:novoId});
+  const c=await sb.from('tarefas').update({recorrencia:r1}).eq('id',t.id).is('recorrencia->>gerou',null).select('id');
+  if(c.error) return recErro(c.error);
+  if(!c.data||!c.data.length) return false;          /* outro navegador já pegou */
+  t.recorrencia=r1;
+  const nova=Object.assign({
+    id:novoId, lista_id:t.lista_id, titulo:t.titulo, descricao:leva.desc===false?null:(t.descricao||null),
+    prioridade:leva.campos===false?'med':(t.prioridade||'med'), valores:leva.campos===false?{}:(t.valores||{}),
+    checklist:ck, tipo_id:t.tipo_id||null, ficha_id:t.ficha_id||null, squad:t.squad||null,
+    tags:t.tags||null, pai_id:t.pai_id||null, hora:t.hora||null,
+    prazo:px.prazo, iniciada_em:recMover(t.iniciada_em,t.prazo,px.prazo), concluida_em:null,
+    responsaveis:quem.ids, responsavel_id:quem.ids[0]||null,
+    criado_por:(currentUser||{}).id||null, ordem:TK.tarefas.length, recorrencia:recNova
+  },recStatusInicial(t.lista_id));
+  const r=await sb.from('tarefas').insert(nova).select().single();
+  if(r.error){ /* desfaz o carimbo pra tentar de novo depois */
+    await sb.from('tarefas').update({recorrencia:rec}).eq('id',t.id); t.recorrencia=rec;
+    console.warn('recorrência: não criou a próxima',r.error); return false; }
+  TK.tarefas.push(r.data); return r.data;
+}
+function recErro(e){
+  if(/recorrencia/i.test(String((e&&e.message)||''))){ REC_SEM_COLUNA=true; console.warn('recorrência: coluna tarefas.recorrencia não existe — rodar migracao-recorrencia.sql'); }
+  else console.warn('recorrência:',e);
+  return false;
+}
+/* ---------- editor da repetição (ícone ↻ colado no prazo, dentro da tarefa) ----------
+   Minimalista (regra do Gabriel): à vista só a frequência, o responsável, o término e duas
+   caixinhas. "Personalizado", a busca de pessoa e o que a cópia leva abrem quando pedidos. */
+let RE=null;
+const recBtnHtml=(t)=>{ const r=t&&t.recorrencia, on=recAtiva(t);
+  return `<button type="button" class="tk-recb${on?' on':''}${on&&r.pausada?' pausa':''}" id="tk_recb" title="${esc(on?recDica(r):'Repetir')}" onclick="recAbrir(event)">${REC_SVG}</button>`; };
+function recPintarBtn(){ const b=document.getElementById('tk_recb'); if(!b) return;
+  const t=window.__tkmT, r=t&&t.recorrencia, on=recAtiva(t);
+  b.classList.toggle('on',on); b.classList.toggle('pausa',!!(on&&r.pausada)); b.title=on?recDica(r):'Repetir'; }
+window.recAbrir=async (ev)=>{
+  ev.stopPropagation();
+  const velho=document.getElementById('recPop'); if(velho){ velho.remove(); return; }
+  const btn=ev.currentTarget;
+  const prazo=String((document.getElementById('tk_prazo')||{}).value||'').slice(0,10);
+  if(!prazo){ toast('Escolha o prazo primeiro — a repetição parte dele.'); return; }
+  let t=window.__tkmT;
+  if(!t&&window.__tkmSalvarJa){ await window.__tkmSalvarJa(); t=window.__tkmT; }
+  if(!t){ toast('Dê um nome à tarefa primeiro.'); return; }
+  const r=(recAtiva(t)&&t.recorrencia)||null, dow=(dtDe(prazo)||new Date()).getDay();
+  const pres=recPresets(prazo);
+  RE={id:t.id, prazo:prazo, existe:!!r,
+    p:(r&&r.p)||'sem',
+    c:Object.assign({cada:1,u:'s',dias:[dow],mes:'dia'},(r&&r.p==='custom')?r.r:{}),
+    apos:(r&&r.p==='apos')?(+r.r.cada||3):3,
+    ids:((r&&r.quem&&r.quem.ids)||[]).slice(), rev:!!(r&&r.quem&&r.quem.rev),
+    gat:(r&&r.gat)||'concluir', nova:r?r.nova!==false:true, fds:r?r.fds!==false:true,
+    fim:Object.assign({t:'nunca',d:'',n:6},(r&&r.fim)||{}),
+    leva:Object.assign({desc:true,ck:true,campos:true},(r&&r.leva)||{}),
+    abre:'', q:'', pres:pres, n:(r&&r.n)||1, serie:(r&&r.serie)||t.id, pausada:!!(r&&r.pausada)};
+  if(RE.p==='custom'&&!RE.c.dias.length) RE.c.dias=[dow];
+  const el=document.createElement('div'); el.id='recPop'; el.className='tkpop recpop';
+  el.onclick=e=>e.stopPropagation(); el.onmousedown=e=>e.stopPropagation();
+  document.body.appendChild(el); recPintar();
+  popPor(el,btn.getBoundingClientRect());
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+function recRegraRE(){
+  if(RE.p==='custom') return Object.assign({},RE.c,{cada:Math.max(1,+RE.c.cada||1),dias:RE.c.u==='s'?RE.c.dias.slice():undefined,mes:RE.c.u==='m'?RE.c.mes:undefined});
+  if(RE.p==='apos') return {u:'c',cada:Math.max(1,+RE.apos||1)};
+  return (RE.pres.find(x=>x.k===RE.p)||{}).r||{u:'s',cada:1};
+}
+function recMontar(){
+  const t=TK.tarefas.find(x=>x.id===RE.id)||{}, ids=RE.ids.filter(Boolean);
+  let i=0; if(RE.rev&&ids.length>1){ const k=ids.indexOf(String(respDe(t)[0]||'')); i=k>=0?k+1:0; }
+  return {v:1,p:RE.p,r:recRegraRE(),anc:RE.prazo,base:RE.prazo,quem:{ids:ids,rev:RE.rev&&ids.length>1,i:i},
+    gat:RE.gat,nova:RE.nova,fds:RE.fds,fim:RE.fim.t==='nunca'?{t:'nunca'}:RE.fim.t==='data'?{t:'data',d:RE.fim.d}:{t:'vezes',n:Math.max(1,+RE.fim.n||1)},
+    leva:RE.leva,n:RE.n,serie:RE.serie,pausada:RE.pausada,gerou:null};
+}
+function recPintar(){
+  const el=document.getElementById('recPop'); if(!el||!RE) return;
+  const rec=recMontar(), R=rec.r;
+  const pesTxt=!RE.ids.length?'<span class="rc-ico">'+SVG_P.pessoa+'</span>Os mesmos da tarefa'
+    :'<span class="rc-stk">'+RE.ids.slice(0,3).map(id=>avatar(id,tkNomeUser(id),'sm')).join('')+'</span>'
+      +esc(RE.ids.length===1?tkNomeUser(RE.ids[0]):(rec.quem.rev?'Revezando '+RE.ids.length:recLista(RE.ids.map(id=>primeiroNome(tkNomeUser(id))))));
+  /* próximas 5 datas, simulando a série */
+  const px=[]; let rr=Object.assign({},rec), tt={prazo:RE.prazo,concluida_em:null}, qq=rec.quem;
+  for(let k=0;k<5;k++){ const p=recProxima(rr,tt); if(!p) break;
+    const quem=(qq.rev&&qq.ids.length>1)?qq.ids[(+qq.i||0)%qq.ids.length]:'';
+    px.push({p:p,quem:quem}); rr=Object.assign({},rr,{base:p.nom,n:(+rr.n||1)+1}); tt={prazo:p.prazo}; if(quem) qq=Object.assign({},qq,{i:(+qq.i||0)+1}); }
+  const semana=['D','S','T','Q','Q','S','S'];
+  el.innerHTML=`
+    <div class="tkp-h"><strong><span class="rc-tit">${REC_SVG}</span>Repetir tarefa</strong><button class="tkp-x" onclick="document.getElementById('recPop').remove()">✕</button></div>
+    <button type="button" class="rc-dd${RE.abre==='freq'?' ab':''}" onclick="recAbre('freq')"><span class="rc-tit">${REC_SVG}</span><span class="rc-ddt">${esc(recRotulo(rec))}</span><span class="rc-car">▾</span></button>
+    ${RE.abre==='freq'?`<div class="rc-menu">${RE.pres.map(p=>p.sep?'<div class="rc-sep"></div>':`<button type="button" class="rc-mi${p.k===RE.p?' on':''}" onclick="recPreset('${p.k}')">${esc(p.t)}${p.s?`<small>${esc(p.s)}</small>`:''}</button>`).join('')}</div>`:''}
+    ${RE.p==='custom'?`<div class="rc-cust">
+      <div class="rc-ln"><span class="rc-k">A cada</span><input type="number" class="rc-num" min="1" max="99" value="${esc(String(RE.c.cada))}" oninput="RE.c.cada=this.value;recPintarLeve()">
+        <select class="rc-sel" onchange="RE.c.u=this.value;recPintar()">${[['d','dias'],['s','semanas'],['m','meses'],['a','anos']].map(o=>`<option value="${o[0]}"${RE.c.u===o[0]?' selected':''}>${o[1]}</option>`).join('')}</select></div>
+      ${RE.c.u==='s'?`<div class="rc-ln"><span class="rc-k">Em</span><span class="rc-circ">${semana.map((l,d)=>`<button type="button" class="${RE.c.dias.indexOf(d)>=0?'on':''}" title="${REC_SEM[d]}" onclick="recDia(${d})">${l}</button>`).join('')}</span></div>`:''}
+      ${RE.c.u==='m'?`<div class="rc-ln"><span class="rc-k">No</span><select class="rc-sel" onchange="RE.c.mes=this.value;recPintar()">${['dia','nth','util1','ultutil'].map(m=>`<option value="${m}"${RE.c.mes===m?' selected':''}>${esc(recMesTxt(m,RE.prazo).replace(/^n[oa] /,''))}</option>`).join('')}</select></div>`:''}
+    </div>`:''}
+    ${RE.p==='apos'?`<div class="rc-ln"><input type="number" class="rc-num" min="1" max="365" value="${esc(String(RE.apos))}" oninput="RE.apos=this.value;recPintarLeve()"><span class="rc-k" style="min-width:0">dias depois de concluir</span></div>`:''}
+    <div class="rc-ln"><span class="rc-k">Responsável</span><button type="button" class="rc-pes" onclick="recAbre('pes')">${pesTxt}</button></div>
+    ${RE.abre==='pes'?`<div class="rc-pbox">${popBusca('Buscar pelo nome')}
+      <label class="tkp-row" data-fixo="1" onclick="event.preventDefault();recPes('')"><span class="rc-ico">${SVG_P.pessoa}</span><span class="tkp-nm">Os mesmos da tarefa</span><input type="checkbox" ${RE.ids.length?'':'checked'}></label>
+      ${equipeDe(TK.tarefas.find(x=>x.id===RE.id)?TK.tarefas.find(x=>x.id===RE.id).lista_id:'',RE.ids).map(u=>`<label class="tkp-row" onclick="event.preventDefault();recPes('${u.id}')">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span>${(RE.rev&&RE.ids.length>1&&RE.ids.indexOf(String(u.id))>=0)?`<span class="tkp-n">${RE.ids.indexOf(String(u.id))+1}º</span>`:''}<input type="checkbox" ${RE.ids.indexOf(String(u.id))>=0?'checked':''}></label>`).join('')}
+      <div class="tkp-vazio">Ninguém com esse nome.</div>
+      ${RE.ids.length>1?`<label class="rc-cb rc-rev"><input type="checkbox" ${RE.rev?'checked':''} onchange="RE.rev=this.checked;recPintar()">Revezar entre eles, um por vez</label>`:''}
+    </div>`:''}
+    <div class="rc-ln"><span class="rc-k">Termina</span><select class="rc-sel" onchange="RE.fim.t=this.value;if(this.value==='data'&&!RE.fim.d)RE.fim.d=recFimPadrao();recPintar()">
+        <option value="nunca"${RE.fim.t==='nunca'?' selected':''}>nunca</option><option value="data"${RE.fim.t==='data'?' selected':''}>na data</option><option value="vezes"${RE.fim.t==='vezes'?' selected':''}>após N vezes</option></select>
+      ${RE.fim.t==='data'?`<input type="date" class="rc-sel" value="${esc(RE.fim.d)}" min="${esc(RE.prazo)}" onchange="RE.fim.d=this.value;recPintarLeve()">`:''}
+      ${RE.fim.t==='vezes'?`<input type="number" class="rc-num" min="1" value="${esc(String(RE.fim.n))}" oninput="RE.fim.n=this.value;recPintarLeve()"><span class="rc-k" style="min-width:0">vezes</span>`:''}</div>
+    ${R.u!=='c'?`<div class="rc-ln"><span class="rc-k">Próxima surge</span><select class="rc-sel" onchange="RE.gat=this.value;recPintarLeve()"><option value="concluir"${RE.gat==='concluir'?' selected':''}>quando concluir esta</option><option value="agenda"${RE.gat==='agenda'?' selected':''}>no prazo, mesmo sem concluir</option></select></div>`:''}
+    <label class="rc-cb"><input type="checkbox" ${RE.nova?'checked':''} onchange="RE.nova=this.checked;recPintarLeve()">Criar uma tarefa nova <small>(desmarcado reabre esta)</small></label>
+    <label class="rc-cb"><input type="checkbox" ${RE.fds?'checked':''} onchange="RE.fds=this.checked;recPintar()">Pular sábado e domingo</label>
+    <button type="button" class="rc-mais${RE.abre==='leva'?' ab':''}" onclick="recAbre('leva')"><span class="tri">▸</span>O que a nova tarefa leva</button>
+    ${RE.abre==='leva'?`<div class="rc-leva">${[['desc','Descrição'],['ck','Checklist desmarcado'],['campos','Campos e prioridade']].map(o=>`<label class="rc-cb"><input type="checkbox" ${RE.leva[o[0]]!==false?'checked':''} onchange="RE.leva['${o[0]}']=this.checked">${o[1]}</label>`).join('')}</div>`:''}
+    <div class="rc-res" id="recRes">${recResumoHtml(rec,px)}</div>
+    <div class="rc-pe">${RE.existe?`<button type="button" class="btn ghost small rc-del" onclick="recRemover()">Remover repetição</button>`:'<span></span>'}<button type="button" class="btn small" onclick="recSalvar()">Salvar</button></div>`;
+  const b=el.querySelector('.tkp-b'); if(b&&RE.abre==='pes'){ b.value=RE.q||''; if(RE.q) popFiltrar(b); b.oninput=function(){ RE.q=this.value; popFiltrar(this); }; b.focus(); }
+}
+const recFimPadrao=()=>{ const d=dtDe(RE.prazo)||new Date(); return dtISO(new Date(d.getFullYear(),11,31)); };
+function recResumoHtml(rec,px){
+  const R=rec.r, q=rec.quem;
+  const quem=!q.ids.length?' Fica com quem estiver na tarefa.':(q.rev?' Revezando: '+q.ids.map(id=>primeiroNome(tkNomeUser(id))).join(' → ')+'.':' Vai para '+recLista(q.ids.map(id=>primeiroNome(tkNomeUser(id))))+'.');
+  const quando=R.u==='c'?' Conta a partir do dia em que esta for concluída.':(rec.gat==='concluir'?' Quando concluir, ':' No prazo, mesmo com esta aberta, ')+(R.u==='c'?'':(rec.nova?'nasce uma tarefa nova.':'esta mesma volta para o início.'));
+  const fim=recFimTxt(Object.assign({},rec,{n:1}));
+  return `<p><b>${esc(recRotulo(rec))}.</b>${esc(quando+quem)}${fim?' '+esc(fim.charAt(0).toUpperCase()+fim.slice(1))+'.':''}</p>
+    <div class="rc-datas">${px.length?px.map(x=>`<span class="rc-d">${esc(dtCurto(x.p.prazo))}${x.quem?avatar(x.quem,tkNomeUser(x.quem),'sm'):''}</span>`).join(''):'<span class="rc-k">Sem próximas — a data de término já passou.</span>'}</div>`;
+}
+/* repinta só o resumo (não perde o foco de quem está digitando um número) */
+window.recPintarLeve=()=>{ const box=document.getElementById('recRes'); if(!box||!RE) return;
+  const rec=recMontar(); const px=[]; let rr=Object.assign({},rec), tt={prazo:RE.prazo}, qq=rec.quem;
+  for(let k=0;k<5;k++){ const p=recProxima(rr,tt); if(!p) break; const quem=(qq.rev&&qq.ids.length>1)?qq.ids[(+qq.i||0)%qq.ids.length]:'';
+    px.push({p:p,quem:quem}); rr=Object.assign({},rr,{base:p.nom,n:(+rr.n||1)+1}); tt={prazo:p.prazo}; if(quem) qq=Object.assign({},qq,{i:(+qq.i||0)+1}); }
+  box.innerHTML=recResumoHtml(rec,px);
+  const dd=document.querySelector('#recPop .rc-ddt'); if(dd) dd.textContent=recRotulo(rec); };
+window.recAbre=(k)=>{ RE.abre=RE.abre===k?'':k; RE.q=''; recPintar(); };
+window.recPreset=(k)=>{ RE.p=k; RE.abre=''; recPintar(); };
+window.recDia=(d)=>{ const i=RE.c.dias.indexOf(d); if(i>=0){ if(RE.c.dias.length>1) RE.c.dias.splice(i,1); } else RE.c.dias.push(d); recPintar(); };
+window.recPes=(id)=>{ if(!id) RE.ids=[]; else { id=String(id); const i=RE.ids.indexOf(id); if(i>=0) RE.ids.splice(i,1); else RE.ids.push(id); }
+  if(RE.ids.length<2) RE.rev=false; recPintar(); };
+async function recGravar(id,rec){
+  const {error}=await sb.from('tarefas').update({recorrencia:rec}).eq('id',id);
+  if(error){ toast(/recorrencia/i.test(error.message)?'Falta preparar o banco para repetição (migracao-recorrencia.sql).':'Erro: '+error.message); return false; }
+  const t=TK.tarefas.find(x=>x.id===id); if(t) t.recorrencia=rec;
+  if(window.__tkmT&&window.__tkmT.id===id) window.__tkmT.recorrencia=rec;
+  REC_SEM_COLUNA=false; return true;
+}
+window.recSalvar=async ()=>{
+  if(!RE) return;
+  if(RE.fim.t==='data'&&!RE.fim.d){ toast('Escolha a data de término.'); return; }
+  const rec=recMontar();
+  if(!(await recGravar(RE.id,rec))) return;
+  const p=document.getElementById('recPop'); if(p) p.remove();
+  recPintarBtn(); try{ tkDesenhar($('#content')); }catch(_){}
+  toast('Repetição: '+recRotulo(rec)+'.'); recAgendar();
+};
+window.recRemover=async ()=>{
+  if(!RE) return;
+  if(!(await recGravar(RE.id,null))) return;
+  const p=document.getElementById('recPop'); if(p) p.remove();
+  recPintarBtn(); try{ tkDesenhar($('#content')); }catch(_){}
+  toast('Repetição removida.');
+};
+/* ícone na linha da lista/cartão */
+const recIco=(t)=>recAtiva(t)?`<span class="tk-recico${t.recorrencia.pausada?' pausa':''}" title="${esc(recDica(t.recorrencia))}">${REC_SVG}</span>`:'';
+
+/* ---------- aba Recorrentes (gerente e master), dentro de Tarefas ---------- */
+let REC_F='ativas', REC_Q='';
+const recAbas=()=>souGerente()?`<span class="tk-seg rc-abas"><button class="${TK.escopo==='minhas'?'on':''}" onclick="recAba('minhas')">Minhas</button><button class="${TK.escopo==='recorrentes'?'on':''}" onclick="recAba('recorrentes')">Recorrentes</button></span>`:'';
+window.recAba=(a)=>{ TK.escopo=a; currentView='lista'; tkDesenhar($('#content')); };
+function recSeries(){ return (TK.tarefas||[]).filter(t=>recAtiva(t)&&!arquivada(t)); }
+function recTerminando(t){ const f=t.recorrencia.fim||{};
+  if(f.t==='data'&&f.d){ const lim=new Date(); lim.setDate(lim.getDate()+30); return f.d<=dtISO(lim); }
+  if(f.t==='vezes') return (+f.n||1)-(+t.recorrencia.n||1)<=2;
+  return false; }
+function recRender(c){
+  if(!souGerente()){ TK.escopo='minhas'; return tkDesenhar(c); }
+  const todas=recSeries(), q=semAcento(REC_Q);
+  const grupo={ativas:todas.filter(t=>!t.recorrencia.pausada),fim:todas.filter(t=>!t.recorrencia.pausada&&recTerminando(t)),pausa:todas.filter(t=>t.recorrencia.pausada)};
+  const lin=(grupo[REC_F]||[]).filter(t=>!q||semAcento([t.titulo,tkCaminho(t.lista_id),...recPessoas(t).map(tkNomeUser)].join(' ')).indexOf(q)>=0)
+    .sort((a,b)=>String(a.prazo||'9').localeCompare(String(b.prazo||'9')));
+  const f=(k,r)=>`<button class="${REC_F===k?'on':''}" onclick="REC_F='${k}';tkDesenhar($('#content'))">${r} <span class="rc-n">${grupo[k].length}</span></button>`;
+  c.innerHTML=`
+   <div class="page-head">
+     <div>${tkCrumb()}<h2>Tarefas recorrentes</h2><div class="desc">todas as séries que se repetem nas listas que você enxerga</div></div>
+     <div class="toolbar tk-bar">
+       <span class="tk-g">${recAbas()}</span>
+       <span class="tk-g"><span class="tk-seg">${f('ativas','Ativas')}${f('fim','Terminando')}${f('pausa','Pausadas')}</span></span>
+       <span class="tk-g tk-fim"><input class="search" id="rc_busca" placeholder="Buscar tarefa ou pessoa…" value="${esc(REC_Q)}" oninput="REC_Q=this.value;recRenderCorpo()" style="width:200px"></span>
+     </div>
+   </div>
+   <div id="rcCorpo">${recTabela(lin)}</div>`;
+}
+window.recRenderCorpo=()=>{ const b=document.getElementById('rcCorpo'); if(!b) return;
+  const q=semAcento(REC_Q), todas=recSeries();
+  const base=REC_F==='pausa'?todas.filter(t=>t.recorrencia.pausada):REC_F==='fim'?todas.filter(t=>!t.recorrencia.pausada&&recTerminando(t)):todas.filter(t=>!t.recorrencia.pausada);
+  b.innerHTML=recTabela(base.filter(t=>!q||semAcento([t.titulo,tkCaminho(t.lista_id),...recPessoas(t).map(tkNomeUser)].join(' ')).indexOf(q)>=0)
+    .sort((a,b)=>String(a.prazo||'9').localeCompare(String(b.prazo||'9')))); };
+const recPessoas=(t)=>{ const q=t.recorrencia.quem||{}; return (q.ids&&q.ids.length)?q.ids:respDe(t).filter(Boolean); };
+function recTabela(lin){
+  if(!lin.length) return `<div class="empty">${REC_F==='pausa'?'Nenhuma repetição pausada.':REC_F==='fim'?'Nenhuma série perto do fim.':'Nenhuma tarefa recorrente ainda. Abra uma tarefa e clique no ícone ↻ ao lado do prazo.'}</div>`;
+  return `<div class="card" style="padding:0;overflow-x:auto"><table class="rc-tab">
+    <thead><tr><th>Tarefa</th><th>Regra</th><th>Prazo da vez</th><th>Com quem</th><th>Termina</th><th style="width:36px"></th></tr></thead>
+    <tbody>${lin.map(t=>{ const r=t.recorrencia, ps=recPessoas(t), fimT=recFimTxt(r);
+      return `<tr class="${r.pausada?'rc-pausa':''}">
+        <td><span class="tk-titcel" onclick="tkAbrir('${t.id}')">${esc(t.titulo)}</span><div class="rc-cam">${esc(tkCaminho(t.lista_id))}</div></td>
+        <td><span class="rc-regra">${REC_SVG}${esc(recRotulo(r))}</span></td>
+        <td class="rc-pz${t.prazo&&t.prazo<dtISO(new Date())&&t.status!=='feito'?' tarde':''}">${t.prazo?esc(dtCurto(t.prazo)):'—'}</td>
+        <td><span class="rc-stk" title="${esc((r.quem&&r.quem.rev?'Revezando: ':'')+ps.map(tkNomeUser).join(r.quem&&r.quem.rev?' → ':', '))}">${ps.slice(0,4).map(id=>avatar(id,tkNomeUser(id),'sm')).join('')}</span></td>
+        <td class="${recTerminando(t)?'rc-perto':'rc-fraco'}">${esc(fimT||'nunca')}</td>
+        <td><button class="iconbtn" title="Opções" onclick="recMenu(event,'${t.id}')">⋯</button></td></tr>`; }).join('')}</tbody></table></div>`;
+}
+window.recMenu=(ev,id)=>{ ev.stopPropagation();
+  const v=document.getElementById('tkQaMenu'); if(v) v.remove();
+  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  const r=ev.currentTarget.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='tkQaMenu'; el.className='tkpop'; el.style.width='210px'; el.style.zIndex=3000;
+  el.innerHTML=`<button class="rc-mi" onclick="document.getElementById('tkQaMenu').remove();tkAbrir('${id}')">Abrir a tarefa</button>
+    <button class="rc-mi" onclick="recPausar('${id}')">${t.recorrencia.pausada?'Retomar a repetição':'Pausar a repetição'}</button>
+    <div class="rc-sep"></div>
+    <button class="rc-mi rc-del" onclick="recEncerrar('${id}')">Encerrar a repetição</button>`;
+  document.body.appendChild(el); popPor(el,r);
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.recPausar=async (id)=>{ const m=document.getElementById('tkQaMenu'); if(m) m.remove();
+  const t=TK.tarefas.find(x=>x.id===id); if(!t||!t.recorrencia) return;
+  const rec=Object.assign({},t.recorrencia,{pausada:!t.recorrencia.pausada});
+  if(await recGravar(id,rec)){ toast(rec.pausada?'Repetição pausada.':'Repetição retomada.'); tkDesenhar($('#content')); if(!rec.pausada) recAgendar(); } };
+window.recEncerrar=async (id)=>{ const m=document.getElementById('tkQaMenu'); if(m) m.remove();
+  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  if(!confirm('Encerrar a repetição de "'+t.titulo+'"? A tarefa atual continua; só não nascem novas.')) return;
+  if(await recGravar(id,null)){ toast('Repetição encerrada.'); tkDesenhar($('#content')); } };
 window.tkSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; tkDesenhar($('#content')); };
 /* Cada lista lembra da própria visão. Antes era uma só para o sistema inteiro:
    clicar em Board numa lista fazia todas as outras abrirem em Board, e listas
@@ -8526,6 +8999,7 @@ window.tkEscopo=()=>{
 function tkCrumb(){
   const nos=[`<button onclick="spAbrirClientes()" title="Base de Clientes">${esc(WS_NOME)}</button>`];
   if(TK.escopo==='minhas') nos.push('<span class="sp">/</span><span>Minhas tarefas</span>');
+  else if(TK.escopo==='recorrentes') nos.push('<span class="sp">/</span><span>Tarefas recorrentes</span>');
   else if(TK.escopo==='todas') nos.push('<span class="sp">/</span><span>Todas as tarefas</span>');
   else{
     const l=TK.listas.find(x=>x.id===TK.listaSel);
@@ -9326,11 +9800,11 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     </div>
 
     <div class="tkf-meta">
+      <div class="tkf-mb"><span class="k">Datas</span>
+        <span class="v tk-datas">${dtCampo('tk_ini',it.iniciada_em||'')}<span class="tk-seta">→</span>${dtCampo('tk_prazo',it.prazo||'')}${recBtnHtml(t)}</span></div>
       <div class="tkf-mb"><span class="k">Responsáveis${exigeDaLista(lid).indexOf('responsavel')>=0?' *':''}</span>
         <span class="v"><input type="hidden" id="tk_resps" value="${esc(respDe(it).join(','))}">
         <span class="rp-box" id="tk_respbox">${tkRespChips(respDe(it))}</span></span></div>
-      <div class="tkf-mb"><span class="k">Datas</span>
-        <span class="v tk-datas">${dtCampo('tk_ini',it.iniciada_em||'')}<span class="tk-seta">→</span>${dtCampo('tk_prazo',it.prazo||'')}</span></div>
       <div class="tkf-mb"><span class="k">Prioridade</span>
         <span class="v"><input type="hidden" id="tk_prio" value="${esc(it.prioridade||'med')}">
         <span class="pr-box" id="tk_priobox">${prioChips(it.prioridade||'med')}</span></span></div>
@@ -9533,6 +10007,8 @@ async function tkmSalvar(t,lid,cps,silencioso){
         val[c.id]=x; });
       v.valores=(v.lista_id!==lid)?{}:val;
       v.concluida_em = v.status==='feito' ? ((t&&t.concluida_em)||new Date().toISOString()) : null;
+      /* repetição: prazo mudado na mão vira a nova base da série (a próxima conta dele) */
+      if(t&&recAtiva(t)&&v.prazo&&v.prazo!==t.prazo) v.recorrencia=Object.assign({},t.recorrencia,{base:v.prazo});
       let error=null, criada=null;
       if(t){ ({error}=await sb.from('tarefas').update(v).eq('id',t.id)); }
       else { const pr=(async()=>await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single())();
@@ -9553,6 +10029,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
       if(st){ st.textContent='Salvo'; st.className='tkm-auto'; }
       if(!silencioso){ render('tarefas'); toast('Salvo.'); }
       else { try{ tkDesenhar($('#content')); }catch(_){} }
+      recAgendar();
       return true;
   }
 }
