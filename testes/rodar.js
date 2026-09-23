@@ -864,6 +864,36 @@ grupo('Ficha: estágio e squad clicáveis no topo (Gabriel 23/09)');
   ok('pedido de squad vira chamado de suporte pro Bernardo', /suporte_abrir_chamado/.test(cod));
 }
 
+/* ---------------- ficha estilo ClickUp: propriedades, atividade, relacionamentos ---------------- */
+grupo('Ficha estilo ClickUp: propriedades e Relacionamentos (Gabriel 23/09)');
+{
+  const cod=bloco('const PCX_I=','function pcFaixa(it){');
+  const T=[{id:'t1',ficha_id:'f1',lista_id:'CAMP',titulo:'Subir vídeo',prazo:'2026-09-20',status:'todo',prioridade:'alta'},
+           {id:'t2',ficha_id:'f1',lista_id:'TEC',titulo:'SUBIR n8n',prazo:'2026-09-30',status:'feito'},
+           {id:'t3',ficha_id:'f1',lista_id:'LC',titulo:'CARD DO CLIENTE'},
+           {id:'t4',ficha_id:'f2',lista_id:'CAMP',titulo:'outro cliente'}];
+  const g=rodar(cod,{esc:s=>String(s),TK:{tarefas:T,listas:[{id:'CAMP',nome:'Campanhas'},{id:'TEC',nome:'03. Tecnologia'}]},
+    ehListaCli:l=>l==='LC',arquivada:()=>false,spNome:l=>l.nome,tkHoje:()=>'2026-09-23',tkStatus1:()=>null,tkCorLinha:()=>'#888',
+    TK_ST:{todo:'A fazer',feito:'Concluída'},PRIO_COR:{},TK_PRIO:{alta:'Alta'},dtCurto:x=>x.slice(8,10)+'/'+x.slice(5,7),tkCaminho:()=>'',
+    abaFinCliente:()=>'<div>FIN</div>',currentUser:{role:'master'},contasDoCliente:()=>[],MT_LEADS:[],LT_PER:{},brl:v=>'R$ '+v,
+    finDaFicha:()=>({}),linkIg:()=>'',linkUrl:()=>'',zapsDe:()=>[],CAT_LABEL:{trafego:'Tráfego Pago'},pcSquadHtml:()=>'<i></i><span>01</span>',
+    pcStatusHtml:()=>'<button>4. EM MANUTENÇÃO</button>',avatarDoNome:n=>'',RISCO_COR:{},RISCO_TXT:{},localStorage:{getItem:()=>null,setItem(){}}},
+    ['pcRelTarefas','pcRelPainel','pcProps']);
+  const it={id:'f1',nome:'LEAL MOTOS',clienteId:'c1',categoria:'trafego',squad:'01',responsavel:'Luan',gerente:'João'};
+  ok('relacionamentos: só as tarefas desse cliente, sem o card do Controle de Clientes', g.pcRelTarefas(it).length===2);
+  const h=g.pcRelPainel(it);
+  ok('documento do cliente vem primeiro', h.indexOf('Documento do cliente')>0&&h.indexOf('Documento do cliente')<h.indexOf('Campanhas'));
+  ok('tarefas agrupadas por lista (Campanhas e Tecnologia)', /Campanhas/.test(h)&&/03\. Tecnologia/.test(h));
+  ok('prazo vencido fica marcado', /class="p tarde">20\/09/.test(h));
+  ok('financeiro mora em Relacionamentos (master)', /FIN/.test(h));
+  const pp=g.pcProps(it);
+  ok('propriedades: Status, Tipo, Squad, Gestor, Gerente, Conta, Verba, Gasto, Saldo, Links',
+    ['Status','Tipo','Squad','Gestor de tráfego','Gerente','Conta de anúncio','Verba','Gasto','Saldo','Links'].every(r=>pp.indexOf('>'+r+'</span>')>0||pp.indexOf(r+'</span>')>0));
+  ok('campo vazio marcado pra poder recolher', /class="pr vz"/.test(pp)&&/Recolher campos vazios/.test(pp));
+  ok('cartão principal sem aba Financeiro', !/onclick="cliIrPara\('\$\{it\.id\}','fin'\)">Financeiro/.test(HTML));
+  ok('barra da direita: Detalhes, Atividade e Relacionamentos', /title="Detalhes"/.test(HTML)&&/title="Atividade"/.test(HTML)&&/title="Relacionamentos"/.test(HTML));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));

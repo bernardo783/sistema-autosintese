@@ -1762,6 +1762,102 @@
      mais legivel da linha. Abre em leitura — o formulario so aparece no Editar. */
   .pc-head{padding:20px 20px 0;display:flex;gap:14px;align-items:flex-start}
   .pc-nome{font-size:23px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+  .modal.pc.pcx{max-width:820px;height:min(88vh,920px);overflow:hidden;display:flex;flex-direction:column;padding:0}
+  .modal.pc.pcx.atv{max-width:1240px}
+  .pcx-top{display:flex;align-items:center;gap:8px;padding:10px 14px 10px 20px;border-bottom:1px solid var(--line);flex:none}
+  .pcx-cam{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted)}
+  .pcx-cam svg,.pcx-tb svg{width:15px;height:15px}
+  .pcx-tb{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:5px;border-radius:7px;display:inline-flex}
+  .pcx-tb:hover{background:var(--panel2);color:var(--txt)}
+  .pcx-top .x{background:transparent;border:0;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:7px}
+  .pcx-top .x:hover{background:var(--panel2);color:var(--txt)}
+  .pcx-corpo{flex:1;min-height:0;display:flex}
+  .pcx-main{flex:1;min-width:0;overflow:auto}
+  .pcx-cab{padding:22px 24px 6px}
+  .pcx-cab .pc-nome{font-size:26px}
+  .pcx-props{padding:6px 24px 4px}
+  .pcx-props .pr{display:grid;grid-template-columns:190px minmax(0,1fr);align-items:center;min-height:36px;gap:10px}
+  .pcx-props .k{display:inline-flex;align-items:center;gap:10px;color:var(--muted);font-size:13.5px}
+  .pcx-props .k svg{width:16px;height:16px;flex:none;opacity:.85}
+  .pcx-props .v{min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px}
+  .pcx-props.recolhe .pr.vz{display:none}
+  .pcx-cel{font:inherit;color:var(--txt);background:transparent;border:1px solid transparent;border-radius:7px;padding:4px 8px;margin-left:-8px;
+    cursor:pointer;display:inline-flex;align-items:center;gap:8px;max-width:100%;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .pcx-cel:hover{background:var(--panel2)}
+  .pcx-cel small{color:var(--muted);font-size:12px}
+  .pcx-vz{color:var(--fraco);font-size:13.5px}
+  .pcx-lks{display:inline-flex;gap:4px;margin-left:-6px}
+  .pcx-lk{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;color:var(--txt);background:transparent;border:0;cursor:pointer}
+  .pcx-lk svg{width:16px;height:16px}
+  .pcx-lk:hover{background:var(--panel2);color:var(--brand2)}
+  .pcx-lk.vz{color:var(--fraco)}
+  .pcx-rec,.pcx-mais{display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer;padding:6px 0 2px}
+  .pcx-rec svg,.pcx-mais svg{width:13px;height:13px}
+  .pcx-rec:hover,.pcx-mais:hover{color:var(--txt)}
+  .pcx .pc-tabs{margin-top:18px;padding:0 24px}
+  .pcx .mbody{padding:18px 24px}
+  .pcx-atv{width:420px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+  .pcx-atvh{display:flex;align-items:baseline;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);flex:none;min-width:0}
+  .pcx-atvh b{font-size:15px}
+  .pcx-atvh span{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pcx-feed.lt-feed{flex:1;overflow:auto;padding:12px 16px}
+  .pcx-feed.lt-feed::before{display:none}
+  .pcx-ev{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--muted);padding:5px 0 5px 12px;position:relative;line-height:1.45}
+  .pcx-ev::before{content:'';position:absolute;left:0;top:11px;width:4px;height:4px;border-radius:50%;background:var(--fraco)}
+  .pcx-ev .t{flex:1;min-width:0;word-break:break-word}
+  .pcx-ev .t b{color:var(--txt);font-weight:600}
+  .pcx-ev .q{flex:none;font-size:11.5px;color:var(--fraco);white-space:nowrap}
+  .pcx-ev.abre{cursor:pointer}.pcx-ev.abre:hover .t{color:var(--txt)}
+  .pcx-ev.alerta::before{background:var(--warn)}.pcx-ev.critico::before{background:var(--danger)}.pcx-ev.feito::before{background:var(--ok)}
+  .pcx-ev .x,.pcx-com .x{opacity:0;padding:0 6px;font-size:13px}
+  .pcx-ev:hover .x,.pcx-com:hover .x{opacity:1}
+  .pcx-com{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;background:var(--panel2)}
+  .pcx-com .h{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:6px}
+  .pcx-com .h b{font-size:13.5px}
+  .pcx-com .h span{color:var(--muted);font-size:11.5px}
+  .pcx-com .h .x{margin-left:auto}
+  .pcx-com .t{font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  .pcx-com .t .men{color:var(--brand2);font-weight:700}
+  .pcx-comp{flex:none;border-top:1px solid var(--line);padding:12px 16px}
+  .pcx-comp textarea{width:100%;min-height:44px;max-height:160px;resize:vertical;font:inherit;font-size:13.5px;color:var(--txt);
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-sizing:border-box}
+  .pcx-comp textarea:focus{outline:none;border-color:var(--brand2)}
+  .pcx-compb{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
+  .pcx-relc{flex:1;overflow:auto;padding:10px 16px 16px}
+  .pcx-rg{margin:6px 0 14px}
+  .pcx-rgh{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
+  .pcx-rgh svg{width:15px;height:15px;color:var(--muted)}
+  .pcx-rgh span{color:var(--muted);font-size:12px}
+  .pcx-rth,.pcx-rt{display:grid;grid-template-columns:10px minmax(0,1fr) 92px 64px 18px;gap:8px;align-items:center}
+  .pcx-rth{font-size:11px;color:var(--fraco);padding:6px 0 4px}
+  .pcx-rt{font-size:13px;padding:7px 4px;border-radius:7px;cursor:pointer;margin:0 -4px}
+  .pcx-rt:hover{background:var(--panel2)}
+  .pcx-rt .d{width:8px;height:8px;border-radius:50%}
+  .pcx-rt .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pcx-rt.feito .n{color:var(--muted);text-decoration:line-through}
+  .pcx-rt .s{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pcx-rt .p{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .pcx-rt .p.tarde{color:var(--danger)}
+  .pcx-rt .f svg{width:13px;height:13px}
+  .pcx-dl{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px;font-size:13px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .pcx-dl .k{color:var(--muted)}
+  .pcx-dl .v{word-break:break-word;white-space:pre-wrap}
+  .pcx-dl .v[onclick]{cursor:copy}
+  .pcx-fin{font-size:13px}
+  .pcx-rail{width:52px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0}
+  .pcx-ri{position:relative;width:34px;height:34px;border-radius:9px;border:0;background:transparent;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+  .pcx-ri svg{width:17px;height:17px}
+  .pcx-ri:hover{background:var(--panel2);color:var(--txt)}
+  .pcx-ri.on{background:var(--panel2);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line)}
+  .pcx-bdg{position:absolute;top:1px;right:0;min-width:14px;height:14px;padding:0 3px;border-radius:7px;background:var(--brand2);color:#fff;font-size:9.5px;font-weight:700;line-height:14px;text-align:center}
+  .pcx-bdg:empty{display:none}
+  @media (max-width:900px){
+    .modal.pc.pcx{height:92vh}
+    .pcx-corpo{flex-direction:column}
+    .pcx-atv{width:auto;border-left:0;border-top:1px solid var(--line);max-height:55vh}
+    .pcx-rail{flex-direction:row;width:auto;border-left:0;border-top:1px solid var(--line);padding:6px 12px;justify-content:flex-end}
+    .pcx-props .pr{grid-template-columns:140px minmax(0,1fr)}
+  }
   .pc-st{display:inline-flex;align-items:center;gap:4px;border:1px solid transparent;border-radius:6px;padding:2px 8px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;line-height:1.5}
   .pc-st:hover{filter:brightness(1.15)}
   .pc-sq{display:inline-flex;align-items:center;gap:3px;background:transparent;border:0;padding:0;cursor:pointer;color:var(--muted);font:inherit}
@@ -13437,6 +13533,140 @@ function pcTime(it){
   return ps.map(x=>`<span class="pc-tm" title="${esc(x[0]+': '+x[1])}">${avatarDoNome(x[1],'lc-av')}${esc(ltPrim(x[1]))}</span>`).join('<i></i>');
 }
 /* faixa: conta de anuncio · verba · gasto · saldo — com o que a Central da agencia ja le do Meta */
+/* ---------- FICHA ESTILO CLICKUP (Gabriel 23/09) ----------
+   Nome grande, propriedades uma por linha (ícone + rótulo à esquerda, valor à direita),
+   "Recolher campos vazios", e a Atividade (antiga linha do tempo) num painel ao lado,
+   aberto pelo balão da barra de ícones da direita. */
+const PCX_I=(()=>{ const s=(d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  return { status:s('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>'),
+    tipo:s('<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><path d="M7 7h.01"/>'),
+    squad:s('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>'),
+    pessoa:s('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
+    chefe:s('<path d="M2 18h20M4 18l-1-10 5 4 4-7 4 7 5-4-1 10"/>'),
+    conta:s('<path d="M5 20v-8M12 20V6M19 20v-5"/>'),
+    verba:s('<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 1.8 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.6-3-1.5M12 6v2M12 16v2"/>'),
+    gasto:s('<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>'),
+    saldo:s('<rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20M16 15h2"/>'),
+    link:s('<path d="M10 13.5a4 4 0 0 0 5.7.4l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10.5a4 4 0 0 0-5.7-.4l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.5-1.5"/>'),
+    lista:s('<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'),
+    det:s('<path d="M4 6h16M4 12h10M4 18h13"/>'),
+    atv:s('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
+    zap:s('<path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/>'),
+    ig:s('<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.8"/><path d="M17.4 6.6h.01"/>'),
+    drive:s('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.2l2 2.4h8.8A1.5 1.5 0 0 1 21 9.9v8.6a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>'),
+    chave:s('<rect x="4" y="10" width="16" height="11" rx="2.2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'),
+    abre:s('<path d="M6 9l6 6 6-6"/>'),
+    rel:s('<path d="M7 17 17 7M9 7h8v8"/>'),
+    doc:s('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>'),
+    fin:s('<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
+    flag:s('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>') }; })();
+let pcPainel=(()=>{ try{ const v=localStorage.getItem('pc_painel'); return v===null?'atv':v; }catch(_){ return 'atv'; } })();
+let pcRecolhe=(()=>{ try{ return localStorage.getItem('pc_recolhe')==='1'; }catch(_){ return false; } })();
+window.pcPainelSet=(pid,v)=>{ pcPainel=(v==='atv'||v==='rel')?v:''; try{ localStorage.setItem('pc_painel',pcPainel); }catch(_){} pcReabrir(pid); };
+window.pcRecolher=()=>{ pcRecolhe=!pcRecolhe; try{ localStorage.setItem('pc_recolhe',pcRecolhe?'1':'0'); }catch(_){}
+  const b=document.getElementById('pcxProps'); if(b) b.classList.toggle('recolhe',pcRecolhe);
+  const t=document.getElementById('pcxRec'); if(t) t.textContent=pcRecolhe?'Mostrar campos vazios':'Recolher campos vazios'; };
+/* ---------- RELACIONAMENTOS (Gabriel 23/09, "Itens relacionados" do ClickUp) ----------
+   Primeiro o documento do cliente (dados cadastrais e contratuais do fechamento, via
+   cliente_documento: só master e gerente da ficha), depois tudo que já foi feito pra
+   ele em cada área (Campanhas, Edição de Vídeo, Tecnologia…) e o Financeiro. */
+const pcRelTarefas=(it)=>(TK.tarefas||[]).filter(t=>String(t.ficha_id)===String(it.id)&&!ehListaCli(t.lista_id)&&!arquivada(t));
+const PCX_DOC=[['razaoSocial','Razão social'],['cnpj','CNPJ'],['dono','Dono'],['cpf','CPF'],['rg','RG'],['email','E-mail'],
+  ['endereco','Endereço'],['respFin','Responsável financeiro'],['telFin','Telefone financeiro'],['plano','Plano'],['tipoContrato','Contrato'],
+  ['mensalidade','Mensalidade no fechamento'],['formaPagamento','Forma de pagamento'],['dataPagamento','1º pagamento'],
+  ['integracoes','Integrações'],['especificidades','Especificidades'],['sdr','SDR'],['closer','Closer'],['linkCall','Call de fechamento'],
+  ['resumo','Resumo da venda'],['enviadoPor','Fechado por'],['enviadoEm','Fechado em']];
+function pcRelPainel(it){
+  const ts=pcRelTarefas(it), master=!!(currentUser&&currentUser.role==='master');
+  const porLista={}; ts.forEach(t=>{ (porLista[t.lista_id]=porLista[t.lista_id]||[]).push(t); });
+  const hoje=tkHoje();
+  const grupos=Object.keys(porLista).map(lid=>{
+    const l=(TK.listas||[]).find(x=>x.id===lid), nome=l?spNome(l):'Lista';
+    const lin=porLista[lid].slice().sort((a,b)=>String(b.prazo||b.criado_em||'').localeCompare(String(a.prazo||a.criado_em||''))).map(t=>{
+      const feito=t.status==='feito', atr=t.prazo&&t.prazo<hoje&&!feito;
+      const s=tkStatus1(t.status_id), cor=tkCorLinha(t);
+      const pr=t.prioridade||'med';
+      return `<div class="pcx-rt${feito?' feito':''}" onclick="ltAbrirTarefa('${t.id}')" title="${esc(tkCaminho(t.lista_id))}">
+        <span class="d" style="background:${esc(cor)}"></span>
+        <span class="n">${esc(t.titulo||'(sem título)')}${t.rascunho?' <span class="tk-rasc">Rascunho</span>':''}</span>
+        <span class="s">${esc(s?s.nome:(TK_ST[t.status]||''))}</span>
+        <span class="p${atr?' tarde':''}">${t.prazo?esc(dtCurto(t.prazo))+(t.hora?' '+esc(t.hora):''):'-'}</span>
+        <span class="f" style="color:${PRIO_COR[pr]||'var(--fraco)'}" title="${esc(TK_PRIO[pr]||'')}">${PCX_I.flag}</span>
+      </div>`; }).join('');
+    return `<div class="pcx-rg"><div class="pcx-rgh">${PCX_I.lista}<b>${esc(nome)}</b><span>${porLista[lid].length}</span></div>
+      <div class="pcx-rth"><span></span><span>Nome</span><span>Status</span><span>Data</span><span></span></div>${lin}</div>`; }).join('');
+  return `<div class="pcx-atv pcx-rel">
+    <div class="pcx-atvh"><b>Itens relacionados</b><span>${esc(it.nome)}</span></div>
+    <div class="pcx-relc">
+      <div class="pcx-rg"><div class="pcx-rgh">${PCX_I.doc}<b>Documento do cliente</b></div><div id="pcxDoc"><p class="hint" style="margin:6px 0">Carregando…</p></div></div>
+      ${grupos||'<div class="pcx-rg"><p class="hint" style="margin:6px 0">Nenhuma tarefa com este cliente ainda. O que for feito em Tráfego, Linha Editorial e Tecnologia aparece aqui.</p></div>'}
+      ${master&&it.clienteId?`<div class="pcx-rg"><div class="pcx-rgh">${PCX_I.fin}<b>Financeiro</b><span>só master</span></div><div class="pcx-fin">${abaFinCliente(it)}</div></div>`:''}
+    </div>
+  </div>`;
+}
+window.pcDocCarregar=async (fid)=>{
+  const box=document.getElementById('pcxDoc'); if(!box) return;
+  let d=null;
+  try{ const {data,error}=await sb.rpc('cliente_documento',{p_ficha:String(fid)}); if(error) throw error; d=data; }
+  catch(e){ box.innerHTML='<p class="hint" style="margin:6px 0">Não consegui abrir o documento: '+esc(e.message||'')+'</p>'; return; }
+  if(!document.getElementById('pcxDoc')) return;
+  if(!d){ box.innerHTML='<p class="hint" style="margin:6px 0">Só o master e o gerente deste cliente veem o documento.</p>'; return; }
+  const f=d.fechamento||{};
+  const val=(k,v)=>{ if(v==null||v==='') return '';
+    if(k==='linkCall'&&/^https?:\/\//i.test(String(v))) return `<a href="${esc(v)}" target="_blank" rel="noopener">abrir</a>`;
+    if(k==='enviadoEm') return esc(fmtDate(String(v).slice(0,10))||String(v));
+    if(k==='dataPagamento') return esc(fmtDate(String(v).slice(0,10))||String(v));
+    if(k==='mensalidade'&&!isNaN(+v)) return brl(+v);
+    return esc(String(v)); };
+  const lin=(rot,html,cru)=>html?`<div class="pcx-dl"><span class="k">${esc(rot)}</span><span class="v"${cru?` title="Clique para copiar" onclick="navigator.clipboard&&navigator.clipboard.writeText(${esc(JSON.stringify(String(cru)))});toast('Copiado.')"`:''}>${html}</span></div>`:'';
+  const topo=[lin('Serviço',val('',d.servico),d.servico),lin('Cliente desde',val('',d.inicio?fmtComp(d.inicio)||d.inicio:''),''),
+    lin('Mensalidade atual',(d.valor!=null&&d.valor!=='')?brl(+d.valor):'',''),lin('Vence todo dia',d.diaVenc?esc(String(d.diaVenc)):'','')].join('');
+  const fe=PCX_DOC.map(([k,r])=>lin(r,val(k,f[k]),(k==='linkCall'||k==='enviadoEm'||k==='dataPagamento')?'':f[k])).join('');
+  box.innerHTML=(topo+fe)||'<p class="hint" style="margin:6px 0">Esse cliente entrou antes do formulário de fechamento: não tem documento.</p>';
+};
+function pcProps(it){
+  const VZ='<span class="pcx-vz">Vazio</span>';
+  const row=(ic,rot,val,vazio)=>`<div class="pr${vazio?' vz':''}"><span class="k">${PCX_I[ic]}${rot}</span><span class="v">${val}</span></div>`;
+  const pes=(n,campo)=>{ n=String(n||'').trim();
+    return `<button type="button" class="pcx-cel" onclick="pcAbrirCampo('${campo}')">${n?avatarDoNome(n,'lc-av')+esc(n):VZ}</button>`; };
+  const contas=contasDoCliente(it.id), c0=contas[0]||null;
+  const viva=c0?(window.__mtDados||[]).find(x=>x.id===c0.id):null;
+  const ins=(viva&&viva.ins)||{}; const gasto=+(ins.spend||0);
+  const leads=(ins.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
+  let pg=null, rk=null; if(viva){ try{ pg=pagConta(viva); rk=risco(viva); }catch(_){} }
+  const per=LT_PER[window.__mtPreset||'last_7d']||'no período';
+  const irContas=`cliIrPara('${it.id}','contas')`;
+  const conta=c0?`<button type="button" class="pcx-cel" onclick="${irContas}">${esc(c0.nome||c0.id)} <small>${esc(c0.id)}${pg?' · '+(pg.prepago?'Pix':'cartão'):''}${contas.length>1?' · +'+(contas.length-1):''}</small></button>`
+                :`<button type="button" class="pcx-cel" onclick="${irContas}">${VZ}</button>`;
+  const verba=it.orcamento?`<button type="button" class="pcx-cel" onclick="pcAbrirCampo('pc_orc')">${brl(it.orcamento)} <small>${(it.orcPer||'semanal')==='diario'?'por dia':'por semana'}</small></button>`
+                :`<button type="button" class="pcx-cel" onclick="pcAbrirCampo('pc_orc')">${VZ}</button>`;
+  const gas=viva?`<button type="button" class="pcx-cel" onclick="${irContas}">${gasto?brl(gasto):'-'} <small>${esc(per)}${leads?' · '+leads+' lead'+(leads===1?'':'s'):''}</small></button>`
+                :(c0?`<span class="pcx-vz">buscando no Meta…</span>`:VZ);
+  let sal=VZ;
+  if(rk){ const cor=RISCO_COR[rk.nivel]||'var(--txt)';
+    const sub=rk.pg&&rk.pg.prepago?((rk.saldo!=null?brl(rk.saldo):'')+(rk.dias!=null?' · ~'+Math.max(0,Math.round(rk.dias))+' dias':'')):(rk.motivo||(rk.pg&&rk.pg.cartao?rk.pg.cartao:'cartão'));
+    sal=`<button type="button" class="pcx-cel" onclick="${irContas}"><b style="color:${cor}">${esc(RISCO_TXT[rk.nivel]||'-')}</b> <small>${esc(sub||'')}</small></button>`; }
+  const cli=finDaFicha(it)||{};
+  const igLk=linkIg(it.instagram||cli.instagram), drLk=linkUrl(it.drive||cli.drive), nZaps=zapsDe(it).length;
+  const lk=(ic,tit,href,campo)=>href?`<a class="pcx-lk" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(tit)}">${PCX_I[ic]}</a>`
+    :`<button type="button" class="pcx-lk vz" title="${esc(tit)}: não preenchido" onclick="pcAbrirCampo('${campo}')">${PCX_I[ic]}</button>`;
+  const links=`<span class="pcx-lks"><button type="button" class="pcx-lk${nZaps?'':' vz'}" title="WhatsApp${nZaps?' · '+nZaps:''}" onclick="zapAbrir(event,'${it.id}')">${PCX_I.zap}</button>${lk('ig','Instagram',igLk,'pc_insta')}${lk('drive','Drive',drLk,'pc_drive')}<button type="button" class="pcx-lk" title="Acessos e senhas" onclick="cliIrPara('${it.id}','acessos')">${PCX_I.chave}</button></span>`;
+  const tipo=`<button type="button" class="pc-tipo${CAT_LABEL[it.categoria]?'':' vz'}" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">${CAT_LABEL[it.categoria]?esc(CAT_LABEL[it.categoria]):'definir tipo'}<span class="pc-tipo-s">&#9662;</span></button>`;
+  const sq=pcSquadHtml(it).replace(/^<i><\/i>/,'');
+  return `<div class="pcx-props${pcRecolhe?' recolhe':''}" id="pcxProps">
+    ${row('status','Status',pcStatusHtml(it))}
+    ${row('tipo','Tipo',tipo)}
+    ${row('squad','Squad',sq||VZ,!it.squad)}
+    ${row('pessoa','Gestor de tráfego',pes(it.responsavel,'pc_resp'),!String(it.responsavel||'').trim())}
+    ${row('chefe','Gerente',pes(it.gerente,'pc_ger'),!String(it.gerente||'').trim())}
+    ${row('conta','Conta de anúncio',conta,!c0)}
+    ${row('verba','Verba',verba,!it.orcamento)}
+    ${row('gasto','Gasto',gas,!c0)}
+    ${row('saldo','Saldo',sal,!rk)}
+    ${row('link','Links',links,false)}
+    <button type="button" class="pcx-rec" id="pcxRec" onclick="pcRecolher()">${PCX_I.abre}${pcRecolhe?'Mostrar campos vazios':'Recolher campos vazios'}</button>
+  </div>`;
+}
 function pcFaixa(it){
   const contas=contasDoCliente(it.id), c0=contas[0]||null;
   const viva=c0?(window.__mtDados||[]).find(x=>x.id===c0.id):null;
@@ -13498,15 +13728,26 @@ window.ltCarregar=async (fid)=>{
       const q=String(r.recebidoEm).length<=10?r.recebidoEm+'T12:00:00':r.recebidoEm;
       L.push({q,cls:'fin',html:'Pagamento de <b>'+esc(r.comp||'')+'</b> recebido · '+brl(r.valor)+' <small>(só master vê)</small>'}); }); }
   L.sort((a,b)=>(Date.parse(b.q)||0)-(Date.parse(a.q)||0));
-  if(!L.length){ box.innerHTML='<p class="hint">Nada registrado ainda. Tarefas com este cliente, mudanças na ficha, checklist e notas aparecem aqui sozinhos.</p>'; return; }
-  let ultimo=''; const out=[];
-  L.slice(0,LT_LIM).forEach(x=>{
-    const dia=ltDia(x.q); if(dia!==ultimo){ out.push('<div class="lt-dia">'+esc(dia)+'</div>'); ultimo=dia; }
-    out.push('<div class="lt-ev '+x.cls+'"'+(x.abrir?' onclick="ltAbrirTarefa(\''+x.abrir+'\')"':'')+'>'
-      +'<div class="h"><span>'+ltHora(x.q)+'</span>'+(x.quem?'<strong>'+esc(x.quem)+'</strong>':'')
-      +(x.del?'<button class="iconbtn del x" title="Apagar" onclick="event.stopPropagation();ltApagar(\''+x.del+'\',\''+fid+'\')">&times;</button>':'')+'</div>'
-      +'<div class="t">'+x.html+'</div></div>'); });
+  const nN=L.filter(x=>x.cls==='nota').length, bN=document.getElementById('pcxAtvN'); if(bN) bN.textContent=nN?String(nN):'';
+  if(!L.length){ box.innerHTML='<p class="hint">Nada registrado ainda. Tarefas com este cliente, mudanças na ficha, checklist e comentários aparecem aqui sozinhos.</p>'; return; }
+  /* Atividade estilo ClickUp (Gabriel 23/09): o mais antigo em cima e o mais novo embaixo,
+     perto da caixa de comentário; evento automático é linha cinza, comentário é cartão. */
+  const quando=(q)=>{ const d=ltDia(q); return (d==='Hoje'||d==='Ontem'?d.toLowerCase():d)+' às '+ltHora(q); };
+  const tudo=L.slice(0,LT_LIM).reverse(), MOSTRA=25, esconde=box.dataset.tudo==='1'?0:Math.max(0,tudo.length-MOSTRA);
+  const out=[];
+  if(esconde) out.push('<button type="button" class="pcx-mais" onclick="this.parentNode.dataset.tudo=\'1\';ltCarregar(\''+fid+'\')">'+PCX_I.abre+'Mostrar mais ('+esconde+')</button>');
+  tudo.slice(esconde).forEach(x=>{
+    const del=x.del?'<button class="iconbtn del x" title="Apagar" onclick="event.stopPropagation();ltApagar(\''+x.del+'\',\''+fid+'\')">&times;</button>':'';
+    if(x.cls==='nota'){
+      out.push('<div class="pcx-com"><div class="h">'+(x.quem?avatarDoNome(x.quem,'lc-av'):'')+'<b>'+esc(x.quem||'Alguém')+'</b><span>'+esc(quando(x.q))+'</span>'+del+'</div>'
+        +'<div class="t">'+x.html+'</div></div>');
+    } else {
+      out.push('<div class="pcx-ev '+x.cls+'"'+(x.abrir?' onclick="ltAbrirTarefa(\''+x.abrir+'\')"':'')+'><span class="t">'
+        +(x.quem?'<b>'+esc(x.quem)+'</b> ':'')+x.html+'</span><span class="q">'+esc(quando(x.q))+'</span>'+del+'</div>');
+    }
+  });
   box.innerHTML=out.join('');
+  box.scrollTop=box.scrollHeight;   /* abre no mais novo, como o ClickUp */
 };
 window.ltAbrirTarefa=(tid)=>{ const t=(TK.tarefas||[]).find(x=>String(x.id)===String(tid)); if(!t){ toast('Essa tarefa não está mais visível pra você.'); return; }
   const ov=document.querySelector('.overlay'); if(ov) ov.remove();
@@ -13776,6 +14017,10 @@ window.zapRemover=async (fid,zid)=>{
 };
 window.openProjCard=(id)=>{
   const it=DB.projetos.find(x=>x.id===id); if(!it) return;
+  /* "linha do tempo" virou o painel Atividade (Gabriel 23/09, igual ao ClickUp) */
+  if(cliAba==='linha'){ cliAba='geral'; pcPainel='atv'; }
+  /* Financeiro saiu do cartão e mora em Relacionamentos (Gabriel 23/09) */
+  if(cliAba==='fin'){ cliAba='geral'; pcPainel='rel'; }
   it.checklist=it.checklist||[];
   const o=document.createElement('div'); o.className='overlay';
   const cli=it.clienteId?DB.clientes.find(c=>c.id===it.clienteId):null;
@@ -13822,41 +14067,28 @@ window.openProjCard=(id)=>{
     return n?`<span style="display:inline-flex;align-items:center;gap:9px">${avatarDoNome(n,'lc-av')}${esc(n)}</span>`:'definir'; };
   const ck=drawCheck(), ckN=(it.checklist||[]).length, ckF=(it.checklist||[]).filter(x=>x.feito).length;
   const temTraf=nContas>0;
-  o.innerHTML=`<div class="modal big pc ver" id="pcModal" data-pid="${it.id}">
-    <div class="mhead pc-head">
-      <div style="flex:1;min-width:0">
-        ${(master||souGerenteDaFicha(it.id))
-          ?`<div class="pc-nome ed" title="Clique para renomear" onclick="cliNomeInline(this,'${it.id}')">${esc(it.nome)}</div>`
-          :`<div class="pc-nome">${esc(it.nome)}</div>`}
-        <div class="pc-meta">
-          ${pcStatusHtml(it)}
-          <i></i><button type="button" class="pc-tipo${CAT_LABEL[it.categoria]?'':' vz'}" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">${CAT_LABEL[it.categoria]?esc(CAT_LABEL[it.categoria]):'definir tipo'}<span class="pc-tipo-s">&#9662;</span></button>
-          ${pcSquadHtml(it)}
-        </div>
-      </div>
-      <button class="x">&times;</button>
+  o.innerHTML=`<div class="modal big pc ver pcx${pcPainel?' atv':''}" id="pcModal" data-pid="${it.id}">
+    <div class="pcx-top">
+      <span class="pcx-cam">${PCX_I.lista}Controle de Clientes</span>
+      <span style="flex:1"></span>
+      <button type="button" class="pcx-tb" title="Copiar link deste cliente" onclick="lkCopiar('c','${it.id}')">${PCX_I.link}</button>
+      <button class="x" title="Fechar">&times;</button>
     </div>
-
-    <div class="pc-icos">
-      <button type="button" class="pc-ic wa${nZaps?' tem':''}" data-t="WhatsApp${nZaps?' · '+nZaps+' número'+(nZaps===1?'':'s'):', nenhum número'}" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}${nZaps?`<span class="pc-bdg">${nZaps}</span>`:''}</button>
-      ${icoLk('ig','Instagram',igLk,I_IG,'pc_insta')}
-      ${icoLk('dr','Drive',drLk,I_DR,'pc_drive')}
-      <span class="pc-div"></span>
-      <button type="button" class="pc-ic ads" data-t="Contas de anúncio${nContas?' · '+nContas:''}" onclick="cliIrPara('${it.id}','contas')">${I_ADS}</button>
-      <button type="button" class="pc-ic dir" data-t="Acessos e senhas" onclick="cliIrPara('${it.id}','acessos')">${I_KEY}</button>
-      <button type="button" class="pc-ic dir" data-t="Copiar link deste cliente" onclick="lkCopiar('c','${it.id}')">${I_LINK}</button>
-      <span class="pc-time">${pcTime(it)}</span>
+    <div class="pcx-corpo">
+    <div class="pcx-main">
+    <div class="pcx-cab">
+      ${(master||souGerenteDaFicha(it.id))
+        ?`<div class="pc-nome ed" title="Clique para renomear" onclick="cliNomeInline(this,'${it.id}')">${esc(it.nome)}</div>`
+        :`<div class="pc-nome">${esc(it.nome)}</div>`}
     </div>
-    ${pcFaixa(it)}
+    ${pcProps(it)}
     ${pcGrupoBarra(it)}
 
     <div class="fin-tabs pc-tabs">
-      <button class="ftab ${cliAba==='linha'?'active':''}" onclick="cliIrPara('${it.id}','linha')">Linha do tempo</button>
       <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">Ficha</button>
       <button class="ftab ${cliAba==='contas'?'active':''}" onclick="cliIrPara('${it.id}','contas')">Contas${nContas?' <span class="pc-n">'+nContas+'</span>':''}</button>
       <button class="ftab ${cliAba==='acessos'?'active':''}" onclick="cliIrPara('${it.id}','acessos')">Acessos</button>
       <button class="ftab ${cliAba==='logos'?'active':''}" onclick="cliIrPara('${it.id}','logos')">Logos</button>
-      ${master?`<button class="ftab ${cliAba==='fin'?'active':''}" onclick="cliIrPara('${it.id}','fin')">Financeiro</button>`:''}
     </div>
     <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
      ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):cliAba==='logos'?'<div id="lgBox"></div>':(cliAba==='fin'&&master)?abaFinCliente(it):`
@@ -13900,16 +14132,21 @@ window.openProjCard=(id)=>{
       ${cat('Checklist', ckN?(ckF+' de '+ckN):'')}
       <div id="pcCheck">${ck}</div>
 
-      ${master&&it.clienteId?`
-      <div class="pc-fin">
-        <div class="k">FINANCEIRO · VISÍVEL SÓ PARA MASTERS</div>
-        <div class="l">
-          <div class="it"><div class="kk">Mensal</div><div class="vv">${cli?brl(cli.valor):'-'}</div></div>
-          <div class="it"><div class="kk">Recebido</div><div class="vv" style="color:var(--ok)">${brl(recTot)}</div></div>
-          <div class="it"><div class="kk">Vence</div><div class="vv">${(cli&&cli.diaVenc)?('dia '+cli.diaVenc):'-'}</div></div>
-        </div>
-        <button class="btn ghost small" style="margin-top:12px" onclick="cliIrPara('${it.id}','fin')">Ver financeiro deste cliente &rarr;</button>
-      </div>`:''}`}
+      `}
+    </div>
+    </div>
+    ${pcPainel==='rel'?pcRelPainel(it):''}
+    ${pcPainel==='atv'?`<div class="pcx-atv">
+      <div class="pcx-atvh"><b>Atividade</b><span>${esc(it.nome)}</span></div>
+      <div class="lt-feed pcx-feed" id="ltFeed"><p class="hint">Carregando…</p></div>
+      <div class="pcx-comp"><textarea id="ltTxt" rows="2" placeholder="Escreva um comentário… @Nome avisa a pessoa" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();ltPublicar('${it.id}')}"></textarea>
+        <div class="pcx-compb"><span class="hint" style="margin:0">Enter envia · Shift+Enter quebra a linha</span><button class="btn small" onclick="ltPublicar('${it.id}')">Enviar</button></div></div>
+    </div>`:''}
+    <div class="pcx-rail">
+      <button type="button" class="pcx-ri${pcPainel?'':' on'}" title="Detalhes" onclick="pcPainelSet('${it.id}','')">${PCX_I.det}</button>
+      <button type="button" class="pcx-ri${pcPainel==='atv'?' on':''}" title="Atividade" onclick="pcPainelSet('${it.id}','${pcPainel==='atv'?'':'atv'}')">${PCX_I.atv}<span class="pcx-bdg" id="pcxAtvN"></span></button>
+      <button type="button" class="pcx-ri${pcPainel==='rel'?' on':''}" title="Relacionamentos" onclick="pcPainelSet('${it.id}','${pcPainel==='rel'?'':'rel'}')">${PCX_I.rel}<span class="pcx-bdg">${pcRelTarefas(it).length||''}</span></button>
+    </div>
     </div>
     <div class="mfoot">
       ${cliAba==='geral'?`<span class="pc-modo">Clique em qualquer campo para editar, salva sozinho</span>`:''}
@@ -13942,10 +14179,11 @@ window.openProjCard=(id)=>{
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
   if(cliAba==='logos') lgPintar('lgBox',it.id,'ficha');
-  if(cliAba==='linha'){ ltCarregar(it.id);
-    /* faixa sem dado do Meta: busca em segundo plano e redesenha a faixa */
-    if(!(window.__mtDados&&window.__mtDados.length)&&contasDoCliente(it.id).length&&typeof metaCarregar==='function')
-      metaCarregar(true).then(()=>{ const f=document.querySelector('#pcModal .pc-strip'); if(f) f.outerHTML=pcFaixa(it); }).catch(()=>{}); }
+  if(pcPainel==='atv') ltCarregar(it.id);
+  if(pcPainel==='rel') pcDocCarregar(it.id);
+  /* sem dado do Meta: busca em segundo plano e redesenha as propriedades */
+  if(!(window.__mtDados&&window.__mtDados.length)&&contasDoCliente(it.id).length&&typeof metaCarregar==='function')
+    metaCarregar(true).then(()=>{ const f=document.getElementById('pcxProps'); if(f) f.outerHTML=pcProps(it); }).catch(()=>{});
 };
 /* Leitura x edição no card do cliente: o formulário existe sempre no DOM (o Salvar
    continua lendo os mesmos ids), o CSS só decide qual metade aparece. */
