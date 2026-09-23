@@ -1762,6 +1762,9 @@
      mais legivel da linha. Abre em leitura — o formulario so aparece no Editar. */
   .pc-head{padding:20px 20px 0;display:flex;gap:14px;align-items:flex-start}
   .pc-nome{font-size:23px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+  .pc-nome.ed{cursor:text;border-radius:7px;padding:2px 6px;margin:-2px -6px;border:1px solid transparent;transition:background .12s,border-color .12s}
+  .pc-nome.ed:hover{background:var(--panel2)}
+  .pc-nome.ed.editando{background:var(--panel2);border-color:var(--brand2);outline:none}
   .pc-meta{color:var(--muted);font-size:12.5px;margin-top:8px;display:flex;gap:9px;
     align-items:center;flex-wrap:wrap}
   .pc-tipo{font:inherit;font-size:12.5px;color:var(--txt);background:transparent;border:1px solid var(--line);border-radius:7px;
@@ -13468,6 +13471,48 @@ async function ltGastos(){
    (projetos, em CAIXA ALTA), card do Controle de Clientes (tarefas.titulo) e em cada
    linha de recebimento. Trocar na mao em um so deixa o resto divergente — foi o que
    aconteceu com "Aurea Motors". Aqui os quatro andam juntos. */
+/* grava o nome novo nos quatro lugares (RPC cliente_renomear) e redesenha. true = trocou */
+async function cliRenomearSalvar(fid,novo){
+  novo=String(novo||'').trim();
+  const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return false;
+  if(novo.length<2){ toast('Nome muito curto.'); return false; }
+  if(MAIUS(novo)===MAIUS(f.nome||'')) return false;
+  /* mesma regra de duplicidade do fechamento: "LealMotos" == "Leal Motos" */
+  const k=nomeChave(novo), bate=(DB.projetos||[]).find(p=>p.id!==fid&&nomeChave(p.nome)===k);
+  if(bate){ toast('Já existe um cliente com esse nome: '+bate.nome+'.'); return false; }
+  const {error}=await sb.rpc('cliente_renomear',{p_ficha:String(fid),p_nome:MAIUS(novo)});
+  if(error){ toast('Não renomeou: '+error.message); return false; }
+  try{ await recarregarModulos(['projetos','clientes','recebimentos']); }catch(_){}
+  try{ await tkCarregar(); }catch(_){}
+  try{ spDesenhar(); }catch(_){}
+  try{ if(currentView==='lista') tkDesenhar($('#content')); else render(currentView); }catch(_){}
+  toast('Agora é "'+MAIUS(novo)+'" em todo lugar.');
+  return true;
+}
+/* Renomear clicando no título da ficha, igual ao ClickUp (Gabriel 23/09): o nome vira
+   campo; Enter ou clicar fora grava, Esc desiste. */
+window.cliNomeInline=(el,fid)=>{
+  if(!el||el.isContentEditable) return;
+  const orig=el.textContent;
+  let feito=false;
+  try{ el.contentEditable='plaintext-only'; }catch(_){ el.contentEditable='true'; }
+  if(el.contentEditable!=='plaintext-only') el.contentEditable='true';
+  el.classList.add('editando'); el.focus();
+  try{ const r=document.createRange(); r.selectNodeContents(el); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }catch(_){}
+  const fim=async (gravar)=>{
+    if(feito) return; feito=true;
+    el.contentEditable='false'; el.classList.remove('editando');
+    const novo=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(!gravar||!novo||MAIUS(novo)===MAIUS(orig)){ el.textContent=orig; return; }
+    el.textContent=MAIUS(novo);
+    const ok=await cliRenomearSalvar(fid,novo);
+    if(!ok){ el.textContent=orig; return; }
+    setTimeout(()=>{ try{ openProjCard(fid); }catch(_){} },60);
+  };
+  el.onkeydown=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); }
+    else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); fim(false); } };
+  el.onblur=()=>fim(true);
+};
 window.cliRenomear=async (fid)=>{
   if(!currentUser||!(currentUser.role==='master'||souGerenteDaFicha(fid))){ toast('Só o master ou o gerente deste cliente corrigem o nome.'); return; }
   const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
@@ -13487,19 +13532,9 @@ window.cliRenomear=async (fid)=>{
       const novo=($('#ren_nome').value||'').trim();
       if(novo.length<2){ toast('Nome muito curto.'); return false; }
       if(novo===atual){ return true; }
-      /* mesma regra de duplicidade do fechamento: "LealMotos" == "Leal Motos" */
-      const k=nomeChave(novo);
-      const bate=(DB.projetos||[]).find(p=>p.id!==fid&&nomeChave(p.nome)===k);
-      if(bate){ toast('Já existe um cliente com esse nome: '+bate.nome+'.'); return false; }
       /* o banco troca nos quatro lugares de uma vez (cliente_renomear): o gerente nao le
          cadastro nem cobrancas, entao nao da pra fazer pelo saveDB como antes */
-      const {error}=await sb.rpc('cliente_renomear',{p_ficha:String(fid),p_nome:MAIUS(novo)});
-      if(error){ toast('Não renomeou: '+error.message); return false; }
-      try{ await recarregarModulos(['projetos','clientes','recebimentos']); }catch(_){}
-      try{ await tkCarregar(); }catch(_){}
-      try{ spDesenhar(); }catch(_){}
-      try{ if(currentView==='lista') tkDesenhar($('#content')); else render(currentView); }catch(_){}
-      toast('Agora é "'+novo+'" em todo lugar.');
+      if(!(await cliRenomearSalvar(fid,novo))) return false;
       setTimeout(()=>{ try{ openProjCard(fid); }catch(_){} },80);
       return true; });
   /* aviso ao vivo de nome repetido, antes de salvar */
@@ -13691,7 +13726,9 @@ window.openProjCard=(id)=>{
   o.innerHTML=`<div class="modal big pc ver" id="pcModal" data-pid="${it.id}">
     <div class="mhead pc-head">
       <div style="flex:1;min-width:0">
-        <div class="pc-nome">${esc(it.nome)}${(master||souGerenteDaFicha(it.id))?`<button class="pc-ren" title="Corrigir o nome do cliente" onclick="cliRenomear('${it.id}')">&#9998;</button>`:''}</div>
+        ${(master||souGerenteDaFicha(it.id))
+          ?`<div class="pc-nome ed" title="Clique para renomear" onclick="cliNomeInline(this,'${it.id}')">${esc(it.nome)}</div>`
+          :`<div class="pc-nome">${esc(it.nome)}</div>`}
         <div class="pc-meta">
           <span class="tag ${PRJ_NORM(it.status)}">${ST_LABEL[PRJ_NORM(it.status)]}</span>
           <i></i><button type="button" class="pc-tipo${CAT_LABEL[it.categoria]?'':' vz'}" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">${CAT_LABEL[it.categoria]?esc(CAT_LABEL[it.categoria]):'definir tipo'}<span class="pc-tipo-s">&#9662;</span></button>

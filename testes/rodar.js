@@ -814,6 +814,28 @@ grupo('Tarefa em rascunho até ter cliente, data e responsável (Gabriel 23/09)'
   ok('quick-add do quadro não abre mais o formulário pedindo cliente', HTML.indexOf("Essa lista pede o cliente, escolha pra salvar")<0);
 }
 
+/* ---------------- renomear clicando no título da ficha (ClickUp) ---------------- */
+grupo('Ficha: renomear o cliente clicando no nome (Gabriel 23/09)');
+{
+  const cod=bloco('window.cliNomeInline=','window.cliRenomear=');
+  const chamadas=[];
+  const g=rodar(cod,{MAIUS:x=>String(x).toUpperCase(),toast:()=>{},openProjCard:()=>{},
+    document:{createRange:()=>{ throw new Error('sem DOM'); }},getSelection:()=>null,
+    cliRenomearSalvar:(fid,novo)=>{ chamadas.push([fid,novo]); return Promise.resolve(true); }},[]);
+  const campo=(txt)=>({textContent:txt,isContentEditable:false,contentEditable:'inherit',
+    classList:{add(){},remove(){}},focus(){},blur(){ if(this.onblur) this.onblur(); }});
+  const tecla=(el,k)=>el.onkeydown({key:k,preventDefault(){},stopPropagation(){}});
+  let el=campo('SANTI AUTOMÓVEIS'); g.cliNomeInline(el,'f1');
+  ok('clicar deixa o nome editável', el.contentEditable==='plaintext-only'||el.contentEditable==='true');
+  el.textContent='Santi  Automóveis   SJRP'; tecla(el,'Enter');
+  ok('Enter grava o nome novo (espaços limpos)', chamadas.length===1&&chamadas[0][0]==='f1'&&chamadas[0][1]==='Santi Automóveis SJRP');
+  el=campo('BAHAMAS'); g.cliNomeInline(el,'f2'); el.textContent='Outro nome'; tecla(el,'Escape');
+  ok('Esc desiste e volta o nome', chamadas.length===1&&el.textContent==='BAHAMAS');
+  el=campo('BAHAMAS'); g.cliNomeInline(el,'f2'); el.textContent='bahamas'; el.blur();
+  ok('mesmo nome (só caixa diferente) não grava', chamadas.length===1);
+  ok('só master ou gerente do cliente veem o nome clicável', /\(master\|\|souGerenteDaFicha\(it\.id\)\)\s*\?`<div class="pc-nome ed"/.test(HTML));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
