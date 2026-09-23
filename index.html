@@ -3854,6 +3854,7 @@ function render(view){
   }
   if(view==='espaco') return renderEspaco(c);
   if(view==='acessos') return renderAcessos(c);
+  if(view==='arquivados') return renderArquivados(c);
   if(view==='fichas') return renderProjetos(c);
   if(view==='funil'||String(view).indexOf('funil/')===0){
     /* Comercial vive em crm.js (Pipeline, Agenda, Origens); o funil antigo de anúncios fica como aba dele */
@@ -5851,6 +5852,7 @@ const MI=(d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 const MICO={
   perfil:MI('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>'),
   senha:MI('<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'),
+  arq:MI('<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/>'),
   sair:MI('<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 17l-5-5 5-5M5 12h11"/>'),
   inbox:MI('<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/>'),
   pessoas:MI('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><path d="M16.5 4.6a3.5 3.5 0 0 1 0 6.8M17 14.7c2.6.5 4.5 2.3 4.5 5.3"/>'),
@@ -5906,6 +5908,7 @@ window.wsMenu=(ev)=>{
     {sep:true},
     {ic:MICO.backup,t:'Backup / Restaurar',f:()=>document.getElementById('btnBackup').click(),so:m},
     {ic:MICO.senha,t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
+    {ic:MICO.arq,t:'Arquivados',f:()=>render('arquivados')},
     {sep:true},
     ...temaItens(),
     {sep:true},
@@ -6065,6 +6068,7 @@ window.menuUsuario=(ev)=>{
     {cab:currentUser.nome||'Meu perfil'},
     {ic:MICO.perfil,t:'Meu perfil',f:()=>meuPerfil()},
     {ic:MICO.senha,t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
+    {ic:MICO.arq,t:'Arquivados',f:()=>render('arquivados')},
     {sep:true},
     ...temaItens(),
     {sep:true},
@@ -7904,7 +7908,7 @@ function spDesenhar(){
     const cor=l.cor||'';
     const ic=l.icone?`<span class="tk-ic${String(l.icone).slice(0,4)==='svg:'?'':' emo'}"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${icHtml(l.icone)}</span>`
                     :`<span class="tk-ic"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${SVG_LISTA}</span>`;
-    const cont=(l.id===LF_ID||ehFin(l.id)||ehTela(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
+    const cont=(l.id===LF_ID||ehFin(l.id)||ehTela(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&!t.arquivada_em&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
     const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)||ehTela(l.id)||currentView===LTEL[l.id]))?' on':'';
     const dnd=fav?'':` draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()"`;
     return `<div class="tk-lista${on}" role="button" tabindex="0"${dnd} onclick="spSelLista('${l.id}')" oncontextmenu="spNoMenu(event,'lista','${l.id}')" title="${esc(tkCaminho(l.id))}">
@@ -10548,6 +10552,94 @@ window.tkRestaurar=async (id)=>{
   t.arquivada_em=null; tkDesenhar($('#content')); spDesenhar(); toast('Restaurada.');
 };
 window.tkArqVista=(v)=>{ TK.arqVista=!!v; tkDesenhar($('#content')); };
+/* ---------- ARQUIVAR CLIENTE (Gabriel 23/09, regra do Trello) ----------
+   O card do Controle de Clientes abre a ficha, nao o painel da tarefa — por isso o
+   Arquivar dele mora no rodape da ficha. Sempre arquiva; excluir de vez so dentro de
+   Arquivados, e so master (o banco so deixa master apagar tarefa e o financeiro). */
+const lcCardDe=(fid)=>{ const na=(TK.tarefas||[]).filter(x=>String(x.ficha_id)===String(fid)&&(ehLC(x.lista_id)||x.lista_id===CH_ID));
+  return na.find(x=>ehLC(x.lista_id))||na[0]||null; };
+const arqFechar=()=>{ const ov=document.querySelector('.overlay'); if(ov) ov.remove(); };
+const arqRedesenhar=()=>{ try{ spDesenhar(); }catch(_){}
+  if(currentView==='arquivados') return renderArquivados($('#content'));
+  if(currentView==='lista') return tkDesenhar($('#content'));
+  try{ render(currentView); }catch(_){} };
+window.lcArquivar=async (fid)=>{
+  if(!souGerente()){ toast('Só master e gerentes arquivam cliente.'); return; }
+  const f=fichaDe(fid), t=lcCardDe(fid);
+  if(!t){ toast('Este cliente não tem card no Controle de Clientes.'); return; }
+  const ok=await confirmar('Arquivar '+((f&&f.nome)||'este cliente')+'?',
+    'O card sai do Controle de Clientes, mas nada é apagado: ficha, tarefas e financeiro continuam lá. Ele fica em Arquivados — dentro da lista e no seu perfil — e dá para restaurar quando quiser.',
+    {sim:'Sim, arquivar',nao:'Não'});
+  if(!ok) return;
+  const quando=new Date().toISOString();
+  const {error}=await sb.from('tarefas').update({arquivada_em:quando,arquivada_por:(currentUser||{}).id||null}).eq('id',t.id);
+  if(error){ toast('Erro: '+error.message); return; }
+  t.arquivada_em=quando; t.arquivada_por=(currentUser||{}).id||null;
+  arqFechar(); arqRedesenhar();
+  toast(((f&&f.nome)||'Cliente')+' arquivado. Está em Arquivados.');
+};
+window.arqRestaurar=async (id)=>{
+  const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
+  const {error}=await sb.from('tarefas').update({arquivada_em:null,arquivada_por:null}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  t.arquivada_em=null; t.arquivada_por=null;
+  arqFechar(); arqRedesenhar(); toast('Restaurado.');
+};
+/* Excluir de vez um cliente arquivado: leva ficha, card e — se houver — o cadastro
+   financeiro com cobrancas e lancamentos (cliExcluirSeguro). */
+window.lcExcluirDeVez=async (fid)=>{
+  if(!(currentUser&&currentUser.role==='master')){ toast('Só um master exclui de vez. Ele continua arquivado.'); return; }
+  const f=fichaDe(fid), t=lcCardDe(fid);
+  if(t&&!arquivada(t)){ toast('Arquive primeiro — excluir de vez só dentro de Arquivados.'); return; }
+  const cid=f&&f.clienteId;
+  if(cid&&(DB.clientes||[]).some(c=>c.id===cid)){
+    const antes=(DB.clientes||[]).length;
+    arqFechar(); await cliExcluirSeguro(cid);
+    if((DB.clientes||[]).length===antes) return;   /* cancelou no confirm */
+  } else {
+    if(!confirm('Excluir '+((f&&f.nome)||'este cliente')+' de vez?\n\nVão junto a ficha e o card. Isso não tem volta.')) return;
+    if(f){ DB.projetos=(DB.projetos||[]).filter(p=>p.id!==f.id); await saveDB(); }
+  }
+  if(t){ try{ await sb.from('tarefas').delete().eq('id',t.id); }catch(_){} }
+  TK.tarefas=(TK.tarefas||[]).filter(x=>!(String(x.ficha_id)===String(fid)&&(ehLC(x.lista_id)||x.lista_id===CH_ID)));
+  arqFechar(); arqRedesenhar(); toast('Cliente excluído de vez.');
+};
+/* ---------- ARQUIVADOS GERAIS (menu da foto) ----------
+   Cada lista tem o proprio "Arquivados"; aqui junta tudo o que foi arquivado no
+   workspace aberto, agrupado por lista. Cliente abre a ficha; tarefa abre o painel. */
+let ARQ_Q='';
+function renderArquivados(c){
+  if(!TK.listas.length){ c.innerHTML='<div class="empty">Carregando…</div>';
+    tkCarregar().then(()=>{ if(currentView==='arquivados') renderArquivados(c); }).catch(e=>{ c.innerHTML='<div class="empty">Erro: '+esc(e.message)+'</div>'; }); return; }
+  const mst=!!(currentUser&&currentUser.role==='master');
+  const lsOk=new Set((TK.listas||[]).filter(l=>{ const e=espacoDaLista(l.id); return !e||espacoDaAtual(e); }).map(l=>String(l.id)));
+  const q=ARQ_Q.trim().toLowerCase();
+  const todas=(TK.tarefas||[]).filter(t=>arquivada(t)&&lsOk.has(String(t.lista_id)));
+  const arr=todas.filter(t=>!q||(String(t.titulo||'')+' '+tkCaminho(t.lista_id)).toLowerCase().indexOf(q)>=0)
+    .sort((a,b)=>String(b.arquivada_em).localeCompare(String(a.arquivada_em)));
+  const grupos={}; arr.forEach(t=>{ (grupos[t.lista_id]=grupos[t.lista_id]||[]).push(t); });
+  const linha=(t)=>{ const cli=ehLC(t.lista_id)||t.lista_id===CH_ID;
+    const abrir=(cli&&t.ficha_id)?`abrirCliente('${esc(String(t.ficha_id))}')`:`tkAbrir('${t.id}')`;
+    const quem=t.arquivada_por?tkNomeUser(t.arquivada_por):'';
+    return `<tr><td><span class="tk-titcel" onclick="${abrir}">${esc(t.titulo||'(sem título)')}</span>${(!cli&&t.ficha_id)?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}</td>
+      <td class="hint" style="margin:0;white-space:nowrap">${esc(fmtDate(String(t.arquivada_em).slice(0,10)))}${quem?' · '+esc(primeiroNome(quem)):''}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn ghost small" onclick="arqRestaurar('${t.id}')">Restaurar</button>
+        ${mst?`<button class="btn ghost small tk-del" onclick="${(cli&&t.ficha_id)?`lcExcluirDeVez('${esc(String(t.ficha_id))}')`:`tkExcluir('${t.id}')`}">Excluir de vez</button>`:''}
+      </td></tr>`; };
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Arquivados</h2><div class="desc">Tudo o que foi arquivado neste workspace. Cada lista também tem os seus, no botão Arquivados dela.${mst?'':' Excluir de vez é só com master.'}</div></div>
+     <div class="toolbar"><input class="search" id="arqQ" placeholder="Buscar arquivado..." value="${esc(ARQ_Q)}"></div>
+   </div>
+   ${!todas.length?'<div class="empty">Nada arquivado por aqui.</div>'
+    :!arr.length?'<div class="empty">Nada arquivado bate com a busca.</div>'
+    :Object.keys(grupos).sort((a,b)=>tkCaminho(a).localeCompare(tkCaminho(b))).map(lid=>`
+      <div class="tkf-sec mt" style="margin-top:18px">${esc(tkCaminho(lid))}<span class="ln"></span><span class="n">${grupos[lid].length}</span></div>
+      <div class="tablewrap"><table><tbody>${grupos[lid].map(linha).join('')}</tbody></table></div>`).join('')}`;
+  const inp=$('#arqQ'); if(inp){ inp.oninput=()=>{ ARQ_Q=inp.value; const pos=inp.selectionStart; renderArquivados(c);
+    const n=$('#arqQ'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(_){} } }; }
+}
 /* Botao direito no cartao: as acoes rapidas sem precisar abrir a tarefa — principalmente
    apagar, que antes so existia dentro do modal. */
 window.tkCardMenu=(ev,id)=>{
@@ -13227,6 +13319,11 @@ window.openProjCard=(id)=>{
     <div class="mfoot">
       ${cliAba==='geral'?`<span class="pc-modo">Clique em qualquer campo para editar — salva sozinho</span>`:''}
       <span style="flex:1"></span>
+      ${(()=>{ const cd=lcCardDe(it.id); if(!cd) return '';
+        if(arquivada(cd)) return `<span class="hint" style="margin:0 6px 0 0">Arquivado em ${esc(fmtDate(String(cd.arquivada_em).slice(0,10)))}</span>
+          <button class="btn ghost small" onclick="arqRestaurar('${cd.id}')">Restaurar</button>
+          ${master?`<button class="btn ghost small tk-del" onclick="lcExcluirDeVez('${esc(it.id)}')">Excluir de vez</button>`:''}`;
+        return souGerente()?`<button class="btn ghost small" onclick="lcArquivar('${esc(it.id)}')">Arquivar cliente</button>`:''; })()}
       <button class="btn secondary small mcancel">Fechar</button>
       
     </div>
