@@ -643,7 +643,7 @@ grupo('Notificar responsável (Gabriel 23/09)');
   ok('botão só aparece pra gerente/master, em tarefa aberta (não concluída, não arquivada) de lista com grupo', HTML.indexOf("${(t&&souGerente()&&!arquivada(t)&&t.status!=='feito'&&lbTemGrupo(t))?`<button class=\"btn ghost small\" type=\"button\" onclick=\"tkLembrar(event,")>0);
   ok('o app manda só o id da tarefa (mensagem montada no servidor)', /lbApi\('enviar',\{tarefa_id:id\}\)/.test(HTML));
   const fn=fs.readFileSync(path.join(__dirname,'..','funcoes','lembrete-tarefa','index.ts'),'utf8');
-  ok('servidor barra quem não é gerente nem master', /p\.role === 'master' \|\| p\.gerente/.test(fn));
+  ok('servidor barra quem não é gerente nem master (menos o aviso de conclusão)', /const chefe = user\.role === 'master' \|\| !!user\.gerente/.test(fn) && /if \(acao !== 'concluida' && !chefe\) return J\(\{ ok: false, erro: 'Só gerente ou master pode notificar o responsável\.' \}, 403\)/.test(fn));
   ['tarefa:','responsaveis:','prazo:','data_prazo:','horario_prazo:','link:','flag:'].forEach(k=>ok('payload tem '+k.replace(':',''), fn.indexOf('    '+k)>0));
   ok('trava de 10 minutos por tarefa', /ESPERA_MIN = 10/.test(fn));
   ok('grupo automático: Luan → SQUAD1, Yghor → SQUAD 2, Gabriel/Arthur → Automação, Madu → SÍNTESE - EDITORIAL (5.0)',
@@ -668,6 +668,30 @@ grupo('Controle de Clientes mostra o fee de Recebimentos (Gabriel 23/09)');
   ok('mês sem cobrança lançada: vale o cadastro', g.lcMensVigente({id:'a',valor:1000},'2026-10')===1000);
   ok('cobrança sem valor: vale o cadastro', g.lcMensVigente({id:'b',valor:800},'2026-09')===800);
   ok('gravar clientes ou recebimentos acerta o controle', HTML.indexOf("if(sujos.some(([m])=>m==='clientes'||m==='recebimentos')) setTimeout(()=>{ lcSyncMens()")>0);
+}
+
+/* ---------------- conclusão com relatório ---------------- */
+grupo('Concluir pede "O que foi feito" (Gabriel 23/09)');
+{
+  const cod=bloco('function cnPrecisa(','function cnPedir(');
+  const g=rodar(cod,{ehLC:(l)=>l==='LC',espacoDaLista:(l)=>l==='PES'?{workspace_id:'w2'}:{workspace_id:null},
+    wsTodas:()=>[{id:'w2',tipo:'pessoal'}]},['cnPrecisa']);
+  ok('tarefa comum aberta pede o relatório', g.cnPrecisa({lista_id:'L',status:'todo'}));
+  ok('já concluída não pede de novo', !g.cnPrecisa({lista_id:'L',status:'feito'}));
+  ok('Controle de Clientes não pede (coluna é estágio do cliente)', !g.cnPrecisa({lista_id:'LC',status:'todo'}));
+  ok('workspace pessoal não pede', !g.cnPrecisa({lista_id:'PES',status:'todo'}));
+  const passa=(nome,trecho)=>ok(nome+' pede o relatório antes de concluir', trecho.indexOf('cnAntes(')>=0);
+  passa('checkbox da lista', bloco('window.tkConcluir=','window.tkToggle='));
+  passa('select de status simples', bloco('window.tkStatus=','/* Checkbox da lista'));
+  passa('arrastar no board simples', bloco('window.tkSoltar=','window.tkSoltarDia='));
+  passa('colunas próprias (select, board, menu)', bloco('window.tkSetStatus=','/* ---------- Vídeo APROVADO'));
+  passa('painel da tarefa', bloco('async function tkmSalvar(','/* ---------- PAINEL DA TAREFA'));
+  passa('Início', bloco('window.iniConcluir=','window.inicioPeriodo='));
+  passa('Só minhas', bloco('window.pessoalVirar=','window.pessoalApagar='));
+  ok('sem texto não conclui (botão só fecha com texto)', /if\(!v\)\{ o\.querySelector\('#cnAviso'\)/.test(cod+bloco('function cnPedir(','async function cnAntes(')));
+  const fn=fs.readFileSync(path.join(__dirname,'..','funcoes','lembrete-tarefa','index.ts'),'utf8');
+  ['tarefa:','responsaveis:','o_que_foi_feito:','concluida_em:','link:','flag:','gerente:'].forEach(k=>ok('aviso de conclusão tem '+k.replace(':',''), fn.indexOf('      '+k)>0));
+  ok('gerente da demanda = quem criou a tarefa', /t\.criado_por \? \(await rest\(`perfis\?id=eq\.\$\{t\.criado_por\}/.test(fn));
 }
 
 function fimDosTestes(){

@@ -317,6 +317,18 @@
     border-radius:9px;padding:10px 11px;font-size:13.5px;font-family:inherit;resize:vertical}
   .tk-desc:focus{border-color:var(--brand2);outline:none}
   .tk-rodape{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .cn-fundo{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px}
+  .cn-caixa{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
+    padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+  .cn-h{display:flex;align-items:center;justify-content:space-between}
+  .cn-h strong{font-size:15px}
+  .cn-tit{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cn-lbl{font-size:13px;font-weight:700}
+  .cn-caixa textarea{width:100%;min-height:96px;resize:vertical;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:10px 11px;font:inherit;font-size:13.5px}
+  .cn-caixa textarea:focus{outline:none;border-color:var(--brand2)}
+  .cn-aviso{font-size:12px;color:var(--danger);min-height:14px;margin-top:-4px}
+  .cn-pe{display:flex;justify-content:flex-end;gap:8px}
   .tk-rodape .btn svg{width:13px;height:13px;vertical-align:-2px;flex:none}   /* ícone do Notificar responsável (ic() não tem tamanho) */
   .cp-obr{font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;font-weight:800;margin-left:2px;
     color:#f0cb7d;background:rgba(230,177,63,.13);border:1px solid rgba(230,177,63,.3);border-radius:999px;
@@ -8144,9 +8156,10 @@ window.pessoalVirar=async (id)=>{
   const feito=t.status!=='feito';
   const patch=feito?{status:'feito',concluida_em:new Date().toISOString()}:{status:'todo',concluida_em:null};
   const col=tkColunaDe(t.lista_id,feito); if(col) patch.status_id=col;
+  const ex=feito?await cnAntes(t):{}; if(!ex){ renderInicio($('#content')); return; } Object.assign(patch,ex);
   const {error}=await sb.from('tarefas').update(patch).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
-  Object.assign(t,patch); renderInicio($('#content')); spDesenhar(); recAgendar();
+  Object.assign(t,patch); renderInicio($('#content')); spDesenhar(); recAgendar(); cnDepois(id,ex);
 };
 window.pessoalApagar=async (id)=>{
   const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
@@ -8206,11 +8219,12 @@ window.iniConcluir=async (ev,id)=>{
   const feito=(tkStatusDe(t.lista_id)||[]).filter(s=>s.grupo==='feito')[0]||null;
   const patch={status:'feito',concluida_em:new Date().toISOString()};
   if(feito) patch.status_id=feito.id;
+  const ex=await cnAntes(t); if(!ex) return; Object.assign(patch,ex);
   const {error}=await sb.from('tarefas').update(patch).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
   Object.assign(t,patch);
   toast('Concluída: '+t.titulo);
-  renderInicio($('#content')); spDesenhar(); recAgendar();
+  renderInicio($('#content')); spDesenhar(); recAgendar(); cnDepois(id,ex);
 };
 window.inicioPeriodo=(p)=>{
   inicioPer=p;
@@ -8814,7 +8828,7 @@ async function recGerar(t){
   if(rec.nova===false){
     /* reabre a mesma: só se ela continua do jeito que vimos (trava contra dois navegadores) */
     const patch=Object.assign(col,{lista_id:lid,prazo:px.prazo,iniciada_em:recMover(t.iniciada_em,t.prazo,px.prazo),
-      concluida_em:null,checklist:ck,responsaveis:quem.ids,responsavel_id:quem.ids[0]||null,recorrencia:recNova});
+      concluida_em:null,conclusao_texto:null,concluida_por:null,checklist:ck,responsaveis:quem.ids,responsavel_id:quem.ids[0]||null,recorrencia:recNova});
     let q=sb.from('tarefas').update(patch).eq('id',t.id).is('recorrencia->>gerou',null);
     q=(rec.gat==='agenda'&&(rec.r||{}).u!=='c')?q.eq('prazo',t.prazo):q.eq('status','feito');
     const {data,error}=await q.select('id');
@@ -9180,11 +9194,64 @@ window.tkOrdemManual=()=>{ TK.ord=''; TK.dir=1; tkDesenhar($('#content'));
 window.tkOrdenar=(k)=>{ if(TK.ord===k){ if(TK.dir===-1){ TK.ord=''; TK.dir=1; toast('Ordem manual (arraste as linhas).'); } else { TK.dir=-1; } } else { TK.ord=k; TK.dir=1; } tkDesenhar($('#content')); };
 window.tkPegar=(ev,id)=>{ TK.arrastando=id; try{ev.dataTransfer.setData('text/plain',id);}catch(_){} };
 const tkAlvo=(ev)=>{ let id=''; try{ id=ev.dataTransfer.getData('text/plain'); }catch(_){} id=id||TK.arrastando; TK.arrastando=null; return id; };
+/* ---------- CONCLUSÃO COM RELATÓRIO (Gabriel 23/09) ----------
+   Concluir pede "O que foi feito nesta tarefa?" (texto livre, obrigatório) antes de fechar.
+   O texto vai em tarefas.conclusao_texto (+ concluida_por) e a função lembrete-tarefa
+   (/concluida) avisa o grupo do responsável, marcando o gerente que criou a demanda.
+   Vale em todo caminho de concluir: checkbox, board, select, painel, Início e Só minhas.
+   Fora: Controle de Clientes (lá a coluna é o estágio do cliente) e o workspace pessoal. */
+function cnPrecisa(t){
+  if(!t||t.status==='feito'||ehLC(t.lista_id)) return false;
+  const e=espacoDaLista(t.lista_id); if(!e) return true;
+  const w=e.workspace_id?(wsTodas()||[]).find(x=>String(x.id)===String(e.workspace_id)):null;
+  return !(w&&w.tipo==='pessoal');
+}
+function cnPedir(t){
+  return new Promise(res=>{
+    window.__cnAberto=true;
+    const o=document.createElement('div'); o.className='cn-fundo';
+    o.innerHTML=`<div class="cn-caixa" role="dialog" aria-label="Concluir tarefa">
+      <div class="cn-h"><strong>Concluir tarefa</strong><button class="tkp-x" type="button" data-x aria-label="Cancelar">✕</button></div>
+      <div class="cn-tit">${esc(t.titulo||'')}</div>
+      <label for="cnTexto" class="cn-lbl">O que foi feito nesta tarefa?</label>
+      <textarea id="cnTexto" rows="4" placeholder="Ex.: subi o vídeo finalizado e disponibilizei o material solicitado."></textarea>
+      <div class="cn-aviso" id="cnAviso"></div>
+      <div class="cn-pe"><button class="btn ghost small" type="button" data-x>Cancelar</button><button class="btn small" type="button" id="cnOk">Concluir tarefa</button></div></div>`;
+    document.body.appendChild(o);
+    const tx=o.querySelector('#cnTexto');
+    const fim=(v)=>{ o.remove(); document.removeEventListener('keydown',tecla,true); window.__cnAberto=false; res(v); };
+    const ok=()=>{ const v=tx.value.trim();
+      if(!v){ o.querySelector('#cnAviso').textContent='Escreva o que foi feito para concluir.'; tx.focus(); return; } fim(v); };
+    const tecla=(e)=>{ if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); fim(null); }
+      else if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); ok(); } };
+    document.addEventListener('keydown',tecla,true);
+    o.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>fim(null));
+    o.onmousedown=(e)=>{ if(e.target===o) fim(null); };
+    o.querySelector('#cnOk').onclick=ok;
+    setTimeout(()=>tx.focus(),0);
+  });
+}
+/* devolve o que entra no patch: {} se não precisa de relatório, null se a pessoa cancelou */
+async function cnAntes(t){
+  if(!cnPrecisa(t)) return {};
+  const texto=await cnPedir(t); if(!texto) return null;
+  return {conclusao_texto:texto,concluida_por:(currentUser||{}).id||null};
+}
+/* depois de gravar: avisa o grupo do responsável, sem travar a tela */
+function cnDepois(id,ex){
+  if(!ex||!ex.conclusao_texto) return;
+  lbApi('concluida',{tarefa_id:id}).then(d=>{
+    if(d&&d.ok&&(d.enviados||[]).length) toast('Concluída. Aviso enviado em '+recLista(d.enviados.map(x=>x.grupo))+'.');
+    else if(d&&!d.ok&&d.status!==409) toast('Concluída, mas o aviso no WhatsApp não saiu: '+(d.erro||'erro'));
+  }).catch(()=>{});
+}
 window.tkSoltar=async (ev,st)=>{
   ev.preventDefault();
   const id=tkAlvo(ev); const t=TK.tarefas.find(x=>x.id===id);
   if(!t||t.status===st) return;
-  await tkPatch(id,{status:st,concluida_em:st==='feito'?new Date().toISOString():null},TK_ST[st]+': '+t.titulo);
+  const patch={status:st,concluida_em:st==='feito'?new Date().toISOString():null};
+  const ex=st==='feito'?await cnAntes(t):{}; if(!ex){ tkDesenhar($('#content')); return; } Object.assign(patch,ex);
+  if(await tkPatch(id,patch,TK_ST[st]+': '+t.titulo)) cnDepois(id,ex);
 };
 window.tkSoltarDia=async (ev,iso)=>{
   ev.preventDefault();
@@ -9192,16 +9259,20 @@ window.tkSoltarDia=async (ev,iso)=>{
   if(!t||t.prazo===iso) return;
   await tkPatch(id,{prazo:iso},'Prazo: '+fmtDate(iso));
 };
-window.tkStatus=(id,st)=>tkPatch(id,{status:st,concluida_em:st==='feito'?new Date().toISOString():null},TK_ST[st]);
+window.tkStatus=async (id,st)=>{ const t=TK.tarefas.find(x=>x.id===id);
+  const patch={status:st,concluida_em:st==='feito'?new Date().toISOString():null};
+  const ex=st==='feito'?await cnAntes(t):{}; if(!ex){ tkDesenhar($('#content')); return false; } Object.assign(patch,ex);
+  const r=await tkPatch(id,patch,TK_ST[st]); if(r) cnDepois(id,ex); return r; };
 /* Checkbox da lista: em lista com colunas próprias, a coluna anda junto. Antes só mudava o
    status e o cartão ficava em Pendente mesmo concluído (Gabriel 23/09, "Subir video"). */
 const tkColunaDe=(lid,ok)=>{ const sts=tkStatusDe(lid)||[]; if(!sts.length) return null;
   const s=ok?(sts.find(x=>x.grupo==='feito')||sts.find(x=>x.grupo==='fechado')):(sts.find(x=>x.grupo==='nao_iniciado')||sts[0]);
   return s?s.id:null; };
-window.tkConcluir=(id,ok)=>{ const t=TK.tarefas.find(x=>x.id===id);
+window.tkConcluir=async (id,ok)=>{ const t=TK.tarefas.find(x=>x.id===id);
   const patch={status:ok?'feito':'todo',concluida_em:ok?new Date().toISOString():null};
   const col=t?tkColunaDe(t.lista_id,ok):null; if(col) patch.status_id=col;
-  return tkPatch(id,patch,ok?'Concluída.':'Reaberta.'); };
+  const ex=ok?await cnAntes(t):{}; if(!ex){ tkDesenhar($('#content')); return false; } Object.assign(patch,ex);
+  const r=await tkPatch(id,patch,ok?'Concluída.':'Reaberta.'); if(r) cnDepois(id,ex); return r; };
 window.tkToggle=(tp,id)=>{ const k=tp+id; TK.fechadas[k]=!TK.fechadas[k];
   if(tp==='g'){ tkDesenhar($('#content')); } else { spSalvarArvore(); spDesenhar(); } };
 window.tkSetVal=async (id,campoId,v)=>{
@@ -9444,7 +9515,10 @@ window.tkTipoExcluir=async (id)=>{
 window.tkSetStatus=async (id,sid)=>{
   const s=sid?tkStatus1(sid):null, st=s?TK_G2ST[s.grupo]:'todo';
   const antes=Object.assign({},TK.tarefas.find(x=>x.id===id)||{});
-  const ok=await tkPatch(id,{status_id:sid||null,status:st,concluida_em:st==='feito'?new Date().toISOString():null}, s?s.nome:'Sem status');
+  const ex=(st==='feito'&&antes.status!=='feito')?await cnAntes(antes):{};
+  if(!ex){ tkDesenhar($('#content')); return; }
+  const ok=await tkPatch(id,Object.assign({status_id:sid||null,status:st,concluida_em:st==='feito'?new Date().toISOString():null},ex), s?s.nome:'Sem status');
+  if(ok) cnDepois(id,ex);
   /* aviso agora nasce no banco (trg_ntf_tarefas): qualquer caminho conta, sem duplicar */
   if(ok) await lcSincronizarFicha(id,sid);
   if(ok&&sid===LC_CHURN) chPerguntarChurn(id);
@@ -10197,6 +10271,17 @@ async function tkmSalvar(t,lid,cps,silencioso){
         val[c.id]=x; });
       v.valores=(v.lista_id!==lid)?{}:val;
       v.concluida_em = v.status==='feito' ? ((t&&t.concluida_em)||new Date().toISOString()) : null;
+      /* concluiu pelo painel: pede o "O que foi feito" antes de gravar; cancelou, o status volta */
+      let cnEx={};
+      if(t&&v.status==='feito'&&t.status!=='feito'){
+        if(window.__cnAberto) return false;
+        cnEx=await cnAntes(Object.assign({},t,{lista_id:v.lista_id}));
+        if(!cnEx){ const el=$('#tk_stid');
+          if(el) el.value=t.status_id||''; else if($('#tk_st')) $('#tk_st').value=t.status;
+          try{ tkfPintarTrilha(); }catch(_){}
+          return false; }
+        Object.assign(v,cnEx);
+        if(!$('#tk_tit')) return false; }
       /* repetição: prazo mudado na mão vira a nova base da série (a próxima conta dele) */
       if(t&&recAtiva(t)&&v.prazo&&v.prazo!==t.prazo) v.recorrencia=Object.assign({},t.recorrencia,{base:v.prazo});
       let error=null, criada=null;
@@ -10219,6 +10304,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
       if(st){ st.textContent='Salvo'; st.className='tkm-auto'; }
       if(!silencioso){ render('tarefas'); toast('Salvo.'); }
       else { try{ tkDesenhar($('#content')); }catch(_){} }
+      if(t) cnDepois(t.id,cnEx);
       recAgendar();
       return true;
   }

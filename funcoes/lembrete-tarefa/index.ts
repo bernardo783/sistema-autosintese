@@ -16,6 +16,8 @@
 //  POST /enviar   {tarefa_id}      manda o lembrete e devolve o(s) payload(s)
 //  POST /status   {}               instâncias de lembrete + conectado?
 //  POST /conectar {name}           QR pra reconectar o número do gerente
+//  POST /concluida {tarefa_id}     "Demanda concluída" no grupo do responsável, com o "O que foi feito"
+//                                  (qualquer pessoa aprovada que seja responsável/quem concluiu, gerente ou master)
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 const SU = Deno.env.get('SUPABASE_URL') ?? '', SRK = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -44,7 +46,7 @@ async function quem(req: Request) {
   if (!r.ok) return null;
   const u = await r.json(); if (!u?.id) return null;
   const p = (await rest(`perfis?id=eq.${u.id}&select=id,nome,role,gerente,aprovado,squads`))[0];
-  if (!p || !p.aprovado || !(p.role === 'master' || p.gerente)) return null;
+  if (!p || !p.aprovado) return null;
   return p;
 }
 async function segredos() {
@@ -71,11 +73,85 @@ function situacao(prazo: string | null, feita: boolean) {
   return n === -1 ? 'atrasada 1 dia' : `atrasada ${-n} dias`;
 }
 
+const horaSP = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)).replace(', ', ' às ');
+async function gruposDoNumero(url: string, token: string) {
+  const g = await uaz(url, token, '/group/list?force=false&noparticipants=true').catch(() => ({ ok: false, j: {} as any }));
+  const arr: any[] = Array.isArray(g.j) ? g.j : (g.j?.groups || []);
+  const m: Record<string, string> = {}; for (const x of arr) { const jid = x.JID || x.jid || x.id; const nm = x.Name || x.name || x.subject || ''; if (jid && nm) m[chaveGrupo(nm)] = jid; }
+  return m;
+}
+
+/* ---------- conclusão com relatório ----------
+   Chamada pelo app logo depois de gravar a conclusão. Manda uma vez por conclusão: se já existe
+   aviso de conclusão ok depois do concluida_em, não repete. */
+async function concluida(b: any, user: any, chefe: boolean, S: Record<string, string>, url: string, inst: (n: string) => string, nomes: string[]) {
+  const tid = String(b.tarefa_id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(tid)) return J({ ok: false, erro: 'tarefa' }, 400);
+  const t = (await rest(`tarefas?id=eq.${tid}&select=id,titulo,prioridade,status,lista_id,responsavel_id,responsaveis,criado_por,concluida_em,concluida_por,conclusao_texto`))[0];
+  if (!t) return J({ ok: false, erro: 'Tarefa não encontrada.' }, 404);
+  if (t.status !== 'feito' || !String(t.conclusao_texto || '').trim()) return J({ ok: false, erro: 'A tarefa não está concluída com relatório.' }, 409);
+  const ids: string[] = (t.responsaveis && t.responsaveis.length) ? t.responsaveis : (t.responsavel_id ? [t.responsavel_id] : []);
+  if (!chefe && !ids.includes(user.id) && t.concluida_por !== user.id) return J({ ok: false, erro: 'Só quem é da tarefa avisa a conclusão.' }, 403);
+  if (t.concluida_em) {
+    const ja = await rest(`tarefa_lembretes?tarefa_id=eq.${tid}&tipo=eq.conclusao&ok=eq.true&enviado_em=gte.${encodeURIComponent(t.concluida_em)}&select=id&limit=1`);
+    if (ja.length) return J({ ok: true, enviados: [], ja: true });
+  }
+  const lista = (await rest(`listas?id=eq.${t.lista_id}&select=nome,pasta_id`))[0] || {};
+  const rotas = ROTAS.filter((r) => (r.listas && r.listas.includes(t.lista_id)) || (r.pasta && r.pasta === lista.pasta_id));
+  if (!rotas.length) return J({ ok: false, erro: 'sem grupo pra essa lista' }, 409);
+  const pessoas: any[] = ids.length ? await rest(`perfis?id=in.(${ids.join(',')})&select=id,nome,telefone`) : [];
+  const ger = t.criado_por ? (await rest(`perfis?id=eq.${t.criado_por}&select=id,nome,telefone`))[0] : null;
+  const porGrupo: Record<string, any[]> = {};
+  for (const p of pessoas) { const r = rotas.find((x) => x.pessoas.includes(p.id)); if (r) (porGrupo[r.grupo] = porGrupo[r.grupo] || []).push(p); }
+  if (!Object.keys(porGrupo).length) return J({ ok: false, erro: 'sem grupo pra esse responsável' }, 409);
+  /* manda pelo número do gerente que criou, se ele estiver no grupo; senão pelo outro */
+  const dono = chaveGrupo(String(ger?.nome || '').split(' ')[0]);
+  const ordem = [...nomes].sort((x, y) => (x === dono ? -1 : y === dono ? 1 : 0));
+  const cache: Record<string, Record<string, string>> = {};
+  const enviados: any[] = [], erros: string[] = [];
+  for (const nomeGrupo of Object.keys(porGrupo)) {
+    const k = chaveGrupo(nomeGrupo); let jid = '', por = '';
+    for (const n of ordem) { cache[n] = cache[n] || await gruposDoNumero(url, inst(n)); if (cache[n][k]) { jid = cache[n][k]; por = n; break; } }
+    if (!jid) { erros.push(`nenhum WhatsApp de gerente está no grupo "${nomeGrupo}"`); continue; }
+    const quem = porGrupo[nomeGrupo];
+    const gerTel = ger ? digitos(ger.telefone) : '';
+    const payload = {
+      tarefa: t.titulo || '(sem título)',
+      responsaveis: quem.map((p) => ({ nome: p.nome, telefone: digitos(p.telefone) || null })),
+      o_que_foi_feito: String(t.conclusao_texto).trim(),
+      concluida_em: t.concluida_em ? horaSP(t.concluida_em) : null,
+      link: APP + '#t/' + t.id,
+      flag: PRIO[t.prioridade] || 'Normal',
+      gerente: ger ? { nome: ger.nome, telefone: gerTel || null } : null,
+      grupo: nomeGrupo,
+    };
+    const texto = [
+      `✅ *Demanda concluída*`, ``,
+      `*${payload.responsaveis.map((p) => p.nome).join(', ')}* matou a demanda:`, ``,
+      `*Tarefa:* ${payload.tarefa}`,
+      `*O que foi feito:* ${payload.o_que_foi_feito}`,
+      `*Concluída em:* ${payload.concluida_em || 'agora'}`,
+      `*Flag:* ${payload.flag}`,
+      `*Gerente:* ${ger ? (gerTel ? '@' + gerTel : ger.nome) : 'não informado'}`,
+      `*Link:* ${payload.link}`,
+    ].join('\n');
+    const r = await uaz(url, inst(por), '/send/text', 'POST',
+      { number: jid, text: texto, linkPreview: false, ...(gerTel ? { mentions: gerTel } : {}), track_source: 'sistema-autosintese', track_id: 'conclusao:' + t.id });
+    const erro = r.ok ? null : String(r.j?.error || r.j?.message || ('uazapi ' + r.status));
+    await fetch(`${SU}/rest/v1/tarefa_lembretes`, { method: 'POST', headers: H,
+      body: JSON.stringify({ tarefa_id: t.id, enviado_por: user.id, instancia: por, grupo: nomeGrupo, ok: r.ok, erro, payload, tipo: 'conclusao' }) });
+    if (r.ok) enviados.push({ grupo: nomeGrupo, por, payload }); else erros.push(`"${nomeGrupo}": ${erro}`);
+  }
+  if (!enviados.length) return J({ ok: false, erro: erros.join('; ') || 'não enviou' }, 502);
+  return J({ ok: true, enviados, avisos: erros });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   const acao = new URL(req.url).pathname.split('/').filter(Boolean).pop() || '';
   const user = await quem(req);
-  if (!user) return J({ ok: false, erro: 'Só gerente ou master pode notificar o responsável.' }, 403);
+  if (!user) return J({ ok: false, erro: 'Faça login no sistema.' }, 401);
+  const chefe = user.role === 'master' || !!user.gerente;
   let b: any = {}; try { b = await req.json(); } catch { b = {}; }
   const S = await segredos();
   const url = String(S.uazapi_url || '').replace(/\/+$/, '');
@@ -83,6 +159,7 @@ Deno.serve(async (req: Request) => {
   const inst = (nome: string) => S['lembrete_inst_' + nome] || '';
   const nomes = Object.keys(S).filter((k) => k.startsWith('lembrete_inst_') && S[k]).map((k) => k.slice('lembrete_inst_'.length));
 
+  if (acao !== 'concluida' && !chefe) return J({ ok: false, erro: 'Só gerente ou master pode notificar o responsável.' }, 403);
   if (acao === 'status') {
     const L = await Promise.all(nomes.map(async (n) => {
       const st = await uaz(url, inst(n), '/instance/status').catch(() => ({ ok: false, j: {} as any }));
@@ -99,6 +176,7 @@ Deno.serve(async (req: Request) => {
     const qr = c.j?.instance?.qrcode || c.j?.qrcode || '';
     return J({ ok: !!qr, conectado: false, qr: qr ? (qr.startsWith('data:') ? qr : 'data:image/png;base64,' + qr) : null, erro: qr ? undefined : (c.j?.error || 'sem QR') });
   }
+  if (acao === 'concluida') return concluida(b, user, chefe, S, url, inst, nomes);
   if (acao !== 'enviar') return J({ ok: false, erro: 'ação desconhecida' }, 404);
 
   /* ---------- enviar ---------- */
@@ -111,7 +189,7 @@ Deno.serve(async (req: Request) => {
   const rotas = ROTAS.filter((r) => (r.listas && r.listas.includes(t.lista_id)) || (r.pasta && r.pasta === lista.pasta_id));
   if (!rotas.length) return J({ ok: false, erro: 'Essa lista não tem grupo de lembrete configurado.' }, 409);
   const desde = new Date(Date.now() - ESPERA_MIN * 60000).toISOString();
-  const rec = await rest(`tarefa_lembretes?tarefa_id=eq.${tid}&ok=eq.true&enviado_em=gte.${encodeURIComponent(desde)}&select=enviado_em&limit=1`);
+  const rec = await rest(`tarefa_lembretes?tarefa_id=eq.${tid}&tipo=eq.lembrete&ok=eq.true&enviado_em=gte.${encodeURIComponent(desde)}&select=enviado_em&limit=1`);
   if (rec.length) return J({ ok: false, erro: `Essa tarefa já foi lembrada nos últimos ${ESPERA_MIN} minutos.` }, 429);
 
   const ids: string[] = (t.responsaveis && t.responsaveis.length) ? t.responsaveis : (t.responsavel_id ? [t.responsavel_id] : []);
