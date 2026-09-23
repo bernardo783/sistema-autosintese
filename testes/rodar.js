@@ -869,7 +869,7 @@ grupo('Ficha: estágio e squad clicáveis no topo (Gabriel 23/09)');
   ok('etiqueta mostra o estágio do card e abre a lista', /5\. CLIENTE ATIVO/.test(mst.pcStatusHtml(it))&&/pcStatusMenu/.test(mst.pcStatusHtml(it)));
   ok('sem card: cai no status da ficha', /Cliente ativo/.test(mst.pcStatusHtml({id:'fx',status:'ativo'})));
   ok('master: squad clicável pra trocar', /pcSquadMenu/.test(mst.pcSquadHtml(it))&&/Mudar o squad/.test(mst.pcSquadHtml(it)));
-  ok('gerente do cliente: squad clicável pra PEDIR', /Pedir mudança de squad/.test(ger.pcSquadHtml(it)));
+  ok('gerente do cliente: squad clicável pra PEDIR', /Abrir solicitação de mudança de squad/.test(ger.pcSquadHtml(it)));
   ok('gestor: squad só aparece, sem clique', !/pcSquadMenu/.test(gest.pcSquadHtml(it))&&/01/.test(gest.pcSquadHtml(it)));
   ok('pedido de squad vira chamado de suporte pro Bernardo', /suporte_abrir_chamado/.test(cod));
 }

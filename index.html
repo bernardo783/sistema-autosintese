@@ -14442,7 +14442,7 @@ window.pcStatusSet=async (pid,sid,k)=>{
 function pcSquadHtml(it){
   const m=!!(currentUser&&currentUser.role==='master'), ger=!m&&souGerenteDaFicha(it.id);
   if(!m&&!ger) return it.squad?`<i></i>${sqEtiqueta(it.squad)}`:'';
-  return `<i></i><button type="button" class="pc-sq" title="${m?'Mudar o squad':'Pedir mudança de squad (vai pro Bernardo)'}" onclick="pcSquadMenu(event,'${esc(it.id)}')">${it.squad?sqEtiqueta(it.squad):'<span class="pc-tipo vz">definir squad</span>'}<span class="pc-tipo-s">&#9662;</span></button>`;
+  return `<i></i><button type="button" class="pc-sq" title="${m?'Mudar o squad':'Abrir solicitação de mudança de squad (vai pro Bernardo)'}" onclick="pcSquadMenu(event,'${esc(it.id)}')">${it.squad?sqEtiqueta(it.squad):'<span class="pc-tipo vz">definir squad</span>'}<span class="pc-tipo-s">&#9662;</span></button>`;
 }
 const pcSquadsOpc=(atual)=>Array.from(new Set(SQUADS().concat(['01','02'],atual?[String(atual)]:[]))).filter(Boolean).sort();
 window.pcSquadMenu=(ev,pid)=>{
@@ -14451,7 +14451,7 @@ window.pcSquadMenu=(ev,pid)=>{
   if(currentUser&&currentUser.role==='master'){
     ctxAbrir(ev,[{cab:'Squad'}].concat(sqs.map(q=>({ic:String(it.squad||'')===q?'●':'○',t:'Squad '+q,f:()=>pcSquadSet(pid,q)})))); return; }
   if(!souGerenteDaFicha(pid)) return;
-  ctxAbrir(ev,[{cab:'Pedir mudança de squad'}].concat(sqs.filter(q=>q!==String(it.squad||'')).map(q=>({t:'Pedir Squad '+q,f:()=>pcSquadPedir(pid,q)}))));
+  ctxAbrir(ev,[{cab:'Abrir solicitação de squad'}].concat(sqs.filter(q=>q!==String(it.squad||'')).map(q=>({t:'Mudar para Squad '+q,f:()=>pcSquadPedir(pid,q)}))));
 };
 window.pcSquadSet=async (pid,q)=>{
   const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it||String(it.squad||'')===q) return;
@@ -14465,7 +14465,7 @@ window.pcSquadSet=async (pid,q)=>{
 window.pcSquadPedir=(pid,q)=>{
   const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
   const de=it.squad?('Squad '+it.squad):'sem squad';
-  modal('Pedir mudança de squad',`
+  modal('Abrir solicitação de squad',`
     <p class="hint" style="margin:0 0 12px"><b>${esc(it.nome)}</b>: de ${esc(de)} para <b>Squad ${esc(q)}</b>.
       Vai pro Bernardo como demanda de suporte; o squad só muda quando ele aplicar.</p>
     <div class="field"><label>Por quê</label><textarea id="sq_mot" rows="3" placeholder="ex.: o cliente passou pro gestor do outro squad"></textarea></div>`,
@@ -14476,7 +14476,9 @@ window.pcSquadPedir=(pid,q)=>{
         p_texto:'Pedido de mudança de squad do cliente '+it.nome+': de '+de+' para Squad '+q+'.'+(mot?'\n\nPor quê: '+mot:'')+'\n\nFicha: '+lkUrl('c',pid),
         p_onde:'Ficha do cliente'});
       if(error){ toast('Não enviou: '+error.message); return false; }
-      toast('Pedido enviado pro Bernardo.'); return true; });
+      toast('Solicitação aberta pro Bernardo.'); return true; });
+  /* o botao diz o que faz: abre uma solicitacao, nao muda o squad na hora (Gabriel 23/09) */
+  const bs=document.querySelector('.overlay:last-of-type .msave'); if(bs) bs.textContent='Abrir solicitação';
 };
 window.pcEditar=(ligar)=>{ const el=document.getElementById('pcModal'); if(!el) return;
   el.classList.toggle('ed',!!ligar); el.classList.toggle('ver',!ligar);
