@@ -34,7 +34,7 @@
     if(!IN.carregou) return '<div class="empty">Carregando instâncias…</div>';
     const L=IN.lista, on=L.filter(i=>i.conectado).length;
     const linha=(i)=>`<div class="crm-row">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;overflow:hidden;flex:none">${i.foto?`<img src="${esc(i.foto)}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:18px">📱</span>'}</div>
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;overflow:hidden;flex:none">${i.foto?`<img src="${esc(i.foto)}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:18px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg></span>'}</div>
       <div class="g"><b>${esc(i.name)}</b> ${i.dono?'· '+esc(fmtFone(i.dono)):''} ${i.perfil?`<span style="color:var(--muted)">· ${esc(i.perfil)}</span>`:''}
         ${i.envioLanding?`<span class="crm-badge info" title="Entra no rodízio da primeira mensagem pros leads da landing /ads">rodízio ${i.ordemRodizio}º${IN.placar[i.name]?' · '+IN.placar[i.name]+' lead'+(IN.placar[i.name]===1?'':'s')+' em 30d':''}</span>`:''}
         <small>${i.erro?esc(i.erro):(i.conectado?'conectado':(i.status||'desconectado'))}${i.ultimaQueda&&!i.conectado&&!i.erro?' · caiu '+esc(quando(i.ultimaQueda))+(i.motivoQueda?' ('+esc(i.motivoQueda)+')':''):''}${i.nomeUazapi&&i.nomeUazapi!==i.name?' · '+esc(i.nomeUazapi):''}</small></div>
@@ -47,7 +47,7 @@
       </div></div>`;
     return `${IN.erro?`<div class="crm-hint" style="color:var(--danger);margin:0 0 10px">${esc(IN.erro)}</div>`:''}
     <div class="crm-intg"><div class="crm-ic wide">
-      <div class="hd"><div class="lg" style="font-size:22px">📲</div><div><h4>Instâncias de WhatsApp (UAZAPI)</h4><div class="sub">Um número por SDR · ${on}/${L.length} conectado${L.length===1?'':'s'} · rodízio da landing: ${IN.fila.length?esc(IN.fila.join(' → ')):'ninguém'}${IN.servidor?' · '+esc(IN.servidor):''}</div></div>
+      <div class="hd"><div class="lg" style="font-size:22px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg></div><div><h4>Instâncias de WhatsApp (UAZAPI)</h4><div class="sub">Um número por SDR · ${on}/${L.length} conectado${L.length===1?'':'s'} · rodízio da landing: ${IN.fila.length?esc(IN.fila.join(' → ')):'ninguém'}${IN.servidor?' · '+esc(IN.servidor):''}</div></div>
         <div class="acts"><button class="btn secondary small" onclick="instRecarregar()" title="Recarregar">↻</button></div></div>
       ${L.length?L.map(linha).join(''):'<div class="crm-vazio">Nenhum número cadastrado. Pra incluir um, o token da instância entra no cofre do servidor (peça ao administrador).</div>'}
       <div class="crm-hint">Pra conectar: clique em <b>Conectar (QR)</b>, e no celular do SDR abra <b>WhatsApp › Dispositivos conectados › Conectar dispositivo</b> e aponte pro código. Quem está no <b>rodízio</b> reveza a primeira mensagem pros leads de autosintese.app.br/ads: cada lead cai pra quem atendeu menos nos últimos 30 dias, e número desconectado é pulado na hora. Esses números também atendem o CRM do grupo, por isso desconectar ou apagar só pelo painel da UAZAPI.</div>
@@ -63,7 +63,7 @@
   };
   window.instTestar=async(name)=>{
     const num=prompt('Mandar mensagem de teste pra qual número? (com DDD)', ''); if(!num) return;
-    try{ await api('testar',{name,number:num,text:'Teste da AutoSíntese ✅ Este número está conectado ao sistema.'}); toast('Enviada. Confere no WhatsApp.'); }catch(e){ toast('Erro: '+e.message); }
+    try{ await api('testar',{name,number:num,text:'Teste da AutoSíntese Este número está conectado ao sistema.'}); toast('Enviada. Confere no WhatsApp.'); }catch(e){ toast('Erro: '+e.message); }
   };
   /* QR: modal que pede um código novo a cada 20 s até conectar */
   window.instConectar=(name)=>{ IN.qrNome=name; IN.qr=null; instQrModal(); instQrPuxar(); };
@@ -88,7 +88,7 @@
     try{
       const d=await api('conectar',fone?{name:IN.qrNome,fone}:{name:IN.qrNome});
       if(!$('#instQrCorpo')) return;
-      if(d.conectado){ c.innerHTML=`<div><div style="font-size:44px">✅</div><div style="font-weight:800;font-size:18px;margin-top:6px">Conectado</div><div style="color:var(--muted);margin-top:4px">${esc(fmtFone(d.dono))}${d.perfil?' · '+esc(d.perfil):''}</div></div>`;
+      if(d.conectado){ c.innerHTML=`<div><div style="font-size:44px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="M22 4L12 14.6l-3-3"/></svg></div><div style="font-weight:800;font-size:18px;margin-top:6px">Conectado</div><div style="color:var(--muted);margin-top:4px">${esc(fmtFone(d.dono))}${d.perfil?' · '+esc(d.perfil):''}</div></div>`;
         if(IN.qrTimer) clearTimeout(IN.qrTimer); IN.qrTimer=setTimeout(instQrFechar,2500); return; }
       if(d.paircode) c.innerHTML=`<div><div style="color:var(--muted);font-size:13px;margin-bottom:8px">Digite este código no celular:<br><b>Conectar com número de telefone</b></div><div style="font-size:34px;font-weight:800;letter-spacing:.18em;background:var(--panel2);border-radius:12px;padding:14px">${esc(d.paircode)}</div></div>`;
       else if(d.qr) c.innerHTML=`<img src="${d.qr}" alt="QR code" style="width:280px;height:280px;border-radius:12px;background:#fff;padding:10px;box-sizing:border-box">`;

@@ -653,6 +653,20 @@ grupo('Agent IA: ficha sem gestor, conta, verba, gasto, saldo, contas e logos (G
   ok('virar Agent IA tira o gestor', HTML.indexOf("if(k==='ia') it.responsavel='';")>0);
 }
 
+/* ---------------- emoji é proibido no sistema ---------------- */
+grupo('Nenhum emoji na tela: usar ícone da ICO_LIB (Gabriel 23/09, "definitivamente")');
+{
+  /* emoji colorido (estilo WhatsApp). Símbolos de texto sem cor (✓ ✕ ★ ✎ ☑ ✔ ✦ ⚒ ☎ ✉ ♻ ▶ ●) podem. */
+  const EMO=/(?![✓✕✎★☆☑✔✗✦⚑⚒☎✉♻▶◆▲●◉◎⌘])[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{2600}-\u{27BF}\u{2B50}\u{2B55}\u{231A}\u{231B}\u{23E9}-\u{23FA}]/gu;
+  /* tira comentários (código lê, a tela não) antes de procurar */
+  const semComentario=(t)=>t.replace(/<!--[\s\S]*?-->/g,'').replace(/\/\*[\s\S]*?\*\//g,'').replace(/(^|[^:\\'"`])\/\/[^\n]*/g,'$1');
+  const achar=(arq)=>{ const t=semComentario(fs.readFileSync(path.join(__dirname,'..',arq),'utf8'));
+    const out=[]; let m; EMO.lastIndex=0; while((m=EMO.exec(t))) out.push(m[0]+' …'+t.slice(Math.max(0,m.index-30),m.index+10).replace(/\n/g,' ')+'…'); return out; };
+  ['index.html','crm.js','comercial/conversas.js','comercial/instancias.js','contrato.html'].forEach(arq=>{
+    const a=achar(arq); ok(arq+': nenhum emoji'+(a.length?' (achei '+a.length+': '+a.slice(0,3).join(' | ')+')':''), a.length===0); });
+  ok('ícone novo entra na ICO_LIB (ex.: alerta, chat, lixeira)', /\n\s*alerta:'/.test(HTML)&&/\n\s*chat:'/.test(HTML)&&/\n\s*lixeira:'/.test(HTML));
+}
+
 /* ---------------- notificar responsável ---------------- */
 grupo('Notificar responsável (Gabriel 23/09)');
 {

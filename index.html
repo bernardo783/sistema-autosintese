@@ -2173,6 +2173,9 @@
   .tk-col.lcb-fina .tk-colh{flex-direction:column;gap:10px;margin:0}
   .tk-col.lcb-fina .tk-selo{writing-mode:vertical-rl;transform:rotate(180deg);background:transparent!important;padding:0;white-space:nowrap}
   .tk-col.lcb-fina .tk-colb{min-height:0;flex:1;width:100%}
+  /* icone no lugar de emoji (Gabriel 23/09: emoji e proibido no sistema) */
+  .emi{width:1.05em;height:1.05em;vertical-align:-.17em;display:inline-block;flex:none;margin-right:.18em}
+  .emi-dot{display:inline-block;width:.62em;height:.62em;border-radius:50%;vertical-align:.06em;margin-right:.35em;flex:none}
   .lc-tipos-k{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center;margin-right:2px}
   .ftab.lc-semtipo{color:var(--warn);border-color:rgba(230,177,63,.45)}
   .lc-semtipo-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;
@@ -4267,7 +4270,7 @@ function abaConexao(){
         <div class="nm"><a class="link" style="cursor:pointer" onclick="abrirCliente('${x.f.id}')">${esc(x.f.nome)}</a></div>
         <div class="id">${esc(x.c.nome)}</div>
       </div>
-      ${x.m&&logoDe(x.m)?'<span class="cx-tag">Pronta</span>':`<span class="cx-tag warn" style="cursor:pointer" title="Adicionar a logo do cliente" onclick="openMarcaModal('${esc(x.c.id)}')">➕ Sem logo</span>`}
+      ${x.m&&logoDe(x.m)?'<span class="cx-tag">Pronta</span>':`<span class="cx-tag warn" style="cursor:pointer" title="Adicionar a logo do cliente" onclick="openMarcaModal('${esc(x.c.id)}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Sem logo</span>`}
     </div>`;
   return `<div class="cx-grid">
     <div class="cx-card">
@@ -4311,7 +4314,7 @@ function abaEquipes(){
   const nomes=Object.keys(grupos).sort();
   const pend = semDono.length?`<div style="border:1px solid #7a5c17;background:rgba(251,191,36,.07);border-radius:12px;padding:14px;margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <div style="font-weight:800;font-size:14.5px;color:var(--warn)">⚠️ ${semDono.length} conta${semDono.length===1?'':'s'} sem squad</div>
+        <div style="font-weight:800;font-size:14.5px;color:var(--warn)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> ${semDono.length} conta${semDono.length===1?'':'s'} sem squad</div>
         <button class="btn small" style="margin-left:auto" onclick="atribuirSquads()">Atribuir responsável</button>
       </div>
       <div style="font-size:12.5px;color:var(--muted)">${semDono.map(x=>esc(x.f.nome)).join(' · ')}</div>
@@ -4359,10 +4362,10 @@ function abaCentral(){
       <div class="card"><div class="k">Em atenção</div><div class="v" style="color:${aten.length?'var(--warn)':''}">${aten.length}</div><div class="sub">saldo curto ou parado</div></div>
       <div class="card"><div class="k">Custo por conversa</div><div class="v">${mediana?brl(mediana):'-'}</div><div class="sub">mediana da carteira</div></div>
     </div>
-    ${crit.length||aten.length?`<div style="font-size:13px;font-weight:800;margin:4px 0 4px">🔴 Contas em risco</div>
+    ${crit.length||aten.length?`<div style="font-size:13px;font-weight:800;margin:4px 0 4px"><i class="emi-dot" style="background:#ef5b6b"></i> Contas em risco</div>
       ${[...crit,...aten].map(x=>linha(x, x.r.saldo!=null?`<strong>${brl(x.r.saldo)}</strong><div style="color:var(--muted);font-size:11px">${x.r.dias!=null?('dura ~'+x.r.dias.toFixed(1)+' dia'+(x.r.dias<2?'':'s')):'saldo'}</div>`:'<span style="color:var(--muted)">-</span>')).join('')}`
-      :'<div class="empty" style="padding:18px">Nenhuma conta em risco agora. 🎉</div>'}
-    ${caros.length?`<div style="font-size:13px;font-weight:800;margin:20px 0 4px">💸 Custo por conversa acima da média</div>
+      :'<div class="empty" style="padding:18px">Nenhuma conta em risco agora.</div>'}
+    ${caros.length?`<div style="font-size:13px;font-weight:800;margin:20px 0 4px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Custo por conversa acima da média</div>
       <div class="hint" style="margin:0 0 6px">Mais de 50% acima da mediana da carteira (${brl(mediana)}).</div>
       ${caros.map(x=>linha(x,`<strong style="color:var(--warn)">${brl(x.cpc)}</strong><div style="color:var(--muted);font-size:11px">mediana ${brl(mediana)}</div>`)).join('')}`:''}`;
 }
@@ -4373,10 +4376,10 @@ function renderTrafego(c){
      <div class="toolbar"><input class="search" id="tSearch" placeholder="Buscar..."><button class="btn small" onclick="openTrafModal()">+ Campanha</button></div>
    </div>
    <div class="fin-tabs">
-     <button class="ftab ${trafAba==='contas'?'active':''}" onclick="trafGo('contas')">📡 Contas e relatórios</button>
-     <button class="ftab ${trafAba==='central'?'active':''}" onclick="trafGo('central')">🏢 Central da agência</button>
-     <button class="ftab ${trafAba==='conexao'?'active':''}" onclick="trafGo('conexao')">🔌 Conexão</button>
-     <button class="ftab ${trafAba==='equipes'?'active':''}" onclick="trafGo('equipes')">👥 Squads</button>
+     <button class="ftab ${trafAba==='contas'?'active':''}" onclick="trafGo('contas')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6a10 10 0 0 1 14 0M8.5 16.1a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0"/><path d="M12 20h.01"/></svg> Contas e relatórios</button>
+     <button class="ftab ${trafAba==='central'?'active':''}" onclick="trafGo('central')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/></svg> Central da agência</button>
+     <button class="ftab ${trafAba==='conexao'?'active':''}" onclick="trafGo('conexao')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5M9 8V2M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"/></svg> Conexão</button>
+     <button class="ftab ${trafAba==='equipes'?'active':''}" onclick="trafGo('equipes')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> Squads</button>
    </div>
    ${trafAba!=='contas'?`<div id="trafSub">${trafAba==='conexao'?abaConexao():trafAba==='equipes'?abaEquipes():abaCentral()}</div>`:`
    <div class="cards">
@@ -4388,7 +4391,7 @@ function renderTrafego(c){
    </div>
    <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
-       <div style="font-weight:800;font-size:15px">📡 Meta Ads: contas de anúncio</div>
+       <div style="font-weight:800;font-size:15px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6a10 10 0 0 1 14 0M8.5 16.1a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0"/><path d="M12 20h.01"/></svg> Meta Ads: contas de anúncio</div>
        <select id="mtPreset" class="search" style="max-width:170px">
          <option value="today">Hoje</option>
          <option value="yesterday">Ontem</option>
@@ -4400,7 +4403,7 @@ function renderTrafego(c){
        </select>
        <input class="search" id="mtBusca" placeholder="Filtrar conta..." style="max-width:180px" oninput="metaDesenhar()">
        <button class="btn secondary small" onclick="metaCarregar()" title="A tela já se atualiza sozinha; use só se quiser adiantar">↻ Atualizar</button>
-       <button class="btn secondary small" onclick="abrirVinculos()">🔗 Vincular a clientes</button>
+       <button class="btn secondary small" onclick="abrirVinculos()"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Vincular a clientes</button>
        <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;white-space:nowrap">
          Ciclo de verificação
          <input type="number" min="1" max="180" step="1" id="mtCiclo" class="search" style="max-width:64px;padding:6px 8px" title="Intervalo em minutos para atualizar sozinho">
@@ -4881,7 +4884,7 @@ window.metaDesenhar=()=>{
     if(!pg) col1=`<div style="min-width:132px"><div style="font-size:10.5px;text-transform:uppercase;color:var(--muted)">Pagamento</div><div style="color:var(--muted);font-size:12.5px">-</div></div>`;
     else if(pg.problema) col1=`<div style="min-width:132px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="tag" style="background:rgba(248,113,113,.18);color:var(--danger);font-size:10px;font-weight:800;letter-spacing:.5px">${pg.prepago?'⚡ PIX':'💳 CARTÃO'}</span>
+          <span class="tag" style="background:rgba(248,113,113,.18);color:var(--danger);font-size:10px;font-weight:800;letter-spacing:.5px">${pg.prepago?'PIX':'CARTÃO'}</span>
         </div>
         <div style="font-weight:800;font-size:14px;color:var(--danger)">${esc(pg.statusTxt)}</div>
         <div style="font-size:10.5px;color:var(--danger)">${pg.motivoTxt?esc(pg.motivoTxt)+' · ':''}anúncios parados</div>
@@ -4890,7 +4893,7 @@ window.metaDesenhar=()=>{
       const s=pg.saldo, zero=s!=null&&s<1, baixo=s!=null&&s>=1&&s<50;
       col1=`<div style="min-width:132px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="tag" style="background:rgba(52,211,153,.16);color:var(--ok);font-size:10px;font-weight:800;letter-spacing:.5px">⚡ PIX</span>
+          <span class="tag" style="background:rgba(52,211,153,.16);color:var(--ok);font-size:10px;font-weight:800;letter-spacing:.5px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg> PIX</span>
           <span style="font-size:10px;color:var(--muted);text-transform:uppercase">saldo</span>
         </div>
         <div style="font-weight:800;font-size:16px;color:${zero?'var(--danger)':baixo?'var(--warn)':'var(--ok)'}">${s!=null?brl(s):'-'}</div>
@@ -4900,12 +4903,12 @@ window.metaDesenhar=()=>{
       const f=pg.falta, perto=f!=null&&pg.limite&&f<pg.limite*0.15;
       col1=`<div style="min-width:132px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="tag" style="background:rgba(96,165,250,.16);color:var(--info);font-size:10px;font-weight:800;letter-spacing:.5px">💳 CARTÃO</span>
+          <span class="tag" style="background:rgba(96,165,250,.16);color:var(--info);font-size:10px;font-weight:800;letter-spacing:.5px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg> CARTÃO</span>
           <span style="font-size:10px;color:var(--muted)">${esc(pg.cartao||'')}</span>
         </div>
         ${f!=null
           ? `<div style="font-weight:800;font-size:16px;color:${perto?'var(--warn)':'var(--info)'}">${brl(f)}</div>
-             <div style="font-size:10.5px;color:var(--muted)">falta p/ cobrar${pg.limiteEstimado?' <span title="Limite estimado observando as cobranças. Informe o valor exato em 🎨 Marca." style="color:var(--warn);cursor:help">~</span>':''} · limite ${brl(pg.limite)}</div>`
+             <div style="font-size:10.5px;color:var(--muted)">falta p/ cobrar${pg.limiteEstimado?' <span title="Limite estimado observando as cobranças. Informe o valor exato em Marca." style="color:var(--warn);cursor:help">~</span>':''} · limite ${brl(pg.limite)}</div>`
           : `<div style="font-weight:800;font-size:16px;color:var(--info)">${pg.acumulado!=null?brl(pg.acumulado):'-'}</div>
              <div style="font-size:10.5px;color:var(--muted)">acumulado · <span style="color:var(--warn)">informe o limite</span></div>`}
       </div>`;
@@ -4913,11 +4916,11 @@ window.metaDesenhar=()=>{
     return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid ${pg&&pg.problema?'var(--danger)':'var(--border)'};border-radius:12px;padding:12px 14px;margin-bottom:10px;background:${pg&&pg.problema?'rgba(248,113,113,.07)':'rgba(255,255,255,.02)'}">
       ${logo}
       <div style="flex:1;min-width:170px">
-        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sn&&sn.nivel==='zero'?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${sd.parou?' <span class="tag" style="font-size:11px;background:rgba(251,191,36,.18);color:var(--warn)">parou de gastar</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px">⚠ ${esc(pg.statusTxt)}</span>`:''}</div>
-        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:var(--warn)">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&logoDe(m)?'':` · <span style="color:var(--warn);cursor:pointer;text-decoration:underline" onclick="openMarcaModal('${esc(c.id)}')">➕ adicionar logo</span>`}</div>
+        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sn&&sn.nivel==='zero'?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${sd.parou?' <span class="tag" style="font-size:11px;background:rgba(251,191,36,.18);color:var(--warn)">parou de gastar</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> ${esc(pg.statusTxt)}</span>`:''}</div>
+        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:var(--warn)">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}${m&&logoDe(m)?'':` · <span style="color:var(--warn);cursor:pointer;text-decoration:underline" onclick="openMarcaModal('${esc(c.id)}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> adicionar logo</span>`}</div>
         <div style="font-size:12px;margin-top:3px">${(()=>{const f=fichaDaConta(c.id);
-          return f?`<a class="link" style="cursor:pointer" onclick="abrirCliente('${f.id}')">🤝 ${esc(f.nome)}</a>`
-                  :`<span style="color:var(--warn);cursor:pointer" onclick="abrirVinculos('${esc(c.id)}')">🔗 vincular a um cliente</span>`;})()}</div>
+          return f?`<a class="link" style="cursor:pointer" onclick="abrirCliente('${f.id}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> ${esc(f.nome)}</a>`
+                  :`<span style="color:var(--warn);cursor:pointer" onclick="abrirVinculos('${esc(c.id)}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> vincular a um cliente</span>`;})()}</div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap">
         ${col1}
@@ -4930,8 +4933,8 @@ window.metaDesenhar=()=>{
         ${met('CPL',leads&&gasto?brl(gasto/leads):'-')}
       </div>
       <div style="display:flex;gap:8px;flex:none">
-        <button class="iconbtn" onclick="openMarcaModal('${esc(c.id)}')" title="Logo e cores da marca do cliente">🎨 Marca</button>
-        <button class="btn small" onclick="openRelatorioModal('${esc(c.id)}')">📄 Gerar relatório</button>
+        <button class="iconbtn" onclick="openMarcaModal('${esc(c.id)}')" title="Logo e cores da marca do cliente"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2a10 10 0 0 0 0 20c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.7 1.7-1.7H16a6 6 0 0 0 6-6c0-4.9-4.5-8.4-10-8.4z"/></svg> Marca</button>
+        <button class="btn small" onclick="openRelatorioModal('${esc(c.id)}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg> Gerar relatório</button>
       </div>
     </div>`;
   });
@@ -4941,7 +4944,7 @@ window.metaDesenhar=()=>{
   el.innerHTML = !rows.length
     ? '<div style="color:var(--muted);padding:14px 2px;font-size:13px">Nenhuma conta encontrada.</div>'
     : (comProb.length
-        ? `<div class="mt-sec"><span class="tag churn" style="font-size:11px">⚠ Precisa de atenção</span><span class="tk-n">${comProb.length} de ${rows.length}</span></div>`+comProb.map(x=>x.html).join('')
+        ? `<div class="mt-sec"><span class="tag churn" style="font-size:11px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> Precisa de atenção</span><span class="tk-n">${comProb.length} de ${rows.length}</span></div>`+comProb.map(x=>x.html).join('')
         : '<div class="mt-ok">✓ Nenhuma conta pedindo atenção agora.</div>')
       + (okList.length
         ? `<details class="mt-det"${comProb.length?'':' open'}><summary>Contas saudáveis (${okList.length})</summary>${okList.map(x=>x.html).join('')}</details>`
@@ -4978,7 +4981,7 @@ function mtAlertas(todas){
   const crit=(todas||[]).map(c=>({c,pg:pagConta(c)})).filter(x=>x.pg&&x.pg.problema);
   if(!crit.length){ el.innerHTML=''; window.__mtAvisados=new Set(); return; }
   el.innerHTML=`<div style="border:1px solid #b91c1c;background:rgba(185,28,28,.16);border-radius:11px;padding:12px 14px;margin:10px 0">
-    <div style="font-weight:800;color:#fca5a5;margin-bottom:6px">🚨 ${crit.length===1?'1 conta parada por problema de pagamento':crit.length+' contas paradas por problema de pagamento'}</div>
+    <div style="font-weight:800;color:#fca5a5;margin-bottom:6px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> ${crit.length===1?'1 conta parada por problema de pagamento':crit.length+' contas paradas por problema de pagamento'}</div>
     ${crit.map(({c,pg})=>`<div style="font-size:13px;margin-bottom:3px">
       <strong>${esc(nomeConta(c))}</strong>, ${esc(pg.statusTxt)}${pg.motivoTxt?' ('+esc(pg.motivoTxt)+')':''}${pg.cartao?' · '+esc(pg.cartao):''}
       <a class="link" href="https://adsmanager.facebook.com/ads/manager/billing_history?act=${esc(String(c.id).replace('act_',''))}" target="_blank" rel="noopener">resolver no Meta ↗</a>
@@ -4991,10 +4994,10 @@ function mtAlertas(todas){
   if(!novas.length) return;
   novas.forEach(({c})=>window.__mtAvisados.add(c.id));
   const txt=novas.map(({c,pg})=>nomeConta(c)+', '+pg.statusTxt).join('\n');
-  toast('🚨 '+(novas.length===1?'Conta parada: '+nomeConta(novas[0].c):novas.length+' contas paradas por pagamento'));
+  toast(''+(novas.length===1?'Conta parada: '+nomeConta(novas[0].c):novas.length+' contas paradas por pagamento'));
   try{
     if(!('Notification' in window)) return;
-    const disparar=()=>{ try{ new Notification('🚨 AutoSíntese: anúncios parados',{body:txt,tag:'mt-pagamento',requireInteraction:true}); }catch(_){} };
+    const disparar=()=>{ try{ new Notification('AutoSíntese: anúncios parados',{body:txt,tag:'mt-pagamento',requireInteraction:true}); }catch(_){} };
     if(Notification.permission==='granted') disparar();
     else if(Notification.permission!=='denied') Notification.requestPermission().then(p=>{ if(p==='granted') disparar(); });
   }catch(_){}
@@ -5060,17 +5063,17 @@ window.abrirVinculos=(soEsta)=>{
     return {c, atual, sug:pal?pal.ficha.id:'', sugNome:pal?pal.ficha.nome:'', score:pal?pal.score:0};
   });
   const nPal=linhas.filter(l=>!l.atual&&l.sug).length;
-  modal('🔗 Vincular contas de anúncio a clientes',`
+  modal('Vincular contas de anúncio a clientes',`
     <p class="hint" style="margin:0 0 12px">${nPal?`Encontrei <strong>${nPal}</strong> sugest${nPal===1?'ão':'ões'} pelo nome da conta. Confira e ajuste o que precisar.`:'Escolha o cliente de cada conta de anúncio.'}</p>
     ${listaFichas}
-    <input id="vlBusca" class="search" placeholder="🔎 Buscar conta ou cliente..." autocomplete="off" style="width:100%;margin-bottom:10px" oninput="var v=this.value.toLowerCase();var achou=0;document.querySelectorAll('.overlay .vlRow').forEach(function(r){var i=r.querySelector('input[data-acc]');var alvo=r.getAttribute('data-busca')+' '+((i&&i.value)||'').toLowerCase();var ok=alvo.indexOf(v)>=0;r.style.display=ok?'':'none';if(ok)achou++;});var z=document.getElementById('vlVazio');if(z)z.style.display=achou?'none':'block'">
+    <input id="vlBusca" class="search" placeholder="Buscar conta ou cliente..." autocomplete="off" style="width:100%;margin-bottom:10px" oninput="var v=this.value.toLowerCase();var achou=0;document.querySelectorAll('.overlay .vlRow').forEach(function(r){var i=r.querySelector('input[data-acc]');var alvo=r.getAttribute('data-busca')+' '+((i&&i.value)||'').toLowerCase();var ok=alvo.indexOf(v)>=0;r.style.display=ok?'':'none';if(ok)achou++;});var z=document.getElementById('vlVazio');if(z)z.style.display=achou?'none':'block'">
     <div id="vlVazio" style="display:none;padding:14px;text-align:center;color:var(--muted);font-size:12.5px">Nenhuma conta encontrada.</div>
     ${linhas.map(l=>`
       <div class="vlRow" data-busca="${esc((l.c.nome+' '+l.c.id).toLowerCase())}" style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
         <div style="font-weight:700;font-size:13.5px">${esc(l.c.nome)}</div>
         <div style="color:var(--muted);font-size:11.5px;margin-bottom:7px">${esc(l.c.id)}</div>
         <input class="search" list="dlFichas" autocomplete="off" data-acc="${esc(l.c.id)}" value="${esc(nomeDaFicha(l.atual||l.sug))}" placeholder="digite o nome do cliente..." style="width:100%">
-        ${!l.atual&&l.sug?`<div style="font-size:11.5px;color:var(--ok);margin-top:5px">✨ sugerido: ${esc(l.sugNome)}${l.score<0.8?' (confira)':''}</div>`:''}
+        ${!l.atual&&l.sug?`<div style="font-size:11.5px;color:var(--ok);margin-top:5px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8 5.8 2.2-5.8 1.9L12 18.7l-1.9-5.8-5.8-1.9 5.8-2.2z"/><path d="M19 3v4"/><path d="M17 5h4"/></svg> sugerido: ${esc(l.sugNome)}${l.score<0.8?' (confira)':''}</div>`:''}
         ${l.atual?`<div style="font-size:11.5px;color:var(--muted);margin-top:5px">já vinculada</div>`:''}
       </div>`).join('')}
     ${nPal?`<p class="hint" style="margin:2px 0 0">As sugestões já vêm selecionadas, é só salvar.</p>`:''}`,
@@ -5164,7 +5167,7 @@ window.openRelatorioModal=(accId)=>{
   const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10);};
   const mm=String(hoje.getMonth()+1).padStart(2,'0');
   modal('Gerar relatório: '+esc((m&&m.nome)||acc.nome),`
-    ${m&&logoDe(m)?'':'<p class="hint" style="margin:0 0 12px">💡 Esta conta ainda não tem <strong>logo/cores</strong> configuradas (botão 🎨 Marca). O relatório sai com a identidade padrão.</p>'}
+    ${m&&logoDe(m)?'':'<p class="hint" style="margin:0 0 12px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg> Esta conta ainda não tem <strong>logo/cores</strong> configuradas (botão Marca). O relatório sai com a identidade padrão.</p>'}
     <div class="row2">
       <div class="field"><label>Período: de</label><input type="date" id="rl_de" value="${iso(de)}"></div>
       <div class="field"><label>Período: até</label><input type="date" id="rl_ate" value="${iso(hoje)}"></div>
@@ -5474,16 +5477,16 @@ function abrirEditorRelatorio(rel){
   ov.style.cssText='position:fixed;inset:0;z-index:2000;background:#0d0b14;display:flex;flex-direction:column';
   ov.innerHTML=`
    <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--panel)">
-     <div style="font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${esc(rel.titulo)}</div>
-     <span style="color:var(--muted);font-size:12px">✏️ clique em qualquer texto do relatório para editar</span>
-     <button class="btn small" id="edPdf">🖨 Baixar PDF</button>
+     <div style="font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg> ${esc(rel.titulo)}</div>
+     <span style="color:var(--muted);font-size:12px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg> clique em qualquer texto do relatório para editar</span>
+     <button class="btn small" id="edPdf"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Baixar PDF</button>
      <button class="btn secondary small" id="edClose">Fechar</button>
    </div>
    <div style="flex:1;display:flex;min-height:0">
      <div style="width:290px;flex:none;overflow:auto;border-right:1px solid var(--border);background:var(--panel);padding:14px">
        <div style="font-weight:800;font-size:13px;margin-bottom:4px">Anúncios no relatório</div>
        <div class="hint" style="margin:0 0 10px">Desmarque para ocultar do relatório, atualiza na hora. Os totais das outras páginas continuam considerando todos os anúncios; ajuste os textos manualmente se precisar.</div>
-       ${rel.adsErro?`<div class="hint" style="margin:0 0 10px;color:var(--warn)">⚠️ Não foi possível carregar os anúncios do Meta (${esc(rel.adsErro)}). O relatório saiu sem a página de anúncios.</div>`:''}
+       ${rel.adsErro?`<div class="hint" style="margin:0 0 10px;color:var(--warn)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> Não foi possível carregar os anúncios do Meta (${esc(rel.adsErro)}). O relatório saiu sem a página de anúncios.</div>`:''}
        <div id="edAds"></div>
        <div style="margin-top:12px;display:flex;gap:8px">
          <button class="iconbtn" id="edAll" style="flex:1">Marcar todos</button>
@@ -5980,6 +5983,27 @@ const ICO_LIB={
  enviar:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',
  brilho:'<path d="M12 3l1.9 5.8 5.8 2.2-5.8 1.9L12 18.7l-1.9-5.8-5.8-1.9 5.8-2.2z"/><path d="M19 3v4"/><path d="M17 5h4"/>',
  funil:'<path d="M22 3H2l8 9.5V21l4-2v-6.5z"/>',
+ chat:'<path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/>',
+ alerta:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+ anexo:'<path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',
+ repetir:'<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+ lixeira:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+ queda:'<path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/>',
+ mais:'<path d="M12 5v14M5 12h14"/>',
+ lapis:'<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
+ entrada:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/>',
+ balanca:'<path d="M12 3v18M7 21h10M3 7h18"/><path d="m6 7-3 7a3 3 0 0 0 6 0z"/><path d="m18 7-3 7a3 3 0 0 0 6 0z"/>',
+ arquivo:'<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/>',
+ tomada:'<path d="M12 22v-5M9 8V2M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"/>',
+ busca:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+ documento:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
+ imagem:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+ celular:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
+ impressora:'<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+ musica:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+ zip:'<path d="M21 8v13H3V8M1 3h22v5H1z"/><path d="M10 12h4"/>',
+ antena:'<path d="M5 12.6a10 10 0 0 1 14 0M8.5 16.1a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0"/><path d="M12 20h.01"/>',
+ paleta:'<circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2a10 10 0 0 0 0 20c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.7 1.7-1.7H16a6 6 0 0 0 6-6c0-4.9-4.5-8.4-10-8.4z"/>',
  banco:'<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2L2 8h20z"/>'};
 const svgIco=(k,s)=>ICO_LIB[k]?`<svg width="${s||13}" height="${s||13}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICO_LIB[k]}</svg>`:'';
 const icHtml=(ic,s)=>{ ic=String(ic||''); return ic.slice(0,4)==='svg:'?svgIco(ic.slice(4),s):esc(ic); };
@@ -6035,9 +6059,9 @@ function gsBuscar(qRaw){
   add('Pastas','▭',(TK.pastas||[]).filter(p=>gsBate(q,p.nome)).map(p=>{ const e=TK.espacos.find(x=>x.id===p.espaco_id); return { t:spNome(p), sub:e?spNome(e):'', go:()=>spVerPasta(p.id) }; }));
   add('Espaços','◫',(TK.espacos||[]).filter(e=>gsBate(q,e.nome)).map(e=>({ t:spNome(e), sub:'espaço', go:()=>spVerEspaco(e.id) })));
   /* links e senhas (nunca o conteudo da senha) */
-  add('Links','🔗',(DB.links||[]).filter(acessoVisivel).filter(l=>gsBate(q,[l.titulo,l.url,l.categoria].join(' ')))
+  add('Links','↗',(DB.links||[]).filter(acessoVisivel).filter(l=>gsBate(q,[l.titulo,l.url,l.categoria].join(' ')))
     .map(l=>({ t:l.titulo||l.url, sub:String(l.url||'').replace(/^https?:\/\//,'').slice(0,60), go:()=>window.open(l.url,'_blank','noopener') })));
-  add('Senhas','🔑',[...(DB.senhas||[]),...(DB.senhasPriv||[])].filter(acessoVisivel).filter(r=>gsBate(q,[r.servico,r.login].join(' ')))
+  add('Senhas','◇',[...(DB.senhas||[]),...(DB.senhasPriv||[])].filter(acessoVisivel).filter(r=>gsBate(q,[r.servico,r.login].join(' ')))
     .map(r=>({ t:r.servico||'', sub:(r.login||'')+(r.__priv?' · só eu':''), go:()=>render('senhas') })));
   /* leads do funil, se ja carregados */
   if(window.WA&&Array.isArray(WA.leads)) add('Leads','◔',WA.leads.filter(l=>gsBate(q,[l.nome,l.telefone,l.empresa].join(' ')))
@@ -6261,7 +6285,7 @@ function nmCorpo(tipo,id){
   const livres=(TK.equipe||[]).filter(u=>jaTem.indexOf(String(u.id))<0);
   const linhaLink=`<div class="nm-link">
       <span>Link direto para ${esc(nmArt[tipo])}</span>
-      <button class="btn ghost small" type="button" onclick="lkCopiar('${nmSigla[tipo]}','${id}')">🔗 Copiar link</button>
+      <button class="btn ghost small" type="button" onclick="lkCopiar('${nmSigla[tipo]}','${id}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Copiar link</button>
     </div>`;
   /* entre o deploy e a migração a coluna nem existe — melhor dizer isso do que
      oferecer um botão que vai dar erro */
@@ -6276,12 +6300,12 @@ function nmCorpo(tipo,id){
       <p>Qualquer pessoa aprovada no sistema enxerga ${esc(nmArt[tipo])}${tipo!=='lista'?' e tudo que está dentro':''}.
          ${tipo==='lista'?'O recorte por squad continua valendo nas tarefas com cliente.':''}</p>
     </div>
-    ${mst?`<button class="btn secondary" style="width:100%" onclick="nmPrivar('${tipo}','${id}',true)">🔒 Tornar privado</button>`
+    ${mst?`<button class="btn secondary" style="width:100%" onclick="nmPrivar('${tipo}','${id}',true)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Tornar privado</button>`
         :`<p class="hint">Só um master, ou o gerente que criou, pode fechar ou liberar acesso.</p>`}`;
   return `
     ${linhaLink}
     <div class="nm-estado fechado">
-      <b>🔒 Privado</b>
+      <b><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Privado</b>
       <p>Só quem está na lista abaixo, e os masters, enxerga ${esc(nmArt[tipo])}${tipo!=='lista'?' e o que está dentro':''}.</p>
     </div>
     ${mst?`<div class="nm-conv">
@@ -6413,8 +6437,8 @@ window.verPerfil=(uid)=>{
         </div>
       </div>
     </div>
-    ${linha('✉️', mail?`<a href="mailto:${esc(mail)}">${esc(mail)}</a>`:'<span class="vz">e-mail não divulgado</span>')}
-    ${linha('📞', tel?`${esc(tel)} · <a href="${esc(zapDe(tel))}" target="_blank" rel="noopener">WhatsApp</a>`:'<span class="vz">telefone não divulgado</span>')}
+    ${linha(svgIco('email',15), mail?`<a href="mailto:${esc(mail)}">${esc(mail)}</a>`:'<span class="vz">e-mail não divulgado</span>')}
+    ${linha(svgIco('telefone',15), tel?`${esc(tel)} · <a href="${esc(zapDe(tel))}" target="_blank" rel="noopener">WhatsApp</a>`:'<span class="vz">telefone não divulgado</span>')}
     ${eu?'<p class="hint">Só aparece para o time o que você marcar como visível.</p>':''}`,
     async ()=>{ if(eu){ setTimeout(meuPerfil,60); } return true; });
   const ov=document.querySelector('.overlay');
@@ -6596,9 +6620,7 @@ window.spRenomear=(tipo,id)=>{
 };
 
 /* ---------- cor e icone ---------- */
-const SP_EMO=['📋','✅','🎯','🚀','💡','📈','📊','💰','🧾','🗂','📁','📌','🔧','⚙️','🎨','🎬','📣','📢','🤝','🧠',
-  '🔥','⭐','⚡','🛒','🏷','📝','🗓','⏰','🔔','🔒','🔑','👥','👤','🏠','🏢','💼','📦','🚚','🧪','🌱',
-  '☕','🍿','🎧','📞','✉️','🌐','🛠','♻️','❤️','🏆'];
+/* SP_EMO (seletor de emoji) removido: emoji e proibido no sistema (Gabriel 23/09) */
 const SP_COR=['#7c3aed','#a78bfa','#2f7cf6','#22b8a6','#3fcf8e','#e6b13f','#f97316','#ef5b6b','#ec4899','#64748b'];
 window.spPickEmo=(b,e)=>{ $('#sp_ic').value=e; document.querySelectorAll('#sp_eg button').forEach(x=>x.classList.remove('on')); if(b) b.classList.add('on'); };
 window.spPickCor=(b,c)=>{ $('#sp_cr').value=c; document.querySelectorAll('#sp_cg button').forEach(x=>x.classList.remove('on')); if(b) b.classList.add('on'); };
@@ -7316,7 +7338,7 @@ const tkCelula=(t,c)=>{
     if(c.tipo==='select'&&txt){ const cS=corOpcao(v);
       return `<span class="tag st" style="background-color:${esc(cS)};color:${esc(corTexto(cS))};cursor:not-allowed" title="${quem}">${esc(txt)}</span>`; }
     if(c.tipo==='pessoa'&&v) return `<span class="tk-trava" title="${quem}">${avatar(v,txt,'sm')}</span>`;
-    return `<span class="tk-trava${txt?'':' vaz'}" title="${quem}"><span class="cad">🔒</span>${esc(txt||'-')}</span>`;
+    return `<span class="tk-trava${txt?'':' vaz'}" title="${quem}"><span class="cad"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>${esc(txt||'-')}</span>`;
   }
   if(c.tipo==='select'){
     const ops=`<option value="">-</option>`+(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('');
@@ -7588,7 +7610,7 @@ function ncPintarAnexos(){
   el.innerHTML=(window.__ncAnexos||[]).map((a,i)=>`
     <div style="display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);
                 border-radius:9px;padding:8px 11px;margin-top:7px">
-      <span>${/\.pdf$/i.test(a.nome)?'📄':'🖼️'}</span>
+      <span>${/\.pdf$/i.test(a.nome)?'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>':'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>'}</span>
       <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.nome)}</div>
         <div style="color:var(--muted);font-size:11px">${ncTam(a.tam)} · enviado</div></div>
       <button class="iconbtn del" onclick="ncTirarAnexo(${i})" title="Remover">✕</button>
@@ -7661,12 +7683,12 @@ function ncAprovarHTML(){
         <div class="hint" style="margin:2px 0 0">de <b>${esc(v[NC_C.sol]||'-')}</b> · ${esc(quando)}${v[NC_C.mot]?' · '+esc(String(v[NC_C.mot]).slice(0,80)):''}</div></div>
       <div class="vl">${brl(v[NC_C.val])}<div class="hint">vence ${fmtDate(v[NC_C.venc]||'')||'-'}</div></div>
       <div class="ac">
-        ${anx.map((p,i)=>`<button class="btn secondary small" onclick="ncAbrirAnexo('${esc(p)}')">📎 Ver${anx.length>1?' '+(i+1):''}</button>`).join('')}
+        ${anx.map((p,i)=>`<button class="btn secondary small" onclick="ncAbrirAnexo('${esc(p)}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg> Ver${anx.length>1?' '+(i+1):''}</button>`).join('')}
         <button class="btn small" onclick="ncAprovar('${t.id}')">Aprovar</button>
         <button class="iconbtn del" title="Recusar" onclick="ncRecusar('${t.id}')">&times;</button>
       </div></div>`; };
   return `<div class="nc-fila">
-    <div class="nc-fh">📥 Chegou pelo link público<span class="nc-cnt">${fila.length} aguardando aprovação</span></div>
+    <div class="nc-fh"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></svg> Chegou pelo link público<span class="nc-cnt">${fila.length} aguardando aprovação</span></div>
     ${fila.map(linha).join('')}
     <p class="hint" style="margin:10px 0 0">Aprovar manda pra <b>2. EM ANÁLISE</b> com o financeiro como responsável, aparece nas tarefas dele. Recusar apaga o pedido.</p></div>`;
 }
@@ -7710,16 +7732,16 @@ function ncUltimasHTML(n){
       const vv=t.valores||{}; const rec=vv[NC_C.rec]||''; const anx=String(vv[NC_C.anexo]||'');
       const lista=anx?anx.split('\n').filter(Boolean):[];
       return `<tr>
-      <td><strong>${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">${esc(vv[NC_C.sol]||'')}${rec&&rec!=='Não é recorrente'?' · <span style="color:var(--brand2)">🔁 '+esc(rec)+'</span>':''}</div></td>
+      <td><strong>${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">${esc(vv[NC_C.sol]||'')}${rec&&rec!=='Não é recorrente'?' · <span style="color:var(--brand2)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg> '+esc(rec)+'</span>':''}</div></td>
       <td>${tkSelo(t)}</td>
       <td>${esc(vv[NC_C.dep]||'-')}</td>
       <td style="text-align:right">${brl(vv[NC_C.val])}</td>
       <td>${fmtDate(vv[NC_C.venc]||'')||'-'}</td>
-      <td>${lista.length?lista.map((p,i)=>`<button class="iconbtn" onclick="ncAbrirAnexo('${esc(p)}')" title="${esc(p.split('/').pop())}">${/^https?:/i.test(p)?'🔗':'📎'} ${lista.length>1?(i+1):'ver'}</button>`).join(' '):'<span style="color:var(--muted)">-</span>'}</td>
+      <td>${lista.length?lista.map((p,i)=>`<button class="iconbtn" onclick="ncAbrirAnexo('${esc(p)}')" title="${esc(p.split('/').pop())}">${/^https?:/i.test(p)?'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>':'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>'} ${lista.length>1?(i+1):'ver'}</button>`).join(' '):'<span style="color:var(--muted)">-</span>'}</td>
     </tr>`; };
   return `${ncAprovarHTML()}
    <h2 style="font-size:15px;margin:26px 0 8px">Solicitações da equipe<small style="font-weight:600;color:var(--fraco);font-size:12px;margin-left:8px">reembolsos e contas novas pedidas pelo Suporte</small>
-     <button class="btn secondary small" style="float:right;margin-top:-4px" onclick="ncCopiarLink()" title="Link pra quem está de fora mandar boleto sem login">🔗 Link de envio</button></h2>
+     <button class="btn secondary small" style="float:right;margin-top:-4px" onclick="ncCopiarLink()" title="Link pra quem está de fora mandar boleto sem login"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Link de envio</button></h2>
    <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th style="text-align:right">Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead>
    <tbody>${envs.map(linha).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
 }
@@ -7766,7 +7788,7 @@ function ncFormulario(c){
               border:1.5px dashed var(--line);border-radius:11px;padding:16px;color:var(--muted);font-size:13.5px;
               background:var(--panel2);transition:border-color .15s"
               onmouseover="this.style.borderColor='var(--brand2)'" onmouseout="this.style.borderColor='var(--line)'">
-         📎 <strong style="color:var(--txt)">Escolher arquivo</strong>, foto ou PDF, até 10 MB
+         <svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg> <strong style="color:var(--txt)">Escolher arquivo</strong>, foto ou PDF, até 10 MB
        </label>
        <input type="file" id="nc_arq" accept="image/*,application/pdf,.pdf" multiple style="display:none" onchange="ncSubir(this)">
        <div id="ncUpSt" class="hint" style="margin-top:6px"></div>
@@ -8561,7 +8583,7 @@ function renderInicio(c){
   };
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>${ola}${primeiro?', '+esc(primeiro):''} 👋</h2>
+     <div><h2>${ola}${primeiro?', '+esc(primeiro):''}</h2>
        <div class="desc">${inicioPer==='hoje'?'O que é seu para hoje':'O que é seu nos últimos 7 dias'}</div></div>
      <div class="fin-tabs" style="margin:0">
        <button class="ftab ${inicioPer==='hoje'?'active':''}" onclick="inicioPeriodo('hoje')">Hoje</button>
@@ -8572,7 +8594,7 @@ function renderInicio(c){
    </div>
    <div class="cards">
      <div class="card"><div class="k">Demandas ${inicioPer==='hoje'?'de hoje':'do período'}</div>
-       <div class="v">${pendentes.length}</div><div class="sub">${pendentes.length?'esperando você':'nada pendente 🎉'}</div></div>
+       <div class="v">${pendentes.length}</div><div class="sub">${pendentes.length?'esperando você':'nada pendente'}</div></div>
      <div class="card"><div class="k">Em andamento</div>
        <div class="v" style="color:var(--info)">${andamento.length}</div><div class="sub">já começadas</div></div>
      <div class="card"><div class="k">Concluídas</div>
@@ -8585,13 +8607,13 @@ function renderInicio(c){
    </div>
    ${atrasadas.length?`
    <div class="ini-box atraso">
-     <div class="ini-h">⚠️ ${atrasadas.length===1?'1 demanda atrasada':atrasadas.length+' demandas atrasadas'}
+     <div class="ini-h"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> ${atrasadas.length===1?'1 demanda atrasada':atrasadas.length+' demandas atrasadas'}
        <span class="hint" style="margin:0;font-weight:600">venceram antes de hoje e continuam abertas</span></div>
      ${atrasadas.slice(0,8).map(t=>item(t,'atraso')).join('')}
      ${atrasadas.length>8?`<div class="hint" style="margin:8px 0 0">e mais ${atrasadas.length-8}…</div>`:''}
    </div>`:''}
    <div class="ini-box">
-     <div class="ini-h">📋 ${inicioPer==='hoje'?'Para hoje':'Do período'}</div>
+     <div class="ini-h"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg> ${inicioPer==='hoje'?'Para hoje':'Do período'}</div>
      ${(pendentes.length||feitas.length)
        ? pendentes.sort((a,b)=>String(a.prazo||'').localeCompare(String(b.prazo||''))).map(t=>item(t,'')).join('')
          + feitas.sort((a,b)=>String(b.concluida_em||'').localeCompare(String(a.concluida_em||''))).map(t=>item(t,'ok')).join('')
@@ -8600,7 +8622,7 @@ function renderInicio(c){
    </div>
    ${andamento.length?`
    <div class="ini-box">
-     <div class="ini-h">🔵 Em andamento</div>
+     <div class="ini-h"><i class="emi-dot" style="background:#4f8cff"></i> Em andamento</div>
      ${andamento.slice(0,10).map(t=>item(t,'')).join('')}
    </div>`:''}
    ${semPrazo.length?`
@@ -9892,7 +9914,7 @@ window.ntfTodasLidas=async ()=>{
 };
 /* ---------- TIPOS DE TAREFA: gerenciar (gerente para cima) ----------
    Icone + cor + grupo (por espaco, como no ClickUp) + lista onde ele e o padrao. */
-const TP_ICONES=['◻','▶','◈','▤','◉','▣','◎','⌘','⚒','⟲','✦','⧉','⚠','★','●','◆','▲','✎','☎','✉','⚑','♻','⌁','⊕'];
+const TP_ICONES=['◻','▶','◈','▤','◉','▣','◎','⌘','⚒','⟲','✦','⧉','△','★','●','◆','▲','✎','☎','✉','⚑','♻','⌁','⊕'];
 window.tkTipos=()=>{
   if(!souGerente()){ toast('Só gerente e master mexem nos tipos.'); return; }
   const ts=(TK.tipos||[]).slice().sort((a,b)=>(a.ordem||0)-(b.ordem||0));
@@ -10389,7 +10411,7 @@ function ttLinha(tid){
   const rodando=!!ttAberta(tid), tot=Math.round(ttTotal(tid));
   const comp='';   /* estimativa saiu da tela: o cronômetro mostra só o tempo real */
   return `<button type="button" class="btn ${rodando?'danger':'ghost'} small" onclick="${rodando?`ttParar('${tid}')`:`ttComecar('${tid}')`}">
-      ${rodando?'⏹ Parar':'▶ Start'}</button>
+      ${rodando?'■ Parar':'▶ Start'}</button>
     <span class="tt-val" id="tt_val">${esc(estTexto(tot))||'0min'}</span>${comp}`;
 }
 
@@ -10454,7 +10476,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const sqOpc=squadsQuePosso(), sqAtual=t?String(it.squad||''):(String(it.squad||'')||(meusSquads()[0]||''));
   const campoHtml=(c)=>{ const v=(it.valores||{})[c.id];
     if(!podeMexerCampo(c)){ const txt=campoTexto(c,v);
-      return `<span class="tkf-trava" title="Esse número vem do controle financeiro, na área Administrativa, só o master altera."><span class="cad">🔒</span>${esc(txt||'-')}</span>`; }
+      return `<span class="tkf-trava" title="Esse número vem do controle financeiro, na área Administrativa, só o master altera."><span class="cad"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>${esc(txt||'-')}</span>`; }
     if(c.tipo==='select') return `<select id="cp_${c.id}"><option value="">-</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
     if(c.tipo==='pessoa') return `<select id="cp_${c.id}"><option value="">-</option>${equipeDe(lid,v).map(u=>`<option value="${u.id}"${v===u.id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`;
     if(c.tipo==='checkbox') return `<input type="checkbox" id="cp_${c.id}" ${v?'checked':''} style="width:auto">`;
@@ -10534,7 +10556,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <div id="tkmAnxLista">${t?'<div class="hint">carregando…</div>':'<p class="hint">Nada anexado ainda: o primeiro anexo cria a tarefa, basta ter título.</p>'}</div>
 
         <div class="tk-rodape">
-          ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
+          ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Copiar link</button>`:''}
           ${(t&&souGerente()&&!arquivada(t)&&t.status!=='feito'&&lbTemGrupo(t))?`<button class="btn ghost small" type="button" onclick="tkLembrar(event,'${t.id}')" title="Manda um lembrete no grupo do responsável, marcando ele">${SVG_P.pessoa} Notificar responsável</button>`:''}
           ${t?(arquivada(t)
             ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
@@ -10768,13 +10790,13 @@ const tkmQuando=(iso)=>{ const d=new Date(iso); const h=String(d.getHours()).pad
 const AX_MAX=52428800;  /* 50 MB — mesmo limite do bucket */
 const axFmtB=(b)=>{ b=Number(b)||0; if(b>=1048576) return (b/1048576).toFixed(1).replace('.',',')+' MB';
   if(b>=1024) return Math.round(b/1024)+' KB'; return b+' B'; };
-const axIcone=(x)=>{ if(x.tipo==='link') return '🔗';
-  const m=String(x.mime||''); if(m.startsWith('image/')) return '🖼';
-  if(m.startsWith('video/')) return '🎬'; if(m.startsWith('audio/')) return '🎵';
-  if(m.indexOf('pdf')>=0) return '📕'; if(m.indexOf('zip')>=0||m.indexOf('rar')>=0) return '🗜';
-  if(m.indexOf('sheet')>=0||m.indexOf('excel')>=0||m.indexOf('csv')>=0) return '📊';
-  if(m.indexOf('word')>=0||m.indexOf('document')>=0||m.startsWith('text/')) return '📄';
-  return '📎'; };
+const axIcone=(x)=>{ const I=(k)=>svgIco(k,17); if(x.tipo==='link') return I('link');
+  const m=String(x.mime||''); if(m.startsWith('image/')) return I('imagem');
+  if(m.startsWith('video/')) return I('filme'); if(m.startsWith('audio/')) return I('musica');
+  if(m.indexOf('pdf')>=0) return I('documento'); if(m.indexOf('zip')>=0||m.indexOf('rar')>=0) return I('zip');
+  if(m.indexOf('sheet')>=0||m.indexOf('excel')>=0||m.indexOf('csv')>=0) return I('grafico');
+  if(m.indexOf('word')>=0||m.indexOf('document')>=0||m.startsWith('text/')) return I('documento');
+  return I('anexo'); };
 /* Da pra ver sem baixar? imagem, video, audio e PDF abrem na previa. */
 const axPreviavel=(x)=>{ if(!x||x.tipo!=='arquivo'||!x.caminho) return false;
   const m=String(x.mime||'');
@@ -11128,7 +11150,7 @@ window.tkmApagar=async (id,tid)=>{
 /* Relacionamentos no formato do ClickUp: secoes nomeadas com icone, cada item uma linha
    clicavel com avatar, e "+ Adicionar" no fim. Tres secoes: o Projeto (ficha do cliente),
    o Financeiro daquele cliente (mes corrente + a receber) e as Demandas em aberto dele. */
-const relIco={proj:'⇄',fin:'💰',dem:'◔',ok:'✔',aviso:'⚠'};
+const relIco={proj:'⇄',get fin(){ return svgIco('cifrao',13); },dem:'◔',ok:'✔',get aviso(){ return svgIco('alerta',13); }};
 window.tkmRelPintar=()=>{
   const box=document.getElementById('tkmRelBox'); if(!box) return;
   const fid=((document.getElementById('tk_ficha')||{}).value)||'';
@@ -11527,8 +11549,8 @@ window.tkCardMenu=(ev,id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
   const sts=tkStatusDe(t.lista_id);
   const it=[{cab:t.titulo||'Tarefa'},
-    {ic:'✏️',t:'Abrir',f:()=>tkAbrir(id)},
-    {ic:'👤',t:'Atribuir a mim',f:()=>tkPatch(id,{responsavel_id:(currentUser||{}).id||null},'Atribuída a você.')}];
+    {ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>',t:'Abrir',f:()=>tkAbrir(id)},
+    {ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',t:'Atribuir a mim',f:()=>tkPatch(id,{responsavel_id:(currentUser||{}).id||null},'Atribuída a você.')}];
   if(sts.length>1){
     it.push({sep:true});
     sts.slice(0,6).forEach(st=>{ if(st.id!==t.status_id)
@@ -11538,7 +11560,7 @@ window.tkCardMenu=(ev,id)=>{
   /* tkExcluir arquiva primeiro; so master apaga de vez o que ja esta arquivado.
      O rotulo diz o que vai acontecer de verdade. */
   const arq=arquivada(t);
-  it.push({ic:'🗑',t:arq?'Excluir de vez':'Arquivar tarefa',dgr:true,f:()=>tkExcluir(id)});
+  it.push({ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',t:arq?'Excluir de vez':'Arquivar tarefa',dgr:true,f:()=>tkExcluir(id)});
   ctxAbrir(ev,it);
 };
 window.tkExcluir=async (id)=>{
@@ -11747,7 +11769,7 @@ window.waFechar=async (id)=>{
   const v=prompt('Fechou! Valor mensal (R$):'); if(v===null) return;
   const {error}=await sb.from('wa_leads').update({estagio:'ganho',valor:Number(String(v).replace(',','.'))||null}).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
-  await waCarregar(); renderFunil($('#content')); toast('🎉 Fechado.');
+  await waCarregar(); renderFunil($('#content')); toast('Fechado.');
 };
 window.waPerder=async (id)=>{
   const m=prompt('Perdido. Motivo (preço, sumiu, não era o perfil…):'); if(m===null) return;
@@ -11774,7 +11796,7 @@ function waHTML(){
       ${(l.utm_campaign||l.campanha)?`<div class="wa-ref" title="de onde veio">${esc(l.utm_campaign||l.campanha)}</div>`:''}
       ${um?`<div class="wa-msg ${um.tipo==='msg_minha'?'minha':''}">${um.tipo==='msg_minha'?'↩ ':''}${esc(String(um.texto||'').slice(0,90))}${String(um.texto||'').length>90?'…':''}</div>`:''}
       <div class="wa-foot"><span class="wa-dias" title="dias neste estágio">${waDias(l.estagio_em)}d</span>
-        <a class="wa-zap" href="https://wa.me/${esc(l.telefone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Abrir no WhatsApp">💬</a></div>
+        <a class="wa-zap" href="https://wa.me/${esc(l.telefone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Abrir no WhatsApp"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg></a></div>
     </div>`; };
   return `
    <div class="cards fn-topo">
@@ -11804,7 +11826,7 @@ function waHTML(){
        <div class="toolbar" style="margin-bottom:12px">
          ${WA.estagios.filter(e=>!e.fim).map(e=>`<button class="btn ghost small${sel.estagio===e.chave?' on':''}" onclick="waMover('${sel.id}','${e.chave}')">${esc(e.nome)}</button>`).join('')}
          <span style="margin-left:auto"></span>
-         <button class="btn small" onclick="waFechar('${sel.id}')">🎉 Fechou</button>
+         <button class="btn small" onclick="waFechar('${sel.id}')">Fechou</button>
          <button class="btn ghost small tk-del" onclick="waPerder('${sel.id}')">Perdido</button>
          <button class="btn ghost small" onclick="waNota('${sel.id}')">+ nota</button>
        </div>
@@ -11812,7 +11834,7 @@ function waHTML(){
        ${sel.motivo_perda?`<div class="hint" style="margin:0 0 10px;color:var(--danger)">Perdido: ${esc(sel.motivo_perda)}</div>`:''}
        <div class="dl-sec">Linha do tempo</div>
        ${evs.length?evs.map(v=>`<div class="dl-hist"><b>${esc(fmtDate(String(v.quando).slice(0,10)))} ${new Date(v.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</b><br>
-         ${v.tipo==='criado'?'Entrou no funil':v.tipo==='estagio'?(esc((waEst(v.de)||{}).nome||v.de||'')+' → <strong>'+esc((waEst(v.para)||{}).nome||v.para||'')+'</strong>'):v.tipo==='msg'?('💬 <span class="wa-dele">'+esc(v.texto||'')+'</span>'):v.tipo==='msg_minha'?('↩ <span class="wa-minha">'+esc(v.texto||'')+'</span>'):esc(v.texto||v.tipo)}</div>`).join('')
+         ${v.tipo==='criado'?'Entrou no funil':v.tipo==='estagio'?(esc((waEst(v.de)||{}).nome||v.de||'')+' → <strong>'+esc((waEst(v.para)||{}).nome||v.para||'')+'</strong>'):v.tipo==='msg'?('<span class="wa-dele">'+esc(v.texto||'')+'</span>'):v.tipo==='msg_minha'?('↩ <span class="wa-minha">'+esc(v.texto||'')+'</span>'):esc(v.texto||v.tipo)}</div>`).join('')
        :'<div class="hint">Nada registrado ainda.</div>'}
      </div></div>`:''}
    <p class="hint" style="margin-top:12px">Arraste o cartão entre colunas ou abra e escolha o estágio. Toda mudança fica na linha do tempo, então dá pra medir quanto tempo cada lead passa em cada etapa. O telefone é a chave: a mesma pessoa nunca vira dois leads.</p>`;
@@ -11889,7 +11911,7 @@ function renderAgente(c){
         <span class="tag" style="color:${st[1]};background:color-mix(in srgb,${st[1]} 16%,transparent)">${st[0]}</span>
       </div>
       <div class="ag-l2">
-        ${wa?`<a class="ag-wa" href="${wa}" target="_blank" rel="noopener">💬 ${esc(l.whatsapp)}</a>`:esc(l.whatsapp||'')}
+        ${wa?`<a class="ag-wa" href="${wa}" target="_blank" rel="noopener"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg> ${esc(l.whatsapp)}</a>`:esc(l.whatsapp||'')}
         ${l.estoque?`<span class="ag-chip">${esc(AG_EST[l.estoque]||l.estoque)}</span>`:''}
         ${(l.interesses||[]).map(i=>`<span class="ag-chip">${esc(AG_INT[i]||i)}</span>`).join('')}
         <span class="ag-dt">${quando(l.criado_em)}${l.origem&&l.origem!=='jr-motors'?' · '+esc(l.origem):''}</span>
@@ -11955,8 +11977,8 @@ function renderFunil(c){
   const melhorCPL=Math.min(...camps.filter(x=>x.m.leads>0).map(x=>x.m.cpl),Infinity);
   FN.sub=FN.sub||'meta';
   const subAbas=`<div class="fin-tabs" style="margin:0 0 14px">
-      <button class="ftab${FN.sub==='meta'?' active':''}" onclick="waAba('meta')">📊 Anúncios (Meta)</button>
-      <button class="ftab${FN.sub==='wa'?' active':''}" onclick="waAba('wa')">💬 WhatsApp</button></div>`;
+      <button class="ftab${FN.sub==='meta'?' active':''}" onclick="waAba('meta')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/></svg> Anúncios (Meta)</button>
+      <button class="ftab${FN.sub==='wa'?' active':''}" onclick="waAba('wa')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg> WhatsApp</button></div>`;
   if(FN.sub==='wa'){
     const jan=fnPresetJanela(FN.preset);
     c.innerHTML=`<div class="page-head">
@@ -12086,7 +12108,7 @@ function renderDash(c){
      <div class="toolbar">
        <input type="month" class="search" id="dashCompInp" value="${dashComp}" style="min-width:150px" title="Mês">
        <div style="position:relative;display:inline-flex;align-items:center;gap:4px">
-         <button class="btn secondary small" onclick="calAbrir('dash')">${range?('📅 '+fmtDate(dashDe).slice(0,5)+' – '+fmtDate(dashAte).slice(0,5)):'📅 Período'}</button>
+         <button class="btn secondary small" onclick="calAbrir('dash')">${range?(''+fmtDate(dashDe).slice(0,5)+' – '+fmtDate(dashAte).slice(0,5)):'Período'}</button>
          ${range?'<button class="iconbtn" onclick="calLimpar(\'dash\')" title="Limpar período">✕</button>':''}
          <div id="calPop" class="calpop hidden"></div>
        </div>
@@ -12104,9 +12126,9 @@ function renderDash(c){
    </div>
    <h2 style="font-size:16px;margin:4px 0 10px">Clientes: ${fmtCompExt(compRef)}</h2>
    <div class="cards">
-     <div class="card"><div class="k">🟢 Recebido</div><div class="v pos">${brl(RC.recebidoSoma+RC.sinaisPagos)}</div><div class="sub">${RC.recebidoLista.length} cliente${RC.recebidoLista.length===1?'':'s'}</div></div>
-     <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${RC.g.inadimplente.length?'neg':''}">${brl(RC.soma(RC.g.inadimplente))}</div><div class="sub">${RC.g.inadimplente.length} cliente${RC.g.inadimplente.length===1?'':'s'} em atraso</div></div>
-     <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(RC.soma(RC.g.areceber)+RC.sinaisRestante)}</div><div class="sub">${RC.g.areceber.length} cliente${RC.g.areceber.length===1?'':'s'} no prazo</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#3fcf8e"></i> Recebido</div><div class="v pos">${brl(RC.recebidoSoma+RC.sinaisPagos)}</div><div class="sub">${RC.recebidoLista.length} cliente${RC.recebidoLista.length===1?'':'s'}</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#ef5b6b"></i> Inadimplentes</div><div class="v ${RC.g.inadimplente.length?'neg':''}">${brl(RC.soma(RC.g.inadimplente))}</div><div class="sub">${RC.g.inadimplente.length} cliente${RC.g.inadimplente.length===1?'':'s'} em atraso</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#e6b13f"></i> A receber</div><div class="v">${brl(RC.soma(RC.g.areceber)+RC.sinaisRestante)}</div><div class="sub">${RC.g.areceber.length} cliente${RC.g.areceber.length===1?'':'s'} no prazo</div></div>
      <div class="card"><div class="k">Carteira</div><div class="v">${brl(DB.clientes.filter(x=>(!x.inicio||compRef>=x.inicio)&&(!x.fim||compRef<=x.fim)).reduce((s,x)=>s+(Number(x.valor)||0),0))}</div></div>
    </div>
    <h2 style="font-size:16px;margin:4px 0 10px">Receita por serviço: ${fmtCompExt(compRef)}</h2>
@@ -12162,7 +12184,7 @@ async function dashDeps(compRef){
       ${linha('tecnologia','Tecnologia')}
       ${linha('comercial','Comercial')}
       ${linha('administrativo','Administrativo')}
-      ${(recD.sem>0.005||despD.sem>0.005)?`<tr style="opacity:.75"><td><span data-dica="Receita de clientes SEM alocação no contrato (abra a ficha do cliente e preencha a seção Alocação) e despesas sem setor. Meta: zerar esta linha.">Sem alocação ⚠</span></td><td class="money" style="text-align:right">${brl(recD.sem)}</td><td class="money" style="text-align:right">${brl(despD.sem)}</td><td class="money" style="text-align:right">${brl(recD.sem-despD.sem)}</td><td style="text-align:right">-</td></tr>`:''}
+      ${(recD.sem>0.005||despD.sem>0.005)?`<tr style="opacity:.75"><td><span data-dica="Receita de clientes SEM alocação no contrato (abra a ficha do cliente e preencha a seção Alocação) e despesas sem setor. Meta: zerar esta linha.">Sem alocação</span></td><td class="money" style="text-align:right">${brl(recD.sem)}</td><td class="money" style="text-align:right">${brl(despD.sem)}</td><td class="money" style="text-align:right">${brl(recD.sem-despD.sem)}</td><td style="text-align:right">-</td></tr>`:''}
       <tr style="border-top:2px solid var(--line);font-weight:800"><td>EMPRESA</td>
         <td class="money" style="text-align:right">${brl(totR)}</td>
         <td class="money" style="text-align:right">${brl(totD)}</td>
@@ -12238,7 +12260,7 @@ async function renderCarteira(c){
       <th style="text-align:right">Valor</th><th>Situação</th></tr></thead>
       <tbody>${arr.slice().sort((a,b)=>(Number(b.valor_mes)||0)-(Number(a.valor_mes)||0)).map(x=>lin(x,ok)).join('')}</tbody></table></div>`:'';
   c.innerHTML=`
-   <div class="page-head"><div><h2>💼 Minha carteira</h2>
+   <div class="page-head"><div><h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> Minha carteira</h2>
      <div class="desc">clientes que você gerencia · comissão de 10% sobre o que entrou no mês</div></div></div>
    <div class="cg-topo">
      <button class="btn ghost small" onclick="cgMes(-1)">‹</button>
@@ -12259,8 +12281,8 @@ async function renderCarteira(c){
      <div class="cg-c cg-fora"><div class="k">Ficou de fora</div><div class="v">${brl(perdido)}</div>
        <div class="s">${fora.length} conta${fora.length===1?'':'s'} · ${brl(perdido*0.10)} de comissão que não entrou</div></div>
    </div>
-   ${tabela('✅ Consideradas no cálculo',dentro,true)}
-   ${tabela('⚠️ Desconsideradas: não entraram no mês',fora,false)}
+   ${tabela('Consideradas no cálculo',dentro,true)}
+   ${tabela('Desconsideradas: não entraram no mês',fora,false)}
    ${linhas.length?'':'<div class="empty">Nenhuma conta sua com cobrança neste mês.</div>'}`;
 }
 /* ---------- FINANCEIRO (central) ---------- */
@@ -12304,7 +12326,7 @@ function fchSaldoMes(ENT,SAIU,entGer,saiGer){
   const SALDO=ENT-SAIU, ok=SALDO>=0;
   const gs=Array.from(new Set(Object.keys(entGer||{}).concat(Object.keys(saiGer||{}))))
     .sort((a,b)=>((entGer[b]||0)-(saiGer[b]||0))-((entGer[a]||0)-(saiGer[a]||0)));
-  return `<h2>⚖️ Saldo do mês: entrou × saiu</h2>
+  return `<h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 21h10M3 7h18"/><path d="m6 7-3 7a3 3 0 0 0 6 0z"/><path d="m18 7-3 7a3 3 0 0 0 6 0z"/></svg> Saldo do mês: entrou × saiu</h2>
    <div class="tablewrap"><table><tbody>
      <tr><td>Entrou <span style="color:var(--muted);font-size:12px">mensalidade contratada</span></td>
          <td class="money" style="text-align:right;color:#4ad991">+ ${brl(ENT)}</td></tr>
@@ -12315,7 +12337,7 @@ function fchSaldoMes(ENT,SAIU,entGer,saiGer){
    </tbody></table></div>
    <div style="margin-top:10px;padding:13px 16px;border-radius:11px;font-weight:700;line-height:1.5;
      background:${ok?'#0d2a1d':'#2a0f1a'};border:1px solid ${ok?'#1c7a4e':'#9b2c3f'};
-     color:${ok?'#8ff0c0':'#ffb3bd'}">${ok?'✅ Mês POSITIVO':'🔻 Mês NEGATIVO'}: a carteira recorrente
+     color:${ok?'#8ff0c0':'#ffb3bd'}">${ok?'Mês POSITIVO':'Mês NEGATIVO'}: a carteira recorrente
      ${ok?'cresceu':'encolheu'} ${brl(Math.abs(SALDO))}${SAIU?'. Para cada real que saiu, entraram '+(ENT/SAIU).toFixed(2).replace('.',','):''}.</div>
    ${gs.length?'<div class="tablewrap" style="margin-top:10px"><table><tbody>'+gs.map(g=>{
      const e=entGer[g]||0, sa=saiGer[g]||0, d=e-sa;
@@ -12396,13 +12418,13 @@ function renderFechamentoMes(c){
    <p class="hint"><strong>Receita do mês</strong> é o que o cliente pagou pelo serviço prestado. Fica de fora repasse de custo,
    antecipação e projeto pago de uma vez, entrada que não se repete não serve para medir o mês nem para o rateio.</p>
 
-   <h2>🏢 Custo por escritório</h2>
+   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/></svg> Custo por escritório</h2>
    ${Object.entries(porEsc).sort((a,b)=>b[1].reduce((s,x)=>s+fchN(x.valor),0)-a[1].reduce((s,x)=>s+fchN(x.valor),0))
      .map(([k,its])=>fchBloco(k, its.reduce((s,x)=>s+fchN(x.valor),0),
        its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.descricao,x.categoria,x.valor]),
        its.length+' lançamentos')).join('')||'<div class="hint">Nenhum gasto de escritório neste mês.</div>'}
 
-   <h2>🧾 Folha de pagamento: ${brl(TFOLHA)}</h2>
+   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg> Folha de pagamento: ${brl(TFOLHA)}</h2>
    ${FCH_ORDEM.filter(s=>porSet[s]).map(s=>{ const its=porSet[s];
      const ab=its.filter(x=>!x.pago), tot=its.reduce((a,x)=>a+fchN(x.valor),0);
      return fchBloco(s, tot, its.sort((a,b)=>fchN(b.valor)-fchN(a.valor))
@@ -12410,7 +12432,7 @@ function renderFechamentoMes(c){
        new Set(its.map(x=>x.nome)).size+' pessoa(s)'+(ab.length?' · '+brl(ab.reduce((a,x)=>a+fchN(x.valor),0))+' a pagar':''));
    }).join('')}
 
-   <h2>🤝 Carteira dos gerentes: 10% do que entrou</h2>
+   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> Carteira dos gerentes: 10% do que entrou</h2>
    ${Object.entries(cart).sort((a,b)=>b[1].reduce((s,i)=>s+i[2],0)-a[1].reduce((s,i)=>s+i[2],0)).map(([g,its])=>{
      const tot=its.reduce((s,i)=>s+i[2],0), com=COMISSAO.some(k=>g.includes(k));
      const porCli={}; its.forEach(([n,st,v,d])=>{ const a=porCli[n]=porCli[n]||{v:0,n:0,st:st,d:d}; a.v+=v; a.n++; if(d<a.d)a.d=d; });
@@ -12418,10 +12440,10 @@ function renderFechamentoMes(c){
        Object.entries(porCli).sort((a,b)=>b[1].v-a[1].v)
          .map(([n,a])=>[n, fchDT(a.d)+(a.st&&a.st!=='recebido'?' · '+a.st:'')+(a.n>1?' · '+a.n+' pagamentos':''), a.v]),
        Object.keys(porCli).length+' clientes'); }).join('')}
-   ${semGer.length?fchBloco('⚠️ Receita de cliente sem gerente no cadastro', semGer.reduce((s,x)=>s+fchN(x.valor),0),
+   ${semGer.length?fchBloco('Receita de cliente sem gerente no cadastro', semGer.reduce((s,x)=>s+fchN(x.valor),0),
      semGer.map(x=>[x.descricao, fchDT(x.data)+' · '+x.categoria, x.valor]),'falta preencher'):''}
 
-   <h2>🛠 Custos operacionais: ${brl(TOPER)}</h2>
+   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-8 8l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 8-8z"/></svg> Custos operacionais: ${brl(TOPER)}</h2>
    ${(()=>{ const pc={}; oper.forEach(x=>{ (pc[x.categoria]=pc[x.categoria]||[]).push(x); });
      return Object.entries(pc).sort((a,b)=>b[1].reduce((s,x)=>s+fchN(x.valor),0)-a[1].reduce((s,x)=>s+fchN(x.valor),0))
       .map(([k,its])=>{ const t=its.reduce((s,x)=>s+fchN(x.valor),0);
@@ -12430,14 +12452,14 @@ function renderFechamentoMes(c){
           its.length+' itens · '+(t/(TOPER||1)*100).toFixed(1)+'%'); }).join(''); })()}
    <p class="hint">Só ferramenta, anúncio e estrutura. As pessoas saíram destas categorias e foram para a Folha acima.</p>
 
-   <h2>⏳ Falta receber</h2>
+   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Falta receber</h2>
    ${aReceber.length?fchBloco('Reconhecido no mês, ainda não caiu', aReceber.reduce((s,x)=>s+fchN(x.valor),0),
      aReceber.map(x=>[x.descricao, fchDT(x.data)+' · '+x.categoria, x.valor]),'entra no resultado, não no caixa',true):''}
    ${['inadimplente','churn','carencia'].filter(k=>porSt[k]).map(k=>fchBloco(ROTSt[k],somaSt(k),
      porSt[k].sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.nome,'vencia '+fchDT(x.venc),x.valor]),
      porSt[k].length+' cliente(s) · fora da receita')).join('')}
 
-   <h2>📉 Churn do mês</h2>
+   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg> Churn do mês</h2>
    ${['churn','churnpago','carencia'].filter(k=>porSt[k]).map(k=>fchBloco(ROTSt[k],somaSt(k),
      porSt[k].sort((a,b)=>fchN(b.valor)-fchN(a.valor))
        .map(x=>[x.nome,(gerCli[x.clienteId]||'-')+' · vencia '+fchDT(x.venc),x.valor]),
@@ -12446,7 +12468,7 @@ function renderFechamentoMes(c){
    ${((somaSt('churn')+somaSt('churnpago'))/(RMES||1)*100).toFixed(1)}% do faturamento, ${brl((somaSt('churn')+somaSt('churnpago'))*12)} em 12 meses.
    Carência não entra: o cliente volta a faturar.</p>
 
-   <h2 class="alerta">🚨 Quem perdeu: perda de receita por gerente</h2>
+   <h2 class="alerta"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> Quem perdeu: perda de receita por gerente</h2>
    ${(()=>{ /* secao propria: um bloco por gerente, clicar abre os clientes que sairam da carteira dele */
      const pg={}; ['churn','churnpago'].forEach(k=>(porSt[k]||[]).forEach(x=>{
        const g=gerCli[x.clienteId]||'sem gerente';
@@ -12467,7 +12489,7 @@ function renderFechamentoMes(c){
        '<div class="fch-tot"><span>Total perdido no mês</span><span>'+qtd+' clientes</span><span>'+brl(tot)+'</span></div>'; })()}
    <p class="hint">Downsell (cliente que reduziu a mensalidade sem sair) ainda não é registrado no sistema, então não entra nesta conta.</p>
 
-   <h2 class="verde">📈 Entradas do mês: clientes que chegaram</h2>
+   <h2 class="verde"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/></svg> Entradas do mês: clientes que chegaram</h2>
    ${(()=>{ /* cliente novo = comecou nesta competencia e nunca foi cobrado antes.
       So o campo inicio nao basta: ha cliente antigo com inicio preenchido errado. */
      const rall=DB.recebimentos||[], antes={}, prim={};
@@ -12493,7 +12515,7 @@ function renderFechamentoMes(c){
        '<div class="fch-tot"><span>Mensalidade nova do mês</span><span>'+novos.length+' clientes</span><span style="color:#4ad991">+ '+brl(ENT)+'</span></div>'+
        fchSaldoMes(ENT,SAIU,entGer,saiGer); })()}
 
-   <h2>💰 Distribuição do lucro</h2>
+   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Distribuição do lucro</h2>
    <div class="tablewrap"><table><tbody>
      <tr><td>Receita de clientes <span style="color:var(--muted);font-size:12px">sem o repasse</span></td><td class="money" style="text-align:right">${brl(BASE)}</td></tr>
      <tr><td>Despesa líquida <span style="color:var(--muted);font-size:12px">já abatida do repasse</span></td><td class="money" style="text-align:right">− ${brl(DESPLIQ)}</td></tr>
@@ -12509,7 +12531,7 @@ function renderFechamentoMes(c){
    <p class="hint">O lucro se divide em <strong>20% caixa + 10% Arthur + 70% sócios</strong>, todos sobre o mesmo número, as três fatias somam 100%.
 Distribuição de lucro não é despesa e não entra no Financeiro: o honorário de cada sócio já foi descontado como custo antes daqui.</p>
 
-   <h2 class="verde">⏳ O que ainda vai entrar, e quanto cada um leva quando entrar</h2>
+   <h2 class="verde"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> O que ainda vai entrar, e quanto cada um leva quando entrar</h2>
    ${(()=>{ /* recebiveis: reconhecido e nao recebido, inadimplente, e adiantamento a ressarcir.
       Para cada um, mostra o destino do dinheiro no dia em que cair. */
      /* Dois grupos com destinos diferentes:
@@ -12587,13 +12609,13 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
 function renderFinanceiro(c){
   c.innerHTML=`
    <div class="fin-tabs">
-     <button class="ftab ${finTab==='lanc'?'active':''}" onclick="finGo('lanc')">💰 Lançamentos</button>
-     <button class="ftab ${finTab==='recebimentos'?'active':''}" onclick="finGo('recebimentos')">🤝 Recebimentos</button>
-     <button class="ftab ${finTab==='apagar'?'active':''}" onclick="finGo('apagar')" data-dica="NOVO: todas as despesas a pagar num lugar só, avulsas, parceladas e recorrentes, com status automático de vencida.">📥 Contas a Pagar</button>
-     <button class="ftab ${finTab==='folha'?'active':''}" onclick="finGo('folha')">🧾 Folha de Pagamento</button>
-     <button class="ftab ${finTab==='painel'?'active':''}" onclick="finGo('painel')">📊 Painel</button>
-     <button class="ftab ${finTab==='fechames'?'active':''}" onclick="finGo('fechames')" data-dica="Fechamento do mês em regime de competência: resultado, folha por função, carteira dos gerentes, o que falta receber e o rateio do lucro.">📄 Fechamento</button>
-     <button class="ftab ${finTab==='carteira'?'active':''}" onclick="finGo('carteira')">💼 Carteira</button>
+     <button class="ftab ${finTab==='lanc'?'active':''}" onclick="finGo('lanc')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Lançamentos</button>
+     <button class="ftab ${finTab==='recebimentos'?'active':''}" onclick="finGo('recebimentos')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> Recebimentos</button>
+     <button class="ftab ${finTab==='apagar'?'active':''}" onclick="finGo('apagar')" data-dica="NOVO: todas as despesas a pagar num lugar só, avulsas, parceladas e recorrentes, com status automático de vencida."><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></svg> Contas a Pagar</button>
+     <button class="ftab ${finTab==='folha'?'active':''}" onclick="finGo('folha')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg> Folha de Pagamento</button>
+     <button class="ftab ${finTab==='painel'?'active':''}" onclick="finGo('painel')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/></svg> Painel</button>
+     <button class="ftab ${finTab==='fechames'?'active':''}" onclick="finGo('fechames')" data-dica="Fechamento do mês em regime de competência: resultado, folha por função, carteira dos gerentes, o que falta receber e o rateio do lucro."><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg> Fechamento</button>
+     <button class="ftab ${finTab==='carteira'?'active':''}" onclick="finGo('carteira')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> Carteira</button>
    </div>
    <div id="finSub"></div>`;
   const sub=$('#finSub');
@@ -12669,7 +12691,7 @@ async function renderFinAPagar(c){
      <div class="card" data-dica="O que já foi liquidado nesta competência."><div class="k">Pagas no mês</div><div class="v pos">${brl(soma(pagas))}</div><div class="sub">${pagas.length} conta(s)</div></div>
      <div class="card" data-dica="Compromisso fixo mensal: soma dos modelos de recorrência ativos."><div class="k">Fixas mensais</div><div class="v">${brl(APG.contas.filter(x=>x.ativa&&x.periodicidade==='mensal').reduce((s,x)=>s+Number(x.valor_padrao||0),0))}</div><div class="sub">${APG.contas.filter(x=>x.ativa).length} recorrência(s)</div></div>
    </div>
-   ${atrasadasAntigas.length?`<p class="hint" style="color:#ff8b97">⚠ ${atrasadasAntigas.length} conta(s) vencida(s) de meses anteriores aparecem na lista abaixo.</p>`:''}
+   ${atrasadasAntigas.length?`<p class="hint" style="color:#ff8b97"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> ${atrasadasAntigas.length} conta(s) vencida(s) de meses anteriores aparecem na lista abaixo.</p>`:''}
    <div class="tablewrap"><table><thead><tr><th>Descrição</th><th>Departamento</th><th>Categoria</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
    <tbody>${atrasadasAntigas.map(p=>linha(p,true)).join('')}${doMes.map(p=>linha(p,false)).join('')}</tbody></table>
    ${(doMes.length+atrasadasAntigas.length)?'':'<div class="empty">Nenhuma conta em '+fmtComp(APG.comp)+'. As recorrências ativas entram sozinhas ao abrir o mês; avulsas e parceladas nascem no “+ Despesa”.</div>'}</div>
@@ -12720,7 +12742,7 @@ window.apgModalDespesa=()=>{
 };
 window.apgModalRec=()=>{
   modal('Recorrências: modelos de despesa fixa',`
-    <p class="hint" style="margin-top:0" data-dica="O modelo é só a régua. Todo mês o botão Gerar mês cria a conta daquele mês a partir dele, e editar o modelo nunca mexe nos meses que já nasceram.">Cada modelo gera uma conta por mês no “⚡ Gerar mês”. Editar o modelo não altera meses já gerados.</p>
+    <p class="hint" style="margin-top:0" data-dica="O modelo é só a régua. Todo mês o botão Gerar mês cria a conta daquele mês a partir dele, e editar o modelo nunca mexe nos meses que já nasceram.">Cada modelo gera uma conta por mês no “Gerar mês”. Editar o modelo não altera meses já gerados.</p>
     ${APG.contas.map(x=>`<div style="display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:7px">
       <div style="flex:1;min-width:0"><strong>${esc(x.descricao)}</strong><div class="hint" style="margin:1px 0 0">${esc(x.fornecedor||'')} · dia ${x.dia_vencimento} · ${DEP_ROT[x.departamento]||'-'}</div></div>
       <span class="money">${brl(x.valor_padrao)}</span>
@@ -12754,7 +12776,7 @@ window.apgModalRec=()=>{
         inicio:($('#ar_ini').value||APG.comp)+'-01',fim:$('#ar_fim').value?($('#ar_fim').value+'-28'):null,
         observacoes:cat?('cat:'+cat.nome):null,criado_por:currentUser.id});
       if(r.error){ toast('Erro: '+r.error.message); return false; }
-      toast('Recorrência criada: use “⚡ Gerar mês”.'); renderFinAPagar($('#finSub')); return true; });
+      toast('Recorrência criada: use “Gerar mês”.'); renderFinAPagar($('#finSub')); return true; });
 };
 window.apgRecToggle=async (id,ativa)=>{ const {error}=await sb.from('fin_contas').update({ativa}).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; } toast(ativa?'Recorrência reativada.':'Recorrência pausada: meses já gerados ficam.'); renderFinAPagar($('#finSub')); };
@@ -12814,7 +12836,7 @@ function renderLanc(c){
      <div><h2>Lançamentos</h2><div class="desc">${lrange?('Período: '+fmtDate(lancDe)+' até '+fmtDate(lancAte)):(lancComp?('Receitas e despesas de '+fmtComp(lancComp)):'Todas as receitas e despesas')}</div></div>
      <div class="toolbar"><input class="search" id="fSearch" placeholder="Buscar..."><input type="month" class="search" id="lancCompInp" value="${lancComp}" style="min-width:150px" title="Filtrar por mês: limpe para ver tudo">
        <div style="position:relative;display:inline-flex;align-items:center;gap:4px">
-         <button class="btn secondary small" onclick="calAbrir('lanc')">${lrange?('📅 '+fmtDate(lancDe).slice(0,5)+' – '+fmtDate(lancAte).slice(0,5)):'📅 Período'}</button>
+         <button class="btn secondary small" onclick="calAbrir('lanc')">${lrange?(''+fmtDate(lancDe).slice(0,5)+' – '+fmtDate(lancAte).slice(0,5)):'Período'}</button>
          ${lrange?'<button class="iconbtn" onclick="calLimpar(\'lanc\')" title="Limpar período">✕</button>':''}
          <div id="calPop" class="calpop hidden"></div>
        </div><button class="btn small" onclick="openFinModal()">+ Lançamento</button></div>
@@ -12830,7 +12852,7 @@ function renderLanc(c){
    </div>
    ${cats.length?`
    <div class="card" style="margin-bottom:22px">
-     <div class="k" style="margin-bottom:12px">📊 KPI: Gastos por área</div>
+     <div class="k" style="margin-bottom:12px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/></svg> KPI: Gastos por área</div>
      ${cats.map(([k,v])=>`
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
         <span style="width:130px;font-size:12.5px;font-weight:700">${esc(k)}</span>
@@ -12896,9 +12918,9 @@ function renderAcessos(c){
   const nL=(DB.links||[]).length;
   c.innerHTML=`
    <div class="fin-tabs">
-     ${mst?`<button class="ftab ${acTab==='links'?'':'active'}" onclick="acGo('senhas')">🔑 Senhas${nS?' ('+nS+')':''}</button>`:''}
-     <button class="ftab ${acTab==='links'?'active':''}" onclick="acGo('links')">🔗 Links${nL?' ('+nL+')':''}</button>
-     <button class="ftab ${acTab==='trafego'?'active':''}" onclick="acGo('trafego')">📣 Tráfego Pago</button>
+     ${mst?`<button class="ftab ${acTab==='links'?'':'active'}" onclick="acGo('senhas')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg> Senhas${nS?' ('+nS+')':''}</button>`:''}
+     <button class="ftab ${acTab==='links'?'active':''}" onclick="acGo('links')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Links${nL?' ('+nL+')':''}</button>
+     <button class="ftab ${acTab==='trafego'?'active':''}" onclick="acGo('trafego')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 13z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg> Tráfego Pago</button>
    </div>
    <div id="acSub"></div>`;
   const sub=$('#acSub');
@@ -12978,7 +13000,7 @@ window.tfExcluir=async (id)=>{
 function renderSenhas(c){
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Senhas</h2><div class="desc">Credenciais da equipe e as suas privadas (🔒 só você vê)</div></div>
+     <div><h2>Senhas</h2><div class="desc">Credenciais da equipe e as suas privadas (só você vê)</div></div>
      <div class="toolbar"><input class="search" id="sSearch" placeholder="Buscar..."><button class="btn small" onclick="openSenhaModal()">+ Senha</button></div>
    </div>
    <div class="tablewrap"><table><thead><tr><th>Serviço</th><th>Login</th><th>Senha</th><th>Link</th><th></th></tr></thead>
@@ -12987,10 +13009,10 @@ function renderSenhas(c){
     const t=searchTerm.toLowerCase();
     const list=[...DB.senhas,...(DB.senhasPriv||[])].filter(acessoVisivel).sort((a,b)=>(a.servico||'').localeCompare(b.servico||'')).filter(r=>!t||((r.servico||'')+(r.login||'')).toLowerCase().includes(t));
     $('#sBody').innerHTML=list.map(r=>`<tr>
-      <td><strong>${esc(r.servico)}</strong>${r.__priv?' <span class="tag" style="background:rgba(124,58,237,.18);color:#c4b5fd;font-size:11px">🔒 Só eu</span>':''}${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
+      <td><strong>${esc(r.servico)}</strong>${r.__priv?' <span class="tag" style="background:rgba(124,58,237,.18);color:#c4b5fd;font-size:11px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Só eu</span>':''}${r.notas?`<div style="color:var(--muted);font-size:12px">${esc(r.notas)}</div>`:''}</td>
       <td>${esc(r.login)||'-'} ${r.login?`<button class="iconbtn" onclick="copyLogin('${r.id}')">copiar</button>`:''}</td>
       <td><div class="pw-cell"><span class="pw-dots" id="pw_${r.id}">••••••••</span>
-        <button class="iconbtn" onclick="togglePw('${r.id}')">👁</button>
+        <button class="iconbtn" onclick="togglePw('${r.id}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="iconbtn" onclick="copyPw('${r.id}')">copiar</button></div></td>
       <td>${r.url?`<a class="link" href="${esc(r.url)}" target="_blank" rel="noopener">abrir ↗</a>`:'-'}</td>
       <td><div class="rowact"><button class="iconbtn" onclick="openSenhaModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delSenha('${r.id}')">Excluir</button></div></td>
@@ -13016,7 +13038,7 @@ window.openSenhaModal=(id)=>{
     <div class="field"><label>Cliente</label>${selFicha('m_ficha',it.fichaId||'')}</div>
     <div class="field"><label>Visibilidade</label><select id="m_vis">
       <option value="equipe"${!era?' selected':''}>Equipe: todos os aprovados veem</option>
-      <option value="priv"${era?' selected':''}>🔒 Só eu: mais ninguém vê</option>
+      <option value="priv"${era?' selected':''}>Só eu: mais ninguém vê</option>
     </select></div>
     <div class="field"><label>Observações</label><textarea id="m_notas" rows="2" placeholder="notas...">${esc(it.notas)}</textarea></div>`,
     async ()=>{
@@ -13096,7 +13118,7 @@ const fichaPend=(r)=>{const f=[];
   if(!String((r&&r.gerente)||'').trim()) f.push('gerente');
   if(!String((r&&r.squad)||'').trim()) f.push('squad');
   return f;};
-const pendTag=(r)=>{const f=fichaPend(r);return f.length?`<span class="tag churn" style="margin-left:6px" title="Ficha incompleta: falta: ${f.join(', ')}">⚠ falta ${f.join(' · ')}</span>`:'';};
+const pendTag=(r)=>{const f=fichaPend(r);return f.length?`<span class="tag churn" style="margin-left:6px" title="Ficha incompleta: falta: ${f.join(', ')}"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> falta ${f.join(' · ')}</span>`:'';};
 const NICHOS=['Loja de Carro','Loja de Moto','Repasse','Clínica Odontológica','Diversos'];
 const nichoDe=(p,c)=>{ if(p.nicho&&NICHOS.includes(p.nicho)) return p.nicho;
   const s=((p.nicho||'')+' '+((c&&c.nicho)||'')).toLowerCase();
@@ -13173,8 +13195,8 @@ window.fcNotaRodizio=()=>{
   const atual=(($('#fc_squad')||{}).value||'');
   if(!FC_SQ_VEZ){ el.innerHTML=''; return; }
   el.innerHTML=(atual===FC_SQ_VEZ)
-    ? `<strong style="color:var(--brand2)">🔁 Rodízio automático: a vez é do Squad ${esc(FC_SQ_VEZ)}.</strong> `
-    : `<strong style="color:var(--warn)">🔁 O rodízio apontava o Squad ${esc(FC_SQ_VEZ)}: você trocou na mão.</strong> `;
+    ? `<strong style="color:var(--brand2)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg> Rodízio automático: a vez é do Squad ${esc(FC_SQ_VEZ)}.</strong> `
+    : `<strong style="color:var(--warn)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg> O rodízio apontava o Squad ${esc(FC_SQ_VEZ)}: você trocou na mão.</strong> `;
 };
 window.fcSquadMudou=()=>{
   const s=($('#fc_squad')||{}).value||'', info=fcSquads().find(x=>x.squad===s), el=$('#fc_equipe');
@@ -13356,11 +13378,11 @@ function renderFechamento(c){
     <div class="fc-hero">
       <h1>Fechamento de contrato</h1>
       <div class="fc-fluxo">
-        <div class="fc-passo"><i>⚖️</i><div><b>Jurídico</b><em>prepara o contrato</em></div></div>
+        <div class="fc-passo"><i><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 21h10M3 7h18"/><path d="m6 7-3 7a3 3 0 0 0 6 0z"/><path d="m18 7-3 7a3 3 0 0 0 6 0z"/></svg></i><div><b>Jurídico</b><em>prepara o contrato</em></div></div>
         <div class="fc-liga">→</div>
-        <div class="fc-passo"><i>💳</i><div><b>Financeiro</b><em>cria as cobranças no Asaas</em></div></div>
+        <div class="fc-passo"><i><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg></i><div><b>Financeiro</b><em>cria as cobranças no Asaas</em></div></div>
         <div class="fc-liga">→</div>
-        <div class="fc-passo"><i>🚀</i><div><b>Operação</b><em>recebe o projeto</em></div></div>
+        <div class="fc-passo"><i><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2-.1-2.8-.7-.7-2-.7-2.9-.2z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.6 12.6 0 0 1 21 3c0 2.7-.9 7.5-5 10.1a22.4 22.4 0 0 1-4 1.9z"/><path d="M9 12H4s.5-3.9 2-5c1.7-1.2 5 0 5 0"/><path d="M12 15v5s3.9-.5 5-2c1.2-1.7 0-5 0-5"/></svg></i><div><b>Operação</b><em>recebe o projeto</em></div></div>
       </div>
     </div>
     <div id="fcForm">
@@ -13368,7 +13390,7 @@ function renderFechamento(c){
       <span class="fc-prog-t" id="fc_progt">-</span>
       <span class="fc-prog-b"><span class="fc-prog-f" id="fc_progf"></span></span>
     </div>
-    ${sec('01','🏢 Empresa','Quem é o cliente e quem assina o contrato.',`
+    ${sec('01','Empresa','Quem é o cliente e quem assina o contrato.',`
       <div id="fc_puxar"></div>
       <div class="row2"><div>${fcField('Nome da empresa *','fc_nome','ex: Select Motors')}<div id="fc_dup"></div></div>
         <div class="field"><label>Nicho *</label><select id="fc_nicho">${NICHOS.map(n=>`<option>${n}</option>`).join('')}</select></div></div>
@@ -13377,7 +13399,7 @@ function renderFechamento(c){
       <div class="row2">${fcField('Nome do responsável (dono)','fc_dono','ex: Luiz Marcelo da Silveira Couto')}
         <div class="field"><label data-dica="Serve de identificação no Asaas quando a empresa não tem CNPJ.">CPF do responsável</label><input id="fc_cpf" placeholder="ex: 123.456.789-00" oninput="this.value=ctMascCPF(this.value)"></div></div>
       <div class="row2">${fcField('RG','fc_rg','ex: 12.321.213-1')}<div class="field"></div></div>`)}
-    ${sec('02','📋 Plano e contrato','O que foi vendido, em que combinação e por quanto tempo.',`
+    ${sec('02','Plano e contrato','O que foi vendido, em que combinação e por quanto tempo.',`
       <div class="field"><label data-dica="Marque todos os serviços fechados com esse cliente, qualquer combinação. Fica roxo o que está selecionado, e é isso que vai pro contrato e pra ficha.">Serviços prestados *</label>
         <input type="hidden" id="fc_plano" value="">
         <div class="tkp-chips" id="fc_servs">${FC_SERVICOS.map(x=>`<button type="button" class="tkp-chip" data-s="${x}" onclick="fcServToggle(this,'${x}')">${x}</button>`).join('')}</div></div>
@@ -13388,7 +13410,7 @@ function renderFechamento(c){
           <div class="hint" id="fc_fiminfo" style="margin:7px 0 0">-</div></div></div>
       <div class="field"><label>Integrações</label><textarea id="fc_integra" rows="2" placeholder="Portais, sistemas e integrações necessárias para o Agente IA"></textarea></div>
       <div class="field"><label>Especificidades do contrato (o que foge do escopo padrão)</label><textarea id="fc_espec" rows="2" placeholder="Deixe vazio se não houver"></textarea></div>`)}
-    ${sec('03','💳 Financeiro · cadastro no Asaas','Como e quando o dinheiro entra. O dia da 1ª parcela vira o vencimento recorrente.',`
+    ${sec('03','Financeiro · cadastro no Asaas','Como e quando o dinheiro entra. O dia da 1ª parcela vira o vencimento recorrente.',`
       <label class="fc-ck" for="fc_asaas">
         <input type="checkbox" id="fc_asaas" checked>
         <span><b>Cadastrar no Asaas automaticamente</b>
@@ -13407,7 +13429,7 @@ function renderFechamento(c){
         <div class="field"><label data-dica="Quando o dinheiro do sinal ENTROU de verdade, pode ser dias atrás. É essa data que vai pro caixa.">Quando o sinal entrou *</label><input type="date" id="fc_sinaldata"></div>
       </div>
       <p class="hint" id="fc_avista" style="display:none;margin:2px 0 0;padding:10px 13px;border-radius:10px;background:rgba(63,207,142,.10);border:1px solid rgba(63,207,142,.32);color:#8ee7bd">O cliente entra na base normalmente, ficha, squad e card em 0. NÃO ATIVO. O valor entra como receita do mês na categoria <strong>Projeto à vista</strong> e <strong>nenhuma cobrança recorrente é criada</strong>: ele não aparece na carteira dos meses seguintes.</p>`)}
-    ${sec('04','👥 Responsáveis · comercial e operação','Quem vendeu, de onde veio o lead e qual squad assume a conta.',`
+    ${sec('04','Responsáveis · comercial e operação','Quem vendeu, de onde veio o lead e qual squad assume a conta.',`
       <div class="row2">${fcField('SDR responsável *','fc_sdr','')}${fcField('Closer responsável *','fc_closer','',(currentUser&&currentUser.nome)||'')}</div>
       <div class="row2">
         <div class="field"><label data-dica="De onde veio esse lead. Inbound: chegou sozinho (anúncio, indicação do site, redes). Outbound: prospecção ativa nossa. Indicação: veio por alguém.">Origem do lead *</label>
@@ -13421,7 +13443,7 @@ function renderFechamento(c){
         <div class="field" id="fc_gw"><label>Gestor de tráfego *</label><input id="fc_gestor" list="dlFcGestores" placeholder="preenchido pelo squad, pode trocar"><datalist id="dlFcGestores">${gestores.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div></div>
       <div id="fc_equipe" class="fc-equipe"></div>
       ${fcField('Link da call de vendas','fc_call','https://...')}`)}
-    ${sec('05','🤝 Passagem de bastão','O que a operação precisa saber antes da primeira conversa com o cliente.',`
+    ${sec('05','Passagem de bastão','O que a operação precisa saber antes da primeira conversa com o cliente.',`
       <div class="field" style="margin-bottom:2px"><label>Resumo operacional da venda *</label><textarea id="fc_resumo" rows="4" placeholder="O que foi vendido, expectativas do cliente, o que ele quer melhorar, informações cruciais..."></textarea></div>`)}
     <div class="fc-envio">
       <div class="fc-envio-i" id="fc_envioi"></div>
@@ -13481,7 +13503,7 @@ function fcAsaasLinha(a){
   if(!a) return '';
   const amb=a.ambiente==='producao'?'produção':'sandbox';
   if(a.pulado) return `<div class="fc-asaas ruim">Asaas: cadastro <strong>não</strong> foi feito: a opção estava desmarcada. Cadastre o cliente e a cobrança direto no painel do Asaas.</div>`;
-  if(!a.ok) return `<div class="fc-asaas ruim"><strong>⚠ O Asaas não foi atualizado.</strong><br>${esc(a.erro||'falha desconhecida')}<br>O cliente entrou no sistema normalmente, só a cobrança precisa ser criada na mão no painel do Asaas.</div>`;
+  if(!a.ok) return `<div class="fc-asaas ruim"><strong><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> O Asaas não foi atualizado.</strong><br>${esc(a.erro||'falha desconhecida')}<br>O cliente entrou no sistema normalmente, só a cobrança precisa ser criada na mão no painel do Asaas.</div>`;
   const p=[];
   p.push(a.clienteJaExistia?`Cliente já existia no Asaas (<code>${esc(a.customerId||'')}</code>).`:`Cliente criado no Asaas (<code>${esc(a.customerId||'')}</code>).`);
   if(a.nota) p.push(esc(a.nota));
@@ -13583,7 +13605,7 @@ function renderProjetos(c){
      <div class="card"><div class="k">Fichas incompletas</div><div class="v" style="color:var(--warn)">${DB.projetos.filter(p=>fichaFalta(p,DB.clientes.find(x=>x.id===p.clienteId)).length).length}</div><div class="sub">falta preencher dados</div></div>
    </div>
    <div id="prjLists"></div>
-   <p class="hint" style="margin-top:12px">Clique no cliente para abrir a ficha com tudo que está ligado a ele: contas de anúncio do Meta, acessos e, para usuários master, o financeiro. Contas de anúncio se ligam em <strong>Tráfego Pago → 🔗 Vincular a clientes</strong>.</p>`;
+   <p class="hint" style="margin-top:12px">Clique no cliente para abrir a ficha com tudo que está ligado a ele: contas de anúncio do Meta, acessos e, para usuários master, o financeiro. Contas de anúncio se ligam em <strong>Tráfego Pago → Vincular a clientes</strong>.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const list=fichasVisiveis().sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).filter(r=>!t||(r.nome+(r.responsavel||'')+(r.gerente||'')).toLowerCase().includes(t));
@@ -13599,8 +13621,8 @@ function renderProjetos(c){
         const alerta=contasDoCliente(r.id).some(m=>{const v=(window.__mtDados||[]).find(x=>x.id===m.id);const p=v?pagConta(v):null;return p&&p.problema;});
         return `<tr onclick="abrirCliente('${r.id}')" style="cursor:pointer">
         <td><strong class="prj-nome">${esc(r.nome)}</strong> <span class="tag cat-${catDe(r)}" style="margin-left:6px">${CAT_LABEL[catDe(r)]}</span>${pendTag(r)}${nichoTag(r)}${fichaTag(r)}</td>
-        <td style="font-size:12px">${nc?`<span class="tag st" title="contas de anúncio vinculadas">📊 ${nc}</span>`:'<span style="color:var(--muted)">-</span>'}
-          ${alerta?' <span class="tag churn" style="font-size:10.5px">⚠ pagamento</span>':''}
+        <td style="font-size:12px">${nc?`<span class="tag st" title="contas de anúncio vinculadas"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/></svg> ${nc}</span>`:'<span style="color:var(--muted)">-</span>'}
+          ${alerta?' <span class="tag churn" style="font-size:10.5px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> pagamento</span>':''}
           ${master&&fin&&fin.valor?` <span style="color:var(--muted)">${brl(fin.valor)}/mês</span>`:''}</td>
         <td>${eqAv(r)}</td>
         <td><div class="rowact"><button class="iconbtn" onclick="prjMenu('${r.id}',event)" title="Mais opções" style="font-weight:900;letter-spacing:1px">⋯</button></div></td>
@@ -13645,8 +13667,8 @@ function abaContasCliente(f){
   const dados=window.__mtDados||[];
   return `
    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-     <div style="font-size:13px;font-weight:800">📊 Contas de anúncio do Meta</div>
-     <button class="btn ghost small" onclick="document.querySelector('.overlay').remove();render('trafego');setTimeout(()=>abrirVinculos(),400)">🔗 Gerenciar vínculos</button>
+     <div style="font-size:13px;font-weight:800"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/></svg> Contas de anúncio do Meta</div>
+     <button class="btn ghost small" onclick="document.querySelector('.overlay').remove();render('trafego');setTimeout(()=>abrirVinculos(),400)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Gerenciar vínculos</button>
    </div>
    ${contas.length?contas.map(m=>{
      const viva=dados.find(x=>x.id===m.id);
@@ -13659,16 +13681,16 @@ function abaContasCliente(f){
          ${logoDe(m)?`<img src="${esc(logoDe(m))}" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;flex:none">`:''}
          <div style="flex:1;min-width:140px">
            <div style="font-weight:700;font-size:13px">${esc(m.nome||m.id)}</div>
-           <div style="color:var(--muted);font-size:11.5px">${esc(m.id)}${pg?' · '+(pg.prepago?'⚡ Pix':'💳 '+esc(pg.cartao||'cartão')):''}</div>
+           <div style="color:var(--muted);font-size:11.5px">${esc(m.id)}${pg?' · '+(pg.prepago?'Pix':''+esc(pg.cartao||'cartão')):''}</div>
          </div>
          ${viva?`<div style="text-align:right"><div style="font-size:10px;color:var(--muted);text-transform:uppercase">gasto no período</div><div style="font-weight:800;color:var(--brand2)">${gasto?brl(gasto):'-'}</div></div>
          <div style="text-align:right"><div style="font-size:10px;color:var(--muted);text-transform:uppercase">leads</div><div style="font-weight:800">${leads||'-'}</div></div>`
          :'<div style="color:var(--muted);font-size:12px">abra Tráfego Pago p/ ver métricas</div>'}
        </div>
-       ${pg&&pg.problema?`<div style="margin-top:7px;font-size:12px;color:var(--danger)">⚠ ${esc(pg.statusTxt)}, anúncios parados</div>`:''}
+       ${pg&&pg.problema?`<div style="margin-top:7px;font-size:12px;color:var(--danger)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> ${esc(pg.statusTxt)}, anúncios parados</div>`:''}
        <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap">
-         ${viva?`<button class="btn small" onclick="document.querySelector('.overlay').remove();openRelatorioModal('${esc(m.id)}')">📄 Gerar relatório</button>`:''}
-         <button class="iconbtn" onclick="openMarcaModal('${esc(m.id)}')">🎨 Marca</button>
+         ${viva?`<button class="btn small" onclick="document.querySelector('.overlay').remove();openRelatorioModal('${esc(m.id)}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg> Gerar relatório</button>`:''}
+         <button class="iconbtn" onclick="openMarcaModal('${esc(m.id)}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2a10 10 0 0 0 0 20c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.7 1.7-1.7H16a6 6 0 0 0 6-6c0-4.9-4.5-8.4-10-8.4z"/></svg> Marca</button>
          <button class="iconbtn del" onclick="vincularConta('${esc(m.id)}','')">Desvincular</button>
        </div>
      </div>`;}).join('')
@@ -13684,12 +13706,12 @@ function abaAcessosCliente(f){
   const sn=[...(DB.senhas||[]),...(DB.senhasPriv||[])].filter(bate);
   const lk=(DB.links||[]).filter(bate);
   return `
-   <div style="font-size:13px;font-weight:800;margin-bottom:8px">🔑 Senhas</div>
+   <div style="font-size:13px;font-weight:800;margin-bottom:8px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg> Senhas</div>
    ${sn.length?sn.map(r=>`<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:9px;padding:8px 11px;margin-bottom:6px">
       <div style="flex:1"><strong style="font-size:13px">${esc(r.servico)}</strong><div style="color:var(--muted);font-size:11.5px">${esc(r.login)||'-'}</div></div>
       <button class="iconbtn" onclick="copyPw('${r.id}')">copiar senha</button>
     </div>`).join(''):'<div style="color:var(--muted);font-size:12.5px;margin-bottom:12px">Nenhuma senha ligada a este cliente.</div>'}
-   <div style="font-size:13px;font-weight:800;margin:14px 0 8px">🔗 Links</div>
+   <div style="font-size:13px;font-weight:800;margin:14px 0 8px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Links</div>
    ${lk.length?lk.map(r=>`<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:9px;padding:8px 11px;margin-bottom:6px">
       <div style="flex:1"><strong style="font-size:13px">${esc(r.titulo)}</strong><div style="color:var(--muted);font-size:11.5px">${esc(r.categoria)||'-'}</div></div>
       <a class="link" href="${esc(r.url)}" target="_blank" rel="noopener">abrir ↗</a>
@@ -13711,7 +13733,7 @@ function rcLinhaTempo(cli){
     <div class="qd">${esc(qd)}</div><div class="vl">${vl}</div>
     <div class="dt"${cor?` style="color:${cor};font-weight:600"`:''}>${esc(dt)}</div></div>`;
   return `<div class="rc-bloco" style="margin-bottom:14px">
-    <div class="rc-bh">📅 Combinado de pagamento</div>
+    <div class="rc-bh"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Combinado de pagamento</div>
     <div class="rc-tl">
       ${et('ok','Entrada',brl(r.sinal),'pago em '+fmtDate(r.sinalEm))}
       ${et('agora','Restante',brl(resta),(venc?fmtDate(venc)+' · ':'')+pz.txt,pz.cor)}
@@ -13734,10 +13756,10 @@ function abaFinCliente(f){
      <div class="card"><div class="k">Recebido (total)</div><div class="v pos">${brl(tot)}</div></div>
      <div class="card"><div class="k">Vencimento</div><div class="v">${cli.diaVenc?'dia '+cli.diaVenc:'-'}</div></div>
    </div>
-   <div style="font-size:13px;font-weight:800;margin-bottom:8px">💰 Recebimentos</div>
+   <div style="font-size:13px;font-weight:800;margin-bottom:8px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Recebimentos</div>
    ${recs.length?`<div class="tablewrap"><table><thead><tr><th>Competência</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th></tr></thead><tbody>
      ${recs.slice(0,12).map(r=>`<tr><td>${esc(r.comp)}</td><td>${r.venc?d2br(r.venc):'-'}</td><td style="text-align:right">${brl(r.recebido?r.valor:(r.sinal||r.valor))}</td>
-       <td>${r.recebido?'<span class="tag concluido">🟢 Recebido</span>':r.sinal?'<span class="tag st">🔵 Sinal</span>':'<span class="tag pausado">🟡 A receber</span>'}</td></tr>`).join('')}
+       <td>${r.recebido?'<span class="tag concluido"><i class="emi-dot" style="background:#3fcf8e"></i> Recebido</span>':r.sinal?'<span class="tag st"><i class="emi-dot" style="background:#4f8cff"></i> Sinal</span>':'<span class="tag pausado"><i class="emi-dot" style="background:#e6b13f"></i> A receber</span>'}</td></tr>`).join('')}
    </tbody></table></div>`:'<div style="color:var(--muted);font-size:12.5px">Nenhum recebimento lançado.</div>'}
    <button class="btn ghost small" style="margin-top:12px" onclick="document.querySelector('.overlay').remove();projFin('${cli.id}')">Ver lançamentos deste cliente →</button>`;
 }
@@ -13924,7 +13946,7 @@ function pcFaixa(it){
   let pg=null, rk=null; if(viva){ try{ pg=pagConta(viva); rk=risco(viva); }catch(_){} }
   const per=LT_PER[window.__mtPreset||'last_7d']||'no período';
   const cel=(rot,val,sub,click,vz)=>`<div class="s" onclick="${click}"><b>${rot}</b><em${vz?' class="vz"':''}>${val}</em><small>${sub||'&nbsp;'}</small></div>`;
-  const conta=c0?cel('Conta de anúncio',esc(c0.nome||c0.id),esc(c0.id)+(pg?' · '+(pg.prepago?'⚡ Pix':'💳 cartão'):'')+(contas.length>1?' · +'+(contas.length-1):''),`cliIrPara('${it.id}','contas')`)
+  const conta=c0?cel('Conta de anúncio',esc(c0.nome||c0.id),esc(c0.id)+(pg?' · '+(pg.prepago?'Pix':'cartão'):'')+(contas.length>1?' · +'+(contas.length-1):''),`cliIrPara('${it.id}','contas')`)
                 :cel('Conta de anúncio','vincular','nenhuma ligada',`cliIrPara('${it.id}','contas')`,true);
   const verba=it.orcamento?cel('Verba',brl(it.orcamento)+' <span style="font-size:11px;font-weight:600;color:var(--muted)">'+((it.orcPer||'semanal')==='diario'?'/dia':'/sem')+'</span>','avisar em '+(it.avisoPct||20)+'%',`pcAbrirCampo('pc_orc')`)
                 :cel('Verba','definir','sem verba cadastrada',`pcAbrirCampo('pc_orc')`,true);
@@ -14645,7 +14667,7 @@ window.openProjModal=(id)=>{
     <div class="field"><label>Observações</label><textarea id="m_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></div>
     ${(currentUser&&currentUser.role==='master'&&it.clienteId)?(()=>{ const cli=DB.clientes.find(c=>c.id===it.clienteId); const recTot=DB.recebimentos.filter(x=>x.clienteId===it.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0); return `
     <div style="background:var(--panel2);border:1px solid rgba(168,85,247,.35);border-radius:12px;padding:14px;margin-top:6px">
-      <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:1px;margin-bottom:8px">💰 FINANCEIRO · VISÍVEL SÓ PARA MASTERS</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:1px;margin-bottom:8px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> FINANCEIRO · VISÍVEL SÓ PARA MASTERS</div>
       <div style="display:flex;gap:22px;font-size:14px;flex-wrap:wrap">
         <span>Honorário mensal: <strong>${cli?brl(cli.valor):'-'}</strong></span>
         <span>Recebido (total): <strong style="color:var(--ok)">${brl(recTot)}</strong></span>
@@ -14749,7 +14771,7 @@ function rcBlocoEntradas(R,comp){
     </div>`;
   };
   return `<div class="rc-bloco${algumAtrasado?' alerta':''}">
-    <div class="rc-bh">💰 Entradas em aberto
+    <div class="rc-bh"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Entradas em aberto
       <span class="rc-cnt">${lista.length} cliente${lista.length===1?'':'s'} · ${brl(totalResta)} a receber</span></div>
     ${lista.map(linha).join('')}
     <p class="hint" style="margin:12px 0 0">Clique no valor que falta para mudar a data combinada. Ao marcar o restante
@@ -14771,31 +14793,31 @@ function renderRecebimentos(c){
        <input type="date" class="search" id="cDiaInp" value="${diaFiltro}" style="min-width:150px" title="Filtrar por dia de vencimento">
        <select class="search" id="cStatusInp" style="min-width:160px" title="Filtrar por status">
          <option value=""${statusFiltro===''?' selected':''}>Todos os status</option>
-         <option value="recebido"${statusFiltro==='recebido'?' selected':''}>🟢 Recebido</option>
-         <option value="sinal"${statusFiltro==='sinal'?' selected':''}>🔵 Sinal pago</option>
-         <option value="inadimplente"${statusFiltro==='inadimplente'?' selected':''}>🔴 Inadimplente</option>
-         <option value="areceber"${statusFiltro==='areceber'?' selected':''}>🟡 A receber</option>
-         <option value="carencia"${statusFiltro==='carencia'?' selected':''}>🟣 Carência</option>
-         <option value="churn"${statusFiltro==='churn'?' selected':''}>⚫ Churn</option>
-         <option value="churnpago"${statusFiltro==='churnpago'?' selected':''}>⚫ Churn (mês pago)</option>
+         <option value="recebido"${statusFiltro==='recebido'?' selected':''}>Recebido</option>
+         <option value="sinal"${statusFiltro==='sinal'?' selected':''}>Sinal pago</option>
+         <option value="inadimplente"${statusFiltro==='inadimplente'?' selected':''}>Inadimplente</option>
+         <option value="areceber"${statusFiltro==='areceber'?' selected':''}>A receber</option>
+         <option value="carencia"${statusFiltro==='carencia'?' selected':''}>Carência</option>
+         <option value="churn"${statusFiltro==='churn'?' selected':''}>Churn</option>
+         <option value="churnpago"${statusFiltro==='churnpago'?' selected':''}>Churn (mês pago)</option>
        </select>
-       ${(nArqCli||cliArqVista)?`<button class="btn ghost small${cliArqVista?' fon':''}" id="cArqBtn" title="Clientes arquivados">🗄 Arquivados${nArqCli?' ('+nArqCli+')':''}</button>`:''}
+       ${(nArqCli||cliArqVista)?`<button class="btn ghost small${cliArqVista?' fon':''}" id="cArqBtn" title="Clientes arquivados"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/></svg> Arquivados${nArqCli?' ('+nArqCli+')':''}</button>`:''}
        <button class="btn small" onclick="openCliModal()">+ Cliente</button>
      </div>
    </div>
    <div class="cards">
-     <div class="card"><div class="k">🟢 Recebido em ${fmtComp(comp)}</div><div class="v pos">${brl(R.recebidoSoma+R.sinaisPagos)}</div><div class="sub">${R.recebidoLista.length} cliente${R.recebidoLista.length===1?'':'s'}${R.g.sinal.length?(' + '+R.g.sinal.length+' sinal'):''}${R.g.churnpago.length?(' · '+R.g.churnpago.length+' saiu pagando'):''}</div></div>
-     <div class="card"><div class="k">🔵 Sinais</div><div class="v">${brl(R.sinaisPagos)}</div><div class="sub">${R.g.sinal.length} cliente${R.g.sinal.length===1?'':'s'} · resta ${brl(R.sinaisRestante)}</div></div>
-     <div class="card"><div class="k">🔴 Inadimplentes</div><div class="v ${R.g.inadimplente.length?'neg':''}">${brl(R.soma(R.g.inadimplente))}</div><div class="sub">${R.g.inadimplente.length} cliente${R.g.inadimplente.length===1?'':'s'} em atraso</div></div>
-     <div class="card"><div class="k">🟡 A receber</div><div class="v">${brl(R.soma(R.g.areceber)+R.sinaisRestante)}</div><div class="sub">${R.g.areceber.length} cliente${R.g.areceber.length===1?'':'s'} no prazo</div></div>
-     <div class="card"><div class="k">🟣 Carência</div><div class="v">${brl(R.isentoCarencia)}</div><div class="sub">${R.g.carencia.length} cliente${R.g.carencia.length===1?'':'s'} · isento no mês</div></div>
-     <div class="card"><div class="k">⚫ Churn</div><div class="v ${R.g.churn.length?'neg':''}">${brl(R.perdaChurn)}</div><div class="sub">${R.g.churn.length} cliente${R.g.churn.length===1?'':'s'} · receita perdida${R.g.churnpago.length?(' · +'+R.g.churnpago.length+' saiu com o mês pago'):''}</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#3fcf8e"></i> Recebido em ${fmtComp(comp)}</div><div class="v pos">${brl(R.recebidoSoma+R.sinaisPagos)}</div><div class="sub">${R.recebidoLista.length} cliente${R.recebidoLista.length===1?'':'s'}${R.g.sinal.length?(' + '+R.g.sinal.length+' sinal'):''}${R.g.churnpago.length?(' · '+R.g.churnpago.length+' saiu pagando'):''}</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#4f8cff"></i> Sinais</div><div class="v">${brl(R.sinaisPagos)}</div><div class="sub">${R.g.sinal.length} cliente${R.g.sinal.length===1?'':'s'} · resta ${brl(R.sinaisRestante)}</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#ef5b6b"></i> Inadimplentes</div><div class="v ${R.g.inadimplente.length?'neg':''}">${brl(R.soma(R.g.inadimplente))}</div><div class="sub">${R.g.inadimplente.length} cliente${R.g.inadimplente.length===1?'':'s'} em atraso</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#e6b13f"></i> A receber</div><div class="v">${brl(R.soma(R.g.areceber)+R.sinaisRestante)}</div><div class="sub">${R.g.areceber.length} cliente${R.g.areceber.length===1?'':'s'} no prazo</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#a78bfa"></i> Carência</div><div class="v">${brl(R.isentoCarencia)}</div><div class="sub">${R.g.carencia.length} cliente${R.g.carencia.length===1?'':'s'} · isento no mês</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#6b7280"></i> Churn</div><div class="v ${R.g.churn.length?'neg':''}">${brl(R.perdaChurn)}</div><div class="sub">${R.g.churn.length} cliente${R.g.churn.length===1?'':'s'} · receita perdida${R.g.churnpago.length?(' · +'+R.g.churnpago.length+' saiu com o mês pago'):''}</div></div>
      <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)}</div><div class="sub">${ativos.length} clientes ativos</div></div>
    </div>
    ${rcBlocoEntradas(R,comp)}
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: 🟡 A receber, 🔴 Inadimplente, 🟢 Recebido, escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong>🟣 Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong>⚫ Churn</strong> marca perda definitiva: o valor do mês vira receita perdida, o cliente sai da planilha na hora e o card dele vai para o Controle de Churns. A perda continua somada no cartão ⚫ Churn, pra ver quem é, use o filtro de status. <strong>⚫ Churn (mês pago)</strong> é para quem pagou e depois saiu: a mensalidade continua contando como recebida e o lançamento no Financeiro fica como está, o cliente só some da carteira a partir do mês seguinte.</p>`;
+   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido, escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong><i class="emi-dot" style="background:#a78bfa"></i> Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong><i class="emi-dot" style="background:#6b7280"></i> Churn</strong> marca perda definitiva: o valor do mês vira receita perdida, o cliente sai da planilha na hora e o card dele vai para o Controle de Churns. A perda continua somada no cartão Churn, pra ver quem é, use o filtro de status. <strong><i class="emi-dot" style="background:#6b7280"></i> Churn (mês pago)</strong> é para quem pagou e depois saiu: a mensalidade continua contando como recebida e o lançamento no Financeiro fica como está, o cliente só some da carteira a partir do mês seguinte.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const vencDe=(r)=>{ const rc=R.byCli[r.id]; if(rc&&rc.venc) return rc.venc; return (r.diaVenc>=1&&r.diaVenc<=31)?vencOf(comp,r.diaVenc):null; };
@@ -14810,13 +14832,13 @@ function renderRecebimentos(c){
       const podeMarcar=s||(r.diaVenc>=1&&r.diaVenc<=31);
       const selHtml=podeMarcar?`<select class="stSel ${s||''}" onchange="rcStatusCli('${r.id}',this.value)">
         ${s?'':'<option value="" selected>-</option>'}
-        <option value="areceber"${s==='areceber'?' selected':''}>🟡 A receber</option>
-        <option value="sinal"${s==='sinal'?' selected':''}>🔵 Sinal pago</option>
-        <option value="inadimplente"${s==='inadimplente'?' selected':''}>🔴 Inadimplente</option>
-        <option value="recebido"${s==='recebido'?' selected':''}>🟢 Recebido</option>
-        <option value="carencia"${s==='carencia'?' selected':''}>🟣 Carência (isento no mês)</option>
-        <option value="churn"${s==='churn'?' selected':''}>⚫ Churn (não vai pagar)</option>
-        <option value="churnpago"${s==='churnpago'?' selected':''}>⚫ Churn (pagou o mês)</option>
+        <option value="areceber"${s==='areceber'?' selected':''}>A receber</option>
+        <option value="sinal"${s==='sinal'?' selected':''}>Sinal pago</option>
+        <option value="inadimplente"${s==='inadimplente'?' selected':''}>Inadimplente</option>
+        <option value="recebido"${s==='recebido'?' selected':''}>Recebido</option>
+        <option value="carencia"${s==='carencia'?' selected':''}>Carência (isento no mês)</option>
+        <option value="churn"${s==='churn'?' selected':''}>Churn (não vai pagar)</option>
+        <option value="churnpago"${s==='churnpago'?' selected':''}>Churn (pagou o mês)</option>
       </select>${(s==='recebido'||s==='churnpago')&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${s==='sinal'&&rec?(()=>{ const pz=rcPrazoTexto(rcRestVenc(rec));
         return `<div style="color:var(--muted);font-size:11px;margin-top:3px">entrada ${brl(rec.sinal)} em ${fmtDate(rec.sinalEm)}</div>
         <div style="font-size:11px;margin-top:2px;color:${pz.cor};font-weight:600">resta ${brl(rcRestante(rec))} · ${esc(pz.txt)}</div>`; })():''}`:'<span class="tag st">defina o dia</span>';
@@ -14888,7 +14910,7 @@ window.openCliModal=(id)=>{
       <div class="field"><label>Primeiro pagamento (opcional)</label><input type="month" id="m_inicio" value="${it.inicio||''}"></div>
       <div class="field"><label>Último mês: churn (opcional)</label><input type="month" id="m_fim" value="${it.fim||''}"></div>
     </div>
-    <div class="k" style="margin:18px 0 10px">📄 Dados para contrato</div>
+    <div class="k" style="margin:18px 0 10px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg> Dados para contrato</div>
     <div class="row2">
       <div class="field"><label>Razão social</label><input id="m_k_razao" value="${esc((it.contrato||{}).razao)}" placeholder="Vazio = usa o nome do cliente"></div>
       <div class="field"><label>CNPJ</label><input id="m_k_cnpj" value="${esc(ctMascCNPJ((it.contrato||{}).cnpj))}" oninput="this.value=ctMascCNPJ(this.value)" placeholder="00.000.000/0001-00"></div>
@@ -15016,7 +15038,7 @@ function rcSinalModal(c,r){
       async ()=>{
         const v=parseFloat(String(($('#sn_v')||{}).value||'').replace(',','.'));
         if(!(v>0)){ toast('Informe o valor do sinal.'); return false; }
-        if(v>=tot){ toast('Sinal maior ou igual ao total, use 🟢 Recebido.'); return false; }
+        if(v>=tot){ toast('Sinal maior ou igual ao total, use Recebido.'); return false; }
         const dSinal=($('#sn_d')||{}).value||hojeISO();
         const dRest=($('#sn_r')||{}).value||'';
         if(dRest&&dRest<dSinal){ toast('A data do restante não pode ser antes do sinal.'); return false; }
@@ -15121,7 +15143,7 @@ window.rcStatusCli=async (cliId,novo)=>{
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
   }
   if(novo!=='churn' && novo!=='churnpago' && c.churnComp && comp>=c.churnComp){ c.churnComp=null; c.fim=''; await chVoltarDeChurns(c); }
-  await saveDB(); render('recebimentos'); toast('Status de '+c.nome+': '+(novo==='recebido'?'🟢 Recebido':novo==='sinal'?'🔵 Sinal pago':novo==='inadimplente'?'🔴 Inadimplente':novo==='churn'?'⚫ Churn: receita perdida':novo==='churnpago'?'⚫ Churn: mês pago, receita mantida':novo==='carencia'?'🟣 Carência: isento no mês':'🟡 A receber')+(moveuChurn?' · card movido para 📉 Controle de Churns':''));
+  await saveDB(); render('recebimentos'); toast('Status de '+c.nome+': '+(novo==='recebido'?'Recebido':novo==='sinal'?'Sinal pago':novo==='inadimplente'?'Inadimplente':novo==='churn'?'Churn: receita perdida':novo==='churnpago'?'Churn: mês pago, receita mantida':novo==='carencia'?'Carência: isento no mês':'A receber')+(moveuChurn?' · card movido para Controle de Churns':''));
 };
 
 /* ======================= CONTRATOS (minutas) ======================= */
@@ -15385,7 +15407,7 @@ const CT_ALVOS=['word/document.xml','word/header1.xml','word/header2.xml','word/
 async function ctModeloZip(slug){
   const {data,error}=await sb.from('contrato_modelos').select('conteudo_b64,arquivo').eq('slug',slug).single();
   if(error) throw new Error(error.message);
-  if(!data||!data.conteudo_b64) throw new Error('O modelo "'+CT_MODELOS[slug]+'" ainda não foi enviado. Use ⚙️ Modelos.');
+  if(!data||!data.conteudo_b64) throw new Error('O modelo "'+CT_MODELOS[slug]+'" ainda não foi enviado. Use Modelos.');
   const JSZipC=await ctJSZip();
   return {zip:await JSZipC.loadAsync(ctB64Bytes(data.conteudo_b64)),arquivo:data.arquivo};
 }
@@ -15613,7 +15635,7 @@ function renderLeads(c){
         <span class="tag" style="color:${st[1]};background:color-mix(in srgb,${st[1]} 16%,transparent)">${st[0]}</span>
       </div>
       <div class="ag-l2">
-        ${wa?`<a class="ag-wa" href="${wa}?text=${encodeURIComponent('Olá, '+String(l.nome||'').split(' ')[0]+'! Aqui é da AutoSíntese. Vi que você preencheu o formulário e quer acelerar as vendas da loja.')}" target="_blank" rel="noopener">💬 ${esc(l.whatsapp)}</a>`:esc(l.whatsapp||'')}
+        ${wa?`<a class="ag-wa" href="${wa}?text=${encodeURIComponent('Olá, '+String(l.nome||'').split(' ')[0]+'! Aqui é da AutoSíntese. Vi que você preencheu o formulário e quer acelerar as vendas da loja.')}" target="_blank" rel="noopener"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg> ${esc(l.whatsapp)}</a>`:esc(l.whatsapp||'')}
         ${ig?`<a class="ag-chip" href="https://www.instagram.com/${encodeURIComponent(ig)}/" target="_blank" rel="noopener" style="text-decoration:none">@${esc(ig)}</a>`:''}
         ${utmTxt(l.utm)?`<span class="ag-chip">${esc(utmTxt(l.utm))}</span>`:''}
         ${l.whats?(l.whats.ok
@@ -15633,7 +15655,7 @@ function renderLeads(c){
   c.innerHTML=`
    <div class="page-head"><div><h2>Leads da landing</h2><div class="desc">Quem preencheu o formulário em <strong>${LD_URL.replace('https://','')}</strong> · cai aqui na hora</div></div>
      <div class="toolbar">
-       <button class="btn secondary small" onclick="ldCopiar()">🔗 Copiar link da landing</button>
+       <button class="btn secondary small" onclick="ldCopiar()"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Copiar link da landing</button>
        <a class="btn secondary small" href="${LD_URL}" target="_blank" rel="noopener">Abrir landing</a>
        <button class="btn secondary small" onclick="LD.carregou=false;renderLeads(document.getElementById('content'))">Atualizar</button>
      </div></div>
@@ -16028,7 +16050,7 @@ function renderFolha(c){
    <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>Escritório / DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
    <tbody>${(()=>{ const g=agrupar(fixos,f=>(f.esc||'').trim());
      const linha=(f)=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'-'}</td><td>${esc(f.pix)||'-'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.titular?`<div style="color:var(--muted);font-size:12px">${esc(f.titular)}</div>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.esc?`<span class="tag st">🏢 ${esc(f.esc)}</span>`:(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'-')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:var(--info)">📅 próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
+     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'-'}</td><td>${esc(f.pix)||'-'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.titular?`<div style="color:var(--muted);font-size:12px">${esc(f.titular)}</div>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.esc?`<span class="tag st"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/></svg> ${esc(f.esc)}</span>`:(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'-')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:var(--info)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
      <td class="money" style="text-align:right">${brl(f.valor)}</td>
      <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
      <td><div class="rowact">
@@ -16173,7 +16195,7 @@ window.openFixoModal=(id)=>{
       <div class="field" id="wrapDsem" style="${it.freq==='semanal'?'':'display:none'}"><label>Dia da semana</label><select id="m_dsem">${DSEM.map((d,i)=>`<option value="${i}"${(it.diaSemana??5)===i?' selected':''}>${d.charAt(0).toUpperCase()+d.slice(1)}</option>`).join('')}</select></div>
     </div>
     <div class="row2">
-      <div class="field"><label>📅 Próximo pagamento (abre o calendário)</label><input type="date" id="m_prox" value="${it.proxData||''}"></div>
+      <div class="field"><label><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Próximo pagamento (abre o calendário)</label><input type="date" id="m_prox" value="${it.proxData||''}"></div>
       <div class="field" style="display:flex;align-items:flex-end"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0 0 8px;font-size:13px;color:var(--txt)"><input type="checkbox" id="m_rec" ${it.recorrente!==false?'checked':''} style="accent-color:#7c3aed;width:16px;height:16px;cursor:pointer"> Repetir daqui em diante</label></div>
     </div>
     <div class="row2">
@@ -16297,7 +16319,7 @@ function drawUsuarios(c){
      <td><span style="display:inline-flex;align-items:center;gap:9px"><span class="uf-av" title="Trocar a foto de ${esc(u.nome)}" onclick="ufTrocar('${u.id}')">${u.foto?`<img src="${esc(u.foto)}" alt="">`:esc(inicial(u.nome))}</span><strong>${esc(u.nome)}</strong></span>${u.id===currentUser.id?' <span class="tag st">você</span>':''}</td>
      <td>${esc(u.email)||'<span style="color:var(--muted)">-</span>'}</td>
      <td><div class="pw-cell"><span class="pw-dots" id="up_${u.id}">${u.temSenha?'••••••••':'<span style="color:var(--muted)">não guardada</span>'}</span>
-       ${u.temSenha?`<button class="iconbtn" onclick="toggleUserPw('${u.id}')">👁</button><button class="iconbtn" onclick="copyUserPw('${u.id}')">copiar</button>`:''}</div></td>
+       ${u.temSenha?`<button class="iconbtn" onclick="toggleUserPw('${u.id}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="iconbtn" onclick="copyUserPw('${u.id}')">copiar</button>`:''}</div></td>
      <td><span class="tag ${u.role==='master'?'andamento':'st'}">${u.role==='master'?'Master':'Usuário'}</span></td>
      <td>${sqCelula(u)}</td>
      <td id="wa_${u.id}">${usWaCelula(u)}</td>
@@ -16309,7 +16331,7 @@ function drawUsuarios(c){
        ${u.id!==currentUser.id?`<button class="iconbtn" onclick="toggleRole('${u.id}')">${u.role==='master'?'Tornar usuário':'Tornar master'}</button><button class="iconbtn del" onclick="removeUser('${u.id}')">Remover</button>`:''}
      </div></td>
    </tr>`).join('')}</tbody></table></div>
-   <p class="hint" style="margin-top:14px">O acesso só existe se um <strong>master</strong> criar aqui: não há autocadastro na tela de login. A senha fica <strong>cifrada no servidor</strong>: o 👁 pede a senha a uma função protegida que só responde a masters. Quem esquecer a senha pede a um master para <strong>Redefinir</strong>.${masters<=1?' <br><strong>Atenção:</strong> só existe um master hoje, promova alguém para não ficar sem acesso.':''}</p>`;
+   <p class="hint" style="margin-top:14px">O acesso só existe se um <strong>master</strong> criar aqui: não há autocadastro na tela de login. A senha fica <strong>cifrada no servidor</strong>: o pede a senha a uma função protegida que só responde a masters. Quem esquecer a senha pede a um master para <strong>Redefinir</strong>.${masters<=1?' <br><strong>Atenção:</strong> só existe um master hoje, promova alguém para não ficar sem acesso.':''}</p>`;
   usWaCarregar();
 }
 /* ---------- ONDE CADA UM COMEÇA ----------
@@ -18281,8 +18303,8 @@ window.cliAcoes=async (id)=>{
   const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
   const arq=cliArq(c);
   const ops=arq
-    ? [{v:'desarq',rot:'↩ Desarquivar'},{v:'excluir',rot:'🗑 Excluir de vez'}]
-    : [{v:'arquivar',rot:'🗄 Arquivar'},{v:'churn',rot:'📉 Mover para Controle de Churns'},{v:'excluir',rot:'🗑 Excluir de vez'}];
+    ? [{v:'desarq',rot:'↩ Desarquivar'},{v:'excluir',rot:'Excluir de vez'}]
+    : [{v:'arquivar',rot:'Arquivar'},{v:'churn',rot:'Mover para Controle de Churns'},{v:'excluir',rot:'Excluir de vez'}];
   const v=await escolher(c.nome||'Cliente',
     arq?('Arquivado em '+fmtDate(c.arquivadoEm)+'. Desarquivar devolve o cliente à carteira.')
        :'Arquivar tira da carteira e é reversível. Churn marca a saída em '+fmtComp(cliComp)+' e move o card. Excluir apaga cliente, cobranças, lançamentos e ficha.',
@@ -18318,7 +18340,7 @@ $('#btnBackup').onclick=()=>{
     <p class="hint" style="margin:0 0 14px">Os dados já ficam salvos na nuvem da empresa (Supabase). Use o backup como cópia extra de segurança, ou para importar dados do sistema antigo (arquivo .json da v2).</p>
     <button class="btn small" style="width:100%;margin-bottom:10px" id="doExport">⬇ Exportar backup (.json)</button>
     <div class="field"><label>Restaurar / importar de arquivo</label><input type="file" id="impFile" accept="application/json"></div>
-    <p class="hint">⚠️ O backup exportado NÃO é criptografado, contém as senhas do módulo Senhas em texto. Ao restaurar, os dados atuais de TODOS os usuários são substituídos.</p>`,
+    <p class="hint"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> O backup exportado NÃO é criptografado, contém as senhas do módulo Senhas em texto. Ao restaurar, os dados atuais de TODOS os usuários são substituídos.</p>`,
     async ()=>true);
   setTimeout(()=>{
     $('#doExport').onclick=()=>{
@@ -18385,8 +18407,8 @@ initLoginScreen();
   setInterval(checa,5*60*1000);
 })();
 </script>
-<script src="crm.js?v=26" defer></script>
-<script src="comercial/instancias.js?v=3" defer></script>
+<script src="crm.js?v=27" defer></script>
+<script src="comercial/instancias.js?v=4" defer></script>
 <script src="comercial/conversas.js?v=3" defer></script>
 </body>
 </html>

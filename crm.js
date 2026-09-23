@@ -7,14 +7,14 @@
 const CRM_TIPOS_EVENTO={
   lead_created:['★','ev','Entrou no funil'], reopened:['↻','ev','Oportunidade reaberta'],
   touchpoint_added:['◎','ev','Novo toque de marketing'], sdr_first_response:['↩','ok','Primeiro contato do SDR'],
-  lead_responded:['💬','ok','Lead respondeu'], qualified:['✓','ev','Qualificado'], unqualified:['✕','bad','Desqualificado'],
-  appointment_created:['📅','cal','Sessão agendada'], appointment_confirmed:['✓','cal','Sessão confirmada'],
+  lead_responded:['<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg>','ok','Lead respondeu'], qualified:['✓','ev','Qualificado'], unqualified:['✕','bad','Desqualificado'],
+  appointment_created:['<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>','cal','Sessão agendada'], appointment_confirmed:['✓','cal','Sessão confirmada'],
   appointment_rescheduled:['⇄','cal','Sessão reagendada'], appointment_canceled:['✕','bad','Sessão cancelada'],
   meeting_attended:['●','ok','Compareceu à reunião'], no_show:['○','bad','No-show'], proposal:['$','ev','Em negociação / proposta'],
-  won:['🎉','ok','Venda fechada'], lost:['✕','bad','Perdido'], stage_changed:['→','','Mudou de estágio'],
-  owner_changed:['👤','','Responsável alterado'], value_changed:['$','','Valor alterado'], note:['✎','','Anotação'],
+  won:['','ok','Venda fechada'], lost:['✕','bad','Perdido'], stage_changed:['→','','Mudou de estágio'],
+  owner_changed:['<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>','','Responsável alterado'], value_changed:['$','','Valor alterado'], note:['✎','','Anotação'],
   source_changed:['◎','','Origem alterada'], attendance_overridden:['✎','cal','Presença ajustada à mão'],
-  whatsapp_first_message:['💬','ev','Primeira mensagem no WhatsApp']
+  whatsapp_first_message:['<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 21l2-5.9A8.4 8.4 0 1 1 21 11.5z"/></svg>','ev','Primeira mensagem no WhatsApp']
 };
 /* Quatro opcoes atras de um calendario (Gabriel 16/09). Eram seis botoes escritos
    ocupando a barra inteira; agora e um botao so que abre o menu. */
@@ -382,8 +382,8 @@ function crmRodapeHTML(o){
     <button class="btn secondary" onclick="crmMover('${o.id}','novo_lead')">↻ Reabrir</button>${zap}
     <button class="btn secondary crm-mais" onclick="crmMaisMenu(event,'${o.id}')" aria-label="Mais ações">···</button></div>`;
   return `<div class="crm-rod">
-    <button class="btn secondary" onclick="crmAgendarModal('${o.id}')">📅 Agendar</button>${zap}
-    <button class="btn ganho" onclick="crmGanhoModal('${o.id}')">🎉 Ganho</button>
+    <button class="btn secondary" onclick="crmAgendarModal('${o.id}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Agendar</button>${zap}
+    <button class="btn ganho" onclick="crmGanhoModal('${o.id}')">Ganho</button>
     <button class="btn secondary crm-mais" onclick="crmMaisMenu(event,'${o.id}')" aria-label="Mais ações">···</button></div>`;
 }
 window.crmMaisMenu=(ev,id)=>{
@@ -529,7 +529,7 @@ window.crmNovoLeadOrigem=()=>{ const src=crmVal('cl_src'), org=crmOrigem(src); c
   l.textContent=rot[0]; d.placeholder=rot[1]; c.style.display=org.paid?'grid':'none'; };
 
 window.crmGanhoModal=(id)=>{ const o=CRM.d.opps.find(x=>x.id===id)||{};
-  modal('Fechou! 🎉',`<div class="crm-form"><div class="row2"><div class="field"><label>Receita (R$) *</label><input id="cg_val" inputmode="decimal" value="${o.value||''}" placeholder="5950"></div>
+  modal('Fechou!',`<div class="crm-form"><div class="row2"><div class="field"><label>Receita (R$) *</label><input id="cg_val" inputmode="decimal" value="${o.value||''}" placeholder="5950"></div>
     <div class="field"><label>Closer</label>${crmSelEquipe('cg_closer',crmClosers(),o.closer_id||(crmPapel()==='closer'?currentUser.id:''),'-')}</div></div>
     <div class="crm-hint">A receita é o que alimenta ROAS, ROI e CAC. Se a oportunidade veio de anúncio com ctwa_clid, a venda será devolvida à Meta (CAPI) numa fase futura.</div></div>`,
     async ()=>{ const v=Number(crmVal('cg_val').replace(/\./g,'').replace(',','.')); if(!v||v<=0){ toast('Informe a receita.'); return false; }
@@ -607,7 +607,7 @@ function crmAgendaHTML(){
       <b style="font-size:14px">${esc(crmDia(seg.toISOString()))} – ${esc(crmDia(new Date(fim-1).toISOString()))}</b>
       <span style="margin-left:auto"></span>
       ${meuG?`<span class="crm-badge ok" title="${esc(meuG.google_email||'')}">● Google conectado</span>`:`<button class="btn secondary small" onclick="crmConectarGoogle()">Conectar meu Google Agenda</button>`}
-      <button class="btn small" onclick="crmAgendarModal('')">📅 Agendar sessão</button></div>
+      <button class="btn small" onclick="crmAgendarModal('')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Agendar sessão</button></div>
     <div class="crm-week">${w}</div>
     <div class="crm-legenda"><span><i style="background:var(--brand)"></i>Agendada</span><span><i style="background:var(--ok)"></i>Compareceu</span><span><i style="background:var(--danger)"></i>No-show</span><span><i style="background:var(--warn)"></i>Indeterminado</span>
       <span style="margin-left:auto">Closers: ${closers.map(p=>`${esc(p.nome.split(' ')[0])} ${crmGoogleDe(p.id)?'<span class="crm-badge ok">Google ok</span>':'<span class="crm-badge warn">sem Google</span>'}`).join(' · ')||'nenhum closer definido (Equipe comercial)'}</span></div>
