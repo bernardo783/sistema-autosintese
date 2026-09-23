@@ -10567,10 +10567,18 @@ window.lcArquivar=async (fid)=>{
   if(!souGerente()){ toast('Só master e gerentes arquivam cliente.'); return; }
   const f=fichaDe(fid), t=lcCardDe(fid);
   if(!t){ toast('Este cliente não tem card no Controle de Clientes.'); return; }
-  const ok=await confirmar('Arquivar '+((f&&f.nome)||'este cliente')+'?',
-    'O card sai do Controle de Clientes, mas nada é apagado: ficha, tarefas e financeiro continuam lá. Ele fica em Arquivados — dentro da lista e no seu perfil — e dá para restaurar quando quiser.',
-    {sim:'Sim, arquivar',nao:'Não'});
-  if(!ok) return;
+  /* Gabriel 23/09: o botao pergunta se foi churn. Churn usa o mesmo formulario do
+     "8. CHURN" (saida, ultimo pagamento, perda, motivo) e leva o card pro Controle de
+     Churns — que e o registro da saida; por isso ele NAO e arquivado, senao sumiria
+     de la tambem. "So arquivar" tira da vista sem contar como churn. */
+  const jaChurn=t.lista_id===CH_ID;
+  const op=await escolher('Arquivar '+((f&&f.nome)||'este cliente')+'?',
+    jaChurn?'Ele já está no Controle de Churns. Arquivar tira da vista; nada é apagado e dá para restaurar em Arquivados.'
+      :'Se o cliente saiu, registre como churn: o card vai para o Controle de Churns com a perda de receita. Se não, só arquive — nada é apagado e dá para restaurar em Arquivados.',
+    jaChurn?[{v:'arq',rot:'Arquivar'}]
+      :[{v:'churn',rot:'Foi churn — mover para Controle de Churns'},{v:'arq',rot:'Só arquivar'}]);
+  if(!op) return;
+  if(op==='churn'){ arqFechar(); return chPerguntarChurn(t.id); }
   const quando=new Date().toISOString();
   const {error}=await sb.from('tarefas').update({arquivada_em:quando,arquivada_por:(currentUser||{}).id||null}).eq('id',t.id);
   if(error){ toast('Erro: '+error.message); return; }
