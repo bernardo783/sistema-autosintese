@@ -1,4 +1,4 @@
--- Ações do Dia → Campanhas (Gabriel 23/09/2026)
+-- Ações do Dia → Campanhas (Gabriel 23/09/2026) — JÁ APLICADA via MCP (186 tarefas movidas, lista removida)
 -- "Deixa tudo em Campanhas; o que tem nas Ações do Dia vai pra Campanhas e o histórico não pode ser apagado."
 -- ATENÇÃO: tarefas.lista_id é ON DELETE CASCADE — apagar a lista antes de mover apagaria as tarefas.
 -- Por isso: move tudo, confere que ficou vazia (senão aborta) e só então remove a lista.

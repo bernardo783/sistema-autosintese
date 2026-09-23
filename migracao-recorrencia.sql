@@ -1,4 +1,4 @@
--- Tarefas recorrentes (23/09/2026)
+-- Tarefas recorrentes (23/09/2026) — JÁ APLICADA (coluna criada pelo Gabriel, índice via MCP)
 -- Rodar UMA vez no SQL Editor do Supabase (projeto fuieonexmdupupcsyowg). Pode repetir sem medo.
 -- A regra de repetição mora na própria tarefa (jsonb). O front cria a próxima ocorrência
 -- e usa recorrencia->>'gerou' como trava para dois navegadores não criarem a mesma.
