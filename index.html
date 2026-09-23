@@ -8538,7 +8538,7 @@ function tkDesenhar(c){
   const ordBtn=(TK.escopo==='lista'&&TK.visao==='lista')
     ? `<button class="btn ghost small${TK.ord?'':' on'}" onclick="tkOrdemManual()" title="${TK.ord?'Voltar a poder arrastar as linhas':'Você já pode arrastar as linhas'}">⠿ Ordem manual</button>` : '';
   const abas=`<div class="tk-seg">${visoes.map(v=>`<button class="${TK.visao===v[0]&&!TK.arqVista?'on':''}" onclick="tkArqVista(false);tkVisao('${v[0]}')">${v[1]}</button>`).join('')}
-    ${(TK.escopo==='lista'&&(nArq||TK.arqVista))?`<button class="${TK.arqVista?'on':''}" onclick="tkArqVista(${TK.arqVista?'false':'true'})" title="Cartões arquivados">🗄 Arquivados${nArq?' ('+nArq+')':''}</button>`:''}</div>`;
+    ${(TK.escopo==='lista'&&TK.arqVista)?`<button class="on" onclick="tkArqVista(false)" title="Sair dos arquivados">Arquivados${nArq?' ('+nArq+')':''} &times;</button>`:''}</div>`;
   const corpo=(cli&&TK.lcVista==='gerentes')?lcVistaGerentes():(TK.visao==='lista'?tkViewLista():tkViewBoard());
   const dica=TK.visao==='board'?'arraste os cartões entre as colunas':'clique no nome para abrir, no cabeçalho para ordenar';
   const titulo=TK.escopo==='minhas'?'Minhas tarefas':TK.escopo==='todas'?'Todas as tarefas':(lista?esc(spNome(lista)):'Listas');
