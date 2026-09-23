@@ -2149,6 +2149,13 @@
   .lc-alerta span{color:var(--muted)} .lc-alerta u{margin-left:auto}
   /* Controle de Clientes, visão B */
   .lcb-dd b{color:var(--txt);font-weight:700}
+  .lcb-ets{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px}
+  .lcb-ets .lc-chips{display:contents}
+  .lcb-et2{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:12px;font-weight:600;color:var(--muted);background:var(--panel2);
+    border:0;border-radius:999px;padding:4px 10px;cursor:pointer}
+  .lcb-et2 b{color:var(--txt)}
+  .lcb-et2:hover{color:var(--txt)}
+  .lcb-selo{border:0!important;padding:4px 6px!important}
   .lcb-ok{margin-left:auto;color:var(--brand2);font-weight:800}
   .lcb-selo{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--warn);background:transparent;
     border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:999px;padding:5px 11px;cursor:pointer;white-space:nowrap;font-family:inherit}
@@ -2159,7 +2166,7 @@
   .lcb-et:hover{border-color:var(--fraco)}
   .lcb-et .k{font-size:11px;font-weight:700;color:var(--fraco);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .lcb-et .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
-  .lcb-et .bar{display:block;width:100%;height:3px;border-radius:2px;margin-top:5px}
+  .lcb-et .bar{display:block;width:100%;align-self:stretch;min-width:100%;height:3px;border-radius:2px;margin-top:5px}
   .lcb-et.zero .v{color:var(--fraco)}
   .lcb-et.on{border-color:var(--brand2);background:color-mix(in srgb,var(--brand) 12%,transparent)}
   .tk-col.lcb-fina{flex:0 0 44px;width:44px;min-height:220px;padding:10px 0;align-items:center}
@@ -8759,10 +8766,10 @@ function lcBtnTipo(){
   return `<button class="btn ghost small lcb-dd${k?' fon':''}" onclick="lcPopTipo(event)">Tipo: <b>${esc(rot)}</b> ▾</button>`;
 }
 function lcbPop(ev,html){
-  ev.stopPropagation(); const v=document.getElementById('lcbPop'); if(v){ v.remove(); if(v.dataset.de===ev.currentTarget.textContent) return; }
+  ev.stopPropagation(); const quem=ev.currentTarget.title||ev.currentTarget.textContent; const v=document.getElementById('lcbPop'); if(v){ v.remove(); if(v.dataset.de===quem) return; }
   const r=ev.currentTarget.getBoundingClientRect();
   const el=document.createElement('div'); el.id='lcbPop'; el.className='tkpop'; el.style.width='260px'; el.style.zIndex=3000;
-  el.dataset.de=ev.currentTarget.textContent; el.innerHTML=html; document.body.appendChild(el); popPor(el,r);
+  el.dataset.de=quem; el.innerHTML=html; document.body.appendChild(el); popPor(el,r);
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
   return el;
 }
@@ -8806,6 +8813,15 @@ function lcFunil(){
 }
 window.lcEstF=(id)=>{ const a=TK.lcF.estagio; TK.lcF.estagio=(a.length===1&&a[0]===id)?[]:[id]; lcFAplicar(); };
 window.lcAbaGer=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
+/* etiquetas do que está filtrado: pessoa e tipo + as do Filtro (lcChips). Sem filtro, nada aparece. */
+function lcEtiquetas(){
+  const e=[];
+  if(TK.lcGestor) e.push(`<button class="lcb-et2" onclick="lcGestorF('')" title="Tirar este filtro">${TK.lcPor==='gerente'?'Gerente':'Gestor'}: <b>${esc(TK.lcGestor==='(sem)'?'sem ninguém':TK.lcGestor)}</b> ✕</button>`);
+  if(TK.lcTipo) e.push(`<button class="lcb-et2" onclick="TK.lcTipo='';tkDesenhar($('#content'))" title="Tirar este filtro">Tipo: <b>${esc(TK.lcTipo==='(sem)'?'Sem tipo':(CAT_LABEL[TK.lcTipo]||TK.lcTipo))}</b> ✕</button>`);
+  const f=lcChips();
+  if(!e.length&&!f) return '';
+  return `<div class="lcb-ets">${e.join('')}${f}</div>`;
+}
 /* faixa do que esta ativo: sem isso a lista encolhe e ninguem sabe por que */
 function lcChips(){
   if(!lcFiltroN()) return '';
@@ -8961,6 +8977,27 @@ function tkDesenhar(c){
    ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}`;
     if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
     return; }
+  if(cli){
+    /* Controle de Clientes, opção A (Gabriel 23/09): Pessoa, Tipo e Filtro viram ícones sem borda
+       como nas listas de tarefa; o que está filtrado vira etiqueta embaixo (lcEtiquetas). */
+    const ger=TK.lcVista==='gerentes', busca=!!(TK.busca||TK.tpBusca), nF=lcFiltroN();
+    c.innerHTML=`
+   <div class="page-head tp-head">
+     <div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>${titulo}</h2>${abas}
+       <div class="tp-dir">${lcSeloContas()}
+         ${busca?`<input class="search tp-busca" id="tk_busca" placeholder="Buscar cliente..." value="${esc(TK.busca)}" oninput="tkBusca(this.value)" onblur="if(!this.value){TK.tpBusca=false;tkDesenhar($('#content'));}">`
+           :tpIb('lupa','Buscar',"TK.tpBusca=true;TK.focoBusca=true;tkDesenhar($('#content'))")}
+         ${ger?'':tpIb('pessoa',TK.lcPor==='gerente'?'Gerente':'Gestor de tráfego','lcPopPessoa(event)',!!TK.lcGestor,TK.lcGestor?1:'')}
+         ${ger?'':tpIb('tag','Tipo de cliente','lcPopTipo(event)',!!TK.lcTipo,TK.lcTipo?1:'')}
+         ${ger?'':tpIb('funil','Mais filtros','lcPopFiltro(event)',nF>0,nF||'')}
+         ${lista?tpIb('pts','Menu da lista','lsMenu(event)'):''}
+         <button type="button" class="tp-mais" title="Novo cliente" aria-label="Novo cliente" onclick="render('fechamento')">${tpSvg('mais')}</button>
+       </div></div></div>
+   </div>
+   ${ger?'':lcEtiquetas()+(TK.visao==='lista'?lcFunil():'')+lcGrupoResumo()}
+   ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}`;
+    if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
+    return; }
   c.innerHTML=`
    <div class="page-head">
      <div>${tkCrumb()}<h2>${titulo}</h2><div class="desc">${TK.escopo==='minhas'?'tudo que está atribuído a você e ainda não foi concluído':TK.escopo==='todas'?'Autosíntese: todas as listas':esc(tkCaminho(TK.listaSel))} · ${dica}</div></div>
@@ -8996,7 +9033,8 @@ const TP_SVG={
   quadro:'<rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/>',
   pts:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   mais:'<path d="M12 5v14M5 12h14"/>',
-  flag:'<path d="M4 21V4h11l-1.5 4L15 12H4"/>'};
+  flag:'<path d="M4 21V4h11l-1.5 4L15 12H4"/>',
+  tag:'<path d="M20.6 13.4 12 22l-9-9V4h9l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/>'};
 const tpSvg=(k,s)=>`<svg width="${s||16}" height="${s||16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${TP_SVG[k]}</svg>`;
 const tpIb=(k,titulo,acao,on,badge)=>`<button type="button" class="tp-ib${on?' on':''}" title="${esc(titulo)}" aria-label="${esc(titulo)}" onclick="${acao}">${tpSvg(k)}${badge?`<span class="tp-bd">${badge}</span>`:''}</button>`;
 /* abas de texto: Minhas | Recorrentes (Recorrentes só pra gerente e master) */
