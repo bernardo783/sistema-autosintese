@@ -10621,8 +10621,10 @@ let dashDe=''; let dashAte='';
    Reunião diária de cada squad: fila de contas montada sozinha (sinais do Meta +
    rodízio de quem está há mais tempo sem revisão), conferência, e a decisão do dia
    virando tarefa na hora. O cronômetro mede a reunião e alimenta o relatório de tempo. */
-const DL_LISTA='da11a000-0000-4000-8000-000000000001';   /* 🗓️ Ações do Dia */
-const DL_STATUS='da11a000-0000-4000-8000-0000000000a1';  /* status "A fazer" da lista */
+/* A lista 🗓️ Ações do Dia foi desfeita (Gabriel 23/09): tudo mora em Campanhas.
+   As 186 tarefas antigas foram movidas pra lá com o histórico (migracao-acoes-para-campanhas.sql). */
+const DL_LISTA='cd04ad6e-0cd2-4838-b050-49fcfebafe05';   /* Marketing › Tráfego Pago › Campanhas */
+const DL_STATUS='4bcaa499-0d3b-4f7c-a371-44fcde20c3ca';  /* coluna "Pendente" de Campanhas */
 const DL_RODIZIO=12;    /* quantas contas sem sinal entram por dia (47 contas ÷ 5 dias, com folga) */
 let DL={squad:'',dia:null,itens:[],ult:{},sel:'',aba:'reuniao',tick:null,dest:'',sem:0,carregou:false,hDe:'',hAte:'',hSquad:'',hBusca:''};
 
@@ -10908,7 +10910,7 @@ function dlPainelHTML(){
         <b>${esc(fmtDate(String(t.criado_em||'').slice(0,10)))} · ${esc(dlPrimeiroMai(tkNomeUser(t.responsavel_id)))}</b><br>
         ${esc(t.titulo)}${t.status==='feito'?' <span class="dl-t g">feito</span>':''}</div>`).join('')}`:''}
 
-      ${fim?`<p class="hint" style="margin-top:14px">Daily encerrada — para criar novas ações, use a lista 🗓️ Ações do Dia.</p>`
+      ${fim?`<p class="hint" style="margin-top:14px">Daily encerrada — para criar novas ações, use a lista Campanhas.</p>`
       :`<div class="dl-sec">Decisão de hoje</div>
       <div class="field" style="margin-bottom:8px">
         <textarea id="dlTexto" rows="3" placeholder="O que vai ser feito hoje nessa conta?"
