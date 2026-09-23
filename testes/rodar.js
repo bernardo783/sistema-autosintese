@@ -660,6 +660,8 @@ grupo('Notificar responsável (Gabriel 23/09)');
   }
   ok('Linha Editorial cobra também os gestores de tráfego (Luan → SQUAD1, Yghor → SQUAD 2)',
     /pasta: PASTA_EDITORIAL, pessoas: \[P\.luan\], grupo: 'SQUAD1'/.test(fn)&&/pasta: PASTA_EDITORIAL, pessoas: \[P\.yghor\], grupo: 'SQUAD 2 - COMUNICAÇÃO'/.test(fn));
+  ok('Madu na Editorial: conclusão não avisa o SÍNTESE - EDITORIAL (aviso é na revisão interna)',
+    /pessoas: \[P\.madu\], grupo: 'SÍNTESE - EDITORIAL \(5\.0\)', semConclusao: true/.test(fn) && /ROTAS\.filter\(\(r\) => !r\.semConclusao &&/.test(fn));
   ok('não existe escolher grupo no app', HTML.indexOf('lbEscolherGrupo')<0 && fn.indexOf('definir_grupo')<0);
 }
 

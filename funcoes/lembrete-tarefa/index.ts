@@ -30,11 +30,13 @@ const CAMPANHAS = 'cd04ad6e-0cd2-4838-b050-49fcfebafe05', CORRECOES = 'daadf852-
 const P = { luan: 'fe486b96-f26a-40b7-96c3-ffa621b2fe64', yghor: '9a31fb28-69ea-4d98-a47c-c92437bdc763',
   gabriel: 'de5678d3-5b5e-4823-bc44-6d44a23ad830', arthur: 'a412cb58-8acd-48cb-b4d3-3ab1ebeb4af7', madu: 'fd1c84c0-b605-46b7-a83d-fe6cc5abb3b2' };
 /* lista (ou pasta) + responsável -> nome do grupo no WhatsApp */
-const ROTAS: { listas?: string[]; pasta?: string; pessoas: string[]; grupo: string }[] = [
+const ROTAS: { listas?: string[]; pasta?: string; pessoas: string[]; grupo: string; semConclusao?: boolean }[] = [
   { listas: [CAMPANHAS], pessoas: [P.luan], grupo: 'SQUAD1' },
   { listas: [CAMPANHAS], pessoas: [P.yghor], grupo: 'SQUAD 2 - COMUNICAÇÃO' },
   { listas: [CORRECOES, MELHORIAS], pessoas: [P.gabriel, P.arthur], grupo: 'Automação - Síntese' },
-  { pasta: PASTA_EDITORIAL, pessoas: [P.madu], grupo: 'SÍNTESE - EDITORIAL (5.0)' },
+  /* Madu: o grupo do editorial é avisado quando o vídeo vai pra "EM REVISÃO (INTERNO)" (trigger
+     trg_wa_aviso_revisao_editorial, sessão [03]), NÃO na conclusão. Aqui fica só o Notificar responsável. */
+  { pasta: PASTA_EDITORIAL, pessoas: [P.madu], grupo: 'SÍNTESE - EDITORIAL (5.0)', semConclusao: true },
   /* gestores de tráfego também são cobrados na Linha Editorial, no grupo do squad (Gabriel 23/09) */
   { pasta: PASTA_EDITORIAL, pessoas: [P.luan], grupo: 'SQUAD1' },
   { pasta: PASTA_EDITORIAL, pessoas: [P.yghor], grupo: 'SQUAD 2 - COMUNICAÇÃO' },
@@ -100,7 +102,7 @@ async function concluida(b: any, user: any, chefe: boolean, S: Record<string, st
     if (ja.length) return J({ ok: true, enviados: [], ja: true });
   }
   const lista = (await rest(`listas?id=eq.${t.lista_id}&select=nome,pasta_id`))[0] || {};
-  const rotas = ROTAS.filter((r) => (r.listas && r.listas.includes(t.lista_id)) || (r.pasta && r.pasta === lista.pasta_id));
+  const rotas = ROTAS.filter((r) => !r.semConclusao && ((r.listas && r.listas.includes(t.lista_id)) || (r.pasta && r.pasta === lista.pasta_id)));
   if (!rotas.length) return J({ ok: false, erro: 'sem grupo pra essa lista' }, 409);
   const pessoas: any[] = ids.length ? await rest(`perfis?id=in.(${ids.join(',')})&select=id,nome,telefone`) : [];
   const ger = t.criado_por ? (await rest(`perfis?id=eq.${t.criado_por}&select=id,nome,telefone`))[0] : null;
