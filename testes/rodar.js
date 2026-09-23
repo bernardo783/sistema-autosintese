@@ -499,6 +499,32 @@ grupo('Camada mobile (720px)');
   ok('fora do breakpoint, row2 segue 2 colunas', /\.row2\{display:grid;grid-template-columns:1fr 1fr/.test(antes));
 }
 
+/* ---------------- logos do cliente ---------------- */
+grupo('Logos do cliente: guardadas na ficha, baixadas na Linha Editorial');
+{
+  const cod=bloco('const LG_PREF=',"window.tkmAtvCarregar=");
+  const ED='23b91ffd-0afa-4db1-8239-444bce201aad';
+  const g=rodar('const LISTA_EDICAO="'+ED+'";'+cod,{
+    uid:()=>'abc12',
+    TK:{listas:[{id:ED,pasta_id:'p-edit'},{id:'l-roteiro',pasta_id:'p-edit'},{id:'l-traf',pasta_id:'p-traf'},{id:'l-solta'}]}
+  },['lgChave','ehEditorial','LG_PREF']);
+  secao('quais listas mostram a aba Logo');
+  ok('Edição de Vídeo', g.ehEditorial(ED));
+  ok('outra lista da mesma pasta (Linha Editorial)', g.ehEditorial('l-roteiro'));
+  ok('lista do Tráfego Pago não', !g.ehEditorial('l-traf'));
+  ok('lista sem pasta não', !g.ehEditorial('l-solta'));
+  ok('sem lista não', !g.ehEditorial(''));
+  secao('nome do arquivo no armazenamento');
+  const k=g.lgChave('T1','Logo 710 Veículos (final).png');
+  ok('fica na pasta do card do cliente, marcado como logo', k.indexOf('t/T1/'+g.LG_PREF)===0);
+  ok('tira espaço e acento do nome', k==='t/T1/logo-abc12_Logo_710_Ve_culos_final_.png');
+  ok('a busca da aba casa com o prefixo', cod.indexOf(".like('caminho','t/'+tid+'/'+LG_PREF+'%')")>0);
+  secao('ligações na tela');
+  ok('ficha tem a aba Logos', HTML.indexOf(`onclick="cliIrPara('\${it.id}','logos')">Logos</button>`)>0);
+  ok('painel da tarefa troca para a aba Logo', HTML.indexOf("['Det','Atv','Rel','Logo'].forEach")>0);
+  ok('aba Logo acompanha a troca de cliente', HTML.indexOf("sel.addEventListener('change',lgTk)")>0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));

@@ -1364,6 +1364,22 @@
   .tkm-ax .nm .t1.can{cursor:pointer}
   .tkm-ax .nm .t1.can:hover{color:var(--brand2)}
   .tkm-ax .iconbtn.dl{font-size:14px;line-height:1;padding:6px 9px}
+  /* ---------- LOGOS DO CLIENTE (ficha + aba Logo da Linha Editorial) ---------- */
+  .lg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .lg-it{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel2);display:flex;flex-direction:column;min-width:0}
+  .lg-pv{aspect-ratio:4/3;display:grid;place-items:center;padding:12px;cursor:pointer;background-color:#fff;
+    background-image:linear-gradient(45deg,#ececf1 25%,transparent 25%),linear-gradient(-45deg,#ececf1 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#ececf1 75%),linear-gradient(-45deg,transparent 75%,#ececf1 75%);
+    background-size:14px 14px;background-position:0 0,0 7px,7px -7px,-7px 0}
+  .lg-pv.esc{background-color:#17151f;background-image:linear-gradient(45deg,#221f2c 25%,transparent 25%),linear-gradient(-45deg,#221f2c 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#221f2c 75%),linear-gradient(-45deg,transparent 75%,#221f2c 75%)}
+  .lg-pv img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .lg-pv .ext{font-weight:800;font-size:13px;letter-spacing:.06em;color:#5b5670;padding:6px 10px;border:1.5px solid #cfcbdc;border-radius:7px;background:#fff}
+  .lg-rod{display:flex;align-items:center;gap:4px;padding:7px 6px 7px 10px}
+  .lg-rod .nm{flex:1;min-width:0}
+  .lg-rod .t1{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lg-rod .t2{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .lg-rod .iconbtn{display:grid;place-items:center;padding:5px 7px;line-height:1}
   /* ---------- LIGHTBOX DE ANEXO (previa sem baixar) ---------- */
   .lbx{position:fixed;inset:0;z-index:5000;background:rgba(6,3,18,.93);backdrop-filter:blur(3px);
     display:flex;flex-direction:column}
@@ -9377,6 +9393,10 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <h4 class="tkm-tit">Relacionamentos</h4>
       <div id="tkmRelBox"></div>
     </div>
+    ${ehEditorial(lid)?`<div class="tkm-painel hidden" id="tkmLogo">
+      <h4 class="tkm-tit">Logo do cliente</h4>
+      <div id="tkmLogoBox"></div>
+    </div>`:''}
     <div class="tkm-rail">
       <button type="button" class="tkm-i on" id="tkmIDet" title="Detalhes" onclick="tkmAba('Det')">${SVG_P.tipo||'≡'}</button>
       <button type="button" class="tkm-i" id="tkmIAtv" title="Atividade" onclick="tkmAba('Atv')">
@@ -9385,6 +9405,9 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       <button type="button" class="tkm-i" id="tkmIRel" title="Relacionamentos" onclick="tkmAba('Rel')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
         <span class="tkm-b" id="tkmBRel"></span></button>
+      ${ehEditorial(lid)?`<button type="button" class="tkm-i" id="tkmILogo" title="Logo do cliente" onclick="tkmAba('Logo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+        <span class="tkm-b" id="tkmBLogo"></span></button>`:''}
     </div></div>`,
     async ()=>{ return await tkmSalvar(t,lid,cps,false); });
   /* ---------- AUTOSAVE, estilo ClickUp ----------
@@ -9444,8 +9467,11 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   ckPintar();
   window.__tkmTarefaId=t?t.id:''; window.__tkmCriando=null;
   tkFichaPinta('tk_ficha');
-  setTimeout(()=>{ if(t){ tkmAtvCarregar(t.id); tkmAnxCarregar(t.id); } tkmRelPintar();
-    const sel=document.getElementById('tk_ficha'); if(sel) sel.addEventListener('change',tkmRelPintar); },40);
+  /* Linha Editorial: a aba Logo acompanha o cliente marcado na tarefa */
+  const lgTk=()=>{ if(document.getElementById('tkmLogoBox'))
+    lgPintar('tkmLogoBox',((document.getElementById('tk_ficha')||{}).value)||'','tarefa'); };
+  setTimeout(()=>{ if(t){ tkmAtvCarregar(t.id); tkmAnxCarregar(t.id); } tkmRelPintar(); lgTk();
+    const sel=document.getElementById('tk_ficha'); if(sel){ sel.addEventListener('change',tkmRelPintar); sel.addEventListener('change',lgTk); } },40);
 };
 /* Le o formulario, valida e grava. silencioso=true e o autosave: nao fecha, nao
    reabre a lista inteira, e o que falta vira aviso discreto em vez de bloqueio. */
@@ -9530,7 +9556,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
    A barra de icones fica na direita, como no ClickUp, e o contador aparece no proprio
    icone — o vinculo com o cliente deixa de ser um campo perdido no meio do formulario. */
 window.tkmAba=(a)=>{
-  ['Det','Atv','Rel'].forEach(x=>{
+  ['Det','Atv','Rel','Logo'].forEach(x=>{
     const pan=document.getElementById('tkm'+x), ic=document.getElementById('tkmI'+x);
     if(pan) pan.classList.toggle('hidden',x!==a);
     if(ic) ic.classList.toggle('on',x===a);
@@ -9735,6 +9761,136 @@ window.tkmAnxApagar=async (id,tid)=>{
   if(error){ toast('Erro: '+error.message); return; }
   if(x.tipo==='arquivo'&&x.caminho){ try{ await sb.storage.from('anexos').remove([x.caminho]); }catch(_){} }
   toast('Removido.'); tkmAnxCarregar(tid);
+};
+/* ===== LOGOS DO CLIENTE (Gabriel 23/09) =====
+   A logo fica guardada no card do cliente (Controle de Clientes), numa aba propria da
+   ficha. Por baixo e um anexo desse card — mesmo bucket 'anexos', mesma tabela
+   tarefa_anexos, mesma regra de quem ve — marcado pelo caminho "t/<card>/logo-...".
+   Nada de tabela ou regra nova no banco: quem enxerga o cliente enxerga a logo.
+   Nas tarefas da Linha Editorial, a aba Logo do painel busca pelo cliente marcado
+   e a editora baixa dali, sem pedir pra ninguem. */
+const LG_PREF='logo-';
+const lgChave=(tid,nome)=>'t/'+tid+'/'+LG_PREF+uid()+'_'+String(nome||'logo').replace(/[^\w.\-]+/g,'_').slice(-80);
+/* Linha Editorial = a pasta onde mora a Edicao de Video (qualquer lista dela). */
+const ehEditorial=(lid)=>{
+  if(!lid) return false;
+  if(String(lid)===LISTA_EDICAO) return true;
+  const ed=(TK.listas||[]).find(x=>x.id===LISTA_EDICAO), l=(TK.listas||[]).find(x=>x.id===lid);
+  return !!(ed&&ed.pasta_id&&l&&l.pasta_id===ed.pasta_id);
+};
+/* O card do cliente: Controle de Clientes primeiro; se ja churnou, o de Churns (mesmo card). */
+async function lgCardDe(fid){
+  if(!fid) return '';
+  const na=(TK.tarefas||[]).filter(x=>String(x.ficha_id)===String(fid)&&(ehLC(x.lista_id)||x.lista_id===CH_ID));
+  const t=na.find(x=>ehLC(x.lista_id))||na[0];
+  if(t) return String(t.id);
+  try{
+    const {data}=await sb.from('tarefas').select('id,lista_id').eq('ficha_id',fid).in('lista_id',[LC_ID,CH_ID]).limit(5);
+    const r=(data||[]).find(x=>ehLC(x.lista_id))||(data||[])[0];
+    return r?String(r.id):'';
+  }catch(_){ return ''; }
+}
+const LG_DL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>';
+/* modo 'ficha' = sobe e remove; modo 'tarefa' = so ve e baixa */
+window.lgPintar=async (boxId,fid,modo)=>{
+  const box=document.getElementById(boxId); if(!box) return;
+  const bdg=modo==='tarefa'?document.getElementById('tkmBLogo'):null;
+  box.dataset.fid=fid||'';
+  if(!fid){ if(bdg) bdg.textContent='';
+    box.innerHTML='<p class="hint">Marque o cliente da tarefa — a logo dele aparece aqui pronta para baixar.</p>'; return; }
+  box.innerHTML='<div class="hint">carregando…</div>';
+  const tid=await lgCardDe(fid);
+  let logos=[], erro='';
+  if(tid){
+    const r=await sb.from('tarefa_anexos').select('*').eq('tarefa_id',tid).eq('tipo','arquivo')
+      .like('caminho','t/'+tid+'/'+LG_PREF+'%').order('criado_em');
+    if(r.error) erro=r.error.message; else logos=r.data||[];
+  }
+  if(box.dataset.fid!==String(fid)) return;   /* trocou de cliente enquanto carregava */
+  if(bdg) bdg.textContent=logos.length||'';
+  window.__lg=window.__lg||{}; logos.forEach(x=>{ window.__lg[x.id]=x; });
+  window.__lgDe=window.__lgDe||{}; window.__lgDe[fid]=logos.map(x=>x.id);
+  const f=fichaDe(fid)||{}, master=!!(currentUser&&currentUser.role==='master');
+  if(erro){ box.innerHTML='<p class="hint">Não consegui carregar as logos: '+esc(erro)+'</p>'; return; }
+  const ext=(n)=>{ const m=String(n||'').match(/\.([a-z0-9]{2,5})$/i); return m?m[1].toUpperCase():'ARQ'; };
+  const grade=logos.length?`<div class="lg-grid">${logos.map(x=>`<div class="lg-it">
+      <div class="lg-pv" data-lg="${x.id}" title="Clique para alternar fundo claro / escuro" onclick="this.classList.toggle('esc')"><span class="ext">${esc(ext(x.nome))}</span></div>
+      <div class="lg-rod">
+        <div class="nm"><div class="t1" title="${esc(x.nome)}">${esc(x.nome)}</div><div class="t2">${axFmtB(x.bytes)}</div></div>
+        <button class="iconbtn" type="button" title="Baixar" aria-label="Baixar ${esc(x.nome)}" onclick="lgBaixar('${x.id}')">${LG_DL}</button>
+        ${(modo==='ficha'&&(x.autor===(currentUser||{}).id||master))?`<button class="iconbtn del" type="button" title="Remover" onclick="lgApagar('${x.id}','${esc(fid)}')">&times;</button>`:''}
+      </div></div>`).join('')}</div>`:'';
+  if(modo==='ficha'){
+    box.innerHTML=`
+      <p class="hint" style="margin:0 0 12px">Suba aqui a logo oficial do cliente (PNG sem fundo, SVG, PDF, AI…). Fica guardada
+      no card e aparece sozinha na aba <b>Logo</b> de toda demanda da Linha Editorial deste cliente.</p>
+      ${tid?`<div class="tkm-drop" id="lgDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')"
+          ondrop="event.preventDefault();this.classList.remove('on');lgSubir('${esc(fid)}',event.dataTransfer.files)" onclick="document.getElementById('lgFile').click()">
+          Arraste a logo aqui ou <u>clique para escolher</u>
+          <div class="hint" style="margin:4px 0 0">pode subir mais de uma versão — até 50 MB por arquivo</div></div>
+        <input type="file" id="lgFile" multiple class="hidden" onchange="lgSubir('${esc(fid)}',this.files)">`
+      :`<p class="hint" style="color:var(--warn)">Este cliente ainda não tem card no Controle de Clientes — é lá que a logo fica guardada.</p>`}
+      <div style="margin-top:14px">${grade||(tid?'<p class="hint">Nenhuma logo guardada ainda.</p>':'')}</div>`;
+  } else {
+    box.innerHTML=logos.length
+      ? `<p class="hint" style="margin:0 0 12px">Logo de <b>${esc(f.nome||'cliente')}</b> guardada na ficha. Use sempre esta versão — clique na prévia para ver em fundo escuro.</p>
+         ${grade}
+         ${logos.length>1?`<button class="btn secondary small" type="button" style="margin-top:12px" onclick="lgBaixarTodas('${esc(fid)}')">Baixar todas (${logos.length})</button>`:''}`
+      : `<p class="hint">Nenhuma logo guardada para <b>${esc(f.nome||'este cliente')}</b>.</p>
+         <button class="btn secondary small" type="button" onclick="abrirCliente('${esc(fid)}','logos')">Abrir a ficha e subir a logo</button>`;
+  }
+  /* miniatura: bucket privado, entao o src vem de URL assinada */
+  logos.filter(x=>String(x.mime||'').startsWith('image/')&&x.caminho).forEach(async x=>{
+    try{ const {data:u}=await sb.storage.from('anexos').createSignedUrl(x.caminho,600);
+      const el=box.querySelector(`.lg-pv[data-lg="${x.id}"]`);
+      if(u&&u.signedUrl&&el) el.innerHTML=`<img src="${esc(u.signedUrl)}" alt="${esc(x.nome)}">`;
+    }catch(_){}
+  });
+};
+window.lgBaixar=async (id)=>{
+  const x=(window.__lg||{})[id]; if(!x) return;
+  try{
+    const {data:u,error}=await sb.storage.from('anexos').createSignedUrl(x.caminho,600,{download:x.nome});
+    if(error||!u||!u.signedUrl) throw (error||new Error('sem URL'));
+    /* link com download em vez de window.open: o Safari barra janela aberta depois do await */
+    const a=document.createElement('a'); a.href=u.signedUrl; a.download=x.nome||''; a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+  }catch(e){ toast('Não consegui baixar: '+(e.message||e)); }
+};
+window.lgBaixarTodas=async (fid)=>{
+  for(const id of ((window.__lgDe||{})[fid]||[])){ await lgBaixar(id); await new Promise(r=>setTimeout(r,400)); }
+};
+window.lgSubir=async (fid,files)=>{
+  const lista=[...(files||[])]; if(!lista.length) return;   /* copia antes de qualquer await */
+  const tid=await lgCardDe(fid);
+  if(!tid){ toast('Este cliente ainda não tem card no Controle de Clientes.'); return; }
+  const dz=document.getElementById('lgDrop');
+  let n=0;
+  for(const f of lista){
+    if(f.size>AX_MAX){ toast('"'+f.name+'" passa de 50 MB — suba no Drive do cliente.'); continue; }
+    if(dz) dz.textContent='Enviando '+f.name+'…';
+    const chave=lgChave(tid,f.name);
+    const up=await sb.storage.from('anexos').upload(chave,f,{contentType:f.type||'application/octet-stream'});
+    if(up.error){ toast('Erro ao subir "'+f.name+'": '+up.error.message); continue; }
+    const {error}=await sb.from('tarefa_anexos').insert({tarefa_id:tid,tipo:'arquivo',nome:f.name,
+      caminho:chave,mime:f.type||null,bytes:f.size,autor:(currentUser||{}).id||null});
+    if(error){ toast('Subiu mas não registrou "'+f.name+'": '+error.message);
+      try{ await sb.storage.from('anexos').remove([chave]); }catch(_){}
+      continue; }
+    n++;
+  }
+  if(n) toast(n===1?'Logo guardada no card do cliente.':n+' logos guardadas no card do cliente.');
+  lgPintar('lgBox',fid,'ficha');
+};
+window.lgApagar=async (id,fid)=>{
+  const x=(window.__lg||{})[id]; if(!x) return;
+  const ok=await confirmar('Remover "'+x.nome+'"?','A logo sai da ficha e das demandas da Linha Editorial.',{sim:'Remover',nao:'Não',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('tarefa_anexos').delete().eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  try{ await sb.storage.from('anexos').remove([x.caminho]); }catch(_){}
+  delete window.__lg[id];
+  toast('Logo removida.'); lgPintar('lgBox',fid,'ficha');
 };
 window.tkmAtvCarregar=async (tid)=>{
   const box=document.getElementById('tkmMsgs'); if(!box) return;
@@ -12964,10 +13120,11 @@ window.openProjCard=(id)=>{
       <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">Ficha</button>
       <button class="ftab ${cliAba==='contas'?'active':''}" onclick="cliIrPara('${it.id}','contas')">Contas${nContas?' <span class="pc-n">'+nContas+'</span>':''}</button>
       <button class="ftab ${cliAba==='acessos'?'active':''}" onclick="cliIrPara('${it.id}','acessos')">Acessos</button>
+      <button class="ftab ${cliAba==='logos'?'active':''}" onclick="cliIrPara('${it.id}','logos')">Logos</button>
       ${master?`<button class="ftab ${cliAba==='fin'?'active':''}" onclick="cliIrPara('${it.id}','fin')">Financeiro</button>`:''}
     </div>
     <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
-     ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):(cliAba==='fin'&&master)?abaFinCliente(it):`
+     ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):cliAba==='logos'?'<div id="lgBox"></div>':(cliAba==='fin'&&master)?abaFinCliente(it):`
 
       ${cat('Time')}
       <div class="pc-dl">
@@ -13044,6 +13201,7 @@ window.openProjCard=(id)=>{
     await saveDB(); close(); render('clientes'); toast('Cliente salvo.');
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
+  if(cliAba==='logos') lgPintar('lgBox',it.id,'ficha');
   if(cliAba==='linha'){ ltCarregar(it.id);
     /* faixa sem dado do Meta: busca em segundo plano e redesenha a faixa */
     if(!(window.__mtDados&&window.__mtDados.length)&&contasDoCliente(it.id).length&&typeof metaCarregar==='function')
