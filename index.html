@@ -13894,6 +13894,8 @@ window.pcPessoaSet=async (pid,campo,nome)=>{
   pcReabrir(pid); try{ if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
   toast((campo==='gerente'?'Gerente: ':'Gestor: ')+(novo||'ninguém')+'.');
 };
+/* cor de cada tipo de cliente, a mesma das etiquetas .tag.cat-* do resto do sistema */
+const PCX_CAT_COR={trafego:'var(--info)',ia:'var(--info2)',full:'var(--warn)',outro:'var(--muted)'};
 function pcProps(it){
   const ia=it.categoria==='ia';   /* so Agent IA: nada de trafego (ver soAgentIA) */
   const VZ='<span class="pcx-vz">Vazio</span>';
@@ -13922,7 +13924,11 @@ function pcProps(it){
   const lk=(ic,tit,href,campo)=>href?`<a class="pcx-lk" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(tit)}">${PCX_I[ic]}</a>`
     :`<button type="button" class="pcx-lk vz" title="${esc(tit)}: não preenchido" onclick="pcAbrirCampo('${campo}')">${PCX_I[ic]}</button>`;
   const links=`<span class="pcx-lks"><button type="button" class="pcx-lk${nZaps?'':' vz'}" title="WhatsApp${nZaps?' · '+nZaps:''}" onclick="zapAbrir(event,'${it.id}')">${PCX_I.zap}</button>${lk('ig','Instagram',igLk,'pc_insta')}${lk('drive','Drive',drLk,'pc_drive')}<button type="button" class="pcx-lk" title="Acessos e senhas" onclick="cliIrPara('${it.id}','acessos')">${PCX_I.chave}</button></span>`;
-  const tipo=`<button type="button" class="pc-tipo${CAT_LABEL[it.categoria]?'':' vz'}" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">${CAT_LABEL[it.categoria]?esc(CAT_LABEL[it.categoria]):'definir tipo'}<span class="pc-tipo-s">&#9662;</span></button>`;
+  /* Tipo no mesmo formato do Status (Gabriel 23/09): etiqueta colorida com a setinha */
+  const catCor=PCX_CAT_COR[it.categoria];
+  const tipo=catCor
+    ?`<button type="button" class="pc-st" style="color:${catCor};background:color-mix(in srgb,${catCor} 12%,transparent);border-color:color-mix(in srgb,${catCor} 33%,transparent)" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">${esc(CAT_LABEL[it.categoria])}<span class="pc-tipo-s">&#9662;</span></button>`
+    :`<button type="button" class="pc-tipo vz" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">definir tipo<span class="pc-tipo-s">&#9662;</span></button>`;
   const sq=pcSquadHtml(it).replace(/^<i><\/i>/,'');
   return `<div class="pcx-props${pcRecolhe?' recolhe':''}" id="pcxProps">
     ${row('status','Status',pcStatusHtml(it))}
