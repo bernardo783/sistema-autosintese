@@ -316,6 +316,10 @@
   .tk-desc{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
     border-radius:9px;padding:10px 11px;font-size:13.5px;font-family:inherit;resize:vertical}
   .tk-desc:focus{border-color:var(--brand2);outline:none}
+  .sqp{position:fixed;z-index:3000;display:flex;gap:6px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+  .sqp-b{background:none;border:0;padding:2px;border-radius:7px;cursor:pointer;opacity:.55}
+  .sqp-b:hover{opacity:1}
+  .sqp-b.on{opacity:1;cursor:default;box-shadow:0 0 0 1.5px var(--brand2)}
   .tk-rodape{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
   .cn-fundo{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px}
   .cn-caixa{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
@@ -1695,6 +1699,16 @@
   .rc-abas{margin-right:4px}
   .rc-n{font-size:10.5px;color:var(--fraco);margin-left:2px}
   .rc-tab{width:100%;border-collapse:collapse}
+  .rc-leve{overflow-x:auto}
+  .rc-leve .rc-tab th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);font-weight:800;background:transparent}
+  .tp-txt{background:none;border:0;font:inherit;font-size:13px;font-weight:600;color:var(--fraco);padding:6px 8px;border-radius:7px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+  .tp-txt span{font-size:11.5px;color:var(--fraco);font-weight:700}
+  .tp-txt:hover{color:var(--txt)}
+  .tp-txt.on{color:var(--txt);background:var(--hov2)}
+  .tp-sep{width:1px;height:18px;background:var(--line);margin:0 6px}
+  .rc-vazio{display:flex;flex-direction:column;align-items:center;gap:6px;padding:70px 20px;color:var(--fraco);font-size:13px;text-align:center}
+  .rc-vazio svg{width:22px;height:22px;opacity:.6;margin-bottom:4px}
+  .rc-vazio b{color:var(--muted);font-weight:600;font-size:14px}
   .rc-tab th,.rc-tab td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
   .rc-tab tbody tr:last-child td{border-bottom:0}
   .rc-tab tbody tr:hover{background:var(--hov1)}
@@ -9370,15 +9384,15 @@ function recRender(c){
   const grupo={ativas:todas.filter(t=>!t.recorrencia.pausada),fim:todas.filter(t=>!t.recorrencia.pausada&&recTerminando(t)),pausa:todas.filter(t=>t.recorrencia.pausada)};
   const lin=(grupo[REC_F]||[]).filter(t=>!q||semAcento([t.titulo,tkCaminho(t.lista_id),...recPessoas(t).map(tkNomeUser)].join(' ')).indexOf(q)>=0)
     .sort((a,b)=>String(a.prazo||'9').localeCompare(String(b.prazo||'9')));
-  const f=(k,r)=>`<button class="${REC_F===k?'on':''}" onclick="REC_F='${k}';tkDesenhar($('#content'))">${r} <span class="rc-n">${grupo[k].length}</span></button>`;
+  /* mesmo topo minimalista das listas (Gabriel 23/09): abas de texto e filtros em texto, busca na lupa */
+  const f=(k,r)=>`<button class="tp-txt${REC_F===k?' on':''}" onclick="REC_F='${k}';tkDesenhar($('#content'))">${r}<span>${grupo[k].length}</span></button>`;
+  const busca=!!(REC_Q||TK.rcBusca);
   c.innerHTML=`
-   <div class="page-head">
-     <div>${tkCrumb()}<h2>Tarefas recorrentes</h2><div class="desc">todas as séries que se repetem nas listas que você enxerga</div></div>
-     <div class="toolbar tk-bar">
-       <span class="tk-g">${recAbas()}</span>
-       <span class="tk-g"><span class="tk-seg">${f('ativas','Ativas')}${f('fim','Terminando')}${f('pausa','Pausadas')}</span></span>
-       <span class="tk-g tk-fim"><input class="search" id="rc_busca" placeholder="Buscar tarefa ou pessoa…" value="${esc(REC_Q)}" oninput="REC_Q=this.value;recRenderCorpo()" style="width:200px"></span>
-     </div>
+   <div class="page-head tp-head">
+     <div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>Tarefas recorrentes</h2>${recAbas()}
+       <div class="tp-dir">${f('ativas','Ativas')}${f('fim','Terminando')}${f('pausa','Pausadas')}<span class="tp-sep"></span>
+         ${busca?`<input class="search tp-busca" id="rc_busca" placeholder="Buscar tarefa ou pessoa…" value="${esc(REC_Q)}" oninput="REC_Q=this.value;recRenderCorpo()" onblur="if(!this.value){TK.rcBusca=false;tkDesenhar($('#content'));}">`
+           :tpIb('lupa','Buscar',"TK.rcBusca=true;tkDesenhar($('#content'));setTimeout(()=>{const b=$('#rc_busca');if(b)b.focus();},0)")}</div></div></div>
    </div>
    <div id="rcCorpo">${recTabela(lin)}</div>`;
 }
@@ -9389,8 +9403,8 @@ window.recRenderCorpo=()=>{ const b=document.getElementById('rcCorpo'); if(!b) r
     .sort((a,b)=>String(a.prazo||'9').localeCompare(String(b.prazo||'9')))); };
 const recPessoas=(t)=>{ const q=t.recorrencia.quem||{}; return (q.ids&&q.ids.length)?q.ids:respDe(t).filter(Boolean); };
 function recTabela(lin){
-  if(!lin.length) return `<div class="empty">${REC_F==='pausa'?'Nenhuma repetição pausada.':REC_F==='fim'?'Nenhuma série perto do fim.':'Nenhuma tarefa recorrente ainda. Abra uma tarefa e clique no ícone ↻ ao lado do prazo.'}</div>`;
-  return `<div class="card" style="padding:0;overflow-x:auto"><table class="rc-tab">
+  if(!lin.length) return `<div class="rc-vazio">${REC_SVG}<b>${REC_F==='pausa'?'Nenhuma repetição pausada':REC_F==='fim'?'Nenhuma série perto do fim':'Nenhuma tarefa recorrente ainda'}</b>${REC_F==='ativas'?'<span>Abra uma tarefa e clique no ícone de repetir, ao lado do prazo.</span>':''}</div>`;
+  return `<div class="rc-leve"><table class="rc-tab">
     <thead><tr><th>Tarefa</th><th>Regra</th><th>Prazo da vez</th><th>Com quem</th><th>Termina</th><th style="width:36px"></th></tr></thead>
     <tbody>${lin.map(t=>{ const r=t.recorrencia, ps=recPessoas(t), fimT=recFimTxt(r);
       return `<tr class="${r.pausada?'rc-pausa':''}">
@@ -14458,13 +14472,21 @@ function pcSquadHtml(it){
   return `<i></i><button type="button" class="pc-sq" title="${m?'Mudar o squad':'Abrir solicitação de mudança de squad (vai pro Bernardo)'}" onclick="pcSquadMenu(event,'${esc(it.id)}')">${it.squad?sqEtiqueta(it.squad):'<span class="pc-tipo vz">definir squad</span>'}<span class="pc-tipo-s">&#9662;</span></button>`;
 }
 const pcSquadsOpc=(atual)=>Array.from(new Set(SQUADS().concat(['01','02'],atual?[String(atual)]:[]))).filter(Boolean).sort();
+/* Seletor de squad mínimo (Gabriel 23/09: "minimalista esse filtro"): só as etiquetas lado a lado,
+   a atual marcada. Master troca na hora; gerente da ficha abre a solicitação (pcSquadPedir). */
 window.pcSquadMenu=(ev,pid)=>{
+  ev.stopPropagation();
   const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
-  const sqs=pcSquadsOpc(it.squad);
-  if(currentUser&&currentUser.role==='master'){
-    ctxAbrir(ev,[{cab:'Squad'}].concat(sqs.map(q=>({ic:String(it.squad||'')===q?'●':'○',t:'Squad '+q,f:()=>pcSquadSet(pid,q)})))); return; }
-  if(!souGerenteDaFicha(pid)) return;
-  ctxAbrir(ev,[{cab:'Abrir solicitação de squad'}].concat(sqs.filter(q=>q!==String(it.squad||'')).map(q=>({t:'Mudar para Squad '+q,f:()=>pcSquadPedir(pid,q)}))));
+  const m=!!(currentUser&&currentUser.role==='master'); if(!m&&!souGerenteDaFicha(pid)) return;
+  const v=document.getElementById('sqpPop'); if(v){ v.remove(); return; }
+  const atual=String(it.squad||''), sqs=pcSquadsOpc(it.squad);
+  const el=document.createElement('div'); el.id='sqpPop'; el.className='sqp';
+  el.innerHTML=sqs.map(q=>`<button type="button" class="sqp-b${q===atual?' on':''}" title="${q===atual?'Squad atual':(m?'Mudar pra Squad '+q:'Pedir mudança pra Squad '+q)}"
+    ${q===atual?'disabled':`onclick="document.getElementById('sqpPop').remove();${m?'pcSquadSet':'pcSquadPedir'}('${esc(pid)}','${esc(q)}')"`}>${sqEtiqueta(q)}</button>`).join('');
+  document.body.appendChild(el);
+  const r=ev.currentTarget.getBoundingClientRect();
+  el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-el.offsetWidth-8))+'px'; el.style.top=(r.bottom+6)+'px';
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
 window.pcSquadSet=async (pid,q)=>{
   const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it||String(it.squad||'')===q) return;
