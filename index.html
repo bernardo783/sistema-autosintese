@@ -3591,7 +3591,9 @@ async function enterApp(){
   /* Fechamento, Contratos e Leads agora sao abas do Comercial. Quem enxerga o
      Comercial usa por la; quem nao enxerga mantem o atalho, pra nao perder acesso. */
   const noComercial=!!(currentUser.role==='master'||currentUser.papel_crm);
-  if(noComercial){ hide($('#navFechamento')); } else { show($('#navFechamento')); }
+  /* Gerente usa o Fechamento dentro do Administrativo (Jurídico > Novos Contratos), nao
+     pela barra (Gabriel 23/09): o atalho some pra ele. */
+  if(noComercial||currentUser.gerente){ hide($('#navFechamento')); } else { show($('#navFechamento')); }
   if(podeContratos()&&!noComercial){ show($('#navContratos')); } else { hide($('#navContratos')); }
   if(podeContratos()&&!noComercial){ show($('#navLeads')); } else { hide($('#navLeads')); }
   tlAplicar();   /* tira da barra as telas que essa pessoa não tem */
@@ -5986,7 +5988,7 @@ window.wsMenu=(ev)=>{
     {cab:wsNome()},
     {ic:MICO.inbox,t:'Minhas tarefas',f:()=>spCaixa()},
     {ic:MICO.pessoas,t:'Clientes',f:()=>spAbrirClientes()},
-    {ic:'✍',t:'Fechamento de contrato',f:()=>render('fechamento')},
+    {ic:'✍',t:'Fechamento de contrato',f:()=>render('fechamento'),so:m||!(currentUser&&currentUser.gerente)},
     {sep:true},
     {ic:MICO.mais,t:'Novo espaço',f:()=>tkNovoEspaco()},
     {ic:MICO.pessoas,t:'Usuários',f:()=>render('usuarios'),so:m},
