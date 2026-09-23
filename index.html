@@ -4262,14 +4262,17 @@ const fichaDe=(fid)=>(DB.projetos||[]).find(p=>p.id===fid)||null;
 /* ---------- SQUADS: recorte de visão por usuário ----------
    perfil.squads vazio (ou master) = vê tudo. Com squads, só as fichas daquele squad. */
 const meusSquads=()=>((currentUser&&currentUser.squads)||[]);
-const vejoTudo=()=>!currentUser||currentUser.role==='master'||meusSquads().length===0;
+/* Gerente (Gabriel 23/09): ve so os clientes em que esta na ficha, nao o squad inteiro.
+   A RLS (tarefa_visivel) aplica a mesma regra no banco. */
+const soGerente=()=>!!(currentUser&&currentUser.role!=='master'&&currentUser.gerente);
+const vejoTudo=()=>!currentUser||currentUser.role==='master'||(!soGerente()&&meusSquads().length===0);
 /* Exceção de junção gestor x gerente (Gabriel 31/08): a ficha também é sua quando você
    está NELA como gerente ou gestor, mesmo que o squad seja de outro time. Casa por primeiro
    nome, do mesmo jeito que o resto do sistema. A RLS aplica a mesma regra no banco. */
 const souDaFicha=(f)=>{ if(!f||!currentUser) return false;
   const eu=primNome(currentUser.nome); if(!eu) return false;
   return primNome(f.gerente)===eu||primNome(f.responsavel)===eu; };
-const fichaNoMeuSquad=(f)=>vejoTudo()||souDaFicha(f)||(!!f&&meusSquads().includes(String(f.squad||'')));
+const fichaNoMeuSquad=(f)=>vejoTudo()||souDaFicha(f)||(!soGerente()&&!!f&&meusSquads().includes(String(f.squad||'')));
 const fichasVisiveis=()=>(DB.projetos||[]).filter(fichaNoMeuSquad);
 const fichaDaContaMeta=(c)=>{ const m=contaMarca(c&&c.id); if(m&&m.fichaId) return fichaDe(m.fichaId); const p=(typeof palpiteCliente==='function')?palpiteCliente((c&&c.nome)||''):null; return p?p.ficha:null; };
 const contaVisivel=(c)=>vejoTudo()||fichaNoMeuSquad(fichaDaContaMeta(c));
@@ -6498,7 +6501,11 @@ function tkFiltradas(){
     const por=(TK.lcPor==='gerente')?'gerente':'responsavel';
     arr=arr.filter(t=>{ const f=fichaDe(t.ficha_id); if(!f) return false;
       const g=String(f[por]||'').trim();
-      return TK.lcGestor==='(sem)'?!g:g===TK.lcGestor; });
+      /* (ia) = cliente so de Agente de IA; na visao Gestor, (sem) e buraco de cadastro:
+         cliente de trafego sem gestor — o de IA nao tem gestor mesmo (Gabriel 23/09) */
+      if(TK.lcGestor==='(ia)') return soIA(f);
+      if(TK.lcGestor==='(sem)') return !g&&(por==='gerente'||!soIA(f));
+      return g===TK.lcGestor; });
   }
   if(ehLC(TK.listaSel)&&TK.escopo==='lista'&&lcFiltroN()) arr=arr.filter(lcPassa);
   /* BUG que sumiu com os clientes do João (31/08): o Controle de Clientes esconde os
@@ -8268,15 +8275,20 @@ function lcAtalhos(){
      quem procurava "os clientes do Joao" nao achava por onde (Gabriel 31/08). */
   const por=(TK.lcPor==='gerente')?'gerente':'responsavel';
   const cont={};
+  let nIA=0;
   lcSemGestorF().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
-    const k=String(f[por]||'').trim()||'(sem)'; cont[k]=(cont[k]||0)+1; });
+    if(soIA(f)) nIA++;
+    const g=String(f[por]||'').trim();
+    if(!g&&por==='responsavel'&&soIA(f)) return;   /* IA nao tem gestor: nao e buraco */
+    const k=g||'(sem)'; cont[k]=(cont[k]||0)+1; });
   const gestores=Object.keys(cont).filter(k=>k!=='(sem)').sort((a,b)=>cont[b]-cont[a]);
   const pil=(v,rot,n,av)=>`<button class="ftab ${TK.lcGestor===v&&TK.lcVista!=='gerentes'?'active':''}" data-g="${esc(v)}" onclick="lcGestorF(this.dataset.g)">${av||avatarDoNome(rot,'lc-av')||`<span class="lc-av" style="background:${lcCor(rot)}">${esc(rot.trim().charAt(0).toUpperCase())}</span>`}${esc(rot)}<span class="lc-n">${n}</span></button>`;
   return `<div class="fin-tabs" style="margin:0 0 12px">
     <span class="tk-seg lc-seg"><button class="${por==='responsavel'?'on':''}" onclick="lcPorF('gestor')">Gestor</button><button class="${por==='gerente'?'on':''}" onclick="lcPorF('gerente')">Gerente</button></span>
     <button class="ftab ${!TK.lcGestor&&TK.lcVista!=='gerentes'?'active':''}" onclick="lcGestorF('')">Todos</button>
     ${gestores.map(g=>pil(g,g,cont[g])).join('')}
-    ${cont['(sem)']?pil('(sem)',por==='gerente'?'Sem gerente':'Agente A',cont['(sem)'],por==='gerente'?'':lcAvAgente()):''}
+    ${(por==='gerente'&&nIA)?pil('(ia)','Agente',nIA,lcAvAgente()):''}
+    ${cont['(sem)']?pil('(sem)',por==='gerente'?'Sem gerente':'Sem gestor',cont['(sem)']):''}
     <button class="ftab ${TK.lcVista==='gerentes'?'active':''}" onclick="lcVerGerentes()">&#9776; Gerentes</button>
   </div>`;
 }
@@ -13149,7 +13161,7 @@ window.openProjCard=(id)=>{
         ${li('Categoria', esc(CAT_LABEL[catDe(it)]||'—'), `<select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select>`, false, 'pc_cat')}
         ${li('Nicho', esc(nichoDe(it,cli)||'definir'), `<select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select>`, !nichoDe(it,cli), 'pc_nicho')}
         ${li('Nível (NPS)', it.nivel?`<span class="tag st" style="color:${LC_NIVEL[it.nivel].cor};background:${LC_NIVEL[it.nivel].cor}1a">${LC_NIVEL[it.nivel].rot}</span>`:'definir', `<select id="pc_nivel"><option value="">—</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select>`, !it.nivel, 'pc_nivel')}
-        ${li('Entregas', esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'definir'), `<input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Agente de IA">`, !(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)), 'pc_produtos')}
+        ${li('Produto / serviço', esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'definir'), `<input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Agente de IA">`, !(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)), 'pc_produtos')}
       </div>
 
       ${cat('Contato')}
