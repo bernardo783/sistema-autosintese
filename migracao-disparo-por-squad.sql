@@ -12,3 +12,9 @@ on conflict (chave) do update set valor=excluded.valor, descricao=excluded.descr
 -- Não mexido de propósito: trg_wa_aviso_concluida continua DESLIGADO (a conclusão sai pela edge /concluida);
 -- espelhar_video (vídeo pronto) já saía pelo número certo via wa_rota_campanhas_<pessoa>.
 -- Conferido na UAZAPI: Luiz está em SQUAD1 e SÍNTESE - EDITORIAL (5.0); João em SQUAD 2 - COMUNICAÇÃO e no EDITORIAL.
+
+-- ATUALIZAÇÃO no mesmo dia (Gabriel: "disparo é sempre do número do gerente que criou"):
+-- a ordem passou a ser 1) número do gerente que CRIOU a tarefa, 2) número do squad (mapa acima),
+-- 3) o outro gerente / o da rota. Edge lembrete-tarefa v10; trigger wa_aviso_revisao_editorial
+-- (migração "revisao_editorial_numero_do_gerente_que_criou"). espelhar_video (vídeo pronto) não mudou:
+-- o grupo é o do squad e só o gerente daquele squad está nele, então o número já é o do gerente do squad.
