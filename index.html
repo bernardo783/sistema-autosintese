@@ -1762,6 +1762,10 @@
      mais legivel da linha. Abre em leitura — o formulario so aparece no Editar. */
   .pc-head{padding:20px 20px 0;display:flex;gap:14px;align-items:flex-start}
   .pc-nome{font-size:23px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+  .pc-st{display:inline-flex;align-items:center;gap:4px;border:1px solid transparent;border-radius:6px;padding:2px 8px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;line-height:1.5}
+  .pc-st:hover{filter:brightness(1.15)}
+  .pc-sq{display:inline-flex;align-items:center;gap:3px;background:transparent;border:0;padding:0;cursor:pointer;color:var(--muted);font:inherit}
+  .pc-sq:hover{color:var(--txt)}
   .pc-nome.ed{cursor:text;border-radius:7px;padding:2px 6px;margin:-2px -6px;border:1px solid transparent;transition:background .12s,border-color .12s}
   .pc-nome.ed:hover{background:var(--panel2)}
   .pc-nome.ed.editando{background:var(--panel2);border-color:var(--brand2);outline:none}
@@ -13815,9 +13819,9 @@ window.openProjCard=(id)=>{
           ?`<div class="pc-nome ed" title="Clique para renomear" onclick="cliNomeInline(this,'${it.id}')">${esc(it.nome)}</div>`
           :`<div class="pc-nome">${esc(it.nome)}</div>`}
         <div class="pc-meta">
-          <span class="tag ${PRJ_NORM(it.status)}">${ST_LABEL[PRJ_NORM(it.status)]}</span>
+          ${pcStatusHtml(it)}
           <i></i><button type="button" class="pc-tipo${CAT_LABEL[it.categoria]?'':' vz'}" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">${CAT_LABEL[it.categoria]?esc(CAT_LABEL[it.categoria]):'definir tipo'}<span class="pc-tipo-s">&#9662;</span></button>
-          ${it.squad?`<i></i>${sqEtiqueta(it.squad)}`:''}
+          ${pcSquadHtml(it)}
         </div>
       </div>
       <button class="x">&times;</button>
@@ -14041,6 +14045,84 @@ window.pcTipoSet=async (pid,k)=>{
   const mb2=document.querySelector('#pcModal .mbody'); if(mb2) mb2.scrollTop=sc;
   try{ if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
   toast('Tipo: '+CAT_LABEL[k]+'.');
+};
+/* ---------- ESTÁGIO E SQUAD CLICÁVEIS NO TOPO DA FICHA (Gabriel 23/09: "tudo tem que ser clicável aqui") ----------
+   Estágio: a etiqueta mostra o estágio do card no Controle de Clientes (0. NÃO ATIVO … 8. CHURN) e
+   troca pelo mesmo caminho de arrastar o card (tkSetStatus): a ficha acompanha, CHURN pergunta o motivo.
+   Sem card, cai no status resumido da ficha.
+   Squad: master troca na hora; o gerente do cliente PEDE a troca, que vira chamado de suporte pro
+   Bernardo (suporte_abrir_chamado). Os outros só veem. */
+const pcCardLC=(pid)=>(TK.tarefas||[]).find(x=>String(x.lista_id)===LC_ID&&String(x.ficha_id)===String(pid))||null;
+function pcReabrir(pid){
+  const m=document.getElementById('pcModal'), mb=m?m.querySelector('.mbody'):null, sc=mb?mb.scrollTop:0;
+  const ov=m?m.closest('.overlay'):null; if(ov) ov.remove();
+  openProjCard(pid);
+  const mb2=document.querySelector('#pcModal .mbody'); if(mb2) mb2.scrollTop=sc;
+}
+function pcStatusHtml(it){
+  const t=pcCardLC(it.id), s=t?tkStatus1(t.status_id):null;
+  if(s){ const cor=s.cor||'#8e8e99';
+    return `<button type="button" class="pc-st" style="color:${esc(cor)};background:${esc(cor)}1f;border-color:${esc(cor)}55" title="Mudar o estágio do cliente" onclick="pcStatusMenu(event,'${esc(it.id)}')">${esc(s.nome)}<span class="pc-tipo-s">&#9662;</span></button>`; }
+  return `<button type="button" class="pc-st tag ${PRJ_NORM(it.status)}" title="Mudar o status do cliente" onclick="pcStatusMenu(event,'${esc(it.id)}')">${esc(ST_LABEL[PRJ_NORM(it.status)])}<span class="pc-tipo-s">&#9662;</span></button>`;
+}
+window.pcStatusMenu=(ev,pid)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
+  const t=pcCardLC(pid);
+  if(t){ ctxAbrir(ev,[{cab:'Estágio do cliente'}].concat(tkStatusDe(t.lista_id).map(s=>({
+      ic:String(s.id)===String(t.status_id)?'●':'○',t:s.nome,f:()=>pcStatusSet(pid,s.id)})))); return; }
+  ctxAbrir(ev,[{cab:'Status do cliente'}].concat(Object.keys(ST_LABEL).map(k=>({
+    ic:PRJ_NORM(it.status)===k?'●':'○',t:ST_LABEL[k],f:()=>pcStatusSet(pid,null,k)}))));
+};
+window.pcStatusSet=async (pid,sid,k)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
+  const t=pcCardLC(pid);
+  if(t&&sid){
+    if(String(t.status_id)===String(sid)) return;
+    /* CHURN abre a pergunta do motivo: a ficha sai da frente pra ela aparecer */
+    if(String(sid)===String(LC_CHURN)){ const m=document.getElementById('pcModal'); const ov=m?m.closest('.overlay'):null; if(ov) ov.remove();
+      await tkSetStatus(t.id,sid); return; }
+    await tkSetStatus(t.id,sid); pcReabrir(pid); return; }
+  if(!k||PRJ_NORM(it.status)===k) return;
+  it.status=k; await saveDB(); pcReabrir(pid); toast('Status: '+ST_LABEL[k]+'.');
+};
+function pcSquadHtml(it){
+  const m=!!(currentUser&&currentUser.role==='master'), ger=!m&&souGerenteDaFicha(it.id);
+  if(!m&&!ger) return it.squad?`<i></i>${sqEtiqueta(it.squad)}`:'';
+  return `<i></i><button type="button" class="pc-sq" title="${m?'Mudar o squad':'Pedir mudança de squad (vai pro Bernardo)'}" onclick="pcSquadMenu(event,'${esc(it.id)}')">${it.squad?sqEtiqueta(it.squad):'<span class="pc-tipo vz">definir squad</span>'}<span class="pc-tipo-s">&#9662;</span></button>`;
+}
+const pcSquadsOpc=(atual)=>Array.from(new Set(SQUADS().concat(['01','02'],atual?[String(atual)]:[]))).filter(Boolean).sort();
+window.pcSquadMenu=(ev,pid)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
+  const sqs=pcSquadsOpc(it.squad);
+  if(currentUser&&currentUser.role==='master'){
+    ctxAbrir(ev,[{cab:'Squad'}].concat(sqs.map(q=>({ic:String(it.squad||'')===q?'●':'○',t:'Squad '+q,f:()=>pcSquadSet(pid,q)})))); return; }
+  if(!souGerenteDaFicha(pid)) return;
+  ctxAbrir(ev,[{cab:'Pedir mudança de squad'}].concat(sqs.filter(q=>q!==String(it.squad||'')).map(q=>({t:'Pedir Squad '+q,f:()=>pcSquadPedir(pid,q)}))));
+};
+window.pcSquadSet=async (pid,q)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it||String(it.squad||'')===q) return;
+  it.squad=q; await saveDB();
+  /* o card do cliente acompanha o squad da ficha (a visibilidade por squad olha os dois) */
+  try{ await sb.from('tarefas').update({squad:q}).eq('ficha_id',String(pid)).in('lista_id',[LC_ID,CH_ID]);
+    (TK.tarefas||[]).forEach(x=>{ if(String(x.ficha_id)===String(pid)&&(x.lista_id===LC_ID||x.lista_id===CH_ID)) x.squad=q; }); }catch(_){}
+  pcReabrir(pid); try{ spDesenhar(); if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
+  toast('Squad '+q+'.');
+};
+window.pcSquadPedir=(pid,q)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
+  const de=it.squad?('Squad '+it.squad):'sem squad';
+  modal('Pedir mudança de squad',`
+    <p class="hint" style="margin:0 0 12px"><b>${esc(it.nome)}</b>: de ${esc(de)} para <b>Squad ${esc(q)}</b>.
+      Vai pro Bernardo como demanda de suporte; o squad só muda quando ele aplicar.</p>
+    <div class="field"><label>Por quê</label><textarea id="sq_mot" rows="3" placeholder="ex.: o cliente passou pro gestor do outro squad"></textarea></div>`,
+    async ()=>{
+      const mot=String(($('#sq_mot')||{}).value||'').trim();
+      const {error}=await sb.rpc('suporte_abrir_chamado',{
+        p_titulo:'Mudar squad: '+it.nome+' ('+(it.squad||'sem')+' → '+q+')',
+        p_texto:'Pedido de mudança de squad do cliente '+it.nome+': de '+de+' para Squad '+q+'.'+(mot?'\n\nPor quê: '+mot:'')+'\n\nFicha: '+lkUrl('c',pid),
+        p_onde:'Ficha do cliente'});
+      if(error){ toast('Não enviou: '+error.message); return false; }
+      toast('Pedido enviado pro Bernardo.'); return true; });
 };
 window.pcEditar=(ligar)=>{ const el=document.getElementById('pcModal'); if(!el) return;
   el.classList.toggle('ed',!!ligar); el.classList.toggle('ver',!ligar);

@@ -846,6 +846,24 @@ grupo('Ficha: renomear o cliente clicando no nome (Gabriel 23/09)');
   ok('só master ou gerente do cliente veem o nome clicável', /\(master\|\|souGerenteDaFicha\(it\.id\)\)\s*\?`<div class="pc-nome ed"/.test(HTML));
 }
 
+/* ---------------- topo da ficha: estágio e squad clicáveis ---------------- */
+grupo('Ficha: estágio e squad clicáveis no topo (Gabriel 23/09)');
+{
+  const cod=bloco('const pcCardLC=','window.pcEditar=');
+  const mk=(u,ger)=>rodar(cod,{currentUser:u,esc:s=>String(s),LC_ID:'LC',
+    TK:{tarefas:[{lista_id:'LC',ficha_id:'f1',status_id:'s5'}]},tkStatus1:id=>id==='s5'?{nome:'5. CLIENTE ATIVO',cor:'#3ec46d'}:null,
+    ST_LABEL:{ativo:'Cliente ativo'},PRJ_NORM:()=>'ativo',sqEtiqueta:q=>'<span>'+q+'</span>',
+    souGerenteDaFicha:()=>ger,DB:{projetos:[]},SQUADS:()=>['01','02']},['pcStatusHtml','pcSquadHtml']);
+  const it={id:'f1',squad:'01',status:'ativo'};
+  const mst=mk({role:'master'},false), ger=mk({role:'membro',gerente:true},true), gest=mk({role:'membro'},false);
+  ok('etiqueta mostra o estágio do card e abre a lista', /5\. CLIENTE ATIVO/.test(mst.pcStatusHtml(it))&&/pcStatusMenu/.test(mst.pcStatusHtml(it)));
+  ok('sem card: cai no status da ficha', /Cliente ativo/.test(mst.pcStatusHtml({id:'fx',status:'ativo'})));
+  ok('master: squad clicável pra trocar', /pcSquadMenu/.test(mst.pcSquadHtml(it))&&/Mudar o squad/.test(mst.pcSquadHtml(it)));
+  ok('gerente do cliente: squad clicável pra PEDIR', /Pedir mudança de squad/.test(ger.pcSquadHtml(it)));
+  ok('gestor: squad só aparece, sem clique', !/pcSquadMenu/.test(gest.pcSquadHtml(it))&&/01/.test(gest.pcSquadHtml(it)));
+  ok('pedido de squad vira chamado de suporte pro Bernardo', /suporte_abrir_chamado/.test(cod));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
