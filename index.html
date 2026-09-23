@@ -14373,7 +14373,6 @@ window.openProjCard=(id)=>{
       <div class="pc-dl">
         ${li('Nicho', esc(nichoDe(it,cli)||'definir'), `<select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select>`, !nichoDe(it,cli), 'pc_nicho','loja')}
         ${li('Nível (NPS)', it.nivel?`<span class="tag st" style="color:${LC_NIVEL[it.nivel].cor};background:${LC_NIVEL[it.nivel].cor}1a">${LC_NIVEL[it.nivel].rot}</span>`:'definir', `<select id="pc_nivel"><option value="">-</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select>`, !it.nivel, 'pc_nivel','nps')}
-        ${li('Produto / serviço', esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'definir'), `<input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Agente de IA">`, !(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)), 'pc_produtos','pacote')}
       </div>
 
       ${cat('Contato')}
