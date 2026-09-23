@@ -638,6 +638,25 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
   })();
 }
 function fimDosTestes(){
+/* ---------------- tipo de cliente no Controle de Clientes ---------------- */
+grupo('Controle de Clientes: filtro por tipo e selo "sem tipo" (Gabriel 23/09)');
+{
+  const cod=bloco('const lcTipoDe=','window.lcTipoF=');
+  const F={a:{categoria:'trafego'},b:{categoria:'ia'},c:{categoria:'ia'},d:{},e:{categoria:'xyz'}};
+  const g=rodar('const CAT_LABEL={trafego:"Tráfego Pago",ia:"Agent IA",full:"Tráfego + Agent IA",outro:"Outro"};'+cod,{
+    TK:{lcTipo:'',lcVista:''}, esc:s=>String(s),
+    fichaDe:id=>F[id], tkFiltradas:()=>Object.keys(F).map(k=>({ficha_id:k}))
+  },['lcTipoDe','lcTipos']);
+  ok('categoria da ficha vira o tipo', g.lcTipoDe(F.a)==='trafego');
+  ok('sem categoria é "sem tipo"', g.lcTipoDe(F.d)==='(sem)');
+  ok('categoria desconhecida é "sem tipo"', g.lcTipoDe(F.e)==='(sem)');
+  const h=g.lcTipos();
+  ok('mostra as quatro opções da ficha', ['Tráfego Pago','Agent IA','Tráfego + Agent IA','Outro'].every(x=>h.indexOf(x)>0));
+  ok('conta Agent IA = 2', /Agent IA<span class="lc-n">2</.test(h));
+  ok('aponta os 2 sem tipo', /Sem tipo<span class="lc-n">2</.test(h));
+  ok('o atalho "Agente" saiu das pílulas de pessoa', HTML.indexOf("pil('(ia)','Agente'")<0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));

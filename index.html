@@ -1964,6 +1964,10 @@
   .rc-et .qd{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
   .rc-et .vl{font-size:14.5px;font-weight:800;margin:3px 0 2px;font-variant-numeric:tabular-nums}
   .rc-et .dt{font-size:11.5px;color:var(--muted)}
+  .lc-tipos-k{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center;margin-right:2px}
+  .ftab.lc-semtipo{color:var(--warn);border-color:rgba(230,177,63,.45)}
+  .lc-semtipo-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700;
+    color:var(--warn);background:rgba(230,177,63,.12);border:1px solid rgba(230,177,63,.35);vertical-align:1px;white-space:nowrap}
   .lc-av{width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;font-size:9px;font-weight:800;color:#fff;margin-right:6px;flex:none;vertical-align:-3px;overflow:hidden}
   .lc-av img{width:100%;height:100%;object-fit:cover;display:block}
   .lc-av.g{width:22px;height:22px;font-size:10px;vertical-align:-5px}
@@ -5370,7 +5374,7 @@ const TK_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 const TK_SEM=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 let TK={espacos:[],pastas:[],listas:[],tarefas:[],equipe:[],status:[],campos:[],listaSel:'',arrastando:null,
   visao:'lista',escopo:'lista',ord:'',dir:1,busca:'',focoBusca:false,ref:'',grupo:'status',fechadas:{},colsOff:{},squadF:'',
-  filtro:{resps:[],prazo:'',de:'',ate:'',prios:[]},lcGestor:'',lcVista:'',lcPor:'gestor',arqVista:false,
+  filtro:{resps:[],prazo:'',de:'',ate:'',prios:[]},lcGestor:'',lcTipo:'',lcVista:'',lcPor:'gestor',arqVista:false,
   /* Filtro proprio da Base de Clientes: as pilulas de pessoa continuam sendo o atalho de
      1 clique, e isto aqui acumula com elas (E logico). Facetas escolhidas pelo Gabriel
      (01/09): pagamento, categoria do servico, ficha incompleta, nivel, estagio,
@@ -6501,11 +6505,15 @@ function tkFiltradas(){
     const por=(TK.lcPor==='gerente')?'gerente':'responsavel';
     arr=arr.filter(t=>{ const f=fichaDe(t.ficha_id); if(!f) return false;
       const g=String(f[por]||'').trim();
-      /* (ia) = cliente so de Agente de IA; na visao Gestor, (sem) e buraco de cadastro:
-         cliente de trafego sem gestor — o de IA nao tem gestor mesmo (Gabriel 23/09) */
-      if(TK.lcGestor==='(ia)') return soIA(f);
+      /* na visao Gestor, (sem) e buraco de cadastro: cliente de trafego sem gestor —
+         o de IA nao tem gestor mesmo (Gabriel 23/09) */
       if(TK.lcGestor==='(sem)') return !g&&(por==='gerente'||!soIA(f));
       return g===TK.lcGestor; });
+  }
+  /* Tipo de cliente (Gabriel 23/09): so vale a categoria escolhida na ficha — o palpite
+     pelo texto do cadastro nao conta. Quem nao tem tipo cai em "Sem tipo" pra ser preenchido. */
+  if(ehLC(TK.listaSel)&&TK.escopo==='lista'&&TK.lcTipo){
+    arr=arr.filter(t=>{ const f=fichaDe(t.ficha_id); if(!f) return false; return lcTipoDe(f)===TK.lcTipo; });
   }
   if(ehLC(TK.listaSel)&&TK.escopo==='lista'&&lcFiltroN()) arr=arr.filter(lcPassa);
   /* BUG que sumiu com os clientes do João (31/08): o Controle de Clientes esconde os
@@ -6543,7 +6551,7 @@ function tkCard(t){
     const sub=[f.gerente,soIA(f)?'':f.responsavel].filter(Boolean)
       .map(n=>`<span class="tk-pes">${avatarDoNome(n,'lc-av')}${esc(n)}</span>`).join('');
     return `<div class="tk-card" ${drag} onclick="abrirCliente('${t.ficha_id}')">
-      <div class="tk-tit">${esc(t.titulo)}</div>
+      <div class="tk-tit">${esc(t.titulo)}${lcSeloTipo(t.ficha_id)}</div>
       ${sub?`<div class="tk-sub">${sub}</div>`:''}
       <div class="tk-chips so-hover">
         <button type="button" class="tk-chip" title="Mudar o estágio do cliente" onclick="event.stopPropagation();tkQaEstagio(event,'${t.id}')">&#8646; Mudar estágio</button>
@@ -6989,7 +6997,7 @@ function tkViewLista(){
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
-  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
+  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr style="--bar:${esc(tkCorLinha(t))}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
@@ -8275,9 +8283,7 @@ function lcAtalhos(){
      quem procurava "os clientes do Joao" nao achava por onde (Gabriel 31/08). */
   const por=(TK.lcPor==='gerente')?'gerente':'responsavel';
   const cont={};
-  let nIA=0;
   lcSemGestorF().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
-    if(soIA(f)) nIA++;
     const g=String(f[por]||'').trim();
     if(!g&&por==='responsavel'&&soIA(f)) return;   /* IA nao tem gestor: nao e buraco */
     const k=g||'(sem)'; cont[k]=(cont[k]||0)+1; });
@@ -8287,11 +8293,31 @@ function lcAtalhos(){
     <span class="tk-seg lc-seg"><button class="${por==='responsavel'?'on':''}" onclick="lcPorF('gestor')">Gestor</button><button class="${por==='gerente'?'on':''}" onclick="lcPorF('gerente')">Gerente</button></span>
     <button class="ftab ${!TK.lcGestor&&TK.lcVista!=='gerentes'?'active':''}" onclick="lcGestorF('')">Todos</button>
     ${gestores.map(g=>pil(g,g,cont[g])).join('')}
-    ${(por==='gerente'&&nIA)?pil('(ia)','Agente',nIA,lcAvAgente()):''}
     ${cont['(sem)']?pil('(sem)',por==='gerente'?'Sem gerente':'Sem gestor',cont['(sem)']):''}
     <button class="ftab ${TK.lcVista==='gerentes'?'active':''}" onclick="lcVerGerentes()">&#9776; Gerentes</button>
+  </div>${lcTipos()}`;
+}
+/* ---------- TIPO DE CLIENTE (Gabriel 23/09) ----------
+   Uma fileira so para o tipo: as mesmas opcoes da ficha (CAT_LABEL) + "Sem tipo",
+   que junta quem ainda nao foi enquadrado. Conta respeitando o filtro de pessoa. */
+const lcTipoDe=(f)=>(f&&CAT_LABEL[f.categoria])?f.categoria:'(sem)';
+function lcSemTipoF(){ const s=TK.lcTipo; TK.lcTipo=''; let r; try{ r=tkFiltradas(); }finally{ TK.lcTipo=s; } return r; }
+function lcTipos(){
+  if(TK.lcVista==='gerentes') return '';
+  const cont={}; let tot=0;
+  lcSemTipoF().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return; const k=lcTipoDe(f); cont[k]=(cont[k]||0)+1; tot++; });
+  const b=(v,rot,n,cls)=>`<button class="ftab${cls?' '+cls:''} ${TK.lcTipo===v?'active':''}" onclick="lcTipoF('${v}')">${esc(rot)}${n!=null?`<span class="lc-n">${n}</span>`:''}</button>`;
+  return `<div class="fin-tabs lc-tipos" style="margin:-4px 0 12px">
+    <span class="lc-tipos-k">Tipo</span>
+    ${b('','Todos',null)}
+    ${Object.keys(CAT_LABEL).map(k=>b(k,CAT_LABEL[k],cont[k]||0)).join('')}
+    ${cont['(sem)']?b('(sem)','Sem tipo',cont['(sem)'],'lc-semtipo'):''}
   </div>`;
 }
+window.lcTipoF=(k)=>{ TK.lcTipo=(TK.lcTipo===k)?'':k; tkDesenhar($('#content')); };
+/* selo no nome do cliente que ainda nao tem tipo */
+const lcSeloTipo=(fid)=>{ const f=fid?fichaDe(fid):null; if(!f||lcTipoDe(f)!=='(sem)') return '';
+  return `<span class="lc-semtipo-tag" title="Tipo de cliente não definido — abra a ficha e escolha a Categoria">sem tipo</span>`; };
 /* ---------- FILTRO COMPOSTO DA BASE DE CLIENTES ----------
    O filtro generico (prazo/prioridade) nao serve pra cliente e por isso fica escondido
    aqui. Este e o equivalente com as facetas que fazem sentido pra carteira. */
