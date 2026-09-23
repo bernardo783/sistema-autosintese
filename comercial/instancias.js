@@ -14,7 +14,7 @@
   const ses=()=>{ try{ return SESSION; }catch(_){ return null; } };
   const podeAdmin=()=>{ const u=cu(); return !!(u&&(u.role==='master'||['admin','gestor'].includes(u.papel_crm))); };
   async function api(acao,corpo){
-    const S=ses(); if(!S||!S.access_token){ throw new Error('Sessão expirada — entre de novo.'); }
+    const S=ses(); if(!S||!S.access_token){ throw new Error('Sessão expirada: entre de novo.'); }
     const r=await fetch(URL_+'/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+S.access_token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
     const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
     if(!d.ok) throw new Error(d.erro||('erro '+r.status));
@@ -50,7 +50,7 @@
       <div class="hd"><div class="lg" style="font-size:22px">📲</div><div><h4>Instâncias de WhatsApp (UAZAPI)</h4><div class="sub">Um número por SDR · ${on}/${L.length} conectado${L.length===1?'':'s'} · rodízio da landing: ${IN.fila.length?esc(IN.fila.join(' → ')):'ninguém'}${IN.servidor?' · '+esc(IN.servidor):''}</div></div>
         <div class="acts"><button class="btn secondary small" onclick="instRecarregar()" title="Recarregar">↻</button></div></div>
       ${L.length?L.map(linha).join(''):'<div class="crm-vazio">Nenhum número cadastrado. Pra incluir um, o token da instância entra no cofre do servidor (peça ao administrador).</div>'}
-      <div class="crm-hint">Pra conectar: clique em <b>Conectar (QR)</b>, e no celular do SDR abra <b>WhatsApp › Dispositivos conectados › Conectar dispositivo</b> e aponte pro código. Quem está no <b>rodízio</b> reveza a primeira mensagem pros leads de autosintese.app.br/ads: cada lead cai pra quem atendeu menos nos últimos 30 dias, e número desconectado é pulado na hora. Esses números também atendem o CRM do grupo — por isso desconectar ou apagar só pelo painel da UAZAPI.</div>
+      <div class="crm-hint">Pra conectar: clique em <b>Conectar (QR)</b>, e no celular do SDR abra <b>WhatsApp › Dispositivos conectados › Conectar dispositivo</b> e aponte pro código. Quem está no <b>rodízio</b> reveza a primeira mensagem pros leads de autosintese.app.br/ads: cada lead cai pra quem atendeu menos nos últimos 30 dias, e número desconectado é pulado na hora. Esses números também atendem o CRM do grupo, por isso desconectar ou apagar só pelo painel da UAZAPI.</div>
     </div></div>`;
   }
 

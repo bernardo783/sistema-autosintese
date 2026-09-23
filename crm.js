@@ -63,7 +63,7 @@ const crmFone=(e164)=>{ const d=String(e164||'').replace(/\D/g,''); if(!d.starts
   if(n.length===10) return '('+n.slice(0,2)+') '+n.slice(2,6)+'-'+n.slice(6); return e164||''; };
 const crmIni=(n)=>String(n||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
 const crmPessoa=(id)=>CRM.d.equipe.find(p=>p.id===id)||null;
-const crmNome=(id)=>{ const p=crmPessoa(id); return p?p.nome.split(' ')[0]:'—'; };
+const crmNome=(id)=>{ const p=crmPessoa(id); return p?p.nome.split(' ')[0]:'-'; };
 const crmAv=(id,cls)=>{ const p=crmPessoa(id); if(!p) return `<span class="crm-av vazio" title="sem responsável">?</span>`;
   return `<span class="crm-av ${cls||''}" title="${esc(p.nome)}">${p.foto?`<img src="${esc(p.foto)}" alt="">`:esc(crmIni(p.nome))}</span>`; };
 const crmClosers=()=>CRM.d.equipe.filter(p=>p.papel_crm==='closer'||p.papel_crm==='admin'||p.papel_crm==='gestor'||p.role==='master');
@@ -446,13 +446,13 @@ function crmFichaHTML(o){
   return `<div class="crm-ficha">
     <div style="min-width:0">
       <div class="crm-facts">
-        <div class="crm-fact"><div class="k">SDR</div><div class="v">${crmAv(o.sdr_id)} ${esc(o.sdr_id?crmNome(o.sdr_id):'—')}</div></div>
-        <div class="crm-fact"><div class="k">Closer</div><div class="v">${crmAv(o.closer_id,'c')} ${esc(o.closer_id?crmNome(o.closer_id):'—')}</div></div>
+        <div class="crm-fact"><div class="k">SDR</div><div class="v">${crmAv(o.sdr_id)} ${esc(o.sdr_id?crmNome(o.sdr_id):'-')}</div></div>
+        <div class="crm-fact"><div class="k">Closer</div><div class="v">${crmAv(o.closer_id,'c')} ${esc(o.closer_id?crmNome(o.closer_id):'-')}</div></div>
         <div class="crm-fact"><div class="k">Primeiro contato</div><div class="v">${esc(crmQuando(o.first_inbound_at||o.created_at))}</div></div>
-        <div class="crm-fact"><div class="k">Próxima atividade</div><div class="v">${ap&&['scheduled','confirmed'].includes(ap.status)?'Sessão · '+esc(crmQuando(ap.scheduled_start)):o.next_activity?esc(o.next_activity)+(o.next_activity_at?' · '+esc(crmQuando(o.next_activity_at)):''):'<span style="color:var(--fraco)">—</span>'}</div></div>
-        <div class="crm-fact"><div class="k">Valor estimado</div><div class="v">${o.value?esc(brl(o.value)):'<span style="color:var(--fraco)">—</span>'}</div></div>
-        <div class="crm-fact"><div class="k">Receita</div><div class="v" style="color:${o.revenue?'var(--ok)':'var(--fraco)'}">${o.revenue?esc(brl(o.revenue)):'—'}</div></div>
-        <div class="crm-fact"><div class="k">${o.status==='lost'?'Motivo da perda':'Atualizado'}</div><div class="v">${o.status==='lost'?esc(motivo||'—')+(o.lost_notes?' · '+esc(o.lost_notes):''):esc(crmQuando(o.updated_at))}</div></div>
+        <div class="crm-fact"><div class="k">Próxima atividade</div><div class="v">${ap&&['scheduled','confirmed'].includes(ap.status)?'Sessão · '+esc(crmQuando(ap.scheduled_start)):o.next_activity?esc(o.next_activity)+(o.next_activity_at?' · '+esc(crmQuando(o.next_activity_at)):''):'<span style="color:var(--fraco)">-</span>'}</div></div>
+        <div class="crm-fact"><div class="k">Valor estimado</div><div class="v">${o.value?esc(brl(o.value)):'<span style="color:var(--fraco)">-</span>'}</div></div>
+        <div class="crm-fact"><div class="k">Receita</div><div class="v" style="color:${o.revenue?'var(--ok)':'var(--fraco)'}">${o.revenue?esc(brl(o.revenue)):'-'}</div></div>
+        <div class="crm-fact"><div class="k">${o.status==='lost'?'Motivo da perda':'Atualizado'}</div><div class="v">${o.status==='lost'?esc(motivo||'-')+(o.lost_notes?' · '+esc(o.lost_notes):''):esc(crmQuando(o.updated_at))}</div></div>
       </div>
       ${o.notes?`<div class="crm-box"><h4>Observações</h4><div style="font-size:13px;white-space:pre-wrap">${esc(o.notes)}</div></div>`:''}
       <div class="crm-box"><h4>Linha do tempo <span style="color:var(--fraco);font-weight:500;font-size:12px">quem fez, quando</span></h4>${tlHTML}</div>
@@ -461,9 +461,9 @@ function crmFichaHTML(o){
       <div class="crm-box"><h4>Origem do lead <button class="btn secondary small" onclick="this.closest('.crm-box').querySelector('.crm-orig').classList.toggle('ids')">IDs</button></h4>
         <div class="crm-orig">
           <div class="st"><i></i><div><div class="k">Canal</div><div class="v">${esc(org.name)}${ft&&ft.source_type?' · '+esc(ft.source_type==='ad'?'Click-to-WhatsApp':ft.source_type):''}</div>${ft?`<div class="id">${ft.ctwa_clid?'ctwa_clid '+esc(ft.ctwa_clid):''}${ft.source_url?' · '+esc(ft.source_url):''}</div>`:''}</div></div>
-          ${ft?`<div class="st"><i></i><div><div class="k">Campanha</div><div class="v">${esc(ft.campaign_name||'(nome ainda não sincronizado)')}</div><div class="id">${esc(ft.campaign_id||'—')}</div></div></div>
-          <div class="st"><i></i><div><div class="k">Conjunto</div><div class="v">${esc(ft.adset_name||'—')}</div><div class="id">${esc(ft.adset_id||'—')}</div></div></div>
-          <div class="st"><i></i><div><div class="k">Anúncio</div><div class="v">${esc(ft.ad_name||ft.headline||'—')}</div><div class="id">${esc(ft.ad_id||ft.source_id||'—')}</div></div></div>`
+          ${ft?`<div class="st"><i></i><div><div class="k">Campanha</div><div class="v">${esc(ft.campaign_name||'(nome ainda não sincronizado)')}</div><div class="id">${esc(ft.campaign_id||'-')}</div></div></div>
+          <div class="st"><i></i><div><div class="k">Conjunto</div><div class="v">${esc(ft.adset_name||'-')}</div><div class="id">${esc(ft.adset_id||'-')}</div></div></div>
+          <div class="st"><i></i><div><div class="k">Anúncio</div><div class="v">${esc(ft.ad_name||ft.headline||'-')}</div><div class="id">${esc(ft.ad_id||ft.source_id||'-')}</div></div></div>`
           :`<div class="st"><i></i><div><div class="k">Detalhe</div><div class="v">${esc(o.source_detail||'sem campanha vinculada')}</div></div></div>`}
         </div>
         ${ft?`<div class="crm-hint" style="margin-top:8px">Primeiro toque: ${esc(crmQuando(ft.happened_at))}${lt&&lt.id!==ft.id?` · último toque: ${esc(crmQuando(lt.happened_at))} (${esc(lt.ad_name||lt.campaign_name||'outro anúncio')})`:''}. A origem histórica nunca é sobrescrita.</div>`:''}
@@ -472,7 +472,7 @@ function crmFichaHTML(o){
         ${ap?`<div class="crm-mini">
           <div><span>Quando</span><b>${esc(crmQuando(ap.scheduled_start))}–${esc(crmHora(ap.scheduled_end))}</b></div>
           <div><span>Closer</span><b>${esc(crmNome(ap.closer_id))}</b></div>
-          <div><span>Meet</span><b>${ap.meet_url?`<a href="${esc(ap.meet_url)}" target="_blank" rel="noopener" style="color:var(--brand2)">${esc(ap.meet_url.replace('https://',''))}</a>`:'—'}</b></div>
+          <div><span>Meet</span><b>${ap.meet_url?`<a href="${esc(ap.meet_url)}" target="_blank" rel="noopener" style="color:var(--brand2)">${esc(ap.meet_url.replace('https://',''))}</a>`:'-'}</b></div>
           <div><span>Status</span><b>${crmApStatus(ap)}</b></div></div>
           ${['scheduled','confirmed'].includes(ap.status)?`<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
             <button class="btn secondary small" onclick="crmPresenca('${ap.id}','attended')">Compareceu</button>
@@ -493,7 +493,7 @@ const crmApStatus=(ap)=>{ const m={scheduled:['Agendada','info'],confirmed:['Con
   return `<span class="crm-badge ${m[1]}">${m[0]}</span>`; };
 
 /* ---------- modais ---------- */
-const crmSelEquipe=(id,lista,atual,vazio)=>`<select id="${id}"><option value="">${vazio||'—'}</option>${lista.map(p=>`<option value="${p.id}"${p.id===atual?' selected':''}>${esc(p.nome)}</option>`).join('')}</select>`;
+const crmSelEquipe=(id,lista,atual,vazio)=>`<select id="${id}"><option value="">${vazio||'-'}</option>${lista.map(p=>`<option value="${p.id}"${p.id===atual?' selected':''}>${esc(p.nome)}</option>`).join('')}</select>`;
 const crmVal=(id)=>{ const el=document.getElementById(id); return el?String(el.value||'').trim():''; };
 window.crmNovoLead=()=>{
   const eu=currentUser||{}; const sdrPadrao=eu.papel_crm==='sdr'?eu.id:'';
@@ -508,7 +508,7 @@ window.crmNovoLead=()=>{
       <div class="field"><label>Closer</label>${crmSelEquipe('cl_closer',crmClosers(),'','definir depois')}</div>
       <div class="field"><label>Valor estimado (R$/mês)</label><input id="cl_val" inputmode="decimal" placeholder="5900"></div></div>
     <div class="field"><label>Observações</label><textarea id="cl_obs" rows="2"></textarea></div>
-    <div class="crm-hint">Se o telefone já tiver uma oportunidade aberta, o lead entra nela (não duplica). Leads de anúncio chegam sozinhos pelo WhatsApp — use este formulário para indicação, orgânico, evento, base.</div>
+    <div class="crm-hint">Se o telefone já tiver uma oportunidade aberta, o lead entra nela (não duplica). Leads de anúncio chegam sozinhos pelo WhatsApp, use este formulário para indicação, orgânico, evento, base.</div>
   </div>`, async ()=>{
     const src=crmVal('cl_src'); const org=crmOrigem(src);
     const p={telefone:crmVal('cl_tel'),nome:crmVal('cl_nome'),empresa:crmVal('cl_emp'),cidade:crmVal('cl_cid'),source:src,source_detail:crmVal('cl_det'),
@@ -527,7 +527,7 @@ window.crmNovoLeadOrigem=()=>{ const src=crmVal('cl_src'), org=crmOrigem(src); c
 
 window.crmGanhoModal=(id)=>{ const o=CRM.d.opps.find(x=>x.id===id)||{};
   modal('Fechou! 🎉',`<div class="crm-form"><div class="row2"><div class="field"><label>Receita (R$) *</label><input id="cg_val" inputmode="decimal" value="${o.value||''}" placeholder="5950"></div>
-    <div class="field"><label>Closer</label>${crmSelEquipe('cg_closer',crmClosers(),o.closer_id||(crmPapel()==='closer'?currentUser.id:''),'—')}</div></div>
+    <div class="field"><label>Closer</label>${crmSelEquipe('cg_closer',crmClosers(),o.closer_id||(crmPapel()==='closer'?currentUser.id:''),'-')}</div></div>
     <div class="crm-hint">A receita é o que alimenta ROAS, ROI e CAC. Se a oportunidade veio de anúncio com ctwa_clid, a venda será devolvida à Meta (CAPI) numa fase futura.</div></div>`,
     async ()=>{ const v=Number(crmVal('cg_val').replace(/\./g,'').replace(',','.')); if(!v||v<=0){ toast('Informe a receita.'); return false; }
       const r=await crmMover(id,'ganho',{revenue:v,closer_id:crmVal('cg_closer')||undefined}); return r!==false; }); };
@@ -557,7 +557,7 @@ window.crmNotaModal=(id)=>{ modal('Anotação',`<div class="crm-form"><div class
   async ()=>{ const t=crmVal('cn_txt'); if(!t) return false; const {error}=await sb.rpc('crm_atualizar',{p_opp:id,p:{note:t}}); if(error){ toast('Erro: '+error.message); return false; } delete CRM.tl[id]; crmPintar(); return true; }); };
 
 window.crmEquipeModal=()=>{
-  const papeis=[['','— sem CRM —'],['sdr','SDR'],['closer','Closer'],['gestor','Gestor'],['admin','Admin']];
+  const papeis=[['','Sem CRM'],['sdr','SDR'],['closer','Closer'],['gestor','Gestor'],['admin','Admin']];
   modal('Equipe comercial',`<div class="crm-equipe">${CRM.d.equipe.map(p=>`<div>${crmAv(p.id)}<b>${esc(p.nome)}${p.role==='master'?' <span class="crm-badge">master</span>':''}</b>
     ${p.role==='master'?'<span class="crm-badge pago">admin</span>':`<select data-id="${p.id}">${papeis.map(x=>`<option value="${x[0]}"${(p.papel_crm||'')===x[0]?' selected':''}>${x[1]}</option>`).join('')}</select>`}</div>`).join('')}
     <div class="crm-hint">SDR e closer entram nos filtros e podem mover leads; não veem credenciais nem configurações. Quem não tem papel não vê a aba Comercial. Para agendar na agenda de um closer, ele precisa conectar o Google (aba Agenda).</div></div>`,
@@ -647,7 +647,7 @@ window.crmOcupacao=async ()=>{
     const slots=[]; for(let h=8;h<=19;h++) for(const m of [0,30]){ const hh=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); const oc2=ocupado(h,m); const passado=new Date(dia+'T'+hh+':00')<new Date();
       slots.push(`<div class="crm-slot${hh===hsel?' on':''}${oc2||passado?' ocupado':''}" ${oc2||passado?'':`onclick="document.getElementById('ca_hora').value='${hh}';[...this.parentNode.children].forEach(x=>x.classList.remove('on'));this.classList.add('on')"`}>${hh}</div>`); }
     box.innerHTML=slots.join('');
-    oc.innerHTML=conectado?(blocos.length?`Ocupado na agenda do closer: ${blocos.map(b=>esc(crmHora(b.inicio))+'–'+esc(crmHora(b.fim))+(b.titulo?' '+esc(b.titulo):'')).join(' · ')}`:'Agenda do closer livre nesse dia.'):'<span style="color:var(--warn)">Esse closer não conectou o Google Agenda — sem disponibilidade real; o agendamento vai falhar até ele conectar.</span>';
+    oc.innerHTML=conectado?(blocos.length?`Ocupado na agenda do closer: ${blocos.map(b=>esc(crmHora(b.inicio))+'–'+esc(crmHora(b.fim))+(b.titulo?' '+esc(b.titulo):'')).join(' · ')}`:'Agenda do closer livre nesse dia.'):'<span style="color:var(--warn)">Esse closer não conectou o Google Agenda, sem disponibilidade real; o agendamento vai falhar até ele conectar.</span>';
   };
   pinta([],true); if(!closer||!dia) return;
   try{ const j=await crmEdge({acao:'crm_ocupacao',closer_id:closer,dia}); pinta(j.blocos||[],j.conectado!==false); }catch(e){ oc.textContent=e.message; }
@@ -680,15 +680,15 @@ function crmOrigensHTML(){
   const soma=(arr,k)=>arr.reduce((s,x)=>s+x[k],0);
   const delta=(a,b)=>{ if(!b) return a?'<span class="up">novo</span>':''; const v=Math.round((a-b)/b*100); return `<span class="${v>=0?'up':'down'}">${v>=0?'▲':'▼'} ${Math.abs(v)}%</span>`; };
   const nomeMes=new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  const linha=(x)=>`<tr><td><span class="crm-badge ${x.s.paid?'pago':'org'}">${esc(x.s.name)}</span></td><td class="r">${x.leads}</td><td class="r">${x.resp}</td><td class="r">${x.ag}</td><td class="r">${x.comp}</td><td class="r">${x.vendas}</td><td class="r">${crmPct(x.vendas,x.leads)}%</td><td class="r"><b>${x.receita?esc(brl(x.receita)):'—'}</b></td><td class="r">${receita?crmPct(x.receita,receita)+'%':'—'}</td><td style="min-width:110px"><div class="crm-share ${x.s.paid?'':'org'}"><i style="width:${receita?Math.round(x.receita/receita*100):0}%"></i></div></td><td class="r">${delta(x.receita,x.antReceita)}</td></tr>`;
+  const linha=(x)=>`<tr><td><span class="crm-badge ${x.s.paid?'pago':'org'}">${esc(x.s.name)}</span></td><td class="r">${x.leads}</td><td class="r">${x.resp}</td><td class="r">${x.ag}</td><td class="r">${x.comp}</td><td class="r">${x.vendas}</td><td class="r">${crmPct(x.vendas,x.leads)}%</td><td class="r"><b>${x.receita?esc(brl(x.receita)):'-'}</b></td><td class="r">${receita?crmPct(x.receita,receita)+'%':'-'}</td><td style="min-width:110px"><div class="crm-share ${x.s.paid?'':'org'}"><i style="width:${receita?Math.round(x.receita/receita*100):0}%"></i></div></td><td class="r">${delta(x.receita,x.antReceita)}</td></tr>`;
   return `<div class="toolbar" style="margin:0 0 12px;gap:8px">
       <button class="btn secondary small" onclick="crmMes(-1)">‹</button><b style="font-size:14px;text-transform:capitalize">${esc(nomeMes)}</b><button class="btn secondary small" onclick="crmMes(1)">›</button>
       <span class="crm-hint" style="margin:0 0 0 8px">comparado com ${esc(new Date(y,m-2,1).toLocaleDateString('pt-BR',{month:'long'}))}</span></div>
     <div class="crm-kpis">
-      <div class="crm-kpi hi"><div class="k">Receita do mês</div><div class="v">${receita?esc(brl(receita)):'—'}</div><div class="s">${vendas} venda${vendas===1?'':'s'} · ${leads} lead${leads===1?'':'s'}</div></div>
-      <div class="crm-kpi"><div class="k">Mídia paga</div><div class="v" style="color:var(--brand2)">${soma(pago,'receita')?esc(brl(soma(pago,'receita'))):'—'}</div><div class="s">${receita?crmPct(soma(pago,'receita'),receita):0}% da receita · ${soma(pago,'leads')} leads · ${soma(pago,'vendas')} vendas</div></div>
-      <div class="crm-kpi"><div class="k">Indicação / orgânico</div><div class="v" style="color:var(--info2)">${soma(org,'receita')?esc(brl(soma(org,'receita'))):'—'}</div><div class="s">${receita?crmPct(soma(org,'receita'),receita):0}% da receita · ${soma(org,'leads')} leads · ${soma(org,'vendas')} vendas</div></div>
-      <div class="crm-kpi"><div class="k">Ticket médio</div><div class="v">${vendas?esc(brl(receita/vendas)):'—'}</div><div class="s">lead → venda ${crmPct(vendas,leads)}%</div></div>
+      <div class="crm-kpi hi"><div class="k">Receita do mês</div><div class="v">${receita?esc(brl(receita)):'-'}</div><div class="s">${vendas} venda${vendas===1?'':'s'} · ${leads} lead${leads===1?'':'s'}</div></div>
+      <div class="crm-kpi"><div class="k">Mídia paga</div><div class="v" style="color:var(--brand2)">${soma(pago,'receita')?esc(brl(soma(pago,'receita'))):'-'}</div><div class="s">${receita?crmPct(soma(pago,'receita'),receita):0}% da receita · ${soma(pago,'leads')} leads · ${soma(pago,'vendas')} vendas</div></div>
+      <div class="crm-kpi"><div class="k">Indicação / orgânico</div><div class="v" style="color:var(--info2)">${soma(org,'receita')?esc(brl(soma(org,'receita'))):'-'}</div><div class="s">${receita?crmPct(soma(org,'receita'),receita):0}% da receita · ${soma(org,'leads')} leads · ${soma(org,'vendas')} vendas</div></div>
+      <div class="crm-kpi"><div class="k">Ticket médio</div><div class="v">${vendas?esc(brl(receita/vendas)):'-'}</div><div class="s">lead → venda ${crmPct(vendas,leads)}%</div></div>
     </div>
     <div class="card" style="padding:0;overflow:auto"><table class="crm-tbl">
       <tr><th>Origem</th><th class="r">Leads</th><th class="r">Resp.</th><th class="r">Agend.</th><th class="r">Compar.</th><th class="r">Vendas</th><th class="r">Lead→venda</th><th class="r">Receita</th><th class="r">% receita</th><th></th><th class="r">vs. mês ant.</th></tr>
@@ -738,7 +738,7 @@ function crmIntgHTML(){
     ${tile('capi','Conversions API', (capi.accepted||capi.sent)?st('ok','Enviando'):capi.error?st('bad','Erro'):st('off','Fase 9'), `${capi.pending||0} pendente · ${capi.accepted||0} aceito · ${capi.error||0} erro`)}
   </div>`;
   const waRows=wa.length?wa.map(c=>`<div class="crm-row">${crmAv(c.assigned_user_id)}<div class="g"><b>${esc(c.name)}</b> ${c.phone_number?'· '+esc(c.phone_number):''} ${c.coexistence?'<span class="crm-badge info">coexistência</span>':''} ${c.quality_rating?`<span class="crm-badge ${c.quality_rating==='GREEN'?'ok':c.quality_rating==='RED'?'bad':'warn'}">qualidade ${esc(c.quality_rating)}</span>`:''}
-      <small>SDR ${esc(c.assigned_user_id?crmNome(c.assigned_user_id):'—')} · WABA ${esc(c.waba_id||'—')} · Phone ID ${esc(c.phone_number_id||'—')} · webhook ${esc(crmRel(c.last_webhook_at))}${c.last_error?` · <span style="color:var(--danger)">${esc(c.last_error)}</span>`:''}</small></div>
+      <small>SDR ${esc(c.assigned_user_id?crmNome(c.assigned_user_id):'-')} · WABA ${esc(c.waba_id||'-')} · Phone ID ${esc(c.phone_number_id||'-')} · webhook ${esc(crmRel(c.last_webhook_at))}${c.last_error?` · <span style="color:var(--danger)">${esc(c.last_error)}</span>`:''}</small></div>
       <span class="crm-badge ${c.connection_status==='connected'?'ok':c.connection_status==='error'?'bad':c.connection_status==='pending'?'warn':''}">${{connected:'conectado',pending:'aguardando token/teste',error:'erro',degraded:'instável',disconnected:'desconectado'}[c.connection_status]||c.connection_status}</span>
       <div class="acts"><button class="btn secondary small" onclick="crmWaTestar('${c.id}')">Testar</button><button class="btn secondary small" onclick="crmWaToken('${c.id}')">${c.token_secret_id?'Reconectar':'Token'}</button><button class="btn secondary small" onclick="crmWaEditar('${c.id}')">Editar</button></div></div>`).join('')
     :'<div class="crm-vazio">Nenhum número conectado. Cada SDR tem o seu; conecte e vincule.</div>';
@@ -751,15 +751,15 @@ function crmIntgHTML(){
       <div class="crm-hint">O SDR não mexe em token: o administrador conecta o número aqui e vincula ao SDR. Para manter o app WhatsApp Business no celular (coexistência), a AutoSíntese precisa concluir a verificação de Tech Provider na Meta; o Embedded Signup entra aqui assim que for aprovado.</div></div>
     <div class="crm-ic"><div class="hd"><div class="lg">${CRM_LOGOS.meta}</div><div><h4>Meta Ads</h4><div class="sub">Campanhas, conjuntos, anúncios, investimento</div></div><div class="acts"><button class="btn secondary small" onclick="crmMetaTestar()">Testar conexão</button></div></div>
       <div class="crm-kv">
-        <span>Business</span><b>${esc(metaDet.conta&&metaDet.conta.business||'—')}</b>
+        <span>Business</span><b>${esc(metaDet.conta&&metaDet.conta.business||'-')}</b>
         <span>Ad Account</span><b>${esc(metaDet.conta?metaDet.conta.nome+' · '+metaDet.conta.id:'act_1784945562132417')}</b>
         <span>Token</span><b>${metaDet.token?esc(metaDet.token)+' ('+esc(metaDet.usuario||'')+')':'guardado nos segredos do servidor'}</b>
-        <span>Permissões</span><b>${(metaDet.permissoes||[]).length?esc(metaDet.permissoes.join(', ')):'—'}</b>
+        <span>Permissões</span><b>${(metaDet.permissoes||[]).length?esc(metaDet.permissoes.join(', ')):'-'}</b>
         <span>Status</span><b>${h('meta_ads').status==='connected'?'<span class="crm-badge ok">conectado</span>':h('meta_ads').status==='error'?`<span class="crm-badge bad">erro</span> ${esc(h('meta_ads').last_error||'')}`:'<span class="crm-badge">não testado</span>'} · ${esc(crmRel(h('meta_ads').checked_at))}</b>
         <span>Sincronização</span><b><span class="crm-fase">Fase 4 · a cada hora, campanhas → conjuntos → anúncios → insights diários</span></b>
       </div></div>
     <div class="crm-ic"><div class="hd"><div class="lg">${CRM_LOGOS.gcal}</div><div><h4>Google Agenda</h4><div class="sub">Sessão estratégica na agenda do closer, com convite</div></div><div class="acts">${crmGoogleDe((currentUser||{}).id)?'<span class="crm-badge ok">minha conta ok</span>':'<button class="btn secondary small" onclick="crmConectarGoogle()">Conectar a minha</button>'}</div></div>
-      ${closers.length?closers.map(c=>{ const g=google.find(x=>x.dono===c.id); return `<div class="crm-row">${crmAv(c.id,'c')}<div class="g"><b>${esc(c.nome)}</b> <span class="crm-badge">${esc(c.papel_crm||'master')}</span><small>${g?esc(g.google_email||'conectado')+(g.conectado_em?' · desde '+esc(crmDia(g.conectado_em)):''):'ainda não conectou — ele precisa entrar em Comercial → Agenda → “Conectar meu Google Agenda”'}</small></div>${g?'<span class="crm-badge ok">conectado</span>':'<span class="crm-badge warn">pendente</span>'}</div>`; }).join(''):'<div class="crm-vazio">Defina os closers em “Equipe comercial”.</div>'}
+      ${closers.length?closers.map(c=>{ const g=google.find(x=>x.dono===c.id); return `<div class="crm-row">${crmAv(c.id,'c')}<div class="g"><b>${esc(c.nome)}</b> <span class="crm-badge">${esc(c.papel_crm||'master')}</span><small>${g?esc(g.google_email||'conectado')+(g.conectado_em?' · desde '+esc(crmDia(g.conectado_em)):''):'ainda não conectou: ele precisa entrar em Comercial → Agenda → “Conectar meu Google Agenda”'}</small></div>${g?'<span class="crm-badge ok">conectado</span>':'<span class="crm-badge warn">pendente</span>'}</div>`; }).join(''):'<div class="crm-vazio">Defina os closers em “Equipe comercial”.</div>'}
       <div class="crm-hint">Escopo: só eventos da agenda (calendar.events). O token de cada pessoa fica no servidor.</div></div>
     <div class="crm-ic"><div class="hd"><div class="lg">${CRM_LOGOS.meet}</div><div><h4>Google Meet</h4><div class="sub">Um Meet exclusivo por sessão · comparecimento</div></div></div>
       <div class="crm-kv">
@@ -777,7 +777,7 @@ function crmIntgHTML(){
 }
 window.crmWaNovo=(id)=>{ const c=id?(CRM.d.wa||[]).find(x=>x.id===id):null;
   modal(c?'Editar número':'Conectar número do WhatsApp',`<div class="crm-form">
-    <div class="row2"><div class="field"><label>Nome (como aparece aqui)</label><input id="wn_nome" value="${esc(c?c.name:'')}" placeholder="WhatsApp da Loane"></div><div class="field"><label>SDR responsável</label>${crmSelEquipe('wn_sdr',crmSdrs(),c?c.assigned_user_id:'','—')}</div></div>
+    <div class="row2"><div class="field"><label>Nome (como aparece aqui)</label><input id="wn_nome" value="${esc(c?c.name:'')}" placeholder="WhatsApp da Loane"></div><div class="field"><label>SDR responsável</label>${crmSelEquipe('wn_sdr',crmSdrs(),c?c.assigned_user_id:'','-')}</div></div>
     <div class="row2"><div class="field"><label>Phone Number ID *</label><input id="wn_pid" value="${esc(c?c.phone_number_id||'':'')}" placeholder="ex.: 556712345678901"></div><div class="field"><label>WABA ID</label><input id="wn_waba" value="${esc(c?c.waba_id||'':'')}" placeholder="ex.: 102987654321"></div></div>
     <div class="row2"><div class="field"><label>Número (só referência)</label><input id="wn_tel" value="${esc(c?c.phone_number||'':'')}" placeholder="+55 17 99700-1101"></div>${c?'':`<div class="field"><label>Access token (fica no cofre)</label><input id="wn_tok" type="password" autocomplete="off" placeholder="EAAG…"></div>`}</div>
     <div class="crm-hint">Onde achar: Meta for Developers → seu app → WhatsApp → Configuração da API. O token vai direto para o cofre do servidor (Vault); ninguém vê depois. Use um token de System User sem expiração.</div></div>`,
@@ -795,7 +795,7 @@ window.crmWaTestar=async (id)=>{ try{ const j=await crmAdminEdge({acao:'wa_testa
 window.crmWaWebhook=async ()=>{ try{ const j=await crmAdminEdge({acao:'wa_webhook_info'}); const box=document.getElementById('crmWaExtra'); if(!box) return;
     box.innerHTML=`<div class="crm-box" style="margin-top:10px"><h4>Webhook para colar no app da Meta <button class="btn secondary small" onclick="this.closest('.crm-box').remove()">fechar</button></h4>
       <div class="crm-kv"><span>Callback URL</span><b>${j.url?`<span class="crm-copy" onclick="navigator.clipboard.writeText('${esc(j.url)}').then(()=>toast('Copiado.'))">${esc(j.url)}</span>`:'WA_WEBHOOK_SECRET não configurado nos segredos do servidor'}</b>
-      <span>Verify token</span><b>${j.verify_token?`<span class="crm-copy" onclick="navigator.clipboard.writeText('${esc(j.verify_token)}').then(()=>toast('Copiado.'))">${esc(j.verify_token)}</span>`:'—'}</b>
+      <span>Verify token</span><b>${j.verify_token?`<span class="crm-copy" onclick="navigator.clipboard.writeText('${esc(j.verify_token)}').then(()=>toast('Copiado.'))">${esc(j.verify_token)}</span>`:'-'}</b>
       <span>Campos</span><b>messages (e, na coexistência, smb_message_echoes, smb_app_state_sync, history)</b></div><div class="crm-hint">${esc(j.aviso||'')}</div></div>`; }catch(e){ toast(e.message); } };
 window.crmWaLogs=async ()=>{ try{ const j=await crmAdminEdge({acao:'wa_logs',n:40}); const box=document.getElementById('crmWaExtra'); if(!box) return;
     box.innerHTML=`<div class="crm-box" style="margin-top:10px"><h4>Últimos webhooks <button class="btn secondary small" onclick="this.closest('.crm-box').remove()">fechar</button></h4><div class="crm-log">${(j.logs||[]).length?j.logs.map(l=>`${esc(crmQuando(l.received_at))}  ${esc((l.event_type||'').padEnd(18))}  ${esc(l.status.padEnd(10))}  ${l.attempts?'tent.'+l.attempts:''}  ${esc(l.error||'')}`).join('\n'):'Nenhum webhook registrado ainda (o registro bruto entra com o novo endpoint da Fase 3).'}</div></div>`; }catch(e){ toast(e.message); } };
@@ -891,23 +891,23 @@ function ccPainelHTML(){
     <div class="pc-sec">Volume</div>
     <div class="pc-grid">
       ${card('Total agendadas',agendadas,realizadas?realizadas+' de '+agendadas+' já aconteceram':'nenhuma realizada ainda','cal')}
-      ${card('Shows',shows,realizadas?shows+' de '+realizadas+' realizadas':'—','ok','ok')}
-      ${card('No-shows',noShows,realizadas?noShows+' de '+realizadas+' realizadas':'—','no','danger')}
-      ${card('Taxa de no-show',realizadas?vg(pct(noShows,realizadas))+'%':'—','sobre as realizadas','alerta')}
+      ${card('Shows',shows,realizadas?shows+' de '+realizadas+' realizadas':'-','ok','ok')}
+      ${card('No-shows',noShows,realizadas?noShows+' de '+realizadas+' realizadas':'-','no','danger')}
+      ${card('Taxa de no-show',realizadas?vg(pct(noShows,realizadas))+'%':'-','sobre as realizadas','alerta')}
     </div>
 
     <div class="pc-sec">Resultado</div>
     <div class="pc-grid">
       ${card('Ganhos',ganhos.length,shows?ganhos.length+' de '+shows+' shows':'nenhum show ainda','trofeu','ok')}
-      ${card('Taxa de conversão',shows?vg(pct(ganhos.length,shows))+'%':'—','ganhos sobre shows','pct','brand2')}
-      ${card('TCV total',tcv?esc(brl(tcv)):'—','valor fechado no mês','cifrao')}
-      ${card('MRR gerado',mrr?esc(brl(mrr)):'—','fee mensal recorrente','ciclo','info2')}
+      ${card('Taxa de conversão',shows?vg(pct(ganhos.length,shows))+'%':'-','ganhos sobre shows','pct','brand2')}
+      ${card('TCV total',tcv?esc(brl(tcv)):'-','valor fechado no mês','cifrao')}
+      ${card('MRR gerado',mrr?esc(brl(mrr)):'-','fee mensal recorrente','ciclo','info2')}
     </div>
 
     <div class="pc-sec">Ticket médio</div>
     <div class="pc-banner">
       <div class="pc-k">Ticket médio</div>
-      <div class="pc-big">${ganhos.length?esc(brl(mrr/ganhos.length)):'—'}</div>
+      <div class="pc-big">${ganhos.length?esc(brl(mrr/ganhos.length)):'-'}</div>
       <div class="pc-s">${ganhos.length?'MRR ÷ Ganhos · '+ganhos.length+' venda'+(ganhos.length===1?'':'s')+' no mês · contrato médio '+esc(brl(tcv/ganhos.length)):'nenhuma venda no mês'}</div>
     </div>
 
@@ -922,7 +922,7 @@ function ccPainelHTML(){
       </div>`).join('')}</div>`
       :'<div class="hint">Nenhuma call perdida neste mês.</div>'}
 
-    <p class="crm-hint">Mês = data da call. Taxa de no-show e conversão ignoram as calls ainda agendadas — só entram depois que a reunião acontece. Ticket médio é o MRR do mês dividido pelas vendas — a mensalidade média de quem entrou. O contrato médio (TCV ÷ vendas) aparece ao lado: somar TCV com MRR contava o mesmo dinheiro duas vezes.</p>`;
+    <p class="crm-hint">Mês = data da call. Taxa de no-show e conversão ignoram as calls ainda agendadas, só entram depois que a reunião acontece. Ticket médio é o MRR do mês dividido pelas vendas, a mensalidade média de quem entrou. O contrato médio (TCV ÷ vendas) aparece ao lado: somar TCV com MRR contava o mesmo dinheiro duas vezes.</p>`;
 }
 
 /* ---------- CALLS (lançamento) ---------- */
@@ -943,18 +943,18 @@ function ccCallsHTML(){
   const todas=CRM.d.calls||[], vis=ccFiltradas();
   const ativos=['sdr','status','de','ate'].filter(k=>CRM.cc[k]).length;
   /* so o status do lead vira pilula; o da call e texto, como no painel original */
-  const pil=(v)=>{ const n=ccNome(CC_LEAD,v); return n?`<span class="pc-pill ${ccCor(CC_LEAD,v)}">${esc(n)}</span>`:'<span class="pc-vazio">—</span>'; };
+  const pil=(v)=>{ const n=ccNome(CC_LEAD,v); return n?`<span class="pc-pill ${ccCor(CC_LEAD,v)}">${esc(n)}</span>`:'<span class="pc-vazio">-</span>'; };
   const linha=(c)=>`<tr>
     <td class="pc-dt">${esc(fmtDate(String(c.data||'').slice(0,10)))}</td>
-    <td class="pc-org">${esc(ccNome(CC_ORIGENS,c.origem)||'—')}</td>
-    <td class="pc-lead">${esc(c.lead||'—')}</td>
-    <td class="pc-emp">${esc(c.empresa||'—')}</td>
-    <td>${esc(c.sdr||'—')}</td>
-    <td>${c.closer?esc(c.closer):'<span class="pc-vazio">—</span>'}</td>
-    <td class="pc-call">${esc(ccNome(CC_CALL,c.status_call)||'—')}</td>
+    <td class="pc-org">${esc(ccNome(CC_ORIGENS,c.origem)||'-')}</td>
+    <td class="pc-lead">${esc(c.lead||'-')}</td>
+    <td class="pc-emp">${esc(c.empresa||'-')}</td>
+    <td>${esc(c.sdr||'-')}</td>
+    <td>${c.closer?esc(c.closer):'<span class="pc-vazio">-</span>'}</td>
+    <td class="pc-call">${esc(ccNome(CC_CALL,c.status_call)||'-')}</td>
     <td>${pil(c.status_lead)}</td>
-    <td class="r">${c.valor?esc(brl(c.valor)):'<span class="pc-vazio">—</span>'}</td>
-    <td class="r">${c.fee?esc(brl(c.fee)):'<span class="pc-vazio">—</span>'}</td>
+    <td class="r">${c.valor?esc(brl(c.valor)):'<span class="pc-vazio">-</span>'}</td>
+    <td class="r">${c.fee?esc(brl(c.fee)):'<span class="pc-vazio">-</span>'}</td>
     <td class="r"><span class="pc-acoes">
       <button class="pc-ib" title="Editar esta call" onclick="crmCallModal('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
       <button class="pc-ib del" title="Excluir esta call" onclick="ccExcluir('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
@@ -976,7 +976,7 @@ function ccCallsHTML(){
     <div class="pc-tbox"><table class="pc-tbl">
       <thead><tr><th>Data</th><th>Origem</th><th>Lead</th><th>Empresa</th><th>SDR</th><th>Closer</th><th>Call</th><th>Lead</th><th class="r">Venda</th><th class="r">Fee</th><th></th></tr></thead>
       <tbody>${vis.length?vis.map(linha).join('')
-        :`<tr><td colspan="11" class="pc-nada">${todas.length?'Nenhuma call com esses filtros.':'Nenhuma call lançada ainda — use “+ Nova call”.'}</td></tr>`}</tbody>
+        :`<tr><td colspan="11" class="pc-nada">${todas.length?'Nenhuma call com esses filtros.':'Nenhuma call lançada ainda: use “+ Nova call”.'}</td></tr>`}</tbody>
     </table></div>`;
 }
 
@@ -1012,7 +1012,7 @@ window.crmCallModal=(id)=>{
     </div>
     <div class="cc-2">
       ${campo('Quem Agendou',inp('cc_sdr',c.sdr,'nome de quem agendou',' list="ccPessoas"'))}
-      ${campo('Quem Vendeu',inp('cc_closer',c.closer,'— nenhum —',' list="ccPessoas"'))}
+      ${campo('Quem Vendeu',inp('cc_closer',c.closer,'nenhum',' list="ccPessoas"'))}
     </div>
     <div class="cc-2">
       ${campo('Status da Call',`<select id="cc_scall" class="cx">${opt(CC_CALL,c.status_call||'agendado')}</select>`)}
@@ -1023,7 +1023,7 @@ window.crmCallModal=(id)=>{
       ${campo('Empresa',inp('cc_empresa',c.empresa,''))}
     </div>
     <div class="cc-2">
-      ${campo('BANT',`<select id="cc_bant"><option value="">—</option>${opt(CC_BANT,c.bant)}</select>`)}
+      ${campo('BANT',`<select id="cc_bant"><option value="">-</option>${opt(CC_BANT,c.bant)}</select>`)}
       ${campo('Nicho',inp('cc_nicho',c.nicho,'ex.: concessionária'))}
     </div>
     <div class="cc-2">

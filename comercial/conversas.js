@@ -19,7 +19,7 @@
   const barra=(c)=>[...c.querySelectorAll('.fin-tabs')].find(t=>t.innerHTML.includes('crmAba('))||null;
 
   async function api(acao,corpo){
-    const S=ses(); if(!S||!S.access_token) throw new Error('Sessão expirada — entre de novo.');
+    const S=ses(); if(!S||!S.access_token) throw new Error('Sessão expirada: entre de novo.');
     const r=await fetch(URL_+'/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+S.access_token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
     const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
     if(!d.ok) throw new Error(d.erro||('erro '+r.status));
@@ -111,7 +111,7 @@
       return `<button class="cv-item${CV.sel&&CV.sel.chatid===c.chatid?' on':''}" onclick="cvAbrir('${esc(c.chatid)}')">
       <span class="cv-av">${c.foto?`<img src="${esc(c.foto)}" alt="" loading="lazy">`:esc(inicial(c.nome))}</span>
       <span class="cv-txt"><span class="cv-l1"><b>${esc(c.nome||fmtFone(c.fone))}</b><i>${esc(hora(c.quando))}</i></span>
-        <span class="cv-l2"><span>${esc(c.previa||'—')}</span>${c.naoLidas?`<em>${c.naoLidas}</em>`:''}</span>
+        <span class="cv-l2"><span>${esc(c.previa||'-')}</span>${c.naoLidas?`<em>${c.naoLidas}</em>`:''}</span>
         ${a?`<span class="cv-ad" title="${esc((a.campanha_nome||'campanha não identificada')+' › '+(a.adset_nome||'conjunto não identificado'))}">${esc(a.ad_app||'meta')} · ${esc(adNome(a))}</span>`:''}
       </span></button>`; }).join('');
   }
@@ -299,7 +299,7 @@
     LD.fone=String(fone||''); LD.nome=nome||''; LD.msgs=[]; LD.erro=''; LD.carregando=true; LD.chatid='';
     estilo(); waLdModal(); waLdPinta();
     try{ const d=await api('conversa',{fone:LD.fone});
-      if(!d.achou){ LD.erro='Nenhuma conversa com este número ainda — nem no WhatsApp do Kennedy, nem no da Luana.'; }
+      if(!d.achou){ LD.erro='Nenhuma conversa com este número ainda, nem no WhatsApp do Kennedy, nem no da Luana.'; }
       else { LD.msgs=d.mensagens||[]; LD.por=d.por||''; LD.perfil=d.perfil||d.por||''; LD.chatid=d.chatid||''; }
     }catch(e){ LD.erro=e.message||'falha'; }
     LD.carregando=false; waLdPinta();

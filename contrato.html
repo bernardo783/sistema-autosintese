@@ -326,7 +326,7 @@ async function buscaCEP(p,cep){
       respostas[p.id]=valorDe(p); guardar();
       if(st) st.textContent='';
       const num=$('#c-'+p.id+'-num'); if(num&&!num.value.trim()) num.focus();
-    } else if(st){ st.textContent='CEP não encontrado — pode preencher manualmente.'; }
+    } else if(st){ st.textContent='CEP não encontrado: pode preencher manualmente.'; }
   }catch(_){ if(st) st.textContent=''; }
 }
 PERGUNTAS.forEach((p,i)=>{
@@ -434,7 +434,7 @@ async function enviar(){
   const e=$('#e-'+(PERGUNTAS.length-1));
   e.textContent=(res.status===429)
     ? 'Recebemos muitos envios agora há pouco. Aguarde um minuto e pressione OK de novo.'
-    : 'Não foi possível enviar agora. Verifique sua conexão e pressione OK de novo — suas respostas estão guardadas.';
+    : 'Não foi possível enviar agora. Verifique sua conexão e pressione OK de novo, suas respostas estão guardadas.';
   e.classList.add('on');
 }
 
