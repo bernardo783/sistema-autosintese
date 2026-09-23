@@ -522,7 +522,7 @@ grupo('Logos do cliente: guardadas na ficha, baixadas na Linha Editorial');
   ok('tira espaço e acento do nome', k==='t/T1/logo-abc12_Logo_710_Ve_culos_final_.png');
   ok('a busca da aba casa com o prefixo', cod.indexOf(".like('caminho','t/'+tid+'/'+LG_PREF+'%')")>0);
   secao('ligações na tela');
-  ok('ficha tem a aba Logos', HTML.indexOf(`onclick="cliIrPara('\${it.id}','logos')">Logos</button>`)>0);
+  ok('ficha tem a aba Logos', HTML.indexOf(`onclick="cliIrPara('\${it.id}','logos')">\${PCX_I.foto}Logos</button>`)>0);
   ok('painel da tarefa troca para a aba Logo', HTML.indexOf("['Det','Atv','Rel','Logo'].forEach")>0);
   ok('aba Logo acompanha a troca de cliente', HTML.indexOf("sel.addEventListener('change',lgTk)")>0);
 }
