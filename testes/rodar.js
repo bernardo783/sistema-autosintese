@@ -559,7 +559,7 @@ grupo('Acessos: ninguém perde a tela (Gabriel 23/09)');
 /* ---------------- tarefas recorrentes ---------------- */
 grupo('Tarefas recorrentes (Gabriel 23/09)');
 {
-  const cod=bloco('const DT_MES=','/* 6 semanas fixas')+bloco('const TK_G2ST=','\n')+'\n'
+  const cod=bloco('const DT_MES=','/* 6 semanas fixas')+bloco('const TK_G2ST=','\n')+'\n'+bloco('const TK_ST=','\n')+'\n'
     +bloco('/* ======================= TAREFAS RECORRENTES','/* ---------- editor da repetição');
   /* banco falso: update/insert com os filtros que a trava usa */
   const BANCO=[];
@@ -614,6 +614,18 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       recorrencia:{p:'mesu1',r:{u:'m',cada:1,mes:'util1'},anc:'2026-10-01',base:'2026-10-01',quem:{ids:[]},gat:'concluir',nova:false,fds:true,fim:{t:'nunca'},n:1}};
     BANCO.push(JSON.parse(JSON.stringify(b))); g.TK.tarefas=[b];
     await g.recVerificar(); ok('modo reabrir: a mesma tarefa volta com prazo 02/11', g.TK.tarefas.length===1&&b.status==='todo'&&b.prazo==='2026-11-02');
+    BANCO.length=0;
+    g.TK.listas=[{id:'L'},{id:'K'}];
+    g.tkStatusDe=(lid)=>lid==='K'?[{id:'k1',nome:'Briefing',grupo:'nao_iniciado'},{id:'k2',nome:'Produção',grupo:'ativo'},{id:'k9',nome:'Feito',grupo:'feito'}]:[];
+    const d={id:'d1',lista_id:'L',titulo:'Vídeo semanal',status:'feito',prazo:'2026-09-23',responsaveis:['me'],valores:{c1:5},checklist:[],
+      recorrencia:{p:'sem',r:{u:'s',cada:1,dias:[3]},anc:'2026-09-23',base:'2026-09-23',quem:{ids:[]},gat:'concluir',nova:true,fds:true,fim:{t:'nunca'},n:1,dest:{lista_id:'K',status:'k2'}}};
+    BANCO.push(JSON.parse(JSON.stringify(d))); g.TK.tarefas=[d];
+    await g.recVerificar(); const dn=g.TK.tarefas[1];
+    ok('nasce na lista escolhida, na coluna escolhida do Kanban', dn&&dn.lista_id==='K'&&dn.status_id==='k2'&&dn.status==='fazendo');
+    ok('trocou de lista: campos da lista antiga não vão junto', dn&&Object.keys(dn.valores).length===0);
+    d.recorrencia.dest={lista_id:'sumiu',status:'x'}; d.recorrencia.gerou=null; BANCO.length=0; BANCO.push(JSON.parse(JSON.stringify(d))); g.TK.tarefas=[d];
+    await g.recVerificar(); const dx=g.TK.tarefas[1];
+    ok('lista apagada: volta pra lista da própria tarefa', dx&&dx.lista_id==='L'&&dx.status==='todo');
     ok('banco: migração cria a coluna recorrencia', /add column if not exists recorrencia jsonb/.test(fs.readFileSync(path.join(__dirname,'..','migracao-recorrencia.sql'),'utf8')));
     fimDosTestes();
   })();

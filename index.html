@@ -1685,6 +1685,7 @@
   .tk-recico.pausa{color:var(--fraco)}
   .recpop{width:392px;z-index:3000;display:flex;flex-direction:column;gap:10px}
   .recpop .tkp-h{margin-bottom:0}
+  .recpop>*{flex:none}   /* sem isso a caixa de busca era espremida quando o editor encosta no fim da tela */
   .recpop .tkp-h strong{display:flex;align-items:center;gap:8px}
   .rc-tit{display:inline-flex;color:var(--brand2)} .rc-tit svg{width:15px;height:15px}
   .rc-dd{display:flex;align-items:center;gap:9px;width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
@@ -1715,6 +1716,8 @@
   .rc-pes:hover{border-color:var(--brand2)}
   .rc-ico{width:22px;height:22px;border-radius:50%;border:1px dashed var(--fraco);display:inline-grid;place-items:center;color:var(--fraco);flex:none}
   .rc-ico svg{width:12px;height:12px}
+  .rc-lst svg{width:13px;height:13px;color:var(--fraco);flex:none;margin-left:5px}
+  .rc-lst span{overflow:hidden;text-overflow:ellipsis}
   .rc-stk{display:inline-flex}
   .rc-stk .av+.av{margin-left:-3px}
   .rc-pbox{border:1px solid var(--line);border-radius:10px;padding:8px;max-height:260px;overflow-y:auto;margin-top:-4px}
@@ -8683,6 +8686,20 @@ function recQuem(rec,t){
   if(q.rev&&ids.length>1){ const i=(+q.i||0)%ids.length; return {ids:[ids[i]],q:Object.assign({},q,{i:i+1})}; }
   return {ids:ids,q:q};
 }
+/* onde a próxima nasce (Gabriel 23/09): lista e coluna escolhidas no editor.
+   Lista apagada ou sem acesso cai de volta na lista da própria tarefa. */
+function recDestLista(rec,t){ const d=(rec&&rec.dest)||{};
+  return (d.lista_id&&(TK.listas||[]).some(l=>l.id===d.lista_id))?d.lista_id:t.lista_id; }
+function recColunas(lid){
+  const sts=(tkStatusDe(lid)||[]).filter(x=>x.grupo!=='feito'&&x.grupo!=='fechado');
+  return sts.length?sts.map(x=>({v:x.id,n:x.nome,st:TK_G2ST[x.grupo]||'todo',custom:true}))
+    :[{v:'todo',n:TK_ST.todo,st:'todo'},{v:'fazendo',n:TK_ST.fazendo,st:'fazendo'}];
+}
+function recStatusDe(lid,col){
+  const c=col&&recColunas(lid).find(x=>String(x.v)===String(col));
+  if(c) return c.custom?{status_id:c.v,status:c.st}:{status_id:null,status:c.st};
+  return recStatusInicial(lid);
+}
 function recStatusInicial(lid){
   const sts=tkStatusDe(lid)||[];
   const s=sts.find(x=>x.grupo==='nao_iniciado')||sts.find(x=>x.grupo!=='feito'&&x.grupo!=='fechado')||null;
@@ -8735,12 +8752,12 @@ async function recGerar(t){
     if(error) return recErro(error);
     if(data&&data.length) t.recorrencia=r2;
     return !!(data&&data.length); }
-  const quem=recQuem(rec,t), leva=rec.leva||{};
+  const quem=recQuem(rec,t), leva=rec.leva||{}, lid=recDestLista(rec,t), col=recStatusDe(lid,(rec.dest||{}).status);
   const ck=leva.ck===false?[]:(t.checklist||[]).map(x=>({t:x.t,ok:false}));
   const recNova=Object.assign({},rec,{base:px.nom,n:(+rec.n||1)+1,gerou:null,quem:quem.q,serie:rec.serie||t.id});
   if(rec.nova===false){
     /* reabre a mesma: só se ela continua do jeito que vimos (trava contra dois navegadores) */
-    const patch=Object.assign(recStatusInicial(t.lista_id),{prazo:px.prazo,iniciada_em:recMover(t.iniciada_em,t.prazo,px.prazo),
+    const patch=Object.assign(col,{lista_id:lid,prazo:px.prazo,iniciada_em:recMover(t.iniciada_em,t.prazo,px.prazo),
       concluida_em:null,checklist:ck,responsaveis:quem.ids,responsavel_id:quem.ids[0]||null,recorrencia:recNova});
     let q=sb.from('tarefas').update(patch).eq('id',t.id).is('recorrencia->>gerou',null);
     q=(rec.gat==='agenda'&&(rec.r||{}).u!=='c')?q.eq('prazo',t.prazo):q.eq('status','feito');
@@ -8755,14 +8772,15 @@ async function recGerar(t){
   if(!c.data||!c.data.length) return false;          /* outro navegador já pegou */
   t.recorrencia=r1;
   const nova=Object.assign({
-    id:novoId, lista_id:t.lista_id, titulo:t.titulo, descricao:leva.desc===false?null:(t.descricao||null),
-    prioridade:leva.campos===false?'med':(t.prioridade||'med'), valores:leva.campos===false?{}:(t.valores||{}),
+    id:novoId, lista_id:lid, titulo:t.titulo, descricao:leva.desc===false?null:(t.descricao||null),
+    prioridade:leva.campos===false?'med':(t.prioridade||'med'),
+    valores:(leva.campos===false||lid!==t.lista_id)?{}:(t.valores||{}),   /* campo é da lista: outra lista, outros campos */
     checklist:ck, tipo_id:t.tipo_id||null, ficha_id:t.ficha_id||null, squad:t.squad||null,
     tags:t.tags||null, pai_id:t.pai_id||null, hora:t.hora||null,
     prazo:px.prazo, iniciada_em:recMover(t.iniciada_em,t.prazo,px.prazo), concluida_em:null,
     responsaveis:quem.ids, responsavel_id:quem.ids[0]||null,
     criado_por:(currentUser||{}).id||null, ordem:TK.tarefas.length, recorrencia:recNova
-  },recStatusInicial(t.lista_id));
+  },col);
   const r=await sb.from('tarefas').insert(nova).select().single();
   if(r.error){ /* desfaz o carimbo pra tentar de novo depois */
     await sb.from('tarefas').update({recorrencia:rec}).eq('id',t.id); t.recorrencia=rec;
@@ -8802,7 +8820,9 @@ window.recAbrir=async (ev)=>{
     gat:(r&&r.gat)||'concluir', nova:r?r.nova!==false:true, fds:r?r.fds!==false:true,
     fim:Object.assign({t:'nunca',d:'',n:6},(r&&r.fim)||{}),
     leva:Object.assign({desc:true,ck:true,campos:true},(r&&r.leva)||{}),
-    abre:'', q:'', pres:pres, n:(r&&r.n)||1, serie:(r&&r.serie)||t.id, pausada:!!(r&&r.pausada)};
+    abre:'', q:'', pres:pres, n:(r&&r.n)||1, serie:(r&&r.serie)||t.id, pausada:!!(r&&r.pausada),
+    dest:{l:recDestLista(r,t), s:String(((r&&r.dest)||{}).status||'')}};
+  if(!RE.dest.s) RE.dest.s=String((recColunas(RE.dest.l)[0]||{}).v||'');
   if(RE.p==='custom'&&!RE.c.dias.length) RE.c.dias=[dow];
   const el=document.createElement('div'); el.id='recPop'; el.className='tkpop recpop';
   el.onclick=e=>e.stopPropagation(); el.onmousedown=e=>e.stopPropagation();
@@ -8820,7 +8840,7 @@ function recMontar(){
   let i=0; if(RE.rev&&ids.length>1){ const k=ids.indexOf(String(respDe(t)[0]||'')); i=k>=0?k+1:0; }
   return {v:1,p:RE.p,r:recRegraRE(),anc:RE.prazo,base:RE.prazo,quem:{ids:ids,rev:RE.rev&&ids.length>1,i:i},
     gat:RE.gat,nova:RE.nova,fds:RE.fds,fim:RE.fim.t==='nunca'?{t:'nunca'}:RE.fim.t==='data'?{t:'data',d:RE.fim.d}:{t:'vezes',n:Math.max(1,+RE.fim.n||1)},
-    leva:RE.leva,n:RE.n,serie:RE.serie,pausada:RE.pausada,gerou:null};
+    leva:RE.leva,n:RE.n,serie:RE.serie,pausada:RE.pausada,gerou:null,dest:{lista_id:RE.dest.l,status:RE.dest.s}};
 }
 function recPintar(){
   const el=document.getElementById('recPop'); if(!el||!RE) return;
@@ -8852,6 +8872,9 @@ function recPintar(){
       <div class="tkp-vazio">Ninguém com esse nome.</div>
       ${RE.ids.length>1?`<label class="rc-cb rc-rev"><input type="checkbox" ${RE.rev?'checked':''} onchange="RE.rev=this.checked;recPintar()">Revezar entre eles, um por vez</label>`:''}
     </div>`:''}
+    <div class="rc-ln"><span class="rc-k">Nasce em</span><button type="button" class="rc-pes rc-lst" onclick="recAbre('lista')" title="${esc(recDestTitulo(RE.dest.l))}">${SVG_P.lista}<span>${esc(recDestCurto(RE.dest.l))}</span></button></div>
+    ${RE.abre==='lista'?`<div class="rc-pbox">${popBusca('Buscar lista, pasta ou workspace')}${recDestOpcoes()}<div class="tkp-vazio">Nenhuma lista com esse nome.</div></div>`:''}
+    <div class="rc-ln"><span class="rc-k">Coluna</span><select class="rc-sel" onchange="RE.dest.s=this.value;recPintarLeve()">${recColunas(RE.dest.l).map(c=>`<option value="${esc(String(c.v))}"${String(c.v)===RE.dest.s?' selected':''}>${esc(c.n)}</option>`).join('')}</select></div>
     <div class="rc-ln"><span class="rc-k">Termina</span><select class="rc-sel" onchange="RE.fim.t=this.value;if(this.value==='data'&&!RE.fim.d)RE.fim.d=recFimPadrao();recPintar()">
         <option value="nunca"${RE.fim.t==='nunca'?' selected':''}>nunca</option><option value="data"${RE.fim.t==='data'?' selected':''}>na data</option><option value="vezes"${RE.fim.t==='vezes'?' selected':''}>após N vezes</option></select>
       ${RE.fim.t==='data'?`<input type="date" class="rc-sel" value="${esc(RE.fim.d)}" min="${esc(RE.prazo)}" onchange="RE.fim.d=this.value;recPintarLeve()">`:''}
@@ -8863,15 +8886,32 @@ function recPintar(){
     ${RE.abre==='leva'?`<div class="rc-leva">${[['desc','Descrição'],['ck','Checklist desmarcado'],['campos','Campos e prioridade']].map(o=>`<label class="rc-cb"><input type="checkbox" ${RE.leva[o[0]]!==false?'checked':''} onchange="RE.leva['${o[0]}']=this.checked">${o[1]}</label>`).join('')}</div>`:''}
     <div class="rc-res" id="recRes">${recResumoHtml(rec,px)}</div>
     <div class="rc-pe">${RE.existe?`<button type="button" class="btn ghost small rc-del" onclick="recRemover()">Remover repetição</button>`:'<span></span>'}<button type="button" class="btn small" onclick="recSalvar()">Salvar</button></div>`;
-  const b=el.querySelector('.tkp-b'); if(b&&RE.abre==='pes'){ b.value=RE.q||''; if(RE.q) popFiltrar(b); b.oninput=function(){ RE.q=this.value; popFiltrar(this); }; b.focus(); }
+  const b=el.querySelector('.tkp-b'); if(b&&(RE.abre==='pes'||RE.abre==='lista')){ b.value=RE.q||''; if(RE.q) popFiltrar(b); b.oninput=function(){ RE.q=this.value; popFiltrar(this); }; b.focus(); }
 }
+/* listas onde dá pra nascer tarefa: tira telas especiais (Financeiro, Controle de Clientes,
+   Novas Contas, painéis do comercial). Agrupadas por workspace, igual à árvore. */
+const REC_FORA=(lid)=>ehFin(lid)||ehTela(lid)||ehLC(lid)||lid===NC_LISTA||lid==='7381fb45-8d78-458d-b432-77dd88972338';
+function recWsDe(lid){ const l=(TK.listas||[]).find(x=>x.id===lid)||{}, e=(TK.espacos||[]).find(x=>x.id===l.espaco_id)||{};
+  const w=e.workspace_id?(wsTodas()||[]).find(x=>String(x.id)===String(e.workspace_id)):wsEmpresa(); return w||null; }
+const recDestCurto=(lid)=>{ const l=(TK.listas||[]).find(x=>x.id===lid); return l?spNome(l):'—'; };
+const recDestTitulo=(lid)=>{ const w=recWsDe(lid); return (w?w.nome+' / ':'')+tkCaminho(lid); };
+function recDestOpcoes(){
+  const grupos={};
+  (TK.listas||[]).filter(l=>!REC_FORA(l.id)).forEach(l=>{ const w=recWsDe(l.id), k=w?String(w.id):'';
+    (grupos[k]=grupos[k]||{w:w,ls:[]}).ls.push(l); });
+  return Object.keys(grupos).map(k=>{ const g=grupos[k];
+    return `<div class="tkp-sec" data-fixo="1">${esc(g.w?g.w.nome:'Workspace')}</div>`+g.ls.map(l=>`<label class="tkp-row" onclick="event.preventDefault();recDest('${l.id}')">${SVG_P.lista}<span class="tkp-nm" title="${esc(tkCaminho(l.id))}">${esc(tkCaminho(l.id))}<span style="display:none"> ${esc(g.w?g.w.nome:'')}</span></span><input type="radio" ${l.id===RE.dest.l?'checked':''}></label>`).join(''); }).join('');
+}
+window.recDest=(lid)=>{ RE.dest.l=lid; RE.dest.s=String((recColunas(lid)[0]||{}).v||''); RE.abre=''; recPintar(); };
 const recFimPadrao=()=>{ const d=dtDe(RE.prazo)||new Date(); return dtISO(new Date(d.getFullYear(),11,31)); };
 function recResumoHtml(rec,px){
   const R=rec.r, q=rec.quem;
   const quem=!q.ids.length?' Fica com quem estiver na tarefa.':(q.rev?' Revezando: '+q.ids.map(id=>primeiroNome(tkNomeUser(id))).join(' → ')+'.':' Vai para '+recLista(q.ids.map(id=>primeiroNome(tkNomeUser(id))))+'.');
   const quando=R.u==='c'?' Conta a partir do dia em que esta for concluída.':(rec.gat==='concluir'?' Quando concluir, ':' No prazo, mesmo com esta aberta, ')+(R.u==='c'?'':(rec.nova?'nasce uma tarefa nova.':'esta mesma volta para o início.'));
   const fim=recFimTxt(Object.assign({},rec,{n:1}));
-  return `<p><b>${esc(recRotulo(rec))}.</b>${esc(quando+quem)}${fim?' '+esc(fim.charAt(0).toUpperCase()+fim.slice(1))+'.':''}</p>
+  const d=rec.dest||{}, colN=(recColunas(d.lista_id).find(x=>String(x.v)===String(d.status))||{}).n;
+  const onde=d.lista_id?' Nasce em '+recDestCurto(d.lista_id)+(colN?', coluna '+colN:'')+'.':'';
+  return `<p><b>${esc(recRotulo(rec))}.</b>${esc(quando+onde+quem)}${fim?' '+esc(fim.charAt(0).toUpperCase()+fim.slice(1))+'.':''}</p>
     <div class="rc-datas">${px.length?px.map(x=>`<span class="rc-d">${esc(dtCurto(x.p.prazo))}${x.quem?avatar(x.quem,tkNomeUser(x.quem),'sm'):''}</span>`).join(''):'<span class="rc-k">Sem próximas — a data de término já passou.</span>'}</div>`;
 }
 /* repinta só o resumo (não perde o foco de quem está digitando um número) */
