@@ -1737,6 +1737,7 @@
   .rc-datas{display:flex;flex-wrap:wrap;gap:5px}
   .rc-d{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:3px 6px;
     background:var(--panel);font-variant-numeric:tabular-nums}
+  .rc-d.ini{border-color:var(--brand2);color:var(--brand2)}
   .rc-pe{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px}
   .rc-abas{margin-right:4px}
   .rc-n{font-size:10.5px;color:var(--fraco);margin-left:2px}
@@ -8642,6 +8643,19 @@ function recProxima(rec,t){
   if(f.t==='vezes'&&(+rec.n||1)>=(+f.n||1)) return null;
   return {nom:iso,prazo:dtISO((rec.fds&&recFds(nom))?recSeg(nom):nom)};
 }
+/* tarefa sem prazo (Gabriel 23/09: não precisa escolher data pra repetir): a série começa
+   hoje e o prazo vira a primeira data da regra que cai de hoje em diante. */
+function recPrimeira(rec,hojeISO){
+  const R=rec.r||{}, n=Math.max(1,+R.cada||1), h=dtDe(hojeISO), anc=dtDe(rec.anc)||h;
+  let d=h;
+  if(R.u==='d'&&(R.util||(rec.fds&&n===1))){ while(recFds(d)) d=recAdd(d,1); }
+  else if(R.u==='s'){ const ds=(R.dias&&R.dias.length)?R.dias:[anc.getDay()], s0=recSem0(anc);
+    for(let i=0;i<800;i++){ const x=recAdd(h,i), wk=Math.round((recSem0(x)-s0)/(7*864e5));
+      if(((wk%n)+n)%n===0&&ds.indexOf(x.getDay())>=0){ d=x; break; } } }
+  else if(R.u==='m'){ d=recNoMes(h.getFullYear(),h.getMonth(),R.mes||'dia',anc);
+    if(dtISO(d)<hojeISO){ const t=new Date(h.getFullYear(),h.getMonth()+n,1); d=recNoMes(t.getFullYear(),t.getMonth(),R.mes||'dia',anc); } }
+  return {nom:dtISO(d),prazo:dtISO((rec.fds&&recFds(d))?recSeg(d):d)};
+}
 /* as frases prontas do menu, tiradas do prazo da tarefa (estilo ClickUp) */
 function recPresets(ancISO){
   const d=dtDe(ancISO)||new Date(), dow=d.getDay(), dia=d.getDate();
@@ -8805,14 +8819,14 @@ window.recAbrir=async (ev)=>{
   ev.stopPropagation();
   const velho=document.getElementById('recPop'); if(velho){ velho.remove(); return; }
   const btn=ev.currentTarget;
-  const prazo=String((document.getElementById('tk_prazo')||{}).value||'').slice(0,10);
-  if(!prazo){ toast('Escolha o prazo primeiro — a repetição parte dele.'); return; }
+  const pz0=String((document.getElementById('tk_prazo')||{}).value||'').slice(0,10);
+  const prazo=pz0||dtISO(new Date());   /* sem prazo: a repetição começa hoje */
   let t=window.__tkmT;
   if(!t&&window.__tkmSalvarJa){ await window.__tkmSalvarJa(); t=window.__tkmT; }
   if(!t){ toast('Dê um nome à tarefa primeiro.'); return; }
   const r=(recAtiva(t)&&t.recorrencia)||null, dow=(dtDe(prazo)||new Date()).getDay();
   const pres=recPresets(prazo);
-  RE={id:t.id, prazo:prazo, existe:!!r,
+  RE={id:t.id, prazo:prazo, semPrazo:!pz0, existe:!!r,
     p:(r&&r.p)||'sem',
     c:Object.assign({cada:1,u:'s',dias:[dow],mes:'dia'},(r&&r.p==='custom')?r.r:{}),
     apos:(r&&r.p==='apos')?(+r.r.cada||3):3,
@@ -8838,9 +8852,21 @@ function recRegraRE(){
 function recMontar(){
   const t=TK.tarefas.find(x=>x.id===RE.id)||{}, ids=RE.ids.filter(Boolean);
   let i=0; if(RE.rev&&ids.length>1){ const k=ids.indexOf(String(respDe(t)[0]||'')); i=k>=0?k+1:0; }
-  return {v:1,p:RE.p,r:recRegraRE(),anc:RE.prazo,base:RE.prazo,quem:{ids:ids,rev:RE.rev&&ids.length>1,i:i},
+  const rec={v:1,p:RE.p,r:recRegraRE(),anc:RE.prazo,base:RE.prazo,quem:{ids:ids,rev:RE.rev&&ids.length>1,i:i},
     gat:RE.gat,nova:RE.nova,fds:RE.fds,fim:RE.fim.t==='nunca'?{t:'nunca'}:RE.fim.t==='data'?{t:'data',d:RE.fim.d}:{t:'vezes',n:Math.max(1,+RE.fim.n||1)},
     leva:RE.leva,n:RE.n,serie:RE.serie,pausada:RE.pausada,gerou:null,dest:{lista_id:RE.dest.l,status:RE.dest.s}};
+  RE.primeira=RE.semPrazo?recPrimeira(rec,RE.prazo):null;
+  if(RE.primeira) rec.base=RE.primeira.nom;
+  return rec;
+}
+/* as próximas datas pra mostrar no resumo (sem prazo, a primeira é a de começo) */
+function recSimular(rec,qtd){
+  const px=[]; let rr=Object.assign({},rec), tt={prazo:RE.primeira?RE.primeira.prazo:RE.prazo,concluida_em:null}, qq=rec.quem;
+  if(RE.primeira) px.push({p:RE.primeira,quem:'',inicio:true});
+  while(px.length<qtd){ const p=recProxima(rr,tt); if(!p) break;
+    const quem=(qq.rev&&qq.ids.length>1)?qq.ids[(+qq.i||0)%qq.ids.length]:'';
+    px.push({p:p,quem:quem}); rr=Object.assign({},rr,{base:p.nom,n:(+rr.n||1)+1}); tt={prazo:p.prazo}; if(quem) qq=Object.assign({},qq,{i:(+qq.i||0)+1}); }
+  return px;
 }
 function recPintar(){
   const el=document.getElementById('recPop'); if(!el||!RE) return;
@@ -8848,11 +8874,7 @@ function recPintar(){
   const pesTxt=!RE.ids.length?'<span class="rc-ico">'+SVG_P.pessoa+'</span>Os mesmos da tarefa'
     :'<span class="rc-stk">'+RE.ids.slice(0,3).map(id=>avatar(id,tkNomeUser(id),'sm')).join('')+'</span>'
       +esc(RE.ids.length===1?tkNomeUser(RE.ids[0]):(rec.quem.rev?'Revezando '+RE.ids.length:recLista(RE.ids.map(id=>primeiroNome(tkNomeUser(id))))));
-  /* próximas 5 datas, simulando a série */
-  const px=[]; let rr=Object.assign({},rec), tt={prazo:RE.prazo,concluida_em:null}, qq=rec.quem;
-  for(let k=0;k<5;k++){ const p=recProxima(rr,tt); if(!p) break;
-    const quem=(qq.rev&&qq.ids.length>1)?qq.ids[(+qq.i||0)%qq.ids.length]:'';
-    px.push({p:p,quem:quem}); rr=Object.assign({},rr,{base:p.nom,n:(+rr.n||1)+1}); tt={prazo:p.prazo}; if(quem) qq=Object.assign({},qq,{i:(+qq.i||0)+1}); }
+  const px=recSimular(rec,5);
   const semana=['D','S','T','Q','Q','S','S'];
   el.innerHTML=`
     <div class="tkp-h"><strong><span class="rc-tit">${REC_SVG}</span>Repetir tarefa</strong><button class="tkp-x" onclick="document.getElementById('recPop').remove()">✕</button></div>
@@ -8911,14 +8933,13 @@ function recResumoHtml(rec,px){
   const fim=recFimTxt(Object.assign({},rec,{n:1}));
   const d=rec.dest||{}, colN=(recColunas(d.lista_id).find(x=>String(x.v)===String(d.status))||{}).n;
   const onde=d.lista_id?' Nasce em '+recDestCurto(d.lista_id)+(colN?', coluna '+colN:'')+'.':'';
-  return `<p><b>${esc(recRotulo(rec))}.</b>${esc(quando+onde+quem)}${fim?' '+esc(fim.charAt(0).toUpperCase()+fim.slice(1))+'.':''}</p>
-    <div class="rc-datas">${px.length?px.map(x=>`<span class="rc-d">${esc(dtCurto(x.p.prazo))}${x.quem?avatar(x.quem,tkNomeUser(x.quem),'sm'):''}</span>`).join(''):'<span class="rc-k">Sem próximas — a data de término já passou.</span>'}</div>`;
+  const comeca=RE&&RE.primeira?' Começa em '+dtCurto(RE.primeira.prazo)+'.':'';
+  return `<p><b>${esc(recRotulo(rec))}.</b>${esc(comeca+quando+onde+quem)}${fim?' '+esc(fim.charAt(0).toUpperCase()+fim.slice(1))+'.':''}</p>
+    <div class="rc-datas">${px.length?px.map(x=>`<span class="rc-d${x.inicio?' ini':''}"${x.inicio?' title="Primeira: vira o prazo desta tarefa"':''}>${esc(dtCurto(x.p.prazo))}${x.quem?avatar(x.quem,tkNomeUser(x.quem),'sm'):''}</span>`).join(''):'<span class="rc-k">Sem próximas — a data de término já passou.</span>'}</div>`;
 }
 /* repinta só o resumo (não perde o foco de quem está digitando um número) */
 window.recPintarLeve=()=>{ const box=document.getElementById('recRes'); if(!box||!RE) return;
-  const rec=recMontar(); const px=[]; let rr=Object.assign({},rec), tt={prazo:RE.prazo}, qq=rec.quem;
-  for(let k=0;k<5;k++){ const p=recProxima(rr,tt); if(!p) break; const quem=(qq.rev&&qq.ids.length>1)?qq.ids[(+qq.i||0)%qq.ids.length]:'';
-    px.push({p:p,quem:quem}); rr=Object.assign({},rr,{base:p.nom,n:(+rr.n||1)+1}); tt={prazo:p.prazo}; if(quem) qq=Object.assign({},qq,{i:(+qq.i||0)+1}); }
+  const rec=recMontar(), px=recSimular(rec,5);
   box.innerHTML=recResumoHtml(rec,px);
   const dd=document.querySelector('#recPop .rc-ddt'); if(dd) dd.textContent=recRotulo(rec); };
 window.recAbre=(k)=>{ RE.abre=RE.abre===k?'':k; RE.q=''; recPintar(); };
@@ -8926,21 +8947,23 @@ window.recPreset=(k)=>{ RE.p=k; RE.abre=''; recPintar(); };
 window.recDia=(d)=>{ const i=RE.c.dias.indexOf(d); if(i>=0){ if(RE.c.dias.length>1) RE.c.dias.splice(i,1); } else RE.c.dias.push(d); recPintar(); };
 window.recPes=(id)=>{ if(!id) RE.ids=[]; else { id=String(id); const i=RE.ids.indexOf(id); if(i>=0) RE.ids.splice(i,1); else RE.ids.push(id); }
   if(RE.ids.length<2) RE.rev=false; recPintar(); };
-async function recGravar(id,rec){
-  const {error}=await sb.from('tarefas').update({recorrencia:rec}).eq('id',id);
+async function recGravar(id,rec,extra){
+  const {error}=await sb.from('tarefas').update(Object.assign({recorrencia:rec},extra||{})).eq('id',id);
   if(error){ toast(/recorrencia/i.test(error.message)?'Falta preparar o banco para repetição (migracao-recorrencia.sql).':'Erro: '+error.message); return false; }
-  const t=TK.tarefas.find(x=>x.id===id); if(t) t.recorrencia=rec;
-  if(window.__tkmT&&window.__tkmT.id===id) window.__tkmT.recorrencia=rec;
+  const t=TK.tarefas.find(x=>x.id===id); if(t) Object.assign(t,{recorrencia:rec},extra||{});
+  if(window.__tkmT&&window.__tkmT.id===id&&window.__tkmT!==t) Object.assign(window.__tkmT,{recorrencia:rec},extra||{});
   REC_SEM_COLUNA=false; return true;
 }
 window.recSalvar=async ()=>{
   if(!RE) return;
   if(RE.fim.t==='data'&&!RE.fim.d){ toast('Escolha a data de término.'); return; }
-  const rec=recMontar();
-  if(!(await recGravar(RE.id,rec))) return;
+  const rec=recMontar(), extra=RE.primeira?{prazo:RE.primeira.prazo}:null;
+  if(!(await recGravar(RE.id,rec,extra))) return;
+  if(extra){ const inp=document.getElementById('tk_prazo'), lb=document.getElementById('tk_prazo_lbl');
+    if(inp) inp.value=extra.prazo; if(lb) lb.textContent=dtCurto(extra.prazo); }
   const p=document.getElementById('recPop'); if(p) p.remove();
   recPintarBtn(); try{ tkDesenhar($('#content')); }catch(_){}
-  toast('Repetição: '+recRotulo(rec)+'.'); recAgendar();
+  toast('Repetição: '+recRotulo(rec)+(extra?' · começa '+dtCurto(extra.prazo):'')+'.'); recAgendar();
 };
 window.recRemover=async ()=>{
   if(!RE) return;

@@ -575,7 +575,7 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
     toast:m=>avisos.push(m),tkStatusDe:()=>[{id:'s1',grupo:'nao_iniciado'},{id:'s9',grupo:'feito'}],
     respDe:t=>t.responsaveis||[t.responsavel_id],arquivada:t=>!!t.arquivada_em,primeiroNome:x=>String(x).split(' ')[0],
     tkNomeUser:id=>({ls:'Luan',yg:'Yghor',jo:'João'}[id]||id),esc:x=>x,spDesenhar(){},tkDesenhar(){},renderInicio(){},$:()=>null,clearTimeout},
-    ['recProxima','recPresets','recRotulo','recVerificar','dtISO']);
+    ['recProxima','recPresets','recRotulo','recVerificar','dtISO','recPrimeira']);
   const Q='2026-09-23';                                     /* uma quarta */
   const P=(k)=>g.recPresets(Q).find(x=>x.k===k).r;
   const seq=(rec,de,n)=>{ const o=[]; let r=Object.assign({},rec,{base:de,n:1}), t={prazo:de};
@@ -592,6 +592,13 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
   ok('para na data de término', seq({r:P('sem'),anc:Q,fds:true,fim:{t:'data',d:'2026-10-10'}},Q,5)==='30/09 07/10');
   ok('3 vezes ao todo = a atual + 2', seq({r:P('sem'),anc:Q,fds:true,fim:{t:'vezes',n:3}},Q,5)==='30/09 07/10');
   ok('rótulo no jeito do ClickUp', g.recRotulo({p:'sem',anc:Q})==='Semanalmente na quarta'&&g.recRotulo({p:'sem',anc:'2026-09-26'})==='Semanalmente no sábado');
+  secao('sem prazo: começa de hoje');
+  const pri=(rec,h)=>g.recPrimeira(Object.assign({anc:h,fds:true},rec),h).prazo;
+  ok('toda segunda, hoje quarta 23/09 → seg 28/09', pri({r:{u:'s',cada:1,dias:[1]}},Q)==='2026-09-28');
+  ok('semanal no dia de hoje → hoje', pri({r:P('sem')},Q)===Q);
+  ok('1º dia útil: o de setembro já passou → 01/10', pri({r:P('mesu1')},Q)==='2026-10-01');
+  ok('último dia útil: o de setembro ainda vem → 30/09', pri({r:P('mesuu')},Q)==='2026-09-30');
+  ok('todo dia útil num sábado → segunda', pri({r:P('util')},'2026-09-26')==='2026-09-28');
   secao('criar a próxima');
   (async()=>{
     const t={id:'t1',lista_id:'L',titulo:'Saldo Meta',status:'feito',prazo:'2026-09-24',iniciada_em:'2026-09-22',responsaveis:['ls'],checklist:[{t:'a',ok:true}],
