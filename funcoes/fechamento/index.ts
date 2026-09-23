@@ -49,7 +49,7 @@ const ORIGENS: Record<string, string> = {
   indicacao: 'Indicação',
 };
 const semAcento = (s: string) =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const soDig = (s: string) => String(s || '').replace(/\D/g, '');
 const hojeISO = () => new Date().toISOString().slice(0, 10);
 
