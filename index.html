@@ -1685,6 +1685,10 @@
   .tk-recico.pausa{color:var(--fraco)}
   .recpop{width:392px;z-index:3000;display:flex;flex-direction:column;gap:10px}
   .recpop .tkp-h{margin-bottom:0}
+  /* os ícones do sistema (ic()) não têm tamanho próprio: sem isto o ícone de lista
+     esticava até ocupar a caixa inteira de "Nasce em" (print do Gabriel 23/09) */
+  .recpop svg{width:14px;height:14px;flex:none}
+  .recpop .tkp-row>svg{color:var(--fraco)}
   .recpop>*{flex:none}   /* sem isso a caixa de busca era espremida quando o editor encosta no fim da tela */
   .recpop .tkp-h strong{display:flex;align-items:center;gap:8px}
   .rc-tit{display:inline-flex;color:var(--brand2)} .rc-tit svg{width:15px;height:15px}
