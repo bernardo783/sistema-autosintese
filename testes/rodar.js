@@ -700,6 +700,16 @@ grupo('Concluir pede "O que foi feito" (Gabriel 23/09)');
   ok('gerente da demanda = quem criou a tarefa', /t\.criado_por \? \(await rest\(`perfis\?id=eq\.\$\{t\.criado_por\}/.test(fn));
 }
 
+/* ---------------- Controle de Clientes visão B ---------------- */
+grupo('Controle de Clientes: funil + lista (Gabriel 23/09)');
+{
+  ok('abre em Lista', /const visaoPadrao=\(id\)=>id===LC_ID\?'lista'/.test(HTML));
+  ok('fileiras de pílulas saíram (viraram Pessoa ▾ e Tipo ▾)', HTML.indexOf("lcAlertaContas()+lcAtalhos()+lcChips()")<0 && HTML.indexOf('lcBtnPessoa()+lcBtnTipo()+lcBtnFiltro()')>0);
+  ok('faixa do funil em cima da lista', HTML.indexOf("(TK.visao==='lista'?lcFunil():'')")>0);
+  ok('clicar no estágio filtra (e clicar de novo tira)', /TK\.lcF\.estagio=\(a\.length===1&&a\[0\]===id\)\?\[\]:\[id\]/.test(HTML));
+  ok('quadro: coluna vazia vira faixa fina', HTML.indexOf("lcb-fina")>0);
+}
+
 function fimDosTestes(){
 /* ---------------- tipo de cliente no Controle de Clientes ---------------- */
 grupo('Controle de Clientes: filtro por tipo e selo "sem tipo" (Gabriel 23/09)');
