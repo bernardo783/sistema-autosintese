@@ -13463,13 +13463,13 @@ async function ltGastos(){
   if(!rows.length) return;
   await sb.from('cliente_eventos').upsert(rows,{onConflict:'chave',ignoreDuplicates:true});
 }
-/* ===== RENOMEAR CLIENTE (Gabriel 31/08, so master) =====
+/* ===== RENOMEAR CLIENTE (Gabriel 31/08; 23/09: tambem o gerente do cliente) =====
    O nome do cliente mora em quatro lugares: cadastro financeiro (clientes), ficha
    (projetos, em CAIXA ALTA), card do Controle de Clientes (tarefas.titulo) e em cada
    linha de recebimento. Trocar na mao em um so deixa o resto divergente — foi o que
    aconteceu com "Aurea Motors". Aqui os quatro andam juntos. */
 window.cliRenomear=async (fid)=>{
-  if(!currentUser||currentUser.role!=='master'){ toast('Só um usuário master pode corrigir o nome.'); return; }
+  if(!currentUser||!(currentUser.role==='master'||souGerenteDaFicha(fid))){ toast('Só o master ou o gerente deste cliente corrigem o nome.'); return; }
   const f=(DB.projetos||[]).find(x=>x.id===fid); if(!f) return;
   const cli=f.clienteId?(DB.clientes||[]).find(c=>c.id===f.clienteId):null;
   const atual=String((cli&&cli.nome)||f.nome||'').trim();
@@ -13491,17 +13491,12 @@ window.cliRenomear=async (fid)=>{
       const k=nomeChave(novo);
       const bate=(DB.projetos||[]).find(p=>p.id!==fid&&nomeChave(p.nome)===k);
       if(bate){ toast('Já existe um cliente com esse nome: '+bate.nome+'.'); return false; }
-      f.nome=MAIUS(novo);
-      if(cli){ cli.nome=MAIUS(novo);
-        (DB.recebimentos||[]).forEach(r=>{ if(r.clienteId===cli.id) r.nome=MAIUS(novo); }); }
-      await saveDB();
-      /* o card do Controle de Clientes e uma tarefa: o titulo acompanha */
-      try{
-        const t=(TK.tarefas||[]).find(x=>String(x.ficha_id)===String(fid)&&ehLC(x.lista_id));
-        if(t){ const tit=TIT_CLI(t.lista_id,novo);
-          const r=await sb.from('tarefas').update({titulo:tit}).eq('id',t.id);
-          if(!r.error) t.titulo=tit; }
-      }catch(_){}
+      /* o banco troca nos quatro lugares de uma vez (cliente_renomear): o gerente nao le
+         cadastro nem cobrancas, entao nao da pra fazer pelo saveDB como antes */
+      const {error}=await sb.rpc('cliente_renomear',{p_ficha:String(fid),p_nome:MAIUS(novo)});
+      if(error){ toast('Não renomeou: '+error.message); return false; }
+      try{ await recarregarModulos(['projetos','clientes','recebimentos']); }catch(_){}
+      try{ await tkCarregar(); }catch(_){}
       try{ spDesenhar(); }catch(_){}
       try{ if(currentView==='lista') tkDesenhar($('#content')); else render(currentView); }catch(_){}
       toast('Agora é "'+novo+'" em todo lugar.');
@@ -13696,7 +13691,7 @@ window.openProjCard=(id)=>{
   o.innerHTML=`<div class="modal big pc ver" id="pcModal" data-pid="${it.id}">
     <div class="mhead pc-head">
       <div style="flex:1;min-width:0">
-        <div class="pc-nome">${esc(it.nome)}${master?`<button class="pc-ren" title="Corrigir o nome do cliente" onclick="cliRenomear('${it.id}')">&#9998;</button>`:''}</div>
+        <div class="pc-nome">${esc(it.nome)}${(master||souGerenteDaFicha(it.id))?`<button class="pc-ren" title="Corrigir o nome do cliente" onclick="cliRenomear('${it.id}')">&#9998;</button>`:''}</div>
         <div class="pc-meta">
           <span class="tag ${PRJ_NORM(it.status)}">${ST_LABEL[PRJ_NORM(it.status)]}</span>
           <i></i><button type="button" class="pc-tipo${CAT_LABEL[it.categoria]?'':' vz'}" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">${CAT_LABEL[it.categoria]?esc(CAT_LABEL[it.categoria]):'definir tipo'}<span class="pc-tipo-s">&#9662;</span></button>
