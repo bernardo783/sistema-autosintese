@@ -959,6 +959,33 @@ grupo('Ficha: aba Ficha limpa e Atividade sem o nome repetido (Gabriel 23/09)');
   ok('checklist enxuto com "+ Adicionar item"', HTML.indexOf('placeholder="+ Adicionar item"')>0);
 }
 
+
+grupo('Novo contrato / upsell do gerente (Gabriel 23/09)');
+{
+  const cod=bloco('const NC_CAMPOS=[','const ncCampos=');
+  const g=rodar(cod,{esc:s=>String(s),ctSoDig:s=>String(s||'').replace(/\D/g,''),
+    ctMascCNPJ:s=>s,ctMascCPF:s=>s},['ncMapear','ncFalta','ncTem']);
+  const r={resp:'Thiago',tel:'(11) 9',contrato:{},fechamento:{razaoSocial:'ALTO GIRO LTDA',cnpj:'12345678000190',dono:'Thiago S',email:'a@b.c',endereco:'Rua X, 1'}};
+  const d=g.ncMapear(r);
+  ok('puxa os dados do Fechamento quando a ficha não tem contrato', d.razao==='ALTO GIRO LTDA'&&d.cnpj==='12345678000190'&&d.rep_nome==='Thiago S'&&d.tel==='(11) 9');
+  const d2=g.ncMapear({contrato:{razao:'NOVA',endereco:'Rua A',bairro:'Centro',cidade_uf:'SP/SP',cep:'01000-000'},fechamento:{razaoSocial:'VELHA'}});
+  ok('dados contratuais da ficha valem mais que o Fechamento e o endereço vira uma linha', d2.razao==='NOVA'&&d2.endereco==='Rua A, Centro, SP/SP, CEP 01000-000');
+  ok('com tudo preenchido não falta nada', g.ncFalta(d).length===0);
+  const f=g.ncFalta({razao:'X',rep_nome:'Y',email:'e',endereco:'r',cnpj:'',rep_cpf:''});
+  ok('sem CNPJ e sem CPF não deixa seguir', f.length===1&&f[0]==='CNPJ ou CPF');
+  ok('cliente sem nada no sistema cai no formulário aberto', !g.ncTem(g.ncMapear({contrato:{},fechamento:{}})));
+  ok('só o gerente da ficha (ou o master) abre o novo contrato',
+    /const podeNovoContrato=\(fid\)=>!!\(currentUser&&\(currentUser\.role==='master'\|\|souGerenteDaFicha\(fid\)\)\)/.test(HTML));
+  ok('dados vêm pela RPC protegida, não da base de clientes', HTML.indexOf("sb.rpc('dados_contratuais'")>0&&HTML.indexOf("sb.rpc('salvar_dados_contratuais'")>0);
+  ok('cobrança no AutoSíntese é fixa; Asaas e .docx são opcionais',
+    /nc-fixo"><input type="checkbox" checked disabled> Cobrança no AutoSíntese/.test(HTML)&&HTML.indexOf('id="nc2_asaas"')>0&&HTML.indexOf('id="nc2_doc"')>0);
+  ok('Asaas não é mais só do master', HTML.indexOf("${mst?`<label class=\"tk-chkline\" style=\"margin-top:6px\"><input type=\"checkbox\" id=\"nc2_asaas\">")<0);
+  ok('manda a ficha de origem pra função checar o gerente', /origemFicha:String\(fid\)/.test(HTML));
+  ok('o + do Controle de Clientes oferece contrato de cliente atual', /onclick="lcNovoPop\(event\)"/.test(HTML)&&/window\.lcNovoPop=/.test(HTML));
+  const ed=require('fs').readFileSync(require('path').join(__dirname,'..','funcoes','fechamento','index.ts'),'utf8');
+  ok('função fechamento recusa gerente que não é o da ficha', /gerenteDaFicha\(fid, quem\.nome\)/.test(ed)&&/if \(!fid\) return erro/.test(ed));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));

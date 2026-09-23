@@ -229,6 +229,17 @@ async function quemChama(req: Request) {
   return { id: u.id as string, nome: String(perfil.nome || ''), master: perfil.role === 'master', gerente: !!perfil.gerente };
 }
 
+// mesmo criterio do banco (prim_nome): primeiro nome, sem acento, minusculo
+const primNome = (t: string) => semAcento(String(t || '').trim()).split(/\s+/)[0] || '';
+async function gerenteDaFicha(fid: string, nome: string): Promise<boolean> {
+  const r = await fetch(URL_ + '/rest/v1/itens?modulo=eq.projetos&select=dados', { headers: SVC });
+  const rows = (await r.json().catch(() => [])) as Array<{ dados: Array<Record<string, unknown>> }>;
+  const f = (Array.isArray(rows) && rows[0] && Array.isArray(rows[0].dados) ? rows[0].dados : [])
+    .find(x => String(x.id) === fid);
+  const eu = primNome(nome);
+  return !!(f && eu && primNome(String(f.gerente || '')) === eu);
+}
+
 // Quem toca o squad, direto do banco: o gerente e o gestor de trafego.
 async function equipeDoSquad(squad: string) {
   const q = `${URL_}/rest/v1/perfis?select=id,nome,cargo,squads&aprovado=eq.true&squads=cs.{"${squad}"}`;
@@ -253,6 +264,13 @@ Deno.serve(async (req: Request) => {
   const contaAdicional = S('contaAdicional') === 'sim';
   if (!PODE_FECHAR.includes(quem.id) && !(contaAdicional && (quem.master || quem.gerente)))
     return erro('Fechamento de contrato é só com o José Carlos ou o Bernardo.', 403);
+  /* Novo contrato / upsell (Gabriel 23/09/2026): o gerente só mexe nos clientes DELE.
+     A conta nasce a partir de uma ficha (origemFicha) cujo gerente tem que ser quem chama. */
+  if (contaAdicional && !quem.master && !PODE_FECHAR.includes(quem.id)) {
+    const fid = S('origemFicha');
+    if (!fid) return erro('Abra o novo contrato a partir da ficha do cliente.', 403);
+    if (!(await gerenteDaFicha(fid, quem.nome))) return erro('Só o gerente deste cliente cria contrato novo para ele.', 403);
+  }
 
   const nome = S('nome');
   const plano = S('plano');
@@ -307,6 +325,7 @@ Deno.serve(async (req: Request) => {
     origem,
     fechamento: {
       razaoSocial: S('razaoSocial'), cnpj: S('cnpj'), dono: S('dono'), cpf: S('cpf'), rg: S('rg'),
+      repCargo: S('repCargo'), nascimento: S('nascimento'), origemFicha: S('origemFicha'),
       plano, tipoContrato: S('tipoContrato'), fimContrato, integracoes: S('integracoes'),
       especificidades: S('especificidades'),
       respFin: S('respFin'), telFin: S('telFin'), email: S('email'), endereco: S('endereco'),

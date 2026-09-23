@@ -2346,6 +2346,15 @@
   .tk-tab tbody tr:not(.tk-faixa):hover > td{background:var(--hov1)}
   .tk-tab .tk-faixa > td{height:auto;border-bottom:none}
   .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
+  /* novo contrato / upsell do gerente */
+  .nc-sec{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fraco)}
+  .nc-sec button{background:none;border:0;padding:0;color:var(--brand2);font:inherit;font-size:12px;letter-spacing:0;text-transform:none;cursor:pointer}
+  .nc-res{font-size:13px;line-height:1.6;padding:10px 12px;border-radius:10px;background:var(--hov1)}
+  .nc-res .m{color:var(--muted)}
+  .nc-falta{font-size:12px;line-height:1.5;color:var(--warn);margin:0 0 10px}
+  .nc-op{font-weight:400;color:var(--fraco);font-size:11px;margin-left:4px}
+  .nc-fixo{opacity:.7;cursor:default}
+  .nc-sub{margin:4px 0 0 27px}
   .tk-cpbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:var(--panel2)}
   .tk-cptit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px}
   .tk-cols{overflow-x:auto;padding-bottom:6px}
@@ -9017,7 +9026,7 @@ function tkDesenhar(c){
          ${ger?'':tpIb('tag','Tipo de cliente','lcPopTipo(event)',!!TK.lcTipo,TK.lcTipo?1:'')}
          ${ger?'':tpIb('funil','Mais filtros','lcPopFiltro(event)',nF>0,nF||'')}
          ${lista?tpIb('pts','Menu da lista','lsMenu(event)'):''}
-         <button type="button" class="tp-mais" title="Novo cliente" aria-label="Novo cliente" onclick="render('fechamento')">${tpSvg('mais')}</button>
+         <button type="button" class="tp-mais" title="Novo cliente ou contrato" aria-label="Novo cliente ou contrato" onclick="lcNovoPop(event)">${tpSvg('mais')}</button>
        </div></div></div>
    </div>
    ${ger?'':lcEtiquetas()+(TK.visao==='lista'?lcFunil():'')+lcGrupoResumo()}
@@ -11333,37 +11342,102 @@ function pcGrupoBarra(it){
   return `<div class="pc-grupo">
     ${g?`<span class="pc-gr-k">Grupo</span><b>${esc(g)}</b><span class="pc-gr-n">${irm.length} conta${irm.length===1?'':'s'}</span>${chips}`
        :`<span class="pc-gr-k">Contas</span><span class="pc-gr-n">este cliente paga por uma conta só</span>`}
-    ${souGerente()?`<button type="button" class="btn ghost small" style="margin-left:auto" onclick="novaContaCliente('${esc(it.id)}')">+ Nova conta deste cliente</button>`:''}
+    ${podeNovoContrato(it.id)?`<button type="button" class="btn ghost small" style="margin-left:auto" onclick="novaContaCliente('${esc(it.id)}')">+ Novo contrato</button>`:''}
   </div>`;
 }
-window.novaContaCliente=(fid,contaId)=>{
+/* NOVO CONTRATO / UPSELL (Gabriel 23/09/2026): "por mais que o zé e o bernardo vendam, pode ter
+   upsell e os gerentes precisam dessa autonomia". O gerente cria conta nova de cliente DELE
+   (a ALTOGIRO ganha mais uma conta) sem refazer o Fechamento. Obrigatório: dados contratuais
+   (vêm preenchidos do cliente e dá pra corrigir) e a cobrança no AutoSíntese. Opcional: Asaas
+   e o .docx do contrato. O gerente não lê a base de clientes (RLS de itens), então os dados vêm
+   pela RPC dados_contratuais, que só responde ao master ou ao gerente da ficha. O que ele
+   corrigir volta pro cliente por salvar_dados_contratuais: o próximo upsell já vem pronto. */
+const podeNovoContrato=(fid)=>!!(currentUser&&(currentUser.role==='master'||souGerenteDaFicha(fid)));
+const NC_CAMPOS=[
+  ['razao','Razão social ou nome',1],['cnpj','CNPJ',0,'vazio se for pessoa física'],
+  ['rep_nome','Representante',1],['rep_cpf','CPF do representante',0],
+  ['rep_rg','RG',0],['rep_cargo','Cargo',0,'sócio-administrador'],
+  ['email','E-mail',1],['tel','Telefone',0],
+  ['endereco','Endereço completo',1,'rua, nº, bairro, cidade/UF, CEP'],['rep_nascimento','Nascimento',0]];
+const NC_MASC={cnpj:'ctMascCNPJ',rep_cpf:'ctMascCPF',rep_rg:'ctMascRG',tel:'ctMascTel'};
+function ncMapear(r){
+  if(!r) return null;
+  const k=r.contrato||{}, f=r.fechamento||{};
+  const partes=[k.endereco,k.bairro,k.cidade_uf,k.cep?('CEP '+k.cep):''].filter(Boolean).join(', ');
+  return {razao:k.razao||f.razaoSocial||'',cnpj:k.cnpj||f.cnpj||'',rep_nome:k.rep_nome||f.dono||r.resp||'',
+    rep_cpf:k.rep_cpf||f.cpf||'',rep_rg:k.rep_rg||f.rg||'',rep_cargo:k.rep_cargo||f.repCargo||'',
+    rep_nascimento:k.rep_nascimento||f.nascimento||'',email:k.email||f.email||'',tel:k.tel||f.telFin||r.tel||'',
+    endereco:partes||k.endereco_completo||f.endereco||''};
+}
+/* o que falta pra seguir: os obrigatórios e um documento (CNPJ ou CPF) */
+const ncFalta=(d)=>{ const f=NC_CAMPOS.filter(c=>c[2]&&!String(d[c[0]]||'').trim()).map(c=>c[1]);
+  if(!ctSoDig(d.cnpj)&&!ctSoDig(d.rep_cpf)) f.push('CNPJ ou CPF'); return f; };
+const ncTem=(d)=>!!(d&&(d.razao||d.cnpj||d.rep_cpf));
+function ncResumo(d){
+  const doc=ctSoDig(d.cnpj)?'CNPJ '+ctMascCNPJ(d.cnpj):(ctSoDig(d.rep_cpf)?'CPF '+ctMascCPF(d.rep_cpf):'');
+  return `<b>${esc(d.razao)}</b>${doc?` <span class="m">· ${esc(doc)}</span>`:''}<br>${esc(d.rep_nome)}${d.email?` <span class="m">· ${esc(d.email)}</span>`:''}<br><span class="m">${esc(d.endereco)}</span>`;
+}
+/* razão social e endereço são longos: linha inteira. O resto em pares. */
+const NC_LINHAS=[['razao'],['cnpj','rep_cpf'],['rep_nome','rep_cargo'],['rep_rg','rep_nascimento'],['email','tel'],['endereco']];
+const ncCampos=(d)=>{ const por={}; NC_CAMPOS.forEach(c=>por[c[0]]=c);
+  const par=NC_LINHAS.map(l=>l.map(k=>por[k]));
+  return par.map(p=>`<div class="${p.length>1?'row2':''}">${p.map(([k,rot,ob,ph])=>`<div class="field"><label>${esc(rot)}${ob?'':' <span class="nc-op">opcional</span>'}</label>
+    <input id="nc_${k}"${k==='rep_nascimento'?' type="date"':''}${k==='email'?' type="email"':''} value="${esc(String(d[k]||''))}"${ph?` placeholder="${esc(ph)}"`:''}${NC_MASC[k]?` oninput="this.value=${NC_MASC[k]}(this.value)"`:''}></div>`).join('')}</div>`).join(''); };
+const ncLer=()=>{ const d={}; NC_CAMPOS.forEach(([k])=>{ d[k]=String(($('#nc_'+k)||{}).value||'').trim(); }); return d; };
+window.ncEditar=()=>{ const r=$('#nc_res'), f=$('#nc_form'), b=$('#nc_ed'); if(r) r.style.display='none'; if(f) f.style.display=''; if(b) b.style.display='none'; };
+window.ncFonte=(i)=>{ const d=(window.__ncFontes||[])[Number(i)]; if(!d) return;
+  NC_CAMPOS.forEach(([k])=>{ const el=$('#nc_'+k); if(el) el.value=d.dados[k]||''; });
+  const r=$('#nc_res'); if(r) r.innerHTML=ncResumo(d.dados); };
+window.novaContaCliente=async (fid,contaId)=>{
   const f=fichaDe(fid); if(!f) return;
-  if(!souGerente()){ toast('Só master e gerentes criam conta nova.'); return; }
-  const mst=!!(currentUser&&currentUser.role==='master');
+  if(!podeNovoContrato(fid)){ toast('Só o gerente deste cliente (ou o master) cria contrato novo.'); return; }
   const g=grupoDe(f)||MAIUS(String(f.nome||'').trim());
-  const cli=f.clienteId?(DB.clientes||[]).find(c=>c.id===f.clienteId):null;
+  /* dados do cliente: a própria ficha primeiro, depois as contas irmãs do grupo que também são dele */
+  const ids=[fid].concat(irmasDe(f).map(p=>p.id).filter(id=>id!==fid&&podeNovoContrato(id))).slice(0,8);
+  let rs=[];
+  try{ rs=await Promise.all(ids.map(id=>sb.rpc('dados_contratuais',{p_ficha:String(id)}).then(x=>x.data||null,()=>null))); }catch(_){}
+  const r0=rs[0]||{};
+  const fontes=rs.map((r,i)=>({id:ids[i],nome:(fichaDe(ids[i])||{}).nome||'',dados:ncMapear(r)})).filter(x=>ncTem(x.dados));
+  window.__ncFontes=fontes;
+  const vazio={}; NC_CAMPOS.forEach(([k])=>vazio[k]='');
+  const dc=fontes.length?Object.assign(vazio,fontes[0].dados):Object.assign(vazio,ncMapear(r0)||{});
+  const falta=ncFalta(dc);
   const card=lcCardDe(fid), cv=(card&&card.valores)||{};
-  const mens=Number(cv[LC_MENS])||Number(cli&&cli.valor)||'';
+  const mens=Number(cv[LC_MENS])||Number(r0.valor)||'';
   const rem=Number(cv[LC_REM])||'';
-  const dia=Number(cli&&cli.diaVenc)||0;
+  const dia=Number(r0.diaVenc)||0;
   const venc=dia?vencOf(compNow(),dia):'';
   const soltas=contasSemFicha();
   const sug=contaId?soltas.find(c=>c.id===contaId):null;
   const sufSug=sug?contaSufixo({nome:sug.nome}):'';
-  modal('Nova conta de '+g,`
-    <p class="hint" style="margin:0 0 12px">Nasce igual a <b>${esc(f.nome)}</b>: mesmo gerente, gestor, squad e serviço. Ganha ficha, card no Controle de Clientes e cobrança própria, e entra na contagem de contas e na remuneração.</p>
+  const fch=r0.fechamento||{};
+  modal('Novo contrato · '+esc(g),`
+    <p class="hint" style="margin:0 0 4px">Conta nova do grupo, com cobrança própria. Nasce igual a <b>${esc(f.nome)}</b>: mesmo gerente, gestor, squad e serviço.</p>
+    <div class="nc-sec">Conta</div>
     <div class="field"><label>Nome da conta</label>
       <div style="display:flex;align-items:center;gap:8px"><b style="white-space:nowrap">${esc(g)} |</b><input id="nc2_suf" value="${esc(sufSug)}" placeholder="ex: MARCOS" style="flex:1;text-transform:uppercase"></div></div>
     <div class="row2">
       <div class="field"><label>Mensalidade (R$)</label><input id="nc2_val" type="number" step="0.01" min="0" value="${esc(String(mens))}"></div>
-      <div class="field"><label>Remuneração por conta (R$)</label><input id="nc2_rem" type="number" step="0.01" min="0" value="${esc(String(rem))}"></div>
+      <div class="field"><label>Remuneração por conta <span class="nc-op">opcional</span></label><input id="nc2_rem" type="number" step="0.01" min="0" value="${esc(String(rem))}"></div>
     </div>
     <div class="row2">
       <div class="field"><label>1ª cobrança</label><input id="nc2_venc" type="date" value="${esc(venc)}"></div>
-      <div class="field"><label>Conta de anúncio</label><select id="nc2_conta"><option value="">nenhuma por enquanto</option>
+      <div class="field"><label>Conta de anúncio <span class="nc-op">opcional</span></label><select id="nc2_conta"><option value="">nenhuma por enquanto</option>
         ${soltas.map(c=>`<option value="${esc(c.id)}"${contaId===c.id?' selected':''}>${esc(c.nome)}</option>`).join('')}</select></div>
     </div>
-    ${mst?`<label class="tk-chkline" style="margin-top:6px"><input type="checkbox" id="nc2_asaas"> Criar também o cliente e a assinatura no Asaas <span class="hint" style="margin:0">(gera cobrança real)</span></label>`:''}`,
+    <div class="nc-sec">Dados contratuais${falta.length?'':'<button type="button" id="nc_ed" onclick="ncEditar()">editar</button>'}</div>
+    ${fontes.length>1?`<div class="field"><label>Puxar de</label><select onchange="ncFonte(this.value)">${fontes.map((x,i)=>`<option value="${i}">${esc(x.nome)}</option>`).join('')}</select></div>`:''}
+    ${falta.length?`<p class="nc-falta">${fontes.length?'Falta: '+esc(falta.join(', '))+'.':'Primeira vez deste cliente: preencha uma vez e o próximo contrato já vem pronto.'}</p>`
+      :`<div class="nc-res" id="nc_res">${ncResumo(dc)}</div>`}
+    <div id="nc_form"${falta.length?'':' style="display:none"'}>${ncCampos(dc)}</div>
+    <div class="nc-sec">Cobrança e contrato</div>
+    <label class="tk-chkline nc-fixo"><input type="checkbox" checked disabled> Cobrança no AutoSíntese <span class="hint" style="margin:0">sempre</span></label>
+    <label class="tk-chkline"><input type="checkbox" id="nc2_asaas"> Criar também no Asaas <span class="hint" style="margin:0">cliente e assinatura, cobrança real</span></label>
+    <label class="tk-chkline"><input type="checkbox" id="nc2_doc" onchange="$('#nc_doc').style.display=this.checked?'':'none'"> Gerar o contrato (.docx)</label>
+    <div id="nc_doc" class="row2 nc-sub" style="display:none">
+      <div class="field"><label>Modelo</label><select id="nc2_mod">${Object.keys(CT_MODELOS).map(k=>`<option value="${k}"${k==='marketing'?' selected':''}>${esc(CT_MODELOS[k])}</option>`).join('')}</select></div>
+      <div class="field"><label>Vigência</label><select id="nc2_vig">${CT_VIGENCIAS.map((v,i)=>`<option${i===11?' selected':''}>${esc(v)}</option>`).join('')}</select></div>
+    </div>`,
     async ()=>{
       const suf=MAIUS(String(($('#nc2_suf')||{}).value||'').trim());
       const valor=Number(($('#nc2_val')||{}).value||0), remV=Number(($('#nc2_rem')||{}).value||0);
@@ -11373,20 +11447,26 @@ window.novaContaCliente=(fid,contaId)=>{
       if(!dp){ toast('Informe a data da 1ª cobrança.'); return false; }
       const nome=g+' | '+suf;
       if((DB.projetos||[]).some(p=>nomeChave(p.nome)===nomeChave(nome))){ toast('Já existe: '+nome+'.'); return false; }
-      const fch=(cli&&cli.fechamento)||{};
-      const plano=String(f.produtos||(cli&&cli.servico)||CAT_LABEL[catDe(f)]||'').trim()||'Tráfego Pago';
-      const asaas=!!(($('#nc2_asaas')||{}).checked);
-      const body={nome,plano,nicho:String(f.nicho||(cli&&cli.nicho)||''),tipoContrato:fch.tipoContrato||'Mensal',
+      const d=ncLer(), fl=ncFalta(d);
+      if(fl.length){ ncEditar(); toast('Dados contratuais: falta '+fl.join(', ')+'.'); return false; }
+      const erDoc=ctConfereDocs(d.cnpj,d.rep_cpf); if(erDoc){ ncEditar(); toast(erDoc); return false; }
+      if(!ctConfereDV(d.cnpj,d.rep_cpf)) return false;
+      const plano=String(f.produtos||r0.servico||CAT_LABEL[catDe(f)]||'').trim()||'Tráfego Pago';
+      const asaas=!!(($('#nc2_asaas')||{}).checked), doc=!!(($('#nc2_doc')||{}).checked);
+      const mod=String(($('#nc2_mod')||{}).value||'marketing'), vig=String(($('#nc2_vig')||{}).value||CT_VIGENCIAS[11]);
+      const eu=(currentUser||{}).nome||'';
+      const body={nome,plano,nicho:String(f.nicho||''),tipoContrato:fch.tipoContrato||'Mensal',
         valor:String(valor),dataPagamento:dp,formaPagamento:fch.formaPagamento||'Pix',statusPagamento:'aguardando',
-        sdr:'Conta adicional',closer:'Conta adicional',squad:String(f.squad||''),gestor:String(f.responsavel||''),
-        resumo:'Conta adicional do grupo '+g+', criada a partir de '+f.nome+' por '+((currentUser||{}).nome||'')+'.',
-        cnpj:fch.cnpj||'',cpf:fch.cpf||'',email:fch.email||'',endereco:fch.endereco||'',dono:(cli&&cli.resp)||'',telFin:(cli&&cli.tel)||'',
-        asaas:asaas?'sim':'nao',contaAdicional:'sim'};
+        sdr:'Upsell',closer:eu||'Conta adicional',squad:String(f.squad||''),gestor:String(f.responsavel||''),
+        resumo:'Novo contrato (upsell) do grupo '+g+', criado a partir de '+f.nome+' por '+eu+'.',
+        razaoSocial:d.razao,cnpj:d.cnpj,cpf:d.rep_cpf,rg:d.rep_rg,dono:d.rep_nome,respFin:d.rep_nome,
+        repCargo:d.rep_cargo,nascimento:d.rep_nascimento,email:d.email,endereco:d.endereco,telFin:d.tel,
+        asaas:asaas?'sim':'nao',contaAdicional:'sim',origemFicha:String(fid)};
       const b=document.querySelector('.overlay .msave'); if(b){ b.disabled=true; b.textContent='Criando...'; }
       const {data,error}=await sb.functions.invoke('fechamento',{body});
       if(error||!data||!data.ok){ let msg=(data&&data.erro)||(error&&error.message)||'falha';
         try{ const j=error&&await error.context.json(); if(j&&j.erro) msg=j.erro; }catch(_){}
-        toast('Não consegui criar: '+msg); if(b){ b.disabled=false; b.textContent='Salvar'; } return false; }
+        toast('Não consegui criar: '+msg); if(b){ b.disabled=false; b.textContent='Criar contrato'; } return false; }
       const pid=data.projetoId;
       try{ await loadDB(); }catch(_){}
       /* a ficha nova herda o time da irma (o Fechamento usa o gerente do squad) e o grupo */
@@ -11404,12 +11484,63 @@ window.novaContaCliente=(fid,contaId)=>{
         status_id:(card&&card.status_id)||LC_NAOATIVO,prioridade:'med',squad:String(f.squad||'')||null,valores:val};
       const r=await sb.from('tarefas').insert(reg);
       if(r.error) toast('Conta criada, mas o card falhou: '+r.error.message);
+      /* os dados contratuais voltam pro cliente de origem e vão pro novo: o próximo contrato já vem pronto */
+      const kc={razao:d.razao,cnpj:d.cnpj,endereco_completo:d.endereco,rep_nome:d.rep_nome,rep_cargo:d.rep_cargo,
+        rep_rg:d.rep_rg,rep_cpf:d.rep_cpf,rep_nascimento:d.rep_nascimento,tel:d.tel,email:d.email};
+      try{ await Promise.all([fid,pid].map(x=>sb.rpc('salvar_dados_contratuais',{p_ficha:String(x),p_dados:kc}))); }catch(_){}
+      if(doc){
+        try{ await ncGerarDocx(mod,vig,d,{valor,dp,nome,clienteId:data.clienteId}); }
+        catch(err){ toast('Conta criada, mas o contrato não saiu: '+(err.message||err)); }
+      }
       try{ await tkCarregar(); spDesenhar(); }catch(_){}
-      toast(nome+' criada'+(asaas?' (e no Asaas)':'')+'.');
+      toast(nome+' criada'+(asaas?' (e no Asaas)':'')+(doc?', contrato baixado':'')+'.');
       setTimeout(()=>abrirCliente(pid),120);
       return true; });
-  const bs=document.querySelector('.overlay .msave'); if(bs) bs.textContent='Criar conta';
+  const bs=document.querySelector('.overlay .msave'); if(bs) bs.textContent='Criar contrato';
 };
+/* o .docx sai do mesmo modelo da aba Contratos e fica guardado em contratos_gerados */
+async function ncGerarDocx(slug,vigencia,d,o){
+  await ctCfgCarregar();
+  const sig=Object.keys(ctSigs())[0];
+  const dados={contratante_razao:d.razao,contratante_cnpj:d.cnpj,contratante_endereco:d.endereco,
+    contratante_tel:d.tel,contratante_email:d.email,rep_nome:d.rep_nome,rep_cargo:d.rep_cargo||'sócio-administrador',
+    rep_rg:d.rep_rg,rep_cpf:d.rep_cpf,rep_nascimento:d.rep_nascimento,
+    vigencia,valor_mensal:ctMoeda(o.valor),data_inicio:o.dp,data_contrato:hojeISO(),data_primeira_parcela:o.dp,
+    data_vencimento:String(Number(o.dp.slice(8,10))),forma_pagamento:CT_PAGAMENTOS[0],aviso_previo:CT_AVISOS[0],
+    foro:'',cidade_assinatura:'',_signatario:sig};
+  const arq='Contrato-'+ctSlug(o.nome).replace(/_/g,'-');
+  const {blob,faltando}=await ctMontar(slug,dados);
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=arq+'.docx'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  const {error}=await sb.from('contratos_gerados').insert({modelo:slug,cliente_id:o.clienteId||null,cliente_nome:o.nome,
+    signatario:sig,dados,edicoes:{},arquivo:arq+'.docx',conteudo_b64:await ctBlobB64(blob),bytes:blob.size,
+    gerado_por:(currentUser||{}).id||null});
+  if(error) toast('Contrato baixado, mas não ficou guardado: '+error.message);
+  if(faltando.length) toast('Contrato baixado. Ficou em branco: '+faltando.slice(0,4).join(', ')+(faltando.length>4?'…':''));
+}
+/* "+" do Controle de Clientes: cliente novo (Fechamento, só comercial) ou contrato de cliente atual */
+function lcMeusClientes(){
+  const vis={}, out=[];
+  (DB.projetos||[]).forEach(p=>{ if(!podeNovoContrato(p.id)) return;
+    const t=lcCardDe(p.id); if(!t||arquivada(t)) return;
+    const g=grupoDe(p)||MAIUS(String(p.nome||'').trim());
+    if(vis[g]){ vis[g].n++; return; }
+    vis[g]={id:p.id,rot:g,n:1}; out.push(vis[g]); });
+  return out.sort((a,b)=>a.rot.localeCompare(b.rot,'pt-BR'));
+}
+const lcNovoLista=(meus)=>`<div class="tkp-h"><strong>Novo contrato de</strong></div>${popBusca('Buscar cliente')}
+  ${meus.map(x=>`<label class="tkp-row" onclick="event.preventDefault();document.getElementById('lcbPop').remove();novaContaCliente('${esc(x.id)}')"><span class="tkp-nm">${esc(x.rot)}</span>${x.n>1?`<span class="tkp-n">${x.n} contas</span>`:''}</label>`).join('')}
+  <div class="tkp-vazio">Nenhum cliente com esse nome.</div>`;
+window.lcNovoPop=(ev)=>{
+  const meus=lcMeusClientes(), fecha=podeFechamento();
+  if(!meus.length) return render('fechamento');
+  if(!fecha){ const el=lcbPop(ev,lcNovoLista(meus)); const i=el&&el.querySelector('.tkp-b'); if(i) i.focus(); return; }
+  lcbPop(ev,`<div class="tkp-h"><strong>Novo</strong></div>
+    <label class="tkp-row" onclick="event.preventDefault();document.getElementById('lcbPop').remove();render('fechamento')"><span class="tkp-nm">Cliente novo</span><span class="tkp-n">fechamento</span></label>
+    <label class="tkp-row" onclick="event.preventDefault();lcNovoClientes()"><span class="tkp-nm">Contrato de cliente atual</span><span class="tkp-n">upsell</span></label>`);
+};
+window.lcNovoClientes=()=>{ const el=document.getElementById('lcbPop'); if(!el) return;
+  el.innerHTML=lcNovoLista(lcMeusClientes()); const i=el.querySelector('.tkp-b'); if(i) i.focus(); };
 /* Controle de Clientes: selo do grupo no card, resumo do grupo buscado e alerta de conta sem ficha */
 const lcSeloGrupo=(fid)=>{ const f=fid?fichaDe(fid):null, g=grupoDe(f); if(!g) return '';
   const n=irmasDe(f).length; if(n<2) return '';
@@ -15434,7 +15565,7 @@ async function ctCamposDoZip(zip){
     (await f.async('string')).replace(/\{\{(\w+)\}\}/g,(_,k)=>{ achados.add(k); return _; }); }
   return [...achados];
 }
-async function ctGerar(slug,dados,nomeArquivo){
+async function ctMontar(slug,dados){
   const {zip}=await ctModeloZip(slug);
   const d=ctResolver(dados);
   const faltando=new Set();
@@ -15446,10 +15577,14 @@ async function ctGerar(slug,dados,nomeArquivo){
     zip.file(alvo,xml);
   }
   const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  return {blob,faltando:[...faltando]};
+}
+async function ctGerar(slug,dados,nomeArquivo){
+  const {blob,faltando}=await ctMontar(slug,dados);
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download=(nomeArquivo||('Contrato-'+slug))+'.docx'; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-  return [...faltando];
+  return faltando;
 }
 
 /* ======================= EDITOR DO CONTRATO =======================
