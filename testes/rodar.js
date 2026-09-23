@@ -659,6 +659,17 @@ grupo('Notificar responsável (Gabriel 23/09)');
   ok('não existe escolher grupo no app', HTML.indexOf('lbEscolherGrupo')<0 && fn.indexOf('definir_grupo')<0);
 }
 
+/* ---------------- fee do mês no Controle de Clientes ---------------- */
+grupo('Controle de Clientes mostra o fee de Recebimentos (Gabriel 23/09)');
+{
+  const cod=bloco('function lcMensVigente(','let LC_SYNC=');
+  const g=rodar('var DB={recebimentos:[{comp:"2026-09",clienteId:"a",valor:1500},{comp:"2026-08",clienteId:"a",valor:900},{comp:"2026-09",clienteId:"b",valor:""}]};'+cod,{},['lcMensVigente']);
+  ok('mudou só setembro em Recebimentos: o controle mostra 1500', g.lcMensVigente({id:'a',valor:1000},'2026-09')===1500);
+  ok('mês sem cobrança lançada: vale o cadastro', g.lcMensVigente({id:'a',valor:1000},'2026-10')===1000);
+  ok('cobrança sem valor: vale o cadastro', g.lcMensVigente({id:'b',valor:800},'2026-09')===800);
+  ok('gravar clientes ou recebimentos acerta o controle', HTML.indexOf("if(sujos.some(([m])=>m==='clientes'||m==='recebimentos')) setTimeout(()=>{ lcSyncMens()")>0);
+}
+
 function fimDosTestes(){
 /* ---------------- tipo de cliente no Controle de Clientes ---------------- */
 grupo('Controle de Clientes: filtro por tipo e selo "sem tipo" (Gabriel 23/09)');

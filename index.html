@@ -3363,6 +3363,7 @@ async function saveDBImpl(op){
       DB.__snap[m]=j;
     }
   }
+  if(sujos.some(([m])=>m==='clientes'||m==='recebimentos')) setTimeout(()=>{ lcSyncMens().catch(()=>{}); },0);
   if(conflitados.length){
     await recarregarModulos(conflitados);
     render(currentView);
@@ -3552,6 +3553,7 @@ async function enterApp(){
      Financeiro, continua com o atalho na barra. */
   if(souGerente()&&currentUser.role!=='master'){ show($('#navCarteira')); } else { hide($('#navCarteira')); }
   try{ await tkCarregar(); }catch(e){}
+  setTimeout(()=>{ lcSyncMens().catch(()=>{}); },0);   /* fee do mês no Controle de Clientes (virada do mês) */
   spDesenhar();
   /* veio de um link? cai direto no destino em vez da tela padrão —
      mas link velho de lista da empresa não arranca você do workspace pessoal salvo */
@@ -9181,7 +9183,7 @@ window.tkSetVal=async (id,campoId,v)=>{
         else r.valor=Number(v);
         await saveDB(); tkDesenhar($('#content'));
         toast('Só '+fmtComp(comp)+' mudou: o cadastro segue '+brl(cli.valor||0)+'.');
-        return; /* célula NÃO muda: ela espelha o cadastro */
+        return; /* a célula mostra o fee do mês: quem acerta é o lcSyncMens depois do saveDB */
       }
       /* recorrente: congela o passado que herdava da ficha e atualiza o cadastro */
       DB.recebimentos.forEach(x=>{ if(x.clienteId===cli.id&&x.comp<comp&&(x.valor==null||x.valor==='')) x.valor=Number(cli.valor)||0; });
@@ -9440,6 +9442,34 @@ const CH_ULTPG='c1000000-0000-4000-8000-000000000023';
 const CH_SAIDA='c1000000-0000-4000-8000-000000000024';
 const CH_GESTOR='c1000000-0000-4000-8000-000000000026';
 const LC_MENS='7fb37164-cc32-494c-a93c-c336afe163ea';
+/* Mensalidade do Controle de Clientes = fee VIGENTE no mês (Gabriel 23/09: "atualizou o fee
+   em Recebimentos, tem que atualizar no controle do gerente também"). Vale a cobrança do mês
+   em Recebimentos se ela tiver valor; senão, o cadastro. Só o master lê o financeiro, então é
+   o navegador dele que acerta a coluna: depois de gravar clientes/recebimentos e ao abrir o
+   sistema (pega a virada do mês). */
+function lcMensVigente(cli,comp){
+  const r=(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===cli.id&&x.valor!=null&&x.valor!=='');
+  return r?Number(r.valor)||0:(Number(cli.valor)||0);
+}
+let LC_SYNC=false;
+async function lcSyncMens(){
+  if(LC_SYNC||!(currentUser&&currentUser.role==='master')||!DB||!(DB.clientes||[]).length||!(TK.tarefas||[]).length) return 0;
+  LC_SYNC=true; let n=0;
+  try{
+    const comp=compNow();
+    for(const t of TK.tarefas.filter(x=>ehLC(x.lista_id)&&x.ficha_id)){
+      const f=fichaDe(t.ficha_id), cli=(f&&f.clienteId)?DB.clientes.find(c=>c.id===f.clienteId):null;
+      if(!cli) continue;
+      const vig=lcMensVigente(cli,comp), cel=(t.valores||{})[LC_MENS];
+      if((cel==null||cel==='')?!vig:Number(cel)===vig) continue;
+      const val=Object.assign({},t.valores||{}); val[LC_MENS]=vig;
+      const {error}=await sb.from('tarefas').update({valores:val}).eq('id',t.id);
+      if(!error){ t.valores=val; n++; }
+    }
+  }finally{ LC_SYNC=false; }
+  if(n&&currentView==='lista'&&ehLC(TK.listaSel)) try{ tkDesenhar($('#content')); }catch(_){}
+  return n;
+}
 const LC_GEST='35cf51e0-c581-473d-8b16-065f4b0e3dc3';
 /* Cliente so de Agent IA/CRM nao tem gestor de trafego. Nao e ficha incompleta —
    e o campo simplesmente nao aparece pra ele (Gabriel, 01/09). */
