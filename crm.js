@@ -248,6 +248,9 @@ window.crmRender=function(c,viewPedida){
   /* tela emprestada: deixa ela desenhar tudo e so recoloca a barra de abas
      logo abaixo do cabecalho dela, pra dar pra voltar pras outras. */
   if(CRM_EXT[CRM.aba]){
+    /* Fechamento de contrato: so Jose Carlos e Bernardo (Gabriel 23/09), mesma regra do index.html */
+    if(CRM.aba==='fechamento'&&typeof podeFechamento==='function'&&!podeFechamento()){
+      c.innerHTML='<div class="empty">Fechamento de contrato é só com o José Carlos ou o Bernardo.</div>'; return; }
     const fn=window[CRM_EXT[CRM.aba]];
     if(typeof fn==='function'){
       fn(c);

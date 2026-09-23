@@ -3887,7 +3887,10 @@ function render(view){
     if(!currentUser||currentUser.role!=='master') return renderDash(c);
     finTab='painel'; currentView='financeiro'; spMarcarAtalho('financeiro'); return renderFinanceiro(c);
   }
-  if(view==='fechamento') return renderFechamento(c);
+  if(view==='fechamento'){
+    if(!podeFechamento()){ c.innerHTML='<div class="empty">Fechamento de contrato é só com o José Carlos ou o Bernardo.</div>'; return; }
+    return renderFechamento(c);
+  }
   if(view==='carteira'){
     if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito a master e gerentes.</div>'; return; }
     return renderCarteira(c);
@@ -5525,6 +5528,12 @@ const ehListaCli=(lid)=>lid===LC_ID||lid===CH_ID||lid===LF_ID;
 const TIT_CLI=(lid,t)=>ehListaCli(lid)?MAIUS(t):t;
 /* "Novos Contratos" e uma lista com UX propria: em vez de board, abre o formulario de Fechamento. */
 const LF_ID='f1e2d3c4-0000-4a00-8b00-000000000001';
+/* Fechamento de contrato (Gabriel 23/09): so o Jose Carlos e o Bernardo, e so pela arvore em
+   Administrativo > Juridico > Novos Contratos. A edge 'fechamento' confere igual; a excecao e a
+   "+ Nova conta deste cliente" (contaAdicional), que segue com master e gerente. */
+const PODE_FECHAR=['ded3cac7-7462-4f76-9680-3af961b25344','6b3b1d5d-2ee0-4529-a6c4-23d415678bff'];
+const podeFechamento=()=>!!(currentUser&&PODE_FECHAR.indexOf(String(currentUser.id))>=0);
+const lsPode=(lid)=>lid!==LF_ID||podeFechamento();
 /* Financeiro mora na arvore: Administrativo > Financeiro > tres listas que abrem as telas do modulo. */
 const PASTA_FIN='f1e2d3c4-0000-4a00-8b00-00000000f000';
 const LCT_ID='acce64a7-7fca-4f9f-9cef-92961542ae3e';
@@ -5988,7 +5997,6 @@ window.wsMenu=(ev)=>{
     {cab:wsNome()},
     {ic:MICO.inbox,t:'Minhas tarefas',f:()=>spCaixa()},
     {ic:MICO.pessoas,t:'Clientes',f:()=>spAbrirClientes()},
-    {ic:'✍',t:'Fechamento de contrato',f:()=>render('fechamento'),so:m||!(currentUser&&currentUser.gerente)},
     {sep:true},
     {ic:MICO.mais,t:'Novo espaço',f:()=>tkNovoEspaco()},
     {ic:MICO.pessoas,t:'Usuários',f:()=>render('usuarios'),so:m},
@@ -7810,12 +7818,12 @@ window.renderEspaco=(c)=>{
       <b>${esc(spNome(l))}</b>
       <span>${d?esc(d):(n===0?'Nenhuma tarefa aberta.':(n===1?'1 tarefa aberta.':n+' tarefas abertas.'))}</span>
     </button>`; };
-  const soltas=(TK.listas||[]).filter(l=>String(l.espaco_id)===String(e.id)&&!l.pasta_id&&(!ehFin(l.id)||mst));
+  const soltas=(TK.listas||[]).filter(l=>String(l.espaco_id)===String(e.id)&&!l.pasta_id&&(!ehFin(l.id)||mst)&&lsPode(l.id));
   const pastas=(TK.pastas||[]).filter(p=>String(p.espaco_id)===String(e.id)&&(p.id!==PASTA_FIN||mst));
   const bloco=(titulo,ls)=>ls.length?`${titulo?`<div class="esp-sec">${esc(titulo)}</div>`:''}
     <div class="sup-grid">${ls.map(cartao).join('')}</div>`:'';
   const corpo=bloco('',soltas)+pastas.map(p=>bloco(spNome(p),
-      (TK.listas||[]).filter(l=>String(l.pasta_id)===String(p.id)&&(!ehFin(l.id)||mst)))).join('');
+      (TK.listas||[]).filter(l=>String(l.pasta_id)===String(p.id)&&(!ehFin(l.id)||mst)&&lsPode(l.id)))).join('');
   c.innerHTML=`<div class="esp-topo">
       <div><h2><span class="esp-logo" style="background:${esc(e.cor||'var(--brand)')}">${
         e.foto?`<img src="${esc(e.foto)}" alt="">`:esc(inicial(spNome(e)))}</span>${esc(spNome(e))}</h2>
@@ -7905,8 +7913,6 @@ const vendasOpcoes=()=>[
    d:'Quem preencheu o formulário de autosintese.app.br/ads. Com WhatsApp, Instagram e de qual anúncio veio.'},
   {k:'contratos',  ic:'papel',  t:'Gerador de contratos',
    d:'Escolhe o modelo, preenche e baixa o .docx pronto pra assinar.', quem:'contratos'},
-  {k:'fechamento', ic:'aperto', t:'Passagem de bastão operacional',
-   d:'Contrato assinado: cadastra a cobrança no Asaas e abre o projeto pra operação.'}
 ].filter(o=>o.quem!=='contratos'||podeContratos());
 
 const VEN_ICO={
@@ -7922,7 +7928,7 @@ const VEN_ICO={
 const venIco=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${VEN_ICO[k]||''}</svg>`;
 
 window.venEscolher=(k)=>{
-  if(k==='fechamento'){ currentView='fechamento'; lkHash('v','fechamento'); return renderFechamento($('#content')); }
+  if(k==='fechamento') return render('fechamento');
   if(k==='contratos')  return render('contratos');
   if(k==='formularios')return render('formularios');
   if(k==='leads')      return render('leads');
@@ -8055,7 +8061,7 @@ function spDesenhar(){
   const eVis=(e)=>!SP_Q||spBate(e.nome)||TK.pastas.some(p=>p.espaco_id===e.id&&pVis(p))||TK.listas.some(l=>l.espaco_id===e.id&&spBate(l.nome));
   const aberto=(k)=>SP_Q?true:!TK.fechadas[k];
   /* Favoritos: atalho direto para as listas que voce marcou com estrela. */
-  const favs=SP_FAV.map(id=>TK.listas.find(l=>l.id===id)).filter(l=>l&&(!ehFin(l.id)||mst)&&lVis(l));
+  const favs=SP_FAV.map(id=>TK.listas.find(l=>l.id===id)).filter(l=>l&&(!ehFin(l.id)||mst)&&lsPode(l.id)&&lVis(l));
   const secFav=favs.length?`<div class="sp-sec">FAVORITOS</div><div class="tk-tree" style="margin-bottom:6px">${favs.map(l=>item(l,true)).join('')}</div>`:'';
   const esps=TK.espacos.filter(espacoDaAtual).filter(eVis);
   const secEsp=`<div class="sp-sec">ESPAÇOS<button title="Novo espaço" onclick="tkNovoEspaco()">+</button></div>`;
@@ -8077,7 +8083,7 @@ function spDesenhar(){
       </div>
       ${abE?`<div class="tk-filhos">${pas.map(p=>{
         const pBate=eBate||(!!SP_Q&&spBate(p.nome));
-        const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||mst)&&(pBate||lVis(l))); const abP=aberto('p'+p.id);
+        const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||mst)&&lsPode(l.id)&&(pBate||lVis(l))); const abP=aberto('p'+p.id);
         return `<div class="tk-pasta">
           <div class="tk-pastah" draggable="true" ondragstart="dndPasta(event,'${p.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarPasta(event,'${p.id}','${e.id}')" ondragend="dndFim()" onclick="tkToggle('p','${p.id}')" oncontextmenu="spNoMenu(event,'pasta','${p.id}')">
             <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic"${p.cor?` style="color:${esc(p.cor)};opacity:1"`:''}>${p.icone?icHtml(p.icone):SVG_PASTA}</span>
@@ -8099,7 +8105,7 @@ window.spSelLista=(id,semAbrir)=>{
   if(LCOM[id]){ currentView='funil'; lkHash('l',id); render('funil/aba/'+LCOM[id]); spDesenhar(); return; }
   if(LTEL[id]){ lkHash('l',id); render(LTEL[id]); spDesenhar(); return; }
   if(LFIN[id]){ render(LFIN[id]); return; }
-  if(id===LF_ID){ currentView='fechamento'; renderFechamento($('#content')); spDesenhar(); return; }
+  if(id===LF_ID){ currentView='fechamento'; if(podeFechamento()) renderFechamento($('#content')); else $('#content').innerHTML='<div class="empty">Fechamento de contrato é só com o José Carlos ou o Bernardo.</div>'; spDesenhar(); return; }
   /* Lista de fluxo (4+ status proprios) abre no Board, como a linha editorial do ClickUp.
      Vale so ate a pessoa escolher a visao na mao — dai respeita a escolha dela. */
   TK.visao=visaoDe(id);
@@ -8740,7 +8746,7 @@ function tkDesenhar(c){
          ${cli?lcSeloContas():''}
          <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
          ${cli?'':`<button class="btn ghost small" onclick="tkEscopo()">${TK.escopo==='lista'?'Ver todas':'Só esta lista'}</button>`}
-         ${cli?`<button class="btn small" onclick="render('fechamento')">+ Cliente</button>`:`<button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>`}
+         ${cli?'':`<button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>`}
          ${(TK.escopo==='lista'&&lista)?`<button class="btn ghost small ls-mais" title="Menu da lista" aria-label="Menu da lista" onclick="lsMenu(event)">&middot;&middot;&middot;</button>`:''}
        </span>
      </div>
@@ -11031,7 +11037,7 @@ window.novaContaCliente=(fid,contaId)=>{
         sdr:'Conta adicional',closer:'Conta adicional',squad:String(f.squad||''),gestor:String(f.responsavel||''),
         resumo:'Conta adicional do grupo '+g+', criada a partir de '+f.nome+' por '+((currentUser||{}).nome||'')+'.',
         cnpj:fch.cnpj||'',cpf:fch.cpf||'',email:fch.email||'',endereco:fch.endereco||'',dono:(cli&&cli.resp)||'',telFin:(cli&&cli.tel)||'',
-        asaas:asaas?'sim':'nao'};
+        asaas:asaas?'sim':'nao',contaAdicional:'sim'};
       const b=document.querySelector('.overlay .msave'); if(b){ b.disabled=true; b.textContent='Criando...'; }
       const {data,error}=await sb.functions.invoke('fechamento',{body});
       if(error||!data||!data.ok){ let msg=(data&&data.erro)||(error&&error.message)||'falha';
@@ -17888,7 +17894,7 @@ initLoginScreen();
   setInterval(checa,5*60*1000);
 })();
 </script>
-<script src="crm.js?v=25" defer></script>
+<script src="crm.js?v=26" defer></script>
 <script src="comercial/instancias.js?v=3" defer></script>
 <script src="comercial/conversas.js?v=3" defer></script>
 </body>
