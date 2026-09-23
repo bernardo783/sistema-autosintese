@@ -9906,6 +9906,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         ${it.squad?`<span class="pt"></span><span>Squad <b>${esc(it.squad)}</b></span>`:''}
         ${_pes?`<span class="pt"></span><span>${esc(_pes.n)} <b>${esc(_pes.v)}</b></span>`:''}
         ${_dest?`<span class="pt"></span><span>${esc(_dest.n)} <span class="money">${esc(_dest.v)}</span></span>`:''}
+        ${(t&&t.criado_em)?`<span class="pt"></span><span title="Quem subiu a demanda e quando: o banco grava na criação e não deixa mudar">criada por <b>${esc(t.criado_por?(tkNomeUser(t.criado_por)||'alguém que saiu do time'):'sistema')}</b> em ${esc(new Date(t.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',',' às'))}</span>`:''}
         ${(t&&t.atualizado_em)?`<span class="pt"></span><span>atualizada ${esc(dtRel(String(t.atualizado_em).slice(0,10))||'hoje').toLowerCase()}</span>`:''}
       </div>
       ${sts.length?`<div class="tkf-trilha">
