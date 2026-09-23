@@ -5853,6 +5853,7 @@ const MICO={
   perfil:MI('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>'),
   senha:MI('<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'),
   arq:MI('<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/>'),
+  fechar:MI('<path d="M5 12h14"/>'),
   sair:MI('<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 17l-5-5 5-5M5 12h11"/>'),
   inbox:MI('<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/>'),
   pessoas:MI('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><path d="M16.5 4.6a3.5 3.5 0 0 1 0 6.8M17 14.7c2.6.5 4.5 2.3 4.5 5.3"/>'),
@@ -6450,7 +6451,14 @@ async function tkCarregar(){
     sb.from('campos_lista').select('*').order('ordem')]);
   const err=e.error||pa.error||l.error||t.error||st.error||cp.error;
   if(err) throw new Error(err.message);
-  TK.espacos=e.data||[]; TK.pastas=pa.data||[]; TK.listas=l.data||[]; TK.tarefas=t.data||[];
+  TK.espacos=e.data||[]; TK.pastas=pa.data||[];
+  /* Lista fechada (o "Fechar quadro" do Trello, Gabriel 23/09) some da arvore e de todo
+     seletor; ela e as tarefas dela so aparecem em Arquivados, de onde o master reabre. */
+  TK.listasFechadas=(l.data||[]).filter(x=>x.fechada_em);
+  const _fech=new Set(TK.listasFechadas.map(x=>String(x.id)));
+  TK.listas=(l.data||[]).filter(x=>!x.fechada_em);
+  TK.tarefas=(t.data||[]).filter(x=>!_fech.has(String(x.lista_id)));
+  TK.tarefasFechadas=(t.data||[]).filter(x=>_fech.has(String(x.lista_id)));
   TK.tarefas.forEach(x=>{ if(ehListaCli(x.lista_id)) x.titulo=MAIUS(x.titulo); });
   const mm=await sb.from('no_membros').select('*'); TK.membros=(mm&&mm.data)||[];
   const tp=await sb.from('tipos_tarefa').select('*').order('ordem'); TK.tipos=(tp&&tp.data)||[];
@@ -8547,6 +8555,7 @@ function tkDesenhar(c){
          <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
          <button class="btn ghost small" onclick="tkEscopo()">${TK.escopo==='lista'?'Ver todas':'Só esta lista'}</button>
          ${cli?`<button class="btn small" onclick="render('fechamento')">+ Cliente</button>`:`<button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>`}
+         ${(TK.escopo==='lista'&&lista)?`<button class="btn ghost small ls-mais" title="Menu da lista" aria-label="Menu da lista" onclick="lsMenu(event)">&middot;&middot;&middot;</button>`:''}
        </span>
      </div>
    </div>
@@ -10612,6 +10621,64 @@ window.lcExcluirDeVez=async (fid)=>{
   TK.tarefas=(TK.tarefas||[]).filter(x=>!(String(x.ficha_id)===String(fid)&&(ehLC(x.lista_id)||x.lista_id===CH_ID)));
   arqFechar(); arqRedesenhar(); toast('Cliente excluído de vez.');
 };
+/* ---------- MENU ··· DA LISTA (Trello, Gabriel 23/09) ----------
+   Itens arquivados da lista e Fechar lista. Fechar e so do master (o banco trava:
+   trg_listas_trava_fechar); os demais pedem ao Bernardo, e o pedido cai como tarefa
+   na lista de Suporte dele (suporte_abrir_chamado), igual aos chamados. */
+window.lsMenu=(ev)=>{
+  const l=(TK.listas||[]).find(x=>x.id===TK.listaSel); if(!l) return;
+  const mst=!!(currentUser&&currentUser.role==='master');
+  const nArq=tkArquivadasDa(l.id).length;
+  ctxAbrir(ev,[
+    {cab:spNome(l)||'Lista'},
+    {ic:MICO.arq,t:'Itens arquivados'+(nArq?' ('+nArq+')':''),f:()=>tkArqVista(true)},
+    {ic:MICO.arq,t:'Todos os arquivados',f:()=>render('arquivados')},
+    {sep:true},
+    mst?{ic:MICO.fechar,t:'Fechar lista',dgr:true,f:()=>lsFechar(l.id)}
+       :{ic:MICO.fechar,t:'Pedir para fechar esta lista',f:()=>lsPedirFechar(l.id)}
+  ]);
+};
+window.lsFechar=async (lid)=>{
+  const l=(TK.listas||[]).find(x=>x.id===lid); if(!l) return;
+  const n=(TK.tarefas||[]).filter(t=>t.lista_id===lid).length;
+  const ok=await confirmar('Fechar a lista '+(spNome(l)||'')+'?',
+    'Ela sai da barra lateral com as '+n+' tarefa'+(n===1?'':'s')+' dela, mas nada é apagado. Fica em Arquivados (menu da sua foto), de onde dá para reabrir ou excluir de vez.',
+    {sim:'Fechar lista',nao:'Não',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('listas').update({fechada_em:new Date().toISOString(),fechada_por:(currentUser||{}).id||null}).eq('id',lid);
+  if(error){ toast('Erro: '+error.message); return; }
+  await tkCarregar(); TK.listaSel=''; spDesenhar();
+  render('arquivados'); toast('Lista fechada. Está em Arquivados.');
+};
+window.lsPedirFechar=(lid)=>{
+  const l=(TK.listas||[]).find(x=>x.id===lid); if(!l) return;
+  modal('Pedir para fechar a lista',`
+    <p class="hint" style="margin:0 0 12px">Só um master fecha lista. O pedido vai para o Bernardo e cai nas tarefas dele, no Suporte.</p>
+    <div class="field"><label>Lista</label><input value="${esc(tkCaminho(lid))}" disabled style="opacity:.7"></div>
+    <div class="field"><label>Por que fechar?</label><textarea id="ls_mot" rows="3" placeholder="ex.: o projeto acabou, as tarefas já foram entregues"></textarea></div>`,
+    async ()=>{
+      const mot=String(($('#ls_mot')||{}).value||'').trim();
+      if(!mot){ toast('Escreva o motivo.'); return false; }
+      const {error}=await sb.rpc('suporte_abrir_chamado',{p_titulo:'Fechar a lista '+(spNome(l)||''),
+        p_texto:'Pedido para fechar a lista "'+tkCaminho(lid)+'".\n\nMotivo: '+mot+'\n\nPara fechar: abra a lista, menu ··· no canto de cima, Fechar lista.',
+        p_onde:tkCaminho(lid)});
+      if(error){ toast('Não consegui enviar: '+error.message); return false; }
+      toast('Pedido enviado ao Bernardo.'); return true; });
+  const ov=document.querySelector('.overlay'); const b=ov&&ov.querySelector('.msave'); if(b) b.textContent='Enviar pedido';
+};
+window.lsReabrir=async (lid)=>{
+  const {error}=await sb.from('listas').update({fechada_em:null,fechada_por:null}).eq('id',lid);
+  if(error){ toast('Erro: '+error.message); return; }
+  await tkCarregar(); spDesenhar(); renderArquivados($('#content')); toast('Lista reaberta.');
+};
+window.lsExcluir=async (lid)=>{
+  const l=(TK.listasFechadas||[]).find(x=>x.id===lid); if(!l) return;
+  const n=(TK.tarefasFechadas||[]).filter(t=>t.lista_id===lid).length;
+  if(!confirm('Excluir a lista "'+(spNome(l)||'')+'" de vez?\n\nVão junto '+n+' tarefa'+(n===1?'':'s')+', status e colunas. Isso não tem volta.')) return;
+  const {error}=await sb.from('listas').delete().eq('id',lid);
+  if(error){ toast('Erro: '+error.message); return; }
+  await tkCarregar(); spDesenhar(); renderArquivados($('#content')); toast('Lista excluída.');
+};
 /* ---------- ARQUIVADOS GERAIS (menu da foto) ----------
    Cada lista tem o proprio "Arquivados"; aqui junta tudo o que foi arquivado no
    workspace aberto, agrupado por lista. Cliente abre a ficha; tarefa abre o painel. */
@@ -10635,12 +10702,23 @@ function renderArquivados(c){
         <button class="btn ghost small" onclick="arqRestaurar('${t.id}')">Restaurar</button>
         ${mst?`<button class="btn ghost small tk-del" onclick="${(cli&&t.ficha_id)?`lcExcluirDeVez('${esc(String(t.ficha_id))}')`:`tkExcluir('${t.id}')`}">Excluir de vez</button>`:''}
       </td></tr>`; };
+  const fech=(TK.listasFechadas||[]).filter(l=>{ const e=(TK.espacos||[]).find(x=>x.id===l.espaco_id)||((TK.pastas||[]).find(p=>p.id===l.pasta_id)&&(TK.espacos||[]).find(x=>x.id===(TK.pastas.find(p=>p.id===l.pasta_id)||{}).espaco_id)); return !e||espacoDaAtual(e); })
+    .filter(l=>!q||String(l.nome||'').toLowerCase().indexOf(q)>=0);
+  const onde=(l)=>{ const e=(TK.espacos||[]).find(x=>x.id===l.espaco_id), p=(TK.pastas||[]).find(x=>x.id===l.pasta_id); return [e?spNome(e):'',p?spNome(p):''].filter(Boolean).join(' / '); };
+  const secFech=fech.length?`
+      <div class="tkf-sec mt" style="margin-top:18px">Listas fechadas<span class="ln"></span><span class="n">${fech.length}</span></div>
+      <div class="tablewrap"><table><tbody>${fech.map(l=>{ const n=(TK.tarefasFechadas||[]).filter(t=>t.lista_id===l.id).length;
+        return `<tr><td><b>${esc(spNome(l)||'')}</b><div class="hint" style="margin:2px 0 0">${esc(onde(l))} · ${n} tarefa${n===1?'':'s'}</div></td>
+        <td class="hint" style="margin:0;white-space:nowrap">${esc(fmtDate(String(l.fechada_em).slice(0,10)))}${l.fechada_por?' · '+esc(primeiroNome(tkNomeUser(l.fechada_por))):''}</td>
+        <td style="text-align:right;white-space:nowrap">${mst?`<button class="btn ghost small" onclick="lsReabrir('${l.id}')">Reabrir</button>
+          <button class="btn ghost small tk-del" onclick="lsExcluir('${l.id}')">Excluir de vez</button>`:'<span class="hint" style="margin:0">só master reabre</span>'}</td></tr>`; }).join('')}</tbody></table></div>`:'';
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Arquivados</h2><div class="desc">Tudo o que foi arquivado neste workspace. Cada lista também tem os seus, no botão Arquivados dela.${mst?'':' Excluir de vez é só com master.'}</div></div>
      <div class="toolbar"><input class="search" id="arqQ" placeholder="Buscar arquivado..." value="${esc(ARQ_Q)}"></div>
    </div>
-   ${!todas.length?'<div class="empty">Nada arquivado por aqui.</div>'
+   ${secFech}
+   ${!todas.length?(fech.length?'':'<div class="empty">Nada arquivado por aqui.</div>')
     :!arr.length?'<div class="empty">Nada arquivado bate com a busca.</div>'
     :Object.keys(grupos).sort((a,b)=>tkCaminho(a).localeCompare(tkCaminho(b))).map(lid=>`
       <div class="tkf-sec mt" style="margin-top:18px">${esc(tkCaminho(lid))}<span class="ln"></span><span class="n">${grupos[lid].length}</span></div>
