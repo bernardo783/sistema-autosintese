@@ -710,6 +710,16 @@ grupo('Controle de Clientes: funil + lista (Gabriel 23/09)');
   ok('quadro: coluna vazia vira faixa fina', HTML.indexOf("lcb-fina")>0);
 }
 
+/* ---------------- topo minimalista das listas ---------------- */
+grupo('Topo minimalista e tabela mais leve (Gabriel 23/09)');
+{
+  ok('abas de texto Minhas | Recorrentes', HTML.indexOf('<div class="tp-abas">')>0);
+  ok('ícones sem borda: buscar, filtrar, responsável, lista, quadro, ⋯ e +', ["tpIb('lupa'","tpIb('funil'","tpIb('pessoa'","tpIb('lista'","tpIb('quadro'","tpIb('pts'",'class="tp-mais"'].every(k=>HTML.indexOf(k)>0));
+  ok('Grupo, Colunas, Status da lista e Tipos foram pro ⋯', /tkMenuGrupo\(\)/.test(bloco('window.tpMais=','async function tkPatch(')) && /tkTipos\(\)/.test(bloco('window.tpMais=','async function tkPatch(')));
+  ok('grupo vazio não ocupa linha (desce pra uma linha só)', HTML.indexOf('tl-vazios')>0);
+  ok('Controle de Clientes mantém o topo dele', HTML.indexOf('if(!cli){ c.innerHTML=')>0);
+}
+
 function fimDosTestes(){
 /* ---------------- tipo de cliente no Controle de Clientes ---------------- */
 grupo('Controle de Clientes: filtro por tipo e selo "sem tipo" (Gabriel 23/09)');

@@ -2175,6 +2175,43 @@
   .tk-faixa.vazio:hover > td{opacity:1}
   /* linha de tarefa: mais enxuta e com o excluir só no hover */
   .tk-tab tbody tr:not(.tk-faixa) > td{padding:8px 14px}
+  /* ---- topo minimalista + tabela mais leve (Gabriel 23/09) ---- */
+  .tp-head{display:block}
+  .tp-linha{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .tp-linha h2{margin:0 0 10px}
+  .tp-abas{display:flex;gap:18px;align-self:flex-end}
+  .tp-abas button{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:0 0 10px;font:inherit;font-size:13.5px;
+    font-weight:600;color:var(--fraco);cursor:pointer}
+  .tp-abas button:hover{color:var(--txt)}
+  .tp-abas button.on{color:var(--txt);border-bottom-color:var(--brand2);background:none;box-shadow:none}
+  .tp-dir{margin-left:auto;display:flex;align-items:center;gap:2px;padding-bottom:7px}
+  .tp-ib{position:relative;display:inline-grid;place-items:center;width:32px;height:32px;border-radius:8px;border:0;background:transparent;color:var(--fraco);cursor:pointer;padding:0}
+  .tp-ib:hover{background:var(--hov2);color:var(--txt)}
+  .tp-ib.on{background:var(--hov2);color:var(--txt)}
+  .tp-bd{position:absolute;top:2px;right:1px;min-width:15px;height:15px;border-radius:8px;background:var(--brand);color:#fff;font-size:9.5px;font-weight:800;display:grid;place-items:center;padding:0 3px}
+  .tp-mais{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;border:0;background:var(--brand);color:#fff;cursor:pointer;margin-left:6px;padding:0}
+  .tp-mais:hover{filter:brightness(1.12)}
+  .tp-mais[disabled]{opacity:.4;cursor:default}
+  .tp-busca{width:200px;height:32px;margin-right:4px}
+  .tk-leve{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important}
+  .tk-leve .tk-tab thead th{background:transparent!important;border-bottom:1px solid var(--line)}
+  .tk-leve .tk-tab tbody td{background:transparent!important}
+  .tk-leve .tk-tab tbody tr:not(.tk-faixa):not(.tl-vazios):hover > td{background:var(--hov1)!important}
+  .tk-leve .tk-tab{box-shadow:none}
+  .tk-leve .tl-g > td{padding:14px 12px 6px!important}
+  .tl-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;vertical-align:middle;flex:none}
+  .tl-gn{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--txt)}
+  .tl-n{font-size:11.5px;font-weight:700;color:var(--fraco);margin-left:7px}
+  .tk-leve .tk-stsel{background-color:transparent!important;color:var(--muted)!important;border:0;box-shadow:none;font-weight:600;
+    padding-left:20px;background-image:radial-gradient(circle,var(--c) 3.5px,transparent 4px)!important;background-repeat:no-repeat!important;
+    background-position:6px 50%!important;background-size:12px 12px!important;text-transform:none}
+  .tk-leve .tk-stsel:hover{background-color:var(--hov2)!important}
+  .tl-pr{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .tl-dt{font-size:12.5px;font-weight:600;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .tl-dt.late{color:var(--danger)} .tl-dt.hoje{color:var(--warn)}
+  .tl-vazios > td{padding:12px!important;border:0!important}
+  .tl-vazios button{background:none;border:0;color:var(--fraco);font:inherit;font-size:12px;margin-right:16px;cursor:pointer;padding:2px 0}
+  .tl-vazios button:hover{color:var(--txt)}
   .tk-tab tbody tr:not(.tk-faixa) .iconbtn.del{opacity:0;transition:opacity .12s}
   .tk-tab tbody tr:not(.tk-faixa):hover .iconbtn.del{opacity:1}
   .tk-selo{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;border:none;letter-spacing:.2px;white-space:nowrap}
@@ -7218,7 +7255,7 @@ const tkSelo=(t)=>{
   const sts=tkStatusDe(t.lista_id);
   if(!sts.length) return `<select class="stSel" onchange="tkStatus('${t.id}',this.value)">${Object.keys(TK_ST).map(k=>`<option value="${k}"${t.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`;
   const s=tkStatus1(t.status_id), cor=s?s.cor:'#64748b';
-  return `<select class="tk-stsel" style="background-color:${esc(cor)};color:${esc(corTexto(cor))}" onchange="tkSetStatus('${t.id}',this.value)"><option value="">Sem status</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
+  return `<select class="tk-stsel" style="--c:${esc(cor)};background-color:${esc(cor)};color:${esc(corTexto(cor))}" onchange="tkSetStatus('${t.id}',this.value)"><option value="">Sem status</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
 };
 function tkViewLista(){
   const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
@@ -7245,8 +7282,8 @@ function tkViewLista(){
       <td>${nome(t)}</td>
       <td>${tkSelo(t)}</td>
       ${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}
-      <td><span class="tag st" style="color:${PRIO_COR[t.prioridade]||'var(--muted)'};background:${(PRIO_COR[t.prioridade]||'#888888')}1a;font-weight:800">${TK_PRIO[t.prioridade]||'-'}</span></td>
-      <td>${t.prazo?`<span class="tag ${atr?'churn':'st'}">${fmtDate(t.prazo)}${t.hora?' às '+esc(t.hora):''}</span>`:'<span class="hint" style="margin:0">-</span>'}</td>
+      <td><span class="tl-pr"><span style="color:${PRIO_COR[t.prioridade]||'var(--muted)'}">${tpSvg('flag',12)}</span>${TK_PRIO[t.prioridade]||'-'}</span></td>
+      <td>${t.prazo?`<span class="tl-dt${atr?' late':(t.prazo===hoje?' hoje':'')}">${fmtDate(t.prazo)}${t.hora?' às '+esc(t.hora):''}${atr?' · atrasada':''}</span>`:'<span class="hint" style="margin:0">-</span>'}</td>
       <td>${(()=>{ const rs=respDe(t); if(!rs.length) return '<span class="hint" style="margin:0">-</span>';
         return `<span class="avstack">${rs.slice(0,4).map(u=>`<span title="${esc(tkNomeUser(u))}" style="cursor:pointer" onclick="event.stopPropagation();verPerfil('${u}')">${avatar(u)}</span>`).join('')}</span>${rs.length>4?`<span class="tk-mais">+${rs.length-4}</span>`:''}`; })()}</td>
       <td><button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button></td>
@@ -7265,6 +7302,17 @@ function tkViewLista(){
     return faixa+((fech||!g.its.length)?'':g.its.map(linha).join(''));
   };
   const total=grupos.reduce((a,g)=>a+g.its.length,0);
+  if(!lc){
+    /* "Mais leve" (Gabriel 23/09): grupo vazio não ocupa linha, desce pra uma linha só no fim;
+       Grupo/Colunas/Status/Coluna/Tipos foram pro ⋯ do topo */
+    const cheios=grupos.filter(g=>g.its.length), vazios=grupos.filter(g=>!g.its.length);
+    const faixaL=(g)=>{ const fech=TK.fechadas['g'+g.k];
+      return `<tr class="tk-faixa tl-g" onclick="tkToggle('g','${g.k}')"><td colspan="${ncols}"><span class="tk-cv${fech?'':' ab'}">&#9656;</span><span class="tl-dot" style="background:${esc(g.cor)}"></span><span class="tl-gn">${esc(g.rot)}</span><span class="tl-n">${g.its.length}</span>
+        <button class="iconbtn tk-add" title="Nova tarefa aqui" onclick="event.stopPropagation();tkAbrir(null,null,'${g.k}')">+</button></td></tr>`+(fech?'':g.its.map(linha).join('')); };
+    const resto=vazios.length?`<tr class="tl-vazios"><td colspan="${ncols}">${vazios.map(g=>`<button onclick="tkAbrir(null,null,'${g.k}')" title="Nova tarefa em ${esc(g.rot)}"><span class="tl-dot" style="background:${esc(g.cor)}"></span>${esc(g.rot)} 0</button>`).join('')}</td></tr>`:'';
+    return total?`<div class="tablewrap rolavel tk-leve"><table class="tk-tab" style="min-width:${largMin}px"><thead>${cab}</thead><tbody>${cheios.map(faixaL).join('')}${resto}</tbody></table></div>`
+      :'<div class="empty">Nada por aqui.</div>';
+  }
   return `<div class="tk-bar">${tkBarraSquad()}
     <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
     <button class="btn ghost small" onclick="tkMenuCols()">&#9707; Colunas</button>
@@ -8831,6 +8879,14 @@ function tkDesenhar(c){
   const corpo=(cli&&TK.lcVista==='gerentes')?lcVistaGerentes():(TK.visao==='lista'?tkViewLista():tkViewBoard());
   const dica=TK.visao==='board'?'arraste os cartões entre as colunas':'clique no nome para abrir, no cabeçalho para ordenar';
   const titulo=TK.escopo==='minhas'?'Minhas tarefas':TK.escopo==='todas'?'Todas as tarefas':(lista?esc(spNome(lista)):'Listas');
+  if(!cli){ c.innerHTML=`
+   <div class="page-head tp-head">
+     <div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>${titulo}</h2>${tpAbas()}${tpDireita(soBoard)}</div></div>
+   </div>
+   ${tkBarraSquad()}
+   ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}`;
+    if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
+    return; }
   c.innerHTML=`
    <div class="page-head">
      <div>${tkCrumb()}<h2>${titulo}</h2><div class="desc">${TK.escopo==='minhas'?'tudo que está atribuído a você e ainda não foi concluído':TK.escopo==='todas'?'Autosíntese: todas as listas':esc(tkCaminho(TK.listaSel))} · ${dica}</div></div>
@@ -8854,6 +8910,56 @@ function tkDesenhar(c){
    <p class="hint" style="margin-top:14px">${cli?'Clique no cliente para abrir a ficha. No Quadro, arrastar entre colunas muda o estágio.':'Espaço agrupa pastas; pasta agrupa listas; lista agrupa tarefas, cada lista tem seus próprios status e colunas. Tarefa com <strong>cliente</strong> só aparece para quem tem o squad daquele cliente.'}</p>`;
   if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
 }
+/* ---------- TOPO MINIMALISTA DAS LISTAS (Gabriel 23/09, opção 1) ----------
+   Título + abas de texto (Minhas | Recorrentes) e, à direita, só ícones sem borda:
+   buscar, filtrar, responsável, lista, quadro, ⋯ e o + redondo. Grupo, Colunas, Status da
+   lista, + Coluna, Tipos, Ordem manual, Arquivados e Ver todas moram no ⋯. */
+const TP_SVG={
+  lupa:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  funil:'<path d="M22 3H2l8 9.5V21l4-2v-6.5z"/>',
+  pessoa:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>',
+  lista:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+  quadro:'<rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/>',
+  pts:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  mais:'<path d="M12 5v14M5 12h14"/>',
+  flag:'<path d="M4 21V4h11l-1.5 4L15 12H4"/>'};
+const tpSvg=(k,s)=>`<svg width="${s||16}" height="${s||16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${TP_SVG[k]}</svg>`;
+const tpIb=(k,titulo,acao,on,badge)=>`<button type="button" class="tp-ib${on?' on':''}" title="${esc(titulo)}" aria-label="${esc(titulo)}" onclick="${acao}">${tpSvg(k)}${badge?`<span class="tp-bd">${badge}</span>`:''}</button>`;
+/* abas de texto: Minhas | Recorrentes (Recorrentes só pra gerente e master) */
+const tpAbas=()=>(TK.escopo==='minhas'||TK.escopo==='recorrentes')&&souGerente()
+  ?`<div class="tp-abas"><button class="${TK.escopo==='minhas'?'on':''}" onclick="recAba('minhas')">Minhas</button><button class="${TK.escopo==='recorrentes'?'on':''}" onclick="recAba('recorrentes')">Recorrentes</button></div>`:'';
+function tpDireita(soBoard){
+  const nF=tkFiltroN(), rs=((TK.filtro||{}).resps||[]).length, busca=!!(TK.busca||TK.tpBusca);
+  return `<div class="tp-dir">
+    ${busca?`<input class="search tp-busca" id="tk_busca" placeholder="Buscar tarefa..." value="${esc(TK.busca)}" oninput="tkBusca(this.value)" onblur="if(!this.value){TK.tpBusca=false;tkDesenhar($('#content'));}">`
+      :tpIb('lupa','Buscar',"TK.tpBusca=true;TK.focoBusca=true;tkDesenhar($('#content'))")}
+    ${tpIb('funil','Filtrar','tkPopFiltro(event)',nF>0,nF||'')}
+    ${tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}
+    ${soBoard?'':tpIb('lista','Lista',"tkArqVista(false);tkVisao('lista')",TK.visao==='lista'&&!TK.arqVista)}
+    ${tpIb('quadro','Quadro',"tkArqVista(false);tkVisao('board')",TK.visao==='board'&&!TK.arqVista)}
+    ${tpIb('pts','Mais opções','tpMais(event)',!!TK.arqVista)}
+    <button type="button" class="tp-mais" title="Nova tarefa" aria-label="Nova tarefa" onclick="tkAbrir()" ${TK.listaSel||TK.escopo!=='lista'?'':'disabled'}>${tpSvg('mais')}</button>
+  </div>`;
+}
+window.tpMais=(ev)=>{
+  ev.stopPropagation(); const v=document.getElementById('tpPop'); if(v){ v.remove(); return; }
+  const lista=TK.escopo==='lista'&&TK.listas.find(x=>x.id===TK.listaSel), nArq=TK.escopo==='lista'?tkArquivadasDa(TK.listaSel).length:0;
+  const ed=TK.escopo==='lista'&&estruturaEditavel(TK.listaSel);
+  const it=(rot,acao,sub)=>`<button class="rc-mi" onclick="document.getElementById('tpPop').remove();${acao}">${esc(rot)}${sub?`<small>${esc(sub)}</small>`:''}</button>`;
+  const r=ev.currentTarget.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='tpPop'; el.className='tkpop'; el.style.width='240px'; el.style.zIndex=3000;
+  el.innerHTML=[
+    TK.visao==='lista'?it('Agrupar por…','tkMenuGrupo()',tkGrupoNome()):'',
+    TK.visao==='lista'?it('Colunas visíveis…','tkMenuCols()'):'',
+    (TK.visao==='lista'&&TK.ord)?it('Voltar pra ordem manual','tkOrdemManual()'):'',
+    (TK.escopo==='lista'&&(nArq||TK.arqVista))?it(TK.arqVista?'Sair dos arquivados':'Arquivados',"tkArqVista("+(TK.arqVista?'false':'true')+")",nArq?String(nArq):''):'',
+    TK.escopo!=='minhas'&&TK.escopo!=='recorrentes'?it(TK.escopo==='lista'?'Ver todas as listas':'Só esta lista','tkEscopo()'):'',
+    ed?'<div class="rc-sep"></div>'+it('Status da lista…','tkEditarStatus()')+it('+ Coluna','tkNovoCampo()')+(souGerente()?it('Tipos…','tkTipos()'):''):'',
+    lista?'<div class="rc-sep"></div>'+`<button class="rc-mi" onclick="document.getElementById('tpPop').remove();lsMenu(event)">Opções da lista…</button>`:''
+  ].join('')||'<div class="hint" style="margin:6px">Nada por aqui.</div>';
+  document.body.appendChild(el); popPor(el,r);
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
 async function tkPatch(id,patch,msg){
   const {error}=await sb.from('tarefas').update(patch).eq('id',id);
   if(error){ toast('Erro: '+error.message); return false; }
@@ -9251,7 +9357,7 @@ const recIco=(t)=>recAtiva(t)?`<span class="tk-recico${t.recorrencia.pausada?' p
 
 /* ---------- aba Recorrentes (gerente e master), dentro de Tarefas ---------- */
 let REC_F='ativas', REC_Q='';
-const recAbas=()=>souGerente()?`<span class="tk-seg rc-abas"><button class="${TK.escopo==='minhas'?'on':''}" onclick="recAba('minhas')">Minhas</button><button class="${TK.escopo==='recorrentes'?'on':''}" onclick="recAba('recorrentes')">Recorrentes</button></span>`:'';
+const recAbas=()=>souGerente()?`<div class="tp-abas"><button class="${TK.escopo==='minhas'?'on':''}" onclick="recAba('minhas')">Minhas</button><button class="${TK.escopo==='recorrentes'?'on':''}" onclick="recAba('recorrentes')">Recorrentes</button></div>`:'';
 window.recAba=(a)=>{ TK.escopo=a; currentView='lista'; tkDesenhar($('#content')); };
 function recSeries(){ return (TK.tarefas||[]).filter(t=>recAtiva(t)&&!arquivada(t)); }
 function recTerminando(t){ const f=t.recorrencia.fim||{};
