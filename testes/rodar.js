@@ -369,8 +369,10 @@ grupo('Autosave da tarefa (sem botão Salvar)');
      e BLOQUEIA no explícito, e que a validação de título vem antes de qualquer gravação. */
   const src=bloco('async function tkmSalvar(t,lid,cps,silencioso){','/* ---------- PAINEL DA TAREFA');
   ok('existe', src.length>500);
-  ok('no silencioso, obrigatório não trava', /aviso\('Falta o cliente'\); if\(!silencioso\)/.test(src));
-  ok('no silencioso, squad não trava', /aviso\('Falta o squad'\); if\(!silencioso\)/.test(src));
+  /* Gabriel 23/09: nada trava. Faltou cliente/data/responsável, a tarefa nasce em rascunho. */
+  ok('cliente/data/responsável faltando vira rascunho, não trava', /v\.rascunho=falta\.length>0/.test(src)&&!/aviso\('Falta o cliente'\)/.test(src));
+  ok('squad não trava: sai do cliente ou do seu squad', /v\.squad=meusSquads\(\)\[0\]/.test(src)&&!/aviso\('Falta o squad'\)/.test(src));
+  ok('definitiva não volta a ser rascunho', /v\.rascunho=falta\.length>0&&\(!t\|\|_eraRasc\)/.test(src));
   ok('mas título vazio nunca grava', /if\(!v\.titulo\)\{ aviso\([^)]*\); return false; \}/.test(src));
   ok('tarefa nova usa insert com retorno', /\.insert\(Object\.assign\([\s\S]*?\)\)\.select\(\)\.single\(\)/.test(src));
   ok('e daí em diante vira update', /window\.__tkmT=criada/.test(src));
@@ -791,6 +793,23 @@ grupo('Espaços: gerente compartilha, duplica e exclui o que ELE criou (Gabriel 
   ok('quem não é gerente não gerencia nem o que criou', semGer.nmPodeGerir('espaco','e1')===false);
   const mst=ctx({id:'bernardo',role:'master'});
   ok('master gerencia tudo', mst.nmPodeGerir('espaco','e3')===true);
+}
+
+/* ---------------- rascunho: só cliente, data e responsável são obrigatórios ---------------- */
+grupo('Tarefa em rascunho até ter cliente, data e responsável (Gabriel 23/09)');
+{
+  const cod=bloco('const tkPessoal=','/* criar digitando direto na coluna');
+  const L={camp:{exige:['cliente'],pessoal:false},tec:{exige:[],pessoal:false},pes:{exige:[],pessoal:true}};
+  const g=rodar(cod,{esc:s=>String(s),exigeDaLista:(lid)=>L[lid].exige,
+    espacoDaLista:(lid)=>({workspace_id:L[lid].pessoal?'wp':'we'}),TK:{ws:[{id:'wp',tipo:'pessoal'},{id:'we',tipo:'empresa'}]}},
+    ['tkPessoal','tkFaltaObrig','tkFaltaTxt']);
+  ok('Campanhas só com título: falta cliente, data e responsável',
+    JSON.stringify(g.tkFaltaObrig({lista_id:'camp'}))===JSON.stringify(['cliente','data','responsável']));
+  ok('Campanhas completa: nada falta', g.tkFaltaObrig({lista_id:'camp',ficha_id:'f',prazo:'2026-09-24',responsaveis:['u']}).length===0);
+  ok('lista sem cliente (Tecnologia): só data e responsável', JSON.stringify(g.tkFaltaObrig({lista_id:'tec'}))===JSON.stringify(['data','responsável']));
+  ok('workspace pessoal nunca é rascunho', g.tkFaltaObrig({lista_id:'pes'}).length===0);
+  ok('texto do que falta', g.tkFaltaTxt(['cliente','data','responsável'])==='cliente, data e responsável');
+  ok('quick-add do quadro não abre mais o formulário pedindo cliente', HTML.indexOf("Essa lista pede o cliente, escolha pra salvar")<0);
 }
 
 console.log('\n'+(falhas

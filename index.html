@@ -1261,6 +1261,7 @@
   .tk-tp{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;letter-spacing:.2px;white-space:nowrap}
   .tk-tp.sm{font-size:10px;padding:1px 7px}
   .tk-tpl{margin-bottom:6px}
+  .tk-rasc{display:inline-block;margin-right:6px;padding:1px 7px;border-radius:5px;border:1px dashed var(--muted);color:var(--muted);font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;vertical-align:1px}
   .tp-l{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
   .tp-l:first-of-type{border-top:none}
   /* ---------- RELACIONAMENTOS (formato ClickUp) ---------- */
@@ -6667,7 +6668,7 @@ function tkCard(t){
   const cheio=!!(rsC.length||t.prazo||t.ficha_id||sq||chCam);
   return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')" oncontextmenu="tkCardMenu(event,'${t.id}')">
     ${t.tipo_id?`<div class="tk-tpl">${tipoChip(t.tipo_id,'sm')}</div>`:''}
-    <div class="tk-tit">${esc(t.titulo)}${recIco(t)}</div>
+    <div class="tk-tit">${t.rascunho?rascSelo(t):''}${esc(t.titulo)}${recIco(t)}</div>
     ${meta?`<div class="tk-meta">${meta}</div>`:''}
     <div class="tk-chips${cheio?'':' so-hover'}">${chResp}${chPrazo}${chCli}${chSq}${chCam}${chPrio}</div>
   </div>`;
@@ -6934,6 +6935,24 @@ window.ncPickCor=(b,c)=>{ $('#nc_cor').value=c;
   document.querySelectorAll('#nc_cores button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
 /* Edição de Vídeo: todo vídeo novo nasce com o Fluxo de Edição (checklist padrão, vídeo do Gabriel 10/08) */
 const CK_EDICAO=['Baixar material bruto do Drive','Consultar preferências do cliente no Guia','Editar vídeo conforme orientações','Aplicar legenda no estilo do cliente','Inserir logo atualizada','Adicionar narração (se aplicável)','Subir material editado no Drive','Preencher o link do material editado','Mover para Revisão e aguardar feedback'];
+/* ---------- RASCUNHO (Gabriel 23/09: "criar tarefa está cheio de viadagem") ----------
+   Obrigatório de verdade só três coisas: cliente (nas listas que pedem cliente), data e
+   responsável. Digitou o título, a tarefa já existe; faltando algum dos três ela fica em
+   RASCUNHO: só quem criou enxerga e ninguém é avisado (RLS + trg_ntf_tarefas). Completou,
+   sai do rascunho sozinha e o banco avisa como tarefa nova. No workspace pessoal não há
+   rascunho. Tarefa definitiva não volta a ser rascunho. */
+const tkPessoal=(lid)=>{ const e=espacoDaLista(lid); const w=e&&(TK.ws||[]).find(x=>x.id===e.workspace_id); return !!(w&&w.tipo==='pessoal'); };
+function tkFaltaObrig(v){
+  if(!v||tkPessoal(v.lista_id)) return [];
+  const f=[];
+  if(exigeDaLista(v.lista_id).indexOf('cliente')>=0&&!v.ficha_id) f.push('cliente');
+  if(!v.prazo) f.push('data');
+  if(!(v.responsaveis||[]).length&&!v.responsavel_id) f.push('responsável');
+  return f;
+}
+/* selo do rascunho no cartão e na lista: diz o que falta pra sair pra equipe */
+const rascSelo=(t)=>{ const f=tkFaltaObrig(t); return `<span class="tk-rasc" title="Rascunho: só você vê${f.length?'. Falta '+esc(tkFaltaTxt(f)):''}">Rascunho</span>`; };
+const tkFaltaTxt=(f)=>f.length===1?f[0]:f.slice(0,-1).join(', ')+' e '+f[f.length-1];
 /* criar digitando direto na coluna, sem modal (Enter cria, Esc cancela) */
 window.tkAddInline=(btn,key)=>{
   const box=document.createElement('div'); box.className='tk-addbox';
@@ -6944,19 +6963,17 @@ window.tkAddKey=async (ev,key)=>{
   if(ev.key==='Escape'){ tkDesenhar($('#content')); return; }
   if(ev.key!=='Enter') return;
   const tit=ev.target.value.trim(); if(!tit) return;
-  if(exigeDaLista(TK.listaSel).indexOf('cliente')>=0){
-    tkAbrirSt(key);
-    setTimeout(()=>{ const e=$('#tk_tit'); if(e) e.value=tit;
-      toast('Essa lista pede o cliente, escolha pra salvar.'); tkFichaAbrir(); },180);
-    return; }
   ev.target.disabled=true;
   const v={titulo:TIT_CLI(TK.listaSel,tit),lista_id:TK.listaSel,prioridade:'med',valores:{},tipo_id:tipoPadraoDe(TK.listaSel)};
   if(tkStatus1(key)){ v.status_id=key; v.status='todo'; } else { v.status=key||'todo'; v.status_id=null; }
   if(TK.listaSel===LISTA_EDICAO){ v.checklist=CK_EDICAO.map(x=>({t:x,ok:false})); v.responsavel_id=EDITORA_PADRAO; v.responsaveis=[EDITORA_PADRAO]; }
+  if(exigeSquad(TK.listaSel)) v.squad=meusSquads()[0]||null;
+  const falta=tkFaltaObrig(v); v.rascunho=falta.length>0;   /* nasce e fica em rascunho até completar */
   const {data,error}=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
   if(error){ toast('Erro: '+error.message); ev.target.disabled=false; return; }
   TK.tarefas.push(data); tkDesenhar($('#content')); spDesenhar();
-  toast(TK.listaSel===LISTA_EDICAO?'Vídeo criado com o Fluxo de Edição (0/9).':'Tarefa criada.');
+  toast(v.rascunho?('Rascunho criado (só você vê). Falta '+tkFaltaTxt(falta)+'.')
+    :(TK.listaSel===LISTA_EDICAO?'Vídeo criado com o Fluxo de Edição (0/9).':'Tarefa criada.'));
 };
 /* nova tarefa já caindo na coluna clicada (reusa o preset por grupo do tkAbrir) */
 window.tkAbrirSt=(k)=>{ const g=TK.grupo; TK.grupo='status'; try{ tkAbrir('','',k); }finally{ TK.grupo=g; } };
@@ -7084,7 +7101,7 @@ function tkViewLista(){
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
-  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${esc(t.titulo)}</span>${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id)+lcSeloGrupo(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
+  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${t.rascunho?rascSelo(t):''}${esc(t.titulo)}</span>${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id)+lcSeloGrupo(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr style="--bar:${esc(tkCorLinha(t))}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map(c=>`<td>${tkCelula(t,c)}</td>`).join('')}</tr>`;
@@ -10163,7 +10180,10 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
      cria a tarefa e dai em diante e autosave tambem — sem botao Salvar. */
   const ov=document.querySelector('.overlay.folha');
   if(ov){
-    const foot=ov.querySelector('.mfoot'); if(foot) foot.innerHTML='<span class="tkm-auto" id="tkmAuto">'+(t?'Salvo':'Rascunho: começa a salvar quando tiver título')+'</span><button class="btn secondary small mcancel">Fechar</button>';
+    const _fr=t&&t.rascunho?tkFaltaObrig(t):[];
+    const _st0=!t?'Escreva o título: a tarefa já nasce em rascunho (só você vê) até ter cliente, data e responsável'
+      :(t.rascunho?('Rascunho (só você vê)'+(_fr.length?': falta '+tkFaltaTxt(_fr):'')):'Salvo');
+    const foot=ov.querySelector('.mfoot'); if(foot) foot.innerHTML='<span class="tkm-auto'+(t&&t.rascunho?' falta':'')+'" id="tkmAuto">'+esc(_st0)+'</span><button class="btn secondary small mcancel">Fechar</button>';
     const fechar=()=>{ if(window.__tkmTimer){ clearTimeout(window.__tkmTimer); window.__tkmTimer=null; tkmSalvar(window.__tkmT||t,lid,cps,true); } ov.remove(); };
     const mc=ov.querySelector('.mcancel'); if(mc) mc.onclick=fechar;
     const x=ov.querySelector('.x'); if(x) x.onclick=fechar;
@@ -10246,21 +10266,17 @@ async function tkmSalvar(t,lid,cps,silencioso){
       v.tipo_id=($('#tk_tipo')&&$('#tk_tipo').value)||null;
       if(v.iniciada_em&&v.prazo&&v.iniciada_em>v.prazo){ const x=v.iniciada_em; v.iniciada_em=v.prazo; v.prazo=x; }
       if($('#tk_prazo_hora')) v.hora=v.prazo?(horaCheia($('#tk_prazo_hora').value)||null):null;
-      if(!v.titulo){ aviso(silencioso?'Sem título ainda':'Informe o título.'); return false; }
+      /* RASCUNHO (Gabriel 23/09): título OU descrição já basta pra tarefa existir. Squad,
+         entrega e colunas obrigatórias não travam mais nada; o squad sai sozinho do cliente
+         (ou do seu squad). Faltando cliente/data/responsável, fica em rascunho. */
+      if(!v.titulo){ const d0=String(v.descricao||'').split('\n')[0].trim();
+        if(d0) v.titulo=TIT_CLI(v.lista_id,d0.slice(0,120)); }
+      if(!v.titulo){ aviso(silencioso?'Escreva o título ou a descrição':'Informe o título.'); return false; }
       v.squad=($('#tk_squad')&&$('#tk_squad').value)||null;
-      if(exigeSquad(v.lista_id)&&!v.squad){ aviso('Falta o squad'); if(!silencioso) return false; }
-      const exig=exigeDaLista(v.lista_id);
-      if(exig.indexOf('cliente')>=0&&!v.ficha_id){ aviso('Falta o cliente'); if(!silencioso){ tkFichaAbrir(); return false; }
-        if(!t) return false;   /* tarefa nova so nasce depois de escolher o cliente */ }
-      if(exig.indexOf('responsavel')>=0&&!(v.responsaveis||[]).length){ aviso('Falta o responsável'); if(!silencioso) return false; }
-      if(exig.indexOf('entrega')>=0){
-        const ce=(TK.campos||[]).find(c=>c.lista_id===v.lista_id&&c.nome==='Entrega');
-        const ve=ce?String((($('#cp_'+ce.id)||{}).value)||'').trim():'';
-        if(!ve){ aviso('Falta a data de entrega'); if(!silencioso){ const e1=ce?$('#cp_'+ce.id):null; if(e1) e1.focus(); return false; } }
-      }
-      const faltam=cpFaltando(v.lista_id);
-      if(faltam.length){ aviso(faltam.length===1?('Falta '+faltam[0].nome):('Faltam '+faltam.length+' campos'));
-        if(!silencioso){ const e0=$('#cp_'+faltam[0].id); if(e0) e0.focus(); return false; } }
+      if(!v.squad&&v.ficha_id){ const f0=fichaDe(v.ficha_id); if(f0&&f0.squad) v.squad=String(f0.squad); }
+      if(!v.squad&&exigeSquad(v.lista_id)) v.squad=meusSquads()[0]||null;
+      const falta=tkFaltaObrig(v), _eraRasc=!!(t&&t.rascunho);
+      v.rascunho=falta.length>0&&(!t||_eraRasc);   /* definitiva não volta a ser rascunho */
       ckLer(); v.checklist=TK_CK.filter(x=>(x.t||'').trim()).map(x=>({t:x.t.trim(),ok:!!x.ok}));
       const el=$('#tk_stid');
       if(el){ const s=el.value?tkStatus1(el.value):null; v.status_id=el.value||null; v.status=s?TK_G2ST[s.grupo]:'todo'; }
@@ -10307,8 +10323,10 @@ async function tkmSalvar(t,lid,cps,silencioso){
         /* tarefa nova acabou de nascer: daqui pra frente o autosave atualiza ela */
         TK.tarefas.push(criada); window.__tkmT=criada; window.__tkmTarefaId=criada.id;
       } else if(t){ Object.assign(t,v); }
-      if(st){ st.textContent='Salvo'; st.className='tkm-auto'; }
-      if(!silencioso){ render('tarefas'); toast('Salvo.'); }
+      const _rTxt=v.rascunho?('Rascunho (só você vê): falta '+tkFaltaTxt(falta)):'';
+      if(st){ st.textContent=v.rascunho?_rTxt:'Salvo'; st.className='tkm-auto'+(v.rascunho?' falta':''); }
+      if(_eraRasc&&!v.rascunho) toast('Tarefa completa: saiu do rascunho e os responsáveis foram avisados.');
+      if(!silencioso){ render('tarefas'); toast(v.rascunho?('Guardada como rascunho. Falta '+tkFaltaTxt(falta)+'.'):'Salvo.'); }
       else { try{ tkDesenhar($('#content')); }catch(_){} }
       if(t) cnDepois(t.id,cnEx);
       recAgendar();
