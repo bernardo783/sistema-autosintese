@@ -7414,7 +7414,7 @@ function tkViewLista(){
   const th=(k,r)=>`<th class="tk-th" onclick="tkOrdenar('${k}')">${r}${seta(k)}</th>`;
   /* Controle de Clientes (Gabriel 23/09): títulos curtos, dinheiro à direita, uma linha separa o
      bloco de dinheiro; remunerações e verba em tom mais apagado que a mensalidade */
-  const LC_ROT={'Remuneração Gerente (10%)':'Gerente 10%','Remuneração Gestor':'Gestor','Verba Semanal':'Verba / sem.'};
+  const LC_ROT={'Gestor de Tráfego':'Gestor','Remuneração Gerente (10%)':'Gerente 10%','Remuneração Gestor':'Gestor','Verba Semanal':'Verba / sem.'};
   const m1=lc?cps.findIndex(c=>c.tipo==='moeda'):-1;
   const clsCp=(c,i)=>[c.tipo==='moeda'?'tk-num':'',i===m1?'tk-grp':'',(lc&&c.tipo==='moeda'&&c.id!==LC_MENS)?'tk-mud':''].filter(Boolean).join(' ');
   const colsCps=cps.map((c,i)=>`<th class="${clsCp(c,i)}" style="width:${c.largura}px;min-width:${c.largura}px">${esc(lc&&LC_ROT[c.nome]?LC_ROT[c.nome]:c.nome)}</th>`).join('');
@@ -7473,7 +7473,7 @@ function tkViewLista(){
     const soma=(cid)=>todos.reduce((a,t)=>a+(Number((t.valores||{})[cid])||0),0);
     const mst=!!(currentUser&&currentUser.role==='master');
     const SUB={[LC_MENS]:'receita/mês','46c3b98b-6590-4aff-bf80-ed03801206c7':mst?'gerentes 10%':'seus 10%',
-      'b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01':'gestores','5416ae4d-6ea2-4d3b-9510-9abccbdb96e2':'verba/sem.'};
+      'b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01':'gestor','5416ae4d-6ea2-4d3b-9510-9abccbdb96e2':'verba/sem.'};
     totRow=`<tr class="tk-tot"><td>Total da carteira<small>${todos.length} cliente${todos.length===1?'':'s'} · só master e gerente veem</small></td><td></td>${cps.map((c,i)=>c.tipo==='moeda'
       ?`<td class="${clsCp(c,i)}">${esc(moedaCurta(soma(c.id))||'R$ 0')}<small>${esc(SUB[c.id]||'')}</small></td>`:'<td></td>').join('')}</tr>`;
     const G={}; const REMG='b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01';
