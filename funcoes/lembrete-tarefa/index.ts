@@ -32,7 +32,7 @@ const ROTAS: { listas?: string[]; pasta?: string; pessoas: string[]; grupo: stri
   { listas: [CAMPANHAS], pessoas: [P.luan], grupo: 'SQUAD1' },
   { listas: [CAMPANHAS], pessoas: [P.yghor], grupo: 'SQUAD 2 - COMUNICAÇÃO' },
   { listas: [CORRECOES, MELHORIAS], pessoas: [P.gabriel, P.arthur], grupo: 'Automação - Síntese' },
-  { pasta: PASTA_EDITORIAL, pessoas: [P.madu], grupo: 'Edição de vídeo' },
+  { pasta: PASTA_EDITORIAL, pessoas: [P.madu], grupo: 'SÍNTESE - EDITORIAL (5.0)' },
 ];
 const chaveGrupo = (s: string) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 

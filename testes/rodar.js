@@ -646,8 +646,8 @@ grupo('Notificar responsável (Gabriel 23/09)');
   ok('servidor barra quem não é gerente nem master', /p\.role === 'master' \|\| p\.gerente/.test(fn));
   ['tarefa:','responsaveis:','prazo:','data_prazo:','horario_prazo:','link:','flag:'].forEach(k=>ok('payload tem '+k.replace(':',''), fn.indexOf('    '+k)>0));
   ok('trava de 10 minutos por tarefa', /ESPERA_MIN = 10/.test(fn));
-  ok('grupo automático: Luan → SQUAD1, Yghor → SQUAD 2, Gabriel/Arthur → Automação, Madu → Edição de vídeo',
-    /grupo: 'SQUAD1'/.test(fn)&&/grupo: 'SQUAD 2 - COMUNICAÇÃO'/.test(fn)&&/grupo: 'Automação - Síntese'/.test(fn)&&/grupo: 'Edição de vídeo'/.test(fn));
+  ok('grupo automático: Luan → SQUAD1, Yghor → SQUAD 2, Gabriel/Arthur → Automação, Madu → SÍNTESE - EDITORIAL (5.0)',
+    /grupo: 'SQUAD1'/.test(fn)&&/grupo: 'SQUAD 2 - COMUNICAÇÃO'/.test(fn)&&/grupo: 'Automação - Síntese'/.test(fn)&&/grupo: 'SÍNTESE - EDITORIAL \(5\.0\)'/.test(fn));
   ok('não existe escolher grupo no app', HTML.indexOf('lbEscolherGrupo')<0 && fn.indexOf('definir_grupo')<0);
 }
 
