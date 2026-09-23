@@ -6402,7 +6402,6 @@ window.spNoMenu=(ev,tipo,id)=>{
   it.push({sep:true});
   it.push({ic:MICO.pessoas,t:'Compartilhar',f:()=>spCompartilhar(tipo,id)});
   it.push({ic:MICO.link,t:'Copiar link',f:()=>lkCopiar({espaco:'e',pasta:'p',lista:'l'}[tipo],id)});
-  if(tipo==='lista'&&souGerente()) it.push({ic:'◈',t:'Tipos de tarefa',f:()=>tkTipos()});
   it.push({ic:MICO.lapis,t:'Renomear',f:()=>spRenomear(tipo,id)});
   it.push({ic:MICO.cor,t:tipo==='espaco'?'Aparência: foto, cor e ícone':'Cor e ícone',f:()=>spCorIcone(tipo,id)});
   it.push({ic:MICO.dup,t:'Duplicar',f:()=>spDuplicar(tipo,id),so:m});
@@ -7196,7 +7195,7 @@ function tkViewBoard(){
   } else {
     cols=['todo','fazendo','feito'].map(k=>({key:k,rot:TK_ST[k],cor:k==='feito'?'#3ec46d':k==='fazendo'?'#2f7cf6':'#8b95a5',drop:"tkSoltar(event,'"+k+"')",its:arr.filter(t=>t.status===k)}));
   }
-  return `${(TK.escopo==='lista'&&!lc&&souGerente()&&(TK.tipos||[]).length)?`<div class="tk-bar" style="margin-bottom:8px"><span class="hint" style="margin:0">Tipo padrão desta lista: ${(TK.tipos||[]).filter(t=>String(t.lista_padrao||'')===TK.listaSel).map(t=>tipoChip(t.id,'sm')).join(' ')||'nenhum'}</span><button class="btn ghost small" style="margin-left:auto" onclick="tkTipos()">◈ Tipos</button></div>`:''}<div class="tk-cols">${cols.map(c=>`
+  return `<div class="tk-cols">${cols.map(c=>`
     <div class="tk-col${(lc&&!c.its.length)?' lcb-fina':''}" title="${(lc&&!c.its.length)?esc(c.rot)+': vazio, arraste um cliente pra cá':''}" ondragover="event.preventDefault();this.classList.add('hover');tkOrdenaDrag(event,this);tkAutoRolar(event)" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');${c.drop}">
       <div class="tk-colh"><span class="tk-selo" style="color:${esc(c.cor)};background:${esc(c.cor)}1f">${esc(c.rot)}</span><span class="tk-n">${c.its.length}</span>${lc?'':`<button class="tk-mais" title="Nova tarefa nesta coluna" onclick="tkAbrirSt('${esc(c.key)}')">+</button>`}</div>
       <div class="tk-colb">${c.its.map(tkCard).join('')||(lc?'':'<div class="tk-vazio">arraste uma tarefa para cá</div>')}</div>
@@ -7492,7 +7491,7 @@ function tkViewLista(){
   return `<div class="tk-bar">${tkBarraSquad()}
     <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
     <button class="btn ghost small" onclick="tkMenuCols()">&#9707; Colunas</button>
-    ${(TK.escopo==='lista'&&estruturaEditavel(TK.listaSel))?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button><button class="btn ghost small" onclick="tkNovoCampo()">+ Coluna</button>${souGerente()?`<button class="btn ghost small" onclick="tkTipos()">◈ Tipos</button>`:''}`
+    ${(TK.escopo==='lista'&&estruturaEditavel(TK.listaSel))?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button>`
       :(TK.escopo==='lista'?`<span class="hint" style="margin:0">&#128274; colunas fixas, só master e gerente mudam</span>`:'')}
     <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
   </div>${grupos.length
@@ -9120,7 +9119,8 @@ function tkDesenhar(c){
 /* ---------- TOPO MINIMALISTA DAS LISTAS (Gabriel 23/09, opção 1) ----------
    Título + abas de texto (Minhas | Recorrentes) e, à direita, só ícones sem borda:
    buscar, filtrar, responsável, lista, quadro, ⋯ e o + redondo. Grupo, Colunas, Status da
-   lista, + Coluna, Tipos, Ordem manual, Arquivados e Ver todas moram no ⋯. */
+   lista, Colunas (com + Nova coluna dentro), Ordem manual, Arquivados e Ver todas moram no ⋯.
+   Tipo de tarefa não: escolhe ou cria dentro do próprio card (Gabriel 23/09). */
 const TP_SVG={
   lupa:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   funil:'<path d="M22 3H2l8 9.5V21l4-2v-6.5z"/>',
@@ -9158,11 +9158,11 @@ window.tpMais=(ev)=>{
   const el=document.createElement('div'); el.id='tpPop'; el.className='tkpop'; el.style.width='240px'; el.style.zIndex=3000;
   el.innerHTML=[
     TK.visao==='lista'?it('Agrupar por…','tkMenuGrupo()',tkGrupoNome()):'',
-    TK.visao==='lista'?it('Colunas visíveis…','tkMenuCols()'):'',
+    (TK.visao==='lista'||ed)?it('Colunas…','tkMenuCols()'):'',
     (TK.visao==='lista'&&TK.ord)?it('Voltar pra ordem manual','tkOrdemManual()'):'',
     (TK.escopo==='lista'&&(nArq||TK.arqVista))?it(TK.arqVista?'Sair dos arquivados':'Arquivados',"tkArqVista("+(TK.arqVista?'false':'true')+")",nArq?String(nArq):''):'',
     TK.escopo!=='minhas'&&TK.escopo!=='recorrentes'?it(TK.escopo==='lista'?'Ver todas as listas':'Só esta lista','tkEscopo()'):'',
-    ed?'<div class="rc-sep"></div>'+it('Status da lista…','tkEditarStatus()')+it('+ Coluna','tkNovoCampo()')+(souGerente()?it('Tipos…','tkTipos()'):''):'',
+    ed?'<div class="rc-sep"></div>'+it('Status da lista…','tkEditarStatus()'):'',
     lista?'<div class="rc-sep"></div>'+`<button class="rc-mi" onclick="document.getElementById('tpPop').remove();lsMenu(event)">Opções da lista…</button>`:''
   ].join('')||'<div class="hint" style="margin:6px">Nada por aqui.</div>';
   document.body.appendChild(el); popPor(el,r);
@@ -10225,8 +10225,11 @@ window.tkMenuGrupo=()=>{
 };
 window.tkMenuCols=()=>{
   const cps=TK.campos.filter(k=>k.lista_id===TK.listaSel);
-  if(!cps.length){ toast('Esta lista ainda não tem colunas. Use "+ Coluna".'); return; }
-  modal('Colunas visíveis', cps.map(c=>`<label class="tk-chkline"><input type="checkbox" data-col="${c.id}" ${TK.colsOff[c.id]?'':'checked'}> <span class="tk-nome">${esc(c.nome)}</span> <span class="hint" style="margin:0">${esc(c.tipo)}</span></label>`).join('')+`<p class="hint">Desmarcar só esconde a coluna na tela; os dados continuam salvos.</p>`,
+  /* "+ Nova coluna" mora aqui dentro (Gabriel 23/09): o menu ⋯ ficou só com o que é da lista */
+  const ed=TK.escopo==='lista'&&estruturaEditavel(TK.listaSel);
+  if(!cps.length&&!ed){ toast('Esta lista ainda não tem colunas.'); return; }
+  const nova=ed?`<button type="button" class="btn ghost small" style="margin-top:8px" onclick="document.querySelector('.overlay').remove();tkNovoCampo()">+ Nova coluna</button>`:'';
+  modal('Colunas', (cps.length?'':'<p class="hint" style="margin:0 0 4px">Esta lista ainda não tem colunas.</p>')+cps.map(c=>`<label class="tk-chkline"><input type="checkbox" data-col="${c.id}" ${TK.colsOff[c.id]?'':'checked'}> <span class="tk-nome">${esc(c.nome)}</span> <span class="hint" style="margin:0">${esc(c.tipo)}</span></label>`).join('')+`<p class="hint">Desmarcar só esconde a coluna na tela; os dados continuam salvos.</p>`+nova,
     async ()=>{ document.querySelectorAll('[data-col]').forEach(i=>{ TK.colsOff[i.getAttribute('data-col')]=!i.checked; }); spSalvarCols(); tkDesenhar($('#content')); return true; });
 };
 /* ---------- CAMPOS QUE PUXAM DA FICHA DO CLIENTE ----------
@@ -10430,14 +10433,33 @@ const tipoDe=(id)=>(TK.tipos||[]).find(x=>String(x.id)===String(id))||null;
 const tipoPadraoDe=(lid)=>{ const t=(TK.tipos||[]).find(x=>String(x.lista_padrao||'')===String(lid)); return t?t.id:null; };
 const tipoChip=(id,cls)=>{ const t=tipoDe(id); if(!t) return '';
   return `<span class="tk-tp ${cls||''}" style="color:${esc(t.cor||'#8b95a5')};background:${esc(t.cor||'#8b95a5')}1f" title="${esc(t.nome)}">${esc(t.icone||'◻')} ${esc(t.nome)}</span>`; };
+/* Tipo de tarefa se escolhe ou se cria no próprio card (Gabriel 23/09): saiu do menu da lista.
+   Criar pede só o nome; ícone, cor e grupo ficam no padrão e o tipo já volta selecionado. */
+window.tkTipoTroca=async (sel)=>{
+  if(sel.value!=='__novo'){ sel.dataset.antes=sel.value; return; }
+  sel.value=sel.dataset.antes||'';
+  const nome=String(prompt('Nome do novo tipo de tarefa')||'').trim(); if(!nome) return;
+  const ja=(TK.tipos||[]).find(t=>semAcento(t.nome)===semAcento(nome));
+  if(ja){ sel.value=ja.id; sel.dataset.antes=ja.id; toast('Esse tipo já existia, ficou selecionado.'); return; }
+  const l=(TK.listas||[]).find(x=>x.id===TK.listaSel), e=l&&(TK.espacos||[]).find(x=>x.id===l.espaco_id);
+  const v={nome,icone:'◻',cor:'#8b95a5',grupo:(e&&spNome(e))||'Geral',lista_padrao:null,
+    ordem:((TK.tipos||[]).reduce((m,t)=>Math.max(m,Number(t.ordem)||0),0))+1};
+  const {data,error}=await sb.from('tipos_tarefa').insert(v).select().single();
+  if(error){ toast('Não consegui criar: '+error.message); return; }
+  const tp=await sb.from('tipos_tarefa').select('*').order('ordem'); TK.tipos=(tp&&tp.data)||[];
+  const novo=document.createElement('div'); novo.innerHTML=tkTipoSel(data.id);
+  sel.replaceWith(novo.firstElementChild);
+  toast('Tipo "'+nome+'" criado.');
+};
 function tkTipoSel(atual){
   const ts=TK.tipos||[];
-  if(!ts.length) return '';
+  if(!ts.length&&!souGerente()) return '';
   const grupos=[]; ts.forEach(t=>{ const g=t.grupo||'Geral'; if(grupos.indexOf(g)<0) grupos.push(g); });
   const opt=(t)=>`<option value="${t.id}"${String(atual||'')===String(t.id)?' selected':''}>${esc((t.icone||'')+' '+t.nome)}</option>`;
-  return `<select id="tk_tipo" class="tk-tipo">
+  return `<select id="tk_tipo" class="tk-tipo" onchange="tkTipoTroca(this)" data-antes="${esc(String(atual||''))}">
     <option value="">◻ Sem tipo</option>
     ${grupos.map(g=>`<optgroup label="${esc(g)}">${ts.filter(t=>(t.grupo||'Geral')===g).map(opt).join('')}</optgroup>`).join('')}
+    ${souGerente()?'<option value="__novo">+ Criar tipo…</option>':''}
   </select>`;
 }
 

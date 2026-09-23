@@ -755,7 +755,11 @@ grupo('Topo minimalista e tabela mais leve (Gabriel 23/09)');
 {
   ok('abas de texto Minhas | Recorrentes', HTML.indexOf('<div class="tp-abas">')>0);
   ok('ícones sem borda: buscar, filtrar, responsável, lista, quadro, ⋯ e +', ["tpIb('lupa'","tpIb('funil'","tpIb('pessoa'","tpIb('lista'","tpIb('quadro'","tpIb('pts'",'class="tp-mais"'].every(k=>HTML.indexOf(k)>0));
-  ok('Grupo, Colunas, Status da lista e Tipos foram pro ⋯', /tkMenuGrupo\(\)/.test(bloco('window.tpMais=','async function tkPatch(')) && /tkTipos\(\)/.test(bloco('window.tpMais=','async function tkPatch(')));
+  ok('Grupo, Colunas e Status da lista foram pro ⋯', /tkMenuGrupo\(\)/.test(bloco('window.tpMais=','async function tkPatch(')) && /tkMenuCols\(\)/.test(bloco('window.tpMais=','async function tkPatch(')));
+  ok('tipo de tarefa e + Coluna saíram do ⋯ (Gabriel 23/09)', !/tkTipos\(\)|tkNovoCampo\(\)/.test(bloco('window.tpMais=','async function tkPatch(')));
+  ok('+ Nova coluna mora dentro de Colunas', /\+ Nova coluna<\/button>/.test(bloco('window.tkMenuCols=','const CP_ORIGEM')));
+  ok('nenhum botão ◈ Tipos na tela da lista nem no menu da barra lateral', HTML.indexOf('>◈ Tipos</button>')<0 && HTML.indexOf("t:'Tipos de tarefa'")<0);
+  ok('no card dá pra escolher ou criar o tipo', /<option value="__novo">\+ Criar tipo…<\/option>/.test(HTML) && /window\.tkTipoTroca=/.test(HTML));
   ok('grupo vazio não ocupa linha (desce pra uma linha só)', HTML.indexOf('tl-vazios')>0);
   ok('Controle de Clientes mantém o topo dele', HTML.indexOf('if(!cli){ c.innerHTML=')>0);
 }
