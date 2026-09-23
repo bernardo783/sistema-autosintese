@@ -3299,6 +3299,9 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 
   /* ===== dinheiro na lista e total da carteira (Gabriel 23/09) ===== */
   .tk-tab th.tk-num,.tk-tab td.tk-num{text-align:right}
+  /* coluna de pessoa: foto e "-" no mesmo eixo (Gabriel 23/09) */
+  .tk-tab th.tk-cen,.tk-tab td.tk-cen{text-align:center}
+  .tk-tab td.tk-cen .tk-pcel,.tk-tab td.tk-cen .tk-trava{margin:0 auto;justify-content:center}
   .tk-tab .tk-grp{border-left:1px solid var(--line)}
   .tk-mon{background:transparent;border:0;font:inherit;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--txt);
     padding:4px 8px;border-radius:6px;cursor:text;width:100%;text-align:right;white-space:nowrap}
@@ -7416,7 +7419,7 @@ function tkViewLista(){
      bloco de dinheiro; remunerações e verba em tom mais apagado que a mensalidade */
   const LC_ROT={'Gestor de Tráfego':'Gestor','Remuneração Gerente (10%)':'Gerente 10%','Remuneração Gestor':'Gestor','Verba Semanal':'Verba / sem.'};
   const m1=lc?cps.findIndex(c=>c.tipo==='moeda'):-1;
-  const clsCp=(c,i)=>[c.tipo==='moeda'?'tk-num':'',i===m1?'tk-grp':'',(lc&&c.tipo==='moeda'&&c.id!==LC_MENS)?'tk-mud':''].filter(Boolean).join(' ');
+  const clsCp=(c,i)=>[c.tipo==='moeda'?'tk-num':'',c.tipo==='pessoa'?'tk-cen':'',i===m1?'tk-grp':'',(lc&&c.tipo==='moeda'&&c.id!==LC_MENS)?'tk-mud':''].filter(Boolean).join(' ');
   const colsCps=cps.map((c,i)=>`<th class="${clsCp(c,i)}" style="width:${c.largura}px;min-width:${c.largura}px">${esc(lc&&LC_ROT[c.nome]?LC_ROT[c.nome]:c.nome)}</th>`).join('');
   /* Sem uma largura minima a tabela se espreme em 100% e nunca aparece barra de rolagem:
      as colunas viram tiras ilegiveis. Aqui ela assume a largura real e o wrap rola. */
