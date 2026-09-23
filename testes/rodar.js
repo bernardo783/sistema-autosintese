@@ -918,6 +918,21 @@ grupo('Ficha estilo ClickUp: propriedades e Relacionamentos (Gabriel 23/09)');
   ok('barra da direita: Detalhes, Atividade e Relacionamentos', /title="Detalhes"/.test(HTML)&&/title="Atividade"/.test(HTML)&&/title="Relacionamentos"/.test(HTML));
 }
 
+/* ---------------- aba Ficha limpa e Atividade sem repetição ---------------- */
+grupo('Ficha: aba Ficha limpa e Atividade sem o nome repetido (Gabriel 23/09)');
+{
+  const cod=bloco('function ltDeEvento(e,eu,master){','window.ltCarregar=');
+  const g=rodar(cod,{esc:s=>String(s),tkNomeUser:()=>'',ltTexto:s=>s,LC_NIVEL:{}},['ltDeEvento']);
+  const o=g.ltDeEvento({tipo:'gasto',texto:'CENTROCAR VEÍCULOS: R$ 410,07 últimos 7 dias · 40 leads',dados:{nivel:'atencao'}},'u',false);
+  ok('Meta sem o nome do cliente: "Meta R$ 410,07 em 7 dias"', o.html==='<b>Meta</b> R$ 410,07 em 7 dias · 40 leads');
+  ok('saldo curto continua com bolinha de alerta', /alerta/.test(o.cls));
+  ok('aba Ficha não repete Gestor/Gerente/Squad/Status/Categoria do topo',
+    HTML.indexOf("selPessoa('pc_resp'")<0&&HTML.indexOf("id=\"pc_status\"")<0&&HTML.indexOf("${cat('Time')}")<0);
+  ok('gestor e gerente se escolhem no topo', /window\.pcPessoaMenu=/.test(HTML)&&/pcPessoaMenu\(event/.test(HTML));
+  ok('campo vazio mostra "Vazio" em vez de "definir"', HTML.indexOf(`leitura==='definir'?'<span class="pcx-vz">Vazio</span>'`)>0);
+  ok('checklist enxuto com "+ Adicionar item"', HTML.indexOf('placeholder="+ Adicionar item"')>0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));

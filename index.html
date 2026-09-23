@@ -1863,6 +1863,34 @@
   .pcx-dl .v{word-break:break-word;white-space:pre-wrap}
   .pcx-dl .v[onclick]{cursor:copy}
   .pcx-fin{font-size:13px}
+  .pcx .pc-cat{background:none;border:0;margin:20px 0 2px;padding:0;display:flex;align-items:center;gap:10px}
+  .pcx .pc-cat::before{display:none}
+  .pcx .pc-cat::after{content:'';flex:1;height:1px;background:var(--line)}
+  .pcx .pc-cat h4{font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
+  .pcx .pc-cat .cnt{order:2;font-size:12px;color:var(--fraco)}
+  .pcx .pc-dl{grid-template-columns:190px minmax(0,1fr)}
+  .pcx .pc-dl > div{border-bottom:0;padding:0;min-height:36px;display:flex;align-items:center}
+  .pcx .pc-dl .k{gap:10px;font-size:13.5px;font-weight:400}
+  .pcx .pc-dl .k svg{width:16px;height:16px;flex:none;opacity:.85}
+  .pcx .pc-dl .v{font-size:13.5px;font-weight:500;padding:0 8px;margin-left:-8px;border-radius:7px}
+  .pcx .pc-dl .v.aberta:hover{background:var(--panel2);box-shadow:none}
+  .pcx .pc-dl .campo input,.pcx .pc-dl .campo select,.pcx .pc-txt textarea,.pcx-ckadd input{
+    background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--txt);font:inherit;font-size:13.5px;
+    padding:6px 9px;outline:none;box-shadow:none;accent-color:var(--brand2)}
+  .pcx .pc-dl .campo input:focus,.pcx .pc-dl .campo select:focus,.pcx .pc-txt textarea:focus,.pcx-ckadd input:focus{border-color:var(--brand2)}
+  .pcx .pc-dl .v.ed1 .campo input,.pcx .pc-dl .v.ed1 .campo select{width:100%;box-sizing:border-box}
+  .pcx .pc-txt{max-width:none;margin-top:6px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-size:13.5px;line-height:1.6}
+  .pcx .pc-txt.aberta:hover{box-shadow:none;border-color:var(--brand2)}
+  .pcx .pc-txt textarea{width:100%;box-sizing:border-box;min-height:70px;resize:vertical}
+  .pcx-ck{display:flex;align-items:center;gap:10px;font-size:13.5px;padding:5px 0}
+  .pcx-ck input{width:15px;height:15px;accent-color:var(--brand2);cursor:pointer;margin:0}
+  .pcx-ck span{flex:1}
+  .pcx-ck.ok span{color:var(--muted);text-decoration:line-through}
+  .pcx-ck .del{opacity:0}.pcx-ck:hover .del{opacity:1}
+  .pcx-ckadd input{width:100%;box-sizing:border-box;background:transparent;border-color:transparent;padding:6px 0;color:var(--muted)}
+  .pcx-ckadd input:focus{background:var(--panel2);padding:6px 9px;color:var(--txt)}
+  .pcx-dia{font-size:11.5px;font-weight:600;color:var(--muted);margin:14px 0 4px}
+  .pcx-dia:first-child{margin-top:2px}
   .pcx-rail{width:52px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0}
   .pcx-ri{position:relative;width:34px;height:34px;border-radius:9px;border:0;background:transparent;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
   .pcx-ri svg{width:17px;height:17px}
@@ -13715,6 +13743,10 @@ const PCX_I=(()=>{ const s=(d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="cu
     abre:s('<path d="M6 9l6 6 6-6"/>'),
     rel:s('<path d="M7 17 17 7M9 7h8v8"/>'),
     foto:s('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>'),
+    loja:s('<path d="M3 9l1.5-5h15L21 9M3 9v11h18V9M3 9h18M9 20v-6h6v6"/>'),
+    nps:s('<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/>'),
+    pacote:s('<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'),
+    sino:s('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
     quadro:s('<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/>'),
     doc:s('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>'),
     fin:s('<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
@@ -13783,12 +13815,31 @@ window.pcDocCarregar=async (fid)=>{
   const fe=PCX_DOC.map(([k,r])=>lin(r,val(k,f[k]),(k==='linkCall'||k==='enviadoEm'||k==='dataPagamento')?'':f[k])).join('');
   box.innerHTML=(topo+fe)||'<p class="hint" style="margin:6px 0">Esse cliente entrou antes do formulário de fechamento: não tem documento.</p>';
 };
+/* Gestor e gerente se escolhem no topo (Gabriel 23/09: saíram da aba Ficha) */
+window.pcPessoaMenu=(ev,pid,campo)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
+  const atual=String(it[campo]||'').trim();
+  const gente=filtraPapel(((TK&&TK.equipe)||[]).slice(),campo==='gerente'?'gerente':'trafego')
+    .sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));
+  ctxAbrir(ev,[{cab:campo==='gerente'?'Gerente':'Gestor de tráfego'}]
+    .concat(gente.map(u=>({ic:avatarDoNome(u.nome,'lc-av'),t:u.nome+(String(u.nome).trim()===atual?' (atual)':''),f:()=>pcPessoaSet(pid,campo,u.nome)})))
+    .concat(atual?[{sep:true},{ic:'',t:'Tirar '+(campo==='gerente'?'o gerente':'o gestor'),f:()=>pcPessoaSet(pid,campo,'')}]:[]));
+};
+window.pcPessoaSet=async (pid,campo,nome)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
+  const novo=String(nome||'').trim(); if(String(it[campo]||'').trim()===novo) return;
+  const antes={responsavel:it.responsavel,gerente:it.gerente,squad:it.squad,status:it.status,nivel:it.nivel,orcamento:it.orcamento,orcPer:it.orcPer};
+  it[campo]=novo; await saveDB();
+  try{ ltDiffFicha(it,antes); }catch(_){}
+  pcReabrir(pid); try{ if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
+  toast((campo==='gerente'?'Gerente: ':'Gestor: ')+(novo||'ninguém')+'.');
+};
 function pcProps(it){
   const ia=it.categoria==='ia';   /* so Agent IA: nada de trafego (ver soAgentIA) */
   const VZ='<span class="pcx-vz">Vazio</span>';
   const row=(ic,rot,val,vazio)=>`<div class="pr${vazio?' vz':''}"><span class="k">${PCX_I[ic]}${rot}</span><span class="v">${val}</span></div>`;
   const pes=(n,campo)=>{ n=String(n||'').trim();
-    return `<button type="button" class="pcx-cel" onclick="pcAbrirCampo('${campo}')">${n?avatarDoNome(n,'lc-av')+esc(n):VZ}</button>`; };
+    return `<button type="button" class="pcx-cel" onclick="pcPessoaMenu(event,'${esc(it.id)}','${campo}')">${n?avatarDoNome(n,'lc-av')+esc(n):VZ}</button>`; };
   const contas=contasDoCliente(it.id), c0=contas[0]||null;
   const viva=c0?(window.__mtDados||[]).find(x=>x.id===c0.id):null;
   const ins=(viva&&viva.ins)||{}; const gasto=+(ins.spend||0);
@@ -13817,8 +13868,8 @@ function pcProps(it){
     ${row('status','Status',pcStatusHtml(it))}
     ${row('tipo','Tipo',tipo)}
     ${row('squad','Squad',sq||VZ,!it.squad)}
-    ${ia?'':row('pessoa','Gestor de tráfego',pes(it.responsavel,'pc_resp'),!String(it.responsavel||'').trim())}
-    ${row('chefe','Gerente',pes(it.gerente,'pc_ger'),!String(it.gerente||'').trim())}
+    ${ia?'':row('pessoa','Gestor de tráfego',pes(it.responsavel,'responsavel'),!String(it.responsavel||'').trim())}
+    ${row('chefe','Gerente',pes(it.gerente,'gerente'),!String(it.gerente||'').trim())}
     ${ia?'':`${row('conta','Conta de anúncio',conta,!c0)}
     ${row('verba','Verba',verba,!it.orcamento)}
     ${row('gasto','Gasto',gas,!c0)}
@@ -13864,7 +13915,9 @@ function ltDeEvento(e,eu,master){
   if(e.tipo==='nota') o.html=ltTexto(e.texto||'');
   else if(e.tipo==='ficha') o.html=esc(d.campo||'Ficha')+': '+(d.de&&d.de!=='-'?esc(d.de)+' → ':'')+'<b>'+esc(d.para||'-')+'</b>';
   else if(e.tipo==='check'){ o.cls=d.feito?'check feito':'check'; o.html='Checklist: <b>'+esc(d.item||'')+'</b> '+(d.feito?'✓ feito':'reaberto'); }
-  else if(e.tipo==='gasto'){ o.cls='gasto'+(d.nivel==='critico'?' critico':d.nivel==='atencao'?' alerta':''); o.html='Meta · '+esc(e.texto||''); o.quem=''; o.del=null; }
+  else if(e.tipo==='gasto'){ o.cls='gasto'+(d.nivel==='critico'?' critico':d.nivel==='atencao'?' alerta':'');
+    /* "CLIENTE: R$ … últimos 7 dias" -> "Meta R$ … em 7 dias" (o nome do cliente já está no topo) */
+    o.html='<b>Meta</b> '+esc(String(e.texto||'').replace(/^[^:]{1,80}:\s*/,'').replace(/últimos (\d+) dias/,'em $1 dias')); o.quem=''; o.del=null; }
   else o.html=esc(e.texto||'');
   return o;
 }
@@ -13880,8 +13933,9 @@ window.ltCarregar=async (fid)=>{
   const L=evs.map(e=>ltDeEvento(e,eu,master));
   (TK.tarefas||[]).filter(t=>t.ficha_id===fid&&!ehListaCli(t.lista_id)).forEach(t=>{
     const lst=(TK.listas||[]).find(l=>l.id===t.lista_id); const ln=lst?spNome(lst):'';
-    if(t.criado_em) L.push({q:t.criado_em,cls:'tarefa abre',html:'Tarefa <b>'+esc(t.titulo)+'</b> criada'+(ln?' em '+esc(ln):''),quem:tkNomeUser(t.criado_por)||'',abrir:t.id});
-    if(t.concluida_em) L.push({q:t.concluida_em,cls:'feito abre',html:'Tarefa <b>'+esc(t.titulo)+'</b> concluída'+(ln?' em '+esc(ln):''),quem:tkNomeUser((t.responsaveis||[])[0]||t.responsavel_id)||'',abrir:t.id});
+    { const qc=ltPrim(tkNomeUser(t.criado_por)||''), qf=ltPrim(tkNomeUser((t.responsaveis||[])[0]||t.responsavel_id)||'');
+      if(t.criado_em) L.push({q:t.criado_em,cls:'tarefa abre',html:(qc?'criou':'Tarefa')+' <b>'+esc(t.titulo)+'</b>'+(qc?'':' criada')+(ln?' em '+esc(ln):''),quem:qc,abrir:t.id});
+      if(t.concluida_em) L.push({q:t.concluida_em,cls:'feito abre',html:(qf?'concluiu':'Tarefa')+' <b>'+esc(t.titulo)+'</b>'+(qf?'':' concluída')+(ln?' em '+esc(ln):''),quem:qf,abrir:t.id}); }
   });
   if(master){ const cli=finDaFicha(it);
     if(cli) (DB.recebimentos||[]).filter(r=>r.clienteId===cli.id&&r.recebido&&r.recebidoEm).forEach(r=>{
@@ -13896,14 +13950,16 @@ window.ltCarregar=async (fid)=>{
   const tudo=L.slice(0,LT_LIM).reverse(), MOSTRA=25, esconde=box.dataset.tudo==='1'?0:Math.max(0,tudo.length-MOSTRA);
   const out=[];
   if(esconde) out.push('<button type="button" class="pcx-mais" onclick="this.parentNode.dataset.tudo=\'1\';ltCarregar(\''+fid+'\')">'+PCX_I.abre+'Mostrar mais ('+esconde+')</button>');
+  let diaAnt='';
   tudo.slice(esconde).forEach(x=>{
+    const dia=ltDia(x.q); if(dia!==diaAnt){ out.push('<div class="pcx-dia">'+esc(dia)+'</div>'); diaAnt=dia; }
     const del=x.del?'<button class="iconbtn del x" title="Apagar" onclick="event.stopPropagation();ltApagar(\''+x.del+'\',\''+fid+'\')">&times;</button>':'';
     if(x.cls==='nota'){
-      out.push('<div class="pcx-com"><div class="h">'+(x.quem?avatarDoNome(x.quem,'lc-av'):'')+'<b>'+esc(x.quem||'Alguém')+'</b><span>'+esc(quando(x.q))+'</span>'+del+'</div>'
+      out.push('<div class="pcx-com"><div class="h">'+(x.quem?avatarDoNome(x.quem,'lc-av'):'')+'<b>'+esc(x.quem||'Alguém')+'</b><span>'+esc(ltHora(x.q))+'</span>'+del+'</div>'
         +'<div class="t">'+x.html+'</div></div>');
     } else {
       out.push('<div class="pcx-ev '+x.cls+'"'+(x.abrir?' onclick="ltAbrirTarefa(\''+x.abrir+'\')"':'')+'><span class="t">'
-        +(x.quem?'<b>'+esc(x.quem)+'</b> ':'')+x.html+'</span><span class="q">'+esc(quando(x.q))+'</span>'+del+'</div>');
+        +(x.quem?'<b>'+esc(x.quem)+'</b> ':'')+x.html+'</span><span class="q">'+esc(ltHora(x.q))+'</span>'+del+'</div>');
     }
   });
   box.innerHTML=out.join('');
@@ -14188,25 +14244,14 @@ window.openProjCard=(id)=>{
   const recTot=it.clienteId?DB.recebimentos.filter(x=>x.clienteId===it.clienteId).reduce((s,x)=>s+(x.recebido?(Number(x.valor)||0):(Number(x.sinal)||0)),0):0;
   const master=currentUser&&currentUser.role==='master';
   const optsSt=Object.entries(ST_LABEL).map(([k,v])=>`<option value="${k}"${PRJ_NORM(it.status)===k?' selected':''}>${v}</option>`).join('');
-  const drawCheck=()=>{
-    const done=it.checklist.filter(x=>x.feito).length, tot=it.checklist.length;
-    const pct=tot?Math.round(done/tot*100):0;
-    return `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <div style="flex:1;height:8px;background:var(--panel2);border-radius:99px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));transition:width .3s"></div></div>
-      <span style="font-size:12px;color:var(--muted);font-weight:700">${done}/${tot}</span>
-    </div>
-    ${it.checklist.map(ck=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--panel2);border-radius:8px;margin-bottom:5px">
-        <input type="checkbox" ${ck.feito?'checked':''} onclick="prjCkToggle('${it.id}','${ck.id}')" style="accent-color:#7c3aed;width:16px;height:16px;cursor:pointer">
-        <span style="flex:1;font-size:13.5px;${ck.feito?'text-decoration:line-through;color:var(--muted)':''}">${esc(ck.txt)}</span>
-        <button class="iconbtn del" onclick="prjCkDel('${it.id}','${ck.id}')">✕</button>
+  /* checklist enxuto (Gabriel 23/09): caixinha + texto, "+ Adicionar item" discreto */
+  const drawCheck=()=>`
+    ${it.checklist.map(ck=>`<div class="pcx-ck${ck.feito?' ok':''}">
+        <input type="checkbox" ${ck.feito?'checked':''} onclick="prjCkToggle('${it.id}','${ck.id}')">
+        <span>${esc(ck.txt)}</span>
+        <button class="iconbtn del" title="Tirar" onclick="prjCkDel('${it.id}','${ck.id}')">&times;</button>
       </div>`).join('')}
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <input class="search" id="pcNovo" placeholder="Novo item do checklist..." style="flex:1" onkeydown="if(event.key==='Enter')prjCkAdd('${it.id}')">
-      <button class="btn small" onclick="prjCkAdd('${it.id}')">+ Adicionar</button>
-    </div>`;
-  };
+    <div class="pcx-ckadd"><input id="pcNovo" placeholder="+ Adicionar item" onkeydown="if(event.key==='Enter')prjCkAdd('${it.id}')"></div>`;
   const nContas=contasDoCliente(it.id).length;
   const nZaps=zapsDe(it).length;
   const igLk=linkIg(it.instagram||(cli&&cli.instagram)), drLk=linkUrl(it.drive||(cli&&cli.drive));
@@ -14223,7 +14268,7 @@ window.openProjCard=(id)=>{
   /* CATEGORIA: faixa que corta a ficha, com a barra roxa no canto (escolha do Gabriel) */
   const cat=(t,extra)=>`<div class="pc-cat"><h4>${esc(t)}</h4>${extra?`<span class="cnt">${extra}</span>`:''}</div>`;
   /* INFORMAÇÃO: rótulo pequeno e apagado, valor forte. Leitura e campo no mesmo lugar. */
-  const li=(rot,leitura,campo,vazio,fid)=>`<div class="k">${rot}</div><div class="v${vazio?' vz':''}${fid?' aberta':''}"${fid?` data-f="${fid}" onclick="pcInline(event,this)"`:''}><span class="leitura">${leitura}</span><span class="campo">${campo}</span></div>`;
+  const li=(rot,leitura,campo,vazio,fid,ic)=>`<div class="k">${ic&&PCX_I[ic]?PCX_I[ic]:''}${rot}</div><div class="v${vazio?' vz':''}${fid?' aberta':''}"${fid?` data-f="${fid}" onclick="pcInline(event,this)"`:''}><span class="leitura">${leitura==='definir'?'<span class="pcx-vz">Vazio</span>':leitura}</span><span class="campo">${campo}</span></div>`;
   const pes=(nome)=>{ const n=String(nome||'').trim();
     return n?`<span style="display:inline-flex;align-items:center;gap:9px">${avatarDoNome(n,'lc-av')}${esc(n)}</span>`:'definir'; };
   const ck=drawCheck(), ckN=(it.checklist||[]).length, ckF=(it.checklist||[]).filter(x=>x.feito).length;
@@ -14254,36 +14299,27 @@ window.openProjCard=(id)=>{
     <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
      ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):cliAba==='logos'?'<div id="lgBox"></div>':(cliAba==='fin'&&master)?abaFinCliente(it):`
 
-      ${cat('Time')}
-      <div class="pc-dl">
-        ${soAgentIA(it)?'':li('Gestor de tráfego', pes(it.responsavel), selPessoa('pc_resp',it.responsavel,'trafego'), !String(it.responsavel||'').trim(), 'pc_resp')}
-        ${li('Gerente', pes(it.gerente), selPessoa('pc_ger',it.gerente,'gerente'), !String(it.gerente||'').trim(), 'pc_ger')}
-        ${li('Squad', it.squad?sqEtiqueta(it.squad):'definir', `<input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s2=>`<option value="${esc(s2)}">`).join('')}</datalist>`, !String(it.squad||'').trim(), 'pc_squad')}
-      </div>
-
       ${cat('Negócio')}
       <div class="pc-dl">
-        ${li('Status', esc(ST_LABEL[PRJ_NORM(it.status)]||'-'), `<select id="pc_status">${optsSt}</select>`, false, 'pc_status')}
-        ${li('Categoria', esc(CAT_LABEL[catDe(it)]||'-'), `<select id="pc_cat" onchange="var w=document.getElementById('pc_gw');if(w)w.style.display=(this.value==='trafego'||this.value==='full'||document.getElementById('pc_resp').value.trim())?'':'none'">${Object.entries(CAT_LABEL).map(([k,v])=>`<option value="${k}"${catDe(it)===k?' selected':''}>${v}</option>`).join('')}</select>`, false, 'pc_cat')}
-        ${li('Nicho', esc(nichoDe(it,cli)||'definir'), `<select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select>`, !nichoDe(it,cli), 'pc_nicho')}
-        ${li('Nível (NPS)', it.nivel?`<span class="tag st" style="color:${LC_NIVEL[it.nivel].cor};background:${LC_NIVEL[it.nivel].cor}1a">${LC_NIVEL[it.nivel].rot}</span>`:'definir', `<select id="pc_nivel"><option value="">-</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select>`, !it.nivel, 'pc_nivel')}
-        ${li('Produto / serviço', esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'definir'), `<input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Agente de IA">`, !(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)), 'pc_produtos')}
+        ${li('Nicho', esc(nichoDe(it,cli)||'definir'), `<select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select>`, !nichoDe(it,cli), 'pc_nicho','loja')}
+        ${li('Nível (NPS)', it.nivel?`<span class="tag st" style="color:${LC_NIVEL[it.nivel].cor};background:${LC_NIVEL[it.nivel].cor}1a">${LC_NIVEL[it.nivel].rot}</span>`:'definir', `<select id="pc_nivel"><option value="">-</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select>`, !it.nivel, 'pc_nivel','nps')}
+        ${li('Produto / serviço', esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'definir'), `<input id="pc_produtos" value="${esc(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)||'')}" placeholder="Ex.: Tráfego pago, Agente de IA">`, !(it.produtos||(cli&&cli.produtos)||(cli&&cli.servico)), 'pc_produtos','pacote')}
       </div>
 
       ${cat('Contato')}
       <div class="pc-dl">
-        ${li('Dono', esc((cli&&cli.resp)||'definir'), `<input value="${esc((cli&&cli.resp)||'')}" disabled style="opacity:.6">`, !(cli&&cli.resp))}
+        ${li('Dono', esc((cli&&cli.resp)||'definir'), `<input value="${esc((cli&&cli.resp)||'')}" disabled style="opacity:.6">`, !(cli&&cli.resp),null,'pessoa')}
         ${(()=>{ const zl=`<button type="button" class="zp-lk${nZaps?'':' vz'}" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}<span id="zpBtnN">${nZaps?(nZaps+' número'+(nZaps===1?'':'s')):'adicionar'}</span></button>`;
-          return li('WhatsApp', zl, zl, !nZaps); })()}
-        ${li('Instagram', igLk?`<a href="${esc(igLk)}" target="_blank" rel="noopener">${esc(it.instagram||(cli&&cli.instagram))}</a>`:'definir', `<input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link">`, !igLk, 'pc_insta')}
-        ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk, 'pc_drive')}
+          return li('WhatsApp', zl, zl, !nZaps, null, 'zap'); })()}
+        ${li('Instagram', igLk?`<a href="${esc(igLk)}" target="_blank" rel="noopener">${esc(it.instagram||(cli&&cli.instagram))}</a>`:'definir', `<input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link">`, !igLk, 'pc_insta','ig')}
+        ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk, 'pc_drive','drive')}
       </div>
 
       ${(!soAgentIA(it)&&(temTraf||it.orcamento||catDe(it)==='trafego'||catDe(it)==='full'))?`${cat('Tráfego pago')}
       <div class="pc-dl">
         ${li('Orçamento', it.orcamento?(brl(it.orcamento)+' '+((it.orcPer||'semanal')==='diario'?'por dia':'por semana')):'definir',
-          `<div style="display:flex;gap:8px"><input type="number" step="0.01" min="0" id="pc_orc" value="${it.orcamento||''}" placeholder="Ex.: 350,00" style="flex:1"><select id="pc_orcper" style="max-width:120px"><option value="semanal"${(it.orcPer||'semanal')==='semanal'?' selected':''}>por semana</option><option value="diario"${it.orcPer==='diario'?' selected':''}>por dia</option></select></div>`, !it.orcamento, 'pc_orc')}
-        ${li('Avisar em', (it.avisoPct||20)+'% do orçamento', `<input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20">`, false, 'pc_aviso')}
+          `<div style="display:flex;gap:8px"><input type="number" step="0.01" min="0" id="pc_orc" value="${it.orcamento||''}" placeholder="Ex.: 350,00" style="flex:1"><select id="pc_orcper" style="max-width:120px"><option value="semanal"${(it.orcPer||'semanal')==='semanal'?' selected':''}>por semana</option><option value="diario"${it.orcPer==='diario'?' selected':''}>por dia</option></select></div>`, !it.orcamento, 'pc_orc','verba')}
+        ${li('Avisar em', (it.avisoPct||20)+'% do orçamento', `<input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20">`, false, 'pc_aviso','sino')}
       </div>
       <p class="hint" style="margin:8px 0 0">Usado na <strong>Central da agência</strong> pra calcular quanto do saldo resta e quando avisar.</p>`:''}
 
