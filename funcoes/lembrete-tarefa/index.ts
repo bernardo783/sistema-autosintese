@@ -35,6 +35,9 @@ const ROTAS: { listas?: string[]; pasta?: string; pessoas: string[]; grupo: stri
   { listas: [CAMPANHAS], pessoas: [P.yghor], grupo: 'SQUAD 2 - COMUNICAÇÃO' },
   { listas: [CORRECOES, MELHORIAS], pessoas: [P.gabriel, P.arthur], grupo: 'Automação - Síntese' },
   { pasta: PASTA_EDITORIAL, pessoas: [P.madu], grupo: 'SÍNTESE - EDITORIAL (5.0)' },
+  /* gestores de tráfego também são cobrados na Linha Editorial, no grupo do squad (Gabriel 23/09) */
+  { pasta: PASTA_EDITORIAL, pessoas: [P.luan], grupo: 'SQUAD1' },
+  { pasta: PASTA_EDITORIAL, pessoas: [P.yghor], grupo: 'SQUAD 2 - COMUNICAÇÃO' },
 ];
 const chaveGrupo = (s: string) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 
