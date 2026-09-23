@@ -3,8 +3,9 @@
 // (o app só manda o id), e sai no grupo certo pelo WhatsApp de um gerente (Luiz ou João).
 //
 // Para onde vai (Gabriel 23/09): o GRUPO sai sozinho pela lista da tarefa + o responsável (tabela ROTAS).
-// Não existe escolher grupo. Envia pelo WhatsApp do gerente que clicou, se ele estiver no grupo;
-// senão, pelo outro gerente que estiver. Responsáveis de grupos diferentes: uma mensagem por grupo.
+// Não existe escolher grupo. Envia pelo WhatsApp do SQUAD da tarefa (01 = Luiz 11 91504-7150,
+// 02 = João 11 92174-2778; mapa em lembrete_squad_numero). Sem squad ou fora do grupo: o outro gerente.
+// Responsáveis de grupos diferentes: uma mensagem por grupo.
 //
 // Configuração em public.segredos:
 //   uazapi_url                 servidor UAZAPI (o mesmo do CRM)
@@ -86,13 +87,34 @@ async function gruposDoNumero(url: string, token: string) {
   return m;
 }
 
+/* ---------- número que dispara (Gabriel 23/09) ----------
+   Sai pelo número do SQUAD da tarefa: 01 = Luiz (11 91504-7150), 02 = João (11 92174-2778).
+   Mapa em segredos: lembrete_squad_numero = {"01":"luiz","02":"joao"}. Squad = tarefas.squad ou o
+   da ficha. Sem squad, ou se o número do squad não estiver no grupo, cai no outro gerente e avisa. */
+async function squadDa(t: any) {
+  let sq = String(t.squad || '').trim();
+  if (!sq && t.ficha_id) {
+    const r = await fetch(`${SU}/rest/v1/rpc/squad_da_ficha`, { method: 'POST', headers: H, body: JSON.stringify({ fid: String(t.ficha_id) }) });
+    if (r.ok) sq = String((await r.json()) || '').trim();
+  }
+  return sq;
+}
+function numeroDoSquad(S: Record<string, string>, sq: string) {
+  try { return String((JSON.parse(S.lembrete_squad_numero || '{}') as Record<string, string>)[sq] || ''); } catch { return ''; }
+}
+/* ordem de tentativa: número do squad, depois o da reserva (quem clicou/criou), depois o resto */
+const ordemPor = (nomes: string[], doSquad: string, reserva: string) =>
+  [...nomes].sort((x, y) => (x === doSquad ? 0 : x === reserva ? 1 : 2) - (y === doSquad ? 0 : y === reserva ? 1 : 2));
+const avisoSquad = (sq: string, doSquad: string, por: string, grupo: string) =>
+  (doSquad && por && por !== doSquad) ? `"${grupo}" saiu pelo número de ${por}: o número do squad ${sq} (${doSquad}) não está no grupo` : '';
+
 /* ---------- conclusão com relatório ----------
    Chamada pelo app logo depois de gravar a conclusão. Manda uma vez por conclusão: se já existe
    aviso de conclusão ok depois do concluida_em, não repete. */
 async function concluida(b: any, user: any, chefe: boolean, S: Record<string, string>, url: string, inst: (n: string) => string, nomes: string[]) {
   const tid = String(b.tarefa_id || '');
   if (!/^[0-9a-f-]{36}$/i.test(tid)) return J({ ok: false, erro: 'tarefa' }, 400);
-  const t = (await rest(`tarefas?id=eq.${tid}&select=id,titulo,prioridade,status,lista_id,responsavel_id,responsaveis,criado_por,concluida_em,concluida_por,conclusao_texto`))[0];
+  const t = (await rest(`tarefas?id=eq.${tid}&select=id,titulo,prioridade,status,lista_id,ficha_id,squad,responsavel_id,responsaveis,criado_por,concluida_em,concluida_por,conclusao_texto`))[0];
   if (!t) return J({ ok: false, erro: 'Tarefa não encontrada.' }, 404);
   if (t.status !== 'feito' || !String(t.conclusao_texto || '').trim()) return J({ ok: false, erro: 'A tarefa não está concluída com relatório.' }, 409);
   const ids: string[] = (t.responsaveis && t.responsaveis.length) ? t.responsaveis : (t.responsavel_id ? [t.responsavel_id] : []);
@@ -109,9 +131,10 @@ async function concluida(b: any, user: any, chefe: boolean, S: Record<string, st
   const porGrupo: Record<string, any[]> = {};
   for (const p of pessoas) { const r = rotas.find((x) => x.pessoas.includes(p.id)); if (r) (porGrupo[r.grupo] = porGrupo[r.grupo] || []).push(p); }
   if (!Object.keys(porGrupo).length) return J({ ok: false, erro: 'sem grupo pra esse responsável' }, 409);
-  /* manda pelo número do gerente que criou, se ele estiver no grupo; senão pelo outro */
+  /* manda pelo número do squad da tarefa; reserva = gerente que criou (o @ continua sendo ele) */
   const dono = chaveGrupo(String(ger?.nome || '').split(' ')[0]);
-  const ordem = [...nomes].sort((x, y) => (x === dono ? -1 : y === dono ? 1 : 0));
+  const sq = await squadDa(t), doSquad = numeroDoSquad(S, sq);
+  const ordem = ordemPor(nomes, doSquad, dono);
   const cache: Record<string, Record<string, string>> = {};
   const enviados: any[] = [], erros: string[] = [];
   for (const nomeGrupo of Object.keys(porGrupo)) {
@@ -145,7 +168,8 @@ async function concluida(b: any, user: any, chefe: boolean, S: Record<string, st
     const erro = r.ok ? null : String(r.j?.error || r.j?.message || ('uazapi ' + r.status));
     await fetch(`${SU}/rest/v1/tarefa_lembretes`, { method: 'POST', headers: H,
       body: JSON.stringify({ tarefa_id: t.id, enviado_por: user.id, instancia: por, grupo: nomeGrupo, ok: r.ok, erro, payload, tipo: 'conclusao' }) });
-    if (r.ok) enviados.push({ grupo: nomeGrupo, por, payload }); else erros.push(`"${nomeGrupo}": ${erro}`);
+    if (r.ok) { enviados.push({ grupo: nomeGrupo, por, payload }); const a = avisoSquad(sq, doSquad, por, nomeGrupo); if (a) erros.push(a); }
+    else erros.push(`"${nomeGrupo}": ${erro}`);
   }
   if (!enviados.length) return J({ ok: false, erro: erros.join('; ') || 'não enviou' }, 502);
   return J({ ok: true, enviados, avisos: erros });
@@ -187,7 +211,7 @@ Deno.serve(async (req: Request) => {
   /* ---------- enviar ---------- */
   const tid = String(b.tarefa_id || '');
   if (!/^[0-9a-f-]{36}$/i.test(tid)) return J({ ok: false, erro: 'tarefa' }, 400);
-  const t = (await rest(`tarefas?id=eq.${tid}&select=id,titulo,prazo,hora,prioridade,status,squad,lista_id,responsavel_id,responsaveis`))[0];
+  const t = (await rest(`tarefas?id=eq.${tid}&select=id,titulo,prazo,hora,prioridade,status,squad,ficha_id,lista_id,responsavel_id,responsaveis`))[0];
   if (!t) return J({ ok: false, erro: 'Tarefa não encontrada.' }, 404);
   if (t.status === 'feito') return J({ ok: false, erro: 'Essa tarefa já está concluída: não tem o que lembrar.' }, 409);
   const lista = (await rest(`listas?id=eq.${t.lista_id}&select=nome,pasta_id`))[0] || {};
@@ -207,10 +231,11 @@ Deno.serve(async (req: Request) => {
   if (!Object.keys(porGrupo).length)
     return J({ ok: false, erro: `Não há grupo de lembrete pra ${semGrupo.join(', ')} em ${lista.nome || 'esta lista'}.` }, 409);
 
-  /* quem manda: primeiro o gerente que clicou, depois os outros. Grupos de cada número vêm da UAZAPI
-     uma vez por pedido; o JID achado fica guardado em lembrete_jid_<grupo>. */
+  /* quem manda: o número do squad da tarefa; reserva = o gerente que clicou. Grupos de cada número
+     vêm da UAZAPI uma vez por pedido; o JID achado fica guardado em lembrete_jid_<grupo>. */
   const eu = chaveGrupo(String(user.nome || '').split(' ')[0]);
-  const ordem = [...nomes].sort((x, y) => (x === eu ? -1 : y === eu ? 1 : 0));
+  const sq = await squadDa(t), doSquad = numeroDoSquad(S, sq);
+  const ordem = ordemPor(nomes, doSquad, eu);
   const gruposDe: Record<string, Record<string, string>> = {};
   async function grupos(n: string) {
     if (gruposDe[n]) return gruposDe[n];
@@ -257,7 +282,8 @@ Deno.serve(async (req: Request) => {
     const erro = r.ok ? null : String(r.j?.error || r.j?.message || ('uazapi ' + r.status));
     await fetch(`${SU}/rest/v1/tarefa_lembretes`, { method: 'POST', headers: H,
       body: JSON.stringify({ tarefa_id: t.id, enviado_por: user.id, instancia: por, grupo: nomeGrupo, ok: r.ok, erro, payload }) });
-    if (r.ok) enviados.push({ grupo: nomeGrupo, por, payload }); else erros.push(`"${nomeGrupo}": ${erro}`);
+    if (r.ok) { enviados.push({ grupo: nomeGrupo, por, payload }); const a = avisoSquad(sq, doSquad, por, nomeGrupo); if (a) erros.push(a); }
+    else erros.push(`"${nomeGrupo}": ${erro}`);
   }
   if (!enviados.length) return J({ ok: false, erro: 'Não enviou: ' + erros.join('; ') }, 502);
   return J({ ok: true, enviados, avisos: erros.concat(semGrupo.length ? [`sem grupo pra ${semGrupo.join(', ')}`] : []) });
