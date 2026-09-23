@@ -639,6 +639,20 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
     fimDosTestes();
   })();
 }
+/* ---------------- cliente só de Agent IA: nada de tráfego na ficha ---------------- */
+grupo('Agent IA: ficha sem gestor, conta, verba, gasto, saldo, contas e logos (Gabriel 23/09)');
+{
+  const g=rodar(bloco('const soAgentIA=',"/* A foto sai do perfil"),{},['soAgentIA']);
+  ok('categoria ia é Agent IA', g.soAgentIA({categoria:'ia'})===true);
+  ok('Tráfego + Agent IA não é', g.soAgentIA({categoria:'full'})===false);
+  ok('sem tipo não é (palpite não conta)', g.soAgentIA({})===false);
+  const props=bloco('function pcProps(it){','function pcFaixa(it){');
+  ok('painel: gestor de tráfego some', /\$\{ia\?'':row\('pessoa'/.test(props));
+  ok('painel: conta, verba, gasto e saldo somem', /\$\{ia\?'':`\$\{row\('conta'/.test(props) && props.indexOf("row('saldo'")>0);
+  ok('abas Contas e Logos e barra de contas somem', HTML.indexOf("${soAgentIA(it)?'':pcGrupoBarra(it)}")>0 && (HTML.match(/\$\{soAgentIA\(it\)\?'':`<button class="ftab/g)||[]).length===2);
+  ok('virar Agent IA tira o gestor', HTML.indexOf("if(k==='ia') it.responsavel='';")>0);
+}
+
 /* ---------------- notificar responsável ---------------- */
 grupo('Notificar responsável (Gabriel 23/09)');
 {

@@ -10883,6 +10883,8 @@ window.lgPintar=async (boxId,fid,modo)=>{
   box.dataset.fid=fid||'';
   if(!fid){ if(bdg) bdg.textContent='';
     box.innerHTML='<p class="hint">Marque o cliente da tarefa, a logo dele aparece aqui pronta para baixar.</p>'; return; }
+  if(soAgentIA(fichaDe(fid))){ if(bdg) bdg.textContent='';
+    box.innerHTML='<p class="hint">Cliente só de Agent IA: não tem logo guardada.</p>'; return; }
   box.innerHTML='<div class="hint">carregando…</div>';
   const tid=await lgCardDe(fid);
   let logos=[], erro='';
@@ -12969,6 +12971,9 @@ window.openLinkModal=(id)=>{
 const ST_LABEL={novo:'Cliente novo',onboarding:'Onboarding',ativo:'Cliente ativo',churn:'Aviso de churn'};
 const PRJ_NORM=s=>({andamento:'ativo',planejado:'novo',pausado:'churn',concluido:'ativo'}[s]||(ST_LABEL[s]?s:'ativo'));
 const CAT_LABEL={trafego:'Tráfego Pago',ia:'Agent IA',full:'Tráfego + Agent IA',outro:'Outro'};
+/* Cliente so de Agent IA (Gabriel 23/09): nao tem NADA de trafego na ficha: gestor de trafego,
+   conta de anuncio, verba, gasto, saldo, contas e logos somem. Vale o tipo escolhido, nao o palpite. */
+const soAgentIA=(f)=>!!(f&&f.categoria==='ia');
 /* A foto sai do perfil da pessoa: `avatarDoNome` liga o texto da ficha ao usuario. */
 const avtCor=corDoNome;
 const avt=(n,papel)=>avatarDoNome(n,'avt',papel);
@@ -13731,6 +13736,7 @@ window.pcDocCarregar=async (fid)=>{
   box.innerHTML=(topo+fe)||'<p class="hint" style="margin:6px 0">Esse cliente entrou antes do formulário de fechamento: não tem documento.</p>';
 };
 function pcProps(it){
+  const ia=it.categoria==='ia';   /* so Agent IA: nada de trafego (ver soAgentIA) */
   const VZ='<span class="pcx-vz">Vazio</span>';
   const row=(ic,rot,val,vazio)=>`<div class="pr${vazio?' vz':''}"><span class="k">${PCX_I[ic]}${rot}</span><span class="v">${val}</span></div>`;
   const pes=(n,campo)=>{ n=String(n||'').trim();
@@ -13763,12 +13769,12 @@ function pcProps(it){
     ${row('status','Status',pcStatusHtml(it))}
     ${row('tipo','Tipo',tipo)}
     ${row('squad','Squad',sq||VZ,!it.squad)}
-    ${row('pessoa','Gestor de tráfego',pes(it.responsavel,'pc_resp'),!String(it.responsavel||'').trim())}
+    ${ia?'':row('pessoa','Gestor de tráfego',pes(it.responsavel,'pc_resp'),!String(it.responsavel||'').trim())}
     ${row('chefe','Gerente',pes(it.gerente,'pc_ger'),!String(it.gerente||'').trim())}
-    ${row('conta','Conta de anúncio',conta,!c0)}
+    ${ia?'':`${row('conta','Conta de anúncio',conta,!c0)}
     ${row('verba','Verba',verba,!it.orcamento)}
     ${row('gasto','Gasto',gas,!c0)}
-    ${row('saldo','Saldo',sal,!rk)}
+    ${row('saldo','Saldo',sal,!rk)}`}
     ${row('link','Links',links,false)}
     <button type="button" class="pcx-rec" id="pcxRec" onclick="pcRecolher()">${PCX_I.abre}${pcRecolhe?'Mostrar campos vazios':'Recolher campos vazios'}</button>
   </div>`;
@@ -14123,6 +14129,7 @@ window.zapRemover=async (fid,zid)=>{
 };
 window.openProjCard=(id)=>{
   const it=DB.projetos.find(x=>x.id===id); if(!it) return;
+  if(soAgentIA(it)&&(cliAba==='contas'||cliAba==='logos')) cliAba='geral';
   /* "linha do tempo" virou o painel Atividade (Gabriel 23/09, igual ao ClickUp) */
   if(cliAba==='linha'){ cliAba='geral'; pcPainel='atv'; }
   /* Financeiro saiu do cartão e mora em Relacionamentos (Gabriel 23/09) */
@@ -14188,20 +14195,20 @@ window.openProjCard=(id)=>{
         :`<div class="pc-nome">${esc(it.nome)}</div>`}
     </div>
     ${pcProps(it)}
-    ${pcGrupoBarra(it)}
+    ${soAgentIA(it)?'':pcGrupoBarra(it)}
 
     <div class="fin-tabs pc-tabs">
       <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">Ficha</button>
-      <button class="ftab ${cliAba==='contas'?'active':''}" onclick="cliIrPara('${it.id}','contas')">Contas${nContas?' <span class="pc-n">'+nContas+'</span>':''}</button>
+      ${soAgentIA(it)?'':`<button class="ftab ${cliAba==='contas'?'active':''}" onclick="cliIrPara('${it.id}','contas')">Contas${nContas?' <span class="pc-n">'+nContas+'</span>':''}</button>`}
       <button class="ftab ${cliAba==='acessos'?'active':''}" onclick="cliIrPara('${it.id}','acessos')">Acessos</button>
-      <button class="ftab ${cliAba==='logos'?'active':''}" onclick="cliIrPara('${it.id}','logos')">Logos</button>
+      ${soAgentIA(it)?'':`<button class="ftab ${cliAba==='logos'?'active':''}" onclick="cliIrPara('${it.id}','logos')">Logos</button>`}
     </div>
     <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
      ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):cliAba==='logos'?'<div id="lgBox"></div>':(cliAba==='fin'&&master)?abaFinCliente(it):`
 
       ${cat('Time')}
       <div class="pc-dl">
-        ${li('Gestor de tráfego', pes(it.responsavel), selPessoa('pc_resp',it.responsavel,'trafego'), !String(it.responsavel||'').trim(), 'pc_resp')}
+        ${soAgentIA(it)?'':li('Gestor de tráfego', pes(it.responsavel), selPessoa('pc_resp',it.responsavel,'trafego'), !String(it.responsavel||'').trim(), 'pc_resp')}
         ${li('Gerente', pes(it.gerente), selPessoa('pc_ger',it.gerente,'gerente'), !String(it.gerente||'').trim(), 'pc_ger')}
         ${li('Squad', it.squad?sqEtiqueta(it.squad):'definir', `<input id="pc_squad" list="dlSquadsPC" value="${esc(it.squad||'')}" placeholder="ex: 01"><datalist id="dlSquadsPC">${SQUADS().map(s2=>`<option value="${esc(s2)}">`).join('')}</datalist>`, !String(it.squad||'').trim(), 'pc_squad')}
       </div>
@@ -14224,7 +14231,7 @@ window.openProjCard=(id)=>{
         ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk, 'pc_drive')}
       </div>
 
-      ${(temTraf||it.orcamento||catDe(it)==='trafego'||catDe(it)==='full')?`${cat('Tráfego pago')}
+      ${(!soAgentIA(it)&&(temTraf||it.orcamento||catDe(it)==='trafego'||catDe(it)==='full'))?`${cat('Tráfego pago')}
       <div class="pc-dl">
         ${li('Orçamento', it.orcamento?(brl(it.orcamento)+' '+((it.orcPer||'semanal')==='diario'?'por dia':'por semana')):'definir',
           `<div style="display:flex;gap:8px"><input type="number" step="0.01" min="0" id="pc_orc" value="${it.orcamento||''}" placeholder="Ex.: 350,00" style="flex:1"><select id="pc_orcper" style="max-width:120px"><option value="semanal"${(it.orcPer||'semanal')==='semanal'?' selected':''}>por semana</option><option value="diario"${it.orcPer==='diario'?' selected':''}>por dia</option></select></div>`, !it.orcamento, 'pc_orc')}
@@ -14392,13 +14399,19 @@ window.pcTipoSet=async (pid,k)=>{
   const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it||!CAT_LABEL[k]) return;
   if(it.categoria===k) return;
   it.categoria=k;
+  /* Agent IA nao tem gestor de trafego (Gabriel 23/09): sai da ficha e do card */
+  const tinhaGestor=k==='ia'&&String(it.responsavel||'').trim();
+  if(k==='ia') it.responsavel='';
   await saveDB();
+  if(k==='ia'){ try{ const cd=lcCardDe(pid);
+    if(cd&&(cd.valores||{})[LC_GEST]){ const val=Object.assign({},cd.valores); delete val[LC_GEST];
+      const r=await sb.from('tarefas').update({valores:val}).eq('id',cd.id); if(!r.error) cd.valores=val; } }catch(_){} }
   const mb=document.querySelector('#pcModal .mbody'); const sc=mb?mb.scrollTop:0;
   const ov=document.querySelector('.overlay'); if(ov) ov.remove();
   openProjCard(pid);
   const mb2=document.querySelector('#pcModal .mbody'); if(mb2) mb2.scrollTop=sc;
   try{ if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
-  toast('Tipo: '+CAT_LABEL[k]+'.');
+  toast('Tipo: '+CAT_LABEL[k]+'.'+(tinhaGestor?' O gestor de tráfego saiu: cliente só de Agent IA não tem.':''));
 };
 /* ---------- ESTÁGIO E SQUAD CLICÁVEIS NO TOPO DA FICHA (Gabriel 23/09: "tudo tem que ser clicável aqui") ----------
    Estágio: a etiqueta mostra o estágio do card no Controle de Clientes (0. NÃO ATIVO … 8. CHURN) e
