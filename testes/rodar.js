@@ -640,7 +640,7 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
 /* ---------------- notificar responsável ---------------- */
 grupo('Notificar responsável (Gabriel 23/09)');
 {
-  ok('botão só aparece pra gerente/master, em tarefa não arquivada de lista com grupo', HTML.indexOf("${(t&&souGerente()&&!arquivada(t)&&lbTemGrupo(t))?`<button class=\"btn ghost small\" type=\"button\" onclick=\"tkLembrar(event,")>0);
+  ok('botão só aparece pra gerente/master, em tarefa aberta (não concluída, não arquivada) de lista com grupo', HTML.indexOf("${(t&&souGerente()&&!arquivada(t)&&t.status!=='feito'&&lbTemGrupo(t))?`<button class=\"btn ghost small\" type=\"button\" onclick=\"tkLembrar(event,")>0);
   ok('o app manda só o id da tarefa (mensagem montada no servidor)', /lbApi\('enviar',\{tarefa_id:id\}\)/.test(HTML));
   const fn=fs.readFileSync(path.join(__dirname,'..','funcoes','lembrete-tarefa','index.ts'),'utf8');
   ok('servidor barra quem não é gerente nem master', /p\.role === 'master' \|\| p\.gerente/.test(fn));
@@ -648,6 +648,14 @@ grupo('Notificar responsável (Gabriel 23/09)');
   ok('trava de 10 minutos por tarefa', /ESPERA_MIN = 10/.test(fn));
   ok('grupo automático: Luan → SQUAD1, Yghor → SQUAD 2, Gabriel/Arthur → Automação, Madu → SÍNTESE - EDITORIAL (5.0)',
     /grupo: 'SQUAD1'/.test(fn)&&/grupo: 'SQUAD 2 - COMUNICAÇÃO'/.test(fn)&&/grupo: 'Automação - Síntese'/.test(fn)&&/grupo: 'SÍNTESE - EDITORIAL \(5\.0\)'/.test(fn));
+  ok('servidor recusa lembrar tarefa concluída', /t\.status === 'feito'\) return J/.test(fn));
+  {
+    const g=rodar(bloco('const tkColunaDe=','window.tkConcluir='),{tkStatusDe:()=>[{id:'p',grupo:'nao_iniciado'},{id:'e',grupo:'ativo'},{id:'c',grupo:'feito'}]},['tkColunaDe']);
+    ok('checkbox concluído leva o cartão pra coluna Concluído', g.tkColunaDe('L',true)==='c');
+    ok('checkbox desmarcado volta pra Pendente', g.tkColunaDe('L',false)==='p');
+    const s=rodar(bloco('const tkColunaDe=','window.tkConcluir='),{tkStatusDe:()=>[]},['tkColunaDe']);
+    ok('lista sem colunas próprias não mexe em coluna', s.tkColunaDe('L',true)===null);
+  }
   ok('não existe escolher grupo no app', HTML.indexOf('lbEscolherGrupo')<0 && fn.indexOf('definir_grupo')<0);
 }
 

@@ -8086,6 +8086,7 @@ window.pessoalVirar=async (id)=>{
   const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
   const feito=t.status!=='feito';
   const patch=feito?{status:'feito',concluida_em:new Date().toISOString()}:{status:'todo',concluida_em:null};
+  const col=tkColunaDe(t.lista_id,feito); if(col) patch.status_id=col;
   const {error}=await sb.from('tarefas').update(patch).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
   Object.assign(t,patch); renderInicio($('#content')); spDesenhar(); recAgendar();
@@ -9134,7 +9135,15 @@ window.tkSoltarDia=async (ev,iso)=>{
   await tkPatch(id,{prazo:iso},'Prazo: '+fmtDate(iso));
 };
 window.tkStatus=(id,st)=>tkPatch(id,{status:st,concluida_em:st==='feito'?new Date().toISOString():null},TK_ST[st]);
-window.tkConcluir=(id,ok)=>tkPatch(id,{status:ok?'feito':'todo',concluida_em:ok?new Date().toISOString():null},ok?'Concluída.':'Reaberta.');
+/* Checkbox da lista: em lista com colunas próprias, a coluna anda junto. Antes só mudava o
+   status e o cartão ficava em Pendente mesmo concluído (Gabriel 23/09, "Subir video"). */
+const tkColunaDe=(lid,ok)=>{ const sts=tkStatusDe(lid)||[]; if(!sts.length) return null;
+  const s=ok?(sts.find(x=>x.grupo==='feito')||sts.find(x=>x.grupo==='fechado')):(sts.find(x=>x.grupo==='nao_iniciado')||sts[0]);
+  return s?s.id:null; };
+window.tkConcluir=(id,ok)=>{ const t=TK.tarefas.find(x=>x.id===id);
+  const patch={status:ok?'feito':'todo',concluida_em:ok?new Date().toISOString():null};
+  const col=t?tkColunaDe(t.lista_id,ok):null; if(col) patch.status_id=col;
+  return tkPatch(id,patch,ok?'Concluída.':'Reaberta.'); };
 window.tkToggle=(tp,id)=>{ const k=tp+id; TK.fechadas[k]=!TK.fechadas[k];
   if(tp==='g'){ tkDesenhar($('#content')); } else { spSalvarArvore(); spDesenhar(); } };
 window.tkSetVal=async (id,campoId,v)=>{
@@ -9938,7 +9947,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
 
         <div class="tk-rodape">
           ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
-          ${(t&&souGerente()&&!arquivada(t)&&lbTemGrupo(t))?`<button class="btn ghost small" type="button" onclick="tkLembrar(event,'${t.id}')" title="Manda um lembrete no grupo do responsável, marcando ele">${SVG_P.pessoa} Notificar responsável</button>`:''}
+          ${(t&&souGerente()&&!arquivada(t)&&t.status!=='feito'&&lbTemGrupo(t))?`<button class="btn ghost small" type="button" onclick="tkLembrar(event,'${t.id}')" title="Manda um lembrete no grupo do responsável, marcando ele">${SVG_P.pessoa} Notificar responsável</button>`:''}
           ${t?(arquivada(t)
             ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
                ${(currentUser&&currentUser.role==='master')?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:'<span class="hint" style="margin:0">só master exclui de vez</span>'}`

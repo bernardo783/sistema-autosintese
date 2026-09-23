@@ -106,6 +106,7 @@ Deno.serve(async (req: Request) => {
   if (!/^[0-9a-f-]{36}$/i.test(tid)) return J({ ok: false, erro: 'tarefa' }, 400);
   const t = (await rest(`tarefas?id=eq.${tid}&select=id,titulo,prazo,hora,prioridade,status,squad,lista_id,responsavel_id,responsaveis`))[0];
   if (!t) return J({ ok: false, erro: 'Tarefa não encontrada.' }, 404);
+  if (t.status === 'feito') return J({ ok: false, erro: 'Essa tarefa já está concluída: não tem o que lembrar.' }, 409);
   const lista = (await rest(`listas?id=eq.${t.lista_id}&select=nome,pasta_id`))[0] || {};
   const rotas = ROTAS.filter((r) => (r.listas && r.listas.includes(t.lista_id)) || (r.pasta && r.pasta === lista.pasta_id));
   if (!rotas.length) return J({ ok: false, erro: 'Essa lista não tem grupo de lembrete configurado.' }, 409);
