@@ -7879,9 +7879,12 @@ function spDesenhar(){
   const secFav=favs.length?`<div class="sp-sec">FAVORITOS</div><div class="tk-tree" style="margin-bottom:6px">${favs.map(l=>item(l,true)).join('')}</div>`:'';
   const esps=TK.espacos.filter(espacoDaAtual).filter(eVis);
   const secEsp=`<div class="sp-sec">ESPAÇOS<button title="Novo espaço" onclick="tkNovoEspaco()">+</button></div>`;
+  /* Quando o proprio espaco ou pasta bate com a busca, mostra tudo o que tem dentro:
+     quem busca "finan" quer escolher onde entrar no Financeiro, nao ver "sem listas". */
   const corpo=esps.length?esps.map(e=>{
-    const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id&&lVis(l));
-    const pas=TK.pastas.filter(p=>p.espaco_id===e.id&&(p.id!==PASTA_FIN||mst)&&pVis(p));
+    const eBate=!!SP_Q&&spBate(e.nome);
+    const soltas=TK.listas.filter(l=>l.espaco_id===e.id&&!l.pasta_id&&(eBate||lVis(l)));
+    const pas=TK.pastas.filter(p=>p.espaco_id===e.id&&(p.id!==PASTA_FIN||mst)&&(eBate||pVis(p)));
     const abE=aberto('e'+e.id);
     return `<div class="tk-esp">
       <div class="tk-esph${(currentView==='espaco'&&String(SP_ESP)===String(e.id))?' on':''}" draggable="true" ondragstart="dndEspaco(event,'${e.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarEspaco(event,'${e.id}')" ondragend="dndFim()" onclick="spVerEspaco('${e.id}')" oncontextmenu="spNoMenu(event,'espaco','${e.id}')" title="Abrir o espaço">
@@ -7893,7 +7896,8 @@ function spDesenhar(){
         </span>
       </div>
       ${abE?`<div class="tk-filhos">${pas.map(p=>{
-        const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||mst)&&lVis(l)); const abP=aberto('p'+p.id);
+        const pBate=eBate||(!!SP_Q&&spBate(p.nome));
+        const ls=TK.listas.filter(l=>l.pasta_id===p.id&&(!ehFin(l.id)||mst)&&(pBate||lVis(l))); const abP=aberto('p'+p.id);
         return `<div class="tk-pasta">
           <div class="tk-pastah" draggable="true" ondragstart="dndPasta(event,'${p.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarPasta(event,'${p.id}','${e.id}')" ondragend="dndFim()" onclick="tkToggle('p','${p.id}')" oncontextmenu="spNoMenu(event,'pasta','${p.id}')">
             <span class="tk-cv${abP?' ab':''}">&#9656;</span><span class="tk-ic"${p.cor?` style="color:${esc(p.cor)};opacity:1"`:''}>${p.icone?icHtml(p.icone):SVG_PASTA}</span>
