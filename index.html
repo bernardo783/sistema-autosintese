@@ -9026,11 +9026,15 @@ window.recEncerrar=async (id)=>{ const m=document.getElementById('tkQaMenu'); if
   if(!confirm('Encerrar a repetição de "'+t.titulo+'"? A tarefa atual continua; só não nascem novas.')) return;
   if(await recGravar(id,null)){ toast('Repetição encerrada.'); tkDesenhar($('#content')); } };
 /* ---------- NOTIFICAR RESPONSÁVEL (Gabriel 23/09) ----------
-   Só gerente e master. O lembrete sai no grupo da empresa pelo WhatsApp do gerente do squad
-   da tarefa (squad 01 = Luiz, squad 02 = João). Quem monta a mensagem é a função
-   lembrete-tarefa, a partir da tarefa no banco: aqui só vai o id. Primeira vez: se o número
-   do gerente não estiver conectado ou o grupo não tiver sido escolhido, o próprio botão
-   abre o passo que falta (QR ou lista de grupos). */
+   Só gerente e master, e só nas listas que têm grupo (regra do Gabriel): Campanhas (Luan →
+   SQUAD1, Yghor → SQUAD 2 - COMUNICAÇÃO), Tecnologia › Correções e Melhorias & Inovações
+   (Gabriel/Arthur → Automação - Síntese) e a pasta Editorial (Madu → Edição de vídeo).
+   O grupo sai sozinho, não existe escolher. Quem monta e manda é a função lembrete-tarefa
+   (pelo WhatsApp do Luiz ou do João); aqui só vai o id da tarefa. */
+const LB_LISTAS=['cd04ad6e-0cd2-4838-b050-49fcfebafe05','daadf852-a9fc-4676-9421-95e81b5c3d9e','a7ca79cf-1b3d-488c-9330-29bdfac737dd'];
+const LB_PASTAS=['c97f6238-396c-4e26-9623-14c9274766d8'];
+const lbTemGrupo=(t)=>{ if(!t) return false; if(LB_LISTAS.indexOf(t.lista_id)>=0) return true;
+  const l=(TK.listas||[]).find(x=>x.id===t.lista_id); return !!(l&&LB_PASTAS.indexOf(l.pasta_id)>=0); };
 const LB_URL='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/lembrete-tarefa/';
 async function lbApi(acao,corpo){
   const s=(await sb.auth.getSession()).data.session;
@@ -9052,42 +9056,22 @@ window.tkLembrar=async (ev,id)=>{
   const rot=btn.innerHTML; btn.disabled=true; btn.textContent='Enviando…';
   try{
     const d=await lbApi('enviar',{tarefa_id:id});
-    if(d.ok){ const p=d.payload||{};
-      toast('Lembrete enviado no grupo para '+recLista((p.responsaveis||[]).map(x=>primeiroNome(x.nome)))+'.'); return; }
-    if(d.status===409&&/grupo/i.test(d.erro||'')) return lbEscolherGrupo(btn,id);
-    if(d.status===409||/desconectad/i.test(d.erro||'')) return lbConectar(btn,id,d.erro);
+    if(d.ok){ const e=d.enviados||[];
+      toast('Lembrete enviado em '+recLista(e.map(x=>x.grupo))+(d.avisos&&d.avisos.length?' ('+d.avisos.join('; ')+')':'')+'.'); return; }
+    if(/desconectad/i.test(d.erro||'')) return lbConectar(btn,d.erro);
     toast(d.erro||'Não foi possível enviar.');
   }catch(e){ toast(e.message||'Falha ao enviar.'); }
   finally{ btn.disabled=false; btn.innerHTML=rot; }
 };
-async function lbConectar(btn,id,msg){
+async function lbConectar(btn,msg){
   const st=await lbApi('status');
-  const t=TK.tarefas.find(x=>x.id===id)||{}, sq=String(t.squad||(meusSquads()[0]||''));
-  const inst=((st.instancias||[]).find(i=>(i.squads||[]).indexOf(sq)>=0))||null;
-  if(!inst){ lbPop(btn,`<div class="tkp-h"><strong>WhatsApp do gerente</strong></div><p class="hint" style="margin:0">${esc(msg||'')} Falta cadastrar o número do gerente do squad ${esc(sq||'?')} no servidor do WhatsApp. Peça ao master.</p>`); return; }
+  const inst=(st.instancias||[]).find(i=>!i.conectado);
+  if(!inst){ toast(msg||'Não foi possível enviar.'); return; }
   const q=await lbApi('conectar',{name:inst.name});
   if(q.conectado){ toast('WhatsApp conectado. Clique de novo em Notificar responsável.'); return; }
-  lbPop(btn,`<div class="tkp-h"><strong>Conectar o WhatsApp de ${esc(inst.perfil||inst.name)}</strong></div>
+  lbPop(btn,`<div class="tkp-h"><strong>Reconectar o WhatsApp de ${esc(inst.perfil||inst.name)}</strong></div>
     ${q.qr?`<img src="${esc(q.qr)}" alt="QR code" style="width:100%;border-radius:10px;background:#fff">`:`<p class="hint">${esc(q.erro||'Sem QR agora, tente de novo.')}</p>`}
-    <p class="hint" style="margin:8px 0 0">No celular do gerente: WhatsApp › Dispositivos conectados › Conectar dispositivo. Depois clique de novo em Notificar responsável.</p>`);
-}
-async function lbEscolherGrupo(btn,id){
-  const st=await lbApi('status');
-  const t=TK.tarefas.find(x=>x.id===id)||{}, sq=String(t.squad||(meusSquads()[0]||''));
-  const inst=((st.instancias||[]).find(i=>(i.squads||[]).indexOf(sq)>=0))||null;
-  if(!inst){ toast('Falta cadastrar o WhatsApp do gerente deste squad.'); return; }
-  const g=await lbApi('grupos',{name:inst.name});
-  const gs=(g.grupos||[]).sort((a,b)=>String(a.nome).localeCompare(String(b.nome)));
-  const el=lbPop(btn,`<div class="tkp-h"><strong>Qual é o grupo da empresa?</strong></div>${popBusca('Buscar grupo…')}
-    ${gs.map(x=>`<label class="tkp-row" data-jid="${esc(x.jid)}"><span class="tkp-nm">${esc(x.nome||x.jid)}</span></label>`).join('')||`<p class="hint">${esc(g.erro||'Esse número não está em nenhum grupo.')}</p>`}
-    <div class="tkp-vazio">Nenhum grupo com esse nome.</div>
-    <p class="hint" style="margin:8px 0 0">Os dois gerentes precisam estar nesse grupo. Vale pra todos os lembretes.</p>`);
-  el.querySelectorAll('.tkp-row').forEach(r=>r.onclick=async()=>{
-    const d=await lbApi('definir_grupo',{jid:r.dataset.jid,nome:r.textContent.trim()});
-    if(!d.ok){ toast(d.erro||'Não salvou.'); return; }
-    el.remove(); toast('Grupo escolhido: '+r.textContent.trim()+'. Enviando o lembrete…');
-    btn.click(); });
-  const b=el.querySelector('.tkp-b'); if(b) b.focus();
+    <p class="hint" style="margin:8px 0 0">No celular: WhatsApp › Dispositivos conectados › Conectar dispositivo. Depois clique de novo em Notificar responsável.</p>`);
 }
 window.tkSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; tkDesenhar($('#content')); };
 /* Cada lista lembra da própria visão. Antes era uma só para o sistema inteiro:
@@ -9954,7 +9938,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
 
         <div class="tk-rodape">
           ${t?`<button class="btn ghost small" type="button" onclick="lkCopiar('t','${t.id}')">🔗 Copiar link</button>`:''}
-          ${(t&&souGerente()&&!arquivada(t))?`<button class="btn ghost small" type="button" onclick="tkLembrar(event,'${t.id}')" title="Manda um lembrete no grupo da empresa, marcando o responsável">${SVG_P.pessoa} Notificar responsável</button>`:''}
+          ${(t&&souGerente()&&!arquivada(t)&&lbTemGrupo(t))?`<button class="btn ghost small" type="button" onclick="tkLembrar(event,'${t.id}')" title="Manda um lembrete no grupo do responsável, marcando ele">${SVG_P.pessoa} Notificar responsável</button>`:''}
           ${t?(arquivada(t)
             ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
                ${(currentUser&&currentUser.role==='master')?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:'<span class="hint" style="margin:0">só master exclui de vez</span>'}`

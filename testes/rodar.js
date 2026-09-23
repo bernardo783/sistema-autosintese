@@ -640,12 +640,15 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
 /* ---------------- notificar responsável ---------------- */
 grupo('Notificar responsável (Gabriel 23/09)');
 {
-  ok('botão só aparece pra gerente/master e em tarefa não arquivada', HTML.indexOf("${(t&&souGerente()&&!arquivada(t))?`<button class=\"btn ghost small\" type=\"button\" onclick=\"tkLembrar(event,")>0);
+  ok('botão só aparece pra gerente/master, em tarefa não arquivada de lista com grupo', HTML.indexOf("${(t&&souGerente()&&!arquivada(t)&&lbTemGrupo(t))?`<button class=\"btn ghost small\" type=\"button\" onclick=\"tkLembrar(event,")>0);
   ok('o app manda só o id da tarefa (mensagem montada no servidor)', /lbApi\('enviar',\{tarefa_id:id\}\)/.test(HTML));
   const fn=fs.readFileSync(path.join(__dirname,'..','funcoes','lembrete-tarefa','index.ts'),'utf8');
   ok('servidor barra quem não é gerente nem master', /p\.role === 'master' \|\| p\.gerente/.test(fn));
   ['tarefa:','responsaveis:','prazo:','data_prazo:','horario_prazo:','link:','flag:'].forEach(k=>ok('payload tem '+k.replace(':',''), fn.indexOf('    '+k)>0));
   ok('trava de 10 minutos por tarefa', /ESPERA_MIN = 10/.test(fn));
+  ok('grupo automático: Luan → SQUAD1, Yghor → SQUAD 2, Gabriel/Arthur → Automação, Madu → Edição de vídeo',
+    /grupo: 'SQUAD1'/.test(fn)&&/grupo: 'SQUAD 2 - COMUNICAÇÃO'/.test(fn)&&/grupo: 'Automação - Síntese'/.test(fn)&&/grupo: 'Edição de vídeo'/.test(fn));
+  ok('não existe escolher grupo no app', HTML.indexOf('lbEscolherGrupo')<0 && fn.indexOf('definir_grupo')<0);
 }
 
 function fimDosTestes(){
