@@ -636,6 +636,7 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
     await g.recVerificar(); const dx=g.TK.tarefas[1];
     ok('lista apagada: volta pra lista da própria tarefa', dx&&dx.lista_id==='L'&&dx.status==='todo');
     ok('banco: migração cria a coluna recorrencia', /add column if not exists recorrencia jsonb/.test(fs.readFileSync(path.join(__dirname,'..','migracao-recorrencia.sql'),'utf8')));
+    await testeTarefasPaginadas();
     fimDosTestes();
   })();
 }
@@ -764,6 +765,27 @@ grupo('Topo minimalista e tabela mais leve (Gabriel 23/09)');
   ok('Controle de Clientes mantém o topo dele', HTML.indexOf('if(!cli){ c.innerHTML=')>0);
 }
 
+/* ---------------- carga das tarefas passa do teto de 1000 do Supabase ---------------- */
+/* Assíncrono: roda de dentro do bloco async da recorrência, antes do placar final. */
+async function testeTarefasPaginadas(){
+  grupo('Tarefas: carga passa do teto de 1000 linhas (Gabriel 24/09)');
+  const g=rodar(bloco('async function tudoPaginado(monta){','async function tkCarregar(){'),{},['tudoPaginado']);
+  /* dublê do PostgREST: devolve a faixa pedida, cortada no teto do servidor */
+  const banco=(n,teto)=>{ const linhas=Array.from({length:n},(_,i)=>({id:i})); let pedidos=0;
+    return {pedidos:()=>pedidos, monta:()=>({range:async(a,b)=>{ pedidos++; return {data:linhas.slice(a,Math.min(b+1,a+teto)),error:null}; }})}; };
+  const b1=banco(1047,1000); const r1=await g.tudoPaginado(b1.monta);
+  ok('1047 tarefas com teto 1000: vêm as 1047', r1.data.length===1047);
+  ok('a mais nova (a que sumia) está lá', r1.data[1046].id===1046);
+  ok('nenhuma repetida', new Set(r1.data.map(x=>x.id)).size===1047);
+  const b2=banco(1047,500); const r2=await g.tudoPaginado(b2.monta);
+  ok('teto do servidor menor (500): continua vindo tudo', r2.data.length===1047);
+  const r3=await g.tudoPaginado(banco(0,1000).monta);
+  ok('banco vazio: lista vazia, sem erro', r3.data.length===0&&!r3.error);
+  const r4=await g.tudoPaginado(()=>({range:async()=>({data:null,error:{message:'caiu'}})}));
+  ok('erro do banco sobe como erro (não vira lista vazia)', r4.error&&r4.error.message==='caiu'&&r4.data===null);
+  const car=bloco('async function tkCarregar(){','const err=e.error');
+  ok('tkCarregar busca as tarefas paginado', /tudoPaginado\(\(\)=>sb\.from\('tarefas'\)/.test(car));
+}
 function fimDosTestes(){
 /* ---------------- tipo de cliente no Controle de Clientes ---------------- */
 grupo('Controle de Clientes: filtro por tipo e selo "sem tipo" (Gabriel 23/09)');

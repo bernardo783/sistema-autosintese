@@ -6806,12 +6806,27 @@ const tkCampo1=(id)=>TK.campos.find(k=>k.id===id)||null;
 const tkStatus1=(id)=>TK.status.find(s=>s.id===id)||null;
 const tkISO=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const tkHoje=()=>tkISO(new Date());
+/* O Supabase devolve no maximo 1000 linhas por pedido e corta calado, sem erro.
+   Em 23/09 as tarefas passaram de 1000 e as mais novas sumiram da tela de todo
+   mundo (Gabriel 24/09: demanda que o CS atribuiu nao aparecia no backlog dele).
+   Busca em paginas ate vir uma vazia; anda pelo que veio, entao continua certo
+   mesmo se o teto do servidor mudar. O id desempata a ordem entre as paginas. */
+async function tudoPaginado(monta){
+  let tudo=[], de=0;
+  for(;;){
+    const r=await monta().range(de,de+999);
+    if(r.error) return {data:null,error:r.error};
+    const d=r.data||[];
+    if(!d.length) return {data:tudo,error:null};
+    tudo=tudo.concat(d); de+=d.length;
+  }
+}
 async function tkCarregar(){
   const [e,pa,l,t,q,st,cp]=await Promise.all([
     sb.from('espacos').select('*').order('ordem'),
     sb.from('pastas').select('*').order('ordem'),
     sb.from('listas').select('*').order('ordem'),
-    sb.from('tarefas').select('*').order('criado_em'),
+    tudoPaginado(()=>sb.from('tarefas').select('*').order('criado_em').order('id')),
     sb.from('equipe_nomes').select('id,nome,foto,cargo,role,gerente,email,telefone,squads'),
     sb.from('status_lista').select('*').order('ordem'),
     sb.from('campos_lista').select('*').order('ordem')]);
