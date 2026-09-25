@@ -18592,7 +18592,7 @@ window.cliSuspender=async (id)=>{
         else{
           const erro=(r&&r.erro)||'não consegui falar com o Asaas';
           const segue=await confirmar('Não consegui cancelar no Asaas',
-            esc(erro)+'. Se suspender assim mesmo, o cliente CONTINUA recebendo cobrança até alguém cancelar no painel do Asaas.',
+            erro+'. Se suspender assim mesmo, o cliente CONTINUA recebendo cobrança até alguém cancelar no painel do Asaas.',
             {sim:'Suspender assim mesmo',nao:'Parar'});
           if(!segue) return false;
           asa={cancelado:false,sub,erro:String(erro)};
@@ -18603,7 +18603,7 @@ window.cliSuspender=async (id)=>{
          O que ja foi recebido fica, pra nao mexer em mes fechado. */
       DB.recebimentos=(DB.recebimentos||[]).filter(r=>!(String(r.clienteId)===String(c.id)&&String(r.comp)>=comp&&!r.recebido));
       await saveDB(); render(currentView);
-      toast(esc(c.nome||'Cliente')+' suspenso a partir de '+fmtComp(comp)+(asa.cancelado?' · assinatura cancelada no Asaas':(sub?' · ATENÇÃO: cancele no Asaas':'')));
+      toast((c.nome||'Cliente')+' suspenso a partir de '+fmtComp(comp)+(asa.cancelado?' · assinatura cancelada no Asaas':(sub?' · ATENÇÃO: cancele no Asaas':'')));
     });
   setTimeout(()=>{ const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Suspender cliente'; },0);
 };
@@ -18619,7 +18619,7 @@ window.cliReativar=async (id)=>{
       if(!/^\d{4}-\d{2}$/.test(cp)){ toast('Escolha a competência.'); return false; }
       if(cp<=String(s.comp)) delete c.suspenso; else c.suspenso=Object.assign({},s,{ate:cp});
       await saveDB(); render(currentView);
-      toast(esc(c.nome||'Cliente')+' voltou para a carteira a partir de '+fmtComp(cp)+'.');
+      toast((c.nome||'Cliente')+' voltou para a carteira a partir de '+fmtComp(cp)+'.');
     });
   setTimeout(()=>{ const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Reativar cliente'; },0);
 };
