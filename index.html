@@ -8804,6 +8804,7 @@ const LC_PEND={gestor:'Sem gestor de tráfego',gerente:'Sem gerente',squad:'Sem 
 function lcPgDe(f){
   const c=finDaFicha(f); if(!c) return '';
   const comp=cliComp, hoje=hojeISO();
+  if(cliSusp(c,comp)) return 'suspenso';
   const r=(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===c.id);
   if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
   if(c.churnComp&&comp>c.churnComp) return 'churn';
@@ -8946,7 +8947,7 @@ window.lcGestorF=(g)=>{ TK.lcGestor=g; TK.lcVista=''; tkDesenhar($('#content'));
 window.lcPorF=(k)=>{ TK.lcPor=(k==='gerente')?'gerente':'gestor'; TK.lcGestor=''; TK.lcVista=''; tkDesenhar($('#content')); };
 window.lcVerGerentes=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
 const LC_NIVEL={promotor:{rot:'Promotor',cor:'#3fcf8e'},neutro:{rot:'Neutro',cor:'#8b95a5'},detrator:{rot:'Detrator',cor:'#ef5b6b'}};
-const LC_PG={recebido:{rot:'PAGO',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'}};
+const LC_PG={recebido:{rot:'PAGO',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'},suspenso:{rot:'SUSPENSO',cor:'var(--warn)'}};
 function lcVistaGerentes(){
   const por={};
   tkFiltradas().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
@@ -8958,7 +8959,7 @@ function lcVistaGerentes(){
   let pgDe=null, valDe=null;
   if(fin){ const comp=compNow(), hoje=hojeISO();
     const byCli={}; (DB.recebimentos||[]).filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
-    pgDe=(c)=>{ if(!c) return ''; const r=byCli[c.id];
+    pgDe=(c)=>{ if(!c) return ''; if(cliSusp(c,comp)) return 'suspenso'; const r=byCli[c.id];
       if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
       if(c.churnComp&&comp>c.churnComp) return 'churn';
       if(!(c.diaVenc>=1&&c.diaVenc<=31)) return '';
@@ -14942,6 +14943,14 @@ let statusFiltro='';
 /* Cliente arquivado (Gabriel 01/09): sai da carteira e das contas do mes, mas nao e
    churn e nao perde historico — da para desarquivar a qualquer momento. Serve para standby. */
 const cliArq=(c)=>!!(c&&c.arquivadoEm);
+/* SUSPENSO (Gabriel 25/09): cliente que fechou, entrou no sistema e voltou atras antes de
+   pagar/assinar. Sai da carteira, do a receber e da inadimplencia a partir da competencia
+   escolhida, SEM virar churn — churn e cliente que a gente teve e perdeu, e marcar assim
+   sujaria a retencao com uma venda que nunca existiu. O passado fica intacto, e reativar
+   carimba 'ate': os meses parados continuam parados pra sempre. */
+const cliSusp=(c,comp)=>{ const s=c&&c.suspenso; if(!s||!s.comp) return false;
+  return String(comp)>=String(s.comp)&&(!s.ate||String(comp)<String(s.ate)); };
+const cliSuspAgora=(c)=>!!(c&&c.suspenso&&c.suspenso.comp&&!c.suspenso.ate);
 let cliArqVista=false;
 const rcRestante=(r)=>Math.max(0,(Number((r||{}).valor)||0)-(Number((r||{}).sinal)||0));
 const rcRestVenc=(r)=>String((r&&(r.restanteVenc||r.venc))||'');
@@ -14960,6 +14969,7 @@ function calcRecebimentos(comp){
   const hoje=hojeISO();
   const byCli={}; DB.recebimentos.filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
   const st=(c)=>{ const r=byCli[c.id];
+    if(cliSusp(c,comp)) return 'suspenso'; /* nao cobra, nao atrasa, nao vira churn */
     if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
     if(c.inicio && comp<c.inicio) return null; /* cliente só conta a partir do mês de início */
     if(c.churnComp && comp>c.churnComp) return 'churn'; /* churn confirmado: perdido dali em diante */
@@ -14968,7 +14978,7 @@ function calcRecebimentos(comp){
     if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
     if(comp>compNow()) return 'areceber';
     return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
-  const g={recebido:[],sinal:[],inadimplente:[],areceber:[],carencia:[],churn:[],churnpago:[],semdia:[]};
+  const g={recebido:[],sinal:[],inadimplente:[],areceber:[],carencia:[],churn:[],churnpago:[],suspenso:[],semdia:[]};
   DB.clientes.forEach(c=>{ if(cliArq(c)) return; const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
   const val=(c)=>{ const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; }; /* valor congelado do mês, se houver registro */
   const soma=a=>a.reduce((s,x)=>s+val(x),0);
@@ -15021,7 +15031,7 @@ function rcBlocoEntradas(R,comp){
 function renderRecebimentos(c){
   const comp=cliComp;
   const R=calcRecebimentos(comp);
-  const ativos=DB.clientes.filter(x=>!cliArq(x)&&(!x.inicio||comp>=x.inicio)&&(!x.fim||comp<=x.fim));
+  const ativos=DB.clientes.filter(x=>!cliArq(x)&&!cliSusp(x,comp)&&(!x.inicio||comp>=x.inicio)&&(!x.fim||comp<=x.fim));
   const nArqCli=DB.clientes.filter(cliArq).length;
   const totalMensal=ativos.reduce((s,x)=>s+(Number(x.valor)||0),0);
   c.innerHTML=`
@@ -15040,6 +15050,7 @@ function renderRecebimentos(c){
          <option value="carencia"${statusFiltro==='carencia'?' selected':''}>Carência</option>
          <option value="churn"${statusFiltro==='churn'?' selected':''}>Churn</option>
          <option value="churnpago"${statusFiltro==='churnpago'?' selected':''}>Churn (mês pago)</option>
+         <option value="suspenso"${statusFiltro==='suspenso'?' selected':''}>Suspenso</option>
        </select>
        ${(nArqCli||cliArqVista)?`<button class="btn ghost small${cliArqVista?' fon':''}" id="cArqBtn" title="Clientes arquivados"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/></svg> Arquivados${nArqCli?' ('+nArqCli+')':''}</button>`:''}
        <button class="btn small" onclick="openCliModal()">+ Cliente</button>
@@ -15052,6 +15063,7 @@ function renderRecebimentos(c){
      <div class="card"><div class="k"><i class="emi-dot" style="background:#e6b13f"></i> A receber</div><div class="v">${brl(R.soma(R.g.areceber)+R.sinaisRestante)}</div><div class="sub">${R.g.areceber.length} cliente${R.g.areceber.length===1?'':'s'} no prazo</div></div>
      <div class="card"><div class="k"><i class="emi-dot" style="background:#a78bfa"></i> Carência</div><div class="v">${brl(R.isentoCarencia)}</div><div class="sub">${R.g.carencia.length} cliente${R.g.carencia.length===1?'':'s'} · isento no mês</div></div>
      <div class="card"><div class="k"><i class="emi-dot" style="background:#6b7280"></i> Churn</div><div class="v ${R.g.churn.length?'neg':''}">${brl(R.perdaChurn)}</div><div class="sub">${R.g.churn.length} cliente${R.g.churn.length===1?'':'s'} · receita perdida${R.g.churnpago.length?(' · +'+R.g.churnpago.length+' saiu com o mês pago'):''}</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:var(--warn)"></i> Suspensos</div><div class="v">${brl(R.soma(R.g.suspenso))}</div><div class="sub">${R.g.suspenso.length} cliente${R.g.suspenso.length===1?'':'s'} · fora da cobrança</div></div>
      <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)}</div><div class="sub">${ativos.length} clientes ativos</div></div>
    </div>
    ${rcBlocoEntradas(R,comp)}
@@ -15066,7 +15078,9 @@ function renderRecebimentos(c){
        somando a perda do mes, e quem quiser ver a lista acha pelo filtro de status.
        Churn (mes pago) NAO some: a receita daquele mes e real e precisa aparecer. */
     const foraChurn=(r)=>statusFiltro==='churn'||R.st(r)!=='churn';
-    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(cliArqVista?cliArq(r):!cliArq(r))&&foraChurn(r)&&(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro)&&(!statusFiltro||R.st(r)===statusFiltro));
+    /* suspenso tambem sai da planilha: o lugar dele e o cartao Suspensos e o filtro de status */
+    const foraSusp=(r)=>statusFiltro==='suspenso'||R.st(r)!=='suspenso';
+    const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(cliArqVista?cliArq(r):!cliArq(r))&&foraChurn(r)&&foraSusp(r)&&(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro)&&(!statusFiltro||R.st(r)===statusFiltro));
     $('#cBody').innerHTML=rows.map(r=>{
       const s=R.st(r); const rec=R.byCli[r.id];
       const podeMarcar=s||(r.diaVenc>=1&&r.diaVenc<=31);
@@ -18542,17 +18556,90 @@ window.cliDesarquivar=async (id)=>{
   delete c.arquivadoEm;
   await saveDB(); render(currentView); toast((c.nome||'Cliente')+' voltou para a carteira.');
 };
+/* SUSPENDER / REATIVAR (Gabriel 25/09).
+   Caso que deu origem: cliente fechou, o comercial cadastrou, o cliente nao pagou e voltou
+   atras. Marcar churn seria mentira (nunca foi cliente) e estragaria a retencao; arquivar
+   esconderia ate o historico dos meses fechados. Aqui ele so para de contar da competencia
+   escolhida em diante — e a assinatura do Asaas e cancelada junto, senao o cara continua
+   recebendo PIX todo mes de um contrato que ele desistiu. */
+window.cliSuspender=async (id)=>{
+  const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
+  const sub=String(((c.asaas||{}).subscriptionId)||'');
+  let ass=null;
+  if(sub){
+    toast('Conferindo a assinatura no Asaas...');
+    try{ const {data}=await sb.functions.invoke('asaas-assinatura',{body:{acao:'ver',sub}});
+      if(data&&data.ok) ass=data; }catch(_){}
+  }
+  const txtAsaas=!sub ? 'Este cliente não tem assinatura no Asaas.'
+    : (ass&&ass.emAberto!=null
+        ? ('A assinatura no Asaas será cancelada: '+ass.emAberto+' cobrança'+(ass.emAberto===1?'':'s')+' em aberto deixam de ser geradas.')
+        : 'A assinatura no Asaas será cancelada (não consegui contar as cobranças agora).');
+  modal('Suspender '+esc(c.nome||'cliente'),
+    '<div class="field"><label>Para de contar a partir de</label><input type="month" id="sp_comp" value="'+esc(cliComp)+'"></div>'+
+    '<div class="field"><label>Motivo</label><input id="sp_mot" value="Aguardando contrato" placeholder="ex: aguardando contrato"></div>'+
+    '<p class="hint">Ele sai da carteira, do a receber e da inadimplência dessa competência em diante, e <strong>não</strong> conta como churn. Nada é apagado: ficha, histórico e meses já fechados continuam como estão.</p>'+
+    '<p class="hint">'+esc(txtAsaas)+'</p>',
+    async ()=>{
+      const comp=((($('#sp_comp')||{}).value)||'').slice(0,7);
+      if(!/^\d{4}-\d{2}$/.test(comp)){ toast('Escolha a competência.'); return false; }
+      const motivo=((($('#sp_mot')||{}).value)||'').trim()||'Aguardando contrato';
+      let asa={cancelado:false};
+      if(sub){
+        let r=null;
+        try{ const {data}=await sb.functions.invoke('asaas-assinatura',{body:{acao:'cancelar',sub}}); r=data; }catch(e){ r=null; }
+        if(r&&r.ok){ asa={cancelado:true,em:r.em||hojeISO(),sub,cobrancas:r.cancelou!=null?r.cancelou:null}; }
+        else{
+          const erro=(r&&r.erro)||'não consegui falar com o Asaas';
+          const segue=await confirmar('Não consegui cancelar no Asaas',
+            esc(erro)+'. Se suspender assim mesmo, o cliente CONTINUA recebendo cobrança até alguém cancelar no painel do Asaas.',
+            {sim:'Suspender assim mesmo',nao:'Parar'});
+          if(!segue) return false;
+          asa={cancelado:false,sub,erro:String(erro)};
+        }
+      }
+      c.suspenso={comp,motivo,em:hojeISO(),por:((currentUser||{}).nome||''),asaas:asa};
+      /* cobranca em aberto dessa competencia em diante sai: ele desistiu, nunca deveu.
+         O que ja foi recebido fica, pra nao mexer em mes fechado. */
+      DB.recebimentos=(DB.recebimentos||[]).filter(r=>!(String(r.clienteId)===String(c.id)&&String(r.comp)>=comp&&!r.recebido));
+      await saveDB(); render(currentView);
+      toast(esc(c.nome||'Cliente')+' suspenso a partir de '+fmtComp(comp)+(asa.cancelado?' · assinatura cancelada no Asaas':(sub?' · ATENÇÃO: cancele no Asaas':'')));
+    });
+  setTimeout(()=>{ const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Suspender cliente'; },0);
+};
+window.cliReativar=async (id)=>{
+  const c=(DB.clientes||[]).find(x=>x.id===id); if(!c||!c.suspenso) return;
+  const s=c.suspenso, asa=s.asaas||{};
+  modal('Reativar '+esc(c.nome||'cliente'),
+    '<div class="field"><label>Volta a contar a partir de</label><input type="month" id="rv_comp" value="'+esc(compNow())+'"></div>'+
+    '<p class="hint">Suspenso em '+esc(fmtComp(s.comp))+(s.motivo?' · '+esc(s.motivo):'')+'. Os meses parados continuam parados: só volta a contar da competência escolhida em diante.</p>'+
+    (asa.cancelado?'<p class="hint">A assinatura no Asaas foi cancelada quando ele foi suspenso. Para voltar a cobrar automático, crie a cobrança de novo no Asaas.</p>':''),
+    async ()=>{
+      const cp=((($('#rv_comp')||{}).value)||'').slice(0,7);
+      if(!/^\d{4}-\d{2}$/.test(cp)){ toast('Escolha a competência.'); return false; }
+      if(cp<=String(s.comp)) delete c.suspenso; else c.suspenso=Object.assign({},s,{ate:cp});
+      await saveDB(); render(currentView);
+      toast(esc(c.nome||'Cliente')+' voltou para a carteira a partir de '+fmtComp(cp)+'.');
+    });
+  setTimeout(()=>{ const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Reativar cliente'; },0);
+};
 /* Menu da linha do cliente: arquivar, mandar para o Controle de Churns ou excluir. */
 window.cliAcoes=async (id)=>{
   const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
   const arq=cliArq(c);
+  const susp=cliSuspAgora(c);
   const ops=arq
     ? [{v:'desarq',rot:'↩ Desarquivar'},{v:'excluir',rot:'Excluir de vez'}]
-    : [{v:'arquivar',rot:'Arquivar'},{v:'churn',rot:'Mover para Controle de Churns'},{v:'excluir',rot:'Excluir de vez'}];
+    : susp
+    ? [{v:'reativar',rot:'Reativar cliente'},{v:'excluir',rot:'Excluir de vez'}]
+    : [{v:'suspender',rot:'Suspender (fechou e voltou atrás)'},{v:'arquivar',rot:'Arquivar'},{v:'churn',rot:'Mover para Controle de Churns'},{v:'excluir',rot:'Excluir de vez'}];
   const v=await escolher(c.nome||'Cliente',
     arq?('Arquivado em '+fmtDate(c.arquivadoEm)+'. Desarquivar devolve o cliente à carteira.')
-       :'Arquivar tira da carteira e é reversível. Churn marca a saída em '+fmtComp(cliComp)+' e move o card. Excluir apaga cliente, cobranças, lançamentos e ficha.',
+     :susp?('Suspenso em '+fmtComp(c.suspenso.comp)+(c.suspenso.motivo?' · '+c.suspenso.motivo:'')+'. Reativar devolve o cliente à carteira.')
+       :'Suspender para de cobrar sem virar churn, para quem fechou e voltou atrás. Arquivar tira da carteira e é reversível. Churn marca a saída em '+fmtComp(cliComp)+' e move o card. Excluir apaga cliente, cobranças, lançamentos e ficha.',
     ops);
+  if(v==='suspender') return cliSuspender(id);
+  if(v==='reativar') return cliReativar(id);
   if(v==='arquivar') return cliArquivar(id);
   if(v==='desarq') return cliDesarquivar(id);
   if(v==='churn') return rcStatusCli(id,'churn');
