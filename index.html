@@ -4190,6 +4190,10 @@ function render(view){
     if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
     return renderUsuarios(c);
   }
+  if(view==='rh'){
+    if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
+    return renderRH(c);
+  }
 }
 
 /* ---------- TRÁFEGO PAGO ---------- */
@@ -5801,7 +5805,8 @@ const ehCom=(lid)=>!!LCOM[lid];
    Mesma ideia das listas do Financeiro, mas sem o recorte de master: quem nao
    pode ver alguma coisa la dentro ja e barrado pela propria tela. */
 const LTEL={'f1e2d3c4-0000-4a00-8b00-00000000a001':'acessos','f1e2d3c4-0000-4a00-8b00-00000000a002':'processos',
-  'f1e2d3c4-0000-4a00-8b00-00000000a003':'usuarios','f1e2d3c4-0000-4a00-8b00-00000000a004':'reembolsos'};
+  'f1e2d3c4-0000-4a00-8b00-00000000a003':'usuarios','f1e2d3c4-0000-4a00-8b00-00000000a004':'reembolsos',
+  'f1e2d3c4-0000-4a00-8b00-00000000e001':'rh'};
 const ehTela=(lid)=>!!LTEL[lid]||!!LCOM[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
@@ -8111,6 +8116,7 @@ const ESP_DESC={
   'acessos':'Senhas, links e IDs de tráfego.',
   'processos':'Como a casa faz cada coisa.',
   'usuarios':'Quem entra no sistema e o que cada um alcança.',
+  'rh':'Dados da empresa e de cada pessoa da equipe.',
   'reembolsos':'Pedidos da equipe, do envio ao pagamento.',
   'painel':'Shows, no-shows, conversão e ticket do mês.',
   'calls':'Toda reunião registrada, com resultado e valor.',
@@ -16578,6 +16584,118 @@ function drawUsuarios(c){
    <p class="hint" style="margin-top:14px">O acesso só existe se um <strong>master</strong> criar aqui: não há autocadastro na tela de login. A senha fica <strong>cifrada no servidor</strong>: o pede a senha a uma função protegida que só responde a masters. Quem esquecer a senha pede a um master para <strong>Redefinir</strong>.${masters<=1?' <br><strong>Atenção:</strong> só existe um master hoje, promova alguém para não ficar sem acesso.':''}</p>`;
   usWaCarregar();
 }
+/* ---------- RH (Gabriel 29/09) ----------
+   Administrativo > RH > Equipe. Cadastro da empresa e de socios e colaboradores
+   (CPF, RG, Pix, banco, nascimento). Mora nas tabelas cadastro_empresa e
+   cadastro_pessoas, que so master le e grava (RLS is_master). Desligar nao apaga:
+   marca ativo=false e a pessoa sai da tela. */
+let RH={empresa:null,pessoas:[],erro:''};
+async function rhCarregar(){
+  const [e,p]=await Promise.all([
+    sb.from('cadastro_empresa').select('*').eq('id',1).maybeSingle(),
+    sb.from('cadastro_pessoas').select('*').eq('ativo',true).order('nome_completo')
+  ]);
+  RH.erro=(e.error&&e.error.message)||(p.error&&p.error.message)||'';
+  RH.empresa=e.data||null; RH.pessoas=p.data||[];
+}
+function renderRH(c){
+  c.innerHTML='<div class="empty">Carregando RH...</div>';
+  rhCarregar().then(()=>drawRH(c));
+}
+const rhIdade=(d)=>{ if(!d) return ''; const n=new Date(d+'T12:00:00'), h=new Date();
+  let a=h.getFullYear()-n.getFullYear(); if(h<new Date(h.getFullYear(),n.getMonth(),n.getDate())) a--; return a+' anos'; };
+const rhCel=(v)=>v?esc(v):'<span style="color:var(--muted)">-</span>';
+function rhTabela(lista){
+  if(!lista.length) return '<div class="hint">Ninguém aqui ainda.</div>';
+  return `<div class="tablewrap"><table><thead><tr><th>Nome</th><th>Nascimento</th><th>Telefone</th><th>E-mail</th><th>CPF</th><th>RG</th><th>Chave Pix</th><th>Banco</th><th></th></tr></thead>
+   <tbody>${lista.map(x=>`<tr>
+     <td><span style="display:inline-flex;align-items:center;gap:9px">${avatar(x.perfil_id,x.nome_completo,'sm')}<strong>${esc(x.nome_completo)}</strong></span></td>
+     <td style="font-variant-numeric:tabular-nums">${x.nascimento?esc(fmtDate(x.nascimento))+'<div class="hint">'+rhIdade(x.nascimento)+'</div>':rhCel('')}</td>
+     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(x.telefone)}</td>
+     <td>${rhCel(x.email)}</td>
+     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(x.cpf)}</td>
+     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(x.rg)}</td>
+     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(x.pix)}</td>
+     <td>${rhCel(x.banco)}</td>
+     <td><div class="rowact"><button class="iconbtn" onclick="rhPessoaModal('${x.id}')">Editar</button><button class="iconbtn del" onclick="rhDesligar('${x.id}')">Desligar</button></div></td>
+   </tr>`).join('')}</tbody></table></div>`;
+}
+function drawRH(c){
+  if(RH.erro){ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(RH.erro)+'</div>'; return; }
+  const e=RH.empresa||{}, soc=RH.pessoas.filter(x=>x.vinculo==='socio'), col=RH.pessoas.filter(x=>x.vinculo!=='socio');
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>RH</h2><div class="desc">Dados da empresa e da equipe. Só master vê esta tela.</div></div>
+     <div class="toolbar"><button class="btn small" onclick="rhPessoaModal()">+ Nova pessoa</button></div>
+   </div>
+   <div class="tk-sec" style="margin-top:0;border-top:0;padding-top:0">Empresa</div>
+   <div class="tablewrap"><table><thead><tr><th>Razão social</th><th>CNPJ</th><th>Responsável legal</th><th>Tipo</th><th>Serviço</th><th>Endereço</th><th></th></tr></thead>
+   <tbody><tr>
+     <td><strong>${rhCel(e.razao_social)}</strong></td>
+     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(e.cnpj)}</td>
+     <td>${rhCel(e.responsavel)}</td><td>${rhCel(e.tipo)}</td><td>${rhCel(e.servico)}</td><td>${rhCel(e.endereco)}</td>
+     <td><div class="rowact"><button class="iconbtn" onclick="rhEmpresaModal()">Editar</button></div></td>
+   </tr></tbody></table></div>
+   <div class="tk-sec">Sócios<span class="tk-sec-n">${soc.length}</span></div>
+   ${rhTabela(soc)}
+   <div class="tk-sec">Colaboradores<span class="tk-sec-n">${col.length}</span></div>
+   ${rhTabela(col)}
+   <p class="hint" style="margin-top:14px">Estes dados ficam protegidos no banco: só quem é master consegue ler ou alterar. Desligar tira a pessoa da lista sem apagar o histórico.</p>`;
+}
+const rhCampo=(id,rot,val,tipo,ph)=>`<div class="field"><label>${rot}</label><input id="${id}"${tipo?` type="${tipo}"`:''} value="${esc(val||'')}"${ph?` placeholder="${esc(ph)}"`:''}></div>`;
+window.rhPessoaModal=(id)=>{
+  const x=id?RH.pessoas.find(p=>p.id===id):null, v=x||{vinculo:'colaborador'};
+  const logins=(TK.equipe||[]).slice().sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt'));
+  modal(x?'Editar '+x.nome_completo:'Nova pessoa',`
+    <div class="field"><label>Vínculo</label><select id="rh_vinc">
+      <option value="colaborador"${v.vinculo!=='socio'?' selected':''}>Colaborador</option>
+      <option value="socio"${v.vinculo==='socio'?' selected':''}>Sócio</option></select></div>
+    ${rhCampo('rh_nome','Nome completo',v.nome_completo)}
+    <div class="field"><label>Login no sistema</label><select id="rh_perfil"><option value="">Sem login</option>
+      ${logins.map(u=>`<option value="${esc(u.id)}"${String(u.id)===String(v.perfil_id||'')?' selected':''}>${esc(u.nome)}</option>`).join('')}</select></div>
+    ${rhCampo('rh_nasc','Data de nascimento',v.nascimento,'date')}
+    ${rhCampo('rh_tel','Telefone',v.telefone,'','(24) 99999-9999')}
+    ${rhCampo('rh_email','E-mail pessoal',v.email,'email')}
+    ${rhCampo('rh_cpf','CPF',v.cpf,'','000.000.000-00')}
+    ${rhCampo('rh_rg','RG',v.rg)}
+    ${rhCampo('rh_pix','Chave Pix',v.pix,'','CPF, telefone, e-mail ou CNPJ')}
+    ${rhCampo('rh_banco','Banco',v.banco,'','ex: Nubank')}`,
+    async ()=>{
+      const t=(s)=>($(s).value||'').trim()||null;
+      const d={vinculo:$('#rh_vinc').value,nome_completo:t('#rh_nome'),perfil_id:t('#rh_perfil'),nascimento:t('#rh_nasc'),
+        telefone:t('#rh_tel'),email:t('#rh_email'),cpf:t('#rh_cpf'),rg:t('#rh_rg'),pix:t('#rh_pix'),banco:t('#rh_banco')};
+      if(!d.nome_completo||d.nome_completo.length<3){ toast('Informe o nome completo.'); return false; }
+      const {error}=x?await sb.from('cadastro_pessoas').update(d).eq('id',x.id):await sb.from('cadastro_pessoas').insert(d);
+      if(error){ toast('Erro: '+error.message); return false; }
+      render('rh'); toast(x?'Cadastro atualizado.':'Pessoa adicionada.'); return true;
+    });
+};
+window.rhEmpresaModal=()=>{
+  const e=RH.empresa||{};
+  modal('Dados da empresa',`
+    ${rhCampo('rhe_razao','Razão social',e.razao_social)}
+    ${rhCampo('rhe_cnpj','CNPJ',e.cnpj,'','00.000.000/0000-00')}
+    ${rhCampo('rhe_resp','Responsável legal',e.responsavel)}
+    ${rhCampo('rhe_tipo','Tipo de empresa',e.tipo)}
+    ${rhCampo('rhe_serv','Serviço prestado',e.servico)}
+    ${rhCampo('rhe_end','Endereço',e.endereco)}`,
+    async ()=>{
+      const t=(s)=>($(s).value||'').trim()||null;
+      const d={id:1,razao_social:t('#rhe_razao'),cnpj:t('#rhe_cnpj'),responsavel:t('#rhe_resp'),tipo:t('#rhe_tipo'),servico:t('#rhe_serv'),endereco:t('#rhe_end')};
+      if(!d.razao_social){ toast('Informe a razão social.'); return false; }
+      const {error}=await sb.from('cadastro_empresa').upsert(d);
+      if(error){ toast('Erro: '+error.message); return false; }
+      render('rh'); toast('Dados da empresa salvos.'); return true;
+    });
+};
+window.rhDesligar=async (id)=>{
+  const x=RH.pessoas.find(p=>p.id===id); if(!x) return;
+  const ok=await confirmar('Desligar '+x.nome_completo+'?','A pessoa sai da lista do RH. O cadastro continua guardado no banco.',{sim:'Desligar',nao:'Cancelar',perigo:true});
+  if(!ok) return;
+  const {error}=await sb.from('cadastro_pessoas').update({ativo:false}).eq('id',id);
+  if(error){ toast('Erro: '+error.message); return; }
+  render('rh'); toast(x.nome_completo+' desligado do RH.');
+};
 /* ---------- ONDE CADA UM COMEÇA ----------
    perfis.inicio decide o pouso ao entrar e no botão Início: 'dash', vazio (Base de
    Clientes) ou o id de uma lista. perfis.lista_inicial é o atalho do botão Espaços,
