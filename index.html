@@ -7424,6 +7424,9 @@ window.tkMonEditar=(btn,tid,cid)=>{
    mesmo pcPessoaSet da ficha. Muda quem muda as colunas travadas: master e o gerente do cliente.
    Popup no mesmo desenho do Gestor (tkpop). */
 const LC_GER_COL='__gerente';
+/* Troca o mes que a coluna Situacao (e a vista de gerentes) esta mostrando. E o mesmo
+   cliComp da tela de Recebimentos de proposito: os dois falam do mesmo mes. */
+window.lcMes=(v)=>{ cliComp=v||compNow(); tkDesenhar($('#content')); };
 const lcPodeGerente=(t)=>!!(t&&t.ficha_id&&currentUser&&(currentUser.role==='master'||souGerenteDaFicha(t.ficha_id)));
 window.lcGerMenu=(ev,tid)=>{ ev.stopPropagation();
   const chave='ger'+tid;
@@ -7458,6 +7461,14 @@ const tkCelula=(t,c)=>{
       :'<span class="tk-trava vaz" title="Gerente, só o master e o gerente do cliente alteram">-</span>';
     return `<button type="button" class="tk-pcel${g?'':' vazio'}" title="${g?esc(g):'Definir gerente'}" onclick="lcGerMenu(event,'${t.id}')">${g?avatarDoNome(g,'av sm','Gerente')
       :'<svg class="pcel-add" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 20v-1.6a3.6 3.6 0 0 0-3.6-3.6H6.6A3.6 3.6 0 0 0 3 18.4V20"/><circle cx="9" cy="8" r="3.6"/><path d="M18.5 8.5v5M21 11h-5"/></svg>'}</button>`; }
+  if(c.id===LC_SIT){
+    const f=fichaDe(t.ficha_id);
+    if(!f) return '<span class="hint" style="margin:0" title="Card sem ficha de cliente">-</span>';
+    const k=lcPgDe(f);
+    const quando=fmtComp(cliComp);
+    if(!LC_PG[k]) return `<span class="tk-trava vaz" title="Sem cobrança em ${esc(quando)}">-</span>`;
+    return `<span title="Pagamento em ${esc(quando)}, calculado dos Recebimentos">${lcTagPG(k)}</span>`;
+  }
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
   const v=valCampo(c,(t.valores||{})[c.id]);
   const vazio=(v==null||v==='')?' vazio':'';
@@ -9024,7 +9035,14 @@ window.lcGestorF=(g)=>{ TK.lcGestor=g; TK.lcVista=''; tkDesenhar($('#content'));
 window.lcPorF=(k)=>{ TK.lcPor=(k==='gerente')?'gerente':'gestor'; TK.lcGestor=''; TK.lcVista=''; tkDesenhar($('#content')); };
 window.lcVerGerentes=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
 const LC_NIVEL={promotor:{rot:'Promotor',cor:'#3fcf8e'},neutro:{rot:'Neutro',cor:'#8b95a5'},detrator:{rot:'Detrator',cor:'#ef5b6b'}};
-const LC_PG={recebido:{rot:'PAGO',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'}};
+const LC_PG={recebido:{rot:'PAGO',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},carencia:{rot:'CARÊNCIA',cor:'#a78bfa'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'}};
+/* Etiqueta do pagamento do mes, com cifrao pra deixar claro que fala de dinheiro
+   (Gabriel 29/09). Era um const dentro do lcVistaGerentes; subiu pra ca porque a coluna
+   Situacao do Controle de Clientes passou a usar a MESMA etiqueta — irmao usa o mesmo
+   componente. Cor em var() nao aceita o sufixo de opacidade, por isso o fundo separado. */
+const lcTagPG=(k)=>{ const p=LC_PG[k]; if(!p) return '-';
+  const bg=String(p.cor).indexOf('var(')===0?'rgba(96,165,250,.12)':p.cor+'1f';
+  return `<span class="tag st" style="font-weight:800;color:${p.cor};background:${bg}">$ ${p.rot}</span>`; };
 function lcVistaGerentes(){
   const por={};
   tkFiltradas().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
@@ -9034,7 +9052,7 @@ function lcVistaGerentes(){
   /* mensalidade + situação de pagamento: só master enxerga (DB.clientes/recebimentos são restritos) */
   const fin=!!(currentUser&&currentUser.role==='master'&&(DB.clientes||[]).length);
   let pgDe=null, valDe=null;
-  if(fin){ const comp=compNow(), hoje=hojeISO();
+  if(fin){ const comp=cliComp, hoje=hojeISO();   /* segue o seletor de mes da tela */
     const byCli={}; (DB.recebimentos||[]).filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
     pgDe=(c)=>{ if(!c) return ''; const r=byCli[c.id];
       if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
@@ -9044,7 +9062,7 @@ function lcVistaGerentes(){
     valDe=(c)=>{ if(!c) return 0; const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; };
   }
   const tagN=(k)=>{ const n=LC_NIVEL[k]; return n?`<span class="tag st" style="color:${n.cor};background:${n.cor}1a">${n.rot}</span>`:'-'; };
-  const tagPG=(k)=>{ const p=LC_PG[k]; return p?`<span class="tag st" style="font-weight:800;color:${p.cor};background:${p.cor}1f">${p.rot}</span>`:'-'; };
+  const tagPG=lcTagPG;
   const gs=Object.keys(por).sort((a,b)=>por[b].length-por[a].length);
   return gs.map(g=>{
     const linhas=por[g].map(x=>{ const c=fin?finDaFicha(x.f):null;
@@ -9174,7 +9192,9 @@ function tkDesenhar(c){
     c.innerHTML=`
    <div class="page-head tp-head">
      <div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>${titulo}</h2>${abas}
-       <div class="tp-dir">${lcSeloContas()}
+       <div class="tp-dir">
+         <input type="month" class="search" id="lcCompInp" value="${esc(cliComp)}" style="width:132px;min-width:132px" title="Mês da situação de pagamento" onchange="lcMes(this.value)">
+         ${lcSeloContas()}
          ${busca?`<input class="search tp-busca" id="tk_busca" placeholder="Buscar cliente..." value="${esc(TK.busca)}" oninput="tkBusca(this.value)" onblur="if(!this.value){TK.tpBusca=false;tkDesenhar($('#content'));}">`
            :tpIb('lupa','Buscar',"TK.tpBusca=true;TK.focoBusca=true;tkDesenhar($('#content'))")}
          ${ger?'':tpIb('pessoa',TK.lcPor==='gerente'?'Gerente':'Gestor de tráfego','lcPopPessoa(event)',!!TK.lcGestor,TK.lcGestor?1:'')}
@@ -10208,6 +10228,11 @@ async function lcSyncMens(){
   return n;
 }
 const LC_GEST='35cf51e0-c581-473d-8b16-065f4b0e3dc3';
+/* Coluna "Situação": era campo manual e ninguem mantinha — 54 clientes ficaram com "OK",
+   valor que nem existe mais nas opcoes. Agora ela mostra o pagamento DO MES escolhido,
+   calculado dos Recebimentos. Nao da pra gravar isso no banco: o valor muda conforme o
+   mes que a pessoa esta olhando (Gabriel 29/09: "o gerente ver a situacao do mes"). */
+const LC_SIT='06102f93-48d6-4e1f-96fc-ed8c0ed4da15';
 /* Cliente so de Agent IA/CRM nao tem gestor de trafego. Nao e ficha incompleta —
    e o campo simplesmente nao aparece pra ele (Gabriel, 01/09). */
 const lcSoIA=(t)=>{ const f=(t&&t.ficha_id)?fichaDe(t.ficha_id):null; return !!f&&soIA(f); };
