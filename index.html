@@ -8310,7 +8310,12 @@ const vendasOpcoes=()=>[
    d:'Quem preencheu o formulário de autosintese.app.br/ads. Com WhatsApp, Instagram e de qual anúncio veio.'},
   {k:'contratos',  ic:'papel',  t:'Gerador de contratos',
    d:'Escolhe o modelo, preenche e baixa o .docx pronto pra assinar.', quem:'contratos'},
-].filter(o=>o.quem!=='contratos'||podeContratos());
+  /* o ultimo passo: assinou, vira projeto. Saiu da tela em 23/09 junto com a restricao de
+     quem pode fechar, e quem PODE fechar ficou sem o passo na tela — so achava o caminho
+     pela arvore. Voltou em 29/09 com a mesma trava de antes: so passa no podeFechamento. */
+  {k:'fechamento', ic:'aperto', t:'Passar o cliente pro operacional',
+   d:'Contrato assinado? Aqui o cliente vira projeto: entra na carteira, na cobrança e cai pro time que vai tocar.', quem:'fechamento'},
+].filter(o=>(o.quem!=='contratos'||podeContratos())&&(o.quem!=='fechamento'||podeFechamento()));
 
 const VEN_ICO={
   /* sino: fechou contrato, toca o sino (Gabriel 15/09) */
@@ -8353,7 +8358,7 @@ window.renderVendas=(c)=>{
         return `<button class="sup-card" onclick="venEscolher('${o.k}')">${venIco(o.ic)}<b>${esc(o.t)}</b><span>${esc(o.d)}</span>${
           n?`<span class="ven-n">${n} sem atender</span>`:''}</button>`; }).join('')}</div>`;
   /* os dois contadores so aparecem depois que as listas chegam */
-  fcCarregarForms().then(()=>{ if(currentView==='vendas') renderVendas(c); }).catch(()=>{});
+  if(!FC_FORMS_OK) fcCarregarForms().then(()=>{ if(currentView==='vendas') renderVendas(c); }).catch(()=>{});
   if(!LD.carregou) ldCarregar().then(()=>{ if(currentView==='vendas') renderVendas(c); }).catch(()=>{});
 };
 
@@ -13590,6 +13595,12 @@ window.fcProgresso=()=>{
    em Contratos. Por isso puxar aqui NAO arquiva nem consome o registro — quem
    arquiva e o Contratos, quando o contrato sai. Leitura so, sem mexer em RLS. */
 let FC_FORMS=[];
+/* Ja carregou os formularios pelo menos uma vez? A aba Vendas se repintava sem parar
+   (29/09): ela chamava fcCarregarForms sem trava e, ao voltar, chamava renderVendas de
+   novo — que chamava fcCarregarForms outra vez. A tela piscava e o clique da pessoa caia
+   num botao que ja tinha sido trocado, parecendo que clicava sozinho. A trava fica no
+   CHAMADOR, nao aqui dentro, porque as outras telas precisam recarregar de verdade. */
+let FC_FORMS_OK=false;
 /* Rotulo do estado do formulario. Arquivar acontece no Contratos e nao quer dizer
    nada aqui — o dado do cliente continua valendo pra abrir projeto (Gabriel, 09/09). */
 const FC_STFORM={novo:['novo','Novo'],usado:['ativo','Já virou contrato'],arquivado:['planejado','Arquivado']};
@@ -13604,6 +13615,7 @@ async function fcCarregarForms(){
     const pri=(st)=>{ const o={novo:0,usado:1,arquivado:2}[String(st||'novo')]; return o===undefined?3:o; };
     FC_FORMS=(data||[]).sort((a,b)=>pri(a.status)-pri(b.status));
   }catch(_){ FC_FORMS=[]; }
+  finally{ FC_FORMS_OK=true; }
 }
 function fcFaixaForms(){
   const box=$('#fc_puxar'); if(!box) return;
