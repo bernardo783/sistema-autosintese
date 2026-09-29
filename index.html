@@ -7409,9 +7409,30 @@ window.tkMonEditar=(btn,tid,cid)=>{
   inp.onblur=()=>fim(true);
 };
 /* Controle de Clientes (Gabriel 29/09): coluna Gerente logo antes do Gestor, pra bater o olho e ver
-   quem responde pelo projeto. Nao e campo da lista: vem da ficha (f.gerente, nome), so leitura;
-   muda-se o gerente na propria ficha do cliente. */
+   quem responde pelo projeto. Nao e campo da lista: le e grava f.gerente (nome) da ficha, pelo
+   mesmo pcPessoaSet da ficha. Muda quem muda as colunas travadas: master e o gerente do cliente.
+   Popup no mesmo desenho do Gestor (tkpop). */
 const LC_GER_COL='__gerente';
+const lcPodeGerente=(t)=>!!(t&&t.ficha_id&&currentUser&&(currentUser.role==='master'||souGerenteDaFicha(t.ficha_id)));
+window.lcGerMenu=(ev,tid)=>{ ev.stopPropagation();
+  const chave='ger'+tid;
+  const vel=document.getElementById('tkQaMenu'); if(vel){ const ja=vel.dataset.id===chave; vel.remove(); if(ja) return; }
+  const t=TK.tarefas.find(x=>x.id===tid); if(!t||!t.ficha_id) return;
+  const at=String((fichaDe(t.ficha_id)||{}).gerente||'').trim();
+  const r=ev.currentTarget.getBoundingClientRect();
+  const el=document.createElement('div'); el.id='tkQaMenu'; el.className='tkpop'; el.dataset.id=chave;
+  el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-266))+'px'; el.style.top=(r.bottom+6)+'px'; el.style.width='260px';
+  el.style.maxHeight='340px'; el.style.overflowY='auto';
+  const gente=filtraPapel(((TK&&TK.equipe)||[]).slice(),'gerente').sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));
+  el.innerHTML=`<div class="tkp-sec">Gerente</div>
+    ${popBusca()}
+    <label class="tkp-row" data-fixo="1" data-n=""><span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span><span class="tkp-nm">Ninguém</span>${!at?'<span class="tkp-n">•</span>':''}</label>
+    ${gente.map(u=>`<label class="tkp-row" data-n="${esc(u.nome)}">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span>${primNome(u.nome)===primNome(at)?'<span class="tkp-n">•</span>':''}</label>`).join('')}`;
+  el.querySelectorAll('.tkp-row').forEach(row=>row.onclick=()=>{ el.remove(); pcPessoaSet(t.ficha_id,'gerente',row.dataset.n||'',true); });
+  document.body.appendChild(el); popPor(el,r);
+  const bP=el.querySelector('.tkp-b'); if(bP) bP.focus();
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
 function lcComGerente(cps){
   const col={id:LC_GER_COL,nome:'Gerente',tipo:'pessoa',largura:((cps.find(c=>c.id===LC_GEST)||{}).largura||76)+22};
   const i=cps.findIndex(c=>c.id===LC_GEST), out=cps.slice();
@@ -7421,8 +7442,11 @@ function lcComGerente(cps){
 }
 const tkCelula=(t,c)=>{
   if(c.id===LC_GER_COL){ const g=String((fichaDe(t.ficha_id)||{}).gerente||'').trim();
-    return g?`<span class="tk-trava" title="Gerente: ${esc(g)}. Muda na ficha do cliente">${avatarDoNome(g,'av sm','Gerente')}</span>`
-            :'<span class="hint" style="margin:0" title="Ficha sem gerente">-</span>'; }
+    if(!t.ficha_id) return '<span class="hint" style="margin:0" title="Card sem ficha de cliente">-</span>';
+    if(!lcPodeGerente(t)) return g?`<span class="tk-trava" title="Gerente, só o master e o gerente do cliente alteram">${avatarDoNome(g,'av sm','Gerente')}</span>`
+      :'<span class="tk-trava vaz" title="Gerente, só o master e o gerente do cliente alteram">-</span>';
+    return `<button type="button" class="tk-pcel${g?'':' vazio'}" title="${g?esc(g):'Definir gerente'}" onclick="lcGerMenu(event,'${t.id}')">${g?avatarDoNome(g,'av sm','Gerente')
+      :'<svg class="pcel-add" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 20v-1.6a3.6 3.6 0 0 0-3.6-3.6H6.6A3.6 3.6 0 0 0 3 18.4V20"/><circle cx="9" cy="8" r="3.6"/><path d="M18.5 8.5v5M21 11h-5"/></svg>'}</button>`; }
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
   const v=valCampo(c,(t.valores||{})[c.id]);
   const vazio=(v==null||v==='')?' vazio':'';
@@ -14155,13 +14179,13 @@ window.pcPessoaMenu=(ev,pid,campo)=>{
     .concat(gente.map(u=>({ic:avatarDoNome(u.nome,'lc-av'),t:u.nome+(String(u.nome).trim()===atual?' (atual)':''),f:()=>pcPessoaSet(pid,campo,u.nome)})))
     .concat(atual?[{sep:true},{ic:'',t:'Tirar '+(campo==='gerente'?'o gerente':'o gestor'),f:()=>pcPessoaSet(pid,campo,'')}]:[]));
 };
-window.pcPessoaSet=async (pid,campo,nome)=>{
+window.pcPessoaSet=async (pid,campo,nome,daLista)=>{
   const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
   const novo=String(nome||'').trim(); if(String(it[campo]||'').trim()===novo) return;
   const antes={responsavel:it.responsavel,gerente:it.gerente,squad:it.squad,status:it.status,nivel:it.nivel,orcamento:it.orcamento,orcPer:it.orcPer};
   it[campo]=novo; await saveDB();
   try{ ltDiffFicha(it,antes); }catch(_){}
-  pcReabrir(pid); try{ if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
+  if(!daLista) pcReabrir(pid); try{ if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
   toast((campo==='gerente'?'Gerente: ':'Gestor: ')+(novo||'ninguém')+'.');
 };
 /* cor de cada tipo de cliente, a mesma das etiquetas .tag.cat-* do resto do sistema */
