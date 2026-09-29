@@ -8306,15 +8306,18 @@ window.fmArquivar=async (id,arquivar)=>{
    closer gera o contrato, e só então o projeto passa pra operação. Os cartões
    seguem essa ordem — sem numerar, a sequência já conta a história. */
 const vendasOpcoes=()=>[
-  {k:'leads',      ic:'lead',   t:'Leads da landing page',
-   d:'Quem preencheu o formulário de autosintese.app.br/ads. Com WhatsApp, Instagram e de qual anúncio veio.'},
   {k:'contratos',  ic:'papel',  t:'Gerador de contratos',
    d:'Escolhe o modelo, preenche e baixa o .docx pronto pra assinar.', quem:'contratos'},
-  /* o ultimo passo: assinou, vira projeto. Saiu da tela em 23/09 junto com a restricao de
-     quem pode fechar, e quem PODE fechar ficou sem o passo na tela — so achava o caminho
-     pela arvore. Voltou em 29/09 com a mesma trava de antes: so passa no podeFechamento. */
-  {k:'fechamento', ic:'aperto', t:'Passar o cliente pro operacional',
-   d:'Contrato assinado? Aqui o cliente vira projeto: entra na carteira, na cobrança e cai pro time que vai tocar.', quem:'fechamento'},
+  /* Passo 3 do funil, com o nome e o texto que o Gabriel escreveu em 16/09 (commit 3e18a8b).
+     Saiu da tela em 23/09 junto com a restricao de quem pode fechar, e quem PODE fechar ficou
+     sem o passo — so achava o caminho pela arvore. Voltou em 29/09 com a mesma trava.
+     NAO renumerar: os numeros 1·2·3 foram tirados por ele no mesmo 16/09 (9f5a27a). */
+  {k:'fechamento', ic:'aperto', t:'Passagem de bastão operacional',
+   d:'Contrato assinado: cadastra a cobrança no Asaas e abre o projeto pra operação.', quem:'fechamento'},
+  /* Leads nasceu depois e nao e etapa da venda: fica no fim, pra nao cortar no meio a
+     sequencia formulario -> contrato -> passagem de bastao. */
+  {k:'leads',      ic:'lead',   t:'Leads da landing page',
+   d:'Quem preencheu o formulário de autosintese.app.br/ads. Com WhatsApp, Instagram e de qual anúncio veio.'},
 ].filter(o=>(o.quem!=='contratos'||podeContratos())&&(o.quem!=='fechamento'||podeFechamento()));
 
 const VEN_ICO={
