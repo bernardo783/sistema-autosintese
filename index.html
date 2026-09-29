@@ -1238,6 +1238,8 @@
   .rh-cp svg{width:13px;height:13px;opacity:0;color:var(--muted);flex:none}
   .rh-cp:hover{background:var(--panel2)} .rh-cp:hover svg{opacity:1}
   .rh-vz{color:var(--muted)}
+  /* linha vertical entre as colunas, igual ao Controle de Clientes (Gabriel 29/09) */
+  .rh-tab th+th,.rh-tab td+td{border-left:1px solid var(--line)}
   /* ---------- BUSCA GLOBAL ---------- */
   .gs-ov{align-items:flex-start;padding-top:9vh}
   .gs-box{width:100%;max-width:640px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
@@ -16515,7 +16517,8 @@ window.ufTrocar=(id)=>{ const f=document.createElement('input'); f.type='file'; 
     const p=(PERFIS||[]).find(x=>String(x.id)===String(id)); if(p) p.foto=d;
     const u=(TK.equipe||[]).find(x=>String(x.id)===String(id)); if(u) u.foto=d;
     if(currentUser&&String(currentUser.id)===String(id)) currentUser.foto=d;
-    pintarWhoami(); render('usuarios'); toast('Foto atualizada.');
+    /* serve a Usuarios e ao RH: redesenha a tela de onde veio o clique */
+    pintarWhoami(); render(RH_TELA[currentView]?currentView:'usuarios'); toast('Foto atualizada.');
   }); f.click(); };
 window.geraSenha=()=>{ const a='abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<12;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; };
 /* A coluna Squads era "01" e "02" soltos: numero sem contexto, e o estado mais
@@ -16583,6 +16586,7 @@ function drawUsuarios(c){
      <td id="wa_${u.id}">${usWaCelula(u)}</td>
      <td>${fmtDate((u.criado_em||'').slice(0,10))||'-'}</td>
      <td><div class="rowact">
+       <button class="iconbtn" onclick="ufTrocar('${u.id}')">${u.foto?'Trocar foto':'Pôr foto'}</button>
        <button class="iconbtn" onclick="editSquads('${u.id}')">Squads</button>
        <button class="iconbtn" onclick="usAcessos('${u.id}')">Acessos</button>
        <button class="iconbtn" onclick="resetUserPw('${u.id}')">Redefinir senha</button>
@@ -16644,13 +16648,17 @@ window.rhCp=(id,k)=>{
   const r=(RH_CAMPOS.find(c=>c[0]===k)||[])[1]; rhCopiarTxt(rhFmt(k,x[k]),r+' de '+String(x.nome_completo).split(' ')[0]+' copiado.');
 };
 const rhCel=(id,k,v)=>v?`<span class="rh-cp" title="Copiar" onclick="rhCp('${id}','${k}')">${esc(v)}${RH_ICO_CP}</span>`:'<span class="rh-vz">-</span>';
+/* foto: a mesma do login (perfis.foto). Clique troca, igual em Usuarios; sem login nao tem onde guardar */
+const rhFoto=(x)=>{ const f=x.perfil_id?fotoDe(x.perfil_id):'';
+  if(!x.perfil_id) return `<span class="uf-av" style="cursor:default" title="Sem login no sistema: a foto fica no login">${esc(inicial(x.nome_completo))}</span>`;
+  return `<span class="uf-av" title="Trocar a foto de ${esc(x.nome_completo)}" onclick="ufTrocar('${x.perfil_id}')">${f?`<img src="${esc(f)}" alt="">`:esc(inicial(x.nome_completo))}</span>`; };
 function rhTabela(lista){
   if(!lista.length) return '<div class="empty">Ninguém aqui ainda. Use + Nova pessoa.</div>';
-  return `<div class="tablewrap"><table><thead><tr><th>Nome</th>${RH_CAMPOS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead>
+  return `<div class="tablewrap"><table class="rh-tab"><thead><tr><th>Nome</th>${RH_CAMPOS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead>
    <tbody>${lista.map(x=>`<tr>
-     <td><span style="display:inline-flex;align-items:center;gap:9px">${avatar(x.perfil_id,x.nome_completo,'sm')}<strong>${rhCel(x.id,'nome_completo',x.nome_completo)}</strong></span></td>
+     <td><span style="display:inline-flex;align-items:center;gap:9px">${rhFoto(x)}<strong>${rhCel(x.id,'nome_completo',x.nome_completo)}</strong></span></td>
      ${RH_CAMPOS.map(([k])=>`<td>${rhCel(x.id,k,rhFmt(k,x[k]))}${k==='nascimento'&&x[k]?'<div class="hint">'+rhIdade(x[k])+'</div>':''}</td>`).join('')}
-     <td><div class="rowact"><button class="iconbtn" onclick="rhCp('${x.id}','*')">Copiar tudo</button><button class="iconbtn" onclick="rhPessoaModal('${x.id}')">Editar</button><button class="iconbtn del" onclick="rhDesligar('${x.id}')">Desligar</button></div></td>
+     <td><div class="rowact"><button class="iconbtn" onclick="rhCp('${x.id}','*')">Copiar tudo</button>${x.perfil_id?`<button class="iconbtn" onclick="ufTrocar('${x.perfil_id}')">${fotoDe(x.perfil_id)?'Trocar foto':'Pôr foto'}</button>`:''}<button class="iconbtn" onclick="rhPessoaModal('${x.id}')">Editar</button><button class="iconbtn del" onclick="rhDesligar('${x.id}')">Desligar</button></div></td>
    </tr>`).join('')}</tbody></table></div>`;
 }
 function drawRH(c){
@@ -16659,7 +16667,7 @@ function drawRH(c){
   const lista=emp?[]:RH.pessoas.filter(x=>(x.vinculo==='socio')===(tela.v==='socio'));
   const e=RH.empresa||{};
   const corpo=emp
-    ?`<div class="tablewrap"><table><thead><tr><th>Campo</th><th>Dado</th></tr></thead><tbody>
+    ?`<div class="tablewrap"><table class="rh-tab"><thead><tr><th>Campo</th><th>Dado</th></tr></thead><tbody>
         ${RH_EMP.map(([k,r])=>`<tr><td style="color:var(--muted)">${r}</td><td>${rhCel('empresa',k,e[k])}</td></tr>`).join('')}
       </tbody></table></div>`
     :rhTabela(lista);
