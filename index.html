@@ -4250,7 +4250,7 @@ const nomeSquad=(s)=>{ s=String(s||'').trim(); if(!s) return 'Sem squad';
   return /^\d+$/.test(s)?('Squad '+s.padStart(2,'0')):(/squad/i.test(s)?s:('Squad '+s)); };
 /* Atribui squad (e gestor) às contas que estão sem dono */
 window.atribuirSquads=()=>{
-  const semDono=(window.__mtDados||[]).map(c=>({c,f:fichaDaConta(c.id)})).filter(x=>x.f&&!x.f.squad);
+  const semDono=mtContas().map(c=>({c,f:fichaDaConta(c.id)})).filter(x=>x.f&&!x.f.squad);
   if(!semDono.length){ toast('Todas as contas já têm squad.'); return; }
   const opts=SQUADS().filter(Boolean);
   if(!opts.length) opts.push('01','02');
@@ -4289,7 +4289,7 @@ window.atribuirSquads=()=>{
 };
 /* ---------- Conexão: espelho da BM (layout de dois painéis) ---------- */
 function abaConexao(){
-  const dados=window.__mtDados||[];
+  const dados=mtContas();
   const ok=dados.length>0;
   const linhas=dados.map(c=>({c,f:fichaDaConta(c.id),m:contaMarca(c.id)}))
                     .sort((a,b)=>(a.c.nome||'').localeCompare(b.c.nome||''));
@@ -4342,7 +4342,7 @@ function abaConexao(){
 }
 /* ---------- Equipes: quantas contas cada squad cuida ---------- */
 function abaEquipes(){
-  const dados=window.__mtDados||[];
+  const dados=mtContas();
   if(!dados.length) return '<div class="empty">Carregando as contas do Meta…</div>';
   const grupos={}; const semDono=[];
   dados.forEach(c=>{
@@ -4385,7 +4385,7 @@ function abaEquipes(){
 }
 /* ---------- Central: o retrato do risco da carteira ---------- */
 function abaCentral(){
-  const dados=window.__mtDados||[];
+  const dados=mtContas();
   if(!dados.length) return '<div class="empty">Carregando as contas do Meta…</div>';
   const rs=dados.map(c=>({c,r:risco(c),cpc:custoConversa(c)}));
   const crit=rs.filter(x=>x.r.nivel==='critico'), aten=rs.filter(x=>x.r.nivel==='atencao');
@@ -4777,6 +4777,16 @@ const selFicha=(idCampo,atual,aoTrocar)=>`<select id="${idCampo}"${aoTrocar?` on
 const fichaDaConta=(accId)=>{ const m=contaMarca(accId); return m&&m.fichaId?fichaDe(m.fichaId):null; };
 const contasDoCliente=(fid)=>(DB.contasMeta||[]).filter(m=>m.fichaId===fid);
 const finDaFicha=(f)=>(f&&f.clienteId)?(DB.clientes||[]).find(c=>c.id===f.clienteId)||null:null;
+/* CHURN SOME DO TRAFEGO PAGO (Gabriel 29/09): marcou o cliente como churn, a conta de
+   anuncio dele sai do Trafego inteiro — lista, totais, risco, agrupamento por squad e o
+   botao de gerar relatorio. O filtro fica na LEITURA, nao na gravacao de __mtDados,
+   porque o cache do Meta pode voltar antes de DB.clientes existir; assim ele sempre roda
+   com a carteira ja carregada, em vez de deixar tudo passar no boot.
+   So churnComp conta: 'fim' sozinho e contrato com data marcada, nao e churn.
+   NAO vale dentro do card do cliente (abaContasCliente): la voce abriu aquele cliente de
+   proposito e precisa ver as contas dele, inclusive depois do churn. */
+const contaEmChurn=(c)=>{ const cli=finDaFicha(fichaDaConta(c&&c.id)); return !!(cli&&cli.churnComp); };
+const mtContas=()=>(window.__mtDados||[]).filter(c=>!contaEmChurn(c));
 /* normaliza p/ comparar nomes: sem acento, sem pontuação, sem termos genéricos de conta */
 const chaveNome=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
   .toLowerCase().replace(/[^a-z0-9\s]/g,' ')
@@ -4909,7 +4919,7 @@ const mtProblema=(c)=>{
 window.metaDesenhar=()=>{
   const el=$('#mtLista'); if(!el) return;
   const t=($('#mtBusca')?$('#mtBusca').value:'').trim().toLowerCase();
-  const rows=(window.__mtDados||[]).filter(contaVisivel).filter(c=>!t||(c.nome||'').toLowerCase().includes(t))
+  const rows=mtContas().filter(contaVisivel).filter(c=>!t||(c.nome||'').toLowerCase().includes(t))
     .sort((a,b)=>(semSaldoReal(b)?1:0)-(semSaldoReal(a)?1:0)||(saldoConta(b).parou?1:0)-(saldoConta(a).parou?1:0)||(+((b.ins||{}).spend)||0)-(+((a.ins||{}).spend)||0));
   let G=0,I=0,C=0,L=0;
   const cards=rows.map(c=>{
@@ -5000,8 +5010,9 @@ window.metaDesenhar=()=>{
      <div class="card"><div class="k">Cliques</div><div class="v">${C.toLocaleString('pt-BR')}</div><div class="sub">${(C&&G)?('CPC médio '+brl(G/C)):'-'}</div></div>
      <div class="card"><div class="k">Impressões</div><div class="v">${I.toLocaleString('pt-BR')}</div><div class="sub">${(I&&C)?((C/I*100).toFixed(2).replace('.',',')+'% de CTR'):'-'}</div></div>
    </div>`:'';
-  /* cards do topo — sempre sobre TODAS as contas, independente do filtro de busca */
-  const todas=window.__mtDados||[];
+  /* cards do topo — sempre sobre todas as contas ATIVAS na carteira, independente do
+     filtro de busca. Quem deu churn nao entra: era ele que inflava esses numeros. */
+  const todas=mtContas();
   const ativos=todas.filter(c=>c.status===1);
   const semSaldo=todas.filter(c=>c.status===1&&semSaldoReal(c));
   const parados=todas.filter(c=>saldoConta(c).parou);
