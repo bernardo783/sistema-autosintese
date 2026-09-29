@@ -7405,7 +7405,19 @@ window.tkMonEditar=(btn,tid,cid)=>{
   inp.onkeydown=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } else if(e.key==='Escape'){ e.preventDefault(); fim(false); } };
   inp.onblur=()=>fim(true);
 };
+/* Controle de Clientes (Gabriel 29/09): coluna Gerente logo antes do Gestor, pra bater o olho e ver
+   quem responde pelo projeto. Nao e campo da lista: vem da ficha (f.gerente, nome), so leitura;
+   muda-se o gerente na propria ficha do cliente. */
+const LC_GER_COL='__gerente';
+function lcComGerente(cps){
+  const col={id:LC_GER_COL,nome:'Gerente',tipo:'pessoa',largura:(cps.find(c=>c.id===LC_GEST)||{}).largura||90};
+  const i=cps.findIndex(c=>c.id===LC_GEST), out=cps.slice();
+  out.splice(i<0?0:i,0,col); return out;
+}
 const tkCelula=(t,c)=>{
+  if(c.id===LC_GER_COL){ const g=String((fichaDe(t.ficha_id)||{}).gerente||'').trim();
+    return g?`<span class="tk-trava" title="Gerente: ${esc(g)}. Muda na ficha do cliente">${avatarDoNome(g,'av sm','Gerente')}</span>`
+            :'<span class="hint" style="margin:0" title="Ficha sem gerente">-</span>'; }
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
   const v=valCampo(c,(t.valores||{})[c.id]);
   const vazio=(v==null||v==='')?' vazio':'';
@@ -7437,7 +7449,8 @@ const tkSelo=(t)=>{
 };
 function tkViewLista(){
   const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
-  const cps=TK.escopo!=='lista'?[]:tkCamposDe(TK.listaSel);
+  let cps=TK.escopo!=='lista'?[]:tkCamposDe(TK.listaSel);
+  if(lc) cps=lcComGerente(cps);
   let grupos=tkGrupos(); const hoje=tkHoje();
   if(lc) grupos=grupos.filter(g=>g.its.length);
   const seta=(k)=>TK.ord===k?(TK.dir===1?' ▲':' ▼'):'';
