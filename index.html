@@ -1233,6 +1233,11 @@
     font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);padding:8px 12px}
   .fp-faixa .fp-sub{margin-left:8px;font-weight:600;letter-spacing:0;text-transform:none;opacity:.65}
   .tk-sec-n{color:var(--muted);font-weight:700;font-size:11px;margin-left:5px}
+  /* RH: todo dado vira clique pra copiar */
+  .rh-cp{display:inline-flex;align-items:center;gap:6px;cursor:pointer;border-radius:6px;padding:2px 6px;margin:-2px -6px;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .rh-cp svg{width:13px;height:13px;opacity:0;color:var(--muted);flex:none}
+  .rh-cp:hover{background:var(--panel2)} .rh-cp:hover svg{opacity:1}
+  .rh-vz{color:var(--muted)}
   /* ---------- BUSCA GLOBAL ---------- */
   .gs-ov{align-items:flex-start;padding-top:9vh}
   .gs-box{width:100%;max-width:640px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
@@ -4190,9 +4195,9 @@ function render(view){
     if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
     return renderUsuarios(c);
   }
-  if(view==='rh'){
+  if(RH_TELA[view]){
     if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
-    return renderRH(c);
+    return renderRH(c,view);
   }
 }
 
@@ -5806,7 +5811,8 @@ const ehCom=(lid)=>!!LCOM[lid];
    pode ver alguma coisa la dentro ja e barrado pela propria tela. */
 const LTEL={'f1e2d3c4-0000-4a00-8b00-00000000a001':'acessos','f1e2d3c4-0000-4a00-8b00-00000000a002':'processos',
   'f1e2d3c4-0000-4a00-8b00-00000000a003':'usuarios','f1e2d3c4-0000-4a00-8b00-00000000a004':'reembolsos',
-  'f1e2d3c4-0000-4a00-8b00-00000000e001':'rh'};
+  'f1e2d3c4-0000-4a00-8b00-00000000e002':'rh-socios','f1e2d3c4-0000-4a00-8b00-00000000e001':'rh-colab',
+  'f1e2d3c4-0000-4a00-8b00-00000000e003':'rh-empresa'};
 const ehTela=(lid)=>!!LTEL[lid]||!!LCOM[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
@@ -8116,7 +8122,9 @@ const ESP_DESC={
   'acessos':'Senhas, links e IDs de tráfego.',
   'processos':'Como a casa faz cada coisa.',
   'usuarios':'Quem entra no sistema e o que cada um alcança.',
-  'rh':'Dados da empresa e de cada pessoa da equipe.',
+  'rh-socios':'Dados pessoais e bancários de cada sócio.',
+  'rh-colab':'Dados pessoais e bancários de cada colaborador.',
+  'rh-empresa':'Razão social, CNPJ e endereço da empresa.',
   'reembolsos':'Pedidos da equipe, do envio ao pagamento.',
   'painel':'Shows, no-shows, conversão e ticket do mês.',
   'calls':'Toda reunião registrada, com resultado e valor.',
@@ -16585,11 +16593,15 @@ function drawUsuarios(c){
   usWaCarregar();
 }
 /* ---------- RH (Gabriel 29/09) ----------
-   Administrativo > RH > Equipe. Cadastro da empresa e de socios e colaboradores
-   (CPF, RG, Pix, banco, nascimento). Mora nas tabelas cadastro_empresa e
-   cadastro_pessoas, que so master le e grava (RLS is_master). Desligar nao apaga:
-   marca ativo=false e a pessoa sai da tela. */
-let RH={empresa:null,pessoas:[],erro:''};
+   Administrativo > RH > Sócios / Colaboradores / Empresa: uma lista da arvore
+   por tela. Dados em cadastro_empresa e cadastro_pessoas, que so master le e
+   grava (RLS is_master). Todo dado e clicavel pra copiar; "Copiar tudo" leva a
+   linha inteira (ou a lista inteira, na barra). Desligar nao apaga: ativo=false. */
+const RH_TELA={'rh-socios':{t:'Sócios',v:'socio'},'rh-colab':{t:'Colaboradores',v:'colaborador'},'rh-empresa':{t:'Empresa'}};
+let RH={empresa:null,pessoas:[],erro:'',tela:'rh-colab'};
+const RH_CAMPOS=[['nascimento','Nascimento'],['telefone','Telefone'],['email','E-mail'],['cpf','CPF'],['rg','RG'],['pix','Chave Pix'],['banco','Banco']];
+const RH_EMP=[['razao_social','Razão social'],['cnpj','CNPJ'],['responsavel','Responsável legal'],['tipo','Tipo de empresa'],['servico','Serviço prestado'],['endereco','Endereço']];
+const RH_ICO_CP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
 async function rhCarregar(){
   const [e,p]=await Promise.all([
     sb.from('cadastro_empresa').select('*').eq('id',1).maybeSingle(),
@@ -16598,53 +16610,72 @@ async function rhCarregar(){
   RH.erro=(e.error&&e.error.message)||(p.error&&p.error.message)||'';
   RH.empresa=e.data||null; RH.pessoas=p.data||[];
 }
-function renderRH(c){
+function renderRH(c,view){
+  RH.tela=RH_TELA[view]?view:'rh-colab';
   c.innerHTML='<div class="empty">Carregando RH...</div>';
   rhCarregar().then(()=>drawRH(c));
 }
 const rhIdade=(d)=>{ if(!d) return ''; const n=new Date(d+'T12:00:00'), h=new Date();
   let a=h.getFullYear()-n.getFullYear(); if(h<new Date(h.getFullYear(),n.getMonth(),n.getDate())) a--; return a+' anos'; };
-const rhCel=(v)=>v?esc(v):'<span style="color:var(--muted)">-</span>';
+const rhFmt=(k,v)=>k==='nascimento'&&v?fmtDate(v):(v||'');
+/* texto que vai pra area de transferencia: um "Rotulo: valor" por linha */
+const rhTxtPessoa=(x)=>[x.nome_completo,'Vínculo: '+(x.vinculo==='socio'?'Sócio':'Colaborador')]
+  .concat(RH_CAMPOS.map(([k,r])=>r+': '+(rhFmt(k,x[k])||'-'))).join('\n');
+const rhTxtEmpresa=(e)=>RH_EMP.map(([k,r])=>r+': '+((e||{})[k]||'-')).join('\n');
+async function rhCopiarTxt(t,msg){
+  try{ await navigator.clipboard.writeText(t); }
+  catch(_){ const a=document.createElement('textarea'); a.value=t; a.style.position='fixed'; a.style.opacity='0';
+    document.body.appendChild(a); a.select(); try{ document.execCommand('copy'); }catch(__){} a.remove(); }
+  toast(msg||'Copiado.');
+}
+/* id = uuid da pessoa ou 'empresa'; k = campo ou '*' (tudo) */
+window.rhCp=(id,k)=>{
+  if(id==='lista'){
+    const t=RH.tela==='rh-empresa'?rhTxtEmpresa(RH.empresa)
+      :RH.pessoas.filter(x=>(x.vinculo==='socio')===(RH.tela==='rh-socios')).map(rhTxtPessoa).join('\n\n');
+    return rhCopiarTxt(t,RH_TELA[RH.tela].t+': tudo copiado.');
+  }
+  if(id==='empresa'){ const e=RH.empresa||{};
+    if(k==='*') return rhCopiarTxt(rhTxtEmpresa(e),'Dados da empresa copiados.');
+    const r=(RH_EMP.find(c=>c[0]===k)||[])[1]; return rhCopiarTxt(e[k]||'',r+' copiado.'); }
+  const x=RH.pessoas.find(p=>p.id===id); if(!x) return;
+  if(k==='*') return rhCopiarTxt(rhTxtPessoa(x),'Dados de '+x.nome_completo+' copiados.');
+  if(k==='nome_completo') return rhCopiarTxt(x.nome_completo,'Nome copiado.');
+  const r=(RH_CAMPOS.find(c=>c[0]===k)||[])[1]; rhCopiarTxt(rhFmt(k,x[k]),r+' de '+String(x.nome_completo).split(' ')[0]+' copiado.');
+};
+const rhCel=(id,k,v)=>v?`<span class="rh-cp" title="Copiar" onclick="rhCp('${id}','${k}')">${esc(v)}${RH_ICO_CP}</span>`:'<span class="rh-vz">-</span>';
 function rhTabela(lista){
-  if(!lista.length) return '<div class="hint">Ninguém aqui ainda.</div>';
-  return `<div class="tablewrap"><table><thead><tr><th>Nome</th><th>Nascimento</th><th>Telefone</th><th>E-mail</th><th>CPF</th><th>RG</th><th>Chave Pix</th><th>Banco</th><th></th></tr></thead>
+  if(!lista.length) return '<div class="empty">Ninguém aqui ainda. Use + Nova pessoa.</div>';
+  return `<div class="tablewrap"><table><thead><tr><th>Nome</th>${RH_CAMPOS.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr></thead>
    <tbody>${lista.map(x=>`<tr>
-     <td><span style="display:inline-flex;align-items:center;gap:9px">${avatar(x.perfil_id,x.nome_completo,'sm')}<strong>${esc(x.nome_completo)}</strong></span></td>
-     <td style="font-variant-numeric:tabular-nums">${x.nascimento?esc(fmtDate(x.nascimento))+'<div class="hint">'+rhIdade(x.nascimento)+'</div>':rhCel('')}</td>
-     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(x.telefone)}</td>
-     <td>${rhCel(x.email)}</td>
-     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(x.cpf)}</td>
-     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(x.rg)}</td>
-     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(x.pix)}</td>
-     <td>${rhCel(x.banco)}</td>
-     <td><div class="rowact"><button class="iconbtn" onclick="rhPessoaModal('${x.id}')">Editar</button><button class="iconbtn del" onclick="rhDesligar('${x.id}')">Desligar</button></div></td>
+     <td><span style="display:inline-flex;align-items:center;gap:9px">${avatar(x.perfil_id,x.nome_completo,'sm')}<strong>${rhCel(x.id,'nome_completo',x.nome_completo)}</strong></span></td>
+     ${RH_CAMPOS.map(([k])=>`<td>${rhCel(x.id,k,rhFmt(k,x[k]))}${k==='nascimento'&&x[k]?'<div class="hint">'+rhIdade(x[k])+'</div>':''}</td>`).join('')}
+     <td><div class="rowact"><button class="iconbtn" onclick="rhCp('${x.id}','*')">Copiar tudo</button><button class="iconbtn" onclick="rhPessoaModal('${x.id}')">Editar</button><button class="iconbtn del" onclick="rhDesligar('${x.id}')">Desligar</button></div></td>
    </tr>`).join('')}</tbody></table></div>`;
 }
 function drawRH(c){
   if(RH.erro){ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(RH.erro)+'</div>'; return; }
-  const e=RH.empresa||{}, soc=RH.pessoas.filter(x=>x.vinculo==='socio'), col=RH.pessoas.filter(x=>x.vinculo!=='socio');
+  const tela=RH_TELA[RH.tela], emp=RH.tela==='rh-empresa';
+  const lista=emp?[]:RH.pessoas.filter(x=>(x.vinculo==='socio')===(tela.v==='socio'));
+  const e=RH.empresa||{};
+  const corpo=emp
+    ?`<div class="tablewrap"><table><thead><tr><th>Campo</th><th>Dado</th></tr></thead><tbody>
+        ${RH_EMP.map(([k,r])=>`<tr><td style="color:var(--muted)">${r}</td><td>${rhCel('empresa',k,e[k])}</td></tr>`).join('')}
+      </tbody></table></div>`
+    :rhTabela(lista);
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>RH</h2><div class="desc">Dados da empresa e da equipe. Só master vê esta tela.</div></div>
-     <div class="toolbar"><button class="btn small" onclick="rhPessoaModal()">+ Nova pessoa</button></div>
+     <div><h2>${tela.t}${emp?'':`<span class="tk-sec-n">${lista.length}</span>`}</h2><div class="desc">${ESP_DESC[RH.tela]} Clique em qualquer dado para copiar.</div></div>
+     <div class="toolbar"><button class="btn small secondary" onclick="rhCp('lista')">Copiar tudo</button>${emp
+       ?'<button class="btn small" onclick="rhEmpresaModal()">Editar dados</button>'
+       :`<button class="btn small" onclick="rhPessoaModal(null,'${tela.v}')">+ Nova pessoa</button>`}</div>
    </div>
-   <div class="tk-sec" style="margin-top:0;border-top:0;padding-top:0">Empresa</div>
-   <div class="tablewrap"><table><thead><tr><th>Razão social</th><th>CNPJ</th><th>Responsável legal</th><th>Tipo</th><th>Serviço</th><th>Endereço</th><th></th></tr></thead>
-   <tbody><tr>
-     <td><strong>${rhCel(e.razao_social)}</strong></td>
-     <td style="font-variant-numeric:tabular-nums;white-space:nowrap">${rhCel(e.cnpj)}</td>
-     <td>${rhCel(e.responsavel)}</td><td>${rhCel(e.tipo)}</td><td>${rhCel(e.servico)}</td><td>${rhCel(e.endereco)}</td>
-     <td><div class="rowact"><button class="iconbtn" onclick="rhEmpresaModal()">Editar</button></div></td>
-   </tr></tbody></table></div>
-   <div class="tk-sec">Sócios<span class="tk-sec-n">${soc.length}</span></div>
-   ${rhTabela(soc)}
-   <div class="tk-sec">Colaboradores<span class="tk-sec-n">${col.length}</span></div>
-   ${rhTabela(col)}
-   <p class="hint" style="margin-top:14px">Estes dados ficam protegidos no banco: só quem é master consegue ler ou alterar. Desligar tira a pessoa da lista sem apagar o histórico.</p>`;
+   ${corpo}
+   <p class="hint" style="margin-top:14px">Só quem é master consegue ler ou alterar estes dados.${emp?'':' Desligar tira a pessoa da lista sem apagar o cadastro.'}</p>`;
 }
 const rhCampo=(id,rot,val,tipo,ph)=>`<div class="field"><label>${rot}</label><input id="${id}"${tipo?` type="${tipo}"`:''} value="${esc(val||'')}"${ph?` placeholder="${esc(ph)}"`:''}></div>`;
-window.rhPessoaModal=(id)=>{
-  const x=id?RH.pessoas.find(p=>p.id===id):null, v=x||{vinculo:'colaborador'};
+window.rhPessoaModal=(id,vinc)=>{
+  const x=id?RH.pessoas.find(p=>p.id===id):null, v=x||{vinculo:vinc||'colaborador'};
   const logins=(TK.equipe||[]).slice().sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt'));
   modal(x?'Editar '+x.nome_completo:'Nova pessoa',`
     <div class="field"><label>Vínculo</label><select id="rh_vinc">
@@ -16667,7 +16698,7 @@ window.rhPessoaModal=(id)=>{
       if(!d.nome_completo||d.nome_completo.length<3){ toast('Informe o nome completo.'); return false; }
       const {error}=x?await sb.from('cadastro_pessoas').update(d).eq('id',x.id):await sb.from('cadastro_pessoas').insert(d);
       if(error){ toast('Erro: '+error.message); return false; }
-      render('rh'); toast(x?'Cadastro atualizado.':'Pessoa adicionada.'); return true;
+      render(RH.tela); toast(x?'Cadastro atualizado.':'Pessoa adicionada.'); return true;
     });
 };
 window.rhEmpresaModal=()=>{
@@ -16685,7 +16716,7 @@ window.rhEmpresaModal=()=>{
       if(!d.razao_social){ toast('Informe a razão social.'); return false; }
       const {error}=await sb.from('cadastro_empresa').upsert(d);
       if(error){ toast('Erro: '+error.message); return false; }
-      render('rh'); toast('Dados da empresa salvos.'); return true;
+      render('rh-empresa'); toast('Dados da empresa salvos.'); return true;
     });
 };
 window.rhDesligar=async (id)=>{
@@ -16694,7 +16725,7 @@ window.rhDesligar=async (id)=>{
   if(!ok) return;
   const {error}=await sb.from('cadastro_pessoas').update({ativo:false}).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
-  render('rh'); toast(x.nome_completo+' desligado do RH.');
+  render(RH.tela); toast(x.nome_completo+' desligado do RH.');
 };
 /* ---------- ONDE CADA UM COMEÇA ----------
    perfis.inicio decide o pouso ao entrar e no botão Início: 'dash', vazio (Base de
