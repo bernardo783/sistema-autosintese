@@ -188,6 +188,26 @@ grupo('Folha: pós-pago vence no mês seguinte e diz ref. o próprio mês (Gabri
   ok('a despesa continua na competência (fpDataComp usa o fim do mês quando o venc é do mês seguinte)', /if\(p\.venc && String\(p\.venc\)\.slice\(0,7\)===comp\) return p\.venc;/.test(HTML));
 }
 
+grupo('Controle de Clientes: rodapé só com ticket médio e remuneração, cada um vê o seu (Gabriel 30/09)');
+{
+  const r=bloco('/* RODAPÉ DO CONTROLE DE CLIENTES','return `<div class="tk-bar">');
+  ok('a linha Total da carteira saiu da tabela', HTML.indexOf('Total da carteira<small>')<0&&HTML.indexOf('${totRow}')<0);
+  ok('ficam ticket médio, por gerente, por gestor e por social media', /porGest=tkm\+linhaRem\('Por gerente',meus\(G\)\)\+linhaRem\('Por gestor',meus\(S\)\)\+linhaRem\('Por social media',meus\(SM\)\)/.test(r));
+  ok('quem não é master só vê a própria linha', /const meus=\(M\)=>\{ if\(mst\) return M;/.test(r)&&r.indexOf('primNome(k)===eu')>0);
+  ok('a soma só aparece pro master', r.indexOf("${mst?`<span class=\"c tot\">soma")>0);
+  ok('o rodapé não depende mais de ser gerente (gestor e social media veem o seu)', /if\(lc&&total&&currentUser\)\{/.test(r)&&r.indexOf('souGerente()')<0);
+  ok('sócio continua fora', r.indexOf("const SOCIOS=['bernardo','jose','gabriel']")>0);
+  const g={}; const src=r.slice(r.indexOf('const eu='),r.indexOf('/* ticket médio'));
+  const ctx={mst:false,currentUser:{nome:'Luan Santiago'},primNome:(x)=>String(x==null?'':x).normalize('NFD').replace(/[̀-ͯ]/g,'').trim().split(/\s+/)[0].toLowerCase(),
+    esc:s=>String(s??''),moedaCurta:v=>'R$ '+v};
+  const vm=require('vm'); vm.createContext(ctx); vm.runInContext(src+';this.meus=meus;this.linhaRem=linhaRem;',ctx);
+  const M={Luan:{ids:{a:1,b:1},v:300},Yghor:{ids:{c:1},v:200}};
+  ok('gestor Luan só enxerga o Luan', JSON.stringify(Object.keys(ctx.meus(M)))==='["Luan"]');
+  ok('linha do gestor sem a soma', ctx.linhaRem('Por gestor',ctx.meus(M)).indexOf('soma')<0&&ctx.linhaRem('Por gestor',ctx.meus(M)).indexOf('Luan · 2 clientes')>0);
+  ctx.mst=true; vm.runInContext('mst=true',ctx);
+  ok('master vê todos e a soma', Object.keys(ctx.meus(M)).length===2&&ctx.linhaRem('Por gestor',M).indexOf('soma · <b>R$ 500')>0);
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
@@ -1136,8 +1156,7 @@ grupo('Controle de Clientes: colunas de dinheiro e total da carteira (Gabriel 23
   ok('R$ colado e sem centavo quando é redondo', g.moedaCurta(1500)==='R$ 1.500');
   ok('com centavo quando precisa', g.moedaCurta(1449.44)==='R$ 1.449,44');
   ok('vazio fica vazio', g.moedaCurta('')===''&&g.moedaCurta(null)==='');
-  ok('total da carteira só pra master e gerente', /if\(lc&&souGerente\(\)&&total\)/.test(HTML));
-  ok('gerente vê "seus 10%", master vê "gerentes 10%"', HTML.indexOf("mst?'gerentes 10%':'seus 10%'")>0);
+  /* 30/09: a linha Total da carteira saiu (dinheiro de folha fica na Folha); ver o grupo do rodapé */
   ok('títulos curtos das colunas de dinheiro', HTML.indexOf("'Remuneração Gerente (10%)':'Gerente 10%'")>0);
 }
 

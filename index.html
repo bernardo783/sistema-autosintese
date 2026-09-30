@@ -7863,64 +7863,52 @@ function tkViewLista(){
     return total?`<div class="tablewrap rolavel tk-leve"><table class="tk-tab" style="min-width:${largMin}px"><thead>${cab}</thead><tbody>${cheios.map(faixaL).join('')}${resto}</tbody></table></div>`
       :'<div class="empty">Nada por aqui.</div>';
   }
-  /* TOTAL DA CARTEIRA (Gabriel 23/09): só master e gerente; o gerente vê a soma da carteira dele */
-  let totRow='', porGest='';
-  if(lc&&souGerente()&&total){
+  /* RODAPÉ DO CONTROLE DE CLIENTES (Gabriel 30/09): só Ticket médio, Por gerente, Por gestor
+     e Por social media. A linha "Total da carteira" (receita/mês, 10% dos gerentes, verba) saiu:
+     dinheiro de folha fica na Folha de Pagamento. Cada pessoa vê só o próprio dinheiro; o
+     master vê todo mundo, com a soma. Antes o gerente via a remuneração dos gestores todos.
+     SÓCIO NÃO ENTRA: recebe pró-labore e divisão de lucros, não ganha por projeto. O banco
+     já não calcula (lc_socio no lc_auto); isto aqui é o espelho na tela.
+     Conta CLIENTE distinto: quem é gestor e gerente do mesmo card não conta duas vezes. */
+  let porGest='';
+  if(lc&&total&&currentUser){
     const todos=grupos.reduce((a,g)=>a.concat(g.its),[]);
-    const soma=(cid)=>todos.reduce((a,t)=>a+(Number((t.valores||{})[cid])||0),0);
-    const mst=!!(currentUser&&currentUser.role==='master');
-    const SUB={[LC_MENS]:'receita/mês','46c3b98b-6590-4aff-bf80-ed03801206c7':mst?'gerentes 10%':'seus 10%',
-      'b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01':'gestor','50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c2':'social media',
-      '5416ae4d-6ea2-4d3b-9510-9abccbdb96e2':'verba/sem.'};
-    totRow=`<tr class="tk-tot"><td>Total da carteira<small>${todos.length} cliente${todos.length===1?'':'s'} · só master e gerente veem</small></td><td></td>${cps.map((c,i)=>c.tipo==='moeda'
-      ?`<td class="${clsCp(c,i)}">${esc(moedaCurta(soma(c.id))||'R$ 0')}<small>${esc(SUB[c.id]||'')}</small></td>`:'<td></td>').join('')}</tr>`;
-    /* REMUNERAÇÃO (Gabriel 30/09): uma linha só. Antes eram duas — "Por gestor" e "Por
-       gerente" — dizendo quase a mesma coisa; agora cada pessoa aparece uma vez com o que
-       ela recebe da carteira que está na tela, somando os dois papéis quando for o caso.
-       SÓCIO NÃO ENTRA: recebe pró-labore e divisão de lucros, não ganha por projeto. O
-       banco já não calcula (lc_socio no lc_auto); isto aqui é o espelho na tela.
-       Conta CLIENTE distinto: quem é gestor e gerente do mesmo card não conta duas vezes. */
+    const mst=!!(currentUser.role==='master');
     /* Jose entrou em 30/09 (Gabriel: "jose tbm e socio"). A comparacao usa primNome, que
        tira o acento: ltPrim nao tirava, e 'Jose' com acento nunca casaria com 'jose'. */
     const SOCIOS=['bernardo','jose','gabriel'];
     const ehSocio=(n)=>SOCIOS.indexOf(primNome(n))>=0;
-    const R={}, REMG='b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01', REMGER='46c3b98b-6590-4aff-bf80-ed03801206c7';
-    const poe=(nome,val,tid)=>{ const nm=String(nome||'').trim(); if(!nm||ehSocio(nm)) return;
-      const k=ltPrim(nm); R[k]=R[k]||{ids:{},v:0}; R[k].ids[tid]=1; R[k].v+=Number(val)||0; };
-    todos.forEach(t=>{ const f=fichaDe(t.ficha_id)||{}; const uid=(t.valores||{})[LC_GEST];
-      poe((uid&&tkNomeUser(uid))||f.responsavel, (t.valores||{})[REMG], t.id);
-      /* o 10% dos outros gerentes não é da conta de quem não é master */
-      if(mst||souGerenteDaFicha(t.ficha_id)) poe(f.gerente, (t.valores||{})[REMGER], t.id); });
-    /* Gabriel 30/09: abaixo do Total da carteira vem o ticket médio e, embaixo, a
-       remuneração separada por papel — quanto sai para os gerentes e quanto para os
-       gestores. A linha única de antes misturava os dois e escondia essa leitura. */
-    const G={}, S={}, SM={};
+    const REMG='b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01', REMGER='46c3b98b-6590-4aff-bf80-ed03801206c7';
     const LC_SOC='50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c1', LC_REMSOC='50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c2';
+    const G={}, S={}, SM={};
     const poeEm=(M,nome,val,tid)=>{ const nm=String(nome||'').trim(); if(!nm||ehSocio(nm)) return;
       const k=ltPrim(nm); M[k]=M[k]||{ids:{},v:0}; M[k].ids[tid]=1; M[k].v+=Number(val)||0; };
     todos.forEach(t=>{ const f=fichaDe(t.ficha_id)||{}; const uid=(t.valores||{})[LC_GEST];
       poeEm(S,(uid&&tkNomeUser(uid))||f.responsavel, (t.valores||{})[REMG], t.id);
       const su=(t.valores||{})[LC_SOC];
       if(su) poeEm(SM,tkNomeUser(su), (t.valores||{})[LC_REMSOC], t.id);
+      /* o 10% dos outros gerentes não é da conta de quem não é master */
       if(mst||souGerenteDaFicha(t.ficha_id)) poeEm(G,f.gerente, (t.valores||{})[REMGER], t.id); });
+    /* quem não é master só vê a própria linha: o dinheiro dos outros não aparece */
+    const eu=primNome(currentUser.nome);
+    const meus=(M)=>{ if(mst) return M; const o={}; Object.keys(M).forEach(k=>{ if(primNome(k)===eu) o[k]=M[k]; }); return o; };
     const linhaRem=(rot,M)=>{ const kk=Object.keys(M).sort((a,b)=>M[b].v-M[a].v); if(!kk.length) return '';
       const tot=kk.reduce((a,k)=>a+M[k].v,0);
       return `<div class="lc-porgest"><span>${rot}</span>${kk.map(k=>{ const n=Object.keys(M[k].ids).length;
         return `<span class="c">${esc(k)} · ${n} cliente${n===1?'':'s'} · <b>${esc(moedaCurta(M[k].v)||'R$ 0')}</b></span>`; }).join('')}
-        <span class="c tot">soma · <b>${esc(moedaCurta(tot)||'R$ 0')}</b></span></div>`; };
+        ${mst?`<span class="c tot">soma · <b>${esc(moedaCurta(tot)||'R$ 0')}</b></span>`:''}</div>`; };
     /* ticket médio: só entra quem tem mensalidade, senão cliente sem valor derruba a média */
     const comV=todos.filter(t=>Number((t.valores||{})[LC_MENS])>0);
     const somaM=comV.reduce((a,t)=>a+Number((t.valores||{})[LC_MENS]),0);
     const tkm=comV.length?`<div class="lc-porgest"><span>Ticket médio</span>
       <span class="c"><b>${esc(moedaCurta(somaM/comV.length)||'R$ 0')}</b> por cliente</span>
       <span class="c">${comV.length} cliente${comV.length===1?'':'s'} com mensalidade${todos.length-comV.length?' · '+(todos.length-comV.length)+' sem valor':''}</span></div>`:'';
-    porGest=tkm+linhaRem('Por gerente',G)+linhaRem('Por gestor',S)+linhaRem('Por social media',SM);
-  }
-  if(lc&&!souGerente()&&total&&currentUser){
-    const meus=grupos.reduce((a,g)=>a.concat(g.its),[]).filter(t=>souGestorDaFicha(t.ficha_id));
-    const v=meus.reduce((a,t)=>a+(Number((t.valores||{})[LC_REM_GESTOR])||0),0);
-    const semIni=meus.filter(t=>!String((t.valores||{})[LC_INI]||'')).length;
-    if(meus.length) porGest=`<div class="lc-porgest"><span>Sua remuneração:</span><span class="c">${meus.length} cliente${meus.length===1?'':'s'} · <b>${esc(moedaCurta(v)||'R$ 0')}</b></span>${semIni?`<span class="c" title="Sem a data de Início o cliente não conta. Clique na coluna Início do card para definir.">${semIni} sem Início, não contam ainda</span>`:''}</div>`;
+    porGest=tkm+linhaRem('Por gerente',meus(G))+linhaRem('Por gestor',meus(S))+linhaRem('Por social media',meus(SM));
+    /* gestor: cliente sem a data de Início ainda não conta na remuneração dele */
+    if(!mst){
+      const semIni=todos.filter(t=>souGestorDaFicha(t.ficha_id)&&!String((t.valores||{})[LC_INI]||'')).length;
+      if(semIni) porGest+=`<div class="lc-porgest"><span class="c" title="Sem a data de Início o cliente não conta. Clique na coluna Início do card para definir.">${semIni} sem Início, não contam ainda</span></div>`;
+    }
   }
   return `<div class="tk-bar">${tkBarraSquad()}
     <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
@@ -7929,7 +7917,7 @@ function tkViewLista(){
       :(TK.escopo==='lista'?`<span class="hint" style="margin:0">&#128274; colunas fixas, só master e gerente mudam</span>`:'')}
     <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
   </div>${grupos.length
-    ? `<div class="tablewrap rolavel"><table class="tk-tab${lc?' lc-tab':''}" style="min-width:${largMin}px"><thead>${cab}</thead><tbody>${lc?grupos.map(g=>g.its.map(linha).join('')).join(''):grupos.map(bloco).join('')}${totRow}</tbody></table></div>${porGest}`
+    ? `<div class="tablewrap rolavel"><table class="tk-tab${lc?' lc-tab':''}" style="min-width:${largMin}px"><thead>${cab}</thead><tbody>${lc?grupos.map(g=>g.its.map(linha).join('')).join(''):grupos.map(bloco).join('')}</tbody></table></div>${porGest}`
     : '<div class="empty">Nada por aqui.</div>'}`;
 }
 /* A arvore de espacos mora na barra lateral: ela e a navegacao principal do sistema. */
