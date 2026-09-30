@@ -12207,6 +12207,15 @@ function lcForaDeSincronia(){
     else if(arquivada(cd)) fora.push({nome:c.nome,por:'está na cobrança mas o card está arquivado',cid:c.id,tid:cd.id});
     else if(String(cd.lista_id)===String(CH_ID)) fora.push({nome:c.nome,por:'está na cobrança mas o card está no Controle de Churns',cid:c.id,tid:cd.id});
   });
+  /* pior caso de todos: o cliente saiu daqui mas o PIX continua indo pra ele todo mês */
+  (DB.clientes||[]).forEach(c=>{
+    const sub=c&&c.asaas&&c.asaas.subscriptionId;
+    if(!sub||c.asaas.cancelado) return;
+    const f=(DB.projetos||[]).find(p=>String(p.clienteId)===String(c.id));
+    const cd=f?lcCardDe(f.id):null;
+    const saiu=cliArq(c)||!!c.churnComp||!!c.fim||!cd||arquivada(cd)||String((cd||{}).lista_id)===String(CH_ID);
+    if(saiu) fora.push({nome:c.nome,por:'saiu da carteira e a assinatura no Asaas continua ativa',cid:c.id,sub:sub});
+  });
   (TK.tarefas||[]).filter(t=>ehLC(t.lista_id)&&!arquivada(t)&&t.ficha_id).forEach(t=>{
     const f=fichaDe(t.ficha_id)||{}, c=(DB.clientes||[]).find(x=>String(x.id)===String(f.clienteId));
     if(!c) fora.push({nome:t.titulo,por:'tem card aqui e não está no Financeiro',tid:t.id});
@@ -12219,11 +12228,37 @@ function lcDesalinhados(){
   return `<div class="f1-aviso" style="margin:0 0 10px">↻ <b>${fora.length}</b> cliente${fora.length===1?'':'s'} fora de sincronia entre o Controle de Clientes e o Financeiro.
     <button class="mp-add" style="margin-left:0" onclick="lcVerDesalinhados()">ver quais</button></div>`;
 }
+/* Cancela a assinatura do cliente no Asaas. A edge exige o login de um master: daqui sai
+   cobrança de verdade, então quem aperta o botão é uma pessoa, nunca um processo automático. */
+window.lcCancelarAsaas=async (cid,btn)=>{
+  const c=(DB.clientes||[]).find(x=>String(x.id)===String(cid)); if(!c) return;
+  const sub=c.asaas&&c.asaas.subscriptionId; if(!sub) return;
+  const prox=(c.asaas.proximoVencimento||'').slice(0,10);
+  const ok=await confirmar('Cancelar a cobrança de '+(c.nome||'')+'?',
+    'A assinatura no Asaas para de gerar cobrança'+(prox?' (a próxima seria em '+fmtDate(prox)+')':'')+
+    '. O que já foi pago e o histórico ficam. Não dá pra desfazer: pra voltar a cobrar, cria de novo.',
+    {sim:'Cancelar no Asaas',perigo:true});
+  if(!ok) return;
+  if(btn){ btn.disabled=true; btn.textContent='Cancelando…'; }
+  try{
+    const r=await sb.functions.invoke('asaas-assinatura',{body:{acao:'cancelar',sub:sub}});
+    const d=(r&&r.data)||{};
+    if(r.error||!d.ok) throw new Error((d&&d.erro)||(r.error&&r.error.message)||'falhou');
+    c.asaas.cancelado=true; c.asaas.canceladoEm=hojeISO();
+    try{ await saveDB(); }catch(_){}
+    if(btn){ btn.textContent='Cancelada'; }
+    toast('Assinatura de '+(c.nome||'cliente')+' cancelada'+(d.cancelou?' ('+d.cancelou+' cobrança'+(d.cancelou===1?'':'s')+' em aberto)':'')+'.');
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='Cancelar no Asaas'; }
+    avisoModal('Não cancelou','O Asaas recusou: '+(e.message||e)+'. A cobrança continua ativa.');
+  }
+};
 window.lcVerDesalinhados=()=>{
   const fora=lcForaDeSincronia();
   modal('Clientes fora de sincronia',
     '<p class="hint" style="margin:0 0 12px">Regra: cliente ativo existe nos dois lugares. Quem saiu, sai dos dois — arquivando (sem receita perdida) ou marcando churn.</p>'+
-    (fora.map(x=>`<div class="cx-item"><div style="flex:1;min-width:0"><div class="nm">${esc(x.nome||'-')}</div><div class="id">${esc(x.por)}</div></div></div>`).join('')
+    (fora.map(x=>`<div class="cx-item"><div style="flex:1;min-width:0"><div class="nm">${esc(x.nome||'-')}</div><div class="id">${esc(x.por)}</div></div>
+      ${x.sub?`<button class="btn small" onclick="lcCancelarAsaas('${esc(x.cid)}',this)">Cancelar no Asaas</button>`:''}</div>`).join('')
       ||'<p class="hint">Nenhum. Tudo alinhado.</p>'),
     async()=>true);
   const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Fechar';
