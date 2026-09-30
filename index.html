@@ -8149,14 +8149,12 @@ window.dndSoltarLinha=async (ev,alvoId)=>{
 /* ---------- NOVAS CONTAS: formulario aberto para toda a equipe ---------- */
 const NC_LISTA='c2000000-0000-4000-8000-0000000000b1';
 const NC_ABERTO='c2000000-0000-4000-8000-00000000b101';
-/* Link publico (Gabriel 16/09): quem esta de fora manda boleto/comprovante por
-   autosintese.app.br/enviar, sem login. Nasce em AGUARDANDO APROVACAO e so vira
-   solicitacao de verdade quando alguem aprova aqui — ai passa a EM ANALISE com o
-   Bernardo de responsavel, que e quem paga. */
+/* Link publico autosintese.app.br/enviar (16/09) DESATIVADO pelo Gabriel em 30/09/2026:
+   a pagina virou aviso, a funcao enviar-conta responde 410 e o botao "Link de envio" saiu.
+   O status AGUARDANDO APROVACAO continua existindo pra card antigo que ainda esteja nele. */
 const NC_AGUARDA='c2000000-0000-4000-8000-00000000b100';
 const NC_ANALISE='c2000000-0000-4000-8000-00000000b102';
 const NC_PAGADOR='6b3b1d5d-2ee0-4529-a6c4-23d415678bff';   /* Bernardo Antunes */
-const NC_LINK='https://autosintese.app.br/enviar/';
 const NC_C={sol:'c2000000-0000-4000-8000-00000000b201',nat:'c2000000-0000-4000-8000-00000000b202',dep:'c2000000-0000-4000-8000-00000000b203',forn:'c2000000-0000-4000-8000-00000000b204',val:'c2000000-0000-4000-8000-00000000b205',pag:'c2000000-0000-4000-8000-00000000b206',parc:'c2000000-0000-4000-8000-00000000b207',venc:'c2000000-0000-4000-8000-00000000b208',mot:'c2000000-0000-4000-8000-00000000b209',desc:'c2000000-0000-4000-8000-00000000b20a',obs:'c2000000-0000-4000-8000-00000000b20b',anexo:'c2000000-0000-4000-8000-00000000b20c',rec:'c2000000-0000-4000-8000-00000000b20d',link:'c2000000-0000-4000-8000-00000000b20e'};
 const NC_REC=['Não é recorrente','Semanal','Quinzenal','Mensal','Trimestral','Semestral','Anual'];
 /* ---------- Anexo: upload direto pro bucket privado 'comprovantes' ---------- */
@@ -8276,10 +8274,6 @@ window.ncRecusar=async (id)=>{
   toast('Recusado.');
   if(typeof renderFinAPagar==='function'&&document.getElementById('finSub')) renderFinAPagar(document.getElementById('finSub')); else render(currentView);
 };
-window.ncCopiarLink=async ()=>{
-  try{ await navigator.clipboard.writeText(NC_LINK); toast('Link copiado: '+NC_LINK); }
-  catch(_){ prompt('Copie o link:',NC_LINK); }
-};
 /* Solicitacoes de reembolso/conta nova: quem pede usa o Suporte; quem PAGA
    acompanha aqui, junto das outras contas a pagar (Gabriel 15/09). Antes ficava
    no pe do proprio formulario, onde o financeiro nunca ia olhar. */
@@ -8298,8 +8292,7 @@ function ncUltimasHTML(n){
       <td>${lista.length?lista.map((p,i)=>`<button class="iconbtn" onclick="ncAbrirAnexo('${esc(p)}')" title="${esc(p.split('/').pop())}">${/^https?:/i.test(p)?'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>':'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>'} ${lista.length>1?(i+1):'ver'}</button>`).join(' '):'<span style="color:var(--muted)">-</span>'}</td>
     </tr>`; };
   return `${ncAprovarHTML()}
-   <h2 style="font-size:15px;margin:26px 0 8px">Solicitações da equipe<small style="font-weight:600;color:var(--fraco);font-size:12px;margin-left:8px">reembolsos e contas novas pedidas pelo Suporte</small>
-     <button class="btn secondary small" style="float:right;margin-top:-4px" onclick="ncCopiarLink()" title="Link pra quem está de fora mandar boleto sem login"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Link de envio</button></h2>
+   <h2 style="font-size:15px;margin:26px 0 8px">Solicitações da equipe<small style="font-weight:600;color:var(--fraco);font-size:12px;margin-left:8px">reembolsos e contas novas pedidas pelo Suporte</small></h2>
    <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th>Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead>
    <tbody>${envs.map(linha).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
 }
