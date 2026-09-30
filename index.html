@@ -11853,36 +11853,71 @@ window.lcArquivar=async (fid)=>{
    Recebimentos, e o churn tira o cliente do cadastro financeiro, entao nem linha
    pra desmarcar sobra. Sem isto o card fica preso la (ou arquivado, como o
    PAIXAO AUTOMOVEIS, que sumiu das duas listas). */
+/* O que muda na volta (Gabriel 30/09, SPACO VEICULOS): antes de tirar o cliente do Controle
+   de Churns o sistema pergunta mes da volta, vencimento, mensalidade, verba semanal e o que
+   vai ser entregue. Ele voltou sem isso e ficou com a cobranca velha (R$ 500 dia 26) quando
+   o combinado era R$ 600 no dia 01/10. Funcao pura: devolve o que vai pro card. */
+function lcVoltaPatch(t,d){
+  const nv=Object.assign({},(t&&t.valores)||{});
+  [CH_SAIDA,CH_PERDA,CH_ULTPG,CH_MOTIVO,CH_GESTOR].forEach(k=>{ delete nv[k]; });
+  if(d.valor!=null) nv[LC_MENS]=d.valor;
+  if(d.dia) nv[LC_VENC]=d.dia;
+  if(d.comp) nv[LC_INI]=d.comp+'-01';
+  if(d.verba!=null&&d.verba!=='') nv[VERBA_SEM]=d.verba; else delete nv[VERBA_SEM];
+  return {lista_id:LC_ID,status_id:LC_ATIVO,status:'fazendo',arquivada_em:null,arquivada_por:null,valores:nv};
+}
 window.lcReativar=async (fid)=>{
   if(!souGerente()){ toast('Só master e gerentes reativam cliente.'); return; }
   const f=fichaDe(fid), t=lcCardDe(fid);
   if(!t){ toast('Este cliente não tem card no Controle de Clientes.'); return; }
   const cli=(DB.clientes||[]).find(x=>String(x.id)===String((f||{}).clienteId||''));
-  const semFin=!!(currentUser&&currentUser.role==='master')&&!cli;
-  const ok=await confirmar('Voltar '+((f&&f.nome)||'este cliente')+' para o Controle de Clientes?',
-    'O card sai do Controle de Churns e volta em "4. EM MANUTENÇÃO". A data de saída e a perda de receita saem junto.'
-    +(semFin?' Ele não está no cadastro do Financeiro: para voltar a cobrar, cadastre em Recebimentos.':''),
-    {sim:'Voltar para ativo'});
-  if(!ok) return;
-  const nv=Object.assign({},t.valores||{});
-  [CH_SAIDA,CH_PERDA,CH_ULTPG,CH_MOTIVO,CH_GESTOR].forEach(k=>{ delete nv[k]; });
-  const patch={lista_id:LC_ID,status_id:LC_ATIVO,status:'fazendo',arquivada_em:null,arquivada_por:null,valores:nv};
-  const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
-  if(error){ toast('Erro: '+error.message); return; }
-  Object.assign(t,patch);
-  await lcSyncArquivo(fid,false);   /* volta pros dois lados */
-  try{ await lcSincronizarFicha(t.id,LC_ATIVO); }catch(_){}
-  /* A cobranca volta junto (Gabriel 30/09, SPACO VEICULOS): o card voltava e o cadastro
-     seguia marcado como churn, entao o cliente ativo nao era mais cobrado. */
-  const fin=cli?lcDesfazerChurnFin(cli,compNow()):'';
-  if(fin){ try{ await saveDB(); }catch(_){} }
-  try{ arqFechar(); }catch(_){}
-  try{ spDesenhar(); }catch(_){}
-  try{ render(currentView); }catch(_){}
-  const mst=!!(currentUser&&currentUser.role==='master');
-  toast(((f&&f.nome)||'Cliente')+' voltou para o Controle de Clientes.'+(semFin?' Falta o cadastro no Financeiro.':'')
-    +(fin==='mes'?' A cobrança de '+fmtComp(compNow())+' voltou a ficar em aberto.':fin==='depois'?' Volta a ser cobrado a partir de '+fmtComp(compNow())+'.':'')
-    +(mst?'':' Avise o financeiro para voltar a cobrança.'));
+  const mst=!!(currentUser&&currentUser.role==='master'), semFin=mst&&!cli;
+  const v=t.valores||{}, comp0=compNow();
+  const cat=(f&&CAT_LABEL[f.categoria])?f.categoria:'';
+  const CATS=['trafego','ia','full'];
+  modal('Voltar '+esc((f&&f.nome)||'este cliente')+' para o Controle de Clientes',`
+    <p class="hint" style="margin:0 0 12px">Confira o combinado da volta antes de tirar o card do Controle de Churns. A data de saída e a perda de receita saem junto.</p>
+    <div class="row2">
+      <div class="field"><label>Volta a ser cobrado em</label><input type="month" id="rv_comp" value="${comp0}"></div>
+      <div class="field"><label>Dia do vencimento</label><input type="number" id="rv_dia" min="1" max="31" value="${esc(cli?cli.diaVenc:(v[LC_VENC]||''))}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Mensalidade (R$)</label><input type="number" id="rv_val" step="0.01" min="0" value="${esc(cli?cli.valor:(v[LC_MENS]||''))}"></div>
+      <div class="field"><label>Verba semanal de anúncios (R$)</label><input type="number" id="rv_verba" step="0.01" min="0" value="${esc(v[VERBA_SEM]||'')}" placeholder="só quem tem tráfego"></div>
+    </div>
+    <div class="field"><label>O que vai ser entregue</label><select id="rv_cat"><option value="">-</option>${CATS.map(k=>`<option value="${k}"${cat===k?' selected':''}>${esc(CAT_LABEL[k])}</option>`).join('')}</select></div>
+    ${semFin?'<p class="hint">Ele não está no cadastro do Financeiro: para voltar a cobrar, cadastre em Recebimentos.</p>':''}
+    ${mst?'':'<p class="hint">Mensalidade e vencimento valem no card; o cadastro do Financeiro só o master muda, avise o financeiro.</p>'}`,
+  async ()=>{
+    const comp=String(($('#rv_comp')||{}).value||'').slice(0,7);
+    const dia=Number(($('#rv_dia')||{}).value||0), valor=parseFloat(String(($('#rv_val')||{}).value||'').replace(',','.'));
+    const vb=String(($('#rv_verba')||{}).value||'').trim(), verba=vb===''?'':parseFloat(vb.replace(',','.'));
+    const catN=($('#rv_cat')||{}).value||'';
+    if(!/^\d{4}-\d{2}$/.test(comp)){ toast('Informe o mês da volta.'); return false; }
+    if(!(dia>=1&&dia<=31)){ toast('Informe o dia do vencimento.'); return false; }
+    if(isNaN(valor)||valor<0){ toast('Informe a mensalidade.'); return false; }
+    if(verba!==''&&(isNaN(verba)||verba<0)){ toast('Verba semanal inválida.'); return false; }
+    if(!catN){ toast('Diga o que vai ser entregue.'); return false; }
+    const patch=lcVoltaPatch(t,{comp,dia,valor,verba});
+    const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
+    if(error){ toast('Erro: '+error.message); return false; }
+    Object.assign(t,patch);
+    await lcSyncArquivo(fid,false);   /* volta pros dois lados */
+    if(f){ f.status='ativo'; f.categoria=catN; }
+    /* A cobranca volta junto (Gabriel 30/09, SPACO VEICULOS): o card voltava e o cadastro
+       seguia marcado como churn, entao o cliente ativo nao era mais cobrado. */
+    let fin='';
+    if(cli){ fin=lcDesfazerChurnFin(cli,comp); cli.valor=valor; cli.diaVenc=dia; if(!(cli.inicio&&cli.inicio>=comp)) cli.inicio=comp; }
+    try{ await saveDB(); }catch(_){}
+    try{ arqFechar(); }catch(_){}
+    try{ spDesenhar(); }catch(_){}
+    try{ render(currentView); }catch(_){}
+    toast(((f&&f.nome)||'Cliente')+' voltou para o Controle de Clientes.'+(semFin?' Falta o cadastro no Financeiro.':'')
+      +(fin==='mes'?' A cobrança de '+fmtComp(comp)+' voltou a ficar em aberto.':fin==='depois'?' Volta a ser cobrado a partir de '+fmtComp(comp)+'.':'')
+      +(mst?'':' Avise o financeiro para voltar a cobrança.'));
+    return true;
+  });
+  const ov=document.querySelectorAll('.overlay'); const bs=ov.length&&ov[ov.length-1].querySelector('.msave'); if(bs) bs.textContent='Voltar para ativo';
 };
 /* Desfaz o churn no cadastro financeiro. Devolve 'mes' quando o churn era da propria
    competencia (a cobranca do mes reabre: churn vira em aberto, churn pago vira recebido),

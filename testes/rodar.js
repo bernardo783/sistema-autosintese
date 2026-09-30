@@ -254,6 +254,26 @@ grupo('Folha por departamento: calculada do Controle de Clientes (Gabriel 30/09)
   ok('quem não é master tem "Minha remuneração" no menu', /t:'Minha remuneração',f:\(\)=>minhaRemAbrir\(\)/.test(HTML));
   ok('fechamento liga o ganho do painel ao cliente', /id="fc_ganho"/.test(HTML)&&/from\('crm_calls'\)\.update\(\{ficha_id:data\.projetoId/.test(HTML));}
 
+grupo('Volta do Controle de Churns pergunta o combinado (Gabriel 30/09, SPAÇO VEÍCULOS)');
+{
+  const g=rodar(bloco('function lcVoltaPatch(','window.lcReativar='),
+    {CH_SAIDA:'sai',CH_PERDA:'per',CH_ULTPG:'ult',CH_MOTIVO:'mot',CH_GESTOR:'chg',LC_MENS:'mens',LC_VENC:'venc',LC_INI:'ini',VERBA_SEM:'verba',LC_ID:'LC',LC_ATIVO:'ATIVO'},['lcVoltaPatch']);
+  const t={valores:{sai:'2026-09-10',per:500,mot:'Financeiro',mens:500,venc:26,verba:150,outro:'x'}};
+  const p=g.lcVoltaPatch(t,{comp:'2026-10',dia:1,valor:600,verba:''});
+  ok('card volta pro Controle de Clientes em 4. EM MANUTENÇÃO', p.lista_id==='LC'&&p.status_id==='ATIVO'&&p.status==='fazendo'&&p.arquivada_em===null);
+  ok('saída, perda e motivo do churn saem', !('sai' in p.valores)&&!('per' in p.valores)&&!('mot' in p.valores)&&p.valores.outro==='x');
+  ok('mensalidade, vencimento e início vêm do popup', p.valores.mens===600&&p.valores.venc===1&&p.valores.ini==='2026-10-01');
+  ok('verba em branco some do card', !('verba' in p.valores));
+  ok('verba informada entra', g.lcVoltaPatch(t,{comp:'2026-10',dia:1,valor:600,verba:300}).valores.verba===300);
+  ok('o card original não é mexido', t.valores.mens===500&&t.valores.sai==='2026-09-10');
+  const r=bloco('window.lcReativar=','/* Desfaz o churn no cadastro financeiro.');
+  ok('popup pede mês, vencimento, mensalidade, verba e o que vai ser entregue', ['rv_comp','rv_dia','rv_val','rv_verba','rv_cat'].every(id=>r.indexOf('id="'+id+'"')>0));
+  ok('não volta sem dizer o que vai ser entregue', r.indexOf("if(!catN){ toast('Diga o que vai ser entregue.'); return false; }")>0);
+  ok('o cadastro do Financeiro recebe mensalidade, vencimento e mês da volta', r.indexOf('cli.valor=valor; cli.diaVenc=dia;')>0&&r.indexOf('lcDesfazerChurnFin(cli,comp)')>0);
+  ok('a ficha grava o tipo entregue', r.indexOf("f.status='ativo'; f.categoria=catN;")>0);
+  ok('não usa mais o confirmar simples', r.indexOf("{sim:'Voltar para ativo'}")<0&&r.indexOf("bs.textContent='Voltar para ativo'")>0);
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
@@ -1110,7 +1130,7 @@ grupo('Voltar do churn devolve a cobrança (Gabriel 30/09)');
   ok('churn com o mês pago: a cobrança do mês fica como recebida', g.lcDesfazerChurnFin(b,'2026-09')==='mes'&&DB.recebimentos[1].status==='recebido');
   ok('saiu em mês anterior: a saída fica no histórico e a carteira volta a contar do mês da volta', g.lcDesfazerChurnFin(c,'2026-09')==='depois'&&!c.churnComp&&c.inicio==='2026-09'&&DB.recebimentos[2].status==='churn');
   ok('sem churn no cadastro não mexe em nada', g.lcDesfazerChurnFin({id:'z'},'2026-09')==='');
-  ok('lcReativar chama a volta da cobrança e grava', /const fin=cli\?lcDesfazerChurnFin\(cli,compNow\(\)\):'';\s*if\(fin\)\{ try\{ await saveDB\(\); \}catch\(_\)\{\} \}/.test(HTML));
+  ok('lcReativar chama a volta da cobrança no mês escolhido no popup e grava', /fin=lcDesfazerChurnFin\(cli,comp\);[\s\S]{0,200}try\{ await saveDB\(\); \}catch\(_\)\{\}/.test(HTML));
 }
 
 /* ---------------- ficha estilo ClickUp: propriedades, atividade, relacionamentos ---------------- */
