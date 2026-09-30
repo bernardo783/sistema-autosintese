@@ -362,6 +362,14 @@ grupo('Downsell e upsell registrados na hora da mudança (Gabriel 30/09, JOTA\'S
   PROMESSAS.push(run());
 }
 
+grupo('Fechamento: folha por departamento e custo por setor (Gabriel 30/09)');
+{
+  const r=bloco('function renderFechamentoMes(c){','/* ======================= CONTRATOS');
+  ok('a folha do fechamento agrupa pelo departamento da provisão, não pela função', /const porSet=\{\}; folP\.forEach\(x=>\{ const d=fdDpRec\(x\);/.test(r)&&r.indexOf("Folha de pagamento por departamento: ${brl(TFOLHA)}")>0&&r.indexOf("FD_DEPS.concat(['Outros']).filter(s=>porSet[s])")>0);
+  ok('registro antigo cai no departamento da pessoa e a divisão do lucro fica fora', /x\.dp\|\|\(\(DB\.folhaFixos\|\|\[\]\)\.find\(f=>f\.id===x\.fixoId\)\|\|\{\}\)\.dp/.test(r)&&r.indexOf('!x.lucro&&!/aluguel|maria zilda/i')>0);
+  ok('tabela Custo por departamento soma gente e outros gastos', r.indexOf('<th>Custo por departamento</th>')>0&&/tot:r\.folha\+r\.oper/.test(r));
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);

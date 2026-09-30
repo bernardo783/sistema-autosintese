@@ -13683,9 +13683,14 @@ function renderFechamentoMes(c){
   const semGer=recMes.filter(x=>!gerDe(x).g);
   const COMISSAO=['Luiz','João'];
 
-  /* folha por funcao */
-  const folP=fol.filter(x=>!(x.esc||'')&&!/aluguel|maria zilda/i.test(x.nome||''));
-  const porSet={}; folP.forEach(x=>{ (porSet[fchSetor(x.nome)]=porSet[fchSetor(x.nome)]||[]).push(x); });
+  /* folha por DEPARTAMENTO (Gabriel 30/09: "no fechamento, saber quanto eles custam para cada
+     setor"). A provisao da Folha ja vem com o departamento (dp) e o gerente vem repartido entre
+     Marketing e Tecnologia; registro antigo cai no departamento da pessoa. */
+  const folP=fol.filter(x=>!(x.esc||'')&&!x.lucro&&!/aluguel|maria zilda/i.test(x.nome||''));
+  const fdDpRec=(x)=>x.dp||((DB.folhaFixos||[]).find(f=>f.id===x.fixoId)||{}).dp
+    ||(fdPessoas().find(p=>primNome(p.nome)===primNome(x.nome))||{}).dp||'Outros';
+  const porSet={}; folP.forEach(x=>{ const d=fdDpRec(x); (porSet[d]=porSet[d]||[]).push(x); });
+  const fdSetorTot=(d)=>(porSet[d]||[]).reduce((a,x)=>a+fchN(x.valor),0);
 
   /* falta receber e churn */
   const aReceber=rec.filter(x=>!x.pagoEm);
@@ -13731,13 +13736,23 @@ function renderFechamentoMes(c){
        its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.descricao,x.categoria,x.valor]),
        its.length+' lançamentos')).join('')||'<div class="hint">Nenhum gasto de escritório neste mês.</div>'}
 
-   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg> Folha de pagamento: ${brl(TFOLHA)}</h2>
-   ${FCH_ORDEM.filter(s=>porSet[s]).map(s=>{ const its=porSet[s];
+   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg> Folha de pagamento por departamento: ${brl(TFOLHA)}</h2>
+   ${FD_DEPS.concat(['Outros']).filter(s=>porSet[s]).map(s=>{ const its=porSet[s];
      const ab=its.filter(x=>!x.pago), tot=its.reduce((a,x)=>a+fchN(x.valor),0);
      return fchBloco(s, tot, its.sort((a,b)=>fchN(b.valor)-fchN(a.valor))
        .map(x=>[x.nome+' · '+String(x.descricao||'pagamento').slice(0,52), fchDT(x.venc)+(x.pago?' · pago':' · a pagar'), x.valor]),
        new Set(its.map(x=>x.nome)).size+' pessoa(s)'+(ab.length?' · '+brl(ab.reduce((a,x)=>a+fchN(x.valor),0))+' a pagar':''));
    }).join('')}
+   ${(()=>{ /* quanto cada setor custa no mes: gente (folha) + o resto (categoria do lancamento) */
+     const opCat={}; oper.forEach(x=>{ opCat[x.categoria]=(opCat[x.categoria]||0)+fchN(x.valor); });
+     const deps=Array.from(new Set(FD_DEPS.concat(Object.keys(porSet),Object.keys(opCat)))).filter(d=>d!=='Outros'||porSet[d]);
+     const lin=deps.map(d=>({d,folha:fdSetorTot(d),oper:opCat[d]||0})).map(r=>Object.assign(r,{tot:r.folha+r.oper})).filter(r=>r.tot>0).sort((a,b)=>b.tot-a.tot);
+     const T=lin.reduce((s,r)=>s+r.tot,0); if(!lin.length) return '';
+     return `<div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Custo por departamento</th><th style="text-align:right">Gente</th><th style="text-align:right">Outros gastos</th><th style="text-align:right">Total</th><th style="text-align:right">% do mês</th></tr></thead><tbody>
+       ${lin.map(r=>`<tr><td><strong>${esc(r.d)}</strong></td><td class="money" style="text-align:right">${brl(r.folha)}</td><td class="money" style="text-align:right">${brl(r.oper)}</td><td class="money" style="text-align:right"><strong>${brl(r.tot)}</strong></td><td class="money" style="text-align:right">${(r.tot/(T||1)*100).toFixed(1).replace('.',',')}%</td></tr>`).join('')}
+       <tr><td><strong>Total</strong></td><td class="money" style="text-align:right">${brl(lin.reduce((s,r)=>s+r.folha,0))}</td><td class="money" style="text-align:right">${brl(lin.reduce((s,r)=>s+r.oper,0))}</td><td class="money" style="text-align:right"><strong>${brl(T)}</strong></td><td></td></tr>
+     </tbody></table></div>
+     <p class="hint">Gente é a folha calculada (o gerente entra repartido: cliente só de Agent IA em Tecnologia, só tráfego em Marketing, os dois metade cada). Outros gastos são os lançamentos da categoria do departamento, sem a folha e sem os escritórios.</p>`; })()}
 
    <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> Carteira dos gerentes: 10% do que entrou</h2>
    ${Object.entries(cart).sort((a,b)=>b[1].reduce((s,i)=>s+i[2],0)-a[1].reduce((s,i)=>s+i[2],0)).map(([g,its])=>{
