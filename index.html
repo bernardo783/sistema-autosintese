@@ -15722,14 +15722,17 @@ function calcRecebimentos(comp){
   const sinaisPagos=g.sinal.reduce((s,c)=>s+(Number((byCli[c.id]||{}).sinal)||0),0);
   const sinaisRestante=g.sinal.reduce((s,c)=>s+Math.max(0,val(c)-(Number((byCli[c.id]||{}).sinal)||0)),0);
   const churnMes=(c)=>{ const r=byCli[c.id]; return !!(r&&r.status==='churn'); };
-  const perdaChurn=g.churn.reduce((s,c)=>s+(churnMes(c)?val(c):0),0);
+  /* g.churn junta quem saiu neste mes e quem ja tinha saido antes (pra nao voltar a cobrar).
+     O que a tela mostra e conta e so o churn da competencia (Gabriel 30/09). */
+  const churnDoMes=g.churn.filter(churnMes);
+  const perdaChurn=churnDoMes.reduce((s,c)=>s+val(c),0);
   const isentoCarencia=g.carencia.reduce((s,x)=>s+val(x),0);
   /* churnpago (Gabriel 31/08): o cliente avisou a saida MAS pagou o mes.
      A receita e real e conta normalmente aqui; o churn so tira ele da carteira
      do mes seguinte em diante. Nao entra em perdaChurn: nada foi perdido. */
   const recebidoLista=[].concat(g.recebido,g.churnpago);
   const recebidoSoma=soma(recebidoLista);
-  return {byCli, st, g, soma, val, sinaisPagos, sinaisRestante, churnMes, perdaChurn, isentoCarencia, recebidoLista, recebidoSoma};
+  return {byCli, st, g, soma, val, sinaisPagos, sinaisRestante, churnMes, churnDoMes, perdaChurn, isentoCarencia, recebidoLista, recebidoSoma};
 }
 /* Bloco B: quem tem entrada parcelada sobe pro topo do Recebimentos, com barra de
    progresso e prazo. Some sozinho quando nao ha ninguem nessa situacao. */
@@ -15838,21 +15841,23 @@ function renderRecebimentos(c){
      <div class="card"><div class="k"><i class="emi-dot" style="background:#ef5b6b"></i> Inadimplentes</div><div class="v ${R.g.inadimplente.length?'neg':''}">${brl(R.soma(R.g.inadimplente))}</div><div class="sub">${R.g.inadimplente.length} cliente${R.g.inadimplente.length===1?'':'s'} em atraso</div></div>
      <div class="card"><div class="k"><i class="emi-dot" style="background:#e6b13f"></i> A receber</div><div class="v">${brl(R.soma(R.g.areceber)+R.sinaisRestante)}</div><div class="sub">${R.g.areceber.length} cliente${R.g.areceber.length===1?'':'s'} no prazo</div></div>
      <div class="card"><div class="k"><i class="emi-dot" style="background:#a78bfa"></i> Carência</div><div class="v">${brl(R.isentoCarencia)}</div><div class="sub">${R.g.carencia.length} cliente${R.g.carencia.length===1?'':'s'} · isento no mês</div></div>
-     <div class="card"><div class="k"><i class="emi-dot" style="background:#6b7280"></i> Churn</div><div class="v ${R.g.churn.length?'neg':''}">${brl(R.perdaChurn)}</div><div class="sub">${R.g.churn.length} cliente${R.g.churn.length===1?'':'s'} · receita perdida${R.g.churnpago.length?(' · +'+R.g.churnpago.length+' saiu com o mês pago'):''}</div></div>
+     <div class="card"><div class="k"><i class="emi-dot" style="background:#6b7280"></i> Churn</div><div class="v ${R.churnDoMes.length?'neg':''}">${brl(R.perdaChurn)}</div><div class="sub">${R.churnDoMes.length} cliente${R.churnDoMes.length===1?'':'s'} · receita perdida${R.g.churnpago.length?(' · +'+R.g.churnpago.length+' saiu com o mês pago'):''}</div></div>
      <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)}</div><div class="sub">${ativos.length} clientes ativos</div></div>
    </div>
    ${rcBlocoEntradas(R,comp)}
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. Contas do mesmo dono aparecem juntas em uma linha, com a soma: clique no nome para abrir as contas, e o status dessa linha muda todas de uma vez. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido, escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong><i class="emi-dot" style="background:#a78bfa"></i> Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong><i class="emi-dot" style="background:#6b7280"></i> Churn</strong> marca perda definitiva: o valor do mês vira receita perdida, o cliente sai da planilha na hora e o card dele vai para o Controle de Churns. A perda continua somada no cartão Churn, pra ver quem é, use o filtro de status. <strong><i class="emi-dot" style="background:#6b7280"></i> Churn (mês pago)</strong> é para quem pagou e depois saiu: a mensalidade continua contando como recebida e o lançamento no Financeiro fica como está, o cliente só some da carteira a partir do mês seguinte.</p>`;
+   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. Contas do mesmo dono aparecem juntas em uma linha, com a soma: clique no nome para abrir as contas, e o status dessa linha muda todas de uma vez. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido, escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong><i class="emi-dot" style="background:#a78bfa"></i> Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong><i class="emi-dot" style="background:#6b7280"></i> Churn</strong> marca perda definitiva: o valor do mês vira receita perdida, o cliente sai da planilha na hora e o card dele vai para o Controle de Churns. A perda continua somada no cartão Churn, pra ver quem é, use o filtro de status: ele mostra só quem saiu no mês escolhido. <strong><i class="emi-dot" style="background:#6b7280"></i> Churn (mês pago)</strong> é para quem pagou e depois saiu: a mensalidade continua contando como recebida e o lançamento no Financeiro fica como está, o cliente só some da carteira a partir do mês seguinte.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const vencDe=(r)=>{ const rc=R.byCli[r.id]; if(rc&&rc.venc) return rc.venc; return (r.diaVenc>=1&&r.diaVenc<=31)?vencOf(comp,r.diaVenc):null; };
     /* Quem deu churn some da planilha (Gabriel, 10/09): o lugar dele e o Controle de
        Churns, pra onde o card ja vai sozinho ao marcar. O cartao ⚫ Churn continua
        somando a perda do mes, e quem quiser ver a lista acha pelo filtro de status.
-       Churn (mes pago) NAO some: a receita daquele mes e real e precisa aparecer. */
-    const foraChurn=(r)=>statusFiltro==='churn'||R.st(r)!=='churn';
+       Churn (mes pago) NAO some: a receita daquele mes e real e precisa aparecer.
+       O filtro Churn mostra so quem saiu NA competencia escolhida (Gabriel 30/09): quem
+       saiu em meses anteriores nao volta a aparecer, e a lista bate com o cartao. */
+    const foraChurn=(r)=>R.st(r)!=='churn'||(statusFiltro==='churn'&&R.churnMes(r));
     const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(cliArqVista?cliArq(r):!cliArq(r))&&foraChurn(r)&&(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro)&&(!statusFiltro||R.st(r)===statusFiltro));
     const linha=(r,filho)=>{
       const s=R.st(r); const rec=R.byCli[r.id];
@@ -15894,7 +15899,7 @@ function renderRecebimentos(c){
       <td>${serv===null?'vários':(esc(serv)||'-')}</td>
       <td>${dia===null?'vários dias':(dia?('dia '+dia):'<span class="tag pausado">a definir</span>')}</td>
       <td>${esc(dono.resp)||'-'}${dono.tel?`<div style="color:var(--muted);font-size:12px">${esc(dono.tel)}</div>`:''}</td>
-      <td class="money" style="text-align:right">${brl(tot)}${(S.pagas&&S.pagas<S.total)?`<div class="rc-sub">recebido ${brl(pago)}</div>`:''}</td>
+      <td class="money" style="text-align:right">${S.igual==='churn'?`<span style="color:var(--danger)">${brl(m.reduce((a,x)=>a+(R.churnMes(x)?R.val(x):0),0))}</span><div class="rc-sub">perdido</div>`:`${brl(tot)}${(S.pagas&&S.pagas<S.total)?`<div class="rc-sub">recebido ${brl(pago)}</div>`:''}`}</td>
       <td><select class="stSel ${esc(S.igual)}" data-g="${esc(g)}" onchange="rcStatusGrupo(this.dataset.g,this.value)" title="Muda todas as contas do grupo de uma vez">
         ${emLote?'':`<option value="" selected>${esc(S.igual?(RC_ST_TXT[S.igual]||'-'):S.texto)}</option>`}
         <option value="areceber"${S.igual==='areceber'?' selected':''}>A receber</option>

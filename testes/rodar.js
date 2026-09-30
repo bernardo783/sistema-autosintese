@@ -119,6 +119,20 @@ grupo('Recebimentos: contas do mesmo dono acopladas (Gabriel 30/09)');
   ok('em lote só A receber, Inadimplente e Recebido', g.RC_LOTE.join()==='areceber,inadimplente,recebido');
 }
 
+grupo('Recebimentos: churn conta só o da competência (Gabriel 30/09)');
+{
+  const DB={clientes:[{id:'v',nome:'GAMA',diaVenc:3,valor:1300,churnComp:'2026-08',fim:'2026-08'},
+      {id:'n',nome:'AURA',diaVenc:24,valor:1500,churnComp:'2026-09',fim:'2026-09'},{id:'a',nome:'LEAL',diaVenc:5,valor:1000}],
+    recebimentos:[{comp:'2026-08',clienteId:'v',valor:1300,status:'churn'},{comp:'2026-09',clienteId:'n',valor:1500,status:'churn'}]};
+  const g=rodar(bloco('const cliArq=','let cliArqVista')+bloco('function calcRecebimentos(comp){','/* Bloco B:'),
+    {DB,hojeISO:()=>'2026-09-30',compNow:()=>'2026-09',vencOf:(c,d)=>c+'-'+String(d).padStart(2,'0')},['calcRecebimentos']);
+  const R=g.calcRecebimentos('2026-09');
+  ok('quem saiu em agosto segue marcado como churn em setembro (não volta a cobrar)', R.st(DB.clientes[0])==='churn');
+  ok('mas o churn de setembro é só quem saiu em setembro', R.churnDoMes.length===1&&R.churnDoMes[0].id==='n');
+  ok('receita perdida soma só o churn do mês', R.perdaChurn===1500);
+  ok('o filtro e o cartão leem a lista do mês, não a de todos os tempos', /const foraChurn=\(r\)=>R\.st\(r\)!=='churn'\|\|\(statusFiltro==='churn'&&R\.churnMes\(r\)\)/.test(HTML)&&HTML.indexOf('${R.g.churn.length} cliente')<0);
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
