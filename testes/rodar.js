@@ -100,6 +100,25 @@ grupo('Prazo relativo no cartão');
 }
 
 /* ---------------- ordem alfabética ---------------- */
+grupo('Recebimentos: contas do mesmo dono acopladas (Gabriel 30/09)');
+{
+  const g=rodar(bloco('const GR_SEP=','const contasSemFicha=')+bloco('function rcAgrupar(','window.rcGrupoAbre='),
+    {MAIUS:s=>String(s||'').toUpperCase(),DB:{projetos:[{clienteId:'a3',nome:'ALTOGIRO │ DHIONATAS',grupo:'ALTOGIRO'}]}},
+    ['grupoDe','rcAgrupar','rcGrupoStatus','RC_LOTE']);
+  const gf=(c)=>g.grupoDe(g.DB.projetos.find(p=>p.clienteId===c.id))||g.grupoDe({nome:c.nome});
+  const rows=[{id:'x1',nome:'LEAL MOTOS'},{id:'a1',nome:'ALTOGIRO | MAYCON'},{id:'a2',nome:'ALTOGIRO | MOISÉS'},
+    {id:'x2',nome:'GTR MOTORS'},{id:'a3',nome:'ALTOGIRO │ DHIONATAS'},{id:'s1',nome:'SABARÁ | CAYMAN'}];
+  const r=g.rcAgrupar(rows,gf);
+  ok('grupo vira uma linha só, no lugar da primeira conta', r.length===4&&r[1].grupo==='ALTOGIRO'&&r[1].membros.length===3);
+  ok('cliente sem grupo continua linha comum, na ordem', r[0].conta.id==='x1'&&r[2].conta.id==='x2');
+  ok('grupo com uma conta só na tela não acopla', r[3].conta&&r[3].conta.id==='s1');
+  const st={a1:'recebido',a2:'areceber',a3:'recebido'};
+  const S=g.rcGrupoStatus(r[1].membros,c=>st[c.id]);
+  ok('status misto conta no formato feitos de previstos', S.igual===''&&S.texto==='2 de 3 recebidas');
+  ok('status igual devolve o status do grupo', g.rcGrupoStatus(r[1].membros,()=>'areceber').igual==='areceber');
+  ok('em lote só A receber, Inadimplente e Recebido', g.RC_LOTE.join()==='areceber,inadimplente,recebido');
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);

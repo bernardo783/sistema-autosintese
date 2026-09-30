@@ -1770,6 +1770,14 @@
     border:1px solid var(--line);border-radius:999px;padding:3px 10px}
   .rc-ent{display:flex;align-items:center;gap:14px;padding:12px 0;flex-wrap:wrap}
   .rc-ent+.rc-ent{border-top:1px solid var(--line)}
+  /* contas do mesmo dono acopladas numa linha da planilha (ALTOGIRO, SABARA) */
+  .rc-gr-b{display:inline-flex;align-items:center;gap:9px;background:none;border:0;padding:0;margin:0;
+    color:inherit;font:inherit;cursor:pointer;text-align:left;white-space:nowrap}
+  .rc-gr-b small{color:var(--muted);font-weight:600;font-size:12px}
+  .rc-gr-b[aria-expanded="true"] .fch-cv{transform:rotate(90deg)}
+  tr.rc-gr-f td{background:var(--panel2)}
+  tr.rc-gr-f td:first-child{padding-left:31px}
+  .rc-sub{color:var(--muted);font-size:11px;margin-top:3px}
   .rc-who{min-width:150px;flex:1}
   .rc-who strong{font-size:13.5px}
   .rc-who div{color:var(--muted);font-size:11.5px;margin-top:2px}
@@ -15436,6 +15444,46 @@ function rcBlocoEntradas(R,comp){
       como recebido, o dia daquele pagamento vira o dia de vencimento do cliente e a mensalidade cheia passa a correr do mês seguinte.</p>
   </div>`;
 }
+/* CONTAS ACOPLADAS (Gabriel 30/09): ALTOGIRO e SABARA pagam por conta, mas o dono e um so.
+   Na planilha, contas do mesmo dono viram UMA linha, com a soma e o resumo do status; o
+   clique abre as contas. O grupo e o mesmo da ficha (grupoDe): campo Grupo, ou o prefixo
+   "GRUPO | CONTA" do nome. Conta que sobra sozinha no filtro aparece como linha comum. */
+let rcGrAberto={}, rcGrIds={}, rcRedesenha=null;
+const rcGrupoCli=(c)=>{ const f=(DB.projetos||[]).find(p=>p.clienteId===c.id); return grupoDe(f)||grupoDe({nome:c.nome}); };
+function rcAgrupar(rows,grupoFn){
+  const por={}; rows.forEach(r=>{ const g=grupoFn(r); if(g) (por[g]=por[g]||[]).push(r); });
+  const visto={}, out=[];
+  rows.forEach(r=>{ const g=grupoFn(r), m=g?por[g]:null;
+    if(!m||m.length<2){ out.push({conta:r}); return; }
+    if(visto[g]) return;
+    visto[g]=1; out.push({grupo:g,membros:m}); });
+  return out;
+}
+const RC_ST_TXT={areceber:'A receber',inadimplente:'Inadimplente',recebido:'Recebido',sinal:'Sinal pago',
+  carencia:'Carência',churn:'Churn',churnpago:'Churn (mês pago)'};
+/* o que da pra mudar no grupo inteiro de uma vez; sinal, carencia e churn pedem decisao conta a conta */
+const RC_LOTE=['areceber','inadimplente','recebido'];
+function rcGrupoStatus(membros,stFn){
+  const sts=membros.map(stFn), igual=sts.every(s=>s===sts[0])?(sts[0]||''):'';
+  const pagas=sts.filter(s=>s==='recebido'||s==='churnpago').length;
+  return {igual, pagas, total:membros.length, texto:pagas+' de '+membros.length+' recebidas'};
+}
+window.rcGrupoAbre=(g)=>{ rcGrAberto[g]=!rcGrAberto[g]; if(rcRedesenha) rcRedesenha(); };
+window.rcStatusGrupo=async (g,novo)=>{
+  if(RC_LOTE.indexOf(novo)<0) return;
+  const volta=()=>{ if(currentView==='recebimentos') render('recebimentos'); };
+  const comp=cliComp, R=calcRecebimentos(comp), ids=rcGrIds[g]||[];
+  const alvo=DB.clientes.filter(c=>ids.indexOf(c.id)>=0&&RC_LOTE.indexOf(R.st(c))>=0&&R.st(c)!==novo);
+  if(!alvo.length){ volta(); toast('Nenhuma conta de '+g+' para mudar.'); return; }
+  const n=alvo.length, txt=RC_ST_TXT[novo];
+  const sim=await confirmar('Marcar '+(n===1?'1 conta':n+' contas')+' de '+g+' como '+txt+' em '+fmtComp(comp)+'?',
+    novo==='recebido'?'Cada conta vira uma receita no Financeiro com a data de hoje.'
+      :'Conta que já estava como Recebido perde a receita lançada no Financeiro.',
+    {sim:'Sim, marcar '+(n===1?'a conta':'as '+n),nao:'Não'});
+  if(!sim){ volta(); return; }
+  for(const c of alvo) await rcStatusCli(c.id,novo,true);
+  await saveDB(); volta(); toast(g+': '+(n===1?'1 conta':n+' contas')+' como '+txt+'.');
+};
 function renderRecebimentos(c){
   const comp=cliComp;
   const R=calcRecebimentos(comp);
@@ -15475,7 +15523,7 @@ function renderRecebimentos(c){
    ${rcBlocoEntradas(R,comp)}
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
-   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido, escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong><i class="emi-dot" style="background:#a78bfa"></i> Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong><i class="emi-dot" style="background:#6b7280"></i> Churn</strong> marca perda definitiva: o valor do mês vira receita perdida, o cliente sai da planilha na hora e o card dele vai para o Controle de Churns. A perda continua somada no cartão Churn, pra ver quem é, use o filtro de status. <strong><i class="emi-dot" style="background:#6b7280"></i> Churn (mês pago)</strong> é para quem pagou e depois saiu: a mensalidade continua contando como recebida e o lançamento no Financeiro fica como está, o cliente só some da carteira a partir do mês seguinte.</p>`;
+   <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. Contas do mesmo dono aparecem juntas em uma linha, com a soma: clique no nome para abrir as contas, e o status dessa linha muda todas de uma vez. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido, escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong><i class="emi-dot" style="background:#a78bfa"></i> Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong><i class="emi-dot" style="background:#6b7280"></i> Churn</strong> marca perda definitiva: o valor do mês vira receita perdida, o cliente sai da planilha na hora e o card dele vai para o Controle de Churns. A perda continua somada no cartão Churn, pra ver quem é, use o filtro de status. <strong><i class="emi-dot" style="background:#6b7280"></i> Churn (mês pago)</strong> é para quem pagou e depois saiu: a mensalidade continua contando como recebida e o lançamento no Financeiro fica como está, o cliente só some da carteira a partir do mês seguinte.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const vencDe=(r)=>{ const rc=R.byCli[r.id]; if(rc&&rc.venc) return rc.venc; return (r.diaVenc>=1&&r.diaVenc<=31)?vencOf(comp,r.diaVenc):null; };
@@ -15485,7 +15533,7 @@ function renderRecebimentos(c){
        Churn (mes pago) NAO some: a receita daquele mes e real e precisa aparecer. */
     const foraChurn=(r)=>statusFiltro==='churn'||R.st(r)!=='churn';
     const rows=[...DB.clientes].sort((a,b)=>((a.diaVenc||99)-(b.diaVenc||99))||(a.nome||'').localeCompare(b.nome||'')).filter(r=>(cliArqVista?cliArq(r):!cliArq(r))&&foraChurn(r)&&(!t||((r.nome||'')+(r.nicho||'')+(r.servico||'')+(r.resp||'')).toLowerCase().includes(t))&&(!diaFiltro||vencDe(r)===diaFiltro)&&(!statusFiltro||R.st(r)===statusFiltro));
-    $('#cBody').innerHTML=rows.map(r=>{
+    const linha=(r,filho)=>{
       const s=R.st(r); const rec=R.byCli[r.id];
       const podeMarcar=s||(r.diaVenc>=1&&r.diaVenc<=31);
       const selHtml=podeMarcar?`<select class="stSel ${s||''}" onchange="rcStatusCli('${r.id}',this.value)">
@@ -15500,8 +15548,8 @@ function renderRecebimentos(c){
       </select>${(s==='recebido'||s==='churnpago')&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${s==='sinal'&&rec?(()=>{ const pz=rcPrazoTexto(rcRestVenc(rec));
         return `<div style="color:var(--muted);font-size:11px;margin-top:3px">entrada ${brl(rec.sinal)} em ${fmtDate(rec.sinalEm)}</div>
         <div style="font-size:11px;margin-top:2px;color:${pz.cor};font-weight:600">resta ${brl(rcRestante(rec))} · ${esc(pz.txt)}</div>`; })():''}`:'<span class="tag st">defina o dia</span>';
-      return `<tr>
-      <td><strong>${esc(r.nome)}</strong></td>
+      return `<tr${filho?' class="rc-gr-f"':''}>
+      <td><strong>${esc(filho?contaSufixo({nome:r.nome}):r.nome)}</strong></td>
       <td><span class="tag st">${esc(r.nicho)||'-'}</span></td>
       <td>${esc(r.servico)||'-'}</td>
       <td>${r.diaVenc?('dia '+r.diaVenc):'<span class="tag pausado">a definir</span>'}</td>
@@ -15509,9 +15557,40 @@ function renderRecebimentos(c){
       <td class="money" style="text-align:right">${s==='carencia'?`<span style="color:var(--muted);text-decoration:line-through">${brl(R.val(r))}</span><div style="color:var(--brand2);font-size:11px">carência</div>`:s==='churn'?(R.churnMes(r)?`<span style="color:var(--danger)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">perdido</div>`:`<span style="color:var(--muted)">-</span>`):s==='churnpago'?`<span style="color:var(--ok)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">pago · último mês</div>`:`${brl(R.val(r))}${(R.byCli[r.id]&&R.byCli[r.id].integral)?`<div style="color:var(--brand2);font-size:11px">projeto à vista · sem mensalidade</div>`:(R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:'')}`}</td>
       <td>${selHtml}</td>
       <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn" onclick="cliAcoes('${r.id}')" data-dica="NOVO: aqui dentro você arquiva o cliente (sai da carteira sem virar churn), move para o Controle de Churns ou exclui de vez, a exclusão leva junto cobranças, lançamentos e ficha.">⋯</button></div></td>
-    </tr>`;}).join('');
+    </tr>`;};
+    /* linha do grupo: soma das contas, status resumido e o clique que abre as contas */
+    const linhaGrupo=(g,m)=>{
+      const S=rcGrupoStatus(m,R.st), ab=!!rcGrAberto[g];
+      const um=(k)=>{ const v=m.map(x=>String(x[k]==null?'':x[k])); return v.every(x=>x===v[0])?v[0]:null; };
+      const nicho=um('nicho'), serv=um('servico'), dia=um('diaVenc'), dono=m.find(x=>x.resp)||{};
+      const conta=(x)=>{ const st=R.st(x); return (st==='carencia'||st==='churn')?0:R.val(x); };
+      const tot=m.reduce((a,x)=>a+conta(x),0);
+      const pago=m.reduce((a,x)=>{ const st=R.st(x); return a+((st==='recebido'||st==='churnpago')?R.val(x):0); },0);
+      const emLote=RC_LOTE.indexOf(S.igual)>=0;
+      return `<tr class="rc-gr">
+      <td><button type="button" class="rc-gr-b" aria-expanded="${ab}" data-g="${esc(g)}" onclick="rcGrupoAbre(this.dataset.g)" title="${ab?'Fechar as contas':'Abrir as contas'}"><i class="fch-cv"></i><strong>${esc(g)}</strong><small>${m.length} contas</small></button></td>
+      <td><span class="tag st">${nicho===null?'vários':(esc(nicho)||'-')}</span></td>
+      <td>${serv===null?'vários':(esc(serv)||'-')}</td>
+      <td>${dia===null?'vários dias':(dia?('dia '+dia):'<span class="tag pausado">a definir</span>')}</td>
+      <td>${esc(dono.resp)||'-'}${dono.tel?`<div style="color:var(--muted);font-size:12px">${esc(dono.tel)}</div>`:''}</td>
+      <td class="money" style="text-align:right">${brl(tot)}${(S.pagas&&S.pagas<S.total)?`<div class="rc-sub">recebido ${brl(pago)}</div>`:''}</td>
+      <td><select class="stSel ${esc(S.igual)}" data-g="${esc(g)}" onchange="rcStatusGrupo(this.dataset.g,this.value)" title="Muda todas as contas do grupo de uma vez">
+        ${emLote?'':`<option value="" selected>${esc(S.igual?(RC_ST_TXT[S.igual]||'-'):S.texto)}</option>`}
+        <option value="areceber"${S.igual==='areceber'?' selected':''}>A receber</option>
+        <option value="inadimplente"${S.igual==='inadimplente'?' selected':''}>Inadimplente</option>
+        <option value="recebido"${S.igual==='recebido'?' selected':''}>Recebido</option>
+      </select></td>
+      <td><div class="rowact"><button class="iconbtn" data-g="${esc(g)}" onclick="rcGrupoAbre(this.dataset.g)">${ab?'Fechar contas':'Ver contas'}</button></div></td>
+    </tr>`;};
+    rcGrIds={};
+    $('#cBody').innerHTML=rcAgrupar(rows,rcGrupoCli).map(x=>{
+      if(x.conta) return linha(x.conta);
+      rcGrIds[x.grupo]=x.membros.map(m=>m.id);
+      return linhaGrupo(x.grupo,x.membros)+(rcGrAberto[x.grupo]?x.membros.map(m=>linha(m,true)).join(''):'');
+    }).join('');
     $('#cEmpty').innerHTML=rows.length?'':'<div class="empty">Nenhum cliente. Clique em "+ Cliente".</div>';
   };
+  rcRedesenha=draw;
   $('#cSearch').oninput=e=>{searchTerm=e.target.value;draw();};
   $('#cliCompInp').onchange=e=>{ cliComp=e.target.value||compNow(); if(diaFiltro&&diaFiltro.slice(0,7)!==cliComp) diaFiltro=''; render('recebimentos'); };
   $('#cDiaInp').onchange=e=>{ diaFiltro=e.target.value||''; if(diaFiltro){ const m=diaFiltro.slice(0,7); if(m!==cliComp){ cliComp=m; render('recebimentos'); return; } } draw(); };
@@ -15727,7 +15806,7 @@ window.rcRestanteData=async (cliId)=>{
       toast('Restante de '+(c.nome||'cliente')+' combinado para '+fmtDate(d)+'.'); return true;
     });
 };
-window.rcStatusCli=async (cliId,novo)=>{
+window.rcStatusCli=async (cliId,novo,lote)=>{
   if(!novo)return;
   /* De onde a pessoa mexeu: o status agora tambem muda no Controle de Clientes (Gabriel
      30/09). Repintar 'recebimentos' fixo jogava ela pra outra tela no meio do trabalho. */
@@ -15804,6 +15883,7 @@ window.rcStatusCli=async (cliId,novo)=>{
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
   }
   if(novo!=='churn' && novo!=='churnpago' && c.churnComp && comp>=c.churnComp){ c.churnComp=null; c.fim=''; await chVoltarDeChurns(c); }
+  if(lote) return true; /* rcStatusGrupo muda varias contas e grava uma vez so, no fim */
   await saveDB(); rcVolta(); toast('Status de '+c.nome+': '+(novo==='recebido'?'Recebido':novo==='sinal'?'Sinal pago':novo==='inadimplente'?'Inadimplente':novo==='churn'?'Churn: receita perdida':novo==='churnpago'?'Churn: mês pago, receita mantida':novo==='carencia'?'Carência: isento no mês':'A receber')+(moveuChurn?' · card movido para Controle de Churns':''));
 };
 
