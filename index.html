@@ -14112,14 +14112,7 @@ function renderFechamentoMes(c){
           its.length+' itens · '+(t/(TOPER||1)*100).toFixed(1)+'%'); }).join(''); })()}
    <p class="hint">Só ferramenta, anúncio e estrutura. As pessoas saíram destas categorias e foram para a Folha acima.</p>
 
-   <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Falta receber</h2>
-   ${aReceber.length?fchBloco('Reconhecido no mês, ainda não caiu', aReceber.reduce((s,x)=>s+fchN(x.valor),0),
-     aReceber.map(x=>[x.descricao, fchDT(x.data)+' · '+x.categoria, x.valor]),'entra no resultado, não no caixa',true):''}
-   ${/* churn e carência ficam só em "Churn do mês" (Gabriel 30/09: aqui era duplicidade) */
-     ['inadimplente'].filter(k=>porSt[k]).map(k=>fchBloco(ROTSt[k],somaSt(k),
-     porSt[k].sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.nome,'vencia '+fchDT(x.venc),x.valor]),
-     porSt[k].length+' cliente(s) · fora da receita')).join('')}
-   ${(!aReceber.length&&!porSt.inadimplente)?'<div class="hint">Nada em aberto: tudo que foi cobrado no mês já caiu.</div>':''}
+   <!-- "Falta receber" saiu (Gabriel 30/09): contradizia o "O que ainda vai entrar" logo abaixo, que ja lista quem ainda pode pagar no mes -->
 
    <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg> Churn do mês</h2>
    ${['churn','churnpago','carencia'].filter(k=>porSt[k]).map(k=>fchBloco(ROTSt[k],somaSt(k),
