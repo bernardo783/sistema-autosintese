@@ -519,6 +519,26 @@ grupo('Recebimentos: o que ainda vai entrar e quanto cada um leva (Gabriel 30/09
   ok('no Recebimentos só o master vê (lê o financeiro)', /currentUser&&currentUser\.role==='master'\)\?`<div class="fchdoc"[\s\S]{0,400}O que ainda vai entrar, e quanto cada um leva quando entrar/.test(HTML));
 }
 
+grupo('Parceria: cliente ativo sem receita, gerente recebe 10% da referência (Gabriel 30/09, JR MOTORS VR)');
+{
+  const DB={clientes:[{id:'p',nome:'JR MOTORS VR',diaVenc:5,valor:0,parceria:true},{id:'a',nome:'LEAL',diaVenc:5,valor:1000}],recebimentos:[]};
+  const g=rodar(bloco('const cliArq=','let cliArqVista')+bloco('function calcRecebimentos(comp){','/* Bloco B:'),
+    {DB,hojeISO:()=>'2026-10-15',compNow:()=>'2026-10',vencOf:(c,d)=>c+'-'+String(d).padStart(2,'0')},['calcRecebimentos']);
+  const R=g.calcRecebimentos('2026-10');
+  ok('parceria tem status próprio, não é a receber nem inadimplente', R.st(DB.clientes[0])==='parceria'&&R.g.parceria.length===1&&R.g.inadimplente.length===1&&R.g.inadimplente[0].id==='a');
+  ok('parceria não soma nada', R.val(DB.clientes[0])===0&&R.recebidoSoma===0);
+  ok('Recebimentos mostra "Parceria" no lugar do status', HTML.indexOf("${s==='parceria'?'<option value=\"parceria\" selected>Parceria (sem mensalidade)</option>':''}")>0&&HTML.indexOf("parceria:'Parceria'")>0);
+  ok('Folha rotula a linha', HTML.indexOf("parceria:'parceria, sem receita'")>0);
+  const h=rodar(bloco('const lcSeloParceria=','/* ---------- FILTRO COMPOSTO'),{fichaDe:(id)=>({p:{parceria:true,parceriaRef:900},n:{}}[id]),esc:s=>String(s),brl:v=>'R$ '+v},['lcSeloParceria']);
+  ok('card da parceria ganha a etiqueta com a referência', h.lcSeloParceria('p').indexOf('Parceria')>0&&h.lcSeloParceria('p').indexOf('R$ 900')>0&&h.lcSeloParceria('n')==='');
+  ok('ficha tem o campo Parceria com valor de referência', HTML.indexOf('id="pc_parc"')>0&&HTML.indexOf('id="pc_parcref"')>0);
+  ok('ligar a parceria zera a mensalidade do cadastro e tira o churn', HTML.indexOf("if(cli&&parc){ cli.parceria=true; cli.valor=0; cli.churnComp=null; cli.fim=''; }")>0);
+  const SQL=fs.readFileSync(path.join(__dirname,'..','migracao-2026-09-30-parceria.sql'),'utf8');
+  ok('banco: card da parceria recebe gerente 10% da referência e mensalidade zero', SQL.indexOf("v := v || jsonb_build_object(k_ger, round(parc_ref*0.10,2));")>0&&SQL.indexOf("v := v || jsonb_build_object(k_mens, 0);")>0);
+  ok('banco: folha traz a linha do gerente todo mês com situação parceria', SQL.indexOf("case when st='parceria' then round(parc_ref*0.10,2)")>0&&SQL.indexOf("'inadimplente','parceria'), false) devido")>0);
+  ok('banco: gestor e social media não recebem pela parceria', SQL.indexOf("from b where devido and st<>'parceria' and coalesce(gest_user")>0&&SQL.indexOf("return v - k_gest - k_rsoc;")>0);
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);

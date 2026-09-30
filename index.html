@@ -1441,6 +1441,7 @@
   .tag.ativo{background:rgba(62,196,109,.15);color:var(--ok)}
   .tag.churn{background:rgba(229,72,77,.15);color:var(--danger)}
   .tag.churnpago{background:rgba(139,149,165,.18);color:#b8c2d0}
+  .tag.parceria{background:rgba(96,165,250,.16);color:var(--info)}   /* parceria: cliente sem receita (Gabriel 30/09) */
   .tag.cat-trafego{background:rgba(47,124,246,.18);color:var(--info)}
   .tag.cat-ia{background:rgba(45,212,191,.15);color:var(--info2)}
   .tag.cat-full{background:rgba(245,158,11,.18);color:var(--warn)}
@@ -1456,6 +1457,7 @@
   .stSel.sinal{background:rgba(47,124,246,.15);color:var(--info);border-color:rgba(47,124,246,.4)}
   .stSel.churn{background:rgba(229,72,77,.22);color:var(--danger);border-color:rgba(229,72,77,.55)}
   .stSel.churnpago{background:rgba(139,149,165,.20);color:#c4cdd9;border-color:rgba(139,149,165,.55)}
+  .stSel.parceria{background:rgba(96,165,250,.18);color:var(--info);border-color:rgba(96,165,250,.5)}
   .stSel.carencia{background:rgba(167,139,250,.16);color:var(--brand2);border-color:rgba(167,139,250,.45)}
   .tk-wrap{display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:start}
   .tk-lista{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--txt);padding:7px 9px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit}
@@ -7897,7 +7899,7 @@ function tkViewLista(){
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
-  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${t.rascunho?rascSelo(t):''}${esc(t.titulo)}</span>${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id)+lcSeloGrupo(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
+  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${t.rascunho?rascSelo(t):''}${esc(t.titulo)}</span>${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id)+lcSeloGrupo(t.ficha_id)+lcSeloParceria(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr style="--bar:${esc(tkCorLinha(t))}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map((c,i)=>`<td class="${clsCp(c,i)}">${tkCelula(t,c)}</td>`).join('')}</tr>`;
@@ -9284,6 +9286,9 @@ window.lcTipoF=(k)=>{ TK.lcTipo=(TK.lcTipo===k)?'':k; tkDesenhar($('#content'));
 /* selo no nome do cliente que ainda nao tem tipo */
 const lcSeloTipo=(fid)=>{ const f=fid?fichaDe(fid):null; if(!f||lcTipoDe(f)!=='(sem)') return '';
   return `<span class="lc-semtipo-tag" title="Tipo de cliente não definido, abra a ficha e escolha a Categoria">sem tipo</span>`; };
+/* PARCERIA (Gabriel 30/09): cliente ativo sem receita; o gerente recebe 10% do valor de referência */
+const lcSeloParceria=(fid)=>{ const f=fid?fichaDe(fid):null; if(!f||!f.parceria) return '';
+  return `<span class="tag parceria" style="font-size:10px;margin-left:6px" title="Parceria: não gera receita; o gerente recebe 10% de ${esc(brl(f.parceriaRef||0))}">Parceria</span>`; };
 /* ---------- FILTRO COMPOSTO DA BASE DE CLIENTES ----------
    O filtro generico (prazo/prioridade) nao serve pra cliente e por isso fica escondido
    aqui. Este e o equivalente com as facetas que fazem sentido pra carteira. */
@@ -16134,6 +16139,7 @@ window.openProjCard=(id)=>{
       <div class="pc-dl">
         ${li('Nicho', esc(nichoDe(it,cli)||'definir'), `<select id="pc_nicho"><option value="">Escolher</option>${NICHOS.map(n=>`<option value="${n}"${nichoDe(it,cli)===n?' selected':''}>${n}</option>`).join('')}</select>`, !nichoDe(it,cli), 'pc_nicho','loja')}
         ${li('Nível (NPS)', it.nivel?`<span class="tag st" style="color:${LC_NIVEL[it.nivel].cor};background:${LC_NIVEL[it.nivel].cor}1a">${LC_NIVEL[it.nivel].rot}</span>`:'definir', `<select id="pc_nivel"><option value="">-</option>${Object.entries(LC_NIVEL).map(([k,v])=>`<option value="${k}"${it.nivel===k?' selected':''}>${v.rot}</option>`).join('')}</select>`, !it.nivel, 'pc_nivel','nps')}
+        ${li('Parceria', it.parceria?`<span class="tag parceria">Parceria</span> sem receita · gerente recebe 10% de ${esc(brl(it.parceriaRef||0))}`:'não', `<select id="pc_parc"><option value="">Não: cliente paga mensalidade</option><option value="1"${it.parceria?' selected':''}>Sim: sem receita, gerente recebe 10% da referência</option></select> <input id="pc_parcref" type="number" step="0.01" min="0" value="${esc(it.parceriaRef||'')}" placeholder="Valor de referência (R$)" title="Valor que o projeto vale: o gerente recebe 10% dele todo mês" style="margin-top:6px">`, !it.parceria, 'pc_parc')}
       </div>
 
       ${cat('Contato')}
@@ -16268,6 +16274,17 @@ window.pcAplicar=async (pid)=>{
   if(g('pc_cat')!==null) it.categoria=g('pc_cat');
   if(g('pc_nicho')!==null) it.nicho=g('pc_nicho');
   if(g('pc_nivel')!==null) it.nivel=g('pc_nivel');
+  /* PARCERIA (Gabriel 30/09): liga na ficha e, pro master, no cadastro do Financeiro (mensalidade
+     zero, sem churn). O banco recalcula o card (lc_auto) e a folha (folha_linhas) a partir da ficha. */
+  if(g('pc_parc')!==null){
+    const parc=g('pc_parc')==='1', ref=Number(String(g('pc_parcref')||'').replace(',','.'))||0;
+    if(parc!==!!it.parceria||ref!==Number(it.parceriaRef||0)){
+      it.parceria=parc; it.parceriaRef=parc?ref:0;
+      if(cli&&parc){ cli.parceria=true; cli.valor=0; cli.churnComp=null; cli.fim=''; }
+      if(cli&&!parc) delete cli.parceria;
+      if(parc) toast('Parceria: sem mensalidade, o gerente recebe 10% de '+brl(ref)+' por mês.');
+    }
+  }
   if(g('pc_produtos')!==null) it.produtos=g('pc_produtos').trim();
   if(g('pc_insta')!==null) it.instagram=g('pc_insta').trim();
   if(g('pc_drive')!==null) it.drive=g('pc_drive').trim();
@@ -16523,13 +16540,16 @@ function calcRecebimentos(comp){
   const st=(c)=>{ const r=byCli[c.id];
     if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
     if(c.inicio && comp<c.inicio) return null; /* cliente só conta a partir do mês de início */
+    /* PARCERIA (Gabriel 30/09, JR MOTORS VR): cliente ativo que não paga mensalidade. Não é
+       cobrança nem churn: fica de fora de a receber, inadimplente e das somas. */
+    if(c.parceria) return 'parceria';
     if(c.churnComp && comp>c.churnComp) return 'churn'; /* churn confirmado: perdido dali em diante */
     if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
     if(c.fim && comp>c.fim) return null; /* churn: depois do último mês o cliente zera */
     if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
     if(comp>compNow()) return 'areceber';
     return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
-  const g={recebido:[],sinal:[],inadimplente:[],areceber:[],carencia:[],churn:[],churnpago:[],semdia:[]};
+  const g={recebido:[],sinal:[],inadimplente:[],areceber:[],carencia:[],churn:[],churnpago:[],parceria:[],semdia:[]};
   DB.clientes.forEach(c=>{ if(cliArq(c)) return; const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
   const val=(c)=>{ const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; }; /* valor congelado do mês, se houver registro */
   const soma=a=>a.reduce((s,x)=>s+val(x),0);
@@ -16657,7 +16677,7 @@ function rcAgrupar(rows,grupoFn){
     visto[g]=1; out.push({grupo:g,membros:m}); });
   return out;
 }
-const RC_ST_TXT={areceber:'A receber',inadimplente:'Inadimplente',recebido:'Recebido',sinal:'Sinal pago',
+const RC_ST_TXT={areceber:'A receber',inadimplente:'Inadimplente',recebido:'Recebido',sinal:'Sinal pago',parceria:'Parceria',
   carencia:'Carência',churn:'Churn',churnpago:'Churn (mês pago)'};
 /* o que da pra mudar no grupo inteiro de uma vez; sinal, carencia e churn pedem decisao conta a conta */
 const RC_LOTE=['areceber','inadimplente','recebido'];
@@ -16749,6 +16769,7 @@ function renderRecebimentos(c){
         <option value="carencia"${s==='carencia'?' selected':''}>Carência (isento no mês)</option>
         <option value="churn"${s==='churn'?' selected':''}>Churn (não vai pagar)</option>
         <option value="churnpago"${s==='churnpago'?' selected':''}>Churn (pagou o mês)</option>
+        ${s==='parceria'?'<option value="parceria" selected>Parceria (sem mensalidade)</option>':''}
       </select>${(s==='recebido'||s==='churnpago')&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${s==='sinal'&&rec?(()=>{ const pz=rcPrazoTexto(rcRestVenc(rec));
         return `<div style="color:var(--muted);font-size:11px;margin-top:3px">entrada ${brl(rec.sinal)} em ${fmtDate(rec.sinalEm)}</div>
         <div style="font-size:11px;margin-top:2px;color:${pz.cor};font-weight:600">resta ${brl(rcRestante(rec))} · ${esc(pz.txt)}</div>`; })():''}`:'<span class="tag st">defina o dia</span>';
@@ -17953,7 +17974,7 @@ const FD_DEPS=['Comercial','Marketing','Tecnologia','Sócios'];
 const FD_PAPEL={vendas:'SDR',gerente:'Gerente',gestor:'Gestor de tráfego',social:'Social media',tec:'Tecnologia',socio:'Sócio'};
 const FD_PAPEL_DEP={vendas:'Comercial',gerente:'Marketing',gestor:'Marketing',social:'Marketing',tec:'Tecnologia',socio:'Sócios'};
 const FD_LINHA={gerente:'gerente, 10%',gestor:'gestor de tráfego',social:'social media',venda:'venda, 5%'};
-const FD_ST={recebido:'pago',churnpago:'pago, saiu',sinal:'sinal pago',areceber:'a receber',inadimplente:'inadimplente',
+const FD_ST={recebido:'pago',churnpago:'pago, saiu',sinal:'sinal pago',areceber:'a receber',inadimplente:'inadimplente',parceria:'parceria, sem receita',
   vinculada:'ligada ao cliente',sem_vinculo:'sem cliente ligado'};
 const FD={comp:'',linhas:null,erro:'',em:0,aberto:{}};
 let fdEscNovo=false;
