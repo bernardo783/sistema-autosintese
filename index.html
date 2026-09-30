@@ -6625,6 +6625,7 @@ window.menuUsuario=(ev)=>{
   ctxAbrir(ev,[
     {cab:currentUser.nome||'Meu perfil'},
     {ic:MICO.perfil,t:'Meu perfil',f:()=>meuPerfil()},
+    ...(currentUser.role==='master'?[]:[{ic:MICO.fin,t:'Minha remuneração',f:()=>minhaRemAbrir()}]),
     {ic:MICO.senha,t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
     {ic:MICO.arq,t:'Arquivados',f:()=>render('arquivados')},
     {sep:true},
@@ -14623,6 +14624,8 @@ function renderFechamento(c){
       <p class="hint" id="fc_avista" style="display:none;margin:2px 0 0;padding:10px 13px;border-radius:10px;background:rgba(63,207,142,.10);border:1px solid rgba(63,207,142,.32);color:#8ee7bd">O cliente entra na base normalmente, ficha, squad e card em 0. NÃO ATIVO. O valor entra como receita do mês na categoria <strong>Projeto à vista</strong> e <strong>nenhuma cobrança recorrente é criada</strong>: ele não aparece na carteira dos meses seguintes.</p>`)}
     ${sec('04','Responsáveis · comercial e operação','Quem vendeu, de onde veio o lead e qual squad assume a conta.',`
       <div class="row2">${fcField('SDR responsável *','fc_sdr','')}${fcField('Closer responsável *','fc_closer','',(currentUser&&currentUser.nome)||'')}</div>
+      <div class="field"><label data-dica="Passagem de bastão: qual ganho do painel Comercial é este cliente. É essa ligação que paga os 5% da primeira mensalidade ao SDR, na folha do mês da venda. Dá para ligar depois na Folha de Pagamento.">Ganho no painel Comercial</label>
+        <select id="fc_ganho" onchange="fcGanhoMudou()"><option value="">Procurando os ganhos sem cliente...</option></select></div>
       <div class="row2">
         <div class="field"><label data-dica="De onde veio esse lead. Inbound: chegou sozinho (anúncio, indicação do site, redes). Outbound: prospecção ativa nossa. Indicação: veio por alguém.">Origem do lead *</label>
           <select id="fc_origem"><option value="">Selecione</option>${FC_ORIGENS.map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join('')}</select></div>
@@ -14655,6 +14658,7 @@ function renderFechamento(c){
   const form=$('#fcForm');
   if(form){ form.addEventListener('input',fcProgresso); form.addEventListener('change',fcProgresso); }
   fcProgresso();
+  fcGanhosCarregar();
   /* em segundo plano: nao segura a tela, e a faixa aparece sozinha se houver formulario */
   fcFaixaForms();
   fcCarregarForms().then(fcFaixaForms).catch(()=>{});
@@ -14708,6 +14712,26 @@ function fcAsaasLinha(a){
   if(a.subscriptionId) p.push(`Assinatura mensal ativa: 1º vencimento em <strong>${fmtDate(String(a.proximoVencimento||'').slice(0,10))}</strong>${a.cobrancas?` · <strong>${a.cobrancas}</strong> mensalidade${a.cobrancas===1?'':'s'} e encerra`:' · renova até o churn'}.`);
   return `<div class="fc-asaas bom"><strong>✓ Asaas (${amb})</strong><br>${p.join('<br>')}</div>`;
 }
+/* GANHO DO PAINEL COMERCIAL (Gabriel 30/09): o closer liga o ganho ao cliente na passagem
+   de bastao; e essa ligacao que da os 5% da primeira mensalidade ao SDR. */
+let FC_GANHOS=[];
+async function fcGanhosCarregar(){
+  const sel=$('#fc_ganho'); if(!sel) return;
+  const de=new Date(); de.setDate(de.getDate()-120);
+  const {data,error}=await sb.from('crm_calls').select('id,empresa,sdr,closer,fee,data').eq('status_lead','ganho').is('ficha_id',null)
+    .gte('data',de.toISOString().slice(0,10)).order('data',{ascending:false}).limit(80);
+  FC_GANHOS=error?[]:(data||[]);
+  const s2=$('#fc_ganho'); if(!s2) return;
+  s2.innerHTML=`<option value="">${FC_GANHOS.length?'Escolha o ganho':'Nenhum ganho sem cliente nos últimos 120 dias'}</option>`+
+    FC_GANHOS.map(g=>`<option value="${esc(g.id)}">${esc(g.empresa||'sem nome')} · ${esc(g.sdr||'sem SDR')} · ${fmtDate(String(g.data||'').slice(0,10))}${g.fee?' · '+brl(g.fee):''}</option>`).join('');
+}
+window.fcGanhoMudou=()=>{
+  const g=FC_GANHOS.find(x=>x.id===(($('#fc_ganho')||{}).value||'')); if(!g) return;
+  const poe=(id,v)=>{ const e=$('#'+id); if(e&&!String(e.value||'').trim()&&v) e.value=v; };
+  poe('fc_nome',g.empresa); poe('fc_sdr',g.sdr); poe('fc_closer',g.closer); poe('fc_valor',g.fee?String(g.fee):'');
+  if(window.fcChecaNome) try{ fcChecaNome(); }catch(_){}
+  if(window.fcProgresso) fcProgresso();
+};
 window.fechEnviar=async ()=>{
   const V=id=>(($('#'+id)||{}).value||'').trim();
   const body={nome:V('fc_nome'),nicho:V('fc_nicho'),razaoSocial:V('fc_razao'),cnpj:V('fc_cnpj'),dono:V('fc_dono'),cpf:V('fc_cpf'),rg:V('fc_rg'),
@@ -14717,6 +14741,7 @@ window.fechEnviar=async ()=>{
     origem:V('fc_origem'),
     sdr:V('fc_sdr'),closer:V('fc_closer'),squad:V('fc_squad'),gestor:V('fc_gestor'),linkCall:V('fc_call'),resumo:V('fc_resumo'),
     asaas:((($('#fc_asaas')||{}).checked===false)?'nao':'sim')};
+  const ganhoId=V('fc_ganho');
   const dup=fcDuplicado(body.nome);
   if(dup){ fcChecaNome(); toast('Esse projeto já está cadastrado: '+dup.nome+'. Não dá pra duplicar.'); const n=$('#fc_nome'); if(n){ n.focus(); n.scrollIntoView({block:'center',behavior:'smooth'}); } return; }
   const falta=[];
@@ -14736,6 +14761,12 @@ window.fechEnviar=async ()=>{
   if(fcTemTrafego()&&!body.gestor) falta.push('gestor de tráfego');
   if(!body.resumo) falta.push('resumo da venda');
   if(falta.length){ toast('Falta preencher: '+falta.join(', ')+'.'); return; }
+  if(!ganhoId&&FC_GANHOS.length){
+    const semGanho=await confirmar('Enviar sem ligar a um ganho do painel Comercial?',
+      'Sem a ligação, o SDR não recebe os 5% desta venda na folha. Dá para ligar depois na Folha de Pagamento.',
+      {sim:'Enviar assim mesmo',nao:'Voltar e escolher'});
+    if(!semGanho){ const eg=$('#fc_ganho'); if(eg){ eg.focus(); eg.scrollIntoView({block:'center',behavior:'smooth'}); } return; }
+  }
   /* CNPJ/CPF conferido AQUI, na tela. O Asaas recusa documento com digito errado
      ("O CPF/CNPJ informado é inválido") e a gente so descobria depois, com o cliente
      ja criado e sem cobranca. Caso real: 60.921.139/0001-04, que deveria terminar 08. */
@@ -14755,6 +14786,8 @@ window.fechEnviar=async ()=>{
       toast('Erro: '+msg); b.disabled=false; b.textContent='Enviar fechamento →'; return; }
     if(!data||!data.ok){ toast('Erro: '+((data&&data.erro)||'falha ao gravar')); b.disabled=false; b.textContent='Enviar fechamento →'; return; }
     try{ await lcCriarCard(data.projetoId, body.nome, (($('#fc_inicio')||{}).value||'')); }catch(_){}
+    /* a venda do painel passa a apontar pro cliente: e isso que paga o SDR */
+    if(ganhoId){ try{ await sb.from('crm_calls').update({ficha_id:data.projetoId,vinculado_em:new Date().toISOString(),vinculado_por:(currentUser||{}).id||null}).eq('id',ganhoId); }catch(_){} }
     try{ await loadDB(); }catch(_){}
     $('#fcForm').style.display='none';
     const okEl=$('#fcOk'); okEl.style.display='';
@@ -17300,7 +17333,8 @@ const folhaView=()=>'folha';
 /* Motor de geração da folha — ressuscitado na Fase 1 (11/08). A regressão de 09/08 tinha
    removido todo caminho template→ocorrência; recuperado do desenho de 71c83de. */
 function gerarFolhaCore(comp){
-  const ativos=DB.folhaFixos.filter(f=>f.ativo);
+  /* so conta fixa de escritorio: gente nao tem mais valor pre-definido (folha por departamento) */
+  const ativos=DB.folhaFixos.filter(f=>f.ativo&&f.tipo!=='pessoa'&&String(f.esc||'').trim());
   if(!ativos.length) return 0;
   const doComp=DB.folha.filter(p=>p.comp===comp&&p.fixoId);
   const temMensal=new Set(doComp.map(p=>p.fixoId));
@@ -17343,106 +17377,350 @@ function gerarFolhaCore(comp){
   });
   return n;
 }
+/* ---------- FOLHA POR DEPARTAMENTO (Gabriel 30/09/2026) ----------
+   Ninguem tem mais valor pre-definido. A folha do mes e CALCULADA: o fixo de quem tem,
+   mais a parte variavel que o banco devolve em folha_linhas(mes), lida do Controle de
+   Clientes e dos Recebimentos (gerente 10% do que a carteira pagou, gestor R$ 100 por conta
+   paga, social media R$ 200 por conta, SDR 5% da primeira mensalidade da venda ligada ao
+   cliente). "Garantido" e o que ja entrou; "se todos pagarem" e o teto do mes.
+   DB.folhaFixos guarda as pessoas (tipo:'pessoa': departamento, funcao, Pix, dia, fixo) e,
+   como antes, os fixos de escritorio (campo esc). DB.folha e o livro de pagamentos: uma
+   provisao automatica por pessoa e mes (id fd_<mes>_<pessoa>, o que falta pagar) e um
+   registro por pagamento feito. O espelho no Financeiro continua sendo o fpSincronizar.
+   Meses anteriores a FD_INICIO ficam como historico, do jeito que foram lancados. */
+const FD_INICIO='2026-09';
+const FD_DEPS=['Comercial','Marketing','Tecnologia','Sócios'];
+const FD_PAPEL={vendas:'SDR',gerente:'Gerente',gestor:'Gestor de tráfego',social:'Social media',tec:'Tecnologia',socio:'Sócio'};
+const FD_PAPEL_DEP={vendas:'Comercial',gerente:'Marketing',gestor:'Marketing',social:'Marketing',tec:'Tecnologia',socio:'Sócios'};
+const FD_LINHA={gerente:'gerente, 10%',gestor:'gestor de tráfego',social:'social media',venda:'venda, 5%'};
+const FD_ST={recebido:'pago',churnpago:'pago, saiu',sinal:'sinal pago',areceber:'a receber',inadimplente:'inadimplente',
+  vinculada:'ligada ao cliente',sem_vinculo:'sem cliente ligado'};
+const FD={comp:'',linhas:null,erro:'',em:0,aberto:{}};
+let fdEscNovo=false;
+const fdR2=(v)=>Math.round((Number(v)||0)*100)/100;
+const fdSoma=(a,k)=>fdR2((a||[]).reduce((s,x)=>s+(Number(k?x[k]:x)||0),0));
+const fdProx=(comp)=>{ const [y,m]=comp.split('-').map(Number); return m===12?(y+1)+'-01':y+'-'+String(m+1).padStart(2,'0'); };
+const fdPessoas=()=>(DB.folhaFixos||[]).filter(f=>f.tipo==='pessoa'&&!f.desligado);
+/* a folha de um mes vence no dia da pessoa, no mes seguinte */
+const fdVenc=(comp,p)=>vencOf(fdProx(comp),Number(p.dia)||5);
+const fdProvId=(comp,pid)=>'fd_'+comp+'_'+pid;
+const fdEhProv=(f)=>String(f.id||'').indexOf('fd_')===0;
+/* pagamentos ja feitos a pessoa no mes; registro antigo sem vinculo casa pelo primeiro nome */
+const fdPagosDe=(comp,p,lucro)=>(DB.folha||[]).filter(f=>f.comp===comp&&f.pago&&!!f.lucro===!!lucro&&!fdEhProv(f)
+  &&!String(f.esc||'').trim()&&(f.fixoId===p.id||(!f.fixoId&&primNome(f.nome)===primNome(p.nome))));
+/* junta as linhas do banco por pessoa: fixo, variavel garantida e o teto do mes */
+function fdResumo(pessoas,linhas){
+  const por={}; (linhas||[]).forEach(l=>{ if(l.papel==='fixo') return; const k=primNome(l.pessoa); (por[k]=por[k]||[]).push(l); });
+  return (pessoas||[]).map(p=>{
+    const ls=por[primNome(p.nome)]||[], fixo=fdR2(p.fixo);
+    const ganho=fdSoma(ls,'ganho'), cheio=fdSoma(ls,'cheio');
+    return {p,ls,fixo,variavel:ganho,total:fdR2(fixo+ganho),teto:fdR2(fixo+cheio)};
+  });
+}
+/* como o valor da pessoa e formado, em uma linha */
+function fdComo(x){
+  const de=(k)=>x.ls.filter(l=>l.papel===k), pg=(a)=>a.filter(l=>Number(l.ganho)>0).length, t=[];
+  if(x.fixo) t.push('fixo '+brl(x.fixo));
+  const g=de('gerente'), s=de('gestor'), so=de('social'), v=de('venda');
+  if(g.length) t.push('10% da carteira, '+pg(g)+' de '+g.length+(g.length===1?' cliente pagou':' clientes pagaram'));
+  if(s.length) t.push(pg(s)+' de '+s.length+(s.length===1?' conta paga':' contas pagas'));
+  if(so.length) t.push(so.length+(so.length===1?' conta':' contas')+' de social media');
+  if(v.length) t.push(pg(v)+' de '+v.length+(v.length===1?' venda ligada ao cliente':' vendas ligadas ao cliente'));
+  return t.join(' · ')||'sem valor neste mês';
+}
+/* DIVISAO DO LUCRO (Gabriel 30/09): de cada R$ 100 de lucro, R$ 20 ficam no caixa; dos R$ 80
+   que sobram, 10% sao de quem e Tecnologia (Arthur) e o resto se divide igual entre os
+   socios. Lucro = o que entrou no mes menos as despesas e menos a folha calculada. Repasse
+   de token sai dos dois lados; o que ja foi pago de folha nao conta duas vezes (fp_). */
+function fdLucro(comp,folhaTotal,pessoas){
+  const fin=(DB.financeiro||[]).filter(x=>fchData(x)===comp);
+  const rec=fin.filter(x=>x.tipo==='receita'), desp=fin.filter(x=>x.tipo==='despesa');
+  const repasse=fdSoma(rec.filter(fchEhRepasse),'valor');
+  const receita=fdR2(fdSoma(rec,'valor')-repasse);
+  const ehPessoa=(x)=>String(x.id||'').indexOf('fp_')===0&&x.categoria!=='Escritórios';
+  const oper=fdR2(fdSoma(desp.filter(x=>!ehPessoa(x)),'valor')-repasse);
+  const lucro=fdR2(receita-oper-folhaTotal), base=Math.max(0,lucro);
+  const caixa=fdR2(base*0.20), dist=fdR2(base-caixa);
+  const tecs=(pessoas||[]).filter(p=>p.papel==='tec'), socs=(pessoas||[]).filter(p=>p.papel==='socio');
+  const tecTot=tecs.length?fdR2(dist*0.10):0, por={};
+  tecs.forEach(p=>{ por[p.id]=fdR2(tecTot/tecs.length); });
+  socs.forEach(p=>{ por[p.id]=fdR2((dist-tecTot)/socs.length); });
+  return {receita,oper,folha:folhaTotal,lucro,caixa,dist,tecTot,por,tecs,socs};
+}
+/* Provisao: o que falta pagar de cada pessoa vira UM registro nao pago em DB.folha, com o
+   valor sempre atualizado. Devolve quantos registros mudaram. */
+function fdSincronizar(comp,R){
+  let n=0; const vivos={};
+  R.forEach(x=>{
+    const id=fdProvId(comp,x.p.id); vivos[id]=1;
+    const falta=fdR2(Math.max(0,x.total-fdSoma(fdPagosDe(comp,x.p),'valor')));
+    const at=DB.folha.find(f=>f.id===id);
+    if(falta<0.005){ if(at){ DB.folha=DB.folha.filter(f=>f.id!==id); n++; } return; }
+    const novo={comp,fixoId:x.p.id,nome:x.p.nome,esc:'',descricao:(x.p.cargo||FD_PAPEL[x.p.papel]||'Equipe')+', folha de '+fmtComp(comp),
+      valor:falta,venc:fdVenc(comp,x.p),pago:false,pagoEm:null,auto:true};
+    if(!at){ DB.folha.push(Object.assign({id},novo)); n++; return; }
+    if(Object.keys(novo).some(k=>at[k]!==novo[k])){ Object.assign(at,novo); n++; }
+  });
+  const antes=DB.folha.length;
+  DB.folha=DB.folha.filter(f=>!(fdEhProv(f)&&f.comp===comp&&!vivos[f.id]));
+  return n+(antes-DB.folha.length);
+}
+async function fdCarregar(comp){
+  const {data,error}=await sb.rpc('folha_linhas',{p_comp:comp});
+  FD.comp=comp; FD.linhas=error?[]:(data||[]); FD.erro=error?String(error.message||'erro'):''; FD.em=Date.now();
+}
+/* tudo que a tela precisa do mes, de uma vez */
+function fdVisao(comp){
+  const pessoas=fdPessoas(), R=fdResumo(pessoas,FD.linhas);
+  const total=fdSoma(R,'total'), teto=fdSoma(R,'teto');
+  const pago=fdR2(R.reduce((s,x)=>s+fdSoma(fdPagosDe(comp,x.p),'valor'),0));
+  return {pessoas,R,total,teto,pago,L:fdLucro(comp,total,pessoas)};
+}
+const fdCabeca=(comp,botoes)=>`<div class="page-head">
+     <div><h2>Folha de Pagamento</h2><div class="desc">Por departamento, calculada do Controle de Clientes e dos Recebimentos</div></div>     <div class="toolbar">
+       <input type="month" class="search" id="fpComp" value="${comp}" style="min-width:150px">
+       ${botoes||''}
+     </div>
+   </div>`;
 function renderFolha(c){
   const comp=folhaComp;
-  /* Folha do mês nasce sozinha ao abrir (pedido do Gabriel, 11/08) — só mês atual pra frente,
-     idempotente (dedup por fixo/mês), e o salvamento segue em segundo plano na fila normal. */
-  if(comp>=compNow()){ const nAuto=gerarFolhaCore(comp);
-    if(nAuto){ saveDB(); toast(nAuto+' pagamento(s) do mês entraram sozinhos.'); } }
-  /* provisão: todo registro de folha vira despesa da competência, pago ou não */
-  if(fpSincronizar()) saveDB();
-  const fixoById={}; DB.folhaFixos.forEach(f=>{fixoById[f.id]=f;});
-  /* Uma tela so (Gabriel, 10/08/2026): equipe primeiro, depois a faixa "Gastos de Escritório"
-     com um sub-grupo por escritório. O que separa continua sendo o campo esc do fixo. */
-  const escDe=p=>{ const f=fixoById[p.fixoId]; return ((f?f.esc:p.esc)||'').trim(); };
-  const fixos=DB.folhaFixos.slice();
-  const pays=DB.folha.filter(p=>p.comp===comp).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
-  /* agrupa em [equipe, escritório A, escritório B...] preservando a ordem já existente */
-  const agrupar=(arr,chave)=>{
-    const eq=arr.filter(x=>!chave(x));
-    const escs=[]; arr.forEach(x=>{ const e=chave(x); if(e&&escs.indexOf(e)<0) escs.push(e); });
-    escs.sort((x,y)=>x.localeCompare(y));
-    return {eq, escs, por:e=>arr.filter(x=>chave(x)===e)};
+  const trocaMes=()=>{ const e=$('#fpComp'); if(e) e.onchange=ev=>{ folhaComp=ev.target.value||compNow(); render(folhaView()); }; };
+  /* escritorio segue no motor antigo: o fixo do mes nasce sozinho ao abrir */
+  if(comp>=compNow()){ if(gerarFolhaCore(comp)) saveDB(); }
+  if(comp<FD_INICIO){ if(fpSincronizar()) saveDB(); c.innerHTML=fdCabeca(comp)+fdHistorico(comp)+fdEscritorios(comp); trocaMes(); return; }
+  if(FD.comp!==comp||!FD.linhas||Date.now()-FD.em>20000){
+    c.innerHTML=fdCabeca(comp)+`<div class="empty">Calculando a folha de ${fmtComp(comp)}...</div>`; trocaMes();
+    fdCarregar(comp).then(()=>{ if(currentView===folhaView()&&finTab==='folha'&&folhaComp===comp) renderFolha(c); });
+    return;
+  }
+  const V=fdVisao(comp), hoje=hojeISO();
+  if(comp<=compNow()){ const n=fdSincronizar(comp,V.R)+fpSincronizar(); if(n) saveDB(); }
+  else if(fpSincronizar()) saveDB();
+  const aPagar=fdR2(Math.max(0,V.total-V.pago));
+  const linhaPessoa=(x)=>{
+    const p=x.p, ab=!!FD.aberto[p.id], pagos=fdPagosDe(comp,p), pago=fdSoma(pagos,'valor'), falta=fdR2(Math.max(0,x.total-pago));
+    const venc=fdVenc(comp,p);
+    const st=(!x.total&&!pago)?'<span class="tag st">sem valor</span>'
+      :falta<0.005?`<span class="tag concluido">Pago${pagos.length?' '+fmtDate(pagos[pagos.length-1].pagoEm):''}</span>`
+      :`<span class="tag ${venc<hoje?'despesa':'pausado'}">${venc<hoje?'Atrasado':'A pagar'}</span>${pago?`<div class="rc-sub">pago ${brl(pago)} de ${brl(x.total)}</div>`:''}`;
+    const det=!ab?'':`<tr class="rc-gr-f"><td colspan="6">${fdDetalhe(x,pagos)}</td></tr>`;
+    return `<tr>
+      <td><button type="button" class="rc-gr-b" aria-expanded="${ab}" onclick="fdAbre('${esc(p.id)}')" title="${ab?'Fechar o detalhe':'Ver de onde vem o valor'}"><i class="fch-cv"></i><strong>${esc(p.nome)}</strong></button><div class="rc-sub">${esc(p.cargo||FD_PAPEL[p.papel]||'')}</div></td>
+      <td>${p.pix?`${esc(p.pix)} <button class="iconbtn" onclick="copyPixFixo('${esc(p.id)}')">copiar</button>`:'-'}${p.banco?`<div class="rc-sub">${esc(p.banco)}</div>`:''}</td>
+      <td>${fmtDate(venc)}</td>
+      <td>${esc(fdComo(x))}</td>
+      <td class="money" style="text-align:right">${brl(x.total)}${x.teto>x.total?`<div class="rc-sub">até ${brl(x.teto)} se todos pagarem</div>`:''}</td>
+      <td>${st}<div class="rowact" style="margin-top:6px">${falta>=0.005?`<button class="iconbtn" onclick="fdPagar('${esc(p.id)}')">Pagar</button>`:''}<button class="iconbtn" onclick="fdPessoaModal('${esc(p.id)}')">Editar</button></div></td>
+    </tr>${det}`;
   };
-  const [fy,fm]=comp.split('-').map(Number);
-  const fLast=new Date(fy,fm,0).getDate();
-  const ocorrencias=(f)=>{ if(f.freq!=='semanal') return 1; let n=0; for(let d=1;d<=fLast;d++){ if(new Date(fy,fm-1,d).getDay()===(Number(f.diaSemana)||0)) n++; } return n; };
-  /* Fixo variavel nao tem valor de cadastro pra prever: o mes vale o que foi preenchido. */
-  const ehVar=(f)=>!!(f&&f.variavel);
-  const valDoMes=(f)=>pays.filter(p=>p.fixoId===f.id).reduce((t,p)=>t+(Number(p.valor)||0),0);
-  const previstoFixos=fixos.filter(f=>f.ativo).reduce((s,f)=>s+(ehVar(f)?valDoMes(f):(Number(f.valor)||0)*ocorrencias(f)),0);
-  const avulsos=pays.filter(p=>!p.fixoId).reduce((s,p)=>s+Number(p.valor),0);
-  const tot=previstoFixos+avulsos;
-  const pago=pays.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
-  const pend=pays.filter(p=>!p.pago);
-  const totPend=Math.max(0,tot-pago);
-  const semGrupos={}; pays.forEach(p=>{ const f=fixoById[p.fixoId]; if(f&&f.freq==='semanal'){ (semGrupos[p.fixoId]=semGrupos[p.fixoId]||[]).push(p); } });
-  const paysMain=pays.filter(p=>{ const f=fixoById[p.fixoId]; return !(f&&f.freq==='semanal'); });
-  const hoje=hojeISO();
-  c.innerHTML=`
-   <div class="page-head">
-     <div><h2>Folha de Pagamento</h2><div class="desc">Equipe e gastos de escritório na mesma tela</div></div>
-     <div class="toolbar">
-       <input type="month" class="search" id="fpComp" value="${comp}" style="min-width:150px">
-       <button class="btn small" onclick="openFpModal()" data-dica="Pagamento avulso. Os fixos do mês (equipe e escritórios) entram sozinhos ao abrir a tela, sem botão, sem duplicar.">+ Pagamento</button>
-     </div>
-   </div>
+  const corpo=FD_DEPS.map(d=>{ const rs=V.R.filter(x=>(x.p.dp||FD_PAPEL_DEP[x.p.papel])===d); if(!rs.length) return '';
+    return `<tr class="fp-faixa"><td colspan="6">${esc(d)}<span class="fp-sub">${rs.length} pessoa${rs.length===1?'':'s'} · ${brl(fdSoma(rs,'total'))} garantidos</span></td></tr>`+rs.map(linhaPessoa).join(''); }).join('');
+  c.innerHTML=fdCabeca(comp,`<button class="btn small" onclick="fdPessoaModal()" data-dica="Quem entra na folha: departamento, função, chave Pix, dia do pagamento e o fixo, se tiver. O resto o sistema calcula.">+ Pessoa</button>`)+`
+   ${FD.erro?`<div class="f1-aviso">↻ Não consegui calcular a parte variável agora (${esc(FD.erro)}). Os valores abaixo mostram só o fixo.</div>`:''}
    <div class="cards">
-     <div class="card"><div class="k">Total do mês (previsto)</div><div class="v">${brl(tot)}</div></div>
-     <div class="card"><div class="k">Pago</div><div class="v pos">${brl(pago)}</div></div>
-     <div class="card"><div class="k">Pendente</div><div class="v ${totPend?'neg':''}">${brl(totPend)}</div></div>
-     <div class="card"><div class="k">Pagamentos</div><div class="v">${pays.length-pend.length}/${pays.length}</div></div>
+     <div class="card"><div class="k">Garantido em ${fmtComp(comp)}</div><div class="v">${brl(V.total)}</div><div class="sub">${V.R.length} pessoa${V.R.length===1?'':'s'} · fixo e o que os clientes já pagaram</div></div>
+     <div class="card"><div class="k">Se todos os clientes pagarem</div><div class="v">${brl(V.teto)}</div><div class="sub">teto do mês</div></div>
+     <div class="card"><div class="k">Pago</div><div class="v pos">${brl(V.pago)}</div></div>
+     <div class="card"><div class="k">A pagar</div><div class="v ${aPagar?'neg':''}">${brl(aPagar)}</div></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
-   <tbody>${paysMain.map(p=>{
-     const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
-     return `<tr>
-      <td><strong>${esc(p.nome)}</strong></td><td>${esc(p.descricao)||'-'}</td><td>${fmtDate(p.venc)||'-'}</td>
-      <td class="money" style="text-align:right">${(!Number(p.valor)&&ehVar(fixoById[p.fixoId]))?`<button type="button" class="iconbtn" onclick="openFpModal('${p.id}')" title="Conta variável: lance o valor da fatura deste mês">preencher</button>`:brl(p.valor)}</td><td>${st}</td>
-      <td><div class="rowact">
-        ${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${p.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${p.id}')">✓ Pagar</button>`}
-        <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button>
-        <button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button>
-      </div></td></tr>`;}).join('')}</tbody></table>
-   ${pays.length?'':'<div class="empty">Nenhum pagamento em '+fmtComp(comp)+'. Use “+ Pagamento”, ou marque “Recebeu?” na tabela de fixos abaixo, o registro do mês nasce na hora.</div>'}</div>
-
-   ${Object.keys(semGrupos).length?`
-   <h2 style="font-size:16px;margin:24px 0 10px">Pagamentos semanais: ${fmtComp(comp)}</h2>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Chave Pix</th><th style="text-align:right">Valor/semana</th><th>Semanas do mês</th><th style="text-align:right">Pago no mês</th></tr></thead>
-   <tbody>${Object.entries(semGrupos).map(([fid,ps])=>{ const f=fixoById[fid]; ps.sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
-     const pagoSem=ps.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
-     return `<tr>
-      <td><strong>${esc(f.nome)}</strong>${f.dp?`<div style="font-size:11px;color:var(--muted)">${esc(f.dp)}</div>`:''}</td>
-      <td>${esc(f.pix)||'-'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.titular?`<div style="color:var(--muted);font-size:12px">${esc(f.titular)}</div>`:''}</td>
-      <td class="money" style="text-align:right">${brl(f.valor)}</td>
-      <td>${ps.map(p=>`<label style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;cursor:pointer;font-size:12.5px;color:${p.pago?'var(--ok)':'var(--muted)'}"><input type="checkbox" ${p.pago?'checked':''} onclick="fpToggle('${p.id}')" style="accent-color:#7c3aed;width:15px;height:15px;cursor:pointer">${fmtDate(p.venc).slice(0,5)}</label>`).join('')}</td>
-      <td class="money" style="text-align:right">${brl(pagoSem)} <span style="color:var(--muted);font-size:11px">${ps.filter(p=>p.pago).length}/${ps.length}</span></td>
-     </tr>`;}).join('')}</tbody></table></div>`:''}
-   <h2 style="font-size:16px;margin:24px 0 10px">Pré-definidos: fixos de todo mês</h2>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Chave Pix</th><th>Escritório / DP</th><th>Dia</th><th style="text-align:right">Valor</th><th>Ativo</th><th></th></tr></thead>
-   <tbody>${(()=>{ const g=agrupar(fixos,f=>(f.esc||'').trim());
-     const linha=(f)=>`<tr>
-     <td><strong>${esc(f.nome)}</strong></td><td>${esc(f.descricao)||'-'}</td><td>${esc(f.pix)||'-'} ${f.pix?`<button class="iconbtn" onclick="copyPixFixo('${f.id}')">copiar</button>`:''}${f.titular?`<div style="color:var(--muted);font-size:12px">${esc(f.titular)}</div>`:''}${f.banco?`<div style="color:var(--muted);font-size:12px">${esc(f.banco)}</div>`:''}</td><td>${f.esc?`<span class="tag st"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/></svg> ${esc(f.esc)}</span>`:(f.dp?`<span class="tag st">${esc(f.dp)}</span>`:'-')}</td><td>${f.freq==='semanal'?('toda '+DSEM[Number(f.diaSemana)||0]):('dia '+f.dia)}${f.posPago?'<div style="font-size:11px;color:var(--muted)">pós-pago</div>':''}${f.inicioComp?`<div style="font-size:11px;color:var(--muted)">a partir de ${fmtComp(f.inicioComp)}</div>`:''}${f.proxData?`<div style="font-size:11px;color:var(--info)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> próx.: ${fmtDate(f.proxData)}${f.recorrente===false?' (único)':''}</div>`:''}</td>
-     <td class="money" style="text-align:right">${brl(f.valor)}</td>
-     <td>${f.ativo?'<span class="tag concluido">Sim</span>':'<span class="tag st">Não</span>'}</td>
-     <td><div class="rowact">
-       <button class="iconbtn" onclick="fixoMove('${f.id}',-1)" title="Subir">↑</button>
-       <button class="iconbtn" onclick="fixoMove('${f.id}',1)" title="Descer">↓</button>
-       <button class="iconbtn" onclick="openFixoModal('${f.id}')">Editar</button>
-       <button class="iconbtn del" onclick="fixoExcluir('${f.id}')">Excluir</button>
-     </div></td></tr>`;
-     const faixa=(txt,sub)=>`<tr class="fp-faixa"><td colspan="8">${esc(txt)}${sub?`<span class="fp-sub">${esc(sub)}</span>`:''}</td></tr>`;
-     let h=g.eq.map(linha).join('');
-     if(g.escs.length){
-       h+=faixa('Gastos de Escritório');
-       g.escs.forEach(e=>{ h+=faixa(e,'escritório')+g.por(e).map(linha).join(''); });
-     }
-     return h; })()}</tbody></table>
-   ${fixos.length?'':'<div class="empty">Nenhum fixo cadastrado. Cadastre quem recebe todo mês e as contas de cada escritório, o campo Escritório é o que separa os dois.</div>'}</div>
-   <div style="margin-top:10px"><button class="btn secondary small" onclick="openFixoModal()">+ Fixo mensal</button></div>
-   <p class="hint" style="margin-top:12px">A lista já é a do mês escolhido no filtro, não precisa gerar nada. Ao marcar <strong>✓ Pagar</strong>, o registro do mês nasce e a despesa entra no Financeiro (categoria Folha de Pagamento, ou Escritórios quando o fixo tem escritório); “Desfazer” remove os dois.<br><strong>Pagamento de equipe é variável:</strong> o valor do pré-definido é só referência, ao pagar, o sistema pergunta quanto foi de fato neste mês. Gasto de escritório mantém o valor cadastrado.<br><strong>Regime de competência:</strong> o custo entra no Financeiro no mês do trabalho, pago ou não, quem ainda não recebeu aparece lá como “· a pagar”. Pós-pago vence no mês seguinte, mas continua sendo custo do mês trabalhado.</p>`;
-  $('#fpComp').onchange=e=>{ folhaComp=e.target.value||compNow(); render(folhaView()); };
+   <div class="tablewrap"><table><thead><tr><th>Pessoa</th><th>Chave Pix</th><th>Vence</th><th>Como é calculado</th><th style="text-align:right">Garantido</th><th>Pagamento</th></tr></thead>
+   <tbody>${corpo}</tbody></table>
+   ${V.R.length?'':'<div class="empty">Ninguém na folha ainda. Use “+ Pessoa”.</div>'}</div>
+   ${fdBlocoLucro(comp,V)}
+   ${fdEscritorios(comp)}
+   <p class="hint" style="margin-top:12px">Ninguém tem valor pré-definido: o sistema soma o fixo de quem tem com o que vem do Controle de Clientes. <strong>Gerente</strong> recebe 10% do que a carteira dele pagou no mês e <strong>gestor de tráfego</strong> R$ 100 por conta paga (proporcional no mês em que o cliente entrou), os dois sobem sozinhos quando o cliente é marcado como Recebido. <strong>Social media</strong> soma R$ 200 por conta em que aparece no Controle de Clientes. <strong>SDR</strong> soma 5% da primeira mensalidade de cada ganho do painel Comercial ligado ao cliente. Virou o mês, a conta recomeça do zero. O que falta pagar entra no Financeiro como despesa do mês, “a pagar”, e vira pago quando você registra o pagamento.</p>`;
+  trocaMes();}
+/* de onde vem o valor: cliente por cliente, e os pagamentos ja feitos */
+function fdDetalhe(x,pagos){
+  const ord={gerente:1,gestor:2,social:3,venda:4};
+  const ls=x.ls.slice().sort((a,b)=>(ord[a.papel]-ord[b.papel])||String(a.cliente||'').localeCompare(String(b.cliente||'')));
+  const lin=ls.map(l=>{ const vd=l.papel==='venda';
+    return `<tr><td>${esc(l.cliente||'-')}</td><td>${esc(FD_LINHA[l.papel]||l.papel)}</td>
+      <td>${esc(FD_ST[l.situacao]||l.situacao||'-')}${vd?` <button class="iconbtn" data-r="${esc(l.ref||'')}" onclick="fdVendaLigar(this.dataset.r)">${l.ficha?'Trocar cliente':'Ligar ao cliente'}</button>`:''}</td>
+      <td class="money" style="text-align:right">${brl(l.cheio)}</td><td class="money" style="text-align:right">${brl(l.ganho)}</td></tr>`; }).join('');
+  const pg=pagos.map(f=>`<span class="tag concluido">Pago ${brl(f.valor)} em ${fmtDate(f.pagoEm)}</span> <button class="iconbtn" onclick="fdDesfazer('${esc(f.id)}')">Desfazer</button>`).join(' ');
+  return `${x.fixo?`<div class="rc-sub" style="margin:0 0 8px">Fixo do mês: <b>${brl(x.fixo)}</b></div>`:''}
+    ${ls.length?`<table><thead><tr><th>Cliente</th><th>Conta como</th><th>Situação no mês</th><th style="text-align:right">Se pagar</th><th style="text-align:right">Garantido</th></tr></thead><tbody>${lin}</tbody></table>`
+      :'<div class="rc-sub">Nada vindo do Controle de Clientes neste mês.</div>'}
+    ${pg?`<div style="margin-top:10px">${pg}</div>`:''}`;
 }
+/* bloco da divisao do lucro: a conta aberta e a parte de cada um */
+function fdBlocoLucro(comp,V){
+  const L=V.L, gente=L.tecs.concat(L.socs); if(!gente.length) return '';
+  const linha=(rot,sub,v,forte)=>`<tr><td>${forte?'<strong>'+rot+'</strong>':rot}${sub?` <span class="rc-sub" style="display:inline">${sub}</span>`:''}</td><td class="money" style="text-align:right">${forte?'<strong>'+v+'</strong>':v}</td><td></td></tr>`;
+  const pes=gente.map(p=>{ const dev=L.por[p.id]||0, pagos=fdPagosDe(comp,p,true), pago=fdSoma(pagos,'valor'), falta=fdR2(Math.max(0,dev-pago));
+    return `<tr><td><strong>${esc(p.nome)}</strong> <span class="rc-sub" style="display:inline">${p.papel==='tec'?'10% do que sobra depois do caixa':'um terço do restante'}</span></td>
+      <td class="money" style="text-align:right">${brl(dev)}</td>
+      <td>${pagos.map(f=>`<span class="tag concluido">Pago ${brl(f.valor)} em ${fmtDate(f.pagoEm)}</span> <button class="iconbtn" onclick="fdDesfazer('${esc(f.id)}')">Desfazer</button>`).join(' ')}
+        ${falta>=0.005?`<button class="iconbtn" onclick="fdPagar('${esc(p.id)}',true)">Registrar pagamento</button>`:''}</td></tr>`; }).join('');
+  return `<h2 style="font-size:16px;margin:24px 0 10px">Divisão do lucro: ${fmtComp(comp)}</h2>
+   <div class="tablewrap"><table><tbody>
+     ${linha('Recebido no mês','sem repasse de token',brl(L.receita))}
+     ${linha('Despesas do mês','fora a folha',`− ${brl(L.oper)}`)}
+     ${linha('Folha','fixos e comissões garantidos',`− ${brl(L.folha)}`)}
+     ${linha('Lucro até agora','',(L.lucro<0?'− ':'')+brl(Math.abs(L.lucro)),true)}
+     ${linha('Caixa','20% do lucro',brl(L.caixa))}
+     ${pes}
+   </tbody></table></div>
+   <p class="hint" style="margin-top:8px">${L.lucro>0?'A conta anda junto com o mês: cada recebimento, despesa ou comissão nova muda o lucro e a parte de cada um. O pagamento da divisão fica registrado aqui e não entra como despesa no Financeiro.':'Sem lucro a dividir neste mês até agora.'}</p>`;
+}
+/* meses anteriores a regra nova: os registros como foram lancados */
+function fdHistorico(comp){
+  const hoje=hojeISO(), pays=(DB.folha||[]).filter(p=>p.comp===comp&&!String(p.esc||'').trim()).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  return `<div class="f1-aviso">↻ ${fmtComp(comp)} é anterior à folha por departamento: os pagamentos aparecem como foram lançados na época.</div>
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
+   <tbody>${pays.map(p=>{
+     const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
+     return `<tr><td><strong>${esc(p.nome)}</strong></td><td>${esc(p.descricao)||'-'}</td><td>${fmtDate(p.venc)||'-'}</td>
+      <td class="money" style="text-align:right">${brl(p.valor)}</td><td>${st}</td>
+      <td><div class="rowact">${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${p.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${p.id}')">Pagar</button>`}
+        <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button><button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button></div></td></tr>`;}).join('')}</tbody></table>
+   ${pays.length?'':'<div class="empty">Nenhum pagamento de equipe em '+fmtComp(comp)+'.</div>'}</div>`;
+}
+/* gastos de escritorio: continuam com fixo mensal (aluguel, agua, luz), fora da conta da equipe */
+function fdEscritorios(comp){
+  const hoje=hojeISO(), fixoById={}; DB.folhaFixos.forEach(f=>{ fixoById[f.id]=f; });
+  const escDe=(p)=>{ const f=fixoById[p.fixoId]; return String((f?f.esc:p.esc)||'').trim(); };
+  const pays=(DB.folha||[]).filter(p=>p.comp===comp&&escDe(p)).sort((a,b)=>escDe(a).localeCompare(escDe(b))||(a.venc||'').localeCompare(b.venc||''));
+  const fixos=DB.folhaFixos.filter(f=>f.tipo!=='pessoa'&&String(f.esc||'').trim());
+  return `<h2 style="font-size:16px;margin:24px 0 10px">Gastos de escritório: ${fmtComp(comp)}</h2>
+   <div class="tablewrap"><table><thead><tr><th>Conta</th><th>Escritório</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
+   <tbody>${pays.map(p=>{
+     const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
+     return `<tr><td><strong>${esc(p.nome)}</strong>${p.descricao?`<div class="rc-sub">${esc(p.descricao)}</div>`:''}</td><td><span class="tag st">${esc(escDe(p))}</span></td><td>${fmtDate(p.venc)||'-'}</td>
+      <td class="money" style="text-align:right">${(!Number(p.valor)&&(fixoById[p.fixoId]||{}).variavel)?`<button type="button" class="iconbtn" onclick="openFpModal('${p.id}')" title="Conta variável: lance o valor da fatura deste mês">preencher</button>`:brl(p.valor)}</td><td>${st}</td>
+      <td><div class="rowact">${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${p.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${p.id}')">Pagar</button>`}
+        <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button><button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button></div></td></tr>`;}).join('')}</tbody></table>
+   ${pays.length?'':'<div class="empty">Nenhum gasto de escritório em '+fmtComp(comp)+'.</div>'}</div>
+   <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+     <button class="btn secondary small" onclick="fdEscNovo=true;openFpModal()">+ Gasto avulso</button>
+     <button class="btn secondary small" onclick="fdEscFixos()">Contas fixas dos escritórios (${fixos.length})</button>
+   </div>`;
+}
+window.fdEscFixos=()=>{
+  const fixos=DB.folhaFixos.filter(f=>f.tipo!=='pessoa'&&String(f.esc||'').trim());
+  modal('Contas fixas dos escritórios',`<p class="hint" style="margin:0 0 12px">Entram sozinhas todo mês em Gastos de escritório, com o valor cadastrado.</p>
+    ${fixos.map(f=>`<div class="rc-ent"><div class="rc-who"><strong>${esc(f.nome)}</strong><div>${esc(f.esc)} · dia ${esc(f.dia)} · ${brl(f.valor)}${f.ativo?'':' · desativada'}</div></div>
+      <button class="iconbtn" onclick="document.querySelector('.overlay .mcancel').click();openFixoModal('${f.id}')">Editar</button></div>`).join('')||'<div class="empty">Nenhuma conta fixa.</div>'}
+    <div style="margin-top:12px"><button class="btn secondary small" onclick="document.querySelector('.overlay .mcancel').click();fdEscNovo=true;openFixoModal()">+ Conta fixa</button></div>`,
+    async ()=>true);
+};
+window.fdAbre=(pid)=>{ FD.aberto[pid]=!FD.aberto[pid]; render(folhaView()); };
+/* registrar pagamento da folha (ou da divisao do lucro, que nao vira despesa) */
+window.fdPagar=(pid,lucro)=>{
+  const p=fdPessoas().find(x=>x.id===pid); if(!p) return;
+  const comp=folhaComp, V=fdVisao(comp), x=V.R.find(r=>r.p.id===pid);
+  const devido=lucro?(V.L.por[pid]||0):(x?x.total:0), pago=fdSoma(fdPagosDe(comp,p,lucro),'valor');
+  const falta=fdR2(Math.max(0,devido-pago));
+  modal((lucro?'Divisão do lucro: ':'Pagar ')+esc(p.nome),
+    `<p class="hint" style="margin:0 0 12px">${fmtComp(comp)}: ${lucro?'parte do lucro':'garantido'} de <b>${brl(devido)}</b>${pago?', já pago '+brl(pago):''}.${p.pix?' Pix: <b>'+esc(p.pix)+'</b>.':''}</p>
+     <div class="row2">
+       <div class="field"><label>Valor pago (R$)</label><input id="fd_v" type="number" step="0.01" min="0" value="${falta||''}" placeholder="0,00" autocomplete="off"></div>
+       <div class="field"><label>Pago em</label><input id="fd_d" type="date" value="${hojeISO()}"></div>
+     </div>`,
+    async ()=>{
+      const v=fdR2(parseFloat(String(($('#fd_v')||{}).value||'').replace(',','.')));
+      if(!(v>0)){ toast('Informe o valor pago.'); return false; }
+      const d=($('#fd_d')||{}).value||hojeISO();
+      const reg={id:'fdp_'+uid(),comp,fixoId:p.id,nome:p.nome,esc:'',valor:v,venc:fdVenc(comp,p),pago:true,pagoEm:d,
+        descricao:(lucro?'Divisão do lucro de ':((p.cargo||FD_PAPEL[p.papel]||'Equipe')+', folha de '))+fmtComp(comp)};
+      if(lucro) reg.lucro=true;
+      DB.folha.push(reg);
+      fdSincronizar(comp,fdVisao(comp).R); fpSincronizar();
+      await saveDB(); render(folhaView());
+      toast((lucro?'Divisão do lucro':'Pagamento')+' de '+p.nome+' registrado: '+brl(v)+'.'); return true;
+    });
+};
+window.fdDesfazer=async (id)=>{
+  const f=(DB.folha||[]).find(x=>x.id===id); if(!f) return;
+  const sim=await confirmar('Desfazer o pagamento de '+brl(f.valor)+' para '+(f.nome||'esta pessoa')+'?',
+    f.lucro?'O registro da divisão do lucro sai da folha.':'O valor volta a aparecer como a pagar na folha e no Financeiro.',{sim:'Sim, desfazer',nao:'Não'});
+  if(!sim) return;
+  DB.folha=DB.folha.filter(x=>x.id!==id);
+  if(FD.linhas&&FD.comp===f.comp) fdSincronizar(f.comp,fdVisao(f.comp).R);
+  fpSincronizar(); await saveDB(); render(folhaView()); toast('Pagamento desfeito.');
+};
+/* cadastro de quem entra na folha: so o que o sistema nao sabe calcular */
+window.fdPessoaModal=(id)=>{
+  const it=id?DB.folhaFixos.find(x=>x.id===id):{tipo:'pessoa',papel:'gestor',dia:5,fixo:0};
+  if(!it) return;
+  const op=(o,sel)=>Object.keys(o).map(k=>`<option value="${k}"${k===sel?' selected':''}>${esc(o[k])}</option>`).join('');
+  modal(id?'Editar '+esc(it.nome||'pessoa'):'Nova pessoa na folha',`
+    <div class="row2">
+      <div class="field"><label>Nome</label><input id="fdp_nome" value="${esc(it.nome||'')}" placeholder="Nome completo"></div>
+      <div class="field"><label>Cargo</label><input id="fdp_cargo" value="${esc(it.cargo||'')}" placeholder="Ex.: Gestor de tráfego"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label data-dica="Define como o sistema calcula: gerente recebe 10% da carteira paga, gestor R$ 100 por conta paga, social media R$ 200 por conta, SDR 5% da primeira mensalidade das vendas. Sócio e Tecnologia entram na divisão do lucro.">Função</label><select id="fdp_papel">${op(FD_PAPEL,it.papel)}</select></div>
+      <div class="field"><label>Departamento</label><select id="fdp_dp">${FD_DEPS.map(d=>`<option${d===(it.dp||FD_PAPEL_DEP[it.papel])?' selected':''}>${esc(d)}</option>`).join('')}</select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label data-dica="Valor que a pessoa recebe todo mês, antes de qualquer comissão. Deixe zero para quem é 100% variável.">Fixo mensal (R$)</label><input id="fdp_fixo" type="number" step="0.01" min="0" value="${Number(it.fixo)||''}" placeholder="0,00"></div>
+      <div class="field"><label data-dica="A folha de um mês vence neste dia do mês seguinte.">Dia do pagamento</label><input id="fdp_dia" type="number" min="1" max="31" value="${Number(it.dia)||5}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Chave Pix</label><input id="fdp_pix" value="${esc(it.pix||'')}"></div>
+      <div class="field"><label>Banco</label><input id="fdp_banco" value="${esc(it.banco||'')}"></div>
+    </div>
+    ${id?`<button class="btn ghost small" type="button" onclick="fdPessoaSair('${esc(id)}')">Tirar da folha</button>`:''}`,
+    async ()=>{
+      const g=(i)=>String(($('#'+i)||{}).value||'').trim();
+      const v={nome:g('fdp_nome'),cargo:g('fdp_cargo'),papel:g('fdp_papel'),dp:g('fdp_dp'),fixo:fdR2(parseFloat(g('fdp_fixo').replace(',','.'))||0),
+        dia:Math.min(31,Math.max(1,parseInt(g('fdp_dia'),10)||5)),pix:g('fdp_pix'),banco:g('fdp_banco')};
+      if(!v.nome){ toast('Informe o nome.'); return false; }
+      const dup=fdPessoas().find(x=>x.id!==id&&primNome(x.nome)===primNome(v.nome));
+      if(dup){ toast('Já existe alguém com o primeiro nome '+v.nome.split(' ')[0]+' na folha: '+dup.nome+'. O sistema liga a pessoa aos clientes pelo primeiro nome.'); return false; }
+      if(id) Object.assign(it,v); else DB.folhaFixos.push(Object.assign({id:uid(),tipo:'pessoa',ativo:false},v));
+      FD.linhas=null; /* o fixo mudou: a conta refaz */
+      await saveDB(); render(folhaView()); toast('Salvo.'); return true;
+    });
+};
+window.fdPessoaSair=async (id)=>{
+  const it=DB.folhaFixos.find(x=>x.id===id); if(!it) return;
+  const sim=await confirmar('Tirar '+(it.nome||'esta pessoa')+' da folha?',
+    'Ela deixa de aparecer a partir de agora. Os pagamentos já registrados continuam no histórico.',{sim:'Sim, tirar da folha',nao:'Não',perigo:true});
+  if(!sim) return;
+  it.desligado=true; FD.linhas=null;
+  const ov=document.querySelector('.overlay .mcancel'); if(ov) ov.click();
+  await saveDB(); render(folhaView()); toast((it.nome||'Pessoa')+' saiu da folha.');
+};
+/* VENDA DO SDR (Gabriel 30/09): a comissao so conta quando o ganho do painel Comercial esta
+   ligado ao cliente ativo. O normal e o closer ligar no Fechamento; aqui da pra acertar depois. */
+window.fdVendaLigar=(ref)=>{
+  if(!ref) return;
+  const l=(FD.linhas||[]).find(x=>x.ref===ref)||{};
+  const fichas=(DB.projetos||[]).filter(p=>p.clienteId).slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||'')));
+  modal('Ligar a venda ao cliente',`<p class="hint" style="margin:0 0 12px">Ganho do painel Comercial: <b>${esc(l.cliente||'venda')}</b>, SDR ${esc(l.pessoa||'-')}. A comissão é 5% da primeira mensalidade do cliente escolhido.</p>
+    <div class="field"><label>Cliente ativo</label><select id="fdv_f"><option value="">Sem cliente ligado</option>${fichas.map(f=>`<option value="${esc(f.id)}"${f.id===l.ficha?' selected':''}>${esc(f.nome)}</option>`).join('')}</select></div>`,
+    async ()=>{
+      const fid=($('#fdv_f')||{}).value||null;
+      const {error}=await sb.from('crm_calls').update({ficha_id:fid,vinculado_em:fid?new Date().toISOString():null,vinculado_por:fid?((currentUser||{}).id||null):null}).eq('id',ref);
+      if(error){ toast('Não salvou: '+error.message); return false; }
+      FD.linhas=null; render(folhaView()); toast(fid?'Venda ligada ao cliente.':'Venda sem cliente ligado.'); return true;
+    });
+};
+/* MINHA REMUNERACAO: o que cada pessoa da equipe ve do proprio mes, em tempo real. O banco
+   so devolve as linhas de quem pergunta (folha_linhas casa pelo primeiro nome). */
+window.minhaRemAbrir=async ()=>{
+  const comp=compNow();
+  const {data,error}=await sb.rpc('folha_linhas',{p_comp:comp});
+  if(error){ toast('Não consegui calcular agora: '+error.message); return; }
+  const eu=primNome((currentUser||{}).nome), ls=(data||[]).filter(l=>primNome(l.pessoa)===eu);
+  const fixo=fdSoma(ls.filter(l=>l.papel==='fixo'),'ganho'), vs=ls.filter(l=>l.papel!=='fixo');
+  const x={p:{},ls:vs,fixo,total:fdR2(fixo+fdSoma(vs,'ganho')),teto:fdR2(fixo+fdSoma(vs,'cheio'))};
+  modal('Minha remuneração em '+fmtComp(comp),`
+    <div class="cards" style="margin:0 0 14px">
+      <div class="card"><div class="k">Garantido até agora</div><div class="v pos">${brl(x.total)}</div><div class="sub">${esc(fdComo(x))}</div></div>
+      <div class="card"><div class="k">Se todos os clientes pagarem</div><div class="v">${brl(x.teto)}</div><div class="sub">teto do mês</div></div>
+    </div>
+    ${vs.length?`<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Conta como</th><th>Situação no mês</th><th style="text-align:right">Se pagar</th><th style="text-align:right">Garantido</th></tr></thead>
+      <tbody>${vs.slice().sort((a,b)=>String(a.cliente||'').localeCompare(String(b.cliente||''))).map(l=>`<tr><td>${esc(l.cliente||'-')}</td><td>${esc(FD_LINHA[l.papel]||l.papel)}</td><td>${esc(FD_ST[l.situacao]||l.situacao||'-')}</td>
+        <td class="money" style="text-align:right">${brl(l.cheio)}</td><td class="money" style="text-align:right">${brl(l.ganho)}</td></tr>`).join('')}</tbody></table></div>`
+      :'<div class="empty">Nada vindo do Controle de Clientes neste mês.</div>'}
+    <p class="hint" style="margin-top:12px">O valor sobe sozinho quando o financeiro marca o cliente como Recebido. No mês seguinte a conta recomeça do zero.</p>`,
+    async ()=>true);
+  const ov=[...document.querySelectorAll('.overlay')].pop(); const mf=ov&&ov.querySelector('.mfoot'); if(mf) mf.style.display='none';
+};
 /* gerarFolha() saiu (Gabriel, 10/08/2026: "essa funcionalidade n tem logica"). Criava o mes
    inteiro de uma vez a partir dos pre-definidos. O registro do mes nasce quando voce marca
    "Recebeu?" na linha do fixo, que e como a equipe realmente usa. */
@@ -17472,13 +17750,14 @@ function fpSincronizar(){
   const porId={}; DB.financeiro.forEach(x=>{ porId[x.id]=x; });
   let n=0;
   DB.folha.forEach(p=>{
+    if(p.lucro) return; /* divisao do lucro nao e despesa */
     const d=fpDespesaDe(p), atual=porId[d.id];
     if(!atual){ DB.financeiro.push(d); n++; return; }
     const mudou=['data','valor','descricao','categoria','pagoEm','comp'].some(k=>atual[k]!==d[k]);
     if(mudou){ Object.assign(atual,d); n++; }
   });
   /* folha apagada leva a despesa junto */
-  const vivos=new Set(DB.folha.map(p=>'fp_'+p.id));
+  const vivos=new Set(DB.folha.filter(p=>!p.lucro).map(p=>'fp_'+p.id));
   const antes=DB.financeiro.length;
   DB.financeiro=DB.financeiro.filter(x=>!String(x.id).startsWith('fp_')||vivos.has(x.id));
   n+=antes-DB.financeiro.length;
@@ -17519,7 +17798,7 @@ window.fpExcluir=async (id)=>{
 };
 window.openFpModal=(id)=>{
   const it=id?DB.folha.find(x=>x.id===id):{venc:vencOf(folhaComp,new Date().getDate())};
-  const em=id?!!it.esc:finTab==='escritorios'; /* pagamento avulso da aba Escritórios */
+  const em=id?!!it.esc:(finTab==='escritorios'||fdEscNovo); fdEscNovo=false; /* gasto de escritorio */
   modal(id?'Editar pagamento':'Novo pagamento: '+fmtComp(folhaComp),`
     <div class="field"><label>Nome (quem recebe)</label><input id="m_nome" value="${esc(it.nome)}" placeholder="Ex: Maria Silva"></div>
     <div class="field"><label>Descrição / função</label><input id="m_desc" value="${esc(it.descricao)}" placeholder="Ex: Social media"></div>
@@ -17544,7 +17823,7 @@ window.openFpModal=(id)=>{
 };
 window.openFixoModal=(id)=>{
   const it=id?DB.folhaFixos.find(x=>x.id===id):{dia:5,ativo:true};
-  const em=id?!!it.esc:finTab==='escritorios'; /* fixo da aba Escritórios */
+  const em=id?!!it.esc:(finTab==='escritorios'||fdEscNovo); fdEscNovo=false; /* conta fixa de escritorio */
   modal(id?'Editar fixo mensal':'Novo fixo mensal',`
     <div class="field"><label>Nome (quem recebe)</label><input id="m_nome" value="${esc(it.nome)}" placeholder="${em?'Ex: Aluguel, José Carlos Lemes':'Ex: Maria Silva'}"></div>
     <div class="field"><label>Descrição / função</label><input id="m_desc" value="${esc(it.descricao)}" placeholder="${em?'Ex: Aluguel R$ 750 + IPTU R$ 25':'Ex: Social media'}"></div>
@@ -18097,6 +18376,7 @@ window.mpWsMenu=()=>{
       ${ws.map(item).join('')||'<div class="hint">Nenhum workspace encontrado.</div>'}
       <div class="mp-ws-sec">Você</div>
       ${linha(MICO.perfil||'',"Meu perfil",'meuPerfil()')}
+      ${(currentUser&&currentUser.role==='master')?'':linha(MICO.fin||'',"Minha remuneração",'minhaRemAbrir()')}
       ${linha(MICO.senha||'',"Mudar senha","document.getElementById('btnChangePw').click()")}
       <div class="mp-ws-sec">Tema</div>
       <div class="mp-ws-temas">${TEMAS.map(t=>`<button class="${t.k===TEMA?'on':''}" onclick="temaPor('${t.k}');this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this))">${esc(t.n)}</button>`).join('')}</div>

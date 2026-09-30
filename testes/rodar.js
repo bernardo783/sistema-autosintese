@@ -165,26 +165,22 @@ grupo('Lançamentos: tabela por departamento, maior despesa primeiro (Gabriel 30
   ok('busca abre os blocos', HTML.indexOf('const aberto=(k)=>!!t||!!lancGrAberto[k];')>0);
 }
 
-grupo('Folha: pós-pago vence no mês seguinte e diz ref. o próprio mês (Gabriel 30/09)');
+grupo('Folha: o motor de fixos só gera conta de escritório (a equipe é calculada por departamento)');
 {
   const DB={folhaFixos:[
-      {id:'col_2',nome:'Bernardo',freq:'mensal',dia:5,valor:3000,posPago:true,ativo:true,recorrente:true,inicioComp:'2026-07',descricao:'Head Operacional'},
+      {id:'col_2',tipo:'pessoa',nome:'Bernardo',papel:'socio',dia:5,fixo:3000,ativo:false},
       {id:'fx_vr',nome:'Aluguel VR',freq:'mensal',dia:1,valor:1300,posPago:false,ativo:true,recorrente:true,esc:'Volta Redonda',descricao:'Aluguel'},
-      {id:'col_1',nome:'Arthur',freq:'mensal',dia:5,valor:3800,posPago:true,ativo:true,recorrente:true,inicioComp:'2026-10',descricao:'Head de Programação'},
+      {id:'fx_luz',nome:'Água e luz VR',freq:'mensal',dia:1,valor:292.31,ativo:true,recorrente:true,esc:'Volta Redonda',descricao:'Contas',variavel:true},
       {id:'col_8',nome:'Yghor',freq:'mensal',dia:28,valor:1260,posPago:true,ativo:true,recorrente:true,inicioComp:'2026-07',descricao:''}],
     folha:[]};
-  let n=0; const g=rodar(bloco('function gerarFolhaCore(','function renderFolha('),
+  let n=0; const g=rodar(bloco('function gerarFolhaCore(','/* ---------- FOLHA POR DEPARTAMENTO'),
     {DB,uid:()=>'id'+(++n),vencOf:(c,d)=>{ const [y,m]=c.split('-').map(Number); const last=new Date(y,m,0).getDate(); return c+'-'+String(Math.min(Math.max(1,Number(d)||1),last)).padStart(2,'0'); },
      fmtComp:c=>c.split('-').reverse().join('/')},['gerarFolhaCore']);
   const criados=g.gerarFolhaCore('2026-09'); const de=nome=>DB.folha.find(p=>p.comp==='2026-09'&&p.nome===nome);
-  ok('setembro nasce com quem já começou (Arthur só em outubro)', criados===3&&!de('Arthur'));
-  ok('pós-pago: registro é de setembro, vence 05/10 e diz ref. 09/2026', de('Bernardo').comp==='2026-09'&&de('Bernardo').venc==='2026-10-05'&&de('Bernardo').descricao==='Head Operacional, ref. 09/2026');
-  ok('pós-pago sem descrição fica só com o ref.', de('Yghor').descricao==='ref. 09/2026'&&de('Yghor').venc==='2026-10-28');
-  ok('pré-pago (aluguel) continua vencendo no próprio mês, sem ref.', de('Aluguel VR').venc==='2026-09-01'&&de('Aluguel VR').descricao==='Aluguel');
-  ok('rodar de novo não duplica', g.gerarFolhaCore('2026-09')===0&&DB.folha.length===3);
-  g.gerarFolhaCore('2026-10'); const out=DB.folha.filter(p=>p.comp==='2026-10');
-  ok('outubro: Arthur entra com R$ 3.800 vencendo 05/11, ref. 10/2026', out.length===4&&out.find(p=>p.nome==='Arthur').valor===3800&&out.find(p=>p.nome==='Arthur').venc==='2026-11-05'&&out.find(p=>p.nome==='Arthur').descricao==='Head de Programação, ref. 10/2026');
-  ok('dezembro vence em janeiro do ano seguinte', (g.gerarFolhaCore('2026-12'),DB.folha.find(p=>p.comp==='2026-12'&&p.nome==='Bernardo').venc==='2027-01-05'));
+  ok('gente não nasce mais do pré-definido, nem a antiga ativa sem escritório', criados===2&&!de('Bernardo')&&!de('Yghor'));
+  ok('aluguel continua vencendo no próprio mês, com o valor cadastrado', de('Aluguel VR').venc==='2026-09-01'&&de('Aluguel VR').valor===1300);
+  ok('conta variável nasce zerada pedindo preencher', de('Água e luz VR').valor===0);
+  ok('rodar de novo não duplica', g.gerarFolhaCore('2026-09')===0&&DB.folha.length===2);
   ok('a despesa continua na competência (fpDataComp usa o fim do mês quando o venc é do mês seguinte)', /if\(p\.venc && String\(p\.venc\)\.slice\(0,7\)===comp\) return p\.venc;/.test(HTML));
 }
 
@@ -205,8 +201,58 @@ grupo('Controle de Clientes: rodapé só com ticket médio e remuneração, cada
   ok('gestor Luan só enxerga o Luan', JSON.stringify(Object.keys(ctx.meus(M)))==='["Luan"]');
   ok('linha do gestor sem a soma', ctx.linhaRem('Por gestor',ctx.meus(M)).indexOf('soma')<0&&ctx.linhaRem('Por gestor',ctx.meus(M)).indexOf('Luan · 2 clientes')>0);
   ctx.mst=true; vm.runInContext('mst=true',ctx);
-  ok('master vê todos e a soma', Object.keys(ctx.meus(M)).length===2&&ctx.linhaRem('Por gestor',M).indexOf('soma · <b>R$ 500')>0);
-}
+  ok('master vê todos e a soma', Object.keys(ctx.meus(M)).length===2&&ctx.linhaRem('Por gestor',M).indexOf('soma · <b>R$ 500')>0);}
+
+grupo('Folha por departamento: calculada do Controle de Clientes (Gabriel 30/09)');
+{
+  const DB={folhaFixos:[],folha:[],financeiro:[]};
+  const g=rodar(bloco('const FD_INICIO=','async function fdCarregar('),{DB,
+    brl:v=>'R$ '+Number(v).toFixed(2).replace('.',','),fmtComp:c=>c.split('-').reverse().join('/'),fchData:x=>String(x.data||'').slice(0,7),
+    fchEhRepasse:x=>/repasse/i.test(x.categoria||''),vencOf:(c,d)=>c+'-'+String(d).padStart(2,'0'),
+    primNome:x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().split(/\s+/)[0].toLowerCase()},
+    ['fdResumo','fdComo','fdLucro','fdSincronizar','fdVenc','fdProx']);
+  const P=[{id:'lu',nome:'Luan Peixoto Santiago',papel:'gestor',dp:'Marketing',dia:1,fixo:0},{id:'ke',nome:'Kennedy Lima',papel:'vendas',dp:'Comercial',dia:5,fixo:1600},
+    {id:'ma',nome:'Maria Eduarda',papel:'social',dp:'Marketing',dia:20,fixo:2000},{id:'ar',nome:'Arthur Pagiatto',papel:'tec',dia:5,fixo:3800},
+    {id:'be',nome:'Bernardo Antunes',papel:'socio',dia:5,fixo:3000},{id:'ga',nome:'Gabriel',papel:'socio',dia:5,fixo:3000},{id:'jo',nome:'José Carlos',papel:'socio',dia:5,fixo:3000}];
+  const L=[{pessoa:'Luan Santiago',papel:'gestor',cliente:'A',situacao:'recebido',cheio:100,ganho:100},{pessoa:'Luan Santiago',papel:'gestor',cliente:'B',situacao:'areceber',cheio:73.33,ganho:0},
+    {pessoa:'Luan Santiago',papel:'gerente',cliente:'C',situacao:'sinal',cheio:100,ganho:50},
+    {pessoa:'Kennedy',papel:'venda',cliente:'GUI',situacao:'vinculada',cheio:75,ganho:75,ref:'c1'},{pessoa:'Kennedy',papel:'venda',cliente:'LEAL',situacao:'sem_vinculo',cheio:65,ganho:0,ref:'c2'},
+    {pessoa:'Maria',papel:'social',cliente:'A',situacao:'inadimplente',cheio:200,ganho:200},{pessoa:'Kennedy',papel:'fixo',cheio:1600,ganho:1600}];
+  const R=g.fdResumo(P,L), de=(id)=>R.find(x=>x.p.id===id);
+  ok('gestor: só o que o cliente pagou está garantido, o resto é teto', de('lu').variavel===150&&de('lu').total===150&&de('lu').teto===273.33);
+  ok('fixo + comissão: Kennedy 1.600 + 5% da venda ligada', de('ke').total===1675&&de('ke').teto===1740);
+  ok('linha "fixo" que vem do banco não soma duas vezes com o cadastro', de('ke').ls.every(l=>l.papel!=='fixo'));
+  ok('social media conta a conta mesmo com cliente inadimplente', de('ma').total===2200);
+  ok('nome casa pelo primeiro nome (Luan Santiago = Luan Peixoto Santiago)', de('lu').ls.length===3);
+  ok('como é calculado: N de M no formato feitos de previstos', g.fdComo(de('lu'))==='10% da carteira, 1 de 1 cliente pagou · 1 de 2 contas pagas'&&g.fdComo(de('ke'))==='fixo R$ 1600,00 · 1 de 2 vendas ligadas ao cliente');
+  ok('folha de setembro vence no dia da pessoa em outubro', g.fdVenc('2026-09',P[0])==='2026-10-01'&&g.fdProx('2026-12')==='2027-01');
+  DB.financeiro.push({id:'r1',tipo:'receita',data:'2026-09-05',valor:100000,categoria:'Mensalidade Clientes'},{id:'r2',tipo:'receita',data:'2026-09-30',valor:7000,categoria:'Recarga de tokens — repasse'},
+    {id:'d1',tipo:'despesa',data:'2026-09-10',valor:27000,categoria:'Tecnologia'},{id:'fp_x',tipo:'despesa',data:'2026-09-30',valor:1500,categoria:'Tecnologia',descricao:'Folha: Arthur, antecipação'},
+    {id:'fp_esc',tipo:'despesa',data:'2026-09-01',valor:1300,categoria:'Escritórios',descricao:'Aluguel VR'});
+  const Lu=g.fdLucro('2026-09',fdSomaTotal(R),P);
+  function fdSomaTotal(R){ return Math.round(R.reduce((s,x)=>s+x.total,0)*100)/100; }
+  ok('lucro = recebido (sem repasse) menos despesas (sem folha já paga, com escritório) menos a folha calculada', Lu.receita===100000&&Lu.oper===21300&&Lu.folha===16825&&Lu.lucro===61875);
+  ok('de cada R$ 100 de lucro: 20 caixa, 8 Arthur, 24 cada sócio', Lu.caixa===12375&&Lu.por.ar===4950&&Lu.por.be===14850&&Lu.por.ga===14850&&Lu.por.jo===14850);
+  ok('sem lucro, ninguém divide nada', g.fdLucro('2026-08',0,P).por.be===0);
+  /* provisao: o que falta pagar vira um registro por pessoa, atualizado a cada abertura */
+  let n=g.fdSincronizar('2026-09',R);
+  const prov=DB.folha.filter(f=>/^fd_/.test(f.id));
+  ok('uma provisão por pessoa com valor, e ninguém sem valor', n===7&&prov.length===7&&prov.find(f=>f.id==='fd_2026-09_ke').valor===1675&&prov.every(f=>!f.pago&&f.valor>0));
+  ok('provisão vence no dia da pessoa no mês seguinte e leva a função', prov.find(f=>f.id==='fd_2026-09_ke').venc==='2026-10-05'&&/SDR, folha de 09\/2026/.test(prov.find(f=>f.id==='fd_2026-09_ke').descricao));
+  DB.folha.push({id:'fdp_1',comp:'2026-09',fixoId:'ke',nome:'Kennedy Lima',valor:1000,pago:true,pagoEm:'2026-10-05'});
+  DB.folha.push({id:'antigo',comp:'2026-09',fixoId:null,nome:'Arthur Pagiatto Nunes',valor:1500,pago:true,pagoEm:'2026-09-11',esc:''});
+  g.fdSincronizar('2026-09',R);
+  ok('pagamento parcial abate a provisão', DB.folha.find(f=>f.id==='fd_2026-09_ke').valor===675);
+  ok('registro antigo sem vínculo casa pelo nome e abate também', DB.folha.find(f=>f.id==='fd_2026-09_ar').valor===2300);
+  DB.folha.push({id:'fdp_2',comp:'2026-09',fixoId:'ke',nome:'Kennedy Lima',valor:675,pago:true,pagoEm:'2026-10-06'});
+  g.fdSincronizar('2026-09',R);
+  ok('pago tudo: a provisão some', !DB.folha.find(f=>f.id==='fd_2026-09_ke'));
+  ok('divisão do lucro paga não abate a folha', (()=>{ DB.folha.push({id:'fdp_l',comp:'2026-09',fixoId:'be',nome:'Bernardo Antunes',valor:999,pago:true,lucro:true,pagoEm:'2026-10-05'}); g.fdSincronizar('2026-09',R); return DB.folha.find(f=>f.id==='fd_2026-09_be').valor===3000; })());
+  n=g.fdSincronizar('2026-09',R); ok('nada mudou, nada grava', n===0);
+  ok('o espelho no Financeiro pula a divisão do lucro', /if\(p\.lucro\) return; \/\* divisao do lucro nao e despesa \*\//.test(HTML)&&/DB\.folha\.filter\(p=>!p\.lucro\)\.map\(p=>'fp_'\+p\.id\)/.test(HTML));
+  ok('o motor antigo só gera conta fixa de escritório', /f\.ativo&&f\.tipo!=='pessoa'&&String\(f\.esc\|\|''\)\.trim\(\)\)/.test(HTML));
+  ok('quem não é master tem "Minha remuneração" no menu', /t:'Minha remuneração',f:\(\)=>minhaRemAbrir\(\)/.test(HTML));
+  ok('fechamento liga o ganho do painel ao cliente', /id="fc_ganho"/.test(HTML)&&/from\('crm_calls'\)\.update\(\{ficha_id:data\.projetoId/.test(HTML));}
 
 grupo('Ordem alfabética');
 {
