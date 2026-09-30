@@ -9281,7 +9281,7 @@ function tkDesenhar(c){
    <div class="page-head tp-head">
      <div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>${titulo}</h2>${abas}
        <div class="tp-dir">
-         <input type="month" class="search" id="lcCompInp" value="${esc(cliComp)}" style="width:132px;min-width:132px" title="Mês da situação de pagamento" onchange="lcMes(this.value)">
+         <input type="month" class="search" id="lcCompInp" value="${esc(cliComp)}" style="width:auto;min-width:178px" title="Mês da situação de pagamento" onchange="lcMes(this.value)">
          ${lcSeloContas()}
          ${busca?`<input class="search tp-busca" id="tk_busca" placeholder="Buscar cliente..." value="${esc(TK.busca)}" oninput="tkBusca(this.value)" onblur="if(!this.value){TK.tpBusca=false;tkDesenhar($('#content'));}">`
            :tpIb('lupa','Buscar',"TK.tpBusca=true;TK.focoBusca=true;tkDesenhar($('#content'))")}
@@ -9372,9 +9372,10 @@ window.tpMais=(ev)=>{
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
 async function tkPatch(id,patch,msg){
-  const {error}=await sb.from('tarefas').update(patch).eq('id',id);
+  const {data,error}=await sb.from('tarefas').update(patch).eq('id',id).select('valores').maybeSingle();
   if(error){ toast('Erro: '+error.message); return false; }
-  const t=TK.tarefas.find(x=>x.id===id); if(t) Object.assign(t,patch);
+  const t=TK.tarefas.find(x=>x.id===id);
+  if(t){ Object.assign(t,patch); if(data&&data.valores) t.valores=data.valores; }
   tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); recAgendar(); return true;
 }
 /* ======================= TAREFAS RECORRENTES (Gabriel 23/09) =======================
