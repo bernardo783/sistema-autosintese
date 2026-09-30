@@ -13697,7 +13697,10 @@ function renderFechamentoMes(c){
      const rall=DB.recebimentos||[], antes={}, prim={};
      rall.forEach(x=>{ const c=x.comp, i=x.clienteId; if(!c||!i) return;
        if(c<comp) antes[i]=1; if(!prim[i]||c<prim[i]) prim[i]=c; });
-     const M=fchMudResumo(FCH_MUD.rows,comp,(DB.clientes||[]).filter(x=>String(x.inicio||'').slice(0,7)===comp && !antes[x.id]),gerCli);
+     const M=fchMudResumo(FCH_MUD.rows,comp,(DB.clientes||[]).filter(x=>String(x.inicio||'').slice(0,7)===comp && !antes[x.id]
+       /* Gabriel 30/09: cliente ARQUIVADO (desistiu, standby) nao chegou; e naoNovo marca quem ja estava
+          na casa e so comecou a pagar neste mes (Amacar: card de 04/08, 1o pagamento em setembro). */
+       && !cliArq(x) && !x.naoNovo),gerCli);
      const novos=M.novos;
      const SAIU=somaSt('churn')+somaSt('churnpago')+M.saiDown;
      const saiGer={}; ['churn','churnpago'].forEach(k=>(porSt[k]||[]).forEach(x=>{
