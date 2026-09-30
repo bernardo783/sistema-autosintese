@@ -10357,6 +10357,10 @@ async function lcSyncMens(){
       const {error}=await sb.from('tarefas').update({valores:val}).eq('id',t.id);
       if(!error){ t.valores=val; n++; }
     }
+    /* remuneração: R$100 por conta vira proporcional no mês em que o cliente entra e
+       volta ao cheio no mês seguinte. Quem recalcula é o banco; aqui só damos o empurrão. */
+    try{ const r=await sb.rpc('lc_sincronizar_mensalidades');
+      if(!r.error&&r.data){ n+=r.data; try{ await tkCarregar(); }catch(_){} } }catch(_){}
   }finally{ LC_SYNC=false; }
   if(n&&currentView==='lista'&&ehLC(TK.listaSel)) try{ tkDesenhar($('#content')); }catch(_){}
   return n;
