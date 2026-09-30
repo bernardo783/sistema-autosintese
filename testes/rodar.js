@@ -391,6 +391,22 @@ grupo('Fechamento: clicar no escritório abre o que foi gasto (Gabriel 30/09)');
   ok('os blocos repetidos por escritório abaixo da tabela saíram', HTML.indexOf("its.length+' lançamentos')).join('')||'<div class=\"hint\">Nenhum gasto de escritório neste mês.</div>'")<0);
 }
 
+grupo('Lançamentos: repasse de tokens sai da receita e da despesa, margem nos cartões (Gabriel 30/09)');
+{
+  const r=bloco('function renderLanc(c){','  c.innerHTML=`');
+  ok('repasse é o que tem categoria de repasse/antecipação/recarga, igual ao Fechamento', r.indexOf("fchEhRepasse(x)")>0);
+  ok('receita e despesa mostradas já sem o repasse', r.indexOf('const rec=recBruta-repasse, desp=despBruta-repasse;')>0);
+  ok('o repasse abate da Tecnologia no KPI por área', r.indexOf('porCat.Tecnologia=Math.max(0,porCat.Tecnologia-repasse)')>0);
+  ok('margem = saldo sobre a receita sem repasse', r.indexOf('const margem=rec>0?(saldo/rec*100):null;')>0);
+  const c=bloco('  c.innerHTML=`','  const tagTipo=');
+  ok('a margem aparece no Saldo e no Comparativo', (c.match(/margem/g)||[]).length>=3&&c.indexOf('margem ${margem.toFixed(1).replace')>0);
+  ok('os cartões dizem que o repasse ficou de fora', c.indexOf('sem o repasse de tokens')>0&&c.indexOf('OpenAI já abatida do repasse')>0);
+  const g={fchEhRepasse:(x)=>['repasse','antecip','recarga'].some(k=>String(x.categoria||'').toLowerCase().includes(k))};
+  const src=r.slice(r.indexOf('const recBruta='),r.indexOf('const cats='));
+  vm.createContext(g); vm.runInContext('const base=[{tipo:"receita",valor:90000,categoria:"Mensalidade Clientes"},{tipo:"receita",valor:7293.45,categoria:"Recarga de tokens — repasse"},{tipo:"despesa",valor:8300,categoria:"Tecnologia"},{tipo:"despesa",valor:50000,categoria:"Sócios"}];'+src+';this.R={rec,desp,saldo,margem,tec:porCat.Tecnologia}',g);
+  ok('setembro de exemplo: receita 90 mil, despesa 51 mil, margem 43,3%', g.R.rec===90000&&Math.abs(g.R.desp-51006.55)<0.01&&Math.abs(g.R.margem-43.33)<0.01&&Math.abs(g.R.tec-1006.55)<0.01);
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
