@@ -287,6 +287,49 @@ grupo('Volta do Controle de Churns pergunta o combinado (Gabriel 30/09, SPAÇO V
   ok('não usa mais o confirmar simples', r.indexOf("{sim:'Voltar para ativo'}")<0&&r.indexOf("bs.textContent='Voltar para ativo'")>0);
 }
 
+grupo('Início do cliente pede aprovação do master (Gabriel 30/09)');
+{
+  const avisos=[];
+  const ctx={LC_INI:'ini',LC_MENS:'mens',ehLC:(l)=>l==='LC',fichaDe:(id)=>id==='f1'?{id:'f1',nome:'MIGUEL VEÍCULOS'}:null,
+    tkNomeUser:(id)=>id==='u_luan'?'Luan Santiago':'',fmtDate:(s)=>s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4),brl:(v)=>'R$ '+Number(v).toFixed(2),
+    esc:(s)=>String(s),hojeISO:()=>'2026-09-30',ntfCriar:(rows)=>{ avisos.push(...rows); },
+    TK:{equipe:[{id:'u_gab',nome:'Gabriel',role:'master'},{id:'u_robo',nome:'Claude (robô)',role:'master'},{id:'u_luan',nome:'Luan Santiago',role:'membro'},{id:'u_joao',nome:'João',role:'membro'}]},
+    currentUser:{id:'u_luan',role:'membro'}};
+  const g=rodar(bloco('function lcProRata(','window.lcIniAprovar='),ctx,['lcProRata','lcIniPendente','lcIniEtiqueta','lcIniAvisar']);
+  const p=g.lcProRata('2026-09-11',1500);
+  ok('pro rata conta os dias que faltam no mês, inclusive o do início', p.dias===20&&p.dim===30&&p.valor===1000);
+  ok('início no dia 1 é mês cheio', g.lcProRata('2026-10-01',1500).valor===1500);
+  ok('fevereiro usa 28 dias', g.lcProRata('2026-02-15',2800).valor===1400);
+  ok('data em branco não quebra', g.lcProRata('',900).valor===900);
+  g.lcIniAvisar({lista_id:'LC',ficha_id:'f1',id:'t1',valores:{ini:'2026-09-11'}},'');
+  ok('gestor definiu o Início: cada master recebe o pedido, menos o robô', avisos.length===1&&avisos[0].para==='u_gab');
+  ok('o aviso diz quem definiu, a data e pede a aprovação', /Luan Santiago definiu o início em 11\/09\/2026/.test(avisos[0].texto)&&avisos[0].titulo==='Início de MIGUEL VEÍCULOS: aprovar o pro rata');
+  ok('o pedido guarda tipo, data, autor e fica pendente', avisos[0].dados.tipo==='inicio'&&avisos[0].dados.ini==='2026-09-11'&&avisos[0].dados.por==='u_luan'&&avisos[0].dados.status==='pendente'&&avisos[0].ficha_id==='f1'&&avisos[0].tarefa_id==='t1');
+  avisos.length=0;
+  g.lcIniAvisar({lista_id:'LC',ficha_id:'f1',id:'t1',valores:{ini:'2026-09-11'}},'2026-09-11');
+  ok('mexer em outra coluna sem mudar o Início não avisa', avisos.length===0);
+  g.lcIniAvisar({lista_id:'OUTRA',ficha_id:'f1',id:'t1',valores:{ini:'2026-09-11'}},'');
+  ok('fora do Controle de Clientes não avisa', avisos.length===0);
+  g.currentUser={id:'u_gab',role:'master'};
+  g.lcIniAvisar({lista_id:'LC',ficha_id:'f1',id:'t1',valores:{ini:'2026-09-11'}},'');
+  ok('master definindo o Início não pede aprovação de ninguém', avisos.length===0);
+  ok('pendente só abre a aprovação pro master', g.lcIniPendente({dados:{tipo:'inicio',status:'pendente'}})===true);
+  g.currentUser={id:'u_luan',role:'membro'};
+  ok('quem não é master não vê a aprovação', g.lcIniPendente({dados:{tipo:'inicio',status:'pendente'}})===false);
+  ok('etiqueta: aguardando, aprovado com valor, recusado', g.lcIniEtiqueta({dados:{tipo:'inicio',status:'pendente'}}).indexOf('Aguardando sua aprovação')>0
+    &&g.lcIniEtiqueta({dados:{tipo:'inicio',status:'aprovado',valor:1000}}).indexOf('Aprovado · R$ 1000.00')>0
+    &&g.lcIniEtiqueta({dados:{tipo:'inicio',status:'recusado'}}).indexOf('tag churn')>0&&g.lcIniEtiqueta({})==='');
+  const a=bloco('window.lcIniAprovar=','window.lcReativar=');
+  ok('o master pode mudar o valor do pro rata ao aprovar', a.indexOf('id="ia_val"')>0&&a.indexOf("bs.textContent='Aprovar'")>0);
+  ok('aprovar grava a cobrança do mês de entrada em Recebimentos', a.indexOf('DB.recebimentos.push(r)')>0&&a.indexOf('else if(!r.recebido) r.valor=valor;')>0);
+  ok('recusar tira a data do card e avisa o gestor', a.indexOf('delete val[LC_INI]')>0&&a.indexOf("'Início de '+nome+' recusado'")>0);
+  ok('o gestor recebe a resposta da aprovação', a.indexOf("'Início de '+nome+' aprovado'")>0);
+  const tp=bloco('async function tkPatch(','/* ======================= TAREFAS RECORRENTES');
+  ok('toda gravação de valores do card passa pelo aviso', tp.indexOf('lcIniAvisar(t,iniAntes)')>0&&tp.indexOf('iniAntes=t0?String(((t0.valores||{})[LC_INI])||\'\')')>0);
+  const nt=bloco('window.ntfAbrir=','window.ntfTodasLidas=');
+  ok('abrir o pedido pendente abre a aprovação, sem marcar como lido', nt.indexOf('if(lcIniPendente(n)){ lcIniAprovar(n); return; }')>0&&nt.indexOf('if(lcIniPendente(n))')<nt.indexOf("update({lida_em"));
+}
+
 grupo('Fechamento: upsell e downsell entram pela diferença (Gabriel 30/09)');
 {
   const DB={projetos:[{id:'p1',clienteId:'a1',nome:'ALTOGIRO | MOISÉS',grupo:'ALTOGIRO',gerente:'Luiz'},{id:'p2',clienteId:'s1',nome:'SABARÁ | SÉRGIO',gerente:'Luiz'},

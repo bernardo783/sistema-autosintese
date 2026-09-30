@@ -9643,10 +9643,12 @@ window.tpMais=(ev)=>{
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
 async function tkPatch(id,patch,msg){
+  const t0=TK.tarefas.find(x=>x.id===id), iniAntes=t0?String(((t0.valores||{})[LC_INI])||''):'';
   const {data,error}=await sb.from('tarefas').update(patch).eq('id',id).select('valores').maybeSingle();
   if(error){ toast('Erro: '+error.message); return false; }
   const t=TK.tarefas.find(x=>x.id===id);
   if(t){ Object.assign(t,patch); if(data&&data.valores) t.valores=data.valores; }
+  if(t&&patch.valores){ try{ lcIniAvisar(t,iniAntes); }catch(_){} }
   tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); recAgendar(); return true;
 }
 /* ======================= TAREFAS RECORRENTES (Gabriel 23/09) =======================
@@ -10504,15 +10506,17 @@ async function renderNotificacoes(c){
    ${ns.length?ns.map(n=>`<div class="ntf${n.lida_em?'':' nova'}" onclick="ntfAbrir('${n.id}')">
       <div class="ntf-pt"></div>
       <div style="min-width:0;flex:1">
-        <div class="ntf-t">${esc(n.titulo)}</div>
+        <div class="ntf-t">${esc(n.titulo)}${lcIniEtiqueta(n)}</div>
         ${n.texto?`<div class="ntf-x">${esc(n.texto)}</div>`:''}
         <div class="ntf-q">${esc(quando(n.criado_em))}</div>
       </div>
-    </div>`).join(''):'<div class="empty">Nada por aqui: quando um vídeo do seu squad ficar pronto, o aviso cai aqui.</div>'}`;
+    </div>`).join(''):'<div class="empty">Nada por aqui: quando um vídeo do seu squad ficar pronto ou um gestor definir o início de um cliente, o aviso cai aqui.</div>'}`;
   window.__ntf={}; ns.forEach(n=>{ window.__ntf[n.id]=n; });
 }
 window.ntfAbrir=async (id)=>{
   const n=(window.__ntf||{})[id]; if(!n) return;
+  /* pedido de aprovação do Início: fica "não lido" até o master decidir */
+  if(lcIniPendente(n)){ lcIniAprovar(n); return; }
   if(!n.lida_em){ try{ await sb.from('notificacoes').update({lida_em:new Date().toISOString()}).eq('id',id); }catch(_){} ntfBadge(); }
   if(n.ficha_id&&fichaDe(n.ficha_id)){ abrirCliente(n.ficha_id,'linha'); return; }
   if(n.tarefa_id){
@@ -11955,6 +11959,99 @@ function lcVoltaPatch(t,d){
   if(d.verba!=null&&d.verba!=='') nv[VERBA_SEM]=d.verba; else delete nv[VERBA_SEM];
   return {lista_id:LC_ID,status_id:LC_ATIVO,status:'fazendo',arquivada_em:null,arquivada_por:null,valores:nv};
 }
+/* ---------- INÍCIO DO CLIENTE PEDE APROVAÇÃO (Gabriel 30/09) ----------
+   Quando o gestor (Luan, Yghor) define a coluna Início de um card do Controle de Clientes,
+   cada master recebe um aviso em Notificações. Ao abrir, o master aprova (podendo mudar o
+   valor cobrado no mês de entrada, o pro rata) ou recusa (a data sai do card). A decisão
+   fica em notificacoes.dados e o gestor recebe a resposta. A proporção da remuneração
+   (gestor R$ 100, gerente 10%, social media R$ 200) já segue a data pelo lc_auto. */
+function lcProRata(ini,valor){
+  const s=String(ini||'').slice(0,10), a=Number(s.slice(0,4)), m=Number(s.slice(5,7)), d=Number(s.slice(8,10));
+  if(!a||!m||!d) return {dias:0,dim:0,fator:1,valor:Math.round((Number(valor)||0)*100)/100};
+  const dim=new Date(a,m,0).getDate(), dias=Math.max(0,dim-d+1);
+  return {dias,dim,fator:dias/dim,valor:Math.round((Number(valor)||0)*dias/dim*100)/100};
+}
+const lcIniPendente=(n)=>!!(n&&n.dados&&n.dados.tipo==='inicio'&&n.dados.status==='pendente'&&currentUser&&currentUser.role==='master');
+function lcIniEtiqueta(n){
+  const d=(n&&n.dados)||{}; if(d.tipo!=='inicio') return '';
+  const st=d.status||'pendente';
+  const cls=st==='aprovado'?'ativo':st==='recusado'?'churn':st==='pendente'?'pausado':'st';
+  const txt=st==='aprovado'?('Aprovado'+(d.valor!=null?' · '+brl(d.valor):'')):st==='recusado'?'Recusado':st==='pendente'?'Aguardando sua aprovação':'Superado';
+  return ' <span class="tag '+cls+'">'+esc(txt)+'</span>';
+}
+function lcIniAvisar(t,antes){
+  if(!t||!ehLC(t.lista_id)||!t.ficha_id||!currentUser||currentUser.role==='master') return;
+  const ini=String((t.valores||{})[LC_INI]||'').slice(0,10);
+  if(!ini||ini===String(antes||'').slice(0,10)) return;
+  const eu=currentUser.id, f=fichaDe(t.ficha_id), nome=(f&&f.nome)||t.titulo||'cliente';
+  const masters=(TK.equipe||[]).filter(u=>u.role==='master'&&String(u.id)!==String(eu)&&!/rob[oô]/i.test(u.nome||''));
+  ntfCriar(masters.map(u=>({para:u.id,titulo:'Início de '+nome+': aprovar o pro rata',
+    texto:(tkNomeUser(eu)||'Alguém')+' definiu o início em '+fmtDate(ini)+'. Abra para aprovar e conferir o valor cobrado no mês de entrada.',
+    criado_por:eu,ficha_id:t.ficha_id,tarefa_id:t.id,dados:{tipo:'inicio',ini,por:eu,status:'pendente'}})));
+}
+async function lcIniDecidir(n,status,extra){
+  const dados=Object.assign({},n.dados||{},extra||{},{status,decididoEm:hojeISO(),decididoPor:currentUser.id});
+  const lida=new Date().toISOString();
+  try{ await sb.from('notificacoes').update({dados,lida_em:lida}).eq('id',n.id); }catch(_){}
+  n.dados=dados; n.lida_em=lida;
+  ntfBadge(); if(currentView==='notificacoes') render('notificacoes');
+}
+window.lcIniAprovar=(n)=>{
+  const d=n.dados||{}, f=fichaDe(n.ficha_id), t=lcCardDe(n.ficha_id), nome=(f&&f.nome)||'cliente';
+  const ini=String(((t&&t.valores)||{})[LC_INI]||'').slice(0,10);
+  if(!t||!ini){ lcIniDecidir(n,'superado'); toast('O card não tem mais essa data de Início.'); return; }
+  const cli=(f&&f.clienteId)?(DB.clientes||[]).find(x=>x.id===f.clienteId):null;
+  const comp=ini.slice(0,7), cad=cli?(Number(cli.valor)||0):(Number((t.valores||{})[LC_MENS])||0);
+  const pr=lcProRata(ini,cad);
+  const rec=cli?(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===cli.id):null;
+  const atual=(rec&&rec.valor!=null&&rec.valor!=='')?Number(rec.valor):null;
+  const sug=atual!=null?atual:pr.valor;
+  const quem=tkNomeUser(d.por)||'O gestor';
+  modal('Aprovar o início de '+esc(nome),`
+    <p class="hint" style="margin:0 0 12px">${esc(quem)} definiu o início em <b>${esc(fmtDate(ini))}</b>${ini!==String(d.ini||'').slice(0,10)?' (o aviso era de '+esc(fmtDate(String(d.ini||'').slice(0,10)))+')':''}: ${pr.dias} de ${pr.dim} dias de ${esc(fmtComp(comp))}. Confira o valor cobrado no mês de entrada. A remuneração de gestor, gerente e social media segue a mesma proporção sozinha.</p>
+    <div class="row2">
+      <div class="field"><label>Mensalidade cheia</label><input type="text" value="${esc(brl(cad))}" disabled></div>
+      <div class="field"><label>Cobrança de ${esc(fmtComp(comp))} (pro rata)</label><input type="number" id="ia_val" step="0.01" min="0" value="${sug.toFixed(2)}"></div>
+    </div>
+    <p class="hint" style="margin:0">Pela proporção seria ${esc(brl(pr.valor))}.${atual!=null?' Hoje o mês está com '+esc(brl(atual))+'.':''}${rec&&rec.recebido?' Esse mês já foi recebido: o valor recebido não muda.':''}${cli?'':' Este cliente ainda não está no cadastro do Financeiro, então o valor não vai para Recebimentos.'}</p>`,
+  async ()=>{
+    const valor=parseFloat(String(($('#ia_val')||{}).value||'').replace(',','.'));
+    if(isNaN(valor)||valor<0){ toast('Informe o valor do mês de entrada.'); return false; }
+    if(cli){
+      let r=(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===cli.id);
+      if(!r){ r={id:uid(),comp,clienteId:cli.id,nome:MAIUS(cli.nome),resp:cli.resp||'',tel:cli.tel||'',
+        valor,venc:(cli.diaVenc>=1)?vencOf(comp,cli.diaVenc):null,recebido:false,recebidoEm:null,status:null};
+        DB.recebimentos.push(r); }
+      else if(!r.recebido) r.valor=valor;
+      if(!cli.inicio||cli.inicio>comp) cli.inicio=comp;
+      try{ await saveDB(); }catch(e){ toast('Não salvou: '+((e&&e.message)||e)); return false; }
+      try{ await lcSyncMens(); }catch(_){}
+    }
+    await lcIniDecidir(n,'aprovado',{valor,ini});
+    if(d.por&&String(d.por)!==String(currentUser.id)) ntfCriar([{para:d.por,titulo:'Início de '+nome+' aprovado',
+      texto:'Início em '+fmtDate(ini)+(cli?', cobrança de '+fmtComp(comp)+' em '+brl(valor):'')+'.',
+      criado_por:currentUser.id,ficha_id:n.ficha_id,tarefa_id:n.tarefa_id,dados:{tipo:'inicio_resposta',status:'aprovado'}}]);
+    toast('Início de '+nome+' aprovado.'+(cli?' '+fmtComp(comp)+' fica em '+brl(valor)+'.':''));
+    return true;
+  });
+  const ovs=document.querySelectorAll('.overlay'), ov=ovs[ovs.length-1], bs=ov&&ov.querySelector('.msave');
+  if(bs){ bs.textContent='Aprovar';
+    const br=document.createElement('button'); br.className='btn secondary small'; br.textContent='Recusar';
+    br.onclick=async ()=>{
+      const ok=await confirmar('Recusar o início de '+nome+'?','A data de Início sai do card e '+quem+' recebe o aviso para combinar com você antes de definir de novo.',{sim:'Sim, recusar',nao:'Voltar'});
+      if(!ok) return;
+      const val=Object.assign({},t.valores||{}); delete val[LC_INI];
+      const {error}=await sb.from('tarefas').update({valores:val}).eq('id',t.id);
+      if(error){ toast('Erro: '+error.message); return; }
+      t.valores=val;
+      await lcIniDecidir(n,'recusado',{ini});
+      if(d.por&&String(d.por)!==String(currentUser.id)) ntfCriar([{para:d.por,titulo:'Início de '+nome+' recusado',
+        texto:'A data '+fmtDate(ini)+' saiu do card. Combine o início com o master antes de definir de novo.',
+        criado_por:currentUser.id,ficha_id:n.ficha_id,tarefa_id:n.tarefa_id,dados:{tipo:'inicio_resposta',status:'recusado'}}]);
+      ov.remove(); toast('Início de '+nome+' recusado: a data saiu do card.');
+    };
+    bs.parentNode.insertBefore(br,bs); }
+};
 window.lcReativar=async (fid)=>{
   if(!souGerente()){ toast('Só master e gerentes reativam cliente.'); return; }
   const f=fichaDe(fid), t=lcCardDe(fid);
