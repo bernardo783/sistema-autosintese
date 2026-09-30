@@ -208,9 +208,9 @@ grupo('Folha por departamento: calculada do Controle de Clientes (Gabriel 30/09)
   const DB={folhaFixos:[],folha:[],financeiro:[]};
   const g=rodar(bloco('const FD_INICIO=','async function fdCarregar('),{DB,
     brl:v=>'R$ '+Number(v).toFixed(2).replace('.',','),fmtComp:c=>c.split('-').reverse().join('/'),fchData:x=>String(x.data||'').slice(0,7),
-    fchEhRepasse:x=>/repasse/i.test(x.categoria||''),vencOf:(c,d)=>c+'-'+String(d).padStart(2,'0'),
+    fchEhRepasse:x=>/repasse/i.test(x.categoria||''),vencOf:(c,d)=>{ const [y,m]=c.split('-').map(Number); const last=new Date(y,m,0).getDate(); return c+'-'+String(Math.min(Math.max(1,Number(d)||1),last)).padStart(2,'0'); },
     primNome:x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().split(/\s+/)[0].toLowerCase()},
-    ['fdResumo','fdComo','fdLucro','fdSincronizar','fdVenc','fdProx']);
+    ['fdResumo','fdComo','fdLucro','fdSincronizar','fdVenc']);
   const P=[{id:'lu',nome:'Luan Peixoto Santiago',papel:'gestor',dp:'Marketing',dia:1,fixo:0},{id:'ke',nome:'Kennedy Lima',papel:'vendas',dp:'Comercial',dia:5,fixo:1600},
     {id:'ma',nome:'Maria Eduarda',papel:'social',dp:'Marketing',dia:20,fixo:2000},{id:'ar',nome:'Arthur Pagiatto',papel:'tec',dia:5,fixo:3800},
     {id:'be',nome:'Bernardo Antunes',papel:'socio',dia:5,fixo:3000},{id:'ga',nome:'Gabriel',papel:'socio',dia:5,fixo:3000},{id:'jo',nome:'José Carlos',papel:'socio',dia:5,fixo:3000}];
@@ -225,7 +225,7 @@ grupo('Folha por departamento: calculada do Controle de Clientes (Gabriel 30/09)
   ok('social media conta a conta mesmo com cliente inadimplente', de('ma').total===2200);
   ok('nome casa pelo primeiro nome (Luan Santiago = Luan Peixoto Santiago)', de('lu').ls.length===3);
   ok('como é calculado: N de M no formato feitos de previstos', g.fdComo(de('lu'))==='10% da carteira, 1 de 1 cliente pagou · 1 de 2 contas pagas'&&g.fdComo(de('ke'))==='fixo R$ 1600,00 · 1 de 2 vendas ligadas ao cliente');
-  ok('folha de setembro vence no dia da pessoa em outubro', g.fdVenc('2026-09',P[0])==='2026-10-01'&&g.fdProx('2026-12')==='2027-01');
+  ok('folha vence dentro do próprio mês, dia 30 por padrão (Gabriel 30/09)', g.fdVenc('2026-09',{dia:30})==='2026-09-30'&&g.fdVenc('2026-09',{})==='2026-09-30'&&g.fdVenc('2026-02',{dia:30})==='2026-02-28');
   DB.financeiro.push({id:'r1',tipo:'receita',data:'2026-09-05',valor:100000,categoria:'Mensalidade Clientes'},{id:'r2',tipo:'receita',data:'2026-09-30',valor:7000,categoria:'Recarga de tokens — repasse'},
     {id:'d1',tipo:'despesa',data:'2026-09-10',valor:27000,categoria:'Tecnologia'},{id:'fp_x',tipo:'despesa',data:'2026-09-30',valor:1500,categoria:'Tecnologia',descricao:'Folha: Arthur, antecipação'},
     {id:'fp_esc',tipo:'despesa',data:'2026-09-01',valor:1300,categoria:'Escritórios',descricao:'Aluguel VR'});
@@ -238,7 +238,7 @@ grupo('Folha por departamento: calculada do Controle de Clientes (Gabriel 30/09)
   let n=g.fdSincronizar('2026-09',R);
   const prov=DB.folha.filter(f=>/^fd_/.test(f.id));
   ok('uma provisão por pessoa com valor, e ninguém sem valor', n===7&&prov.length===7&&prov.find(f=>f.id==='fd_2026-09_ke').valor===1675&&prov.every(f=>!f.pago&&f.valor>0));
-  ok('provisão vence no dia da pessoa no mês seguinte e leva a função', prov.find(f=>f.id==='fd_2026-09_ke').venc==='2026-10-05'&&/SDR, folha de 09\/2026/.test(prov.find(f=>f.id==='fd_2026-09_ke').descricao));
+  ok('provisão vence no dia da pessoa dentro do mês e leva a função', prov.find(f=>f.id==='fd_2026-09_ke').venc==='2026-09-05'&&/SDR, folha de 09\/2026/.test(prov.find(f=>f.id==='fd_2026-09_ke').descricao));
   DB.folha.push({id:'fdp_1',comp:'2026-09',fixoId:'ke',nome:'Kennedy Lima',valor:1000,pago:true,pagoEm:'2026-10-05'});
   DB.folha.push({id:'antigo',comp:'2026-09',fixoId:null,nome:'Arthur Pagiatto Nunes',valor:1500,pago:true,pagoEm:'2026-09-11',esc:''});
   g.fdSincronizar('2026-09',R);

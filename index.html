@@ -17399,10 +17399,11 @@ const FD={comp:'',linhas:null,erro:'',em:0,aberto:{}};
 let fdEscNovo=false;
 const fdR2=(v)=>Math.round((Number(v)||0)*100)/100;
 const fdSoma=(a,k)=>fdR2((a||[]).reduce((s,x)=>s+(Number(k?x[k]:x)||0),0));
-const fdProx=(comp)=>{ const [y,m]=comp.split('-').map(Number); return m===12?(y+1)+'-01':y+'-'+String(m+1).padStart(2,'0'); };
 const fdPessoas=()=>(DB.folhaFixos||[]).filter(f=>f.tipo==='pessoa'&&!f.desligado);
-/* a folha de um mes vence no dia da pessoa, no mes seguinte */
-const fdVenc=(comp,p)=>vencOf(fdProx(comp),Number(p.dia)||5);
+/* Vencimento DENTRO do mes de competencia, todo mundo no dia 30 (Gabriel 30/09: "tudo dentro
+   do mesmo mes de competencia pra nao ficar dando essa confusao"). O dia fica no cadastro
+   caso alguem precise ser diferente. */
+const fdVenc=(comp,p)=>vencOf(comp,Number(p.dia)||30);
 const fdProvId=(comp,pid)=>'fd_'+comp+'_'+pid;
 const fdEhProv=(f)=>String(f.id||'').indexOf('fd_')===0;
 /* pagamentos ja feitos a pessoa no mes; registro antigo sem vinculo casa pelo primeiro nome */
@@ -17643,7 +17644,7 @@ window.fdDesfazer=async (id)=>{
 };
 /* cadastro de quem entra na folha: so o que o sistema nao sabe calcular */
 window.fdPessoaModal=(id)=>{
-  const it=id?DB.folhaFixos.find(x=>x.id===id):{tipo:'pessoa',papel:'gestor',dia:5,fixo:0};
+  const it=id?DB.folhaFixos.find(x=>x.id===id):{tipo:'pessoa',papel:'gestor',dia:30,fixo:0};
   if(!it) return;
   const op=(o,sel)=>Object.keys(o).map(k=>`<option value="${k}"${k===sel?' selected':''}>${esc(o[k])}</option>`).join('');
   modal(id?'Editar '+esc(it.nome||'pessoa'):'Nova pessoa na folha',`
@@ -17657,7 +17658,7 @@ window.fdPessoaModal=(id)=>{
     </div>
     <div class="row2">
       <div class="field"><label data-dica="Valor que a pessoa recebe todo mês, antes de qualquer comissão. Deixe zero para quem é 100% variável.">Fixo mensal (R$)</label><input id="fdp_fixo" type="number" step="0.01" min="0" value="${Number(it.fixo)||''}" placeholder="0,00"></div>
-      <div class="field"><label data-dica="A folha de um mês vence neste dia do mês seguinte.">Dia do pagamento</label><input id="fdp_dia" type="number" min="1" max="31" value="${Number(it.dia)||5}"></div>
+      <div class="field"><label data-dica="A folha do mês vence neste dia do próprio mês. Padrão da equipe: dia 30.">Dia do pagamento</label><input id="fdp_dia" type="number" min="1" max="31" value="${Number(it.dia)||30}"></div>
     </div>
     <div class="row2">
       <div class="field"><label>Chave Pix</label><input id="fdp_pix" value="${esc(it.pix||'')}"></div>
@@ -17667,7 +17668,7 @@ window.fdPessoaModal=(id)=>{
     async ()=>{
       const g=(i)=>String(($('#'+i)||{}).value||'').trim();
       const v={nome:g('fdp_nome'),cargo:g('fdp_cargo'),papel:g('fdp_papel'),dp:g('fdp_dp'),fixo:fdR2(parseFloat(g('fdp_fixo').replace(',','.'))||0),
-        dia:Math.min(31,Math.max(1,parseInt(g('fdp_dia'),10)||5)),pix:g('fdp_pix'),banco:g('fdp_banco')};
+        dia:Math.min(31,Math.max(1,parseInt(g('fdp_dia'),10)||30)),pix:g('fdp_pix'),banco:g('fdp_banco')};
       if(!v.nome){ toast('Informe o nome.'); return false; }
       const dup=fdPessoas().find(x=>x.id!==id&&primNome(x.nome)===primNome(v.nome));
       if(dup){ toast('Já existe alguém com o primeiro nome '+v.nome.split(' ')[0]+' na folha: '+dup.nome+'. O sistema liga a pessoa aos clientes pelo primeiro nome.'); return false; }
