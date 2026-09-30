@@ -7636,6 +7636,16 @@ function tkGrupos(){
       if(sem.length) gs.push({k:'nost',rot:'Sem status',cor:'#64748b',its:sem});
       return gs;
     }
+    /* Minhas tarefas (Gabriel 30/09): "A fazer e no dia". So entra ali o que vence hoje ou ja
+       venceu; o que tem prazo la na frente (ou nao tem prazo) espera em "Pendente". Atrasada
+       continua em A fazer: ja passou da hora. Quem ja comecou fica em Em progresso, qualquer data. */
+    if(TK.escopo==='minhas'){
+      const hoje=tkHoje(), doDia=(t)=>!!t.prazo&&String(t.prazo).slice(0,10)<=hoje;
+      return [pack('todo',TK_ST.todo,'#8b95a5',t=>t.status==='todo'&&doDia(t)),
+              pack('fazendo',TK_ST.fazendo,'#2f7cf6',t=>t.status==='fazendo'),
+              pack('pend','Pendente','#64748b',t=>t.status==='todo'&&!doDia(t)),
+              pack('feito',TK_ST.feito,'#3ec46d',t=>t.status==='feito')];
+    }
     return ['todo','fazendo','feito'].map(k=>pack(k,TK_ST[k],k==='feito'?'#3ec46d':k==='fazendo'?'#2f7cf6':'#8b95a5',t=>t.status===k));
   }
   if(g==='prioridade') return Object.keys(TK_PRIO).map(k=>pack(k,TK_PRIO[k],PRIO_COR[k]||'#8b95a5',t=>t.prioridade===k));
@@ -11152,6 +11162,11 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok),g:String((x&&x.g)||'')})):[];
   TK_CK_SE=[];
   const it=t||{prioridade:'med',status:'todo',status_id:'',lista_id:TK.listaSel,prazo:prazoPre||'',valores:{}};
+  /* Minhas tarefas: o "+" de A fazer cria pra hoje (senao a tarefa cairia em Pendente); o de Pendente cria sem data */
+  if(!t&&TK.escopo==='minhas'&&TK.grupo==='status'){
+    if(grupoPre==='pend') grupoPre='todo';
+    else if(grupoPre==='todo'&&!it.prazo) it.prazo=tkHoje();
+  }
   if(!t&&grupoPre&&grupoPre.indexOf('no')!==0){
     if(TK.grupo==='status'){ if(tkStatus1(grupoPre)) it.status_id=grupoPre; else it.status=grupoPre; }
     else if(TK.grupo==='prioridade') it.prioridade=grupoPre;
