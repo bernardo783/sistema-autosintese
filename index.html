@@ -11575,9 +11575,10 @@ window.lcArquivar=async (fid)=>{
   const op=await escolher('Arquivar '+((f&&f.nome)||'este cliente')+'?',
     jaChurn?'Ele já está no Controle de Churns. Arquivar tira da vista; nada é apagado e dá para restaurar em Arquivados.'
       :'Se o cliente saiu, registre como churn: o card vai para o Controle de Churns com a perda de receita. Se não, só arquive, nada é apagado e dá para restaurar em Arquivados.',
-    jaChurn?[{v:'arq',rot:'Arquivar'}]
+    jaChurn?[{v:'volta',rot:'Voltar para Controle de Clientes'},{v:'arq',rot:'Arquivar'}]
       :[{v:'churn',rot:'Foi churn: mover para Controle de Churns'},{v:'arq',rot:'Só arquivar'}]);
   if(!op) return;
+  if(op==='volta') return lcReativar(fid);
   if(op==='churn'){ arqFechar(); return chPerguntarChurn(t.id); }
   const quando=new Date().toISOString();
   const {error}=await sb.from('tarefas').update({arquivada_em:quando,arquivada_por:(currentUser||{}).id||null}).eq('id',t.id);
@@ -11585,6 +11586,34 @@ window.lcArquivar=async (fid)=>{
   t.arquivada_em=quando; t.arquivada_por=(currentUser||{}).id||null;
   arqFechar(); arqRedesenhar();
   toast(((f&&f.nome)||'Cliente')+' arquivado. Está em Arquivados.');
+};
+/* Voltar do Controle de Churns (Gabriel 30/09): o cliente voltou atras e nao ha
+   caminho manual de volta — o automatico so existe desmarcando o churn no mes em
+   Recebimentos, e o churn tira o cliente do cadastro financeiro, entao nem linha
+   pra desmarcar sobra. Sem isto o card fica preso la (ou arquivado, como o
+   PAIXAO AUTOMOVEIS, que sumiu das duas listas). */
+window.lcReativar=async (fid)=>{
+  if(!souGerente()){ toast('Só master e gerentes reativam cliente.'); return; }
+  const f=fichaDe(fid), t=lcCardDe(fid);
+  if(!t){ toast('Este cliente não tem card no Controle de Clientes.'); return; }
+  const cli=(DB.clientes||[]).find(x=>String(x.id)===String((f||{}).clienteId||''));
+  const semFin=!!(currentUser&&currentUser.role==='master')&&!cli;
+  const ok=await confirmar('Voltar '+((f&&f.nome)||'este cliente')+' para o Controle de Clientes?',
+    'O card sai do Controle de Churns e volta em "4. EM MANUTENÇÃO". A data de saída e a perda de receita saem junto.'
+    +(semFin?' Ele não está no cadastro do Financeiro: para voltar a cobrar, cadastre em Recebimentos.':''),
+    {sim:'Voltar para ativo'});
+  if(!ok) return;
+  const nv=Object.assign({},t.valores||{});
+  [CH_SAIDA,CH_PERDA,CH_ULTPG,CH_MOTIVO,CH_GESTOR].forEach(k=>{ delete nv[k]; });
+  const patch={lista_id:LC_ID,status_id:LC_ATIVO,status:'fazendo',arquivada_em:null,arquivada_por:null,valores:nv};
+  const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
+  if(error){ toast('Erro: '+error.message); return; }
+  Object.assign(t,patch);
+  try{ await lcSincronizarFicha(t.id,LC_ATIVO); }catch(_){}
+  try{ arqFechar(); }catch(_){}
+  try{ spDesenhar(); }catch(_){}
+  try{ render(currentView); }catch(_){}
+  toast(((f&&f.nome)||'Cliente')+' voltou para o Controle de Clientes.'+(semFin?' Falta o cadastro no Financeiro.':''));
 };
 window.arqRestaurar=async (id)=>{
   const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
@@ -14848,10 +14877,12 @@ window.openProjCard=(id)=>{
       ${cliAba==='geral'?`<span class="pc-modo">Clique em qualquer campo para editar, salva sozinho</span>`:''}
       <span style="flex:1"></span>
       ${(()=>{ const cd=lcCardDe(it.id); if(!cd) return '';
+        const volta=(String(cd.lista_id)===String(CH_ID)&&souGerente())
+          ?`<button class="btn ghost small" onclick="lcReativar('${esc(it.id)}')">Voltar para Controle de Clientes</button>`:'';
         if(arquivada(cd)) return `<span class="hint" style="margin:0 6px 0 0">Arquivado em ${esc(fmtDate(String(cd.arquivada_em).slice(0,10)))}</span>
-          <button class="btn ghost small" onclick="arqRestaurar('${cd.id}')">Restaurar</button>
+          ${volta}<button class="btn ghost small" onclick="arqRestaurar('${cd.id}')">Restaurar</button>
           ${master?`<button class="btn ghost small tk-del" onclick="lcExcluirDeVez('${esc(it.id)}')">Excluir de vez</button>`:''}`;
-        return souGerente()?`<button class="btn ghost small" onclick="lcArquivar('${esc(it.id)}')">Arquivar cliente</button>`:''; })()}
+        return volta+(souGerente()?`<button class="btn ghost small" onclick="lcArquivar('${esc(it.id)}')">Arquivar cliente</button>`:''); })()}
       <button class="btn secondary small mcancel">Fechar</button>
       
     </div>
