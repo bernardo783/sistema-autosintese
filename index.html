@@ -17706,12 +17706,29 @@ const fdEhProv=(f)=>String(f.id||'').indexOf('fd_')===0;
 const fdPagosDe=(comp,p,lucro)=>(DB.folha||[]).filter(f=>f.comp===comp&&f.pago&&!!f.lucro===!!lucro&&!fdEhProv(f)
   &&!String(f.esc||'').trim()&&(f.fixoId===p.id||(!f.fixoId&&primNome(f.nome)===primNome(p.nome))));
 /* junta as linhas do banco por pessoa: fixo, variavel garantida e o teto do mes */
+/* GERENTE DIVIDIDO POR DEPARTAMENTO (Gabriel 30/09): o 10% do gerente segue o tipo do cliente.
+   Cliente so de Agent IA = 100% Tecnologia; so trafego = 100% Marketing; trafego + IA = metade
+   pra cada. O resto da pessoa (fixo, gestor, social, venda) fica no departamento dela. */
+const FD_DP_KEY={Comercial:'com',Marketing:'mkt',Tecnologia:'tec','Sócios':'soc'};
+const fdDpDe=(p)=>p.dp||FD_PAPEL_DEP[p.papel]||'Marketing';
+function fdDpsDaLinha(l,dpPadrao){
+  if(l.papel!=='gerente') return {[dpPadrao]:1};
+  if(l.cat==='ia') return {Tecnologia:1};
+  if(l.cat==='trafego') return {Marketing:1};
+  if(l.cat==='full') return {Marketing:0.5,Tecnologia:0.5};
+  return {[dpPadrao]:1};
+}
 function fdResumo(pessoas,linhas){
   const por={}; (linhas||[]).forEach(l=>{ if(l.papel==='fixo') return; const k=primNome(l.pessoa); (por[k]=por[k]||[]).push(l); });
   return (pessoas||[]).map(p=>{
-    const ls=por[primNome(p.nome)]||[], fixo=fdR2(p.fixo);
+    const ls=por[primNome(p.nome)]||[], fixo=fdR2(p.fixo), dp=fdDpDe(p);
     const ganho=fdSoma(ls,'ganho'), cheio=fdSoma(ls,'cheio');
-    return {p,ls,fixo,variavel:ganho,total:fdR2(fixo+ganho),teto:fdR2(fixo+cheio)};
+    /* quanto de cada departamento: fixo no da pessoa, variavel repartida linha a linha */
+    const dps={}; const poe=(d,g,c)=>{ dps[d]=dps[d]||{ganho:0,cheio:0}; dps[d].ganho+=g; dps[d].cheio+=c; };
+    if(fixo) poe(dp,fixo,fixo);
+    ls.forEach(l=>{ const s=fdDpsDaLinha(l,dp); Object.keys(s).forEach(d=>poe(d,(Number(l.ganho)||0)*s[d],(Number(l.cheio)||0)*s[d])); });
+    Object.keys(dps).forEach(d=>{ dps[d].ganho=fdR2(dps[d].ganho); dps[d].cheio=fdR2(dps[d].cheio); });
+    return {p,ls,fixo,dp,dps,variavel:ganho,total:fdR2(fixo+ganho),teto:fdR2(fixo+cheio)};
   });
 }
 /* como o valor da pessoa e formado, em uma linha */
@@ -17723,6 +17740,8 @@ function fdComo(x){
   if(s.length) t.push(pg(s)+' de '+s.length+(s.length===1?' conta paga':' contas pagas'));
   if(so.length) t.push(so.length+(so.length===1?' conta':' contas')+' de social media');
   if(v.length) t.push(pg(v)+' de '+v.length+(v.length===1?' venda ligada ao cliente':' vendas ligadas ao cliente'));
+  const dd=FD_DEPS.filter(d=>x.dps&&x.dps[d]&&(x.dps[d].ganho>0||x.dps[d].cheio>0));
+  if(dd.length>1) t.push(dd.map(d=>d+' '+brl(x.dps[d].ganho)).join(' + '));
   return t.join(' · ')||'sem valor neste mês';
 }
 /* DIVISAO DO LUCRO (Gabriel 30/09): de cada R$ 100 de lucro, R$ 20 ficam no caixa, R$ 10 sao
@@ -17749,14 +17768,20 @@ function fdLucro(comp,folhaTotal,pessoas){
 function fdSincronizar(comp,R){
   let n=0; const vivos={};
   R.forEach(x=>{
-    const id=fdProvId(comp,x.p.id); vivos[id]=1;
-    const falta=fdR2(Math.max(0,x.total-fdSoma(fdPagosDe(comp,x.p),'valor')));
-    const at=DB.folha.find(f=>f.id===id);
-    if(falta<0.005){ if(at){ DB.folha=DB.folha.filter(f=>f.id!==id); n++; } return; }
-    const novo={comp,fixoId:x.p.id,nome:x.p.nome,esc:'',descricao:(x.p.cargo||FD_PAPEL[x.p.papel]||'Equipe')+', folha de '+fmtComp(comp),
-      valor:falta,venc:fdVenc(comp,x.p),pago:false,pagoEm:null,auto:true};
-    if(!at){ DB.folha.push(Object.assign({id},novo)); n++; return; }
-    if(Object.keys(novo).some(k=>at[k]!==novo[k])){ Object.assign(at,novo); n++; }
+    const pago=fdSoma(fdPagosDe(comp,x.p),'valor');
+    /* uma provisao por departamento em que a pessoa tem valor; o que ja foi pago abate na
+       proporcao. A do departamento da pessoa mantem o id antigo (fd_<mes>_<pessoa>). */
+    const dps=Object.keys(x.dps||{}).filter(d=>x.dps[d].ganho>0);
+    dps.forEach(d=>{
+      const parte=x.dps[d].ganho, id=fdProvId(comp,x.p.id)+(d===x.dp?'':'_'+(FD_DP_KEY[d]||d)); vivos[id]=1;
+      const falta=fdR2(Math.max(0,parte-(x.total>0?pago*parte/x.total:0)));
+      const at=DB.folha.find(f=>f.id===id);
+      if(falta<0.005){ if(at){ DB.folha=DB.folha.filter(f=>f.id!==id); n++; } return; }
+      const novo={comp,fixoId:x.p.id,nome:x.p.nome,esc:'',dp:d,descricao:(x.p.cargo||FD_PAPEL[x.p.papel]||'Equipe')+(d===x.dp?'':', parte de '+d)+', folha de '+fmtComp(comp),
+        valor:falta,venc:fdVenc(comp,x.p),pago:false,pagoEm:null,auto:true};
+      if(!at){ DB.folha.push(Object.assign({id},novo)); n++; return; }
+      if(Object.keys(novo).some(k=>at[k]!==novo[k])){ Object.assign(at,novo); n++; }
+    });
   });
   const antes=DB.folha.length;
   DB.folha=DB.folha.filter(f=>!(fdEhProv(f)&&f.comp===comp&&!vivos[f.id]));
@@ -17810,8 +17835,15 @@ function renderFolha(c){
       <td>${st}<div class="rowact" style="margin-top:6px">${falta>=0.005?`<button class="iconbtn" onclick="fdPagar('${esc(p.id)}')">Pagar</button>`:''}<button class="iconbtn" onclick="fdPessoaModal('${esc(p.id)}')">Editar</button></div></td>
     </tr>${det}`;
   };
-  const corpo=FD_DEPS.map(d=>{ const rs=V.R.filter(x=>(x.p.dp||FD_PAPEL_DEP[x.p.papel])===d); if(!rs.length) return '';
-    return `<tr class="fp-faixa"><td colspan="6">${esc(d)}<span class="fp-sub">${rs.length} pessoa${rs.length===1?'':'s'} · ${brl(fdSoma(rs,'total'))} garantidos</span></td></tr>`+rs.map(linhaPessoa).join(''); }).join('');
+  /* a parte do gerente que cai em outro departamento aparece la como linha de apoio, sem acao: o pagamento e um so, na linha dele */
+  const linhaParte=(x,d)=>`<tr><td><span class="rc-sub" style="padding-left:23px"><strong>${esc(x.p.nome)}</strong> · parte de ${esc(d)}</span></td><td></td><td>${fmtDate(fdVenc(comp,x.p))}</td>
+      <td>${esc(x.p.cargo||FD_PAPEL[x.p.papel]||'')}: clientes ${d==='Tecnologia'?'de Agent IA':'de tráfego'} e metade dos que têm os dois</td>
+      <td class="money" style="text-align:right">${brl(x.dps[d].ganho)}${x.dps[d].cheio>x.dps[d].ganho?`<div class="rc-sub">até ${brl(x.dps[d].cheio)}</div>`:''}</td>
+      <td><span class="rc-sub">pago junto com a linha em ${esc(x.dp)}</span></td></tr>`;
+  const corpo=FD_DEPS.map(d=>{ const rs=V.R.filter(x=>x.dp===d), partes=V.R.filter(x=>x.dp!==d&&x.dps[d]&&(x.dps[d].ganho>0||x.dps[d].cheio>0));
+    if(!rs.length&&!partes.length) return '';
+    const totD=fdR2(rs.reduce((s,x)=>s+((x.dps[d]||{}).ganho||0),0)+partes.reduce((s,x)=>s+x.dps[d].ganho,0));
+    return `<tr class="fp-faixa"><td colspan="6">${esc(d)}<span class="fp-sub">${rs.length} pessoa${rs.length===1?'':'s'}${partes.length?' + parte de '+partes.length:''} · ${brl(totD)} garantidos</span></td></tr>`+rs.map(linhaPessoa).join('')+partes.map(x=>linhaParte(x,d)).join(''); }).join('');
   c.innerHTML=fdCabeca(comp,`<button class="btn small" onclick="fdPessoaModal()" data-dica="Quem entra na folha: departamento, função, chave Pix, dia do pagamento e o fixo, se tiver. O resto o sistema calcula.">+ Pessoa</button>`)+`
    ${FD.erro?`<div class="f1-aviso">↻ Não consegui calcular a parte variável agora (${esc(FD.erro)}). Os valores abaixo mostram só o fixo.</div>`:''}
    <div class="cards">
@@ -18063,7 +18095,7 @@ function fpDespesaDe(p){
                  :('Folha: '+p.nome+(p.descricao?', '+p.descricao:''));
   return {id:'fp_'+p.id, data:fpDataComp(p), comp:p.comp, pagoEm:p.pagoEm||null,
     tipo:'despesa', descricao:base+(p.pago?'':' · a pagar'),
-    categoria:escN?'Escritórios':((fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento'),
+    categoria:escN?'Escritórios':(p.dp||((fxp&&fxp.dp)?fxp.dp:'Folha de Pagamento')),
     valor:Number(p.valor)||0};
 }
 /* Deixa o Financeiro igual a Folha. Devolve quantos lancamentos mudaram. */

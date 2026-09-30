@@ -3,7 +3,9 @@
 -- Clientes e dos Recebimentos. Esta migracao so cria estrutura; nenhum dado entra aqui.
 --
 -- folha_linhas(comp) devolve uma linha por pessoa x cliente x papel:
---   gerente  10% da mensalidade do mes (pro rata no mes de entrada), contando o que o cliente ja pagou
+--   gerente  10% da mensalidade do mes (pro rata no mes de entrada), contando o que o cliente ja pagou;
+--            o app reparte o gerente entre Marketing e Tecnologia pela categoria do cliente (cat):
+--            so tráfego = Marketing, so Agent IA = Tecnologia, os dois = metade cada
 --   gestor   R$ 100 por conta (pro rata no mes de entrada), contando o que o cliente ja pagou
 --   social   R$ 200 por conta em que a pessoa e a social media (nao depende do pagamento)
 --   venda    5% da primeira mensalidade, pro SDR do ganho do painel Comercial, quando o
@@ -17,9 +19,11 @@ alter table public.crm_calls add column if not exists ficha_id text;
 alter table public.crm_calls add column if not exists vinculado_em timestamptz;
 alter table public.crm_calls add column if not exists vinculado_por uuid;
 
+drop function if exists public.folha_linhas(text);
+drop function if exists public.folha_linhas_todas(text);
 create or replace function public.folha_linhas_todas(p_comp text)
 returns table(pessoa text, papel text, ficha text, cliente text, situacao text,
-              base numeric, cheio numeric, ganho numeric, ref text)
+              base numeric, cheio numeric, ganho numeric, ref text, cat text)
 language sql stable security definer set search_path to 'public'
 as $f$
 with k as (select
@@ -91,20 +95,20 @@ b as (select b3.*,
     case when (cli->>'valor') ~ num then (cli->>'valor')::numeric end v_cad
     from b3),
 ger as (select trim(fic->>'gerente') pessoa, 'gerente'::text papel, fic->>'id' ficha,
-               coalesce(cli->>'nome',fic->>'nome') cliente, st, mens base, razao,
+               coalesce(cli->>'nome',fic->>'nome') cliente, st, mens base, razao, fic->>'categoria' cat,
     /* valor combinado a mao no card vale; senao, 10% da mensalidade DO MES olhado */
     case when v_ger is not null and v_mens is not null and v_ger <> round(v_mens*0.10,2) then v_ger
          /* pro rata no mes de entrada sobre o valor de cadastro: a cobranca do 1o mes pode ja vir proporcional */
          else round((case when fator_comp<1 then coalesce(v_cad,mens)*fator_comp else mens end)*0.10,2) end cheio
     from b where devido and coalesce(trim(fic->>'gerente'),'')<>'' and not lc_socio(fic->>'gerente')),
 gest as (select coalesce(gest_user, trim(fic->>'responsavel')) pessoa, 'gestor'::text papel, fic->>'id' ficha,
-                coalesce(cli->>'nome',fic->>'nome') cliente, st, mens base, razao,
+                coalesce(cli->>'nome',fic->>'nome') cliente, st, mens base, razao, fic->>'categoria' cat,
     case when v_gest is null or v_gest in (100, round(100*fator_ini,2), round(100*fator_hoje,2))
          then round(100*fator_comp,2) else v_gest end cheio
     from b where devido and coalesce(gest_user, trim(fic->>'responsavel'),'')<>''
              and not lc_socio(coalesce(gest_user, fic->>'responsavel'))),
 soc as (select soc_user pessoa, 'social'::text papel, fic->>'id' ficha,
-               coalesce(cli->>'nome',fic->>'nome') cliente, st, mens base, 1::numeric razao,
+               coalesce(cli->>'nome',fic->>'nome') cliente, st, mens base, 1::numeric razao, fic->>'categoria' cat,
     case when v_soc is null or v_soc in (200, round(200*fator_ini,2), round(200*fator_hoje,2))
          then round(200*fator_comp,2) else v_soc end cheio
     from b where devido and soc_user is not null and not lc_socio(soc_user)),
@@ -136,22 +140,22 @@ fixo as (select e->>'nome' pessoa, (e->>'fixo')::numeric v
     from itens i, jsonb_array_elements(i.dados) e, k
     where i.modulo='folha_fixos' and e->>'tipo'='pessoa' and coalesce(e->>'desligado','false')<>'true'
       and (e->>'fixo') ~ k.num and (e->>'fixo')::numeric>0)
-select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*razao,2), null::text from ger
-union all select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*razao,2), null::text from gest
-union all select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*razao,2), null::text from soc
-union all select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*razao,2), ref from ven
-union all select pessoa, 'fixo', null, null, null, null, v, v, null::text from fixo
+select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*razao,2), null::text, cat from ger
+union all select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*razao,2), null::text, cat from gest
+union all select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*razao,2), null::text, cat from soc
+union all select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*razao,2), ref, null::text from ven
+union all select pessoa, 'fixo', null, null, null, null, v, v, null::text, null::text from fixo
 $f$;
 
 create or replace function public.folha_linhas(p_comp text default null)
 returns table(pessoa text, papel text, ficha text, cliente text, situacao text,
-              base numeric, cheio numeric, ganho numeric, ref text)
+              base numeric, cheio numeric, ganho numeric, ref text, cat text)
 language sql stable security definer set search_path to 'public'
 as $f$
   select l.pessoa, l.papel, l.ficha, l.cliente, l.situacao,
          /* mensalidade e dado de master e de gerente: gestor e social media nao veem */
          case when is_master() or l.papel in ('gerente','venda','fixo') then l.base end,
-         l.cheio, l.ganho, l.ref
+         l.cheio, l.ganho, l.ref, l.cat
     from folha_linhas_todas(coalesce(nullif(p_comp,''),
            to_char(now() at time zone 'America/Sao_Paulo','YYYY-MM'))) l
    where is_aprovado()

@@ -215,11 +215,14 @@ grupo('Folha por departamento: calculada do Controle de Clientes (Gabriel 30/09)
     ['fdResumo','fdComo','fdLucro','fdSincronizar','fdVenc']);
   const P=[{id:'lu',nome:'Luan Peixoto Santiago',papel:'gestor',dp:'Marketing',dia:1,fixo:0},{id:'ke',nome:'Kennedy Lima',papel:'vendas',dp:'Comercial',dia:5,fixo:1600},
     {id:'ma',nome:'Maria Eduarda',papel:'social',dp:'Marketing',dia:20,fixo:2000},{id:'ar',nome:'Arthur Pagiatto',papel:'tec',dia:5,fixo:3800},
-    {id:'be',nome:'Bernardo Antunes',papel:'socio',dia:5,fixo:3000},{id:'ga',nome:'Gabriel',papel:'socio',dia:5,fixo:3000},{id:'jo',nome:'José Carlos',papel:'socio',dia:5,fixo:3000}];
+    {id:'be',nome:'Bernardo Antunes',papel:'socio',dia:5,fixo:3000},{id:'ga',nome:'Gabriel',papel:'socio',dia:5,fixo:3000},{id:'jo',nome:'José Carlos',papel:'socio',dia:5,fixo:3000},
+    {id:'jv',nome:'João Vitor Lente',papel:'gerente',dp:'Marketing',dia:30,fixo:0}];
   const L=[{pessoa:'Luan Santiago',papel:'gestor',cliente:'A',situacao:'recebido',cheio:100,ganho:100},{pessoa:'Luan Santiago',papel:'gestor',cliente:'B',situacao:'areceber',cheio:73.33,ganho:0},
     {pessoa:'Luan Santiago',papel:'gerente',cliente:'C',situacao:'sinal',cheio:100,ganho:50},
     {pessoa:'Kennedy',papel:'venda',cliente:'GUI',situacao:'vinculada',cheio:75,ganho:75,ref:'c1'},{pessoa:'Kennedy',papel:'venda',cliente:'LEAL',situacao:'sem_vinculo',cheio:65,ganho:0,ref:'c2'},
-    {pessoa:'Maria',papel:'social',cliente:'A',situacao:'inadimplente',cheio:200,ganho:200},{pessoa:'Kennedy',papel:'fixo',cheio:1600,ganho:1600}];
+    {pessoa:'Maria',papel:'social',cliente:'A',situacao:'inadimplente',cheio:200,ganho:200},{pessoa:'Kennedy',papel:'fixo',cheio:1600,ganho:1600},
+    {pessoa:'João',papel:'gerente',cliente:'SO IA',situacao:'recebido',cheio:100,ganho:100,cat:'ia'},{pessoa:'João',papel:'gerente',cliente:'SO TRAFEGO',situacao:'recebido',cheio:100,ganho:100,cat:'trafego'},
+    {pessoa:'João',papel:'gerente',cliente:'OS DOIS',situacao:'sinal',cheio:100,ganho:50,cat:'full'}];
   const R=g.fdResumo(P,L), de=(id)=>R.find(x=>x.p.id===id);
   ok('gestor: só o que o cliente pagou está garantido, o resto é teto', de('lu').variavel===150&&de('lu').total===150&&de('lu').teto===273.33);
   ok('fixo + comissão: Kennedy 1.600 + 5% da venda ligada', de('ke').total===1675&&de('ke').teto===1740);
@@ -227,19 +230,27 @@ grupo('Folha por departamento: calculada do Controle de Clientes (Gabriel 30/09)
   ok('social media conta a conta mesmo com cliente inadimplente', de('ma').total===2200);
   ok('nome casa pelo primeiro nome (Luan Santiago = Luan Peixoto Santiago)', de('lu').ls.length===3);
   ok('como é calculado: N de M no formato feitos de previstos', g.fdComo(de('lu'))==='10% da carteira, 1 de 1 cliente pagou · 1 de 2 contas pagas'&&g.fdComo(de('ke'))==='fixo R$ 1600,00 · 1 de 2 vendas ligadas ao cliente');
+  ok('gerente dividido: só IA vai pra Tecnologia, só tráfego pra Marketing, os dois metade cada', de('jv').dps.Tecnologia.ganho===125&&de('jv').dps.Marketing.ganho===125&&de('jv').total===250);
+  ok('gestor, social e fixo ficam no departamento da pessoa', de('lu').dps.Marketing.ganho===150&&!de('lu').dps.Tecnologia&&de('ke').dps.Comercial.ganho===1675);
+  ok('a divisão aparece no como é calculado', /Marketing R\$ 125,00 \+ Tecnologia R\$ 125,00/.test(g.fdComo(de('jv'))));
   ok('folha vence dentro do próprio mês, dia 30 por padrão (Gabriel 30/09)', g.fdVenc('2026-09',{dia:30})==='2026-09-30'&&g.fdVenc('2026-09',{})==='2026-09-30'&&g.fdVenc('2026-02',{dia:30})==='2026-02-28');
   DB.financeiro.push({id:'r1',tipo:'receita',data:'2026-09-05',valor:100000,categoria:'Mensalidade Clientes'},{id:'r2',tipo:'receita',data:'2026-09-30',valor:7000,categoria:'Recarga de tokens — repasse'},
     {id:'d1',tipo:'despesa',data:'2026-09-10',valor:27000,categoria:'Tecnologia'},{id:'fp_x',tipo:'despesa',data:'2026-09-30',valor:1500,categoria:'Tecnologia',descricao:'Folha: Arthur, antecipação'},
     {id:'fp_esc',tipo:'despesa',data:'2026-09-01',valor:1300,categoria:'Escritórios',descricao:'Aluguel VR'});
   const Lu=g.fdLucro('2026-09',fdSomaTotal(R),P);
   function fdSomaTotal(R){ return Math.round(R.reduce((s,x)=>s+x.total,0)*100)/100; }
-  ok('lucro = recebido (sem repasse) menos despesas (sem folha já paga, com escritório) menos a folha calculada', Lu.receita===100000&&Lu.oper===21300&&Lu.folha===16825&&Lu.lucro===61875);
-  ok('de cada R$ 100 de lucro: 20 caixa, 10 Arthur, 70 divididos entre os 3 sócios', Lu.caixa===12375&&Lu.por.ar===6187.5&&Lu.por.be===14437.5&&Lu.por.ga===14437.5&&Lu.por.jo===14437.5);
+  ok('lucro = recebido (sem repasse) menos despesas (sem folha já paga, com escritório) menos a folha calculada', Lu.receita===100000&&Lu.oper===21300&&Lu.folha===17075&&Lu.lucro===61625);
+  ok('de cada R$ 100 de lucro: 20 caixa, 10 Arthur, 70 divididos entre os 3 sócios', Lu.caixa===12325&&Lu.por.ar===6162.5&&Lu.por.be===14379.17&&Lu.por.ga===14379.17&&Lu.por.jo===14379.17);
   ok('sem lucro, ninguém divide nada', g.fdLucro('2026-08',0,P).por.be===0);
   /* provisao: o que falta pagar vira um registro por pessoa, atualizado a cada abertura */
   let n=g.fdSincronizar('2026-09',R);
   const prov=DB.folha.filter(f=>/^fd_/.test(f.id));
-  ok('uma provisão por pessoa com valor, e ninguém sem valor', n===7&&prov.length===7&&prov.find(f=>f.id==='fd_2026-09_ke').valor===1675&&prov.every(f=>!f.pago&&f.valor>0));
+  ok('uma provisão por pessoa e departamento com valor, e ninguém sem valor', n===9&&prov.length===9&&prov.find(f=>f.id==='fd_2026-09_ke').valor===1675&&prov.every(f=>!f.pago&&f.valor>0));
+  ok('gerente dividido gera duas provisões, cada uma no seu departamento', prov.find(f=>f.id==='fd_2026-09_jv').valor===125&&prov.find(f=>f.id==='fd_2026-09_jv').dp==='Marketing'&&prov.find(f=>f.id==='fd_2026-09_jv_tec').valor===125&&prov.find(f=>f.id==='fd_2026-09_jv_tec').dp==='Tecnologia'&&/parte de Tecnologia/.test(prov.find(f=>f.id==='fd_2026-09_jv_tec').descricao));
+  DB.folha.push({id:'fdp_jv',comp:'2026-09',fixoId:'jv',nome:'João Vitor Lente',valor:100,pago:true,pagoEm:'2026-09-30'});
+  g.fdSincronizar('2026-09',R);
+  ok('pagamento do gerente abate as duas provisões na proporção', DB.folha.find(f=>f.id==='fd_2026-09_jv').valor===75&&DB.folha.find(f=>f.id==='fd_2026-09_jv_tec').valor===75);
+  ok('o espelho no Financeiro usa o departamento da provisão', /categoria:escN\?'Escritórios':\(p\.dp\|\|\(\(fxp&&fxp\.dp\)\?fxp\.dp:'Folha de Pagamento'\)\)/.test(HTML));
   ok('provisão vence no dia da pessoa dentro do mês e leva a função', prov.find(f=>f.id==='fd_2026-09_ke').venc==='2026-09-05'&&/SDR, folha de 09\/2026/.test(prov.find(f=>f.id==='fd_2026-09_ke').descricao));
   DB.folha.push({id:'fdp_1',comp:'2026-09',fixoId:'ke',nome:'Kennedy Lima',valor:1000,pago:true,pagoEm:'2026-10-05'});
   DB.folha.push({id:'antigo',comp:'2026-09',fixoId:null,nome:'Arthur Pagiatto Nunes',valor:1500,pago:true,pagoEm:'2026-09-11',esc:''});
