@@ -13688,7 +13688,7 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
      (porSt.inadimplente||[]).forEach(x=>addCob(x,'inadimplente · vencia '+fchDT(x.venc)));
      desp.filter(x=>/ressarc|não ressarcida|nao ressarcida/i.test(String(x.descricao))).forEach(x=>
        PEND.push({nome:String(x.descricao), quando:'já reduziu o lucro deste mês · na volta é estorno', v:fchN(x.valor), g:'', rateia:true}));
-     (DB.financeiro||[]).filter(x=>x.tipo==='recebivel').forEach(x=>
+     (DB.financeiro||[]).filter(x=>x.tipo==='recebivel'&&!x.pagoEm).forEach(x=>
        PEND.push({nome:String(x.descricao), quando:(x.comp?'competência '+fmtComp(x.comp)+' · ':'')+'nunca passou pelo resultado', v:fchN(x.valor), g:'', rateia:false}));
      if(!PEND.length) return '<div class="hint">Nada pendente: tudo que foi reconhecido no mês já entrou.</div>';
      const ord=(a,b)=>b.v-a.v;
@@ -14068,7 +14068,7 @@ window.openFinModal=(id)=>{
   modal(id?'Editar lançamento':'Novo lançamento',`
     <div class="row2">
       <div class="field"><label>Competência: mês em que foi usado</label><input type="date" id="m_data" value="${it.data||''}"></div>
-      <div class="field"><label>Tipo</label><select id="m_tipo"><option value="receita"${it.tipo==='receita'?' selected':''}>Receita</option><option value="despesa"${it.tipo==='despesa'?' selected':''}>Despesa</option></select></div>
+      <div class="field"><label>Tipo</label><select id="m_tipo"><option value="receita"${it.tipo==='receita'?' selected':''}>Receita</option><option value="despesa"${it.tipo==='despesa'?' selected':''}>Despesa</option>${it.tipo==='recebivel'?'<option value="recebivel" selected>A receber</option>':''}</select></div>
     </div>
     <div class="field"><label>Descrição</label><input id="m_desc" value="${esc(it.descricao)}" placeholder="Ex: Venda de serviço"></div>
     <div class="row2">
@@ -16089,6 +16089,66 @@ function rcBlocoEntradas(R,comp){
       como recebido, o dia daquele pagamento vira o dia de vencimento do cliente e a mensalidade cheia passa a correr do mês seguinte.</p>
   </div>`;
 }
+/* Reembolsos a receber (Gabriel 30/09): quando a empresa adianta a conta inteira da casa de SJRP
+   e as outras empresas devem a parte delas, o valor fica num aviso no topo do Recebimentos,
+   do mesmo jeito que o restante de quem pagou sinal: quanto falta, prazo em palavra, tom de
+   alerta quando atrasa e botao pra dar baixa. So entra aqui o recebivel marcado com cobrar:true
+   e ainda sem pagoEm; os demais (retirada de caixa etc.) seguem so na lista do Fechamento.
+   O Financeiro e so do master, entao o aviso tambem. Receber nao vira receita: e o caixa voltando. */
+const rcReembAbertos=()=>(currentUser&&currentUser.role==='master')
+  ?(DB.financeiro||[]).filter(x=>x.tipo==='recebivel'&&x.cobrar&&!x.pagoEm):[];
+function rcBlocoReembolsos(){
+  const lista=rcReembAbertos().slice().sort((a,b)=>String(a.venc||'9999').localeCompare(String(b.venc||'9999')));
+  if(!lista.length) return '';
+  const total=lista.reduce((t,x)=>t+(Number(x.valor)||0),0);
+  const atrasado=lista.some(x=>x.venc&&x.venc<hojeISO());
+  const linha=(x)=>{
+    const pz=rcPrazoTexto(x.venc||'');
+    return `<div class="rc-ent">
+      <div class="rc-who"><strong>${esc(x.devedor||'A receber')}</strong><div>${esc(x.descricao||'')}</div></div>
+      <button class="rc-prazo" onclick="rcReembData('${esc(x.id)}')" title="Mudar a data combinada">
+        <div class="d" style="color:${pz.cor}">${brl(x.valor)}</div>
+        <div class="q" style="color:${pz.cor}">${esc(pz.txt)}${x.venc?' · '+fmtDate(x.venc):''}</div></button>
+      <button class="btn small" onclick="rcReembRecebi('${esc(x.id)}')">Recebi</button>
+    </div>`;
+  };
+  return `<div class="rc-bloco${atrasado?' alerta':''}">
+    <div class="rc-bh"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Reembolsos a receber
+      <span class="rc-cnt">${lista.length} ${lista.length===1?'reembolso':'reembolsos'} · ${brl(total)} a receber</span></div>
+    ${lista.map(linha).join('')}
+    <p class="hint" style="margin:12px 0 0">Dinheiro que a empresa adiantou por outras empresas. Clique no valor para combinar uma data.
+      Ao marcar como recebido, sai daqui e da lista do Fechamento. Não vira receita: é só o caixa voltando.</p>
+  </div>`;
+}
+window.rcReembData=(id)=>{
+  const x=(DB.financeiro||[]).find(r=>r.id===id&&r.tipo==='recebivel'); if(!x) return;
+  modal('Reembolso a receber',
+    `<p class="hint" style="margin:0 0 12px">${esc(x.devedor||'')}: <b>${brl(x.valor)}</b>${x.venc?', combinado para <b>'+fmtDate(x.venc)+'</b>':''}.</p>
+     <div class="field"><label>Data combinada para receber</label><input id="rb_d" type="date" value="${esc(x.venc||'')}"></div>`,
+    async ()=>{
+      const d=($('#rb_d')||{}).value||'';
+      if(!d){ toast('Escolha uma data.'); return false; }
+      /* reencontra pelo id: se outra sessao gravou enquanto o modal estava aberto, o DB foi
+         recarregado e o objeto guardado ao abrir ficou orfao (salvava nada e dizia que salvou) */
+      const y=(DB.financeiro||[]).find(r=>r.id===id&&r.tipo==='recebivel');
+      if(!y){ toast('Este reembolso não existe mais.'); return true; }
+      const antes=y.venc; y.venc=d;
+      try{ await saveDB(); }catch(e){ y.venc=antes; throw e; }
+      render('recebimentos');
+      toast('Reembolso combinado para '+fmtDate(d)+'.'); return true;
+    });
+};
+window.rcReembRecebi=async (id)=>{
+  const x=(DB.financeiro||[]).find(r=>r.id===id&&r.tipo==='recebivel'); if(!x||x.pagoEm) return;
+  const ok=await confirmar('Recebeu '+brl(x.valor)+'?',(x.devedor||'Reembolso')+'. Sai deste aviso e da lista do Fechamento. Não vira receita: é só o caixa voltando.',{sim:'Recebi'});
+  if(!ok) return;
+  /* reencontra depois do await: o DB pode ter sido recarregado enquanto o confirmar estava aberto */
+  const y=(DB.financeiro||[]).find(r=>r.id===id&&r.tipo==='recebivel'); if(!y||y.pagoEm) return;
+  y.pagoEm=hojeISO();
+  try{ await saveDB(); }catch(e){ y.pagoEm=null; return; }
+  render('recebimentos');
+  toast('Reembolso de '+brl(y.valor)+' recebido.');
+};
 /* CONTAS ACOPLADAS (Gabriel 30/09): ALTOGIRO e SABARA pagam por conta, mas o dono e um so.
    Na planilha, contas do mesmo dono viram UMA linha, com a soma e o resumo do status; o
    clique abre as contas. O grupo e o mesmo da ficha (grupoDe): campo Grupo, ou o prefixo
@@ -16166,6 +16226,7 @@ function renderRecebimentos(c){
      <div class="card"><div class="k">Carteira mensal</div><div class="v">${brl(totalMensal)}</div><div class="sub">${ativos.length} clientes ativos</div></div>
    </div>
    ${rcBlocoEntradas(R,comp)}
+   ${rcBlocoReembolsos()}
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
    <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. Contas do mesmo dono aparecem juntas em uma linha, com a soma: clique no nome para abrir as contas, e o status dessa linha muda todas de uma vez. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido, escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong><i class="emi-dot" style="background:#a78bfa"></i> Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong><i class="emi-dot" style="background:#6b7280"></i> Churn</strong> marca perda definitiva: o valor do mês vira receita perdida, o cliente sai da planilha na hora e o card dele vai para o Controle de Churns. A perda continua somada no cartão Churn, pra ver quem é, use o filtro de status: ele mostra só quem saiu no mês escolhido. <strong><i class="emi-dot" style="background:#6b7280"></i> Churn (mês pago)</strong> é para quem pagou e depois saiu: a mensalidade continua contando como recebida e o lançamento no Financeiro fica como está, o cliente só some da carteira a partir do mês seguinte.</p>`;
