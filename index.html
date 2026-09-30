@@ -2174,6 +2174,17 @@
   .pc-gr-n{color:var(--muted);margin-right:4px}
   .pc-gr-c{font:inherit;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--txt);cursor:pointer}
   .pc-gr-c.on{background:rgba(124,104,238,.16);border-color:rgba(124,104,238,.45);cursor:default}
+  /* Folha enxuta (Gabriel 30/09: "bem anti intuitivo"): a linha da pessoa cabe em uma
+     altura so. Nome e cargo a esquerda, de onde vem o valor logo abaixo em texto de apoio,
+     dinheiro alinhado a direita e UMA acao visivel; o resto abre no detalhe. */
+  .fd-nome{display:flex;align-items:baseline;gap:9px}
+  .fd-nome strong{font-size:14px}
+  .fd-cargo{color:var(--muted);font-size:11.5px;font-weight:600}
+  .fd-como{color:var(--fraco);font-size:11.5px;margin:3px 0 0 23px;max-width:56ch}
+  .fd-val{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .fd-val b{font-size:15px;font-weight:800}
+  .fd-teto{color:var(--fraco);font-size:11px;margin-top:2px}
+  .fd-acao{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
   .lc-pg{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.04em;
     padding:3px 9px;border-radius:999px;white-space:nowrap;line-height:1.45}
   .lc-grupo-tag{font:inherit;display:inline-flex;align-items:center;margin-left:6px;padding:2px;border-radius:6px;cursor:pointer;
@@ -17507,27 +17518,26 @@ function renderFolha(c){
     const st=(!x.total&&!pago)?'<span class="tag st">sem valor</span>'
       :falta<0.005?`<span class="tag concluido">Pago${pagos.length?' '+fmtDate(pagos[pagos.length-1].pagoEm):''}</span>`
       :`<span class="tag ${venc<hoje?'despesa':'pausado'}">${venc<hoje?'Atrasado':'A pagar'}</span>${pago?`<div class="rc-sub">pago ${brl(pago)} de ${brl(x.total)}</div>`:''}`;
-    const det=!ab?'':`<tr class="rc-gr-f"><td colspan="6">${fdDetalhe(x,pagos)}</td></tr>`;
+    const det=!ab?'':`<tr class="rc-gr-f"><td colspan="4">${fdDetalhe(x,pagos)}</td></tr>`;
     return `<tr>
-      <td><button type="button" class="rc-gr-b" aria-expanded="${ab}" onclick="fdAbre('${esc(p.id)}')" title="${ab?'Fechar o detalhe':'Ver de onde vem o valor'}"><i class="fch-cv"></i><strong>${esc(p.nome)}</strong></button><div class="rc-sub">${esc(p.cargo||FD_PAPEL[p.papel]||'')}</div></td>
-      <td>${p.pix?`${esc(p.pix)} <button class="iconbtn" onclick="copyPixFixo('${esc(p.id)}')">copiar</button>`:'-'}${p.banco?`<div class="rc-sub">${esc(p.banco)}</div>`:''}</td>
+      <td><button type="button" class="rc-gr-b" aria-expanded="${ab}" onclick="fdAbre('${esc(p.id)}')" title="${ab?'Fechar o detalhe':'Ver de onde vem o valor, cliente por cliente'}"><i class="fch-cv"></i><span class="fd-nome"><strong>${esc(p.nome)}</strong><span class="fd-cargo">${esc(p.cargo||FD_PAPEL[p.papel]||'')}</span></span></button>
+        <div class="fd-como">${esc(fdComo(x))}</div></td>
       <td>${fmtDate(venc)}</td>
-      <td>${esc(fdComo(x))}</td>
-      <td class="money" style="text-align:right">${brl(x.total)}${x.teto>x.total?`<div class="rc-sub">até ${brl(x.teto)} se todos pagarem</div>`:''}</td>
-      <td>${st}<div class="rowact" style="margin-top:6px">${falta>=0.005?`<button class="iconbtn" onclick="fdPagar('${esc(p.id)}')">Pagar</button>`:''}<button class="iconbtn" onclick="fdPessoaModal('${esc(p.id)}')">Editar</button></div></td>
+      <td class="money fd-val"><b>${brl(x.total)}</b>${x.teto>x.total?`<div class="fd-teto">até ${brl(x.teto)} se todos pagarem</div>`:''}</td>
+      <td><div class="fd-acao">${st}${falta>=0.005?`<button class="btn small" onclick="fdPagar('${esc(p.id)}')">Pagar</button>`:''}<button class="iconbtn" title="Mais opções" onclick="fdLinhaMenu(event,'${esc(p.id)}')">⋯</button></div></td>
     </tr>${det}`;
   };
   const corpo=FD_DEPS.map(d=>{ const rs=V.R.filter(x=>(x.p.dp||FD_PAPEL_DEP[x.p.papel])===d); if(!rs.length) return '';
-    return `<tr class="fp-faixa"><td colspan="6">${esc(d)}<span class="fp-sub">${rs.length} pessoa${rs.length===1?'':'s'} · ${brl(fdSoma(rs,'total'))} garantidos</span></td></tr>`+rs.map(linhaPessoa).join(''); }).join('');
+    const pgD=fdR2(rs.reduce((a,x)=>a+fdSoma(fdPagosDe(comp,x.p),'valor'),0)), totD=fdSoma(rs,'total');
+    return `<tr class="fp-faixa"><td colspan="4">${esc(d)}<span class="fp-sub">${rs.length} pessoa${rs.length===1?'':'s'} · ${brl(pgD)} de ${brl(totD)} pago</span></td></tr>`+rs.map(linhaPessoa).join(''); }).join('');
   c.innerHTML=fdCabeca(comp,`<button class="btn small" onclick="fdPessoaModal()" data-dica="Quem entra na folha: departamento, função, chave Pix, dia do pagamento e o fixo, se tiver. O resto o sistema calcula.">+ Pessoa</button>`)+`
    ${FD.erro?`<div class="f1-aviso">↻ Não consegui calcular a parte variável agora (${esc(FD.erro)}). Os valores abaixo mostram só o fixo.</div>`:''}
    <div class="cards">
-     <div class="card"><div class="k">Garantido em ${fmtComp(comp)}</div><div class="v">${brl(V.total)}</div><div class="sub">${V.R.length} pessoa${V.R.length===1?'':'s'} · fixo e o que os clientes já pagaram</div></div>
-     <div class="card"><div class="k">Se todos os clientes pagarem</div><div class="v">${brl(V.teto)}</div><div class="sub">teto do mês</div></div>
-     <div class="card"><div class="k">Pago</div><div class="v pos">${brl(V.pago)}</div></div>
-     <div class="card"><div class="k">A pagar</div><div class="v ${aPagar?'neg':''}">${brl(aPagar)}</div></div>
+     <div class="card"><div class="k">A folha de ${fmtComp(comp)}</div><div class="v">${brl(V.total)}</div><div class="sub">${V.R.length} pessoa${V.R.length===1?'':'s'}${V.teto>V.total?` · até ${brl(V.teto)} se todos os clientes pagarem`:''}</div></div>
+     <div class="card"><div class="k">Já pago</div><div class="v pos">${brl(V.pago)}</div><div class="sub">${brl(V.pago)} de ${brl(V.total)}</div></div>
+     <div class="card"><div class="k">Falta pagar</div><div class="v ${aPagar?'neg':''}">${brl(aPagar)}</div><div class="sub">${aPagar?('vence '+fmtDate(vencOf(comp,30))):'tudo pago neste mês'}</div></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Pessoa</th><th>Chave Pix</th><th>Vence</th><th>Como é calculado</th><th style="text-align:right">Garantido</th><th>Pagamento</th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Pessoa</th><th>Vence</th><th style="text-align:right">A receber</th><th style="text-align:right">Situação</th></tr></thead>
    <tbody>${corpo}</tbody></table>
    ${V.R.length?'':'<div class="empty">Ninguém na folha ainda. Use “+ Pessoa”.</div>'}</div>
    ${fdBlocoLucro(comp,V)}
@@ -17535,6 +17545,15 @@ function renderFolha(c){
    <p class="hint" style="margin-top:12px">Ninguém tem valor pré-definido: o sistema soma o fixo de quem tem com o que vem do Controle de Clientes. <strong>Gerente</strong> recebe 10% do que a carteira dele pagou no mês e <strong>gestor de tráfego</strong> R$ 100 por conta paga, os dois proporcionais no mês em que o cliente entrou (entrou dia 29, recebe 2 dias) e cheios do mês seguinte em diante; sobem sozinhos quando o cliente é marcado como Recebido e param quando ele dá churn. <strong>Social media</strong> soma R$ 200 por conta em que aparece no Controle de Clientes. <strong>SDR</strong> soma 5% da primeira mensalidade de cada ganho do painel Comercial ligado ao cliente. Virou o mês, a conta recomeça do zero. O que falta pagar entra no Financeiro como despesa do mês, “a pagar”, e vira pago quando você registra o pagamento.</p>`;
   trocaMes();
 }
+/* menu da linha: o que nao e "pagar" sai do caminho (padrao do sistema: acao de linha no ...) */
+window.fdLinhaMenu=(ev,pid)=>{ ev.stopPropagation();
+  const p=fdPessoas().find(x=>String(x.id)===String(pid)); if(!p) return;
+  ctxAbrir(ev,[
+    {cab:p.nome||'Pessoa'},
+    {ic:MICO.lapis,t:'Editar cadastro',f:()=>fdPessoaModal(pid)},
+    {ic:MICO.senha,t:p.pix?('Copiar Pix · '+p.pix):'Sem chave Pix',f:()=>{ if(p.pix) copyPixFixo(pid); },so:!!p.pix},
+    {ic:MICO.inbox,t:'Ver de onde vem o valor',f:()=>fdAbre(pid)}
+  ]); };
 /* de onde vem o valor: cliente por cliente, e os pagamentos ja feitos */
 function fdDetalhe(x,pagos){
   const ord={gerente:1,gestor:2,social:3,venda:4};
