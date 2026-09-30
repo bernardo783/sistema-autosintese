@@ -7043,6 +7043,14 @@ function tkFiltradas(){
 }
 function tkOrdenadas(arr){
   const k=TK.ord,d=TK.dir;
+  /* O Controle de Clientes nasce em ordem de vencimento (Gabriel 30/09): quem paga dia 01
+     em cima, quem nao tem dia definido no fim, e nome desempata. Essa lista nao oferece
+     ordem manual (o botao some pra ela), entao nao atropela arrastar de ninguem.
+     Clicar no cabecalho continua ordenando por outra coluna: isso aqui e so o padrao. */
+  if(!k&&ehLC(TK.listaSel)&&TK.escopo==='lista'){
+    const dia=(t)=>{ const n=Number((t.valores||{})[LC_VENC])||0; return (n>=1&&n<=31)?n:99; };
+    return arr.slice().sort((a,b)=>dia(a)-dia(b)||String(a.titulo||'').localeCompare(String(b.titulo||''),'pt-BR'));
+  }
   if(!k) return arr.slice().sort((a,b)=>((a.ordem||0)-(b.ordem||0))||(String(a.criado_em||'')<String(b.criado_em||'')?-1:1));
   const val=(t)=>k==='titulo'?(t.titulo||'').toLowerCase()
     :k==='prioridade'?TK_PRIOO[t.prioridade]
@@ -7589,6 +7597,12 @@ const tkCelula=(t,c)=>{
     if(!cli||!(currentUser&&currentUser.role==='master'))
       return `<span title="Pagamento em ${esc(quando)}, calculado dos Recebimentos">${corpo}</span>`;
     return `<button type="button" class="tk-pcel" style="width:auto;padding:0 2px" title="Pagamento em ${esc(quando)} · clique para mudar" onclick="lcPgMenu(event,'${esc(cli.id)}')">${corpo}</button>`;
+  }
+  if(c.id===LC_VENC){
+    const d=Number((t.valores||{})[LC_VENC])||0;
+    if(!(d>=1&&d<=31)) return '<span class="tk-trava vaz" title="Sem dia de vencimento no cadastro do cliente">-</span>';
+    const iso=vencOf(cliComp,d);
+    return `<span class="tk-trava" title="Vence todo dia ${d} · quem manda é o cadastro do cliente">${esc(iso.slice(8,10)+'/'+iso.slice(5,7))}</span>`;
   }
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
   const v=valCampo(c,(t.valores||{})[c.id]);
@@ -10357,10 +10371,6 @@ async function lcSyncMens(){
       const {error}=await sb.from('tarefas').update({valores:val}).eq('id',t.id);
       if(!error){ t.valores=val; n++; }
     }
-    /* remuneração: R$100 por conta vira proporcional no mês em que o cliente entra e
-       volta ao cheio no mês seguinte. Quem recalcula é o banco; aqui só damos o empurrão. */
-    try{ const r=await sb.rpc('lc_sincronizar_mensalidades');
-      if(!r.error&&r.data){ n+=r.data; try{ await tkCarregar(); }catch(_){} } }catch(_){}
   }finally{ LC_SYNC=false; }
   if(n&&currentView==='lista'&&ehLC(TK.listaSel)) try{ tkDesenhar($('#content')); }catch(_){}
   return n;
@@ -10371,6 +10381,10 @@ const LC_GEST='35cf51e0-c581-473d-8b16-065f4b0e3dc3';
    calculado dos Recebimentos. Nao da pra gravar isso no banco: o valor muda conforme o
    mes que a pessoa esta olhando (Gabriel 29/09: "o gerente ver a situacao do mes"). */
 const LC_SIT='06102f93-48d6-4e1f-96fc-ed8c0ed4da15';
+/* Dia do vencimento da mensalidade, espelhado do cadastro pelo gatilho lc_auto. Nao e
+   so_master de proposito (Gabriel 30/09): saber quando o cliente paga e operacional, o
+   gestor e o gerente precisam ver. So leitura na tela — quem manda e o cadastro. */
+const LC_VENC='3f2a6c15-7b84-4e09-a1d6-92c5b0e74a38';
 /* Cliente so de Agent IA/CRM nao tem gestor de trafego. Nao e ficha incompleta —
    e o campo simplesmente nao aparece pra ele (Gabriel, 01/09). */
 const lcSoIA=(t)=>{ const f=(t&&t.ficha_id)?fichaDe(t.ficha_id):null; return !!f&&soIA(f); };
