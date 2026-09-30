@@ -7140,6 +7140,10 @@ function tkFiltradas(){
           .filter(t=>!arquivada(t));
   if(TK.squadF==='(sem)') arr=arr.filter(t=>!String(t.squad||'').trim());
   else if(TK.squadF) arr=arr.filter(t=>String(t.squad||'')===TK.squadF);
+  /* Gestor (Gabriel 30/09): no Controle de Clientes ele ve SO os clientes em que ele e o
+     gestor. Cliente que e so do gerente (ex.: Agent IA, conta tocada pelo Luiz/Joao sozinho)
+     some pra ele, pra nao confundir. Master e gerente seguem vendo o squad inteiro. */
+  arr=arr.filter(lcVisivelProGestor);
   if(ehLC(TK.listaSel)&&TK.escopo==='lista'&&TK.lcGestor){
     /* as pilulas filtram por gestor de trafego OU por gerente — a escolha e do botao */
     const por=(TK.lcPor==='gerente')?'gerente':'responsavel';
@@ -7621,6 +7625,7 @@ const souGerenteDaFicha=(fid)=>{ if(!currentUser||!currentUser.gerente) return f
 /* Gestor da ficha (Gabriel 30/09): define o Início do projeto quando o contrato não trouxe
    a data. É o único campo travado que ele mexe; o banco confere igual (lc_gestor_da_ficha). */
 const LC_INI='1c17a1d0-5e3a-4b62-9f77-0c4b8e2a51d9';
+const lcVisivelProGestor=(t)=>!t||t.lista_id!==LC_ID||souGerente()||souGestorDaFicha(t.ficha_id);
 const souGestorDaFicha=(fid)=>{ if(!currentUser) return false;
   const f=fichaDe(fid), eu=primNome(currentUser.nome);
   return !!(f&&eu&&primNome(f.responsavel)===eu); };
@@ -8767,7 +8772,7 @@ function spDesenhar(){
     const cor=l.cor||'';
     const ic=l.icone?`<span class="tk-ic${String(l.icone).slice(0,4)==='svg:'?'':' emo'}"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${icHtml(l.icone)}</span>`
                     :`<span class="tk-ic"${cor?` style="color:${esc(cor)};opacity:1"`:''}>${SVG_LISTA}</span>`;
-    const cont=(l.id===LF_ID||ehFin(l.id)||ehTela(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&!t.arquivada_em&&(ehLC(l.id)||t.status!=='feito')).length}</span>`;
+    const cont=(l.id===LF_ID||ehFin(l.id)||ehTela(l.id))?'':`<span class="tk-n">${TK.tarefas.filter(t=>t.lista_id===l.id&&!t.arquivada_em&&(ehLC(l.id)||t.status!=='feito')&&lcVisivelProGestor(t)).length}</span>`;
     const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)||ehTela(l.id)||currentView===LTEL[l.id]))?' on':'';
     const dnd=fav?'':` draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()"`;
     return `<div class="tk-lista${on}" role="button" tabindex="0"${dnd} onclick="spSelLista('${l.id}')" oncontextmenu="spNoMenu(event,'lista','${l.id}')" title="${esc(tkCaminho(l.id))}">
