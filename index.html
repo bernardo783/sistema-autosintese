@@ -2432,6 +2432,42 @@
   .cg-fora .v{color:var(--warn)}
   .cg-m{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;
     background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  /* Pesquisa de Satisfação: pesquisas de saída, um cartão por gerente (NPS), pizza da satisfação e risco de churn */
+  .ps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:14px}
+  .ps-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-width:0}
+  .ps-card h3{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:0 0 10px}
+  .ps-big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .ps-big .v{font-size:40px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+  .ps-big .u{font-size:12px;color:var(--muted)}
+  .ps-zona{font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .ps-zona i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .ps-barra{display:flex;gap:2px;height:12px;margin:14px 0 9px}
+  .ps-barra i{display:block;height:100%;border-radius:4px;min-width:4px}
+  .ps-barra.vazia{background:var(--panel2);border-radius:4px}
+  .ps-leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;color:var(--muted)}
+  .ps-leg b{color:var(--txt);font-variant-numeric:tabular-nums}
+  .ps-dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .ps-pe{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;gap:6px 16px;flex-wrap:wrap}
+  .ps-pe b{color:var(--txt);font-variant-numeric:tabular-nums}
+  .ps-pizza{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .ps-pizza svg{flex:none}
+  .ps-pizza path{cursor:default;transition:opacity .15s}
+  .ps-pizza path:hover{opacity:.82}
+  .ps-pizza .ps-leg{flex-direction:column;gap:9px;font-size:12.5px}
+  .ps-risco{font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .ps-risco.alto{background:rgba(239,91,107,.16);color:var(--danger)}
+  .ps-risco.medio{background:rgba(230,177,63,.16);color:var(--warn)}
+  .ps-risco.baixo{background:rgba(63,207,142,.14);color:var(--ok)}
+  .ps-sinal{display:inline-block;font-size:11px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin:2px 4px 2px 0;white-space:nowrap}
+  .ps-mbar{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;margin-top:5px;min-width:60px}
+  .ps-mbar i{display:block;height:100%;background:var(--brand2);border-radius:4px}
+  .ps-row{cursor:pointer}
+  .ps-row:hover td{background:var(--hov1)}
+  .ps-qa{margin:0 0 14px}
+  .ps-qa .q{font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:3px}
+  .ps-qa .a{white-space:pre-wrap;font-size:13.5px;line-height:1.5}
+  .ps-h{font-size:14px;font-weight:800;margin:22px 0 10px}
+  .ps-h small{font-weight:600;color:var(--muted);font-size:12px;margin-left:6px}
   .tk-th{cursor:pointer;user-select:none}
   .tk-th:hover{color:var(--txt)}
   .tk-chk{width:16px;height:16px;accent-color:var(--brand2);cursor:pointer}
@@ -4187,6 +4223,10 @@ function render(view){
     if(!podeFechamento()){ c.innerHTML='<div class="empty">Fechamento de contrato é só com o José Carlos ou o Bernardo.</div>'; return; }
     return renderFechamento(c);
   }
+  if(view==='pesquisa'){
+    if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito a master e gerentes.</div>'; return; }
+    return renderPesquisa(c);
+  }
   if(view==='carteira'){
     if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito a master e gerentes.</div>'; return; }
     return renderCarteira(c);
@@ -5918,7 +5958,9 @@ const PODE_FECHAR=['ded3cac7-7462-4f76-9680-3af961b25344','6b3b1d5d-2ee0-4529-a6
 const podeFechamento=()=>!!(currentUser&&PODE_FECHAR.indexOf(String(currentUser.id))>=0);
 /* a lista "Fechamento" do espaco Comercial (c005) sai da arvore: o fechamento mora so no Administrativo */
 const LF_COMERCIAL='f1e2d3c4-0000-4a00-8b00-00000000c005';
-const lsPode=(lid)=>lid!==LF_COMERCIAL&&(lid!==LF_ID||podeFechamento());
+/* Projetos > Pesquisa de Satisfação: painel das avaliações (NPS) e das pesquisas de saída. So master e gerente enxergam. */
+const LPESQ='f1e2d3c4-0000-4a00-8b00-00000000b001';
+const lsPode=(lid)=>lid!==LF_COMERCIAL&&(lid!==LF_ID||podeFechamento())&&(lid!==LPESQ||souGerente());
 /* Financeiro mora na arvore: Administrativo > Financeiro > tres listas que abrem as telas do modulo. */
 const PASTA_FIN='f1e2d3c4-0000-4a00-8b00-00000000f000';
 const LCT_ID='acce64a7-7fca-4f9f-9cef-92961542ae3e';
@@ -5940,7 +5982,8 @@ const ehCom=(lid)=>!!LCOM[lid];
 const LTEL={'f1e2d3c4-0000-4a00-8b00-00000000a001':'acessos','f1e2d3c4-0000-4a00-8b00-00000000a002':'processos',
   'f1e2d3c4-0000-4a00-8b00-00000000a003':'usuarios','f1e2d3c4-0000-4a00-8b00-00000000a004':'reembolsos',
   'f1e2d3c4-0000-4a00-8b00-00000000e002':'rh-socios','f1e2d3c4-0000-4a00-8b00-00000000e001':'rh-colab',
-  'f1e2d3c4-0000-4a00-8b00-00000000e003':'rh-empresa'};
+  'f1e2d3c4-0000-4a00-8b00-00000000e003':'rh-empresa',
+  [LPESQ]:'pesquisa'};
 const ehTela=(lid)=>!!LTEL[lid]||!!LCOM[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
@@ -8428,6 +8471,7 @@ const ESP_DESC={
   'rh-colab':'Dados pessoais e bancários de cada colaborador.',
   'rh-empresa':'Razão social, CNPJ e endereço da empresa.',
   'reembolsos':'Pedidos da equipe, do envio ao pagamento.',
+  'pesquisa':'NPS, satisfação e pesquisa de saída de quem deu churn.',
   'painel':'Shows, no-shows, conversão e ticket do mês.',
   'calls':'Toda reunião registrada, com resultado e valor.',
   'pipeline':'Oportunidade por etapa, do lead ao ganho.',
@@ -10501,7 +10545,11 @@ function chPerguntarChurn(id){
     if(ult) nv[CH_ULTPG]=ult;
     if(mot) nv[CH_MOTIVO]=mot;
     if(v[LC_GEST]) nv[CH_GESTOR]=v[LC_GEST];
-    return await tkPatch(id,{lista_id:CH_ID,status_id:CH_FIM,status:'feito',valores:nv},'Movido para Controle de Churns');
+    const ok=await tkPatch(id,{lista_id:CH_ID,status_id:CH_FIM,status:'feito',valores:nv},'Movido para Controle de Churns');
+    /* Gabriel 30/09: todo churn pede a pesquisa de saída. O banco já criou a do cliente
+       (trg_nps_churn); aqui o gerente sai com o link na mão. */
+    if(ok&&t.ficha_id) setTimeout(()=>{ try{ psSaida(t.ficha_id); }catch(_){} },200);
+    return ok;
   });
 }
 
@@ -12898,6 +12946,279 @@ async function renderCarteira(c){
    ${tabela('Desconsideradas: não entraram no mês',fora,false)}
    ${linhas.length?'':'<div class="empty">Nenhuma conta sua com cobrança neste mês.</div>'}`;
 }
+/* ---------- PESQUISA DE SATISFAÇÃO (Gabriel 23/09 e 30/09) ----------
+   Avaliação que o cliente responde em autosintese.app.br/nps/trafego, /nps/agent-ia e
+   /nps/trafego-agent-ia (páginas em nps/, edge 'pesquisa', tabela pesquisa_satisfacao),
+   no lugar do Yay Forms. São dois tipos:
+   - churn: a pesquisa de saída. O banco cria a linha quando o card vai para o Controle
+     de Churns (trg_nps_churn) e avisa o gerente da ficha; o link do cliente leva o id dela;
+   - mensal: o link solto de cada formulário, que serve pra qualquer cliente.
+   Master vê tudo; gerente vê só as dele, e quem corta é a RLS, não esta tela.
+   Regras (as mesmas do aviso no sininho, ntf_pesquisa_satisfacao):
+   - NPS: % de notas 9-10 menos % de notas 0-6 na pergunta de indicação;
+   - satisfação: média das notas de avaliação respondidas (indicação e dependência fora);
+   - risco de churn: soma de sinais (indicação baixa, satisfação baixa, dependência baixa,
+     ponto crítico). 2+ sinais ou indicação até 4 = alto; 1 sinal = médio. */
+const PS_SERV={trafego:'Tráfego pago',ia:'Agent IA',integrados:'Tráfego pago + Agent IA'};
+/* serviço -> pasta do formulário (igual a PAGINAS em nps/nps.js) */
+const PS_PAG={trafego:'trafego',ia:'agent-ia',integrados:'trafego-agent-ia'};
+const PS_URL='https://autosintese.app.br/nps/';
+const PS_TIPO={churn:'Pesquisa de saída',mensal:'Avaliação mensal'};
+const PS_PRIO={integrador:'Auto Síntese ser um integrador',social:'Mais serviços de divulgação (social media)',ambos:'Ambos',nenhum:'Nenhum dos itens'};
+const PS_NOTAS=[['nota_trafego','Serviços de tráfego'],['gestor_clareza','Clareza do gestor de tráfego'],['nota_ia','Atendimento da IA'],
+  ['gerente_apoio','Apoio do gerente'],['prazos','Cumprimento de prazos'],['integracao_tempo','Ganho de tempo com a integração']];
+/* todas as perguntas, na ordem do formulário, pra abrir a resposta inteira */
+const PS_PERG=[['loja','Loja'],['servico','Serviço avaliado'],['nota_trafego','Como avalia os serviços de tráfego (1 a 10)'],
+  ['gestor_clareza','Gestor de tráfego passa informações claras e objetivas (0 a 10)'],['nota_ia','Como avalia os atendimentos e serviços da IA (1 a 10)'],
+  ['gerente_apoio','Gerente auxilia em erros, ajustes e sucesso do projeto (0 a 10)'],['aval_gerente','Como avalia o gerente do projeto'],
+  ['aval_gestor','Como avalia o gestor de tráfego'],['aval_projeto','Como avalia o projeto e as mudanças no negócio'],
+  ['sugestoes','Sugestões dos gerentes acatadas e o benefício delas'],['prazos','Cumprimento de prazos (0 a 10)'],
+  ['dependencia','Se a Auto Síntese deixasse de existir, o quanto afetaria (0 a 10)'],['ajustes_trafego','Ajustes mais importantes no tráfego'],
+  ['ajustes_ia','Ajustes mais importantes na IA'],['melhorias','Pontos de melhoria'],['pontos_fortes','Pontos fortes'],
+  ['integracao_tempo','Integração otimizou o tempo do comercial (0 a 10)'],['integracao_valor','O que mais gera valor na integração'],
+  ['ponto_critico','Ponto crítico que precisa de atenção imediata'],['prioridade','Atualização de maior impacto'],
+  ['nps','Disposição a indicar a Auto Síntese (0 a 10)'],['indicacao','Contato de lojista indicado']];
+const psNum=v=>(v===null||v===undefined||v==='')?null:Number(v);
+const psVirg=n=>n===null||n===undefined||isNaN(n)?'-':(Math.round(n*10)/10).toFixed(1).replace('.',',');
+/* o gerente da avaliação é o da ficha (ou o do ?g= no link solto): aqui só o primeiro nome */
+const psGer=r=>String((r&&r.gerente)||'').trim().split(/\s+/)[0]||'Sem gerente';
+/* link do cliente (com o código da pesquisa) ou o link solto de um formulário */
+const psLink=(serv,id,g)=>PS_URL+PS_PAG[serv]+'/'+(id?'?r='+id:(g?'?g='+g:''));
+function psSatisf(r){ const ns=PS_NOTAS.map(q=>psNum(r[q[0]])).filter(n=>n!==null&&!isNaN(n));
+  return ns.length?ns.reduce((a,b)=>a+b,0)/ns.length:null; }
+const psClasse=s=>s===null?null:(s>=8?'satisfeito':(s>=6?'neutro':'insatisfeito'));
+function psNps(rs){ const ns=rs.map(r=>psNum(r.nps)).filter(n=>n!==null&&!isNaN(n)); const t=ns.length;
+  if(!t) return {nps:null,t:0,pro:0,neu:0,det:0};
+  const pro=ns.filter(n=>n>=9).length, det=ns.filter(n=>n<=6).length;
+  return {nps:Math.round((pro-det)/t*100),t,pro,neu:t-pro-det,det}; }
+/* zonas usuais do NPS */
+const psZona=n=>n===null?null:n>=75?{t:'Excelência',c:'var(--ok)'}:n>=50?{t:'Qualidade',c:'var(--ok)'}:n>=0?{t:'Aperfeiçoamento',c:'var(--warn)'}:{t:'Crítico',c:'var(--danger)'};
+/* "não", "nada", "nenhum", "-" não contam como ponto crítico (mesmo filtro do aviso no banco) */
+const psTemCritico=t=>String(t||'').trim().replace(/^\s*(n[aã]o|nenhum[a]?|nada|n\/?a|-|\.)?\s*\.?\s*$/i,'').length>0;
+function psRisco(r){
+  const sinais=[], s=psSatisf(r), n=psNum(r.nps), d=psNum(r.dependencia);
+  if(n!==null&&n<=6) sinais.push('indicação '+n);
+  if(s!==null&&s<6) sinais.push('satisfação '+psVirg(s));
+  if(d!==null&&d<=5) sinais.push('dependência '+d);
+  if(psTemCritico(r.ponto_critico)) sinais.push('ponto crítico');
+  return {nivel:(sinais.length>=2||(n!==null&&n<=4))?'alto':(sinais.length?'medio':'baixo'),sinais};
+}
+/* uma avaliação por cliente no período: a mais recente de cada loja, por gerente */
+const psChave=r=>psGer(r)+'|'+String(r.loja||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function psUltimas(rs){ const m={}; rs.forEach(r=>{ const k=psChave(r); if(!m[k]||String(r.enviado_em)>String(m[k].enviado_em)) m[k]=r; }); return Object.values(m); }
+/* competência (AAAA-MM) no horário de Brasília */
+const psComp=iso=>new Date(new Date(iso).getTime()-3*3600e3).toISOString().slice(0,7);
+const psData=iso=>iso?new Date(iso).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}):'-';
+/* pizza em SVG: fatias com 2px de respiro e o nome/valor no title (passar o mouse) */
+function psPizza(fatias,tam){
+  const tot=fatias.reduce((s,f)=>s+f.v,0), r=tam/2-2, cx=tam/2, cy=tam/2;
+  if(!tot) return `<svg width="${tam}" height="${tam}" viewBox="0 0 ${tam} ${tam}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--panel2)"/></svg>`;
+  const vivas=fatias.filter(f=>f.v>0);
+  if(vivas.length===1) return `<svg width="${tam}" height="${tam}" viewBox="0 0 ${tam} ${tam}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="${vivas[0].c}"><title>${esc(vivas[0].t)}: ${vivas[0].v} (100%)</title></circle></svg>`;
+  let a0=-Math.PI/2; const pts=[];
+  vivas.forEach(f=>{ const a1=a0+f.v/tot*2*Math.PI, big=(a1-a0)>Math.PI?1:0;
+    const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0), x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    pts.push(`<path d="M${cx},${cy} L${x0.toFixed(2)},${y0.toFixed(2)} A${r},${r} 0 ${big} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z" fill="${f.c}" stroke="var(--panel)" stroke-width="2" stroke-linejoin="round"><title>${esc(f.t)}: ${f.v} (${Math.round(f.v/tot*100)}%)</title></path>`);
+    a0=a1; });
+  return `<svg width="${tam}" height="${tam}" viewBox="0 0 ${tam} ${tam}" role="img" aria-label="Pizza de satisfação">${pts.join('')}</svg>`;
+}
+let psMes=compNow(), psTodos=false, psGerF='', psTipoF='', PS_DADOS=[];
+window.psMesNav=(d)=>{ const [y,m]=psMes.split('-').map(Number); const nd=new Date(y,m-1+d,1);
+  psMes=nd.getFullYear()+'-'+String(nd.getMonth()+1).padStart(2,'0'); psTodos=false; render('pesquisa'); };
+window.psTodosT=()=>{ psTodos=!psTodos; render('pesquisa'); };
+window.psGerSel=(g)=>{ psGerF=g; render('pesquisa'); };
+window.psTipoSel=(t)=>{ psTipoF=t; render('pesquisa'); };
+function psCopiarTxt(u,msg){ const ok=()=>toast(msg), falhou=()=>{ window.prompt('Copie o link:',u); };
+  try{ navigator.clipboard.writeText(u).then(ok,falhou); }catch(_){ falhou(); } }
+const psForms=()=>Object.keys(PS_SERV).map(k=>({v:k,rot:PS_SERV[k]}));
+/* Link solto: um por formulário, serve pra qualquer cliente. Gerente copia já com o nome dele. */
+window.psCopiar=async ()=>{
+  const s=await escolher('Copiar o link de qual formulário?',
+    'Este link serve para qualquer cliente, e a primeira pergunta é o nome da loja. Para cliente que saiu, use a pesquisa de saída na ficha dele: o link já vai com o nome.',psForms());
+  if(!s) return;
+  const g=(currentUser&&currentUser.gerente)?primNome(currentUser.nome).replace(/[^a-z]/g,''):'';
+  psCopiarTxt(psLink(s,'',g),'Link copiado: '+PS_SERV[s]);
+};
+function psLinkModal(nome,url){
+  modal('Pesquisa de saída: '+esc(nome),`
+    <p class="hint" style="margin:0 0 12px">Envie este link para o cliente. É só dele: a resposta já chega ligada à ficha e ao gerente, e o aviso aparece no sininho quando ele responder.</p>
+    <div class="field"><label>Link da pesquisa</label><input type="text" readonly value="${esc(url)}" onclick="this.select()"></div>`,
+    async ()=>{ psCopiarTxt(url,'Link da pesquisa copiado.'); return true; });
+  const ov=document.querySelectorAll('.overlay'); const bs=ov.length&&ov[ov.length-1].querySelector('.msave'); if(bs) bs.textContent='Copiar link';
+}
+/* Pesquisa de saída de um cliente que está no Controle de Churns: o banco devolve (ou
+   cria, nos churns antigos) a pesquisa dele. Já respondida: abre as respostas. */
+window.psSaida=async (fid)=>{
+  if(!souGerente()){ toast('Só master e gerentes abrem a pesquisa de saída.'); return; }
+  const {data,error}=await sb.rpc('pesquisa_churn_link',{p_ficha:fid});
+  if(error||!data){ toast((error&&error.message)||'Não consegui abrir a pesquisa de saída.'); return; }
+  if(data.enviado_em){
+    const r=await sb.from('pesquisa_satisfacao').select('*').eq('id',data.id).maybeSingle();
+    if(r.data){ PS_DADOS=PS_DADOS.filter(x=>x.id!==r.data.id).concat([r.data]); return psVer(r.data.id); }
+  }
+  let s=data.servico;
+  if(!PS_SERV[s]) s=await escolher('Qual formulário este cliente responde?','A ficha dele não diz se o serviço era tráfego, Agent IA ou os dois.',psForms());
+  if(!s) return;
+  psLinkModal(data.loja||'cliente',psLink(s,data.id));
+};
+window.psVer=(id)=>{
+  const r=PS_DADOS.find(x=>x.id===id); if(!r) return;
+  const val=(k)=>{ const v=r[k]; if(v===null||v===undefined||v==='') return null;
+    if(k==='servico') return PS_SERV[v]||v; if(k==='prioridade') return PS_PRIO[v]||v; return String(v); };
+  const rk=psRisco(r), s=psSatisf(r);
+  const corpo=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <span class="ps-risco ${rk.nivel}">Risco ${rk.nivel==='medio'?'médio':rk.nivel}</span>
+      <span class="ps-sinal">${esc(PS_TIPO[r.tipo]||PS_TIPO.mensal)}</span>
+      <span class="ps-sinal">Gerente ${esc(psGer(r))}</span>
+      <span class="ps-sinal">Satisfação ${psVirg(s)}</span>
+      <span class="ps-sinal">Respondida em ${psData(r.enviado_em)}</span></div>
+    ${PS_PERG.map(([k,t])=>{ const v=val(k); return v===null?'':`<div class="ps-qa"><div class="q">${esc(t)}</div><div class="a">${esc(v)}</div></div>`; }).join('')}
+    ${currentUser&&currentUser.role==='master'?`<button class="btn ghost small" style="color:var(--danger)" onclick="psApagar('${r.id}')">Apagar esta avaliação</button>`:''}`;
+  modal('Avaliação: '+esc(r.loja||'(sem nome)'),corpo,()=>true);
+  const ov=document.querySelectorAll('.overlay'); const ul=ov[ov.length-1]; const bs=ul&&ul.querySelector('.msave'); if(bs) bs.remove();
+};
+window.psApagar=async (id)=>{
+  const r=PS_DADOS.find(x=>x.id===id); if(!r) return;
+  const ok=await confirmar('Apagar a avaliação de '+(r.loja||'(sem nome)')+'?','Ela some do painel e do cálculo do NPS. Não dá para desfazer.',{sim:'Sim, apagar',nao:'Não'});
+  if(!ok) return;
+  const {error}=await sb.from('pesquisa_satisfacao').delete().eq('id',id);
+  if(error){ toast('Não consegui apagar: '+error.message); return; }
+  document.querySelectorAll('.overlay').forEach(o=>o.remove());
+  toast('Avaliação apagada.'); if(currentView==='pesquisa') render('pesquisa');
+};
+async function renderPesquisa(c){
+  c.innerHTML='<div class="empty">carregando…</div>';
+  const {data,error}=await sb.from('pesquisa_satisfacao').select('*').order('criado_em',{ascending:false}).limit(3000);
+  if(error){ c.innerHTML='<div class="empty">Não consegui carregar: '+esc(error.message)+'</div>'; return; }
+  PS_DADOS=data||[];
+  /* gerentes que aparecem nos dados (a RLS já entregou só o que esta pessoa pode ver) */
+  const gers=[...new Set(PS_DADOS.filter(r=>r.enviado_em||r.tipo==='churn').map(psGer))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  if(psGerF&&gers.indexOf(psGerF)<0) psGerF='';
+  const doGer=r=>!psGerF||psGer(r)===psGerF;
+  const doTipo=r=>!psTipoF||(r.tipo||'mensal')===psTipoF;
+  const noPer=(iso)=>psTodos||psComp(iso)===psMes;
+  const concluidas=PS_DADOS.filter(r=>r.enviado_em&&noPer(r.enviado_em)&&doGer(r)&&doTipo(r));
+  /* link solto que alguém abriu e largou no meio (a pesquisa de saída em aberto tem lista própria) */
+  const pela=PS_DADOS.filter(r=>!r.enviado_em&&r.tipo!=='churn'&&noPer(r.criado_em)&&doGer(r)&&doTipo(r)).length;
+  const ult=psUltimas(concluidas);
+  ult.forEach(r=>{ r._s=psSatisf(r); r._r=psRisco(r); });
+  const vistos=gers.filter(g=>ult.some(r=>psGer(r)===g));
+  const periodo=psTodos?'todos os meses':fmtCompExt(psMes);
+  const colG=gers.length>1&&!psGerF;
+
+  /* pesquisas de saída: o que o gerente ainda tem que cobrar do cliente que saiu */
+  const saidas=PS_DADOS.filter(r=>r.tipo==='churn'&&doGer(r));
+  const abertas=saidas.filter(r=>!r.enviado_em).sort((a,b)=>String(b.criado_em).localeCompare(String(a.criado_em)));
+  const tabSaida=(saidas.length&&psTipoF!=='mensal')?`<h3 class="ps-h">Pesquisas de saída <small>${saidas.length-abertas.length} de ${saidas.length} respondidas</small></h3>
+    ${abertas.length?`<div class="tablewrap"><table><thead><tr><th>Cliente</th>${colG?'<th>Gerente</th>':''}<th>Formulário</th><th>Pedida em</th><th></th></tr></thead><tbody>
+    ${abertas.map(r=>`<tr><td><strong>${esc(r.loja||'(sem nome)')}</strong></td>${colG?`<td>${esc(psGer(r))}</td>`:''}
+      <td>${esc(PS_SERV[r.servico]||'a escolher')}</td><td>${psData(r.criado_em)}</td>
+      <td><div class="rowact"><button class="iconbtn" onclick="psSaida('${esc(r.ficha_id)}')">Copiar link</button></div></td></tr>`).join('')}</tbody></table></div>`
+      :'<p class="hint">Todos os clientes que saíram já responderam.</p>'}`:'';
+
+  /* um cartão de NPS por gerente, lado a lado */
+  const cartao=(g)=>{
+    const rs=ult.filter(r=>psGer(r)===g), n=psNps(rs), z=psZona(n.nps);
+    const ss=rs.map(r=>r._s).filter(x=>x!==null), media=ss.length?ss.reduce((a,b)=>a+b,0)/ss.length:null;
+    const risco=rs.filter(r=>r._r.nivel!=='baixo').length;
+    const pct=v=>n.t?(v/n.t*100):0;
+    const seg=(v,cor,rot)=>v?`<i style="width:${pct(v)}%;background:${cor}" title="${rot}: ${v} (${Math.round(pct(v))}%)"></i>`:'';
+    return `<div class="ps-card">
+      <h3>NPS · ${esc(g)}</h3>
+      <div class="ps-big"><span class="v">${n.nps===null?'-':n.nps}</span>
+        ${z?`<span class="ps-zona"><i style="background:${z.c}"></i>${z.t}</span>`:'<span class="u">sem nota de indicação no período</span>'}</div>
+      <div class="ps-barra${n.t?'':' vazia'}">${seg(n.det,'var(--danger)','Detratores')}${seg(n.neu,'var(--warn)','Neutros')}${seg(n.pro,'var(--ok)','Promotores')}</div>
+      <div class="ps-leg">
+        <span><span class="ps-dot" style="background:var(--danger)"></span>Detratores (0 a 6) <b>${n.det}</b></span>
+        <span><span class="ps-dot" style="background:var(--warn)"></span>Neutros (7 e 8) <b>${n.neu}</b></span>
+        <span><span class="ps-dot" style="background:var(--ok)"></span>Promotores (9 e 10) <b>${n.pro}</b></span></div>
+      <div class="ps-pe"><span>Clientes <b>${rs.length}</b></span><span>Satisfação média <b>${psVirg(media)}</b></span>
+        <span>Inclinados a churn <b>${risco}</b></span></div>
+    </div>`;
+  };
+
+  /* pizza da satisfação (todos os gerentes filtrados juntos) */
+  const cls={satisfeito:0,neutro:0,insatisfeito:0}; ult.forEach(r=>{ const k=psClasse(r._s); if(k) cls[k]++; });
+  const totCls=cls.satisfeito+cls.neutro+cls.insatisfeito;
+  const fatias=[{t:'Satisfeitos',v:cls.satisfeito,c:'var(--ok)',d:'média 8 ou mais'},{t:'Neutros',v:cls.neutro,c:'var(--warn)',d:'média de 6 a 7,9'},
+    {t:'Insatisfeitos',v:cls.insatisfeito,c:'var(--danger)',d:'média abaixo de 6'}];
+  const pizza=`<div class="ps-card"><h3>Nível de satisfação${vistos.length>1?' · todos os gerentes':' · '+esc(vistos[0]||'')}</h3>
+    <div class="ps-pizza">${psPizza(fatias,150)}
+      <div class="ps-leg">${fatias.map(f=>`<span><span class="ps-dot" style="background:${f.c}"></span>${f.t} <b>${f.v}</b>
+        <span style="color:var(--fraco)"> ${totCls?Math.round(f.v/totCls*100)+'%':''} · ${f.d}</span></span>`).join('')}</div></div></div>`;
+
+  /* churn: quantos clientes, alto e médio, e por gerente */
+  const alto=ult.filter(r=>r._r.nivel==='alto'), medio=ult.filter(r=>r._r.nivel==='medio');
+  const churn=`<div class="ps-card"><h3>Inclinados a churn</h3>
+    <div class="ps-big"><span class="v">${alto.length+medio.length}</span><span class="u">de ${ult.length} cliente${ult.length===1?'':'s'} avaliado${ult.length===1?'':'s'}</span></div>
+    <div class="ps-barra${ult.length?'':' vazia'}">${ult.length?[[alto.length,'var(--danger)','Risco alto'],[medio.length,'var(--warn)','Risco médio'],[ult.length-alto.length-medio.length,'var(--ok)','Sem sinal de risco']]
+      .map(([v,cor,rot])=>v?`<i style="width:${v/ult.length*100}%;background:${cor}" title="${rot}: ${v}"></i>`:'').join(''):''}</div>
+    <div class="ps-leg"><span><span class="ps-dot" style="background:var(--danger)"></span>Risco alto <b>${alto.length}</b></span>
+      <span><span class="ps-dot" style="background:var(--warn)"></span>Risco médio <b>${medio.length}</b></span>
+      <span><span class="ps-dot" style="background:var(--ok)"></span>Sem sinal <b>${ult.length-alto.length-medio.length}</b></span></div>
+    ${vistos.length>1?`<div class="ps-pe">${vistos.map(g=>`<span>${esc(g)} <b>${ult.filter(r=>psGer(r)===g&&r._r.nivel!=='baixo').length}</b></span>`).join('')}</div>`:''}
+    <div class="ps-pe" style="font-size:11px">Sinais: indicação até 6, satisfação abaixo de 6, dependência até 5, ponto crítico relatado. Alto = 2 sinais ou mais (ou indicação até 4).</div></div>`;
+
+  const ordRisco={alto:0,medio:1,baixo:2};
+  const emRisco=ult.filter(r=>r._r.nivel!=='baixo').sort((a,b)=>ordRisco[a._r.nivel]-ordRisco[b._r.nivel]||(psNum(a.nps)??11)-(psNum(b.nps)??11));
+  const tabRisco=emRisco.length?`<h3 class="ps-h">Clientes em risco de churn</h3>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th>${colG?'<th>Gerente</th>':''}<th>Risco</th><th>Sinais</th><th>Ponto crítico</th><th>Respondida</th></tr></thead><tbody>
+    ${emRisco.map(r=>`<tr class="ps-row" onclick="psVer('${r.id}')"><td><strong>${esc(r.loja||'(sem nome)')}</strong></td>${colG?`<td>${esc(psGer(r))}</td>`:''}
+      <td><span class="ps-risco ${r._r.nivel}">${r._r.nivel==='alto'?'Alto':'Médio'}</span></td>
+      <td>${r._r.sinais.map(s=>`<span class="ps-sinal">${esc(s)}</span>`).join('')}</td>
+      <td style="max-width:280px;color:var(--muted);font-size:12px">${psTemCritico(r.ponto_critico)?esc(String(r.ponto_critico).slice(0,140))+(String(r.ponto_critico).length>140?'…':''):'-'}</td>
+      <td>${psData(r.enviado_em)}</td></tr>`).join('')}</tbody></table></div>`:'';
+
+  /* média de cada nota, por gerente (quem sai melhor em quê) */
+  const medQ=(g,k)=>{ const ns=ult.filter(r=>psGer(r)===g).map(r=>psNum(r[k])).filter(n=>n!==null&&!isNaN(n)); return ns.length?{m:ns.reduce((a,b)=>a+b,0)/ns.length,n:ns.length}:null; };
+  const linhasQ=PS_NOTAS.concat([['dependencia','Dependência da Auto Síntese'],['nps','Disposição a indicar']]);
+  const tabMed=ult.length?`<h3 class="ps-h">Média de cada nota</h3>
+    <div class="tablewrap"><table><thead><tr><th>Pergunta</th>${vistos.map(g=>`<th style="min-width:140px">${esc(g)}</th>`).join('')}</tr></thead><tbody>
+    ${linhasQ.map(([k,t])=>`<tr><td>${esc(t)}</td>${vistos.map(g=>{ const q=medQ(g,k); return `<td>${q?`<b style="font-variant-numeric:tabular-nums">${psVirg(q.m)}</b> <span style="color:var(--fraco);font-size:11px">(${q.n})</span><div class="ps-mbar" title="${esc(t)}: ${psVirg(q.m)} de 10"><i style="width:${q.m*10}%"></i></div>`:'<span style="color:var(--fraco)">-</span>'}</td>`; }).join('')}</tr>`).join('')}
+    </tbody></table></div>`:'';
+
+  /* o que o cliente acha que traria mais impacto */
+  const prio={}; ult.forEach(r=>{ if(r.prioridade) prio[r.prioridade]=(prio[r.prioridade]||0)+1; });
+  const totP=Object.values(prio).reduce((a,b)=>a+b,0);
+  const tabPrio=totP?`<h3 class="ps-h">Atualização que traria mais impacto</h3>
+    <div class="ps-card">${Object.keys(PS_PRIO).map(k=>`<div style="display:flex;align-items:center;gap:12px;margin:6px 0">
+      <span style="flex:0 1 260px;min-width:0;font-size:12.5px">${esc(PS_PRIO[k])}</span>
+      <div class="ps-mbar" style="flex:1;height:10px;margin:0" title="${esc(PS_PRIO[k])}: ${prio[k]||0}"><i style="width:${(prio[k]||0)/totP*100}%"></i></div>
+      <b style="width:28px;text-align:right;font-variant-numeric:tabular-nums">${prio[k]||0}</b></div>`).join('')}</div>`:'';
+
+  const todas=ult.slice().sort((a,b)=>String(b.enviado_em).localeCompare(String(a.enviado_em)));
+  const tabTodas=todas.length?`<h3 class="ps-h">Todas as avaliações <small>clique para ver as respostas</small></h3>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th>${colG?'<th>Gerente</th>':''}<th>Tipo</th><th>Serviço</th><th style="text-align:right">Indicação</th><th style="text-align:right">Satisfação</th><th>Risco</th><th>Respondida</th></tr></thead><tbody>
+    ${todas.map(r=>`<tr class="ps-row" onclick="psVer('${r.id}')"><td><strong>${esc(r.loja||'(sem nome)')}</strong></td>${colG?`<td>${esc(psGer(r))}</td>`:''}
+      <td>${esc(PS_TIPO[r.tipo]||PS_TIPO.mensal)}</td>
+      <td>${esc(PS_SERV[r.servico]||'-')}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${r.nps??'-'}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums">${psVirg(r._s)}</td>
+      <td><span class="ps-risco ${r._r.nivel}">${r._r.nivel==='alto'?'Alto':r._r.nivel==='medio'?'Médio':'Baixo'}</span></td>
+      <td>${psData(r.enviado_em)}</td></tr>`).join('')}</tbody></table></div>`:'';
+
+  const tipos=[['','Todas'],['churn','Saída (churn)'],['mensal','Mensal']];
+  c.innerHTML=`
+   <div class="page-head"><div><h2>${svgIco('grafico',18)} Pesquisa de Satisfação</h2>
+     <div class="desc">avaliações respondidas pelos clientes · ${esc(periodo)}${pela?` · ${pela} começaram e não terminaram`:''}</div></div>
+     <div class="toolbar"><button class="btn small" onclick="psCopiar()">${svgIco('link',13)} Copiar link do formulário</button></div></div>
+   <div class="cg-topo">
+     <button class="btn ghost small" onclick="psMesNav(-1)" title="Mês anterior">‹</button>
+     <strong style="min-width:150px;text-align:center">${psTodos?'Todos os meses':esc(fmtCompExt(psMes))}</strong>
+     <button class="btn ghost small" onclick="psMesNav(1)" title="Próximo mês">›</button>
+     <button class="btn ${psTodos?'':'ghost '}small" onclick="psTodosT()">Todos os meses</button>
+     <span class="fin-tabs" style="margin:0 0 0 10px">
+       ${tipos.map(([v,t])=>`<button class="ftab ${psTipoF===v?'active':''}" onclick="psTipoSel('${v}')">${t}</button>`).join('')}</span>
+     ${gers.length>1?`<span class="fin-tabs" style="margin:0 0 0 10px">
+       <button class="ftab ${!psGerF?'active':''}" onclick="psGerSel('')">Todos os gerentes</button>
+       ${gers.map(g=>`<button class="ftab ${psGerF===g?'active':''}" onclick="psGerSel('${esc(g)}')">${esc(g)}</button>`).join('')}</span>`:''}
+   </div>
+   ${tabSaida}
+   ${ult.length?`
+   <div class="ps-grid"${tabSaida?' style="margin-top:22px"':''}>${vistos.map(cartao).join('')}</div>
+   <div class="ps-grid">${pizza}${churn}</div>
+   ${tabRisco}${tabMed}${tabPrio}${tabTodas}`
+   :`<div class="empty"${tabSaida?' style="margin-top:22px"':''}>Nenhuma avaliação concluída em ${esc(periodo)}.<br><span style="font-size:12.5px">Para pedir uma, use o botão Copiar link do formulário e mande para o cliente.</span></div>`}`;
+}
 /* ---------- FINANCEIRO (central) ---------- */
 /* Toda aba do Financeiro tem que ter rota aqui — sem isso o clique na pilula nao redesenha nada. */
 const FIN_TAB={financeiro:'lanc',lanc:'lanc',recebimentos:'recebimentos',
@@ -15075,7 +15396,7 @@ window.openProjCard=(id)=>{
       <span style="flex:1"></span>
       ${(()=>{ const cd=lcCardDe(it.id); if(!cd) return '';
         const volta=(String(cd.lista_id)===String(CH_ID)&&souGerente())
-          ?`<button class="btn ghost small" onclick="lcReativar('${esc(it.id)}')">Voltar para Controle de Clientes</button>`:'';
+          ?`<button class="btn ghost small" onclick="psSaida('${esc(it.id)}')">Pesquisa de saída</button><button class="btn ghost small" onclick="lcReativar('${esc(it.id)}')">Voltar para Controle de Clientes</button>`:'';
         if(arquivada(cd)) return `<span class="hint" style="margin:0 6px 0 0">Arquivado em ${esc(fmtDate(String(cd.arquivada_em).slice(0,10)))}</span>
           ${volta}<button class="btn ghost small" onclick="arqRestaurar('${cd.id}')">Restaurar</button>
           ${master?`<button class="btn ghost small tk-del" onclick="lcExcluirDeVez('${esc(it.id)}')">Excluir de vez</button>`:''}`;

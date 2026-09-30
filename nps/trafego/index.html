@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Avaliação mensal dos serviços da Auto Síntese</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/nps/nps.css?v=1">
+<!-- Formulário de avaliação (NPS): só tráfego pago. Perguntas, lógica e envio: /nps/nps.js -->
+<script>window.SERVICO='trafego';</script>
+</head>
+<body>
+<div id="barra" role="progressbar" aria-label="0% concluído"><i></i></div>
+<div class="marca-topo" aria-hidden="true"><span class="s"></span><span class="wm">AUTO<span>SÍNTESE</span></span></div>
+
+<section class="tela abre ativa" id="t-abre">
+  <div class="hero"><span class="s"></span><div class="wm">AUTO<span>SÍNTESE</span></div><div class="tag">INTELIGÊNC<b>IA</b> UNIDA À RESULTADOS</div></div>
+  <div class="miolo">
+    <h1>Avaliação mensal dos serviços da Auto Síntese</h1>
+    <p>Este formulário tem como objetivo coletar a sua avaliação sobre os serviços prestados no mês que se passou, permitindo identificar pontos fortes, corrigir pontos fracos e gerar insumos relevantes para o alinhamento do projeto. O preenchimento foi pensado para substituir as reuniões de alinhamento e deve levar até 15 minutos.</p>
+    <div class="chips">
+      <span class="ger" id="chipCli" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l1.5-5h15L21 10"/><path d="M4 10v10h16V10"/><path d="M9 20v-6h6v6"/></svg><span id="cliNome"></span></span>
+      <span class="ger" id="chipServ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Serviço avaliado: <span id="servNome"></span></span>
+      <span class="ger" id="chipGer" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Gerente do projeto: <span id="gerNome"></span></span>
+    </div>
+    <div class="acao"><button class="btn" id="btIniciar" onclick="iniciar()">Iniciar</button>
+      <span class="dica">Pressione <b>Enter ↵</b></span></div>
+  </div>
+</section>
+
+<div id="perguntas"></div>
+
+<section class="tela fim" id="t-fim">
+  <div class="hero"><span class="s"></span><div class="wm">AUTO<span>SÍNTESE</span></div><div class="tag">INTELIGÊNC<b>IA</b> UNIDA À RESULTADOS</div></div>
+  <div class="miolo">
+    <h1>Agradecemos pela sua avaliação</h1>
+    <p>Suas respostas serão analisadas com atenção para orientar melhorias no projeto e na prestação dos serviços no próximo ciclo.</p>
+  </div>
+</section>
+
+<div id="nav" hidden>
+  <button id="navAnt" title="Passo anterior" aria-label="Passo anterior" onclick="voltar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button>
+  <button id="navProx" title="Próxima Etapa" aria-label="Próxima Etapa" onclick="avancar()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></button>
+</div>
+
+<form class="hp" aria-hidden="true"><input type="text" id="hp_site" name="site" tabindex="-1" autocomplete="off"></form>
+<script src="/nps/nps.js?v=1"></script>
+</body>
+</html>
