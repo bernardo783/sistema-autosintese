@@ -13796,8 +13796,12 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
         saldo quando parte ja foi paga. Dedupe por id para nao repetir o inadimplente do mes. */
      const vistos=new Set();
      const addCob=(x,rot)=>{ if(vistos.has(x.id)) return; vistos.add(x.id);
+       /* atraso: cobranca de competencia anterior a escolhida. Continua na lista porque a
+          empresa ainda persegue o dinheiro, mas fica em bloco separado para nao dar a
+          impressao de que faltou algo no mes que esta na tela. */
+       const cc=String(x.comp||'');
        PEND.push({nome:x.nome, quando:rot, v:fchN(x.aCobrar!=null?x.aCobrar:x.valor),
-         g:gerCli[x.clienteId]||'', rateia:true}); };
+         g:gerCli[x.clienteId]||'', rateia:true, ant:!!cc&&cc<comp, comp:cc}); };
      (DB.recebimentos||[]).filter(x=>x.cobravel).forEach(x=>addCob(x,
        (x.status==='churn'?'saiu, mas segue em cobrança':(x.status==='sinal'?'pagou parte, falta o resto':'em aberto'))
        +' · competência '+fmtComp(x.comp)));
@@ -13822,13 +13826,31 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
        return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''));
      }).join('');
      const TA_=A.reduce((s,p)=>s+p.v,0), TB=B.reduce((s,p)=>s+p.v,0);
+     const Ames=A.filter(p=>!p.ant), Aant=A.filter(p=>p.ant);
+     const TMES=Ames.reduce((s,p)=>s+p.v,0), TANT=Aant.reduce((s,p)=>s+p.v,0);
+     const bloco=(p)=>{
+       const com=COMISSAO.some(k=>(p.g||'').includes(k))?dec(p.v*0.10):0;
+       const luc=p.v-com, cx=dec(luc*0.20), ar=dec(luc*0.10), so=dec(dec(luc*0.70)/3);
+       const its=[];
+       if(com) its.push(['Comissão do gerente: '+p.g,'10% sobre o valor recebido',com]);
+       its.push(['Caixa da empresa','20% do que sobrar',cx],['Arthur','10% do que sobrar',ar],
+                ['José Carlos','⅓ dos 70%',so],['Gabriel','⅓ dos 70%',so],['Bernardo','⅓ dos 70%',so]);
+       return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''));
+     };
+     const grupo=(tit,lst,tot,sub)=>!lst.length?'':
+       ('<details class="fch-g" style="margin-top:10px"><summary><span class="fch-cv"></span><span class="fch-t">'+tit+'</span>'+
+        '<span class="fch-s">'+lst.length+(lst.length===1?' item':' itens')+' · clique para abrir</span>'+
+        '<span class="fch-tv">'+brl(tot)+'</span></summary>'+
+        '<div class="fch-corpo" style="padding:10px 12px">'+(sub?'<p class="hint" style="margin-top:0">'+sub+'</p>':'')+
+        lst.map(bloco).join('')+'</div></details>');
      const linhasB=B.length?('<div class="tablewrap" style="margin-top:6px"><table><tbody>'+B.map(p=>
        `<tr><td>${esc(p.nome)} <span style="color:var(--muted);font-size:12px">${esc(p.quando)}</span></td><td class="money" style="text-align:right">${brl(p.v)}</td></tr>`).join('')+
        `<tr><td><strong>Total que só repõe caixa</strong></td><td class="money" style="text-align:right"><strong>${brl(TB)}</strong></td></tr>`+
        '</tbody></table></div>'):'';
      return '<p class="hint">Dinheiro da empresa que está na mão de terceiro. Nada disso entrou no rateio acima, porque não está em caixa. '+
        'Mas o destino na volta <strong>não é o mesmo para todos</strong>, por isso a lista está partida em dois.</p>'+
-       '<div class="fch-cab">1 · Vira lucro quando entrar, '+brl(TA_)+'</div>'+
+       '<div class="fch-cab">1 · Vira lucro quando entrar, '+brl(TA_)+
+         (TANT?' <span style="font-weight:400;font-size:13px;color:var(--muted)">('+brl(TMES)+' de '+fmtComp(comp)+' + '+brl(TANT)+' de atraso antigo)</span>':'')+'</div>'+
        '<p class="hint">Já passaram pelo resultado: ou foram reconhecidos como receita e não caíram, ou viraram despesa que será estornada na volta. '+
        'Se <strong>todos</strong> pagarem, é isto que cada um leva:</p>'+
        '<div class="tablewrap"><table><tbody>'+
@@ -13841,9 +13863,10 @@ Distribuição de lucro não é despesa e não entra no Financeiro: o honorário
        '<tr><td>Bernardo <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
        '</tbody></table></div>'+
        '<p class="hint">'+brl(TA_)+' a receber − '+brl(TC)+' de comissão = '+brl(TA_-TC)+' de lucro novo, dividido em 20/10/70.</p>'+
-       '<details class="fch-g" style="margin-top:10px"><summary><span class="fch-cv"></span><span class="fch-t">Ver cliente por cliente</span>'+
-       '<span class="fch-s">'+A.length+' itens · clique para abrir</span><span class="fch-tv">'+brl(TA_)+'</span></summary>'+
-       '<div class="fch-corpo" style="padding:10px 12px">'+linhasA+'</div></details>'+
+       grupo('Deste mês, '+fmtComp(comp), Ames, TMES, '')+
+       grupo('Atraso de meses anteriores', Aant, TANT,
+         'Não é buraco de '+fmtComp(comp)+': são cobranças de competências já fechadas que a empresa ainda persegue. '+
+         'Cada linha diz de qual mês veio.')+
        (B.length?('<div class="fch-cab" style="margin-top:22px">2 · Só repõe o caixa, não entra em rateio</div>'+
          '<p class="hint">Saiu direto do caixa ou é de competência já fechada: <strong>nunca reduziu o lucro de mês nenhum</strong>. '+
          'Quando voltar, apenas tapa o buraco no caixa. Se entrasse no rateio, a empresa distribuiria duas vezes o mesmo dinheiro, '+
