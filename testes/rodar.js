@@ -466,13 +466,20 @@ grupo('Padrão de tabela: título centralizado e linha entre as linhas (Gabriel 
 
 grupo('Fechamento: clicar no escritório abre o que foi gasto (Gabriel 30/09)');
 {
-  const g=rodar(bloco('function fchTipoEsc(','const FCH_SETOR='),{fchN:v=>Number(v)||0,brl:v=>'R$ '+v,esc:s=>String(s??''),window:{}},['fchKpiEsc','fchParcelaTxt']);
+  const g=rodar(bloco('function fchTipoEsc(','const FCH_SETOR='),{fchN:v=>Number(v)||0,brl:v=>'R$ '+v,esc:s=>String(s??''),fchDT:(s)=>s?String(s).slice(0,10).split('-').reverse().join('/'):'-',window:{}},['fchKpiEsc','fchParcelaTxt','fchEscItem']);
   ok('parcela 3/10 vira "parcela 3 de 10, faltam 7"', g.fchParcelaTxt('Mercado Livre (parcela 3/10)')==='parcela 3 de 10, faltam 7'&&g.fchParcelaTxt('Cadeira (parcela 10/10)')==='última parcela (10 de 10)'&&g.fchParcelaTxt('Internet')==='');
-  const h=g.fchKpiEsc({'Volta Redonda':[{descricao:'Aluguel, Escritório Volta Redonda',valor:1300},{descricao:'Mercado Livre monitor (parcela 3/10), Escritório Volta Redonda',valor:120},{descricao:'Internet, Escritório Volta Redonda',valor:99}],'Itajubá':[{descricao:'Aluguel, Escritório Itajubá',valor:775}]},10000);
+  const h=g.fchKpiEsc({'Volta Redonda':[{descricao:'Aluguel, Escritório Volta Redonda',valor:1300,data:'2026-09-01',pagoEm:'2026-09-02'},{descricao:'Cartão Nubank: Mercado*Mercadolivre (parcela 3/10), Escritório Volta Redonda',valor:120,data:'2026-09-28'},{descricao:'Internet Nio Fibra, Escritório Volta Redonda (cartão)',valor:99,data:'2026-09-07'}],'Itajubá':[{descricao:'Aluguel, Escritório Itajubá',valor:775,data:'2026-09-01'}]},10000);
   ok('o nome do escritório é um botão que abre o detalhe', (h.match(/class="rc-gr-b" aria-expanded="false" data-k=/g)||[]).length===2&&h.indexOf('onclick="fchEscAbre(this)"')>0);
-  ok('as linhas de detalhe já estão na tabela, escondidas, uma por gasto', (h.match(/class="fch-esc-d rc-gr-f" data-k="Volta_Redonda" hidden/g)||[]).length===3);
-  ok('o detalhe mostra a parcela e o que falta', h.indexOf('parcela 3 de 10, faltam 7')>0&&h.indexOf('R$ 840')>0);
-  ok('cada gasto cai na coluna do tipo dele (internet em Contas)', /Internet, Escritório Volta Redonda<\/td><td><\/td><td class="money" style="text-align:right">R\$ 99<\/td><td><\/td>/.test(h));
+  ok('o detalhe é uma linha só por escritório, escondida, com a lista limpa dentro', (h.match(/class="fch-esc-d" data-k="Volta_Redonda" hidden><td colspan="7"><div class="fch-esc-det">/g)||[]).length===1);
+  ok('agrupado por tipo com subtotal: Aluguel, Contas, Compras e serviços', /fch-esc-g"><span>Aluguel<\/span><span>R\$ 1300<\/span>/.test(h)&&/Contas<\/span><span>R\$ 99</.test(h)&&/Compras e serviços<\/span><span>R\$ 120</.test(h));
+  ok('cada gasto é uma .fch-li: nome limpo, meta (dia, meio, pago) e valor', /<span class="fch-a">Mercado Livre<\/span><span class="fch-b">28\/09 · cartão · a pagar · parcela 3 de 10, faltam 7 · faltam R\$ 840<\/span><span class="fch-v">R\$ 120<\/span>/.test(h));
+  ok('a internet diz que veio no cartão e não repete o escritório', /<span class="fch-a">Internet Nio Fibra<\/span><span class="fch-b">07\/09 · cartão · a pagar<\/span>/.test(h)&&h.indexOf('Escritório Volta Redonda</span>')<0);
+  ok('pago mostra o dia do pagamento', h.indexOf('01/09 · pago 02/09')>0);
+  const it=g.fchEscItem({descricao:'Água, luz e despesas — Escritório SJRP, Água de setembro: 1/4 da conta [Escritório São José do Rio Preto]'});
+  ok('descrição crua vira nome + detalhe sem o escritório e sem o colchete', it.nome==='Água, luz e despesas'&&it.det==='Água de setembro: 1/4 da conta'&&it.meio==='');
+  const it2=g.fchEscItem({descricao:'Pix: Faxina, Escritório Volta Redonda (Tainara)'});
+  ok('Pix vira meio e o resto fica como detalhe', it2.meio==='Pix'&&it2.nome==='Faxina'&&it2.det==='(Tainara)');
+  ok('o valor nunca quebra em duas linhas', HTML.indexOf('.fchdoc .tablewrap td.money{white-space:nowrap}')>0);
   ok('títulos sem alinhamento forçado', h.indexOf('<th style=')<0);
   ok('os blocos repetidos por escritório abaixo da tabela saíram', HTML.indexOf("its.length+' lançamentos')).join('')||'<div class=\"hint\">Nenhum gasto de escritório neste mês.</div>'")<0);
 }

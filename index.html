@@ -2755,9 +2755,18 @@
   .fchdoc .tablewrap.fch-rola td.money{min-width:0}
   .fchdoc .tablewrap.fch-rola td:first-child{padding-left:0}
   .fchdoc .tablewrap tr.fch-soma td{border-top:1px solid #33205e}
-  .fchdoc .tablewrap tr.fch-esc-d td{background:#241052;font-size:13px;padding-left:18px}
-  .fchdoc .tablewrap tr.fch-esc-d td:first-child{padding-left:26px}
-  .fchdoc .tablewrap tr.fch-esc-d td span{color:#9b8fc0 !important}
+  .fchdoc .tablewrap td.money{white-space:nowrap}
+  /* detalhe do escritório: lista limpa dentro de uma linha só, agrupada por tipo */
+  .fchdoc .tablewrap tr.fch-esc-d > td{padding:0 0 10px 26px;background:#180a3c}
+  .fchdoc .fch-esc-det{border-left:2px solid #33205e;margin:2px 0 0}
+  .fchdoc .fch-esc-g{display:flex;justify-content:space-between;gap:10px;padding:10px 15px 4px;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#c4a6ff}
+  .fchdoc .fch-esc-g span:last-child{font-variant-numeric:tabular-nums;color:#9b8fc0;letter-spacing:0}
+  .fchdoc .fch-esc-det .fch-li{padding:7px 15px;border-bottom-color:#251355}
+  .fchdoc .fch-esc-det .fch-li:last-child{border-bottom:0}
+  .fchdoc .fch-esc-det .fch-a{flex:1;min-width:0}
+  .fchdoc .fch-esc-det .fch-a small{display:block;color:#9b8fc0;font-size:11.5px;font-weight:400;margin-top:1px}
+  .fchdoc .fch-esc-det .fch-b{white-space:nowrap}
+  .fchdoc .fch-esc-det .fch-v{min-width:110px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
   .fchdoc .rc-gr-b{color:#ece9f5}
   .fchdoc .rc-gr-b small{color:#9b8fc0}
   @media(max-width:620px){.fchdoc{padding:16px 12px 22px}.fchdoc .fch-b{display:none}}
@@ -13704,6 +13713,27 @@ const FCH_TIPO_ESC={aluguel:'Aluguel',contas:'Contas',compras:'Compras e serviç
 /* "parcela 3/10" na descrição vira "parcela 3 de 10, faltam 7" */
 function fchParcelaTxt(d){ const m=/parcela\s+(\d+)\s*\/\s*(\d+)/i.exec(String(d||'')); if(!m) return '';
   const n=+m[1], t=+m[2]; return t>n?'parcela '+n+' de '+t+', '+(t-n===1?'falta 1':'faltam '+(t-n)):'última parcela ('+n+' de '+t+')'; }
+/* O lançamento chega como texto cru ("Cartão Nubank: Mercado*Mercadolivre (parcela 6/10),
+   Escritório Itajubá"). Aqui vira nome, detalhe, meio (Pix, cartão) e parcela, sem repetir o
+   escritório que já é o título do bloco. */
+function fchEscItem(x){
+  let d=String((x&&x.descricao)||'').trim(), meio='';
+  if(/^cart[aã]o\s+nubank\s*:/i.test(d)){ meio='cartão'; d=d.replace(/^cart[aã]o\s+nubank\s*:\s*/i,''); }
+  else if(/^pix\s*:/i.test(d)){ meio='Pix'; d=d.replace(/^pix\s*:\s*/i,''); }
+  if(/\(cart[aã]o\)/i.test(d)){ meio=meio||'cartão'; d=d.replace(/\s*\(cart[aã]o\)/i,''); }
+  const parcela=fchParcelaTxt(d);
+  d=d.replace(/\s*\(parcela\s+\d+\s*\/\s*\d+\)/i,'').replace(/\s*\[[^\]]*escrit[oó]rio[^\]]*\]/i,'');
+  const limpa=(t)=>t.replace(/[,\s]*[—-]\s*escrit[oó]rio\s+(volta redonda|itajub[aá]|sjrp|s[aã]o jos[eé] do rio preto)/i,'')
+    .replace(/[,\s]*escrit[oó]rio\s+(volta redonda|itajub[aá]|sjrp|s[aã]o jos[eé] do rio preto)/i,'')
+    .replace(/mercado(?:\s*livre)?\W*mercadol\w*|mercadolivre/i,'Mercado Livre').replace(/\s*,\s*,/g,',').replace(/^[\s,]+|[\s,]+$/g,'').trim();
+  let nome=d, det='';
+  const m=/\s+—\s+/.exec(d);
+  if(m){ nome=d.slice(0,m.index); det=d.slice(m.index+m[0].length); }
+  else { const i=d.indexOf(', '); if(i>0){ nome=d.slice(0,i); det=d.slice(i+2); } }
+  nome=limpa(nome); det=limpa(det);
+  if(!nome){ nome=det; det=''; }
+  return {nome,det,meio,parcela};
+}
 function fchKpiEsc(porEsc,TD){
   const nomes=Object.keys(porEsc||{}); if(!nomes.length) return '';
   const L=nomes.map(n=>{ const a={aluguel:0,contas:0,compras:0}; let rest=0;
@@ -13714,10 +13744,15 @@ function fchKpiEsc(porEsc,TD){
   const pct=(v)=>TD>0?(v/TD*100).toFixed(1).replace('.',',')+'%':'-';
   const num=(v)=>`<td class="money" style="text-align:right">${brl(v)}</td>`;
   const k=(n)=>String(n).replace(/[^a-z0-9]/gi,'_');
-  /* detalhe: um lançamento por linha, na coluna do tipo dele, com a parcela quando houver */
-  const det=(r)=>r.its.map(x=>{ const tp=fchTipoEsc(x.descricao), pz=fchParcelaTxt(x.descricao), rest=fchParcelasRest(x.descricao,x.valor);
-    const cel=(t)=>t===tp?num(x.valor):'<td></td>';
-    return `<tr class="fch-esc-d rc-gr-f" data-k="${k(r.n)}" hidden><td>${esc(x.descricao)}${pz?`<div class="rc-sub">${esc(pz)}</div>`:''}</td>${cel('aluguel')}${cel('contas')}${cel('compras')}<td class="money" style="text-align:right">${brl(x.valor)}</td><td class="money" style="text-align:right">${esc(FCH_TIPO_ESC[tp])}</td>${num(rest)}</tr>`; }).join('');
+  /* detalhe (Gabriel 30/09: "tá um lixo"): uma linha limpa por gasto, agrupada por tipo,
+     no mesmo componente das outras listas do Fechamento (.fch-li), em vez de espremer o
+     texto cru do lançamento nas sete colunas do KPI. */
+  const det=(r)=>{ const grp={aluguel:[],contas:[],compras:[]}; r.its.forEach(x=>grp[fchTipoEsc(x.descricao)].push(x));
+    const li=(x)=>{ const it=fchEscItem(x), rest=fchParcelasRest(x.descricao,x.valor);
+      const meta=[x.data?fchDT(x.data).slice(0,5):'',it.meio,x.pagoEm?'pago '+fchDT(x.pagoEm).slice(0,5):'a pagar',it.parcela+(rest>0?' · faltam '+brl(rest):'')].filter(Boolean).join(' · ');
+      return `<div class="fch-li"><span class="fch-a">${esc(it.nome)}${it.det?`<small>${esc(it.det)}</small>`:''}</span><span class="fch-b">${esc(meta)}</span><span class="fch-v">${brl(x.valor)}</span></div>`; };
+    const g=(t)=>grp[t].length?`<div class="fch-esc-g"><span>${esc(FCH_TIPO_ESC[t])}</span><span>${brl(grp[t].reduce((s,x)=>s+fchN(x.valor),0))}</span></div>${grp[t].map(li).join('')}`:'';
+    return `<tr class="fch-esc-d" data-k="${k(r.n)}" hidden><td colspan="7"><div class="fch-esc-det">${g('aluguel')}${g('contas')}${g('compras')}</div></td></tr>`; };
   const lin=(r)=>`<tr><td><button type="button" class="rc-gr-b" aria-expanded="false" data-k="${k(r.n)}" onclick="fchEscAbre(this)" title="Ver o que foi gasto"><i class="fch-cv"></i><strong>${esc(r.n)}</strong><small>${r.its.length} lançamento${r.its.length===1?'':'s'}</small></button></td>${num(r.a.aluguel)}${num(r.a.contas)}${num(r.a.compras)}<td class="money" style="text-align:right"><strong>${brl(r.tot)}</strong></td><td class="money" style="text-align:right">${pct(r.tot)}</td>${num(r.rest)}</tr>`+det(r);
   const th=(t)=>`<th>${t}</th>`;
   return `<div class="tablewrap fch-rola"><table><thead><tr>${th('Escritório')}${th('Aluguel')}${th('Contas')}${th('Compras e serviços')}${th('Total do mês')}${th('% da despesa')}${th('Parcelas a vencer')}</tr></thead>
