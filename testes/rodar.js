@@ -502,7 +502,7 @@ grupo('Recebimentos: o que ainda vai entrar e quanto cada um leva (Gabriel 30/09
       {id:'r3',comp:'2026-08',clienteId:'c3',nome:'LEAL MOTOS',venc:'2026-08-05',valor:1000,status:'inadimplente',cobravel:true}],
     projetos:[{clienteId:'c1',gerente:'Luiz'},{clienteId:'c2',gerente:'João'},{clienteId:'c3',gerente:'João'}]};
   const g=rodar(bloco('const fchN=(v)=>','const FCH_ESC=')+bloco('function fchBloco(','function fchSaldoMes(')+bloco('function fchPrevisao(','function renderFechamentoMes(c){'),
-    {DB,FD:{comp:'',linhas:null},brl:v=>'R$ '+Number(v).toFixed(2),esc:s=>String(s??''),fmtComp:c=>c.split('-').reverse().join('/'),hojeISO:()=>'2026-09-30'},['fchPendentesHtml']);
+    {DB,FD:{comp:'',linhas:null,em:0},FD_INICIO:'2026-09',brl:v=>'R$ '+Number(v).toFixed(2),esc:s=>String(s??''),fmtComp:c=>c.split('-').reverse().join('/'),hojeISO:()=>'2026-09-30'},['fchPendentesHtml']);
   const h=g.fchPendentesHtml('2026-09');
   ok('lista quem ainda pode pagar no mês; quem pagou e o atraso de agosto ficam fora', h.indexOf('GTR MOTORS')>0&&h.indexOf('LEAL MOTOS')<0&&h.indexOf('NEGOCICAR')<0);
   ok('diz quanto cada um leva: gerente, caixa, Arthur e sócios', ['Luiz','Caixa da empresa','Arthur','José Carlos','Gabriel','Bernardo'].every(k=>h.indexOf(k)>0));

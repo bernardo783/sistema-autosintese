@@ -13866,7 +13866,10 @@ function fchPendentesHtml(comp){
   const dec=(v)=>Math.round(v*100)/100;
   const aReceber=rec.filter(x=>!x.pagoEm);
   const porSt={}; rcb.forEach(x=>{ if(['churn','churnpago','carencia','inadimplente','areceber'].includes(x.status)) (porSt[x.status]=porSt[x.status]||[]).push(x); });
-  /* FD.linhas (folha_linhas do mês) dá o custo de quem é pago por conta paga; sem elas, 10% do gerente */
+  /* FD.linhas (folha_linhas do mês) dá o custo de quem é pago por conta paga; sem elas, 10% do gerente.
+     Recebimentos não carrega a Folha sozinho: pede aqui e redesenha quando chegar. */
+  if(comp>=FD_INICIO&&FD.comp!==comp&&!FD.linhas&&Date.now()-FD.em>20000&&typeof fdCarregar==='function'){ FD.em=Date.now();
+    fdCarregar(comp).then(()=>{ if(currentView==='financeiro'&&(finTab==='fechames'||finTab==='recebimentos')) renderFinanceiro($('#content')); }); }
   const P=fchPrevisao({comp,hoje:hojeISO(),rcb,aReceber,rid,gerCli,projetos:DB.projetos||[],
     linhas:(FD.comp===comp&&FD.linhas)?FD.linhas:null,desp,financeiro:DB.financeiro||[],COMISSAO});
   if(!P.A.length&&!P.B.length) return '<div class="hint">Nada pendente em '+fmtComp(comp)+': todo mundo já pagou.</div>';
