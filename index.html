@@ -3410,6 +3410,22 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
   /* Controle de Clientes (Gabriel 30/09): linha vertical entre TODAS as colunas. Vale pra
      qualquer coluna nova, sem precisar lembrar de marcar. */
   .tk-tab.lc-tab th+th,.tk-tab.lc-tab td+td{border-left:1px solid var(--line)}
+  /* Rolando pro lado (Gabriel 30/09): a pílula de status ficava cortada embaixo da coluna
+     Cliente ("TIVO"). Status vai preso junto com o nome, e o que passa por baixo some atrás
+     de uma sombra, como um painel por cima da lista. --c1w é a largura real da coluna
+     Cliente, medida depois de desenhar (lcFixarColunas). */
+  .tk-tab.lc-tab th:first-child,.tk-tab.lc-tab tbody tr:not(.tk-faixa) > td:first-child{box-shadow:none}
+  .tk-tab.lc-tab th:nth-child(2){position:sticky;left:var(--c1w,300px);z-index:4;background:var(--panel2)}
+  .tk-tab.lc-tab tbody tr:not(.tk-faixa) > td:nth-child(2){position:sticky;left:var(--c1w,300px);z-index:2;background:var(--panel)}
+  .tk-tab.lc-tab tbody tr:not(.tk-faixa):hover > td:nth-child(2){background:var(--cardh)}
+  .tk-tab.lc-tab.rolou th:nth-child(2),.tk-tab.lc-tab.rolou tbody tr:not(.tk-faixa) > td:nth-child(2){box-shadow:8px 0 14px -6px rgba(0,0,0,.55)}
+  /* Coluna de opção (Nível, etc.): bolinha da cor + texto, sem preenchimento cheio.
+     Cortada pela metade atrás da coluna presa, a pílula cheia virava um toco colorido. */
+  .tk-tab .tk-stsel.opc,.tk-tab .tag.opc{background-color:transparent!important;color:var(--c)!important;font-weight:700;
+    padding:0 8px 0 20px;background-image:radial-gradient(circle at 8px 50%,var(--c) 4px,transparent 4.5px)!important;
+    background-repeat:no-repeat!important;text-transform:none}
+  .tk-tab .tk-stsel.opc:hover{background-color:var(--hov2)!important;filter:none}
+  .tk-tab .tag.opc{display:inline-flex;align-items:center;height:22px;border:0}
   /* Gerente e Gestor lado a lado: respiro entre as duas fotos (Gabriel 29/09) */
   .tk-tab .lc-ger{padding-right:22px}
   .tk-tab .lc-gest{padding-left:22px}
@@ -7795,7 +7811,7 @@ const tkCelula=(t,c)=>{
   if(!podeMexerCampo(c,t)){
     const txt=campoTexto(c,v), quem=`${esc(c.nome)}, só o master e o gerente do cliente alteram`;
     if(c.tipo==='select'&&txt){ const cS=corOpcao(v);
-      return `<span class="tag st" style="background-color:${esc(cS)};color:${esc(corTexto(cS))};cursor:not-allowed" title="${quem}">${esc(txt)}</span>`; }
+      return `<span class="tag st opc" style="--c:${esc(cS)};cursor:not-allowed" title="${quem}">${esc(txt)}</span>`; }
     if(c.tipo==='pessoa'&&v) return `<span class="tk-trava" title="${quem}">${avatar(v,txt,'sm')}</span>`;
     return `<span class="tk-trava${txt?'':' vaz'}" title="${quem}"><span class="cad"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>${esc(txt||'-')}</span>`;
   }
@@ -7803,7 +7819,7 @@ const tkCelula=(t,c)=>{
     const ops=`<option value="">-</option>`+(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('');
     if(vazio) return `<select class="tk-cel sel vazio" onchange="tkSetVal('${t.id}','${c.id}',this.value)">${ops}</select>`;
     const cor=corOpcao(v);
-    return `<select class="tk-stsel opc" style="background-color:${esc(cor)};color:${esc(corTexto(cor))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)">${ops}</select>`;
+    return `<select class="tk-stsel opc" style="--c:${esc(cor)}" onchange="tkSetVal('${t.id}','${c.id}',this.value)">${ops}</select>`;
   }
   if(c.tipo==='pessoa'){ const nm=v?tkNomeUser(v):'';
     return `<button type="button" class="tk-pcel${vazio}" title="${v?esc(nm):('Definir '+esc(c.nome||'pessoa'))}" onclick="tkQaCampoPessoa(event,'${t.id}','${c.id}')">${v?avatar(v,nm,'sm'):'<svg class="pcel-add" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 20v-1.6a3.6 3.6 0 0 0-3.6-3.6H6.6A3.6 3.6 0 0 0 3 18.4V20"/><circle cx="9" cy="8" r="3.6"/><path d="M18.5 8.5v5M21 11h-5"/></svg>'}</button>`; }
@@ -7812,6 +7828,15 @@ const tkCelula=(t,c)=>{
   if(c.tipo==='moeda') return `<button type="button" class="tk-mon${vazio}" data-v="${esc(v==null?'':String(v))}" title="Clique para editar" onclick="tkMonEditar(this,'${t.id}','${c.id}')">${vazio?'<span class="tk-mon0">·</span>':esc(moedaCurta(v))}</button>`;
   return `<input class="tk-cel${vazio}" type="${tp}" value="${esc(v==null?'':String(v))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)" placeholder="-">`;
 };
+/* Status preso junto com o nome (Gabriel 30/09): mede a coluna Cliente e passa a largura pro
+   CSS (--c1w); a sombra só aparece depois que a lista rolou pro lado. */
+function lcFixarColunas(c){
+  const tb=c&&c.querySelector?c.querySelector('.tk-tab.lc-tab'):null; if(!tb) return;
+  const th=tb.querySelector('th:first-child'); if(th) tb.style.setProperty('--c1w',Math.round(th.getBoundingClientRect().width)+'px');
+  const wrap=tb.parentElement; if(!wrap||wrap.__lcRola) return; wrap.__lcRola=true;
+  const marca=()=>tb.classList.toggle('rolou',wrap.scrollLeft>2);
+  wrap.addEventListener('scroll',marca,{passive:true}); marca();
+}
 const tkSelo=(t)=>{
   const sts=tkStatusDe(t.lista_id);
   if(!sts.length) return `<select class="stSel" onchange="tkStatus('${t.id}',this.value)">${Object.keys(TK_ST).map(k=>`<option value="${k}"${t.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`;
@@ -9566,6 +9591,7 @@ function tkDesenhar(c){
    ${ger?'':lcDesalinhados()+lcEtiquetas()+(TK.visao==='lista'?lcFunil():'')+lcGrupoResumo()}
    ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}`;
     if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
+    lcFixarColunas(c);
     return; }
   c.innerHTML=`
    <div class="page-head">
