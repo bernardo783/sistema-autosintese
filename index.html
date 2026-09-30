@@ -1878,7 +1878,12 @@
   .pcx-rt .p{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
   .pcx-rt .p.tarde{color:var(--danger)}
   .pcx-rt .f svg{width:13px;height:13px}
-  .pcx-dl{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px;font-size:13px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .pcx-dg{margin:0 0 15px}
+  .pcx-dg:last-child{margin-bottom:0}
+  .pcx-ds{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--txt);margin:0 0 7px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+  .pcx-dl{display:grid;grid-template-columns:132px minmax(0,1fr);gap:10px;font-size:13px;padding:4px 0}
+  .pcx-dl.largo{grid-template-columns:minmax(0,1fr);gap:1px;padding:6px 0 4px}
+  .pcx-dl.largo .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase}
   .pcx-dl .k{color:var(--muted)}
   .pcx-dl .v{word-break:break-word;white-space:pre-wrap}
   .pcx-dl .v[onclick]{cursor:copy}
@@ -14355,11 +14360,22 @@ window.pcRecolher=()=>{ pcRecolhe=!pcRecolhe; try{ localStorage.setItem('pc_reco
    cliente_documento: só master e gerente da ficha), depois tudo que já foi feito pra
    ele em cada área (Campanhas, Edição de Vídeo, Tecnologia…) e o Financeiro. */
 const pcRelTarefas=(it)=>(TK.tarefas||[]).filter(t=>String(t.ficha_id)===String(it.id)&&!ehListaCli(t.lista_id)&&!arquivada(t));
-const PCX_DOC=[['razaoSocial','Razão social'],['cnpj','CNPJ'],['dono','Dono'],['cpf','CPF'],['rg','RG'],['email','E-mail'],
-  ['endereco','Endereço'],['respFin','Responsável financeiro'],['telFin','Telefone financeiro'],['plano','Plano'],['tipoContrato','Contrato'],
-  ['mensalidade','Mensalidade no fechamento'],['formaPagamento','Forma de pagamento'],['dataPagamento','1º pagamento'],
-  ['integracoes','Integrações'],['especificidades','Especificidades'],['sdr','SDR'],['closer','Closer'],['linkCall','Call de fechamento'],
-  ['resumo','Resumo da venda'],['enviadoPor','Fechado por'],['enviadoEm','Fechado em']];
+/* O documento era uma parede de 26 linhas iguais, com tracejado em todas e tres pares
+   dizendo a mesma coisa (Gabriel 30/09: "esse design feio"). Agora vai em blocos — o que
+   a pessoa procura junto fica junto —, campo vazio nao ocupa linha, e texto comprido
+   (endereco, resumo) usa a largura toda em vez de espremer numa coluna de 150px.
+   Os campos que comecam com _ vem da ficha; o resto vem do fechamento. */
+const PCX_DOC=[
+  ['Contrato',[['_servico','Serviço'],['plano','Plano contratado'],['tipoContrato','Modalidade'],
+    ['_inicio','Cliente desde'],['_valor','Mensalidade'],['mensalidade','No fechamento'],
+    ['_diaVenc','Vence todo dia'],['formaPagamento','Forma de pagamento'],['dataPagamento','1º pagamento'],
+    ['integracoes','Integrações'],['especificidades','Especificidades','largo']]],
+  ['Empresa',[['razaoSocial','Razão social'],['cnpj','CNPJ'],['endereco','Endereço','largo']]],
+  ['Representante',[['dono','Dono'],['cpf','CPF'],['rg','RG'],['email','E-mail'],
+    ['respFin','Responsável financeiro'],['telFin','Telefone financeiro']]],
+  ['Venda',[['sdr','SDR'],['closer','Closer'],['linkCall','Call de fechamento'],
+    ['enviadoPor','Fechado por'],['enviadoEm','Fechado em'],['resumo','Resumo da venda','largo']]]
+];
 function pcRelPainel(it){
   const ts=pcRelTarefas(it), master=!!(currentUser&&currentUser.role==='master');
   const porLista={}; ts.forEach(t=>{ (porLista[t.lista_id]=porLista[t.lista_id]||[]).push(t); });
@@ -14402,11 +14418,23 @@ window.pcDocCarregar=async (fid)=>{
     if(k==='dataPagamento') return esc(fmtDate(String(v).slice(0,10))||String(v));
     if(k==='mensalidade'&&!isNaN(+v)) return brl(+v);
     return esc(String(v)); };
-  const lin=(rot,html,cru)=>html?`<div class="pcx-dl"><span class="k">${esc(rot)}</span><span class="v"${cru?` title="Clique para copiar" onclick="navigator.clipboard&&navigator.clipboard.writeText(${esc(JSON.stringify(String(cru)))});toast('Copiado.')"`:''}>${html}</span></div>`:'';
-  const topo=[lin('Serviço',val('',d.servico),d.servico),lin('Cliente desde',val('',d.inicio?fmtComp(d.inicio)||d.inicio:''),''),
-    lin('Mensalidade atual',(d.valor!=null&&d.valor!=='')?brl(+d.valor):'',''),lin('Vence todo dia',d.diaVenc?esc(String(d.diaVenc)):'','')].join('');
-  const fe=PCX_DOC.map(([k,r])=>lin(r,val(k,f[k]),(k==='linkCall'||k==='enviadoEm'||k==='dataPagamento')?'':f[k])).join('');
-  box.innerHTML=(topo+fe)||'<p class="hint" style="margin:6px 0">Esse cliente entrou antes do formulário de fechamento: não tem documento.</p>';
+  const lin=(rot,html,cru,largo)=>html?`<div class="pcx-dl${(largo&&html.length>46)?' largo':''}"><span class="k">${esc(rot)}</span><span class="v"${cru?` title="Clique para copiar" onclick="navigator.clipboard&&navigator.clipboard.writeText(${esc(JSON.stringify(String(cru)))});toast('Copiado.')"`:''}>${html}</span></div>`:'';
+  /* tira o que se repete: plano igual ao serviço, mensalidade do fechamento igual à de
+     hoje, e responsável financeiro que é a mesma pessoa do dono. Linha repetida é ruído. */
+  const igual=(a,b)=>String(a==null?'':a).trim().toLowerCase()===String(b==null?'':b).trim().toLowerCase();
+  const fe=Object.assign({},f);
+  if(igual(fe.plano,d.servico)) delete fe.plano;
+  if(fe.mensalidade!=null&&fe.mensalidade!==''&&d.valor!=null&&d.valor!==''&&Number(fe.mensalidade)===Number(d.valor)) delete fe.mensalidade;
+  if(igual(fe.respFin,fe.dono)) delete fe.respFin;
+  const V={_servico:esc(d.servico||''),_inicio:esc(d.inicio?(fmtComp(d.inicio)||d.inicio):''),
+    _valor:(d.valor!=null&&d.valor!=='')?brl(+d.valor):'',_diaVenc:esc(d.diaVenc?String(d.diaVenc):'')};
+  const CRU={_servico:d.servico||'',_inicio:'',_valor:'',_diaVenc:''};
+  const dado=(k)=>k.charAt(0)==='_'?(V[k]||''):val(k,fe[k]);
+  const cruDe=(k)=>k.charAt(0)==='_'?CRU[k]:((k==='linkCall'||k==='enviadoEm'||k==='dataPagamento')?'':fe[k]);
+  const corpo=PCX_DOC.map(([titulo,campos])=>{
+    const ls=campos.map(([k,rot,largo])=>lin(rot,dado(k),cruDe(k),largo)).join('');
+    return ls?`<div class="pcx-dg"><div class="pcx-ds">${esc(titulo)}</div>${ls}</div>`:''; }).join('');
+  box.innerHTML=corpo||'<p class="hint" style="margin:6px 0">Esse cliente entrou antes do formulário de fechamento: não tem documento.</p>';
 };
 /* Gestor e gerente se escolhem no topo (Gabriel 23/09: saíram da aba Ficha) */
 window.pcPessoaMenu=(ev,pid,campo)=>{
