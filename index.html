@@ -13509,8 +13509,37 @@ function fchSaldoMes(ENT,SAIU,entGer,saiGer){
        <td class="money" style="text-align:right;color:${d>=0?'#4ad991':'#f0616b'}">${d>=0?'+ ':'− '}${brl(Math.abs(d))}</td></tr>`;
    }).join('')+'</tbody></table></div>':''}`;
 }
+/* UPSELL E DOWNSELL (Gabriel 30/09): quem ja era cliente e mudou de mensalidade entra no mes
+   pela DIFERENCA: subiu = entrada, desceu = saida. Vem de mrr_mudancas (status aplicado), no
+   mes em que foi aplicada. cliente_id 'grupo:A+B' cobre contas do mesmo dono: as contas novas
+   desses grupos no mes ja estao dentro do upsell e nao aparecem como cliente novo (caso
+   ALTOGIRO + SABARA: pagava R$ 5.600 fechado e passou a pagar por conta). */
+let FCH_MUD={rows:null,em:0};
+async function fchMudCarregar(){
+  const {data,error}=await sb.from('mrr_mudancas').select('id,cliente_id,cliente_nome,tipo,valor_antes,valor_novo,motivo,criado_em,aplicado_em')
+    .eq('status','aplicado').in('tipo',['upsell','downsell']);
+  FCH_MUD={rows:error?[]:(data||[]),em:Date.now()};
+}
+const fchMudGrupos=(m)=>String(m.cliente_id||'').indexOf('grupo:')===0?String(m.cliente_id).slice(6).split('+').map(s=>MAIUS(s.trim())).filter(Boolean):[];
+function fchMudResumo(rows,comp,novos,gerCli){
+  const mud=(rows||[]).filter(m=>String(m.aplicado_em||m.criado_em||'').slice(0,7)===comp);
+  const dif=(m)=>fchN(m.valor_novo)-fchN(m.valor_antes);
+  const ups=mud.filter(m=>m.tipo==='upsell'&&dif(m)>0), downs=mud.filter(m=>m.tipo==='downsell'&&dif(m)<0);
+  const gruposUp={}; ups.forEach(m=>fchMudGrupos(m).forEach(g=>{ gruposUp[g]=1; }));
+  const fichaDe={}; (DB.projetos||[]).forEach(p=>{ if(p.clienteId) fichaDe[p.clienteId]=p; });
+  const gerDe=(m)=>{ if(gerCli[m.cliente_id]) return gerCli[m.cliente_id];
+    const gs=fchMudGrupos(m); const f=(DB.projetos||[]).find(p=>gs.indexOf(grupoDe(p))>=0&&String(p.gerente||'').trim());
+    return (f&&f.gerente.trim())||'sem gerente'; };
+  const semUp=(novos||[]).filter(x=>{ const f=fichaDe[x.id]; return !(f&&gruposUp[grupoDe(f)]); });
+  const entGer={}, saiGer={};
+  ups.forEach(m=>{ const g=gerDe(m); entGer[g]=(entGer[g]||0)+dif(m); });
+  downs.forEach(m=>{ const g=gerDe(m); saiGer[g]=(saiGer[g]||0)-dif(m); });
+  return {ups,downs,novos:semUp,entUp:ups.reduce((s,m)=>s+dif(m),0),saiDown:downs.reduce((s,m)=>s-dif(m),0),entGer,saiGer,
+    linha:(m)=>[m.cliente_nome||m.cliente_id||'-','de '+brl(m.valor_antes)+' para '+brl(m.valor_novo)+(m.motivo?' · '+String(m.motivo).slice(0,60):''),Math.abs(dif(m))]};
+}
 function renderFechamentoMes(c){
   const comp=fechComp;
+  if(!FCH_MUD.rows||Date.now()-FCH_MUD.em>60000){ FCH_MUD.em=Date.now(); fchMudCarregar().then(()=>{ if(finTab==='fechames') renderFinanceiro($('#content')); }); }
   const fin=DB.financeiro.filter(x=>fchData(x)===comp);
   const rec=fin.filter(x=>x.tipo==='receita'), desp=fin.filter(x=>x.tipo==='despesa');
   const fol=DB.folha.filter(x=>x.comp===comp);
@@ -13651,7 +13680,8 @@ function renderFechamentoMes(c){
            (x.status==='churnpago'?'saiu, pagou o último · ':'saiu devendo · ')+'vencia '+fchDT(x.venc), x.valor]),
          its.length+' cliente'+(its.length>1?'s':'')+(base?' · '+(p/base*100).toFixed(1).replace('.',',')+'% da carteira':''), true); }).join('')+
        '<div class="fch-tot"><span>Total perdido no mês</span><span>'+qtd+' clientes</span><span>'+brl(tot)+'</span></div>'; })()}
-   <p class="hint">Downsell (cliente que reduziu a mensalidade sem sair) ainda não é registrado no sistema, então não entra nesta conta.</p>
+   ${(()=>{ const M=fchMudResumo(FCH_MUD.rows,comp,[],gerCli); if(!M.downs.length) return '<p class="hint">Downsell (cliente que reduziu a mensalidade sem sair) entra no saldo do mês, logo abaixo, pela diferença.</p>';
+     return fchBloco('Downsell: quem reduziu a mensalidade', M.saiDown, M.downs.map(M.linha), M.downs.length+' cliente'+(M.downs.length===1?'':'s')+' · só a diferença', true); })()}
 
    <h2 class="verde"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/></svg> Entradas do mês: clientes que chegaram</h2>
    ${(()=>{ /* cliente novo = comecou nesta competencia e nunca foi cobrado antes.
@@ -13659,24 +13689,29 @@ function renderFechamentoMes(c){
      const rall=DB.recebimentos||[], antes={}, prim={};
      rall.forEach(x=>{ const c=x.comp, i=x.clienteId; if(!c||!i) return;
        if(c<comp) antes[i]=1; if(!prim[i]||c<prim[i]) prim[i]=c; });
-     const novos=(DB.clientes||[]).filter(x=>String(x.inicio||'').slice(0,7)===comp && !antes[x.id]);
-     const SAIU=somaSt('churn')+somaSt('churnpago');
-     if(!novos.length) return '<div class="hint">Nenhum cliente novo nesta competência.</div>'+
-       fchSaldoMes(0,SAIU,{},{});
-     const pg={}; novos.forEach(x=>{ const g=gerCli[x.id]||'sem gerente'; (pg[g]=pg[g]||[]).push(x); });
-     const ENT=novos.reduce((s,x)=>s+fchN(x.valor),0);
-     const entGer={}; Object.entries(pg).forEach(([g,its])=>entGer[g]=its.reduce((s,x)=>s+fchN(x.valor),0));
+     const M=fchMudResumo(FCH_MUD.rows,comp,(DB.clientes||[]).filter(x=>String(x.inicio||'').slice(0,7)===comp && !antes[x.id]),gerCli);
+     const novos=M.novos;
+     const SAIU=somaSt('churn')+somaSt('churnpago')+M.saiDown;
      const saiGer={}; ['churn','churnpago'].forEach(k=>(porSt[k]||[]).forEach(x=>{
        const g=gerCli[x.clienteId]||'sem gerente'; saiGer[g]=(saiGer[g]||0)+fchN(x.valor); }));
+     Object.entries(M.saiGer).forEach(([g,v])=>{ saiGer[g]=(saiGer[g]||0)+v; });
+     const blocoUp=M.ups.length?fchBloco('Upsell: quem aumentou a mensalidade', M.entUp, M.ups.map(M.linha), M.ups.length+' cliente'+(M.ups.length===1?'':'s')+' · só a diferença', true):'';
+     if(!novos.length&&!M.ups.length) return '<div class="hint">Nenhum cliente novo nesta competência.</div>'+
+       fchSaldoMes(0,SAIU,{},saiGer);
+     const pg={}; novos.forEach(x=>{ const g=gerCli[x.id]||'sem gerente'; (pg[g]=pg[g]||[]).push(x); });
+     const ENT=novos.reduce((s,x)=>s+fchN(x.valor),0)+M.entUp;
+     const entGer={}; Object.entries(pg).forEach(([g,its])=>entGer[g]=its.reduce((s,x)=>s+fchN(x.valor),0));
+     Object.entries(M.entGer).forEach(([g,v])=>{ entGer[g]=(entGer[g]||0)+v; });
      return '<p class="hint">Todo cliente que começou no mês, pelo gerente que ficou com ele. O valor é a <strong>mensalidade contratada</strong>, '+
-       'é ela que se compara com o churn, porque os dois são receita recorrente.</p>'+
+       'é ela que se compara com o churn, porque os dois são receita recorrente. Quem já era cliente e passou a pagar mais aparece como <strong>upsell</strong>, só pela diferença.</p>'+
+       blocoUp+
        Object.entries(pg).sort((a,b)=>entGer[b[0]]-entGer[a[0]]).map(([g,its])=>
          fchBloco(g, entGer[g], its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.nome,
            (String(x.fim||'').slice(0,7)===comp ? 'entrou e saiu no mesmo mês'
             : (prim[x.id]&&prim[x.id]>comp ? '1ª cobrança só em '+prim[x.id].slice(5,7)+'/'+prim[x.id].slice(0,4)
                : 'vence dia '+(x.diaVenc||'-')))+'  ·  '+String(x.servico||'').slice(0,40), x.valor]),
            its.length+' cliente'+(its.length>1?'s':''), true)).join('')+
-       '<div class="fch-tot"><span>Mensalidade nova do mês</span><span>'+novos.length+' clientes</span><span style="color:#4ad991">+ '+brl(ENT)+'</span></div>'+
+       '<div class="fch-tot"><span>Mensalidade nova do mês</span><span>'+novos.length+' cliente'+(novos.length===1?'':'s')+(M.ups.length?' + '+M.ups.length+' upsell':'')+'</span><span style="color:#4ad991">+ '+brl(ENT)+'</span></div>'+
        fchSaldoMes(ENT,SAIU,entGer,saiGer); })()}
 
    <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Distribuição do lucro</h2>
