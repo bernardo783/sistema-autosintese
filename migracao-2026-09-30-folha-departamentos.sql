@@ -7,7 +7,8 @@
 --   gestor   R$ 100 por conta (pro rata no mes de entrada), contando o que o cliente ja pagou
 --   social   R$ 200 por conta em que a pessoa e a social media (nao depende do pagamento)
 --   venda    5% da primeira mensalidade, pro SDR do ganho do painel Comercial, quando o
---            closer liga o ganho ao cliente (crm_calls.ficha_id)
+--            closer liga o ganho ao cliente (crm_calls.ficha_id); conta no mes em que o
+--            cliente paga a primeira mensalidade
 --   fixo     o fixo mensal de quem tem (cadastro da Folha)
 -- "cheio" e o que a pessoa recebe se o cliente pagar tudo; "ganho" e o que ja esta garantido.
 -- Master ve todas as linhas; os outros so as proprias (casadas pelo primeiro nome).
@@ -122,7 +123,14 @@ ven as (select trim(cc.sdr) pessoa, 'venda'::text papel, cc.ficha_id ficha,
           order by r->>'comp' limit 1),
         case when (cl.c->>'valor') ~ k.num then (cl.c->>'valor')::numeric end,
         cc.fee, 0) base) x
-    where cc.status_lead='ganho' and to_char(cc.data,'YYYY-MM')=p_comp
+    /* mes da comissao = mes da PRIMEIRA mensalidade paga do cliente ligado (Blessed fechou em
+       26/08 e pagou em setembro: a comissao e de setembro); sem pagamento ou sem cliente ligado,
+       vale o mes da call. Ajuste da sessao paralela, 30/09 a noite, direto no banco. */
+    cross join lateral (select coalesce((select min(r->>'comp') from itens i, jsonb_array_elements(i.dados) r
+        where i.modulo='recebimentos' and r->>'clienteId'=cl.c->>'id'
+          and coalesce(nullif(r->>'status',''), case when r->>'recebido'='true' then 'recebido' end) in ('recebido','churnpago')),
+      to_char(cc.data,'YYYY-MM')) mes) m
+    where cc.status_lead='ganho' and m.mes=p_comp
       and coalesce(trim(cc.sdr),'')<>'' and not lc_socio(cc.sdr)),
 fixo as (select e->>'nome' pessoa, (e->>'fixo')::numeric v
     from itens i, jsonb_array_elements(i.dados) e, k
