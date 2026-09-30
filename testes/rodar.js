@@ -312,6 +312,12 @@ grupo('Gastos de escritório em blocos por escritório (Gabriel 30/09)');
   ok('a folha não vira escritório', g.lancSub({tipo:'despesa',categoria:'Sócios',descricao:'Folha: Bernardo, Head'})==='Folha de pagamento');
 }
 
+grupo('Controle de Clientes: Pagamento, Início e Vencimento centralizados como as colunas de pessoa (Gabriel 30/09)');
+{
+  ok('as três colunas curtas ganham tk-cen junto com pessoa', /\(c\.tipo==='pessoa'\|\|\(lc&&\[LC_SIT,LC_INI,LC_VENC\]\.indexOf\(c\.id\)>=0\)\)\?'tk-cen':''/.test(HTML));
+  ok('data e trava centralizam dentro da célula', HTML.indexOf('.tk-tab td.tk-cen input.tk-cel{text-align:center}')>0&&HTML.indexOf('.tk-tab td.tk-cen .tk-trava{display:flex}')>0);
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
