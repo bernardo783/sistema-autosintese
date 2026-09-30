@@ -13903,9 +13903,11 @@ function fchPrevisao(o){
   (o.desp||[]).filter(x=>/ressarc|não ressarcida|nao ressarcida/i.test(String(x.descricao))).forEach(x=>{
     const v=dec(N(x.valor)); if(!(v>0)) return;
     A.push({nome:String(x.descricao),quando:'já reduziu o lucro deste mês · na volta é estorno',v,g:'',its:rateio(x.descricao,v,[])}); });
-  const B=(o.financeiro||[]).filter(x=>x.tipo==='recebivel'&&!x.pagoEm&&(!x.comp||x.comp===o.comp))
-    .map(x=>({nome:String(x.descricao),quando:'nunca passou pelo resultado',v:dec(N(x.valor))}));
-  const ord=(a,b)=>b.v-a.v; A.sort(ord); B.sort(ord);
+  /* dinheiro fora do caixa aparece ATE VOLTAR, de qualquer competencia (Gabriel 30/09: o
+     rateio do Samuel de jul e ago sumiu quando isso filtrou so o mes da tela) */
+  const B=(o.financeiro||[]).filter(x=>x.tipo==='recebivel'&&!x.pagoEm)
+    .map(x=>({nome:String(x.descricao),quando:(x.comp?'competência '+String(x.comp).slice(5,7)+'/'+String(x.comp).slice(0,4)+' · ':'')+'nunca passou pelo resultado',v:dec(N(x.valor)),comp:x.comp||''}));
+  const ord=(a,b)=>b.v-a.v; A.sort(ord); B.sort((a,b)=>String(a.comp).localeCompare(String(b.comp))||b.v-a.v);
   return {A,B,pessoas,TC:dec(TC),TX:dec(TX),TAR:dec(TAR),TS:dec(TS),TA:dec(A.reduce((s,p)=>s+p.v,0)),TB:dec(B.reduce((s,p)=>s+p.v,0))};
 }
 function fchPendentesHtml(comp){
@@ -13955,7 +13957,7 @@ function fchPendentesHtml(comp){
       '<span class="fch-tv">'+brl(P.TA)+'</span></summary>'+
       '<div class="fch-corpo" style="padding:10px 12px">'+P.A.map(blocoDe).join('')+'</div></details>'):'')+
     (P.B.length?('<div class="fch-cab" style="margin-top:22px">2 · Só repõe o caixa, não entra em rateio</div>'+
-      '<p class="hint">Saiu direto do caixa: <strong>nunca reduziu o lucro de mês nenhum</strong>. '+
+      '<p class="hint">Saiu direto do caixa, em qualquer mês: <strong>nunca reduziu o lucro de mês nenhum</strong> e fica aqui até voltar. '+
       'Quando voltar, apenas tapa o buraco no caixa. Se entrasse no rateio, a empresa distribuiria duas vezes o mesmo dinheiro.</p>'+linhasB):'')+
     '<p class="hint">Total na mão de terceiros: <strong>'+brl(P.TA+P.TB)+'</strong>. Destes, só '+brl(P.TA)+' viram lucro novo; '+brl(P.TB)+' apenas recompõem o caixa.</p>';
 }

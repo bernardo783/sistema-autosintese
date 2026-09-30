@@ -363,7 +363,7 @@ grupo('Fechamento: o que ainda vai entrar é previsão do melhor cenário do mê
   ok('G MOTORS: 1.500 − 250 = 1.250 de lucro novo → 250 caixa, 125 Arthur, 291,67 cada sócio', gm.its.find(i=>i[0]==='Caixa da empresa')[2]===250&&gm.its.find(i=>i[0]==='Arthur')[2]===125&&gm.its.find(i=>i[0]==='Gabriel')[2]===291.67);
   ok('vencida e não paga diz que venceu', /venceu dia 10\/09/.test(gm.quando)&&/vence 05\/10/.test(P.A.find(p=>p.nome==='SABARÁ | SÉRGIO').quando));
   ok('cliente sem linha na Folha (gerente sócio, por exemplo) não paga ninguém por conta', P.A.find(p=>p.nome==='SINAL').its[0][0]==='Caixa da empresa'&&P.A.find(p=>p.nome==='SINAL').its[0][2]===100);
-  ok('recebível de outro mês não aparece; o do mês só repõe caixa', P.B.length===1&&P.B[0].nome==='Adiantamento Fulano'&&P.TB===200);
+  ok('recebível fora do caixa aparece de qualquer mês até voltar, com a competência na linha (Samuel jul/ago)', P.B.length===2&&P.B[0].nome==='Velho'&&/competência 07\/2026/.test(P.B[0].quando)&&P.B[1].nome==='Adiantamento Fulano'&&P.TB===1199);
   ok('caixa + Arthur + 3 sócios batem com o lucro novo', Math.abs((P.TX+P.TAR+P.TS*3)-(P.TA-P.TC))<0.05);
   const P2=g.fchPrevisao(Object.assign({},o,{linhas:null}));
   ok('sem as linhas da Folha (mês antigo) vale só o gerente de 10%', Math.abs(P2.pessoas['Luiz'].v-187.33)<0.01&&!P2.pessoas['Luan Santiago']);
