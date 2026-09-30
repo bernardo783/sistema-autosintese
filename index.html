@@ -3404,8 +3404,11 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
   .tk-tab tr.tk-tot td{background:var(--panel2);font-weight:700;font-size:13px;border-top:1px solid var(--line);border-bottom:0;padding:11px 12px;vertical-align:top;white-space:nowrap}
   .tk-tab tr.tk-tot td.tk-num{padding-right:20px;font-variant-numeric:tabular-nums}
   .tk-tab tr.tk-tot small{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-top:2px}
-  .lc-porgest{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0 0;font-size:12.5px;color:var(--muted)}
-  .lc-porgest .c{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+  .lc-porgest{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 0;font-size:12.5px;color:var(--muted)}
+  .lc-porgest+.lc-porgest{margin-top:6px}
+  .lc-porgest>span:first-child{min-width:96px;font-weight:700;color:var(--txt)}
+  .lc-porgest .c{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-variant-numeric:tabular-nums}
+  .lc-porgest .c.tot{background:var(--hov2);border-color:var(--brand)}
   .lc-porgest b{color:var(--txt);font-weight:700}
 </style>
 </head>
@@ -7677,6 +7680,10 @@ const LC_GER_COL='__gerente';
    gerente ficam pra master e gerente. */
 const LC_SO_GERENCIA=['7fb37164-cc32-494c-a93c-c336afe163ea','46c3b98b-6590-4aff-bf80-ed03801206c7'];
 const LC_REM_GESTOR='b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01';
+/* Social media (Gabriel 30/09): quem faz o social do cliente e os R$200 que ele recebe
+   por projeto. O valor é do banco (lc_auto); aqui é só quem enxerga. */
+const LC_SOCIAL='50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c1';
+const LC_REM_SOCIAL='50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c2';
 const LC_FORA=['5416ae4d-6ea2-4d3b-9510-9abccbdb96e2',   /* Verba Semanal */
                '271de509-620c-4f31-a473-137f483f5849',   /* Forma de Pagamento */
                'b39c6e52-332f-4e2d-97bb-aa8ea9527402'];  /* Canal */
@@ -7729,6 +7736,10 @@ function lcComGerente(cps){
 const tkCelula=(t,c)=>{
   if(c.id===LC_REM_GESTOR&&ehLC(t.lista_id)&&!souGerente()&&!souGestorDaFicha(t.ficha_id))
     return '<span class="hint" style="margin:0" title="Remuneração de outro gestor">-</span>';
+  /* a remuneração do social media só o master, o gerente e ela mesma veem */
+  if(c.id===LC_REM_SOCIAL&&ehLC(t.lista_id)&&!souGerente()
+     &&String((t.valores||{})[LC_SOCIAL]||'')!==String((currentUser||{}).id||''))
+    return '<span class="hint" style="margin:0" title="Remuneração de outra pessoa">-</span>';
   if(c.id===LC_GER_COL){ const g=String((fichaDe(t.ficha_id)||{}).gerente||'').trim();
     if(!t.ficha_id) return '<span class="hint" style="margin:0" title="Card sem ficha de cliente">-</span>';
     if(!lcPodeGerente(t)) return g?`<span class="tk-trava" title="Gerente, só o master e o gerente do cliente alteram">${avatarDoNome(g,'av sm','Gerente')}</span>`
@@ -7859,7 +7870,8 @@ function tkViewLista(){
     const soma=(cid)=>todos.reduce((a,t)=>a+(Number((t.valores||{})[cid])||0),0);
     const mst=!!(currentUser&&currentUser.role==='master');
     const SUB={[LC_MENS]:'receita/mês','46c3b98b-6590-4aff-bf80-ed03801206c7':mst?'gerentes 10%':'seus 10%',
-      'b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01':'gestor','5416ae4d-6ea2-4d3b-9510-9abccbdb96e2':'verba/sem.'};
+      'b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01':'gestor','50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c2':'social media',
+      '5416ae4d-6ea2-4d3b-9510-9abccbdb96e2':'verba/sem.'};
     totRow=`<tr class="tk-tot"><td>Total da carteira<small>${todos.length} cliente${todos.length===1?'':'s'} · só master e gerente veem</small></td><td></td>${cps.map((c,i)=>c.tipo==='moeda'
       ?`<td class="${clsCp(c,i)}">${esc(moedaCurta(soma(c.id))||'R$ 0')}<small>${esc(SUB[c.id]||'')}</small></td>`:'<td></td>').join('')}</tr>`;
     /* REMUNERAÇÃO (Gabriel 30/09): uma linha só. Antes eram duas — "Por gestor" e "Por
@@ -7879,10 +7891,30 @@ function tkViewLista(){
       poe((uid&&tkNomeUser(uid))||f.responsavel, (t.valores||{})[REMG], t.id);
       /* o 10% dos outros gerentes não é da conta de quem não é master */
       if(mst||souGerenteDaFicha(t.ficha_id)) poe(f.gerente, (t.valores||{})[REMGER], t.id); });
-    const ks=Object.keys(R).sort((a,b)=>R[b].v-R[a].v);
-    if(ks.length) porGest=`<div class="lc-porgest"><span>Remuneração:</span>${ks.map(k=>{
-      const n=Object.keys(R[k].ids).length;
-      return `<span class="c">${esc(k)} · ${n} cliente${n===1?'':'s'} · <b>${esc(moedaCurta(R[k].v)||'R$ 0')}</b></span>`; }).join('')}</div>`;
+    /* Gabriel 30/09: abaixo do Total da carteira vem o ticket médio e, embaixo, a
+       remuneração separada por papel — quanto sai para os gerentes e quanto para os
+       gestores. A linha única de antes misturava os dois e escondia essa leitura. */
+    const G={}, S={}, SM={};
+    const LC_SOC='50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c1', LC_REMSOC='50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c2';
+    const poeEm=(M,nome,val,tid)=>{ const nm=String(nome||'').trim(); if(!nm||ehSocio(nm)) return;
+      const k=ltPrim(nm); M[k]=M[k]||{ids:{},v:0}; M[k].ids[tid]=1; M[k].v+=Number(val)||0; };
+    todos.forEach(t=>{ const f=fichaDe(t.ficha_id)||{}; const uid=(t.valores||{})[LC_GEST];
+      poeEm(S,(uid&&tkNomeUser(uid))||f.responsavel, (t.valores||{})[REMG], t.id);
+      const su=(t.valores||{})[LC_SOC];
+      if(su) poeEm(SM,tkNomeUser(su), (t.valores||{})[LC_REMSOC], t.id);
+      if(mst||souGerenteDaFicha(t.ficha_id)) poeEm(G,f.gerente, (t.valores||{})[REMGER], t.id); });
+    const linhaRem=(rot,M)=>{ const kk=Object.keys(M).sort((a,b)=>M[b].v-M[a].v); if(!kk.length) return '';
+      const tot=kk.reduce((a,k)=>a+M[k].v,0);
+      return `<div class="lc-porgest"><span>${rot}</span>${kk.map(k=>{ const n=Object.keys(M[k].ids).length;
+        return `<span class="c">${esc(k)} · ${n} cliente${n===1?'':'s'} · <b>${esc(moedaCurta(M[k].v)||'R$ 0')}</b></span>`; }).join('')}
+        <span class="c tot">soma · <b>${esc(moedaCurta(tot)||'R$ 0')}</b></span></div>`; };
+    /* ticket médio: só entra quem tem mensalidade, senão cliente sem valor derruba a média */
+    const comV=todos.filter(t=>Number((t.valores||{})[LC_MENS])>0);
+    const somaM=comV.reduce((a,t)=>a+Number((t.valores||{})[LC_MENS]),0);
+    const tkm=comV.length?`<div class="lc-porgest"><span>Ticket médio</span>
+      <span class="c"><b>${esc(moedaCurta(somaM/comV.length)||'R$ 0')}</b> por cliente</span>
+      <span class="c">${comV.length} cliente${comV.length===1?'':'s'} com mensalidade${todos.length-comV.length?' · '+(todos.length-comV.length)+' sem valor':''}</span></div>`:'';
+    porGest=tkm+linhaRem('Por gerente',G)+linhaRem('Por gestor',S)+linhaRem('Por social media',SM);
   }
   if(lc&&!souGerente()&&total&&currentUser){
     const meus=grupos.reduce((a,g)=>a.concat(g.its),[]).filter(t=>souGestorDaFicha(t.ficha_id));
@@ -9476,8 +9508,13 @@ function tkDesenhar(c){
   /* listas que só existem em Kanban (pedido do Gabriel, 10/08): 🎬 Edição de Vídeo */
   const soBoard=[LISTA_EDICAO].includes(TK.listaSel)&&TK.escopo==='lista';
   if(soBoard) TK.visao='board';
+  /* Controle de Clientes é só lista (Gabriel 30/09: "o modelo de quadro não faz sentido"):
+     cliente não anda por coluna como tarefa, e o que importa ali são as colunas de dinheiro. */
+  if(cli) TK.visao='lista';
   /* abas de visão no padrão único (Gabriel 23/09): ícone SVG + texto, sublinhadas */
-  const visoes=soBoard?[['board',PCX_I.quadro+'Quadro']]:[['lista',PCX_I.lista+'Lista'],['board',PCX_I.quadro+'Quadro']];
+  const visoes=soBoard?[['board',PCX_I.quadro+'Quadro']]
+    :cli?[['lista',PCX_I.lista+'Lista']]
+    :[['lista',PCX_I.lista+'Lista'],['board',PCX_I.quadro+'Quadro']];
   const nArq=TK.escopo==='lista'?tkArquivadasDa(TK.listaSel).length:0;
   const ordBtn=(TK.escopo==='lista'&&TK.visao==='lista')
     ? `<button class="btn ghost small${TK.ord?'':' on'}" onclick="tkOrdemManual()" title="${TK.ord?'Voltar a poder arrastar as linhas':'Você já pode arrastar as linhas'}">⠿ Ordem manual</button>` : '';
