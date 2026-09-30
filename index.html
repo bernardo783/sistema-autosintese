@@ -1368,6 +1368,19 @@
   .ck-t:hover{border-color:var(--line)}
   .ck-t:focus{border-color:var(--brand2);outline:none;background:var(--panel2)}
   .ck-t.ok{text-decoration:line-through;color:var(--muted)}
+  /* Seções do checklist (Gabriel 30/09): cada seção tem título editável, contador e menu. */
+  .ck-sec{display:flex;align-items:center;gap:8px;margin:16px 0 7px}
+  .ck-sec:first-child{margin-top:0}
+  .ck-sec-in{flex:1;background:transparent;border:1px solid transparent;border-radius:7px;padding:4px 7px;
+    color:var(--txt);font-family:inherit;font-size:13px;font-weight:700}
+  .ck-sec-in:hover{border-color:var(--line)}
+  .ck-sec-in:focus{border-color:var(--brand2);outline:none;background:var(--panel2)}
+  .ck-sec-in::placeholder{color:var(--fraco);font-weight:600}
+  .ck-sec .n{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--muted);flex:none;
+    font-variant-numeric:tabular-nums}
+  .ck-addi{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--fraco);
+    background:none;border:0;padding:3px 7px;margin:0 0 12px;font-family:inherit;cursor:pointer}
+  .ck-addi:hover{color:var(--brand2)}
   /* ---------- PAINEL ENCOLHIDO: some, e o trilho de icones assume ---------- */
   /* O painel encolhe a zero mas CONTINUA no grid — com display:none ele sai das colunas
      e o conteudo principal cai na faixa de largura zero. */
@@ -3246,6 +3259,16 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .tc-add{display:flex;align-items:center;gap:11px;padding:9px 0}
 .tc-add input{flex:1;background:transparent;border:none;color:var(--txt);font:inherit;font-size:14px;outline:none;padding:0}
 .tc-add input::placeholder{color:var(--fraco)}
+.tc-secg{display:flex;align-items:center;gap:8px;margin:16px 0 2px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.tc-secg:first-child{margin-top:4px}
+.tc-secin{flex:1;background:transparent;border:0;color:var(--txt);font:inherit;font-size:13.5px;font-weight:700;outline:none;padding:0}
+.tc-secin::placeholder{color:var(--fraco);font-weight:600}
+.tc-secg .n{font-size:11.5px;color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
+.tc-secg .x{color:var(--fraco);cursor:pointer;background:none;border:0;font-size:15px;padding:0 2px;flex:none}
+.tc-secg .x:hover{color:var(--danger)}
+.tc-addsec{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--fraco);
+  background:none;border:1px dashed var(--line);border-radius:9px;padding:7px 12px;margin:10px 0 0;font-family:inherit;cursor:pointer}
+.tc-addsec:hover{color:var(--brand2);border-color:var(--brand2)}
 .tc-del{display:block;width:100%;margin-top:22px;padding:12px;background:none;border:none;border-top:1px solid var(--line);
   color:var(--danger);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .gc-wrap{margin-top:14px}
@@ -6776,8 +6799,24 @@ window.spExcluir=(tipo,id)=>{
     if(!TK.listas.some(l=>l.id===TK.listaSel)){ TK.listaSel=(TK.listas[0]||{}).id||''; TK.escopo='lista'; }
     spRepintar(); toast('Excluído.'); return true; });
 };
-/* Checklist da tarefa (modelo ClickUp): mora em tarefas.checklist como [{t,ok}]. */
-let TK_CK=[];
+/* Checklist da tarefa (modelo ClickUp): mora em tarefas.checklist como [{t,ok,g}].
+   `g` e o nome da secao do item (Gabriel 30/09: "financeiro", "operacional", cada frente
+   no seu bloco). Item sem `g` fica na secao sem nome — e assim todo checklist antigo
+   continua valendo sem migracao. Uma secao so existe enquanto tem pelo menos um item;
+   as recem-criadas e ainda vazias vivem na lista `extras` ate ganharem o primeiro item. */
+function ckGrupos(L,extras){
+  const out=[], mapa={};
+  const achar=(g)=>{ if(!(g in mapa)){ mapa[g]=out.length; out.push({nome:g,ids:[],ex:null}); } return mapa[g]; };
+  (L||[]).forEach((x,i)=>{ out[achar(String((x&&x.g)||''))].ids.push(i); });
+  (extras||[]).forEach((n,k)=>{ const j=achar(String(n||'')); if(!out[j].ids.length&&out[j].ex===null) out[j].ex=k; });
+  if(!out.length) achar('');
+  return out;
+}
+const ckCont=(L,ids)=>ids.filter(i=>L[i]&&L[i].ok).length+' de '+ids.length;
+/* mostra cabecalho de secao so quando ha mais de uma ou quando a unica tem nome:
+   quem nunca usou secao continua vendo a lista limpa de sempre */
+const ckTemSec=(gs)=>gs.length>1||!!(gs[0]&&gs[0].nome);
+let TK_CK=[], TK_CK_SE=[];
 function ckLer(){ TK_CK.forEach((x,i)=>{ const e=document.getElementById('ck_t'+i), k=document.getElementById('ck_k'+i); if(e) x.t=e.value; if(k) x.ok=k.checked; }); }
 function ckPintar(){
   const el=document.getElementById('ck_lista'); if(!el) return;
@@ -6785,16 +6824,64 @@ function ckPintar(){
   setTimeout(()=>{ if(!window.__tkmAgendar) return;
     el.querySelectorAll('input').forEach(i=>{ if(i.dataset.auto) return; i.dataset.auto='1';
       i.addEventListener(i.type==='checkbox'?'change':'input',()=>window.__tkmAgendar(i.type==='checkbox')); }); },0);
-  el.innerHTML=TK_CK.map((x,i)=>`<div class="ck-l"><input type="checkbox" id="ck_k${i}" ${x.ok?'checked':''} onchange="ckLer();ckPintar()"><input class="ck-t${x.ok?' ok':''}" id="ck_t${i}" value="${esc(x.t)}" placeholder="o que precisa ser feito" onkeydown="ckTecla(event,${i})" onpaste="ckColar(event,${i})"><button class="iconbtn del" title="Remover" onclick="ckDel(${i})">✕</button></div>`).join('')||'<div class="hint" style="margin:0">nenhum item ainda: clique em + e vá dando Enter; ou cole uma lista inteira que ela vira um item por linha</div>';
-  const p=document.getElementById('ck_prog'); if(p){ const f=TK_CK.filter(x=>x.ok).length; p.textContent=TK_CK.length?(f+'/'+TK_CK.length):''; }
+  const gs=ckGrupos(TK_CK,TK_CK_SE), comSec=ckTemSec(gs);
+  const linha=(i)=>{ const x=TK_CK[i];
+    return `<div class="ck-l"><input type="checkbox" id="ck_k${i}" ${x.ok?'checked':''} onchange="ckLer();ckPintar()"><input class="ck-t${x.ok?' ok':''}" id="ck_t${i}" value="${esc(x.t)}" placeholder="o que precisa ser feito" onkeydown="ckTecla(event,${i})" onpaste="ckColar(event,${i})"><button class="iconbtn del" title="Remover" onclick="ckDel(${i})">✕</button></div>`; };
+  el.innerHTML=gs.map((g,gi)=>
+    (comSec?`<div class="ck-sec"><input class="ck-sec-in" id="ck_s${gi}" value="${esc(g.nome)}" placeholder="Nome da seção" oninput="ckSecRen(${gi},this.value)"><span class="n">${ckCont(TK_CK,g.ids)}</span><button class="iconbtn" type="button" title="Opções da seção" onclick="ckSecMenu(event,${gi})">⋯</button></div>`:'')
+    +g.ids.map(linha).join('')
+    +`<button class="ck-addi" type="button" onclick="ckAdd(${gi})">+ item</button>`
+  ).join('');
+  if(!TK_CK.length&&!comSec) el.innerHTML='<div class="hint" style="margin:0 0 8px">nenhum item ainda: clique em + item e vá dando Enter; ou cole uma lista inteira que ela vira um item por linha</div>'+el.innerHTML;
+  const p=document.getElementById('ck_prog'); if(p){ const f=TK_CK.filter(x=>x.ok).length; p.textContent=TK_CK.length?(f+' de '+TK_CK.length):''; }
 }
-window.ckAdd=()=>{ ckLer(); TK_CK.push({t:'',ok:false}); ckPintar(); const e=document.getElementById('ck_t'+(TK_CK.length-1)); if(e) e.focus(); };
+window.ckAdd=(gi)=>{ ckLer();
+  const gs=ckGrupos(TK_CK,TK_CK_SE), g=gs[gi==null?gs.length-1:gi]||gs[0];
+  const pos=g.ids.length?g.ids[g.ids.length-1]+1:TK_CK.length;
+  TK_CK.splice(pos,0,{t:'',ok:false,g:g.nome});
+  if(g.ex!==null&&g.ex!=null) TK_CK_SE.splice(g.ex,1);   /* virou secao de verdade */
+  ckPintar(); const e=document.getElementById('ck_t'+pos); if(e) e.focus(); };
+window.ckSecNova=()=>{ ckLer();
+  const gs=ckGrupos(TK_CK,TK_CK_SE); let n='Nova seção', k=2;
+  while(gs.some(g=>g.nome===n)){ n='Nova seção '+k; k++; }
+  TK_CK_SE.push(n); ckPintar();
+  const gi=ckGrupos(TK_CK,TK_CK_SE).findIndex(g=>g.nome===n);
+  const e=document.getElementById('ck_s'+gi); if(e){ e.focus(); e.select(); } };
+window.ckSecRen=(gi,v)=>{ const gs=ckGrupos(TK_CK,TK_CK_SE), g=gs[gi]; if(!g) return;
+  v=String(v||'');
+  if(g.ids.length) g.ids.forEach(i=>{ if(TK_CK[i]) TK_CK[i].g=v; });
+  else if(g.ex!=null) TK_CK_SE[g.ex]=v;
+  if(window.__tkmAgendar) window.__tkmAgendar(true); };
+window.ckSecMover=(gi,d)=>{ ckLer();
+  const gs=ckGrupos(TK_CK,TK_CK_SE), j=gi+d; if(j<0||j>=gs.length) return;
+  const tmp=gs[gi]; gs[gi]=gs[j]; gs[j]=tmp;
+  const novo=[], ex=[];
+  gs.forEach(g=>{ if(g.ids.length) g.ids.forEach(i=>novo.push(TK_CK[i])); else ex.push(g.nome); });
+  TK_CK=novo; TK_CK_SE=ex; ckPintar();
+  if(window.__tkmAgendar) window.__tkmAgendar(true); };
+window.ckSecMenu=(ev,gi)=>{ ev.stopPropagation();
+  const gs=ckGrupos(TK_CK,TK_CK_SE), g=gs[gi]; if(!g) return;
+  ctxAbrir(ev,[
+    {cab:g.nome||'Seção sem nome'},
+    {ic:MI('<path d="M12 19V5M5 12l7-7 7 7"/>'),t:'Subir',f:()=>ckSecMover(gi,-1),so:gi>0},
+    {ic:MI('<path d="M12 5v14M19 12l-7 7-7-7"/>'),t:'Descer',f:()=>ckSecMover(gi,1),so:gi<gs.length-1},
+    {ic:MICO.lapis,t:'Renomear',f:()=>{ const e=document.getElementById('ck_s'+gi); if(e){ e.focus(); e.select(); } }},
+    {sep:true},
+    {ic:MICO.lixo,t:'Apagar seção'+(g.ids.length?' e seus '+g.ids.length+' itens':''),dgr:true,f:()=>ckSecDel(gi)}
+  ]); };
+window.ckSecDel=async(gi)=>{ ckLer();
+  const gs=ckGrupos(TK_CK,TK_CK_SE), g=gs[gi]; if(!g) return;
+  const comTexto=g.ids.filter(i=>String((TK_CK[i]||{}).t||'').trim()).length;
+  if(comTexto){ const ok=await confirmar('Apagar seção','Apaga "'+(g.nome||'sem nome')+'" e '+comTexto+(comTexto===1?' item.':' itens.'),{sim:'Apagar',perigo:true}); if(!ok) return; }
+  TK_CK=TK_CK.filter((x,i)=>g.ids.indexOf(i)<0);
+  if(g.ex!=null) TK_CK_SE.splice(g.ex,1);
+  ckPintar(); if(window.__tkmAgendar) window.__tkmAgendar(true); };
 /* Checklist estilo ClickUp: Enter cria o proximo item, Backspace no vazio apaga, setas navegam e colar lista quebra linha a linha. */
 const ckFoco=(i,fim)=>{ const e=document.getElementById('ck_t'+i); if(!e) return; e.focus(); if(fim){ try{ e.setSelectionRange(e.value.length,e.value.length); }catch(_){} } };
 window.ckTecla=(ev,i)=>{
   if(ev.key==='Enter'){
     ev.preventDefault(); ckLer();
-    TK_CK.splice(i+1,0,{t:'',ok:false});
+    TK_CK.splice(i+1,0,{t:'',ok:false,g:String((TK_CK[i]||{}).g||'')});
     ckPintar(); ckFoco(i+1,false);
     if(window.__tkmAgendar) window.__tkmAgendar(true);
     return;
@@ -6818,7 +6905,8 @@ window.ckColar=(ev,i)=>{
   const linhas=txt.split(/\r?\n/).map(s=>s.replace(/^\s*(?:[-*•·–—]|\[[ xX]\]|\d+[.)])\s*/,'').trim()).filter(Boolean);
   if(!linhas.length) return;
   const tinha=!!String((TK_CK[i]&&TK_CK[i].t)||'').trim();
-  const novos=linhas.map(t=>({t:t,ok:false}));
+  const gAqui=String((TK_CK[i]||{}).g||'');
+  const novos=linhas.map(t=>({t:t,ok:false,g:gAqui}));
   if(tinha) TK_CK.splice.apply(TK_CK,[i+1,0].concat(novos));
   else TK_CK.splice.apply(TK_CK,[i,1].concat(novos));
   ckPintar(); ckFoco((tinha?i:i-1)+novos.length,true);
@@ -9469,7 +9557,7 @@ async function recGerar(t){
     if(data&&data.length) t.recorrencia=r2;
     return !!(data&&data.length); }
   const quem=recQuem(rec,t), leva=rec.leva||{}, lid=recDestLista(rec,t), col=recStatusDe(lid,(rec.dest||{}).status);
-  const ck=leva.ck===false?[]:(t.checklist||[]).map(x=>({t:x.t,ok:false}));
+  const ck=leva.ck===false?[]:(t.checklist||[]).map(x=>x&&x.g?{t:x.t,ok:false,g:x.g}:{t:x.t,ok:false});
   const recNova=Object.assign({},rec,{base:px.nom,n:(+rec.n||1)+1,gerou:null,quem:quem.q,serie:rec.serie||t.id});
   if(rec.nova===false){
     /* reabre a mesma: só se ela continua do jeito que vimos (trava contra dois navegadores) */
@@ -10676,7 +10764,8 @@ window.tkfPintarTrilha=()=>{
 window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const t=id?TK.tarefas.find(x=>x.id===id):null;
   window.TK_ABERTA=t?String(t.id):'';   /* F5 reabre a mesma tarefa */
-  TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok)})):[];
+  TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok),g:String((x&&x.g)||'')})):[];
+  TK_CK_SE=[];
   const it=t||{prioridade:'med',status:'todo',status_id:'',lista_id:TK.listaSel,prazo:prazoPre||'',valores:{}};
   if(!t&&grupoPre&&grupoPre.indexOf('no')!==0){
     if(TK.grupo==='status'){ if(tkStatus1(grupoPre)) it.status_id=grupoPre; else it.status=grupoPre; }
@@ -10757,7 +10846,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
 
         <div class="tkf-sec mt">Checklist<span class="ln"></span><span class="n" id="ck_prog"></span></div>
         <div id="ck_lista"></div>
-        <button class="tkf-addi" type="button" onclick="ckAdd()">+ item</button>
+        <button class="tkf-addi" type="button" onclick="ckSecNova()">+ seção</button>
 
         <div class="tkf-sec mt">Anexos<span class="ln"></span><span class="n" id="tkmBAnx"></span></div>
         <div class="tkm-drop" id="tkmDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="tkmAnxDrop(event)" onclick="document.getElementById('tkmFile').click()">
@@ -10931,7 +11020,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
       if(!v.squad&&exigeSquad(v.lista_id)) v.squad=meusSquads()[0]||null;
       const falta=tkFaltaObrig(v), _eraRasc=!!(t&&t.rascunho);
       v.rascunho=falta.length>0&&(!t||_eraRasc);   /* definitiva não volta a ser rascunho */
-      ckLer(); v.checklist=TK_CK.filter(x=>(x.t||'').trim()).map(x=>({t:x.t.trim(),ok:!!x.ok}));
+      ckLer(); v.checklist=TK_CK.filter(x=>(x.t||'').trim()).map(x=>{ const o={t:x.t.trim(),ok:!!x.ok}; if(String(x.g||'').trim()) o.g=String(x.g).trim(); return o; });
       const el=$('#tk_stid');
       if(el){ const s=el.value?tkStatus1(el.value):null; v.status_id=el.value||null; v.status=s?TK_G2ST[s.grupo]:'todo'; }
       else { v.status=$('#tk_st').value; v.status_id=null; }
@@ -17898,7 +17987,7 @@ function mpTcRotulos(){
 }
 window.mpTarCard=(id)=>{
   const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
-  window.__mpTc=String(id);
+  window.__mpTc=String(id); window.__mpTcSe=[];
   const hj=tkHoje(), dia=String(t.prazo||'').slice(0,10), f=mpFeita(t);
   const chips=[['Hoje',hj],['Amanhã',tkDiaMais(hj,1)],['Seg '+Number(tkDiaMais(mpSegDa(hj),7).slice(8,10)),tkDiaMais(mpSegDa(hj),7)],['Sem dia','']];
   modal('Tarefa',
@@ -17921,8 +18010,9 @@ window.mpTarCard=(id)=>{
     '<textarea id="mtc_ds" class="tc-ds" rows="3" placeholder="Notas">'+esc(t.descricao||'')+'</textarea>'+
     '<div class="tc-sec">Etapas <span id="mtc_ckc"></span></div>'+
     '<div class="tc-prog"><i id="mtc_prog"></i></div>'+
-    '<div id="mtc_ck"></div><div id="mtc_sub"></div>'+
-    '<div class="tc-add"><span class="tc-o vz"></span><input type="text" id="mtc_ckn" placeholder="Nova etapa" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mpTcCkAdd();}"></div>'+
+    '<div id="mtc_ck"></div>'+
+    '<button type="button" class="tc-addsec" onclick="mpTcSecNova()">+ seção</button>'+
+    '<div id="mtc_sub"></div>'+
     '<button type="button" class="tc-pronto" onclick="document.querySelector(\'.overlay .msave\').click()">Pronto</button>'+
     '</div>',
     async ()=>{
@@ -17954,14 +18044,50 @@ function mpTcPintar(){
     const c=$('#mtc_ckc'); if(c) c.textContent=tot?(ok+' de '+tot):'';
     const p=$('#mtc_prog'); if(p){ p.style.width=(tot?Math.round(ok/tot*100):0)+'%'; p.parentNode.hidden=!tot; } }
   if(ck){ const L=Array.isArray(t.checklist)?t.checklist:[];
-    ck.innerHTML=L.map((i,ix)=>'<div class="mp-trw'+(i&&i.ok?' done':'')+'"><button class="o'+(i&&i.ok?' on':'')+'" onclick="mpTcCkT('+ix+')">'+svgIco('check',11)+'</button><span class="tt">'+esc((i&&i.t)||'')+'</span><button class="x" onclick="mpTcCkDel('+ix+')">×</button></div>').join(''); }
+    const gs=ckGrupos(L,window.__mpTcSe), comSec=ckTemSec(gs);
+    const linha=(ix)=>{ const i=L[ix];
+      return '<div class="mp-trw'+(i&&i.ok?' done':'')+'"><button class="o'+(i&&i.ok?' on':'')+'" onclick="mpTcCkT('+ix+')">'+svgIco('check',11)+'</button><span class="tt">'+esc((i&&i.t)||'')+'</span><button class="x" onclick="mpTcCkDel('+ix+')">×</button></div>'; };
+    ck.innerHTML=gs.map((g,gi)=>
+      (comSec?'<div class="tc-secg"><input class="tc-secin" id="mtc_s'+gi+'" value="'+esc(g.nome)+'" placeholder="Nome da seção" oninput="mpTcSecRen('+gi+',this.value)"><span class="n">'+ckCont(L,g.ids)+'</span><button type="button" class="x" title="Apagar seção" onclick="mpTcSecDel('+gi+')">×</button></div>':'')
+      +g.ids.map(linha).join('')
+      +'<div class="tc-add"><span class="tc-o vz"></span><input type="text" id="mtc_n'+gi+'" placeholder="Nova etapa" onkeydown="if(event.key===\'Enter\'){event.preventDefault();mpTcCkAdd('+gi+');}"></div>'
+    ).join(''); }
   const su=$('#mtc_sub');
   if(su){ const S=mpSubsDe(t.id);
     su.innerHTML=S.map(sx=>'<div class="mp-trw'+(mpFeita(sx)?' done':'')+'"><button class="o'+(mpFeita(sx)?' on':'')+'" onclick="mpTcSubT(\''+sx.id+'\')">'+svgIco('check',11)+'</button><span class="tt">'+esc(sx.titulo||'')+'</span><button class="x" onclick="mpTcSubDel(\''+sx.id+'\')">×</button></div>').join(''); }
 }
 async function mpTcCkSalva(t){ const {error}=await sb.from('tarefas').update({checklist:t.checklist}).eq('id',t.id); if(error) toast('Erro: '+error.message); }
-window.mpTcCkAdd=()=>{ const t=mpTcT(), el=$('#mtc_ckn'), v=((el&&el.value)||'').trim(); if(!t||!v) return;
-  t.checklist=(Array.isArray(t.checklist)?t.checklist:[]).concat([{t:v,ok:false}]); el.value=''; mpTcPintar(); mpTcCkSalva(t); el.focus(); };
+window.mpTcCkAdd=(gi)=>{ const t=mpTcT(); if(!t) return;
+  const L=Array.isArray(t.checklist)?t.checklist:[];
+  const gs=ckGrupos(L,window.__mpTcSe), g=gs[gi==null?gs.length-1:gi]||gs[0];
+  const el=document.getElementById('mtc_n'+(gi==null?gs.length-1:gi));
+  const v=((el&&el.value)||'').trim(); if(!v) return;
+  const pos=g.ids.length?g.ids[g.ids.length-1]+1:L.length;
+  L.splice(pos,0,g.nome?{t:v,ok:false,g:g.nome}:{t:v,ok:false});
+  t.checklist=L;
+  if(g.ex!=null&&window.__mpTcSe) window.__mpTcSe.splice(g.ex,1);   /* ganhou item: virou secao de verdade */
+  if(el) el.value='';
+  mpTcPintar(); mpTcCkSalva(t);
+  const e2=document.getElementById('mtc_n'+(gi==null?ckGrupos(t.checklist,window.__mpTcSe).length-1:gi)); if(e2) e2.focus(); };
+window.mpTcSecNova=()=>{ const t=mpTcT(); if(!t) return;
+  const gs=ckGrupos(Array.isArray(t.checklist)?t.checklist:[],window.__mpTcSe);
+  let n='Nova seção', k=2; while(gs.some(g=>g.nome===n)){ n='Nova seção '+k; k++; }
+  window.__mpTcSe=(window.__mpTcSe||[]).concat([n]); mpTcPintar();
+  const gi=ckGrupos(Array.isArray(t.checklist)?t.checklist:[],window.__mpTcSe).findIndex(g=>g.nome===n);
+  const e=document.getElementById('mtc_s'+gi); if(e){ e.focus(); e.select(); } };
+window.mpTcSecRen=(gi,v)=>{ const t=mpTcT(); if(!t) return;
+  const L=Array.isArray(t.checklist)?t.checklist:[];
+  const gs=ckGrupos(L,window.__mpTcSe), g=gs[gi]; if(!g) return;
+  v=String(v||'');
+  if(g.ids.length){ g.ids.forEach(i=>{ if(L[i]){ if(v) L[i].g=v; else delete L[i].g; } }); mpTcCkSalva(t); }
+  else if(g.ex!=null&&window.__mpTcSe) window.__mpTcSe[g.ex]=v; };
+window.mpTcSecDel=async(gi)=>{ const t=mpTcT(); if(!t) return;
+  const L=Array.isArray(t.checklist)?t.checklist:[];
+  const gs=ckGrupos(L,window.__mpTcSe), g=gs[gi]; if(!g) return;
+  if(g.ids.length){ const ok=await confirmar('Apagar seção','Apaga "'+(g.nome||'sem nome')+'" e '+g.ids.length+(g.ids.length===1?' etapa.':' etapas.'),{sim:'Apagar',perigo:true}); if(!ok) return;
+    t.checklist=L.filter((x,i)=>g.ids.indexOf(i)<0); mpTcCkSalva(t); }
+  if(g.ex!=null&&window.__mpTcSe) window.__mpTcSe.splice(g.ex,1);
+  mpTcPintar(); };
 window.mpTcCkT=(ix)=>{ const t=mpTcT(); if(!t||!Array.isArray(t.checklist)||!t.checklist[ix]) return;
   t.checklist[ix].ok=!t.checklist[ix].ok; mpTcPintar(); mpTcCkSalva(t); };
 window.mpTcCkDel=(ix)=>{ const t=mpTcT(); if(!t||!Array.isArray(t.checklist)) return;
