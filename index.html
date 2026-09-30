@@ -2756,17 +2756,21 @@
   .fchdoc .tablewrap.fch-rola td:first-child{padding-left:0}
   .fchdoc .tablewrap tr.fch-soma td{border-top:1px solid #33205e}
   .fchdoc .tablewrap td.money{white-space:nowrap}
-  /* detalhe do escritório: lista limpa dentro de uma linha só, agrupada por tipo */
-  .fchdoc .tablewrap tr.fch-esc-d > td{padding:0 0 10px 26px;background:#180a3c}
-  .fchdoc .fch-esc-det{border-left:2px solid #33205e;margin:2px 0 0}
-  .fchdoc .fch-esc-g{display:flex;justify-content:space-between;gap:10px;padding:10px 15px 4px;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#c4a6ff}
-  .fchdoc .fch-esc-g span:last-child{font-variant-numeric:tabular-nums;color:#9b8fc0;letter-spacing:0}
-  .fchdoc .fch-esc-det .fch-li{padding:7px 15px;border-bottom-color:#251355}
-  .fchdoc .fch-esc-det .fch-li:last-child{border-bottom:0}
-  .fchdoc .fch-esc-det .fch-a{flex:1;min-width:0}
-  .fchdoc .fch-esc-det .fch-a small{display:block;color:#9b8fc0;font-size:11.5px;font-weight:400;margin-top:1px}
-  .fchdoc .fch-esc-det .fch-b{white-space:nowrap}
-  .fchdoc .fch-esc-det .fch-v{min-width:110px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  /* detalhe do escritório: tabela própria dentro de uma linha só, colunas alinhadas */
+  .fchdoc .tablewrap tr.fch-esc-d > td{padding:0 0 12px 26px;background:#180a3c}
+  .fchdoc .tablewrap table.fch-esc-det{width:100%;border-collapse:collapse;border-left:2px solid #33205e}
+  .fchdoc .tablewrap .fch-esc-det th{padding:8px 12px 6px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#9b8fc0;border-bottom:1px solid #33205e;text-align:left;white-space:nowrap}
+  .fchdoc .tablewrap .fch-esc-det th:last-child{text-align:right}
+  .fchdoc .tablewrap .fch-esc-det td{padding:7px 12px;font-size:13px;border-bottom:1px solid #251355;color:#d6cdf0;white-space:nowrap;vertical-align:middle}
+  .fchdoc .tablewrap .fch-esc-det tr:last-child td{border-bottom:0}
+  .fchdoc .tablewrap .fch-esc-det td.fch-esc-n{white-space:normal;color:#ece9f5;font-weight:600;min-width:220px}
+  .fchdoc .tablewrap .fch-esc-det td small{display:block;color:#9b8fc0;font-size:11.5px;font-weight:400;margin-top:1px}
+  .fchdoc .tablewrap .fch-esc-det td em{color:#f3ce7a;font-style:normal}
+  .fchdoc .tablewrap .fch-esc-det td.money{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;min-width:110px}
+  .fchdoc .fch-esc-t{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
+  .fchdoc .fch-esc-t.aluguel{background:rgba(168,85,247,.18);color:#c4a6ff}
+  .fchdoc .fch-esc-t.contas{background:rgba(56,189,248,.16);color:#7dd3fc}
+  .fchdoc .fch-esc-t.compras{background:rgba(251,146,60,.16);color:#fdba74}
   .fchdoc .rc-gr-b{color:#ece9f5}
   .fchdoc .rc-gr-b small{color:#9b8fc0}
   @media(max-width:620px){.fchdoc{padding:16px 12px 22px}.fchdoc .fch-b{display:none}}
@@ -13747,12 +13751,11 @@ function fchKpiEsc(porEsc,TD){
   /* detalhe (Gabriel 30/09: "tá um lixo"): uma linha limpa por gasto, agrupada por tipo,
      no mesmo componente das outras listas do Fechamento (.fch-li), em vez de espremer o
      texto cru do lançamento nas sete colunas do KPI. */
-  const det=(r)=>{ const grp={aluguel:[],contas:[],compras:[]}; r.its.forEach(x=>grp[fchTipoEsc(x.descricao)].push(x));
-    const li=(x)=>{ const it=fchEscItem(x), rest=fchParcelasRest(x.descricao,x.valor);
-      const meta=[x.data?fchDT(x.data).slice(0,5):'',it.meio,x.pagoEm?'pago '+fchDT(x.pagoEm).slice(0,5):'a pagar',it.parcela+(rest>0?' · faltam '+brl(rest):'')].filter(Boolean).join(' · ');
-      return `<div class="fch-li"><span class="fch-a">${esc(it.nome)}${it.det?`<small>${esc(it.det)}</small>`:''}</span><span class="fch-b">${esc(meta)}</span><span class="fch-v">${brl(x.valor)}</span></div>`; };
-    const g=(t)=>grp[t].length?`<div class="fch-esc-g"><span>${esc(FCH_TIPO_ESC[t])}</span><span>${brl(grp[t].reduce((s,x)=>s+fchN(x.valor),0))}</span></div>${grp[t].map(li).join('')}`:'';
-    return `<tr class="fch-esc-d" data-k="${k(r.n)}" hidden><td colspan="7"><div class="fch-esc-det">${g('aluguel')}${g('contas')}${g('compras')}</div></td></tr>`; };
+  const det=(r)=>{ const ORD={aluguel:0,contas:1,compras:2};
+    const its=r.its.slice().sort((x,y)=>(ORD[fchTipoEsc(x.descricao)]-ORD[fchTipoEsc(y.descricao)])||(fchN(y.valor)-fchN(x.valor)));
+    const li=(x)=>{ const it=fchEscItem(x), rest=fchParcelasRest(x.descricao,x.valor), tp=fchTipoEsc(x.descricao);
+      return `<tr><td class="fch-esc-n">${esc(it.nome)}${it.det?`<small>${esc(it.det)}</small>`:''}</td><td><span class="fch-esc-t ${tp}">${esc(FCH_TIPO_ESC[tp])}</span></td><td>${x.data?esc(fchDT(x.data).slice(0,5)):'-'}</td><td>${esc(it.meio||'-')}</td><td>${x.pagoEm?'pago '+esc(fchDT(x.pagoEm).slice(0,5)):'<em>a pagar</em>'}</td><td>${it.parcela?esc(it.parcela)+(rest>0?'<small>faltam '+brl(rest)+'</small>':''):'-'}</td><td class="money">${brl(x.valor)}</td></tr>`; };
+    return `<tr class="fch-esc-d" data-k="${k(r.n)}" hidden><td colspan="7"><table class="fch-esc-det"><thead><tr><th>Gasto</th><th>Tipo</th><th>Dia</th><th>Meio</th><th>Pagamento</th><th>Parcela</th><th>Valor</th></tr></thead><tbody>${its.map(li).join('')}</tbody></table></td></tr>`; };
   const lin=(r)=>`<tr><td><button type="button" class="rc-gr-b" aria-expanded="false" data-k="${k(r.n)}" onclick="fchEscAbre(this)" title="Ver o que foi gasto"><i class="fch-cv"></i><strong>${esc(r.n)}</strong><small>${r.its.length} lançamento${r.its.length===1?'':'s'}</small></button></td>${num(r.a.aluguel)}${num(r.a.contas)}${num(r.a.compras)}<td class="money" style="text-align:right"><strong>${brl(r.tot)}</strong></td><td class="money" style="text-align:right">${pct(r.tot)}</td>${num(r.rest)}</tr>`+det(r);
   const th=(t)=>`<th>${t}</th>`;
   return `<div class="tablewrap fch-rola"><table><thead><tr>${th('Escritório')}${th('Aluguel')}${th('Contas')}${th('Compras e serviços')}${th('Total do mês')}${th('% da despesa')}${th('Parcelas a vencer')}</tr></thead>
