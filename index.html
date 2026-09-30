@@ -17333,7 +17333,11 @@ function gerarFolhaCore(comp){
          Antes vencia no mês da competência e dizia "ref." o mês anterior, e a folha de
          setembro ficava igual à de agosto, como se fosse cobrança repetida. */
       const venc=f.posPago?vencOf(mesSeg,f.dia):vencOf(comp,f.dia);
-      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,esc:f.esc||'',descricao:(f.descricao||'')+(f.posPago?((f.descricao?', ':'')+'ref. '+fmtComp(comp)):''),valor:Number(f.valor)||0,venc,pago:false,pagoEm:null});
+      /* Conta variavel (Gabriel 30/09: "preciso preencher os variaveis todo mes, entao todo
+         mes vem vazio o campo pra fazer a soma"): agua, luz e despesas do escritorio mudam de
+         valor todo mes. O fixo marcado como variavel serve so de lembrete: nasce ZERADO e
+         espera a fatura. O valor do cadastro nao e copiado. */
+      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,esc:f.esc||'',descricao:(f.descricao||'')+(f.posPago?((f.descricao?', ':'')+'ref. '+fmtComp(comp)):''),valor:f.variavel?0:(Number(f.valor)||0),venc,pago:false,pagoEm:null});
       n++;
     }
   });
@@ -17363,7 +17367,10 @@ function renderFolha(c){
   const [fy,fm]=comp.split('-').map(Number);
   const fLast=new Date(fy,fm,0).getDate();
   const ocorrencias=(f)=>{ if(f.freq!=='semanal') return 1; let n=0; for(let d=1;d<=fLast;d++){ if(new Date(fy,fm-1,d).getDay()===(Number(f.diaSemana)||0)) n++; } return n; };
-  const previstoFixos=fixos.filter(f=>f.ativo).reduce((s,f)=>s+(Number(f.valor)||0)*ocorrencias(f),0);
+  /* Fixo variavel nao tem valor de cadastro pra prever: o mes vale o que foi preenchido. */
+  const ehVar=(f)=>!!(f&&f.variavel);
+  const valDoMes=(f)=>pays.filter(p=>p.fixoId===f.id).reduce((t,p)=>t+(Number(p.valor)||0),0);
+  const previstoFixos=fixos.filter(f=>f.ativo).reduce((s,f)=>s+(ehVar(f)?valDoMes(f):(Number(f.valor)||0)*ocorrencias(f)),0);
   const avulsos=pays.filter(p=>!p.fixoId).reduce((s,p)=>s+Number(p.valor),0);
   const tot=previstoFixos+avulsos;
   const pago=pays.filter(p=>p.pago).reduce((s,p)=>s+Number(p.valor),0);
@@ -17391,7 +17398,7 @@ function renderFolha(c){
      const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
      return `<tr>
       <td><strong>${esc(p.nome)}</strong></td><td>${esc(p.descricao)||'-'}</td><td>${fmtDate(p.venc)||'-'}</td>
-      <td class="money" style="text-align:right">${brl(p.valor)}</td><td>${st}</td>
+      <td class="money" style="text-align:right">${(!Number(p.valor)&&ehVar(fixoById[p.fixoId]))?`<button type="button" class="iconbtn" onclick="openFpModal('${p.id}')" title="Conta variável: lance o valor da fatura deste mês">preencher</button>`:brl(p.valor)}</td><td>${st}</td>
       <td><div class="rowact">
         ${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${p.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${p.id}')">✓ Pagar</button>`}
         <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button>
@@ -17553,7 +17560,9 @@ window.openFixoModal=(id)=>{
     </div>
     <div class="row2">
       <div class="field"><label>Frequência</label><select id="m_freq"><option value="mensal"${it.freq!=='semanal'?' selected':''}>Mensal: uma vez por mês</option><option value="semanal"${it.freq==='semanal'?' selected':''}>Semanal: toda semana</option></select></div>
-      <div class="field"><label>Valor (R$ por pagamento)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00"></div>
+      <div class="field"><label>Valor (R$ por pagamento)</label><input type="number" step="0.01" id="m_valor" value="${it.valor??''}" placeholder="0,00">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:7px 0 0;font-size:13px;color:var(--txt)"><input type="checkbox" id="m_var" ${it.variavel?'checked':''} style="accent-color:#7c3aed;width:16px;height:16px;cursor:pointer"> Valor variável: nasce vazio todo mês</label>
+        <p class="hint" style="margin:4px 0 0">Para água, luz e despesas, que mudam de valor. A linha do mês aparece pedindo "preencher".</p></div>
     </div>
     <div class="row2">
       <div class="field" id="wrapDia" style="${it.freq==='semanal'?'display:none':''}"><label>Dia do pagamento (1–31)</label><input type="number" min="1" max="31" id="m_dia" value="${it.dia||30}" title="Gabriel 30/09: toda a equipe vence dia 30, dentro do mês de competência"></div>
@@ -17569,7 +17578,7 @@ window.openFixoModal=(id)=>{
     </div>
     <div class="field"><label>Ativo (entra na geração do mês)</label><select id="m_ativo"><option value="1"${it.ativo?' selected':''}>Sim</option><option value="0"${!it.ativo?' selected':''}>Não</option></select></div>`,
     async ()=>{
-      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),titular:((($('#m_titular')||{}).value)||'').trim(),banco:$('#m_banco').value.trim(),dp:(($('#m_dp')||{}).value||'').trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,posPago:$('#m_pos').value==='1',inicioComp:$('#m_inicioComp').value||null,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1',proxData:$('#m_prox').value||null,recorrente:$('#m_rec').checked};
+      const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),titular:((($('#m_titular')||{}).value)||'').trim(),banco:$('#m_banco').value.trim(),dp:(($('#m_dp')||{}).value||'').trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,posPago:$('#m_pos').value==='1',inicioComp:$('#m_inicioComp').value||null,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1',proxData:$('#m_prox').value||null,recorrente:$('#m_rec').checked,variavel:!!(($('#m_var')||{}).checked)};
       if(v.proxData){ const pd=new Date(v.proxData+'T12:00:00'); v.dia=Math.min(31,Math.max(1,pd.getDate())); v.diaSemana=pd.getDay(); v.inicioComp=v.proxData.slice(0,7); }
       if(!v.nome){ toast('Informe o nome.'); return false; }
       /* o campo aparece sempre agora: preenchido = pagamento de escritorio, vazio = equipe */
