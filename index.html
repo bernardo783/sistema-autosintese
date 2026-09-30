@@ -2742,6 +2742,14 @@
   .fchdoc .tablewrap tr:last-child td{border-bottom:0}
   .fchdoc .tablewrap td span{color:#9b8fc0 !important}
   .fchdoc .tablewrap td.money{font-variant-numeric:tabular-nums;min-width:130px}
+  .fchdoc .tablewrap.fch-rola{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fchdoc .tablewrap th{padding:8px 0 8px 18px;background:none;color:#9b8fc0;border-bottom:1px solid #33205e;font-weight:600;white-space:nowrap}
+  .fchdoc .tablewrap.fch-rola th:first-child,.fchdoc .tablewrap.fch-rola td:first-child{position:sticky;left:0;z-index:1;background:#1e0c46;padding-right:14px}
+  .fchdoc .tablewrap th:first-child{padding-left:0}
+  .fchdoc .tablewrap.fch-rola td{padding-left:18px}
+  .fchdoc .tablewrap.fch-rola td.money{min-width:0}
+  .fchdoc .tablewrap.fch-rola td:first-child{padding-left:0}
+  .fchdoc .tablewrap tr.fch-soma td{border-top:1px solid #33205e}
   @media(max-width:620px){.fchdoc{padding:16px 12px 22px}.fchdoc .fch-b{display:none}}
   .fch-g{background:var(--panel);border:1px solid var(--border);border-radius:11px;margin-bottom:7px;overflow:hidden}
   .fch-g[open]{border-color:var(--brand)}
@@ -13472,6 +13480,32 @@ const fchEhRepasse=(x)=>FCH_FORA.some(k=>String(x.categoria||'').toLowerCase().i
 const FCH_ESC=[['Volta Redonda',['volta redonda']],['Itajubá',['itajub']],['São José do Rio Preto',['são josé do rio preto','sao jose do rio preto','sjrp']]];
 function fchEscDe(t){ t=String(t||'').toLowerCase();
   for(const [n,ks] of FCH_ESC){ if(ks.some(k=>t.includes(k))) return n; } return null; }
+/* KPIs por escritorio (Gabriel 30/09: "adapta isso no fechamento do mes para a gente ter os kpis"):
+   o custo de cada sede no mes, separado em aluguel, contas (internet, agua, luz) e compras e
+   servicos, o peso na despesa e quanto ainda falta pagar das compras parceladas no cartao
+   (le "parcela N/M" na descricao). A sede vem do nome dela na descricao (fchEscDe). */
+function fchTipoEsc(d){ d=String(d||'');
+  if(/aluguel|rateio/i.test(d)) return 'aluguel';
+  if(/internet|(?:^|[^a-zà-ú])(?:água|agua)(?![a-zà-ú])|\bluz\b|\benergia\b|cemig/i.test(d)) return 'contas';
+  return 'compras'; }
+function fchParcelasRest(d,v){ const m=/parcela\s+(\d+)\s*\/\s*(\d+)/i.exec(String(d||'')); if(!m) return 0;
+  const n=+m[1], t=+m[2]; return t>n?Math.max(0,fchN(v))*(t-n):0; }
+function fchKpiEsc(porEsc,TD){
+  const nomes=Object.keys(porEsc||{}); if(!nomes.length) return '';
+  const L=nomes.map(n=>{ const a={aluguel:0,contas:0,compras:0}; let rest=0;
+    porEsc[n].forEach(x=>{ a[fchTipoEsc(x.descricao)]+=fchN(x.valor); rest+=fchParcelasRest(x.descricao,x.valor); });
+    return {n,a,tot:a.aluguel+a.contas+a.compras,rest}; }).sort((x,y)=>y.tot-x.tot);
+  const S=L.reduce((s,r)=>({aluguel:s.aluguel+r.a.aluguel,contas:s.contas+r.a.contas,compras:s.compras+r.a.compras,tot:s.tot+r.tot,rest:s.rest+r.rest}),
+    {aluguel:0,contas:0,compras:0,tot:0,rest:0});
+  const pct=(v)=>TD>0?(v/TD*100).toFixed(1).replace('.',',')+'%':'-';
+  const num=(v)=>`<td class="money" style="text-align:right">${brl(v)}</td>`;
+  const lin=(r)=>`<tr><td><strong>${esc(r.n)}</strong></td>${num(r.a.aluguel)}${num(r.a.contas)}${num(r.a.compras)}<td class="money" style="text-align:right"><strong>${brl(r.tot)}</strong></td><td class="money" style="text-align:right">${pct(r.tot)}</td>${num(r.rest)}</tr>`;
+  const th=(t,dir)=>`<th${dir?' style="text-align:right"':''}>${t}</th>`;
+  return `<div class="tablewrap fch-rola"><table><thead><tr>${th('Escritório')}${th('Aluguel',1)}${th('Contas',1)}${th('Compras e serviços',1)}${th('Total do mês',1)}${th('% da despesa',1)}${th('Parcelas a vencer',1)}</tr></thead>
+    <tbody>${L.map(lin).join('')}
+    <tr class="fch-soma"><td><strong>Todos os escritórios</strong></td>${num(S.aluguel)}${num(S.contas)}${num(S.compras)}<td class="money" style="text-align:right"><strong>${brl(S.tot)}</strong></td><td class="money" style="text-align:right">${pct(S.tot)}</td>${num(S.rest)}</tr></tbody></table></div>
+   <p class="hint">Contas é internet, água e luz. Compras e serviços é o resto: cartão, faxina, equipamento. Parcelas a vencer é o que ainda falta pagar das compras parceladas no cartão, depois da parcela deste mês.</p>`;
+}
 const FCH_SETOR={'Luiz Marcelo':'Gerentes','João Vitor':'Gerentes','Luan Peixoto':'Gestores de tráfego',
   'Yghor':'Gestores de tráfego','Maria Eduarda':'Editora de vídeo','José Carlos':'Sócios',
   'Gabriel Henrique':'Sócios','Bernardo Rocha':'Sócios','Arthur':'Programação','Kennedy':'Comercial','Luana':'Comercial'};
@@ -13620,6 +13654,7 @@ function renderFechamentoMes(c){
    antecipação e projeto pago de uma vez, entrada que não se repete não serve para medir o mês nem para o rateio.</p>
 
    <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/></svg> Custo por escritório</h2>
+   ${fchKpiEsc(porEsc,TD)}
    ${Object.entries(porEsc).sort((a,b)=>b[1].reduce((s,x)=>s+fchN(x.valor),0)-a[1].reduce((s,x)=>s+fchN(x.valor),0))
      .map(([k,its])=>fchBloco(k, its.reduce((s,x)=>s+fchN(x.valor),0),
        its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.descricao,x.categoria,x.valor]),
