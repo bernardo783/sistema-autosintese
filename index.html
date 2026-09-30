@@ -17842,6 +17842,16 @@ window.fdPagar=(pid,lucro)=>{
       const v=fdR2(parseFloat(String(($('#fd_v')||{}).value||'').replace(',','.')));
       if(!(v>0)){ toast('Informe o valor pago.'); return false; }
       const d=($('#fd_d')||{}).value||hojeISO();
+      /* trava de pagamento repetido: o id e novo a cada confirmacao, entao dois cliques no
+         botao gravariam o mesmo valor duas vezes e a pessoa apareceria com o dobro no
+         Fechamento. Recalcula na hora do submit: se o devido do mes ja esta pago, nao grava. */
+      const Vh=fdVisao(comp), xh=Vh.R.find(r=>r.p.id===pid);
+      const devH=lucro?(Vh.L.por[pid]||0):(xh?xh.total:0);
+      const jaH=fdSoma(fdPagosDe(comp,p,lucro),'valor');
+      if(devH>0&&jaH>=devH-0.005){
+        toast(p.nome+' já está com '+brl(jaH)+' pago em '+fmtComp(comp)+', o devido do mês. Nada a lançar.');
+        return false;
+      }
       const reg={id:'fdp_'+uid(),comp,fixoId:p.id,nome:p.nome,esc:'',valor:v,venc:fdVenc(comp,p),pago:true,pagoEm:d,
         descricao:(lucro?'Divisão do lucro de ':((p.cargo||FD_PAPEL[p.papel]||'Equipe')+', folha de '))+fmtComp(comp)};
       if(lucro) reg.lucro=true;
