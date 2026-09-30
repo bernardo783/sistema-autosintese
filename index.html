@@ -9550,7 +9550,7 @@ function tkDesenhar(c){
          <button type="button" class="tp-mais" title="Novo cliente ou contrato" aria-label="Novo cliente ou contrato" onclick="lcNovoPop(event)">${tpSvg('mais')}</button>
        </div></div></div>
    </div>
-   ${ger?'':lcEtiquetas()+(TK.visao==='lista'?lcFunil():'')+lcGrupoResumo()}
+   ${ger?'':lcDesalinhados()+lcEtiquetas()+(TK.visao==='lista'?lcFunil():'')+lcGrupoResumo()}
    ${TK.listas.length?corpo:'<div class="empty">Nenhum espaço ainda. Use o + ao lado de ESPAÇOS na barra lateral.</div>'}`;
     if(TK.focoBusca){ const b=$('#tk_busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); } TK.focoBusca=false; }
     return; }
@@ -11851,8 +11851,13 @@ window.lcArquivar=async (fid)=>{
   const {error}=await sb.from('tarefas').update({arquivada_em:quando,arquivada_por:(currentUser||{}).id||null}).eq('id',t.id);
   if(error){ toast('Erro: '+error.message); return; }
   t.arquivada_em=quando; t.arquivada_por=(currentUser||{}).id||null;
+  /* REGRA DO GABRIEL (30/09): "não existe estar em um e não estar no outro". Arquivar o card
+     arquiva o cadastro do Financeiro junto — sai da carteira e das contas do mês sem virar
+     churn e sem apagar nada. Vai pelo banco porque o gerente não lê o módulo clientes. */
+  const fin=await lcSyncArquivo(fid,true);
   arqFechar(); arqRedesenhar();
-  toast(((f&&f.nome)||'Cliente')+' arquivado. Está em Arquivados.');
+  toast(((f&&f.nome)||'Cliente')+' arquivado'+(fin.ok?' aqui e no Financeiro.':'.'));
+  await lcAvisarAsaas(fid,(f&&f.nome)||'este cliente');
 };
 /* Voltar do Controle de Churns (Gabriel 30/09): o cliente voltou atras e nao ha
    caminho manual de volta — o automatico so existe desmarcando o churn no mes em
@@ -11876,6 +11881,7 @@ window.lcReativar=async (fid)=>{
   const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
   if(error){ toast('Erro: '+error.message); return; }
   Object.assign(t,patch);
+  await lcSyncArquivo(fid,false);   /* volta pros dois lados */
   try{ await lcSincronizarFicha(t.id,LC_ATIVO); }catch(_){}
   /* A cobranca volta junto (Gabriel 30/09, SPACO VEICULOS): o card voltava e o cadastro
      seguia marcado como churn, entao o cliente ativo nao era mais cobrado. */
@@ -11902,11 +11908,48 @@ function lcDesfazerChurnFin(cli,comp){
   else if(r&&r.status==='churnpago'){ r.status='recebido'; r.churnEm=null; }
   return 'mes';
 }
+/* espelha o arquivamento no cadastro financeiro (RPC cliente_arquivar) */
+async function lcSyncArquivo(fid,arquivar){
+  try{
+    const {data,error}=await sb.rpc('cliente_arquivar',{p_ficha:String(fid),p_arquivar:!!arquivar});
+    if(error){ toast('Financeiro: '+error.message); return {ok:false}; }
+    const r=data||{};
+    if(r.ok){
+      const c=(DB.clientes||[]).find(x=>String(x.id)===String((fichaDe(fid)||{}).clienteId));
+      if(c){ if(arquivar) c.arquivadoEm=hojeISO(); else delete c.arquivadoEm; }
+      try{ render(currentView); }catch(_){}
+    }
+    return r;
+  }catch(e){ toast('Financeiro: '+(e.message||e)); return {ok:false}; }
+}
+/* A cobrança de verdade vive no Asaas: arquivar aqui não para o PIX que chega no cliente.
+   Se existe assinatura, oferece cancelar na hora (edge asaas-assinatura, só master). */
+async function lcAvisarAsaas(fid,nome){
+  const c=(DB.clientes||[]).find(x=>String(x.id)===String((fichaDe(fid)||{}).clienteId));
+  const sub=c&&c.asaas&&c.asaas.subscriptionId;
+  if(!sub) return;
+  const prox=(c.asaas.proximoVencimento||'').slice(0,10);
+  const ok=await confirmar('Cancelar a cobrança no Asaas?',
+    nome+' tem assinatura ativa no Asaas'+(prox?' (próxima em '+fmtDate(prox)+')':'')+
+    '. Arquivar no sistema não para o Asaas: sem cancelar, ele continua recebendo cobrança.',
+    {sim:'Cancelar no Asaas',nao:'Depois'});
+  if(!ok){ avisoModal('Cobrança segue ativa','A assinatura de '+nome+' continua no Asaas. Cancele por lá ou volte aqui pelo menu do cliente.'); return; }
+  try{
+    const r=await sb.functions.invoke('asaas-assinatura',{body:{acao:'cancelar',sub:sub}});
+    if(r.error) throw new Error(r.error.message||'falhou');
+    c.asaas.cancelado=true; c.asaas.canceladoEm=hojeISO();
+    try{ await saveDB(); }catch(_){}
+    toast('Assinatura de '+nome+' cancelada no Asaas.');
+  }catch(e){
+    avisoModal('Não consegui cancelar no Asaas','A assinatura de '+nome+' continua ativa ('+(e.message||e)+'). Cancele no painel do Asaas para o cliente parar de receber cobrança.');
+  }
+}
 window.arqRestaurar=async (id)=>{
   const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
   const {error}=await sb.from('tarefas').update({arquivada_em:null,arquivada_por:null}).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
   t.arquivada_em=null; t.arquivada_por=null;
+  if(ehLC(t.lista_id)&&t.ficha_id) await lcSyncArquivo(t.ficha_id,false);   /* volta nos dois */
   arqFechar(); arqRedesenhar(); toast('Restaurado.');
 };
 /* Excluir de vez um cliente arquivado: leva ficha, card e — se houver — o cadastro
@@ -12149,6 +12192,77 @@ window.lcNovoPop=(ev)=>{
 };
 window.lcNovoClientes=()=>{ const el=document.getElementById('lcbPop'); if(!el) return;
   el.innerHTML=lcNovoLista(lcMeusClientes()); const i=el.querySelector('.tkp-b'); if(i) i.focus(); };
+/* "Não existe estar em um e não estar no outro" (Gabriel 30/09): quem está na cobrança tem que
+   ter card aqui, e quem tem card aqui tem que estar na cobrança. O alerta é a rede de segurança —
+   só o master enxerga os dois lados, então só pra ele. */
+function lcForaDeSincronia(){
+  if(!(currentUser&&currentUser.role==='master')||!(DB.clientes||[]).length) return [];
+  const fora=[];
+  const cardDe=(cid)=>{ const f=(DB.projetos||[]).find(p=>String(p.clienteId)===String(cid));
+    return f?lcCardDe(f.id):null; };
+  (DB.clientes||[]).forEach(c=>{
+    if(cliArq(c)||c.churnComp||c.fim) return;          /* já saiu de propósito */
+    const cd=cardDe(c.id);
+    if(!cd) fora.push({nome:c.nome,por:'está no Financeiro e não tem card no Controle de Clientes',cid:c.id});
+    else if(arquivada(cd)) fora.push({nome:c.nome,por:'está na cobrança mas o card está arquivado',cid:c.id,tid:cd.id});
+    else if(String(cd.lista_id)===String(CH_ID)) fora.push({nome:c.nome,por:'está na cobrança mas o card está no Controle de Churns',cid:c.id,tid:cd.id});
+  });
+  /* pior caso de todos: o cliente saiu daqui mas o PIX continua indo pra ele todo mês */
+  (DB.clientes||[]).forEach(c=>{
+    const sub=c&&c.asaas&&c.asaas.subscriptionId;
+    if(!sub||c.asaas.cancelado) return;
+    const f=(DB.projetos||[]).find(p=>String(p.clienteId)===String(c.id));
+    const cd=f?lcCardDe(f.id):null;
+    const saiu=cliArq(c)||!!c.churnComp||!!c.fim||!cd||arquivada(cd)||String((cd||{}).lista_id)===String(CH_ID);
+    if(saiu) fora.push({nome:c.nome,por:'saiu da carteira e a assinatura no Asaas continua ativa',cid:c.id,sub:sub});
+  });
+  (TK.tarefas||[]).filter(t=>ehLC(t.lista_id)&&!arquivada(t)&&t.ficha_id).forEach(t=>{
+    const f=fichaDe(t.ficha_id)||{}, c=(DB.clientes||[]).find(x=>String(x.id)===String(f.clienteId));
+    if(!c) fora.push({nome:t.titulo,por:'tem card aqui e não está no Financeiro',tid:t.id});
+    else if(cliArq(c)) fora.push({nome:t.titulo,por:'tem card aqui e está arquivado no Financeiro',tid:t.id,cid:c.id});
+  });
+  return fora;
+}
+function lcDesalinhados(){
+  const fora=lcForaDeSincronia(); if(!fora.length) return '';
+  return `<div class="f1-aviso" style="margin:0 0 10px">↻ <b>${fora.length}</b> cliente${fora.length===1?'':'s'} fora de sincronia entre o Controle de Clientes e o Financeiro.
+    <button class="mp-add" style="margin-left:0" onclick="lcVerDesalinhados()">ver quais</button></div>`;
+}
+/* Cancela a assinatura do cliente no Asaas. A edge exige o login de um master: daqui sai
+   cobrança de verdade, então quem aperta o botão é uma pessoa, nunca um processo automático. */
+window.lcCancelarAsaas=async (cid,btn)=>{
+  const c=(DB.clientes||[]).find(x=>String(x.id)===String(cid)); if(!c) return;
+  const sub=c.asaas&&c.asaas.subscriptionId; if(!sub) return;
+  const prox=(c.asaas.proximoVencimento||'').slice(0,10);
+  const ok=await confirmar('Cancelar a cobrança de '+(c.nome||'')+'?',
+    'A assinatura no Asaas para de gerar cobrança'+(prox?' (a próxima seria em '+fmtDate(prox)+')':'')+
+    '. O que já foi pago e o histórico ficam. Não dá pra desfazer: pra voltar a cobrar, cria de novo.',
+    {sim:'Cancelar no Asaas',perigo:true});
+  if(!ok) return;
+  if(btn){ btn.disabled=true; btn.textContent='Cancelando…'; }
+  try{
+    const r=await sb.functions.invoke('asaas-assinatura',{body:{acao:'cancelar',sub:sub}});
+    const d=(r&&r.data)||{};
+    if(r.error||!d.ok) throw new Error((d&&d.erro)||(r.error&&r.error.message)||'falhou');
+    c.asaas.cancelado=true; c.asaas.canceladoEm=hojeISO();
+    try{ await saveDB(); }catch(_){}
+    if(btn){ btn.textContent='Cancelada'; }
+    toast('Assinatura de '+(c.nome||'cliente')+' cancelada'+(d.cancelou?' ('+d.cancelou+' cobrança'+(d.cancelou===1?'':'s')+' em aberto)':'')+'.');
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='Cancelar no Asaas'; }
+    avisoModal('Não cancelou','O Asaas recusou: '+(e.message||e)+'. A cobrança continua ativa.');
+  }
+};
+window.lcVerDesalinhados=()=>{
+  const fora=lcForaDeSincronia();
+  modal('Clientes fora de sincronia',
+    '<p class="hint" style="margin:0 0 12px">Regra: cliente ativo existe nos dois lugares. Quem saiu, sai dos dois — arquivando (sem receita perdida) ou marcando churn.</p>'+
+    (fora.map(x=>`<div class="cx-item"><div style="flex:1;min-width:0"><div class="nm">${esc(x.nome||'-')}</div><div class="id">${esc(x.por)}</div></div>
+      ${x.sub?`<button class="btn small" onclick="lcCancelarAsaas('${esc(x.cid)}',this)">Cancelar no Asaas</button>`:''}</div>`).join('')
+      ||'<p class="hint">Nenhum. Tudo alinhado.</p>'),
+    async()=>true);
+  const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Fechar';
+};
 /* Controle de Clientes: selo do grupo no card, resumo do grupo buscado e alerta de conta sem ficha */
 /* Gabriel 30/09: o selo trazia "ALTOGIRO · 8" e o 8 nao batia com o que a tela mostra
    (contava ficha de qualquer situacao, inclusive churn e arquivada). Numero fora agora:
@@ -19726,12 +19840,28 @@ window.cliArquivar=async (id)=>{
     {sim:'Sim, arquivar',nao:'Não'});
   if(!ok) return;
   c.arquivadoEm=hojeISO();
-  await saveDB(); render(currentView); toast((c.nome||'Cliente')+' arquivado.');
+  await saveDB();
+  /* espelho obrigatório (Gabriel 30/09): quem sai da carteira sai do Controle de Clientes */
+  const fA=(DB.projetos||[]).find(p=>String(p.clienteId)===String(c.id));
+  const cdA=fA?lcCardDe(fA.id):null;
+  if(cdA&&!arquivada(cdA)){
+    const r=await sb.from('tarefas').update({arquivada_em:new Date().toISOString(),arquivada_por:(currentUser||{}).id||null}).eq('id',cdA.id);
+    if(!r.error){ cdA.arquivada_em=new Date().toISOString(); }
+  }
+  render(currentView); toast((c.nome||'Cliente')+' arquivado aqui e no Controle de Clientes.');
+  if(fA) await lcAvisarAsaas(fA.id,c.nome||'este cliente');
 };
 window.cliDesarquivar=async (id)=>{
   const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
   delete c.arquivadoEm;
-  await saveDB(); render(currentView); toast((c.nome||'Cliente')+' voltou para a carteira.');
+  await saveDB();
+  const fD=(DB.projetos||[]).find(p=>String(p.clienteId)===String(c.id));
+  const cdD=fD?lcCardDe(fD.id):null;
+  if(cdD&&arquivada(cdD)){
+    const r=await sb.from('tarefas').update({arquivada_em:null,arquivada_por:null}).eq('id',cdD.id);
+    if(!r.error){ cdD.arquivada_em=null; }
+  }
+  render(currentView); toast((c.nome||'Cliente')+' voltou para a carteira e para o Controle de Clientes.');
 };
 /* Menu da linha do cliente: arquivar, mandar para o Controle de Churns ou excluir. */
 window.cliAcoes=async (id)=>{
