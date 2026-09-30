@@ -3,7 +3,7 @@
 -- Clientes e dos Recebimentos. Esta migracao so cria estrutura; nenhum dado entra aqui.
 --
 -- folha_linhas(comp) devolve uma linha por pessoa x cliente x papel:
---   gerente  10% da mensalidade do mes, contando o que o cliente ja pagou
+--   gerente  10% da mensalidade do mes (pro rata no mes de entrada), contando o que o cliente ja pagou
 --   gestor   R$ 100 por conta (pro rata no mes de entrada), contando o que o cliente ja pagou
 --   social   R$ 200 por conta em que a pessoa e a social media (nao depende do pagamento)
 --   venda    5% da primeira mensalidade, pro SDR do ganho do painel Comercial, quando o
@@ -86,13 +86,15 @@ b as (select b3.*,
     case when (val->>k_ger)  ~ num then (val->>k_ger)::numeric  end v_ger,
     case when (val->>k_mens) ~ num then (val->>k_mens)::numeric end v_mens,
     case when (val->>k_gest) ~ num then (val->>k_gest)::numeric end v_gest,
-    case when (val->>k_rsoc) ~ num then (val->>k_rsoc)::numeric end v_soc
+    case when (val->>k_rsoc) ~ num then (val->>k_rsoc)::numeric end v_soc,
+    case when (cli->>'valor') ~ num then (cli->>'valor')::numeric end v_cad
     from b3),
 ger as (select trim(fic->>'gerente') pessoa, 'gerente'::text papel, fic->>'id' ficha,
                coalesce(cli->>'nome',fic->>'nome') cliente, st, mens base, razao,
     /* valor combinado a mao no card vale; senao, 10% da mensalidade DO MES olhado */
     case when v_ger is not null and v_mens is not null and v_ger <> round(v_mens*0.10,2) then v_ger
-         else round(mens*0.10,2) end cheio
+         /* pro rata no mes de entrada sobre o valor de cadastro: a cobranca do 1o mes pode ja vir proporcional */
+         else round((case when fator_comp<1 then coalesce(v_cad,mens)*fator_comp else mens end)*0.10,2) end cheio
     from b where devido and coalesce(trim(fic->>'gerente'),'')<>'' and not lc_socio(fic->>'gerente')),
 gest as (select coalesce(gest_user, trim(fic->>'responsavel')) pessoa, 'gestor'::text papel, fic->>'id' ficha,
                 coalesce(cli->>'nome',fic->>'nome') cliente, st, mens base, razao,

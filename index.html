@@ -17428,10 +17428,10 @@ function fdComo(x){
   if(v.length) t.push(pg(v)+' de '+v.length+(v.length===1?' venda ligada ao cliente':' vendas ligadas ao cliente'));
   return t.join(' · ')||'sem valor neste mês';
 }
-/* DIVISAO DO LUCRO (Gabriel 30/09): de cada R$ 100 de lucro, R$ 20 ficam no caixa; dos R$ 80
-   que sobram, 10% sao de quem e Tecnologia (Arthur) e o resto se divide igual entre os
-   socios. Lucro = o que entrou no mes menos as despesas e menos a folha calculada. Repasse
-   de token sai dos dois lados; o que ja foi pago de folha nao conta duas vezes (fp_). */
+/* DIVISAO DO LUCRO (Gabriel 30/09): de cada R$ 100 de lucro, R$ 20 ficam no caixa, R$ 10 sao
+   de quem e Tecnologia (Arthur) e os R$ 70 que sobram se dividem igual entre os socios.
+   Lucro = o que entrou no mes menos as despesas e menos a folha calculada. Repasse de token
+   sai dos dois lados; o que ja foi pago de folha nao conta duas vezes (fp_). */
 function fdLucro(comp,folhaTotal,pessoas){
   const fin=(DB.financeiro||[]).filter(x=>fchData(x)===comp);
   const rec=fin.filter(x=>x.tipo==='receita'), desp=fin.filter(x=>x.tipo==='despesa');
@@ -17440,9 +17440,9 @@ function fdLucro(comp,folhaTotal,pessoas){
   const ehPessoa=(x)=>String(x.id||'').indexOf('fp_')===0&&x.categoria!=='Escritórios';
   const oper=fdR2(fdSoma(desp.filter(x=>!ehPessoa(x)),'valor')-repasse);
   const lucro=fdR2(receita-oper-folhaTotal), base=Math.max(0,lucro);
-  const caixa=fdR2(base*0.20), dist=fdR2(base-caixa);
+  const caixa=fdR2(base*0.20);
   const tecs=(pessoas||[]).filter(p=>p.papel==='tec'), socs=(pessoas||[]).filter(p=>p.papel==='socio');
-  const tecTot=tecs.length?fdR2(dist*0.10):0, por={};
+  const tecTot=tecs.length?fdR2(base*0.10):0, dist=fdR2(base-caixa), por={};
   tecs.forEach(p=>{ por[p.id]=fdR2(tecTot/tecs.length); });
   socs.forEach(p=>{ por[p.id]=fdR2((dist-tecTot)/socs.length); });
   return {receita,oper,folha:folhaTotal,lucro,caixa,dist,tecTot,por,tecs,socs};
@@ -17528,8 +17528,9 @@ function renderFolha(c){
    ${V.R.length?'':'<div class="empty">Ninguém na folha ainda. Use “+ Pessoa”.</div>'}</div>
    ${fdBlocoLucro(comp,V)}
    ${fdEscritorios(comp)}
-   <p class="hint" style="margin-top:12px">Ninguém tem valor pré-definido: o sistema soma o fixo de quem tem com o que vem do Controle de Clientes. <strong>Gerente</strong> recebe 10% do que a carteira dele pagou no mês e <strong>gestor de tráfego</strong> R$ 100 por conta paga (proporcional no mês em que o cliente entrou), os dois sobem sozinhos quando o cliente é marcado como Recebido. <strong>Social media</strong> soma R$ 200 por conta em que aparece no Controle de Clientes. <strong>SDR</strong> soma 5% da primeira mensalidade de cada ganho do painel Comercial ligado ao cliente. Virou o mês, a conta recomeça do zero. O que falta pagar entra no Financeiro como despesa do mês, “a pagar”, e vira pago quando você registra o pagamento.</p>`;
-  trocaMes();}
+   <p class="hint" style="margin-top:12px">Ninguém tem valor pré-definido: o sistema soma o fixo de quem tem com o que vem do Controle de Clientes. <strong>Gerente</strong> recebe 10% do que a carteira dele pagou no mês e <strong>gestor de tráfego</strong> R$ 100 por conta paga, os dois proporcionais no mês em que o cliente entrou (entrou dia 29, recebe 2 dias) e cheios do mês seguinte em diante; sobem sozinhos quando o cliente é marcado como Recebido e param quando ele dá churn. <strong>Social media</strong> soma R$ 200 por conta em que aparece no Controle de Clientes. <strong>SDR</strong> soma 5% da primeira mensalidade de cada ganho do painel Comercial ligado ao cliente. Virou o mês, a conta recomeça do zero. O que falta pagar entra no Financeiro como despesa do mês, “a pagar”, e vira pago quando você registra o pagamento.</p>`;
+  trocaMes();
+}
 /* de onde vem o valor: cliente por cliente, e os pagamentos ja feitos */
 function fdDetalhe(x,pagos){
   const ord={gerente:1,gestor:2,social:3,venda:4};
@@ -17549,7 +17550,7 @@ function fdBlocoLucro(comp,V){
   const L=V.L, gente=L.tecs.concat(L.socs); if(!gente.length) return '';
   const linha=(rot,sub,v,forte)=>`<tr><td>${forte?'<strong>'+rot+'</strong>':rot}${sub?` <span class="rc-sub" style="display:inline">${sub}</span>`:''}</td><td class="money" style="text-align:right">${forte?'<strong>'+v+'</strong>':v}</td><td></td></tr>`;
   const pes=gente.map(p=>{ const dev=L.por[p.id]||0, pagos=fdPagosDe(comp,p,true), pago=fdSoma(pagos,'valor'), falta=fdR2(Math.max(0,dev-pago));
-    return `<tr><td><strong>${esc(p.nome)}</strong> <span class="rc-sub" style="display:inline">${p.papel==='tec'?'10% do que sobra depois do caixa':'um terço do restante'}</span></td>
+    return `<tr><td><strong>${esc(p.nome)}</strong> <span class="rc-sub" style="display:inline">${p.papel==='tec'?'10% do lucro':'um terço dos 70% que sobram'}</span></td>
       <td class="money" style="text-align:right">${brl(dev)}</td>
       <td>${pagos.map(f=>`<span class="tag concluido">Pago ${brl(f.valor)} em ${fmtDate(f.pagoEm)}</span> <button class="iconbtn" onclick="fdDesfazer('${esc(f.id)}')">Desfazer</button>`).join(' ')}
         ${falta>=0.005?`<button class="iconbtn" onclick="fdPagar('${esc(p.id)}',true)">Registrar pagamento</button>`:''}</td></tr>`; }).join('');

@@ -232,7 +232,7 @@ grupo('Folha por departamento: calculada do Controle de Clientes (Gabriel 30/09)
   const Lu=g.fdLucro('2026-09',fdSomaTotal(R),P);
   function fdSomaTotal(R){ return Math.round(R.reduce((s,x)=>s+x.total,0)*100)/100; }
   ok('lucro = recebido (sem repasse) menos despesas (sem folha já paga, com escritório) menos a folha calculada', Lu.receita===100000&&Lu.oper===21300&&Lu.folha===16825&&Lu.lucro===61875);
-  ok('de cada R$ 100 de lucro: 20 caixa, 8 Arthur, 24 cada sócio', Lu.caixa===12375&&Lu.por.ar===4950&&Lu.por.be===14850&&Lu.por.ga===14850&&Lu.por.jo===14850);
+  ok('de cada R$ 100 de lucro: 20 caixa, 10 Arthur, 70 divididos entre os 3 sócios', Lu.caixa===12375&&Lu.por.ar===6187.5&&Lu.por.be===14437.5&&Lu.por.ga===14437.5&&Lu.por.jo===14437.5);
   ok('sem lucro, ninguém divide nada', g.fdLucro('2026-08',0,P).por.be===0);
   /* provisao: o que falta pagar vira um registro por pessoa, atualizado a cada abertura */
   let n=g.fdSincronizar('2026-09',R);
