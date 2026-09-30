@@ -10275,6 +10275,65 @@ window.tkConcluir=async (id,ok)=>{ const t=TK.tarefas.find(x=>x.id===id);
   const r=await tkPatch(id,patch,ok?'Concluída.':'Reaberta.'); if(r) cnDepois(id,ex); return r; };
 window.tkToggle=(tp,id)=>{ const k=tp+id; TK.fechadas[k]=!TK.fechadas[k];
   if(tp==='g'){ tkDesenhar($('#content')); } else { spSalvarArvore(); spDesenhar(); } };
+/* DOWNSELL E UPSELL NA HORA DA MUDANÇA (Gabriel 30/09, caso JOTA'S CAR: saiu do tráfego e
+   ninguém registrou). Toda mudança de mensalidade ou de serviço feita pelo gerente ou pelo
+   master passa por aqui: mensalidade caiu = pergunta se foi downsell (reduziu o serviço) ou
+   só o valor, e por quê; subiu = registra upsell sem perguntar. O registro vai pra
+   mrr_mudancas já como aplicado, que é de onde o Fechamento do mês tira o bloco Downsell,
+   ao lado do churn. LC_MUD_CTX: quando a pergunta já foi feita (mudança de serviço), a
+   mudança de mensalidade que vem em seguida não pergunta de novo. */
+let LC_MUD_CTX=null;
+const lcMudSel=(k)=>Object.keys(CAT_LABEL).filter(x=>x!=='outro').map(x=>`<option value="${x}"${x===k?' selected':''}>${esc(CAT_LABEL[x])}</option>`).join('');
+function lcMudPerguntar(nome,antes,novo,f){
+  return new Promise((res)=>{
+    const cat=(f&&CAT_LABEL[f.categoria])?f.categoria:'';
+    modal('Mensalidade de '+esc(nome)+' caiu: foi downsell?',`
+      <p class="hint" style="margin:0 0 12px">De <b>${brl(antes)}</b> para <b>${brl(novo)}</b>. Isso entra no Fechamento do mês, ao lado do churn.</p>
+      <div class="field"><label>O que aconteceu</label><select id="md_tipo" onchange="document.getElementById('md_wrapcat').hidden=this.value!=='servico';document.getElementById('md_lab').textContent=this.value==='servico'?'Detalhe (opcional)':'Por que abaixou a mensalidade?'">
+        <option value="valor">Só a mensalidade abaixou, o serviço é o mesmo</option>
+        <option value="servico">Downsell: o cliente reduziu o serviço</option></select></div>
+      <div class="field" id="md_wrapcat" hidden><label>Serviço que fica</label><select id="md_cat">${lcMudSel(cat)}</select></div>
+      <div class="field"><label id="md_lab">Por que abaixou a mensalidade?</label><textarea id="md_mot" rows="3" placeholder="Ex.: cliente pediu desconto porque o volume de leads caiu"></textarea></div>`,
+      async ()=>{
+        const tipo=($('#md_tipo')||{}).value||'valor', mot=String(($('#md_mot')||{}).value||'').trim(), catN=tipo==='servico'?(($('#md_cat')||{}).value||''):'';
+        if(tipo==='valor'&&!mot){ toast('Diga por que a mensalidade abaixou.'); return false; }
+        if(tipo==='servico'&&!catN){ toast('Diga qual serviço fica.'); return false; }
+        res({tipo,motivo:mot,cat:catN}); return true;
+      });
+    const ov=document.querySelectorAll('.overlay'), ul=ov[ov.length-1];
+    if(ul){ const bs=ul.querySelector('.msave'); if(bs) bs.textContent='Registrar e mudar';
+      ul.onclick=null; const x=ul.querySelector('.x'); if(x) x.addEventListener('click',()=>res(null)); }
+  });
+}
+/* grava a mudança como aplicada; erro não trava a mudança em si, só avisa */
+async function lcMudRegistrar(o){
+  const tipo=o.novo>o.antes?'upsell':'downsell';
+  const partes=[]; if(o.servico) partes.push(o.servico); if(o.motivo) partes.push(o.motivo); if(o.modo==='mes') partes.push('Só em '+fmtComp(compNow()));
+  const agora=new Date().toISOString();
+  const {error}=await sb.from('mrr_mudancas').insert({cliente_id:String(o.clienteId||''),cliente_nome:o.nome||'',tipo,valor_antes:o.antes,valor_novo:o.novo,
+    motivo:partes.join(' · ')||null,status:'aplicado',criado_por:(currentUser||{}).id||null,aplicado_por:(currentUser||{}).id||null,aplicado_em:agora});
+  if(error) toast('A mudança valeu, mas não ficou registrada como '+tipo+': '+error.message);
+  return !error;
+}
+/* mensalidade mudou (qualquer caminho): pergunta o que for preciso e registra. Devolve
+   null se a pessoa desistiu, senão o que foi respondido (cat = serviço novo, se houver). */
+async function lcMudAntesDeMudar(f,cli,nome,antes,novo,modo){
+  antes=Number(antes)||0; novo=Number(novo)||0;
+  if(antes===novo) return {};
+  let r={tipo:'valor',motivo:'',cat:''}, servico='';
+  if(LC_MUD_CTX){ r=Object.assign(r,LC_MUD_CTX); servico=LC_MUD_CTX.servico||''; LC_MUD_CTX=null; }
+  else if(novo<antes){ r=await lcMudPerguntar(nome,antes,novo,f); if(!r) return null;
+    if(r.tipo==='servico'&&r.cat&&f&&f.categoria!==r.cat) servico='Serviço: '+(CAT_LABEL[f.categoria]||'sem tipo')+' para '+CAT_LABEL[r.cat]; }
+  await lcMudRegistrar({clienteId:(cli&&cli.id)||(f&&f.clienteId)||'',nome,antes,novo,motivo:r.motivo,servico,modo});
+  return r;
+}
+/* o serviço mudou junto: aplica na ficha (Agent IA não tem gestor de tráfego) */
+async function lcMudAplicarServico(f,cat){
+  if(!f||!CAT_LABEL[cat]||f.categoria===cat) return;
+  f.categoria=cat; if(cat==='ia') f.responsavel='';
+  try{ const cd=lcCardDe(f.id); if(cat==='ia'&&cd&&(cd.valores||{})[LC_GEST]){ const val=Object.assign({},cd.valores); delete val[LC_GEST];
+    const r=await sb.from('tarefas').update({valores:val}).eq('id',cd.id); if(!r.error) cd.valores=val; } }catch(_){}
+}
 window.tkSetVal=async (id,campoId,v)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
   const c=tkCampo1(campoId)||{};
@@ -10295,7 +10354,10 @@ window.tkSetVal=async (id,campoId,v)=>{
         brl(atual)+' → '+brl(v)+' · o financeiro recebe o aviso pra ajustar o Asaas',
         [{v:'mes',rot:'Só '+fmtComp(comp)},{v:'rec',rot:'Recorrente, de '+fmtComp(comp)+' em diante'}]);
       if(!modo){ tkDesenhar($('#content')); return; }
-      const {error}=await sb.rpc('cliente_mensalidade',{p_ficha:String(t.ficha_id),p_valor:Number(v),p_modo:modo,p_motivo:null});
+      const reg=await lcMudAntesDeMudar(f,null,(f&&f.nome)||'cliente',atual,v,modo);
+      if(!reg){ tkDesenhar($('#content')); return; }
+      const {error}=await sb.rpc('cliente_mensalidade',{p_ficha:String(t.ficha_id),p_valor:Number(v),p_modo:modo,p_motivo:reg.motivo||null});
+      if(!error&&reg.cat){ await lcMudAplicarServico(f,reg.cat); try{ await saveDB(); }catch(_){} }
       if(error){ toast('Não salvou: '+error.message); tkDesenhar($('#content')); return; }
       try{ await tkCarregar(); }catch(_){}
       tkDesenhar($('#content'));
@@ -10308,6 +10370,9 @@ window.tkSetVal=async (id,campoId,v)=>{
         brl(cli.valor||0)+' → '+brl(v),
         [{v:'mes',rot:'Só '+fmtComp(comp)},{v:'rec',rot:'Recorrente, de '+fmtComp(comp)+' em diante'}]);
       if(!modo){ tkDesenhar($('#content')); return; } /* cancelou: célula volta */
+      const reg=await lcMudAntesDeMudar(f,cli,cli.nome||'cliente',cli.valor||0,v,modo);
+      if(!reg){ tkDesenhar($('#content')); return; }
+      if(reg.cat) await lcMudAplicarServico(f,reg.cat);
       if(modo==='mes'){
         let r=DB.recebimentos.find(x=>x.comp===comp&&x.clienteId===cli.id);
         if(!r){ r={id:uid(),comp,clienteId:cli.id,nome:MAIUS(cli.nome),resp:cli.resp||'',tel:cli.tel||'',
@@ -15987,6 +16052,26 @@ window.pcTipoMenu=(ev,pid)=>{
 window.pcTipoSet=async (pid,k)=>{
   const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it||!CAT_LABEL[k]) return;
   if(it.categoria===k) return;
+  /* Reduziu o serviço (Gabriel 30/09): é downsell. Pergunta a mensalidade nova e o motivo,
+     registra, e a mensalidade muda pelo mesmo caminho da coluna, sem perguntar de novo. */
+  if(it.categoria==='full'&&(k==='ia'||k==='trafego')){
+    const cd=lcCardDe(pid), atual=cd?Number((cd.valores||{})[LC_MENS]||0):0;
+    const r=await new Promise((res)=>{
+      modal('Downsell: '+esc(it.nome||'cliente')+' fica só com '+esc(CAT_LABEL[k]),`
+        <p class="hint" style="margin:0 0 12px">Sai de ${esc(CAT_LABEL[it.categoria])} para ${esc(CAT_LABEL[k])}. Isso entra no Fechamento do mês, ao lado do churn.</p>
+        <div class="field"><label>Mensalidade que fica (R$)</label><input type="number" id="md_val" step="0.01" min="0" value="${atual||''}"></div>
+        <div class="field"><label>Motivo (opcional)</label><textarea id="md_mot" rows="3" placeholder="Ex.: cliente cortou o tráfego para reduzir custo"></textarea></div>`,
+        async ()=>{ const v=parseFloat(String(($('#md_val')||{}).value||'').replace(',','.'));
+          if(isNaN(v)||v<0){ toast('Informe a mensalidade que fica.'); return false; }
+          res({valor:v,motivo:String(($('#md_mot')||{}).value||'').trim()}); return true; });
+      const ov=document.querySelectorAll('.overlay'), ul=ov[ov.length-1];
+      if(ul){ const bs=ul.querySelector('.msave'); if(bs) bs.textContent='Registrar downsell'; ul.onclick=null; const x=ul.querySelector('.x'); if(x) x.addEventListener('click',()=>res(null)); }
+    });
+    if(!r) return;
+    const servico='Serviço: '+CAT_LABEL[it.categoria]+' para '+CAT_LABEL[k];
+    if(cd&&r.valor!==atual){ LC_MUD_CTX={tipo:'servico',motivo:r.motivo,cat:k,servico}; await tkSetVal(cd.id,LC_MENS,r.valor); LC_MUD_CTX=null; }
+    else await lcMudRegistrar({clienteId:it.clienteId||'',nome:it.nome||'',antes:atual,novo:atual,motivo:r.motivo,servico});
+  }
   it.categoria=k;
   /* Agent IA nao tem gestor de trafego (Gabriel 23/09): sai da ficha e do card */
   const tinhaGestor=k==='ia'&&String(it.responsavel||'').trim();

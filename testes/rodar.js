@@ -13,6 +13,8 @@ let falhas=0, total=0;
 const ok=(n,c)=>{ total++; if(c) console.log('  ok  '+n); else { console.log('  FALHOU  '+n); falhas++; } };
 const secao=(t)=>console.log('\n— '+t+' —');
 const grupo=(t)=>console.log('\n\x1b[1m'+t+'\x1b[0m');
+/* testes assíncronos registram a promessa aqui; o fim espera todas */
+const PROMESSAS=[];
 
 /* recorta de "de" até "ate" (exclusivo) */
 function bloco(de,ate){
@@ -316,6 +318,37 @@ grupo('Controle de Clientes: Pagamento, Início e Vencimento centralizados como 
 {
   ok('as três colunas curtas ganham tk-cen junto com pessoa', /\(c\.tipo==='pessoa'\|\|\(lc&&\[LC_SIT,LC_INI,LC_VENC\]\.indexOf\(c\.id\)>=0\)\)\?'tk-cen':''/.test(HTML));
   ok('data e trava centralizam dentro da célula', HTML.indexOf('.tk-tab td.tk-cen input.tk-cel{text-align:center}')>0&&HTML.indexOf('.tk-tab td.tk-cen .tk-trava{display:flex}')>0);
+}
+
+grupo('Downsell e upsell registrados na hora da mudança (Gabriel 30/09, JOTA\'S CAR)');
+{
+  const ins=[]; let modais=0;
+  const ctx={CAT_LABEL:{trafego:'Tráfego Pago',ia:'Agent IA',full:'Tráfego + Agent IA',outro:'Outro'},brl:v=>'R$ '+v,esc:s=>String(s??''),
+    fmtComp:c=>c.split('-').reverse().join('/'),compNow:()=>'2026-09',toast:()=>{},currentUser:{id:'u1'},LC_GEST:'gest',lcCardDe:()=>null,
+    modal:(ti,b,onSave)=>{ modais++; setTimeout(()=>onSave(),0); },$:(s)=>({'#md_tipo':{value:'valor'},'#md_mot':{value:'cliente pediu desconto'},'#md_cat':{value:''}}[s]||null),document:{querySelectorAll:()=>[]},
+    sb:{from:(tb)=>({insert:async (o)=>{ ins.push([tb,o]); return {error:null}; },update:()=>({eq:async()=>({error:null})})})}};
+  const g=rodar(bloco('/* DOWNSELL E UPSELL NA HORA DA MUDANÇA','window.tkSetVal='),ctx,['lcMudRegistrar','lcMudAntesDeMudar','lcMudAplicarServico']);
+  const f={id:'p1',clienteId:'c1',nome:'JOTA',categoria:'full',responsavel:'Yghor'};
+  const run=async ()=>{
+    const r1=await g.lcMudAntesDeMudar(f,{id:'c1'},'JOTA',1000,1500,'rec');
+    ok('mensalidade subiu: registra upsell sem perguntar', modais===0&&ins.length===1&&ins[0][0]==='mrr_mudancas'&&ins[0][1].tipo==='upsell'&&ins[0][1].valor_antes===1000&&ins[0][1].valor_novo===1500&&ins[0][1].status==='aplicado'&&r1&&!r1.cat);
+    const r2=await g.lcMudAntesDeMudar(f,{id:'c1'},'JOTA',1000,1000,'rec');
+    ok('valor igual: nada a registrar', ins.length===1&&r2&&Object.keys(r2).length===0);
+    vm.runInContext("LC_MUD_CTX={tipo:'servico',motivo:'cortou o tráfego',cat:'ia',servico:'Serviço: Tráfego + Agent IA para Agent IA'}",g);
+    const r3=await g.lcMudAntesDeMudar(f,{id:'c1'},'JOTA',1500,1000,'rec');
+    ok('mudança de serviço já respondida: não pergunta de novo e registra downsell com o serviço', modais===0&&ins.length===2&&ins[1][1].tipo==='downsell'&&ins[1][1].motivo==='Serviço: Tráfego + Agent IA para Agent IA · cortou o tráfego'&&r3.cat==='ia');
+    ok('o contexto é consumido uma vez só', vm.runInContext('LC_MUD_CTX',g)===null);
+    const r4=await g.lcMudAntesDeMudar(f,{id:'c1'},'JOTA',1500,1000,'rec');
+    ok('mensalidade caiu sem contexto: abre a pergunta e registra o motivo', modais===1&&r4.motivo==='cliente pediu desconto'&&ins[ins.length-1][1].tipo==='downsell'&&ins[ins.length-1][1].motivo==='cliente pediu desconto');
+    await g.lcMudAplicarServico(f,'ia');
+    ok('ficar só com Agent IA tira o gestor de tráfego da ficha', f.categoria==='ia'&&f.responsavel==='');
+    ok('só em um mês fica anotado no motivo', (await g.lcMudRegistrar({clienteId:'c1',nome:'X',antes:900,novo:800,motivo:'desconto',modo:'mes'}), ins[ins.length-1][1].motivo==='desconto · Só em 09/2026'));
+  };
+  const r=bloco("window.pcTipoSet=async (pid,k)=>{","it.categoria=k;");
+  ok('reduzir o serviço na ficha pergunta a mensalidade que fica e registra downsell', r.indexOf("it.categoria==='full'&&(k==='ia'||k==='trafego')")>0&&r.indexOf("bs.textContent='Registrar downsell'")>0&&r.indexOf('LC_MUD_CTX={tipo:')>0);
+  const tk=bloco('window.tkSetVal=async (id,campoId,v)=>{','/* ======================= LEMBRETES');
+  ok('os dois caminhos da mensalidade (gerente e master) passam pela pergunta', (tk.match(/await lcMudAntesDeMudar\(/g)||[]).length===2);
+  PROMESSAS.push(run());
 }
 
 grupo('Ordem alfabética');
@@ -855,6 +888,7 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
     ok('lista apagada: volta pra lista da própria tarefa', dx&&dx.lista_id==='L'&&dx.status==='todo');
     ok('banco: migração cria a coluna recorrencia', /add column if not exists recorrencia jsonb/.test(fs.readFileSync(path.join(__dirname,'..','migracao-recorrencia.sql'),'utf8')));
     await testeTarefasPaginadas();
+    await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
 }
