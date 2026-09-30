@@ -2160,6 +2160,8 @@
   .pc-gr-n{color:var(--muted);margin-right:4px}
   .pc-gr-c{font:inherit;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--txt);cursor:pointer}
   .pc-gr-c.on{background:rgba(124,104,238,.16);border-color:rgba(124,104,238,.45);cursor:default}
+  .lc-pg{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.04em;
+    padding:3px 9px;border-radius:999px;white-space:nowrap;line-height:1.45}
   .lc-grupo-tag{font:inherit;display:inline-flex;align-items:center;margin-left:6px;padding:2px;border-radius:6px;cursor:pointer;
     color:#c4b5fd;background:rgba(124,104,238,.12);border:1px solid rgba(124,104,238,.35);vertical-align:-3px}
   .lc-grupo-tag svg{width:12px;height:12px;display:block}
@@ -9126,13 +9128,14 @@ window.lcPorF=(k)=>{ TK.lcPor=(k==='gerente')?'gerente':'gestor'; TK.lcGestor=''
 window.lcVerGerentes=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
 const LC_NIVEL={promotor:{rot:'Promotor',cor:'#3fcf8e'},neutro:{rot:'Neutro',cor:'#8b95a5'},detrator:{rot:'Detrator',cor:'#ef5b6b'}};
 const LC_PG={recebido:{rot:'PAGO',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},carencia:{rot:'CARÊNCIA',cor:'#a78bfa'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'}};
-/* Etiqueta do pagamento do mes, com cifrao pra deixar claro que fala de dinheiro
-   (Gabriel 29/09). Era um const dentro do lcVistaGerentes; subiu pra ca porque a coluna
-   Situacao do Controle de Clientes passou a usar a MESMA etiqueta — irmao usa o mesmo
-   componente. Cor em var() nao aceita o sufixo de opacidade, por isso o fundo separado. */
+/* Etiqueta do pagamento do mes. Era um const dentro do lcVistaGerentes; subiu pra ca
+   porque a coluna do Controle de Clientes usa a MESMA etiqueta — irmao usa o mesmo
+   componente. Cor em var() nao aceita o sufixo de opacidade, por isso o fundo separado.
+   Gabriel 30/09: o cifrao colado no texto ("$ INADIMPLENTE") ficou feio; quem diz que a
+   coluna e de dinheiro agora e o proprio cabecalho, que passou a se chamar Pagamento. */
 const lcTagPG=(k)=>{ const p=LC_PG[k]; if(!p) return '-';
   const bg=String(p.cor).indexOf('var(')===0?'rgba(96,165,250,.12)':p.cor+'1f';
-  return `<span class="tag st" style="font-weight:800;color:${p.cor};background:${bg}">$ ${p.rot}</span>`; };
+  return `<span class="lc-pg" style="color:${p.cor};background:${bg}">${p.rot}</span>`; };
 function lcVistaGerentes(){
   const por={};
   tkFiltradas().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return;
