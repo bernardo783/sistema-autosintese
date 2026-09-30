@@ -12183,13 +12183,18 @@ window.lcNovoClientes=()=>{ const el=document.getElementById('lcbPop'); if(!el) 
 /* "Não existe estar em um e não estar no outro" (Gabriel 30/09): quem está na cobrança tem que
    ter card aqui, e quem tem card aqui tem que estar na cobrança. O alerta é a rede de segurança —
    só o master enxerga os dois lados, então só pra ele. */
+const cliSaiu=(c)=>{ if(!c) return false;
+  if(cliArq(c)||c.churnComp) return true;
+  const f=String(c.fim||'').trim();
+  return !!f && f<compNow();          /* contrato que termina no futuro ainda é cliente */
+};
 function lcForaDeSincronia(){
   if(!(currentUser&&currentUser.role==='master')||!(DB.clientes||[]).length) return [];
   const fora=[];
   const cardDe=(cid)=>{ const f=(DB.projetos||[]).find(p=>String(p.clienteId)===String(cid));
     return f?lcCardDe(f.id):null; };
   (DB.clientes||[]).forEach(c=>{
-    if(cliArq(c)||c.churnComp||c.fim) return;          /* já saiu de propósito */
+    if(cliSaiu(c)) return;                             /* já saiu de propósito */
     const cd=cardDe(c.id);
     if(!cd) fora.push({nome:c.nome,por:'está no Financeiro e não tem card no Controle de Clientes',cid:c.id});
     else if(arquivada(cd)) fora.push({nome:c.nome,por:'está na cobrança mas o card está arquivado',cid:c.id,tid:cd.id});
@@ -12201,13 +12206,14 @@ function lcForaDeSincronia(){
     if(!sub||c.asaas.cancelado) return;
     const f=(DB.projetos||[]).find(p=>String(p.clienteId)===String(c.id));
     const cd=f?lcCardDe(f.id):null;
-    const saiu=cliArq(c)||!!c.churnComp||!!c.fim||!cd||arquivada(cd)||String((cd||{}).lista_id)===String(CH_ID);
+    const saiu=cliSaiu(c)||!cd||arquivada(cd)||String((cd||{}).lista_id)===String(CH_ID);
     if(saiu) fora.push({nome:c.nome,por:'saiu da carteira e a assinatura no Asaas continua ativa',cid:c.id,sub:sub});
   });
   (TK.tarefas||[]).filter(t=>ehLC(t.lista_id)&&!arquivada(t)&&t.ficha_id).forEach(t=>{
     const f=fichaDe(t.ficha_id)||{}, c=(DB.clientes||[]).find(x=>String(x.id)===String(f.clienteId));
     if(!c) fora.push({nome:t.titulo,por:'tem card aqui e não está no Financeiro',tid:t.id});
     else if(cliArq(c)) fora.push({nome:t.titulo,por:'tem card aqui e está arquivado no Financeiro',tid:t.id,cid:c.id});
+    else if(c.churnComp) fora.push({nome:t.titulo,por:'tem card ativo aqui e está como churn no Financeiro',tid:t.id,cid:c.id});
   });
   return fora;
 }
