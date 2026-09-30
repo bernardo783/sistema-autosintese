@@ -17200,6 +17200,7 @@ function gerarFolhaCore(comp){
   const [y,m]=comp.split('-').map(Number);
   const last=new Date(y,m,0).getDate();
   const dAnt=new Date(y,m-2,1); const mesAnt=dAnt.getFullYear()+'-'+String(dAnt.getMonth()+1).padStart(2,'0');
+  const dSeg=new Date(y,m,1); const mesSeg=dSeg.getFullYear()+'-'+String(dSeg.getMonth()+1).padStart(2,'0');
   let n=0;
   ativos.forEach(f=>{
     if(f.inicioComp && comp<f.inicioComp) return;
@@ -17219,7 +17220,12 @@ function gerarFolhaCore(comp){
       }
     } else {
       if(temMensal.has(f.id)) return;
-      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,esc:f.esc||'',descricao:(f.descricao||'')+(f.posPago?((f.descricao?', ':'')+'ref. '+fmtComp(mesAnt)):''),valor:Number(f.valor)||0,venc:vencOf(comp,f.dia),pago:false,pagoEm:null});
+      /* Pós-pago (regra do Gabriel de 06/08, motor corrigido 30/09): o registro é do mês
+         trabalhado, vence no dia combinado do mês SEGUINTE e diz "ref." o próprio mês.
+         Antes vencia no mês da competência e dizia "ref." o mês anterior, e a folha de
+         setembro ficava igual à de agosto, como se fosse cobrança repetida. */
+      const venc=f.posPago?vencOf(mesSeg,f.dia):vencOf(comp,f.dia);
+      DB.folha.push({id:uid(),comp,fixoId:f.id,nome:f.nome,esc:f.esc||'',descricao:(f.descricao||'')+(f.posPago?((f.descricao?', ':'')+'ref. '+fmtComp(comp)):''),valor:Number(f.valor)||0,venc,pago:false,pagoEm:null});
       n++;
     }
   });

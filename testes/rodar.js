@@ -165,6 +165,29 @@ grupo('Lançamentos: tabela por departamento, maior despesa primeiro (Gabriel 30
   ok('busca abre os blocos', HTML.indexOf('const aberto=(k)=>!!t||!!lancGrAberto[k];')>0);
 }
 
+grupo('Folha: pós-pago vence no mês seguinte e diz ref. o próprio mês (Gabriel 30/09)');
+{
+  const DB={folhaFixos:[
+      {id:'col_2',nome:'Bernardo',freq:'mensal',dia:5,valor:3000,posPago:true,ativo:true,recorrente:true,inicioComp:'2026-07',descricao:'Head Operacional'},
+      {id:'fx_vr',nome:'Aluguel VR',freq:'mensal',dia:1,valor:1300,posPago:false,ativo:true,recorrente:true,esc:'Volta Redonda',descricao:'Aluguel'},
+      {id:'col_1',nome:'Arthur',freq:'mensal',dia:5,valor:3800,posPago:true,ativo:true,recorrente:true,inicioComp:'2026-10',descricao:'Head de Programação'},
+      {id:'col_8',nome:'Yghor',freq:'mensal',dia:28,valor:1260,posPago:true,ativo:true,recorrente:true,inicioComp:'2026-07',descricao:''}],
+    folha:[]};
+  let n=0; const g=rodar(bloco('function gerarFolhaCore(','function renderFolha('),
+    {DB,uid:()=>'id'+(++n),vencOf:(c,d)=>{ const [y,m]=c.split('-').map(Number); const last=new Date(y,m,0).getDate(); return c+'-'+String(Math.min(Math.max(1,Number(d)||1),last)).padStart(2,'0'); },
+     fmtComp:c=>c.split('-').reverse().join('/')},['gerarFolhaCore']);
+  const criados=g.gerarFolhaCore('2026-09'); const de=nome=>DB.folha.find(p=>p.comp==='2026-09'&&p.nome===nome);
+  ok('setembro nasce com quem já começou (Arthur só em outubro)', criados===3&&!de('Arthur'));
+  ok('pós-pago: registro é de setembro, vence 05/10 e diz ref. 09/2026', de('Bernardo').comp==='2026-09'&&de('Bernardo').venc==='2026-10-05'&&de('Bernardo').descricao==='Head Operacional, ref. 09/2026');
+  ok('pós-pago sem descrição fica só com o ref.', de('Yghor').descricao==='ref. 09/2026'&&de('Yghor').venc==='2026-10-28');
+  ok('pré-pago (aluguel) continua vencendo no próprio mês, sem ref.', de('Aluguel VR').venc==='2026-09-01'&&de('Aluguel VR').descricao==='Aluguel');
+  ok('rodar de novo não duplica', g.gerarFolhaCore('2026-09')===0&&DB.folha.length===3);
+  g.gerarFolhaCore('2026-10'); const out=DB.folha.filter(p=>p.comp==='2026-10');
+  ok('outubro: Arthur entra com R$ 3.800 vencendo 05/11, ref. 10/2026', out.length===4&&out.find(p=>p.nome==='Arthur').valor===3800&&out.find(p=>p.nome==='Arthur').venc==='2026-11-05'&&out.find(p=>p.nome==='Arthur').descricao==='Head de Programação, ref. 10/2026');
+  ok('dezembro vence em janeiro do ano seguinte', (g.gerarFolhaCore('2026-12'),DB.folha.find(p=>p.comp==='2026-12'&&p.nome==='Bernardo').venc==='2027-01-05'));
+  ok('a despesa continua na competência (fpDataComp usa o fim do mês quando o venc é do mês seguinte)', /if\(p\.venc && String\(p\.venc\)\.slice\(0,7\)===comp\) return p\.venc;/.test(HTML));
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
