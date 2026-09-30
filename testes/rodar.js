@@ -330,6 +330,49 @@ grupo('Início do cliente pede aprovação do master (Gabriel 30/09)');
   ok('abrir o pedido pendente abre a aprovação, sem marcar como lido', nt.indexOf('if(lcIniPendente(n)){ lcIniAprovar(n); return; }')>0&&nt.indexOf('if(lcIniPendente(n))')<nt.indexOf("update({lida_em"));
 }
 
+grupo('Fechamento: o que ainda vai entrar é previsão do melhor cenário do mês (Gabriel 30/09)');
+{
+  const g=rodar(bloco('function fchPrevisao(','function fchPendentesHtml('),{},['fchPrevisao']);
+  const linhas=[
+    {ficha:'f_g',cliente:'G MOTORS',papel:'gerente',pessoa:'Luiz',cheio:150,situacao:'areceber'},
+    {ficha:'f_g',cliente:'G MOTORS',papel:'gestor',pessoa:'Luan Santiago',cheio:100,situacao:'areceber'},
+    {ficha:'f_s',cliente:'SABARÁ | SÉRGIO',papel:'gerente',pessoa:'Luiz',cheio:37.33,situacao:'areceber'},
+    {ficha:'f_s',cliente:'SABARÁ | SÉRGIO',papel:'gestor',pessoa:'Luan Santiago',cheio:46.67,situacao:'areceber'},
+    {ficha:'f_d',cliente:'DL REPASSE',papel:'gerente',pessoa:'João',cheio:100,situacao:'inadimplente'},
+    {ficha:'f_d',cliente:'DL REPASSE',papel:'gestor',pessoa:'Yghor',cheio:100,situacao:'inadimplente'},
+    {ficha:'f_b',cliente:'BLESSED',papel:'venda',pessoa:'Kennedy',cheio:75,situacao:'vinculada'},
+    {ficha:null,papel:'fixo',pessoa:'Arthur',cheio:3800}];
+  const o={comp:'2026-09',hoje:'2026-09-30',COMISSAO:['Luiz','João'],
+    projetos:[{id:'f_g',clienteId:'g'},{id:'f_s',clienteId:'s'},{id:'f_d',clienteId:'d'},{id:'f_x',clienteId:'x'},{id:'f_j',clienteId:'j'}],
+    gerCli:{g:'Luiz',s:'Luiz',d:'João',x:'João',j:'João'},
+    rcb:[{id:'r1',clienteId:'g',nome:'G MOTORS',valor:1500,venc:'2026-09-10',recebido:false,status:null},
+         {id:'r2',clienteId:'s',nome:'SABARÁ | SÉRGIO',valor:373.33,venc:'2026-10-05',recebido:false,status:'areceber'},
+         {id:'r3',clienteId:'d',nome:'DL REPASSE',valor:1000,venc:'2026-09-05',recebido:false,status:'inadimplente'},
+         {id:'r4',clienteId:'x',nome:'SÓ PRIME',valor:1500,venc:'2026-09-14',recebido:false,status:'churn'},
+         {id:'r5',clienteId:'j',nome:'JÁ PAGOU',valor:900,venc:'2026-09-01',recebido:true,status:'recebido'},
+         {id:'r6',clienteId:'j',nome:'SINAL',valor:800,sinal:300,venc:'2026-09-20',recebido:false,status:'sinal'}],
+    rid:{},aReceber:[],desp:[],financeiro:[{id:'z1',tipo:'recebivel',descricao:'Adiantamento Fulano',valor:200,comp:'2026-09'},{id:'z2',tipo:'recebivel',descricao:'Velho',valor:999,comp:'2026-07'}],linhas};
+  const P=g.fchPrevisao(o);
+  ok('entra quem ainda pode pagar no mês: a receber, inadimplente, atrasado e o resto do sinal', P.A.map(p=>p.nome).sort().join('|')==='DL REPASSE|G MOTORS|SABARÁ | SÉRGIO|SINAL');
+  ok('churn e quem já pagou ficam fora', !P.A.some(p=>/PRIME|PAGOU/.test(p.nome)));
+  ok('o resto do sinal é o que falta', P.A.find(p=>p.nome==='SINAL').v===500);
+  ok('total do melhor cenário', Math.abs(P.TA-(1500+373.33+1000+500))<0.01);
+  ok('quem é pago por conta paga sai primeiro, pelas linhas da Folha com pro rata', Math.abs(P.pessoas['Luiz'].v-187.33)<0.01&&Math.abs(P.pessoas['Luan Santiago'].v-146.67)<0.01&&P.pessoas['João'].v===100&&P.pessoas['Yghor'].v===100);
+  ok('comissão de venda e fixo não entram na conta', !P.pessoas['Kennedy']&&!P.pessoas['Arthur']);
+  const gm=P.A.find(p=>p.nome==='G MOTORS');
+  ok('G MOTORS: 1.500 − 250 = 1.250 de lucro novo → 250 caixa, 125 Arthur, 291,67 cada sócio', gm.its.find(i=>i[0]==='Caixa da empresa')[2]===250&&gm.its.find(i=>i[0]==='Arthur')[2]===125&&gm.its.find(i=>i[0]==='Gabriel')[2]===291.67);
+  ok('vencida e não paga diz que venceu', /venceu dia 10\/09/.test(gm.quando)&&/vence 05\/10/.test(P.A.find(p=>p.nome==='SABARÁ | SÉRGIO').quando));
+  ok('cliente sem linha na Folha (gerente sócio, por exemplo) não paga ninguém por conta', P.A.find(p=>p.nome==='SINAL').its[0][0]==='Caixa da empresa'&&P.A.find(p=>p.nome==='SINAL').its[0][2]===100);
+  ok('recebível de outro mês não aparece; o do mês só repõe caixa', P.B.length===1&&P.B[0].nome==='Adiantamento Fulano'&&P.TB===200);
+  ok('caixa + Arthur + 3 sócios batem com o lucro novo', Math.abs((P.TX+P.TAR+P.TS*3)-(P.TA-P.TC))<0.05);
+  const P2=g.fchPrevisao(Object.assign({},o,{linhas:null}));
+  ok('sem as linhas da Folha (mês antigo) vale só o gerente de 10%', Math.abs(P2.pessoas['Luiz'].v-187.33)<0.01&&!P2.pessoas['Luan Santiago']);
+  const html=bloco("function fchPendentesHtml(comp){","function renderFechamentoMes(c){");
+  ok('a tela não fala mais de atraso de meses anteriores', html.indexOf('meses anteriores')<0&&html.indexOf('Melhor cenário')>0);
+  ok('Fechamento e Recebimentos usam a mesma função', (HTML.match(/fchPendentesHtml\(comp\)/g)||[]).length>=2);
+  ok('a filosofia continua: nada disso entrou no rateio, o destino na volta não é o mesmo para todos', html.indexOf('Dinheiro da empresa que está na mão de terceiro')>0&&html.indexOf('não é o mesmo para todos')>0);
+}
+
 grupo('Fechamento: upsell e downsell entram pela diferença (Gabriel 30/09)');
 {
   const DB={projetos:[{id:'p1',clienteId:'a1',nome:'ALTOGIRO | MOISÉS',grupo:'ALTOGIRO',gerente:'Luiz'},{id:'p2',clienteId:'s1',nome:'SABARÁ | SÉRGIO',gerente:'Luiz'},
@@ -458,13 +501,13 @@ grupo('Recebimentos: o que ainda vai entrar e quanto cada um leva (Gabriel 30/09
       {id:'r2',comp:'2026-09',clienteId:'c2',nome:'NEGOCICAR',venc:'2026-09-10',valor:1300,status:'recebido'},
       {id:'r3',comp:'2026-08',clienteId:'c3',nome:'LEAL MOTOS',venc:'2026-08-05',valor:1000,status:'inadimplente',cobravel:true}],
     projetos:[{clienteId:'c1',gerente:'Luiz'},{clienteId:'c2',gerente:'João'},{clienteId:'c3',gerente:'João'}]};
-  const g=rodar(bloco('const fchN=(v)=>','const FCH_ESC=')+bloco('function fchBloco(','function fchSaldoMes(')+bloco('function fchPendentesHtml(comp){','function renderFechamentoMes(c){'),
-    {DB,brl:v=>'R$ '+Number(v).toFixed(2),esc:s=>String(s??''),fmtComp:c=>c.split('-').reverse().join('/')},['fchPendentesHtml']);
+  const g=rodar(bloco('const fchN=(v)=>','const FCH_ESC=')+bloco('function fchBloco(','function fchSaldoMes(')+bloco('function fchPrevisao(','function renderFechamentoMes(c){'),
+    {DB,FD:{comp:'',linhas:null},brl:v=>'R$ '+Number(v).toFixed(2),esc:s=>String(s??''),fmtComp:c=>c.split('-').reverse().join('/'),hojeISO:()=>'2026-09-30'},['fchPendentesHtml']);
   const h=g.fchPendentesHtml('2026-09');
-  ok('lista o que foi reconhecido e não caiu e o cobrável antigo', h.indexOf('GTR MOTORS')>0&&h.indexOf('LEAL MOTOS')>0&&h.indexOf('NEGOCICAR')<0);
-  ok('diz quanto cada um leva: comissão do gerente, caixa, Arthur e sócios', ['Comissão do gerente: Luiz','Caixa da empresa','Arthur','José Carlos','Gabriel','Bernardo'].every(k=>h.indexOf(k)>0));
-  ok('GTR: 1.500 menos 150 de comissão, 20% caixa = 270, Arthur 135, cada sócio 315', h.indexOf('R$ 150.00')>0&&h.indexOf('R$ 270.00')>0&&h.indexOf('R$ 135.00')>0&&h.indexOf('R$ 315.00')>0);
-  ok('atraso de mês anterior fica em bloco separado', h.indexOf('Atraso de meses anteriores')>0&&h.indexOf('Deste mês, 09/2026')>0);
+  ok('lista quem ainda pode pagar no mês; quem pagou e o atraso de agosto ficam fora', h.indexOf('GTR MOTORS')>0&&h.indexOf('LEAL MOTOS')<0&&h.indexOf('NEGOCICAR')<0);
+  ok('diz quanto cada um leva: gerente, caixa, Arthur e sócios', ['Luiz','Caixa da empresa','Arthur','José Carlos','Gabriel','Bernardo'].every(k=>h.indexOf(k)>0));
+  ok('GTR: 1.500 menos 150 do gerente, 20% caixa = 270, Arthur 135, cada sócio 315', h.indexOf('R$ 150.00')>0&&h.indexOf('R$ 270.00')>0&&h.indexOf('R$ 135.00')>0&&h.indexOf('R$ 315.00')>0);
+  ok('é o melhor cenário do mês, sem bloco de meses anteriores', h.indexOf('Melhor cenário de 09/2026')>0&&h.indexOf('meses anteriores')<0);
   ok('o Fechamento e o Recebimentos usam a mesma função', (HTML.match(/\$\{fchPendentesHtml\(comp\)\}/g)||[]).length===2);
   ok('no Recebimentos só o master vê (lê o financeiro)', /currentUser&&currentUser\.role==='master'\)\?`<div class="fchdoc"[\s\S]{0,400}O que ainda vai entrar, e quanto cada um leva quando entrar/.test(HTML));
 }
