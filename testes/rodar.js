@@ -297,6 +297,21 @@ grupo('Fechamento: upsell e downsell entram pela diferença (Gabriel 30/09)');
   ok('linha do bloco diz de quanto para quanto e avisa o pro rata do mês', M.linha(M.ups[0])[1]==='de R$ 1000 para R$ 1600 · neste mês R$ 1173.33 (pro rata)'&&Math.abs(M.linha(M.ups[0])[2]-173.33)<0.01);
   ok('saldo do mês soma upsell e downsell', /const SAIU=somaSt\('churn'\)\+somaSt\('churnpago'\)\+M\.saiDown;/.test(HTML)&&/const ENT=novos\.reduce\(\(s,x\)=>s\+fchN\(x\.valor\),0\)\+M\.entUp;/.test(HTML));}
 
+grupo('Gastos de escritório em blocos por escritório (Gabriel 30/09)');
+{
+  const r=bloco('function fdEscritorios(comp){','window.fdEscFixos=()=>{');
+  ok('um bloco por escritório, no mesmo componente do Fechamento', r.indexOf('<details class="fch-g"')>0&&r.indexOf('Escritório ${esc(e)}')>0);
+  ok('bloco diz quantas contas estão pagas e o total', r.indexOf('${pagas} de ${ps.length} pagas')>0&&r.indexOf('<span class="fch-tv">${brl(tot)}</span>')>0);
+  ok('do escritório que mais gasta pro que menos', r.indexOf("fdSoma(por[b],'valor')-fdSoma(por[a],'valor')")>0);
+  ok('as contas com Pagar, Editar, Excluir e o preencher da conta variável continuam dentro', ['fpPagar','fpDesfazer','openFpModal','fpExcluir','preencher'].every(k=>r.indexOf(k)>0));
+  ok('aberto ou fechado fica lembrado ao redesenhar', r.indexOf("fdEscAbre('${esc(e)}',this.open)")>0&&HTML.indexOf('window.fdEscAbre=(e,ab)=>{ fdEscAberto[e]=!!ab; };')>0);
+  ok('Lançamentos: escritório vira sub-bloco dentro do departamento', /const lancSub=[\s\S]{0,400}return e\?'Escritório '\+e:''/.test(HTML));
+  const g=rodar(bloco('const FCH_ESC=','const FCH_SETOR=')+bloco('const ehMetaAds=','function lancAgrupar('),null,['lancSub']);
+  ok('aluguel de Volta Redonda cai no sub-bloco do escritório', g.lancSub({tipo:'despesa',categoria:'Escritórios',descricao:'Aluguel, Escritório Volta Redonda'})==='Escritório Volta Redonda');
+  ok('conta de escritório sem o nome do imóvel fica solta', g.lancSub({tipo:'despesa',categoria:'Escritórios',descricao:'Internet'})==='');
+  ok('a folha não vira escritório', g.lancSub({tipo:'despesa',categoria:'Sócios',descricao:'Folha: Bernardo, Head'})==='Folha de pagamento');
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
