@@ -13523,10 +13523,18 @@ async function fchMudCarregar(){
 const fchMudGrupos=(m)=>String(m.cliente_id||'').indexOf('grupo:')===0?String(m.cliente_id).slice(6).split('+').map(s=>MAIUS(s.trim())).filter(Boolean):[];
 function fchMudResumo(rows,comp,novos,gerCli){
   const mud=(rows||[]).filter(m=>String(m.aplicado_em||m.criado_em||'').slice(0,7)===comp);
-  const dif=(m)=>fchN(m.valor_novo)-fchN(m.valor_antes);
-  const ups=mud.filter(m=>m.tipo==='upsell'&&dif(m)>0), downs=mud.filter(m=>m.tipo==='downsell'&&dif(m)<0);
-  const gruposUp={}; ups.forEach(m=>fchMudGrupos(m).forEach(g=>{ gruposUp[g]=1; }));
   const fichaDe={}; (DB.projetos||[]).forEach(p=>{ if(p.clienteId) fichaDe[p.clienteId]=p; });
+  /* No mes da mudanca vale o que foi COBRADO no mes (Gabriel 30/09: "tem pro rata nesse mes"):
+     conta que entrou no meio do mes cobra proporcional, entao a diferenca do mes e menor que
+     a recorrente. valor_novo e o recorrente; o do mes vem dos recebimentos da competencia. */
+  const recDe={}; (DB.recebimentos||[]).forEach(r=>{ if(r.comp===comp) recDe[r.clienteId]=r; });
+  const valCli=(c)=>{ const r=recDe[c.id]; return fchN(r&&r.valor!=null&&r.valor!==''?r.valor:c.valor); };
+  const noMes=(m)=>{ const gs=fchMudGrupos(m);
+    if(gs.length){ const v=(DB.clientes||[]).filter(c=>!c.arquivadoEm&&fichaDe[c.id]&&gs.indexOf(grupoDe(fichaDe[c.id]))>=0).reduce((s,c)=>s+valCli(c),0); return v>0?v:fchN(m.valor_novo); }
+    const c=(DB.clientes||[]).find(c=>c.id===m.cliente_id); return c?valCli(c):fchN(m.valor_novo); };
+  const dif=(m)=>noMes(m)-fchN(m.valor_antes);
+  const ups=mud.filter(m=>m.tipo==='upsell'), downs=mud.filter(m=>m.tipo==='downsell');
+  const gruposUp={}; ups.forEach(m=>fchMudGrupos(m).forEach(g=>{ gruposUp[g]=1; }));
   const gerDe=(m)=>{ if(gerCli[m.cliente_id]) return gerCli[m.cliente_id];
     const gs=fchMudGrupos(m); const f=(DB.projetos||[]).find(p=>gs.indexOf(grupoDe(p))>=0&&String(p.gerente||'').trim());
     return (f&&f.gerente.trim())||'sem gerente'; };
@@ -13535,7 +13543,7 @@ function fchMudResumo(rows,comp,novos,gerCli){
   ups.forEach(m=>{ const g=gerDe(m); entGer[g]=(entGer[g]||0)+dif(m); });
   downs.forEach(m=>{ const g=gerDe(m); saiGer[g]=(saiGer[g]||0)-dif(m); });
   return {ups,downs,novos:semUp,entUp:ups.reduce((s,m)=>s+dif(m),0),saiDown:downs.reduce((s,m)=>s-dif(m),0),entGer,saiGer,
-    linha:(m)=>[m.cliente_nome||m.cliente_id||'-','de '+brl(m.valor_antes)+' para '+brl(m.valor_novo)+(m.motivo?' · '+String(m.motivo).slice(0,60):''),Math.abs(dif(m))]};
+    linha:(m)=>{ const nm=noMes(m); return [m.cliente_nome||m.cliente_id||'-','de '+brl(m.valor_antes)+' para '+brl(m.valor_novo)+(Math.abs(nm-fchN(m.valor_novo))>0.005?' · neste mês '+brl(nm)+' (pro rata)':''),Math.abs(dif(m))]; }};
 }
 function renderFechamentoMes(c){
   const comp=fechComp;

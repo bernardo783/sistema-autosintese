@@ -277,21 +277,24 @@ grupo('Volta do Controle de Churns pergunta o combinado (Gabriel 30/09, SPAÇO V
 grupo('Fechamento: upsell e downsell entram pela diferença (Gabriel 30/09)');
 {
   const DB={projetos:[{id:'p1',clienteId:'a1',nome:'ALTOGIRO | MOISÉS',grupo:'ALTOGIRO',gerente:'Luiz'},{id:'p2',clienteId:'s1',nome:'SABARÁ | SÉRGIO',gerente:'Luiz'},
-    {id:'p3',clienteId:'n1',nome:'NOVO CLIENTE',gerente:'João'},{id:'p4',clienteId:'j1',nome:'JR MOTORS VR',gerente:'João'}]};
+    {id:'p3',clienteId:'n1',nome:'NOVO CLIENTE',gerente:'João'},{id:'p4',clienteId:'j1',nome:'JR MOTORS VR',gerente:'João'}],
+    clientes:[{id:'a1',valor:800},{id:'s1',valor:800},{id:'n1',valor:1500},{id:'j1',valor:900}],
+    recebimentos:[{comp:'2026-09',clienteId:'s1',valor:373.33},{comp:'2026-09',clienteId:'j1',valor:0},{comp:'2026-08',clienteId:'s1',valor:800}]};
   const g=rodar(bloco('let FCH_MUD=','function renderFechamentoMes('),{DB,MAIUS:s=>String(s||'').toUpperCase(),fchN:v=>Number(v)||0,brl:v=>'R$ '+v,
     grupoDe:f=>{ const gr=String((f&&f.grupo)||'').trim(); if(gr) return gr.toUpperCase(); const m=String((f&&f.nome)||'').split(/\s+[|\u2502]\s+/); return m.length>1?m[0].trim().toUpperCase():''; }},
     ['fchMudResumo','fchMudGrupos']);
-  const rows=[{cliente_id:'grupo:ALTOGIRO+SABARÁ',cliente_nome:'ALTOGIRO + SABARÁ',tipo:'upsell',valor_antes:5600,valor_novo:9600,aplicado_em:'2026-09-30T12:00:00Z'},
+  const rows=[{cliente_id:'grupo:ALTOGIRO+SABARÁ',cliente_nome:'ALTOGIRO + SABARÁ',tipo:'upsell',valor_antes:1000,valor_novo:1600,aplicado_em:'2026-09-30T12:00:00Z'},
     {cliente_id:'j1',cliente_nome:'JR MOTORS VR',tipo:'downsell',valor_antes:900,valor_novo:0,aplicado_em:'2026-09-23T12:00:00Z'},
     {cliente_id:'x',cliente_nome:'OUTRO MÊS',tipo:'upsell',valor_antes:1,valor_novo:2,aplicado_em:'2026-08-02T12:00:00Z'}];
   const novos=[{id:'a1',valor:800},{id:'s1',valor:800},{id:'n1',valor:1500}];
   const M=g.fchMudResumo(rows,'2026-09',novos,{j1:'João'});
-  ok('upsell do mês entra pela diferença e no gerente do grupo', M.entUp===4000&&M.entGer.Luiz===4000&&M.ups.length===1);
+  ok('upsell entra pela diferença do que foi COBRADO no mês (pro rata do Sérgio), no gerente do grupo', Math.abs(M.entUp-173.33)<0.01&&Math.abs(M.entGer.Luiz-173.33)<0.01&&M.ups.length===1);
+  ok('em outro mês, sem pro rata, vale o recorrente', Math.abs(g.fchMudResumo([Object.assign({},rows[0],{aplicado_em:'2026-10-05T12:00:00Z'})],'2026-10',[],{}).entUp-600)<0.01);
   ok('contas novas do grupo em upsell não viram cliente novo; as outras continuam', M.novos.length===1&&M.novos[0].id==='n1');
   ok('downsell entra como saída pela diferença, no gerente do cliente', M.saiDown===900&&M.saiGer['João']===900);
   ok('mudança de outro mês fica fora', M.ups.every(m=>m.cliente_nome!=='OUTRO MÊS'));
   ok('grupo:A+B vira lista de grupos', g.fchMudGrupos({cliente_id:'grupo:ALTOGIRO+SABARÁ'}).join(',')==='ALTOGIRO,SABARÁ'&&g.fchMudGrupos({cliente_id:'cli_1'}).length===0);
-  ok('linha do bloco diz de quanto para quanto', M.linha(M.ups[0])[1].indexOf('de R$ 5600 para R$ 9600')===0&&M.linha(M.ups[0])[2]===4000);
+  ok('linha do bloco diz de quanto para quanto e avisa o pro rata do mês', M.linha(M.ups[0])[1]==='de R$ 1000 para R$ 1600 · neste mês R$ 1173.33 (pro rata)'&&Math.abs(M.linha(M.ups[0])[2]-173.33)<0.01);
   ok('saldo do mês soma upsell e downsell', /const SAIU=somaSt\('churn'\)\+somaSt\('churnpago'\)\+M\.saiDown;/.test(HTML)&&/const ENT=novos\.reduce\(\(s,x\)=>s\+fchN\(x\.valor\),0\)\+M\.entUp;/.test(HTML));}
 
 grupo('Ordem alfabética');
