@@ -7697,7 +7697,10 @@ const LC_SOCIAL='50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c1';
 const LC_REM_SOCIAL='50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c2';
 const LC_FORA=['5416ae4d-6ea2-4d3b-9510-9abccbdb96e2',   /* Verba Semanal */
                '271de509-620c-4f31-a473-137f483f5849',   /* Forma de Pagamento */
-               'b39c6e52-332f-4e2d-97bb-aa8ea9527402'];  /* Canal */
+               'b39c6e52-332f-4e2d-97bb-aa8ea9527402',   /* Canal */
+               /* Remuneracao Social (Gabriel 30/09: "precisa dessa coluna nao"): some so da LISTA. O valor
+                  continua no card e a Folha segue calculando os R$ 200 por conta da social media. */
+               '50c1a1d0-7e2b-4c95-8a31-6d0f9b74e2c2'];  /* Remuneração Social */
 /* Troca o mes que a coluna Situacao (e a vista de gerentes) esta mostrando. E o mesmo
    cliComp da tela de Recebimentos de proposito: os dois falam do mesmo mes. */
 window.lcMes=(v)=>{ cliComp=v||compNow(); tkDesenhar($('#content')); };
