@@ -13468,8 +13468,8 @@ function renderLanc(c){
      <div class="card"><div class="k">Receitas</div><div class="v pos">${brl(rec)}</div></div>
      <div class="card"><div class="k">Despesas</div><div class="v neg">${brl(desp)}</div></div>
      <div class="card" style="cursor:pointer;${lancSoMeta?'border-color:var(--brand2)':''}" onclick="lancMeta()" title="${lancSoMeta?'Mostrar todos os lançamentos':'Ver só os lançamentos de Meta Ads'}">
-       <div class="k">Meta Ads${filtrado?' no período':''}</div><div class="v neg">${brl(filtrado?metaPer:metaTudo)}</div>
-       <div class="hint" style="margin:4px 0 0">${filtrado?`${desp?Math.round(metaPer/desp*100):0}% das despesas · total de sempre ${brl(metaTudo)}`:'total de sempre'}${lancSoMeta?' · filtrando':''}</div></div>
+       <div class="k">Meta Ads · total</div><div class="v neg">${brl(metaTudo)}</div>
+       <div class="hint" style="margin:4px 0 0">${filtrado?`${lrange?'Período':fmtComp(lancComp)}: <strong>${brl(metaPer)}</strong> · ${desp?Math.round(metaPer/desp*100):0}% das despesas`:'soma de todos os meses'}${lancSoMeta?' · filtrando':''}</div></div>
      <div class="card"><div class="k">Comparativo</div>
        <div class="barchart"><div class="barwrap"><div class="bar r" style="height:${rec/mx*100}%"></div><div class="lbl">Receitas</div></div>
        <div class="barwrap"><div class="bar d" style="height:${desp/mx*100}%"></div><div class="lbl">Despesas</div></div></div>
