@@ -370,6 +370,27 @@ grupo('Fechamento: folha por departamento e custo por setor (Gabriel 30/09)');
   ok('Custo por departamento é bloco clicável por setor, somando gente e outros gastos', r.indexOf("'<h2 style=\"margin-top:18px\">Custo por departamento: '")>0&&/lin\.map\(r=>fchBloco\(r\.d, r\.tot,/.test(r)&&/tot:r\.folha\+r\.oper/.test(r));
 }
 
+grupo('Padrão de tabela: título centralizado e linha entre as linhas (Gabriel 30/09)');
+{
+  ok('todo título de coluna centralizado, o primeiro à esquerda', /\n  th\{text-align:center\}\n  th:first-child\{text-align:left\}/.test(HTML));
+  ok('nenhum título forçado à direita na mão', HTML.indexOf('<th style="text-align:right">')<0&&HTML.indexOf("style=\"text-align:right\"':''}>${t}</th>")<0);
+  ok('coluna de dinheiro: número à direita, título centralizado', HTML.indexOf('.tk-tab td.tk-num{text-align:right}')>0&&HTML.indexOf('.tk-tab th.tk-num,.tk-tab td.tk-num{text-align:right}')<0);
+  ok('linha horizontal entre as linhas em toda tabela', /th,td\{text-align:left;padding:13px 16px;font-size:13\.5px;border-bottom:1px solid var\(--line\)\}/.test(HTML)&&HTML.indexOf('.fchdoc .tablewrap td{padding:8px 0;border-bottom:1px solid #3a2670')>0);
+}
+
+grupo('Fechamento: clicar no escritório abre o que foi gasto (Gabriel 30/09)');
+{
+  const g=rodar(bloco('function fchTipoEsc(','const FCH_SETOR='),{fchN:v=>Number(v)||0,brl:v=>'R$ '+v,esc:s=>String(s??''),window:{}},['fchKpiEsc','fchParcelaTxt']);
+  ok('parcela 3/10 vira "parcela 3 de 10, faltam 7"', g.fchParcelaTxt('Mercado Livre (parcela 3/10)')==='parcela 3 de 10, faltam 7'&&g.fchParcelaTxt('Cadeira (parcela 10/10)')==='última parcela (10 de 10)'&&g.fchParcelaTxt('Internet')==='');
+  const h=g.fchKpiEsc({'Volta Redonda':[{descricao:'Aluguel, Escritório Volta Redonda',valor:1300},{descricao:'Mercado Livre monitor (parcela 3/10), Escritório Volta Redonda',valor:120},{descricao:'Internet, Escritório Volta Redonda',valor:99}],'Itajubá':[{descricao:'Aluguel, Escritório Itajubá',valor:775}]},10000);
+  ok('o nome do escritório é um botão que abre o detalhe', (h.match(/class="rc-gr-b" aria-expanded="false" data-k=/g)||[]).length===2&&h.indexOf('onclick="fchEscAbre(this)"')>0);
+  ok('as linhas de detalhe já estão na tabela, escondidas, uma por gasto', (h.match(/class="fch-esc-d rc-gr-f" data-k="Volta_Redonda" hidden/g)||[]).length===3);
+  ok('o detalhe mostra a parcela e o que falta', h.indexOf('parcela 3 de 10, faltam 7')>0&&h.indexOf('R$ 840')>0);
+  ok('cada gasto cai na coluna do tipo dele (internet em Contas)', /Internet, Escritório Volta Redonda<\/td><td><\/td><td class="money" style="text-align:right">R\$ 99<\/td><td><\/td>/.test(h));
+  ok('títulos sem alinhamento forçado', h.indexOf('<th style=')<0);
+  ok('os blocos repetidos por escritório abaixo da tabela saíram', HTML.indexOf("its.length+' lançamentos')).join('')||'<div class=\"hint\">Nenhum gasto de escritório neste mês.</div>'")<0);
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);

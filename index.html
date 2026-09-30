@@ -1421,6 +1421,11 @@
   table{width:100%;border-collapse:collapse}
   th,td{text-align:left;padding:13px 16px;font-size:13.5px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;background:var(--panel2)}
+  /* Padrão de tabela do sistema (Gabriel 30/09, "igual Controle de Clientes"): título de
+     coluna centralizado, só o primeiro (o nome) fica à esquerda; linha horizontal entre as
+     linhas em toda tabela. Vale pra qualquer tela, inclusive o Fechamento. */
+  th{text-align:center}
+  th:first-child{text-align:left}
   tr:last-child td{border-bottom:none}
   tbody tr:hover{background:var(--panel2)}
   .tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700}
@@ -2738,7 +2743,7 @@
   /* as tabelas viram os paineis .amort/.dist do relatorio */
   .fchdoc .tablewrap{background:#1e0c46;border:1px solid #33205e;border-radius:13px;padding:4px 18px;overflow:visible}
   .fchdoc .tablewrap table{width:100%;border-collapse:collapse}
-  .fchdoc .tablewrap td{padding:8px 0;border-bottom:1px solid #2a1656;background:none;color:#ece9f5;font-size:14px}
+  .fchdoc .tablewrap td{padding:8px 0;border-bottom:1px solid #3a2670;background:none;color:#ece9f5;font-size:14px}   /* fio mais forte: linha separando as informações (Gabriel 30/09) */
   .fchdoc .tablewrap tr:last-child td{border-bottom:0}
   .fchdoc .tablewrap td span{color:#9b8fc0 !important}
   .fchdoc .tablewrap td.money{font-variant-numeric:tabular-nums;min-width:130px}
@@ -2750,6 +2755,11 @@
   .fchdoc .tablewrap.fch-rola td.money{min-width:0}
   .fchdoc .tablewrap.fch-rola td:first-child{padding-left:0}
   .fchdoc .tablewrap tr.fch-soma td{border-top:1px solid #33205e}
+  .fchdoc .tablewrap tr.fch-esc-d td{background:#241052;font-size:13px;padding-left:18px}
+  .fchdoc .tablewrap tr.fch-esc-d td:first-child{padding-left:26px}
+  .fchdoc .tablewrap tr.fch-esc-d td span{color:#9b8fc0 !important}
+  .fchdoc .rc-gr-b{color:#ece9f5}
+  .fchdoc .rc-gr-b small{color:#9b8fc0}
   @media(max-width:620px){.fchdoc{padding:16px 12px 22px}.fchdoc .fch-b{display:none}}
   .fch-g{background:var(--panel);border:1px solid var(--border);border-radius:11px;margin-bottom:7px;overflow:hidden}
   .fch-g[open]{border-color:var(--brand)}
@@ -3390,7 +3400,7 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
   }
 
   /* ===== dinheiro na lista e total da carteira (Gabriel 23/09) ===== */
-  .tk-tab th.tk-num,.tk-tab td.tk-num{text-align:right}
+  .tk-tab td.tk-num{text-align:right}   /* o título fica centralizado, como as outras colunas */
   /* coluna de pessoa: foto e "-" no mesmo eixo (Gabriel 23/09) */
   .tk-tab th.tk-cen,.tk-tab td.tk-cen{text-align:center}
   .tk-tab td.tk-cen .tk-pcel,.tk-tab td.tk-cen .tk-trava{margin:0 auto;justify-content:center}
@@ -4583,7 +4593,7 @@ function renderTrafego(c){
      <div id="mtTotais" style="color:var(--muted);font-size:13px;margin:6px 0 10px"></div>
      <div id="mtLista"><div style="color:var(--muted);padding:14px 2px;font-size:13px">Carregando contas do Meta…</div></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Plataforma</th><th style="text-align:right">Orçamento/dia</th><th>Status</th><th>Responsável</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Plataforma</th><th>Orçamento/dia</th><th>Status</th><th>Responsável</th><th></th></tr></thead>
    <tbody id="tBody"></tbody></table><div id="tEmpty"></div></div>`}`;
   /* as outras abas usam os mesmos dados do Meta, mas não têm os controles da aba Contas */
   if(trafAba!=='contas'){
@@ -8252,7 +8262,7 @@ function ncUltimasHTML(n){
   return `${ncAprovarHTML()}
    <h2 style="font-size:15px;margin:26px 0 8px">Solicitações da equipe<small style="font-weight:600;color:var(--fraco);font-size:12px;margin-left:8px">reembolsos e contas novas pedidas pelo Suporte</small>
      <button class="btn secondary small" style="float:right;margin-top:-4px" onclick="ncCopiarLink()" title="Link pra quem está de fora mandar boleto sem login"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Link de envio</button></h2>
-   <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th style="text-align:right">Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th>Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead>
    <tbody>${envs.map(linha).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
 }
 function ncFormulario(c){
@@ -9422,7 +9432,7 @@ function lcVistaGerentes(){
     return `
    <div class="lc-ger">
      <div class="lc-gerh">${avatarDoNome(g,'lc-av g')||`<span class="lc-av g" style="background:${lcCor(g)}">${esc(g.charAt(0).toUpperCase())}</span>`}<strong>${esc(g)}</strong><span class="lc-n">${por[g].length} cliente${por[g].length===1?'':'s'}</span>${fin?`<span class="lc-n" style="margin-left:auto">mensalidades: <strong style="color:var(--txt)">${brl(total)}</strong></span>`:''}</div>
-     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nível</th><th>Gestor de tráfego</th><th>Squad</th><th>Estágio</th>${fin?'<th style="text-align:right">Mensalidade</th><th>PG</th>':''}</tr></thead>
+     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nível</th><th>Gestor de tráfego</th><th>Squad</th><th>Estágio</th>${fin?'<th>Mensalidade</th><th>PG</th>':''}</tr></thead>
      <tbody>${linhas}</tbody></table></div>
    </div>`; }).join('')||'<div class="empty">Nenhum cliente.</div>';
 }
@@ -13014,7 +13024,7 @@ function renderFunil(c){
    </div>
    <div class="dl-box">
      <div class="dl-grp"><h4>Campanhas</h4><span class="n">${camps.length} com gasto ou ativas · ordenadas por investimento</span></div>
-     ${camps.length?`<div class="tablewrap"><table><thead><tr><th>Campanha</th><th>Situação</th><th style="text-align:right">Investido</th><th style="text-align:right">Cliques</th><th style="text-align:right">Leads</th><th style="text-align:right">CPL</th></tr></thead>
+     ${camps.length?`<div class="tablewrap"><table><thead><tr><th>Campanha</th><th>Situação</th><th>Investido</th><th>Cliques</th><th>Leads</th><th>CPL</th></tr></thead>
      <tbody>${camps.map(x=>`<tr>
        <td><strong>${esc(x.nome)}</strong>${x.orc?`<div class="hint" style="margin:2px 0 0">orçamento ${esc(brl(x.orc))}/dia</div>`:''}</td>
        <td><span class="tag ${x.status==='ACTIVE'?'andamento':'st'}">${x.status==='ACTIVE'?'Ativa':x.status==='PAUSED'?'Pausada':esc(x.status||'')}</span></td>
@@ -13148,7 +13158,7 @@ async function dashDeps(compRef){
   const totR=recD.marketing+recD.tecnologia+recD.comercial+recD.administrativo+recD.sem;
   const totD=despD.marketing+despD.tecnologia+despD.comercial+despD.administrativo+despD.sem;
   box.innerHTML=`<div class="tablewrap"><table>
-    <thead><tr><th>Departamento</th><th style="text-align:right" data-dica="Receita da competência dividida pela alocação do contrato de cada cliente (recebido + a receber + inadimplente do mês). O recebimento continua sendo UM só, isto é só a lente gerencial.">Receita</th><th style="text-align:right" data-dica="Despesas do mês cuja categoria é o próprio setor. O que não tem setor cai em Sem alocação (rateio vem na Fase 5).">Despesa direta</th><th style="text-align:right">Resultado direto</th><th style="text-align:right" data-dica="Resultado direto ÷ receita do departamento.">Margem</th></tr></thead>
+    <thead><tr><th>Departamento</th><th style="text-align:right" data-dica="Receita da competência dividida pela alocação do contrato de cada cliente (recebido + a receber + inadimplente do mês). O recebimento continua sendo UM só, isto é só a lente gerencial.">Receita</th><th style="text-align:right" data-dica="Despesas do mês cuja categoria é o próprio setor. O que não tem setor cai em Sem alocação (rateio vem na Fase 5).">Despesa direta</th><th>Resultado direto</th><th style="text-align:right" data-dica="Resultado direto ÷ receita do departamento.">Margem</th></tr></thead>
     <tbody>
       ${linha('marketing','Marketing')}
       ${linha('tecnologia','Tecnologia')}
@@ -13227,7 +13237,7 @@ async function renderCarteira(c){
              :`<span class="cg-m">${esc(CG_MOTIVO[String(x.status||'')]||String(x.status||'a receber'))}</span>`}</td></tr>`;
   const tabela=(tit,arr,ok)=>arr.length?`<h3 style="font-size:14px;font-weight:800;margin:22px 0 10px">${tit}</h3>
     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>${(gers.length>1&&!cgGer)?'Gerente':''}</th>
-      <th style="text-align:right">Valor</th><th>Situação</th></tr></thead>
+      <th>Valor</th><th>Situação</th></tr></thead>
       <tbody>${arr.slice().sort((a,b)=>(Number(b.valor_mes)||0)-(Number(a.valor_mes)||0)).map(x=>lin(x,ok)).join('')}</tbody></table></div>`:'';
   c.innerHTML=`
    <div class="page-head"><div><h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> Minha carteira</h2>
@@ -13497,7 +13507,7 @@ async function renderPesquisa(c){
 
   const todas=ult.slice().sort((a,b)=>String(b.enviado_em).localeCompare(String(a.enviado_em)));
   const tabTodas=todas.length?`<h3 class="ps-h">Todas as avaliações <small>clique para ver as respostas</small></h3>
-    <div class="tablewrap"><table><thead><tr><th>Cliente</th>${colG?'<th>Gerente</th>':''}<th>Tipo</th><th>Serviço</th><th style="text-align:right">Indicação</th><th style="text-align:right">Satisfação</th><th>Risco</th><th>Respondida</th></tr></thead><tbody>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th>${colG?'<th>Gerente</th>':''}<th>Tipo</th><th>Serviço</th><th>Indicação</th><th>Satisfação</th><th>Risco</th><th>Respondida</th></tr></thead><tbody>
     ${todas.map(r=>`<tr class="ps-row" onclick="psVer('${r.id}')"><td><strong>${esc(r.loja||'(sem nome)')}</strong></td>${colG?`<td>${esc(psGer(r))}</td>`:''}
       <td>${esc(PS_TIPO[r.tipo]||PS_TIPO.mensal)}</td>
       <td>${esc(PS_SERV[r.servico]||'-')}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${r.nps??'-'}</td>
@@ -13561,21 +13571,36 @@ function fchTipoEsc(d){ d=String(d||'');
   return 'compras'; }
 function fchParcelasRest(d,v){ const m=/parcela\s+(\d+)\s*\/\s*(\d+)/i.exec(String(d||'')); if(!m) return 0;
   const n=+m[1], t=+m[2]; return t>n?Math.max(0,fchN(v))*(t-n):0; }
+/* Clicar no escritório abre o que foi gasto (Gabriel 30/09: "ver o Mercado Livre, ver que a
+   parcela está acabando, ver a internet"): as linhas de detalhe já vêm na tabela, escondidas,
+   e o clique só mostra ou esconde, sem redesenhar a tela. */
+window.fchEscAbre=(b)=>{ const ab=b.getAttribute('aria-expanded')!=='true'; b.setAttribute('aria-expanded',ab?'true':'false');
+  b.title=ab?'Fechar o detalhe':'Ver o que foi gasto';
+  const k=b.dataset.k; document.querySelectorAll('tr.fch-esc-d[data-k="'+k+'"]').forEach(tr=>{ tr.hidden=!ab; }); };
+const FCH_TIPO_ESC={aluguel:'Aluguel',contas:'Contas',compras:'Compras e serviços'};
+/* "parcela 3/10" na descrição vira "parcela 3 de 10, faltam 7" */
+function fchParcelaTxt(d){ const m=/parcela\s+(\d+)\s*\/\s*(\d+)/i.exec(String(d||'')); if(!m) return '';
+  const n=+m[1], t=+m[2]; return t>n?'parcela '+n+' de '+t+', '+(t-n===1?'falta 1':'faltam '+(t-n)):'última parcela ('+n+' de '+t+')'; }
 function fchKpiEsc(porEsc,TD){
   const nomes=Object.keys(porEsc||{}); if(!nomes.length) return '';
   const L=nomes.map(n=>{ const a={aluguel:0,contas:0,compras:0}; let rest=0;
     porEsc[n].forEach(x=>{ a[fchTipoEsc(x.descricao)]+=fchN(x.valor); rest+=fchParcelasRest(x.descricao,x.valor); });
-    return {n,a,tot:a.aluguel+a.contas+a.compras,rest}; }).sort((x,y)=>y.tot-x.tot);
+    return {n,a,tot:a.aluguel+a.contas+a.compras,rest,its:porEsc[n].slice().sort((x,y)=>fchN(y.valor)-fchN(x.valor))}; }).sort((x,y)=>y.tot-x.tot);
   const S=L.reduce((s,r)=>({aluguel:s.aluguel+r.a.aluguel,contas:s.contas+r.a.contas,compras:s.compras+r.a.compras,tot:s.tot+r.tot,rest:s.rest+r.rest}),
     {aluguel:0,contas:0,compras:0,tot:0,rest:0});
   const pct=(v)=>TD>0?(v/TD*100).toFixed(1).replace('.',',')+'%':'-';
   const num=(v)=>`<td class="money" style="text-align:right">${brl(v)}</td>`;
-  const lin=(r)=>`<tr><td><strong>${esc(r.n)}</strong></td>${num(r.a.aluguel)}${num(r.a.contas)}${num(r.a.compras)}<td class="money" style="text-align:right"><strong>${brl(r.tot)}</strong></td><td class="money" style="text-align:right">${pct(r.tot)}</td>${num(r.rest)}</tr>`;
-  const th=(t,dir)=>`<th${dir?' style="text-align:right"':''}>${t}</th>`;
-  return `<div class="tablewrap fch-rola"><table><thead><tr>${th('Escritório')}${th('Aluguel',1)}${th('Contas',1)}${th('Compras e serviços',1)}${th('Total do mês',1)}${th('% da despesa',1)}${th('Parcelas a vencer',1)}</tr></thead>
+  const k=(n)=>String(n).replace(/[^a-z0-9]/gi,'_');
+  /* detalhe: um lançamento por linha, na coluna do tipo dele, com a parcela quando houver */
+  const det=(r)=>r.its.map(x=>{ const tp=fchTipoEsc(x.descricao), pz=fchParcelaTxt(x.descricao), rest=fchParcelasRest(x.descricao,x.valor);
+    const cel=(t)=>t===tp?num(x.valor):'<td></td>';
+    return `<tr class="fch-esc-d rc-gr-f" data-k="${k(r.n)}" hidden><td>${esc(x.descricao)}${pz?`<div class="rc-sub">${esc(pz)}</div>`:''}</td>${cel('aluguel')}${cel('contas')}${cel('compras')}<td class="money" style="text-align:right">${brl(x.valor)}</td><td class="money" style="text-align:right">${esc(FCH_TIPO_ESC[tp])}</td>${num(rest)}</tr>`; }).join('');
+  const lin=(r)=>`<tr><td><button type="button" class="rc-gr-b" aria-expanded="false" data-k="${k(r.n)}" onclick="fchEscAbre(this)" title="Ver o que foi gasto"><i class="fch-cv"></i><strong>${esc(r.n)}</strong><small>${r.its.length} lançamento${r.its.length===1?'':'s'}</small></button></td>${num(r.a.aluguel)}${num(r.a.contas)}${num(r.a.compras)}<td class="money" style="text-align:right"><strong>${brl(r.tot)}</strong></td><td class="money" style="text-align:right">${pct(r.tot)}</td>${num(r.rest)}</tr>`+det(r);
+  const th=(t)=>`<th>${t}</th>`;
+  return `<div class="tablewrap fch-rola"><table><thead><tr>${th('Escritório')}${th('Aluguel')}${th('Contas')}${th('Compras e serviços')}${th('Total do mês')}${th('% da despesa')}${th('Parcelas a vencer')}</tr></thead>
     <tbody>${L.map(lin).join('')}
     <tr class="fch-soma"><td><strong>Todos os escritórios</strong></td>${num(S.aluguel)}${num(S.contas)}${num(S.compras)}<td class="money" style="text-align:right"><strong>${brl(S.tot)}</strong></td><td class="money" style="text-align:right">${pct(S.tot)}</td>${num(S.rest)}</tr></tbody></table></div>
-   <p class="hint">Contas é internet, água e luz. Compras e serviços é o resto: cartão, faxina, equipamento. Parcelas a vencer é o que ainda falta pagar das compras parceladas no cartão, depois da parcela deste mês.</p>`;
+   <p class="hint">Clique no escritório para ver cada gasto. Contas é internet, água e luz. Compras e serviços é o resto: cartão, faxina, equipamento. Parcelas a vencer é o que ainda falta pagar das compras parceladas no cartão, depois da parcela deste mês.</p>`;
 }
 const FCH_SETOR={'Luiz Marcelo':'Gerentes','João Vitor':'Gerentes','Luan Peixoto':'Gestores de tráfego',
   'Yghor':'Gestores de tráfego','Maria Eduarda':'Editora de vídeo','José Carlos':'Sócios',
@@ -13736,11 +13761,7 @@ function renderFechamentoMes(c){
    antecipação e projeto pago de uma vez, entrada que não se repete não serve para medir o mês nem para o rateio.</p>
 
    <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/></svg> Custo por escritório</h2>
-   ${fchKpiEsc(porEsc,TD)}
-   ${Object.entries(porEsc).sort((a,b)=>b[1].reduce((s,x)=>s+fchN(x.valor),0)-a[1].reduce((s,x)=>s+fchN(x.valor),0))
-     .map(([k,its])=>fchBloco(k, its.reduce((s,x)=>s+fchN(x.valor),0),
-       its.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.descricao,x.categoria,x.valor]),
-       its.length+' lançamentos')).join('')||'<div class="hint">Nenhum gasto de escritório neste mês.</div>'}
+   ${fchKpiEsc(porEsc,TD)||'<div class="hint">Nenhum gasto de escritório neste mês.</div>'}
 
    <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg> Folha de pagamento por departamento: ${brl(TFOLHA)}</h2>
    ${FD_DEPS.concat(['Outros']).filter(s=>porSet[s]).map(s=>{ const its=porSet[s];
@@ -14076,7 +14097,7 @@ async function renderFinAPagar(c){
      <div class="card" data-dica="Compromisso fixo mensal: soma dos modelos de recorrência ativos."><div class="k">Fixas mensais</div><div class="v">${brl(APG.contas.filter(x=>x.ativa&&x.periodicidade==='mensal').reduce((s,x)=>s+Number(x.valor_padrao||0),0))}</div><div class="sub">${APG.contas.filter(x=>x.ativa).length} recorrência(s)</div></div>
    </div>
    ${atrasadasAntigas.length?`<p class="hint" style="color:#ff8b97"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> ${atrasadasAntigas.length} conta(s) vencida(s) de meses anteriores aparecem na lista abaixo.</p>`:''}
-   <div class="tablewrap"><table><thead><tr><th>Descrição</th><th>Departamento</th><th>Categoria</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Descrição</th><th>Departamento</th><th>Categoria</th><th>Vencimento</th><th>Valor</th><th>Status</th><th></th></tr></thead>
    <tbody>${atrasadasAntigas.map(p=>linha(p,true)).join('')}${doMes.map(p=>linha(p,false)).join('')}</tbody></table>
    ${(doMes.length+atrasadasAntigas.length)?'':'<div class="empty">Nenhuma conta em '+fmtComp(APG.comp)+'. As recorrências ativas entram sozinhas ao abrir o mês; avulsas e parceladas nascem no “+ Despesa”.</div>'}</div>
    <p class="hint" style="margin-top:12px">Pagar aqui lança a despesa nos <strong>Lançamentos</strong> automaticamente (competência + data real do pagamento), nunca em dobro. Cancelamento preserva o histórico.</p>
@@ -14279,7 +14300,7 @@ function renderLanc(c){
         <span style="font-size:11px;color:var(--muted);min-width:44px;text-align:right">${desp?Math.round(v/desp*100):0}%</span>
       </div>`).join('')}
    </div>`:''}
-   <div class="tablewrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th></th></tr></thead>
    <tbody id="fBody"></tbody></table><div id="fEmpty"></div></div>
    <p class="hint" style="margin-top:12px">A tabela é dividida por departamento, uma linha cada, com a soma: clique no nome para abrir. Dentro do departamento, Meta Ads e folha de pagamento aparecem juntos em uma linha. Despesas primeiro, do departamento maior para o menor, depois as receitas.</p>`;
   const tagTipo=(tp)=>`<span class="tag ${tp}">${tp==='receita'?'Receita':(tp==='despesa'?'Despesa':'A receber')}</span>`;
@@ -15244,7 +15265,7 @@ function abaFinCliente(f){
      <div class="card"><div class="k">Vencimento</div><div class="v">${cli.diaVenc?'dia '+cli.diaVenc:'-'}</div></div>
    </div>
    <div style="font-size:13px;font-weight:800;margin-bottom:8px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Recebimentos</div>
-   ${recs.length?`<div class="tablewrap"><table><thead><tr><th>Competência</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th></tr></thead><tbody>
+   ${recs.length?`<div class="tablewrap"><table><thead><tr><th>Competência</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead><tbody>
      ${recs.slice(0,12).map(r=>`<tr><td>${esc(r.comp)}</td><td>${r.venc?d2br(r.venc):'-'}</td><td style="text-align:right">${brl(r.recebido?r.valor:(r.sinal||r.valor))}</td>
        <td>${r.recebido?'<span class="tag concluido"><i class="emi-dot" style="background:#3fcf8e"></i> Recebido</span>':r.sinal?'<span class="tag st"><i class="emi-dot" style="background:#4f8cff"></i> Sinal</span>':'<span class="tag pausado"><i class="emi-dot" style="background:#e6b13f"></i> A receber</span>'}</td></tr>`).join('')}
    </tbody></table></div>`:'<div style="color:var(--muted);font-size:12.5px">Nenhum recebimento lançado.</div>'}
@@ -16504,7 +16525,7 @@ function renderRecebimentos(c){
    </div>
    ${rcBlocoEntradas(R,comp)}
    ${rcBlocoReembolsos()}
-   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th style="text-align:right">Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th>Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
    <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. Contas do mesmo dono aparecem juntas em uma linha, com a soma: clique no nome para abrir as contas, e o status dessa linha muda todas de uma vez. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido, escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong><i class="emi-dot" style="background:#a78bfa"></i> Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong><i class="emi-dot" style="background:#6b7280"></i> Churn</strong> marca perda definitiva: o valor do mês vira receita perdida, o cliente sai da planilha na hora e o card dele vai para o Controle de Churns. A perda continua somada no cartão Churn, pra ver quem é, use o filtro de status: ele mostra só quem saiu no mês escolhido. <strong><i class="emi-dot" style="background:#6b7280"></i> Churn (mês pago)</strong> é para quem pagou e depois saiu: a mensalidade continua contando como recebida e o lançamento no Financeiro fica como está, o cliente só some da carteira a partir do mês seguinte.</p>`;
   const draw=()=>{
@@ -17897,7 +17918,7 @@ function renderFolha(c){
      <div class="card"><div class="k">Pago</div><div class="v pos">${brl(V.pago)}</div></div>
      <div class="card"><div class="k">A pagar</div><div class="v ${aPagar?'neg':''}">${brl(aPagar)}</div></div>
    </div>
-   <div class="tablewrap"><table><thead><tr><th>Pessoa</th><th>Chave Pix</th><th>Vence</th><th>Como é calculado</th><th style="text-align:right">Garantido</th><th>Pagamento</th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Pessoa</th><th>Chave Pix</th><th>Vence</th><th>Como é calculado</th><th>Garantido</th><th>Pagamento</th></tr></thead>
    <tbody>${corpo}</tbody></table>
    ${V.R.length?'':'<div class="empty">Ninguém na folha ainda. Use “+ Pessoa”.</div>'}</div>
    ${fdBlocoLucro(comp,V)}
@@ -17915,7 +17936,7 @@ function fdDetalhe(x,pagos){
       <td class="money" style="text-align:right">${brl(l.cheio)}</td><td class="money" style="text-align:right">${brl(l.ganho)}</td></tr>`; }).join('');
   const pg=pagos.map(f=>`<span class="tag concluido">Pago ${brl(f.valor)} em ${fmtDate(f.pagoEm)}</span> <button class="iconbtn" onclick="fdDesfazer('${esc(f.id)}')">Desfazer</button>`).join(' ');
   return `${x.fixo?`<div class="rc-sub" style="margin:0 0 8px">Fixo do mês: <b>${brl(x.fixo)}</b></div>`:''}
-    ${ls.length?`<table><thead><tr><th>Cliente</th><th>Conta como</th><th>Situação no mês</th><th style="text-align:right">Se pagar</th><th style="text-align:right">Garantido</th></tr></thead><tbody>${lin}</tbody></table>`
+    ${ls.length?`<table><thead><tr><th>Cliente</th><th>Conta como</th><th>Situação no mês</th><th>Se pagar</th><th>Garantido</th></tr></thead><tbody>${lin}</tbody></table>`
       :'<div class="rc-sub">Nada vindo do Controle de Clientes neste mês.</div>'}
     ${pg?`<div style="margin-top:10px">${pg}</div>`:''}`;
 }
@@ -17943,7 +17964,7 @@ function fdBlocoLucro(comp,V){
 function fdHistorico(comp){
   const hoje=hojeISO(), pays=(DB.folha||[]).filter(p=>p.comp===comp&&!String(p.esc||'').trim()).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
   return `<div class="f1-aviso">↻ ${fmtComp(comp)} é anterior à folha por departamento: os pagamentos aparecem como foram lançados na época.</div>
-   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Nome</th><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Status</th><th></th></tr></thead>
    <tbody>${pays.map(p=>{
      const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
      return `<tr><td><strong>${esc(p.nome)}</strong></td><td>${esc(p.descricao)||'-'}</td><td>${fmtDate(p.venc)||'-'}</td>
@@ -17976,7 +17997,7 @@ function fdEscritorios(comp){
     return `<details class="fch-g"${fdEscAberto[e]?' open':''} ontoggle="fdEscAbre('${esc(e)}',this.open)"><summary>
       <span class="fch-cv"></span><span class="fch-t">Escritório ${esc(e)}</span>
       <span class="fch-s">${pagas} de ${ps.length} pagas${semValor?' · '+semValor+' sem valor':''}</span><span class="fch-tv">${brl(tot)}</span></summary>
-      <div class="fch-corpo"><div class="tablewrap" style="margin:0"><table><thead><tr><th>Conta</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
+      <div class="fch-corpo"><div class="tablewrap" style="margin:0"><table><thead><tr><th>Conta</th><th>Vencimento</th><th>Valor</th><th>Status</th><th></th></tr></thead>
       <tbody>${ps.map(linha).join('')}</tbody></table></div></div></details>`; }).join('');
   return `<h2 style="font-size:16px;margin:24px 0 10px">Gastos de escritório: ${fmtComp(comp)} <small style="font-weight:600;color:var(--muted);font-size:12px;margin-left:6px">${pays.length?brl(fdSoma(pays,'valor'))+' em '+escs.length+' escritório'+(escs.length===1?'':'s')+' · clique no escritório para abrir as contas':''}</small></h2>
    ${blocos||'<div class="empty">Nenhum gasto de escritório em '+fmtComp(comp)+'.</div>'}
@@ -18111,7 +18132,7 @@ window.minhaRemAbrir=async ()=>{
       <div class="card"><div class="k">Garantido até agora</div><div class="v pos">${brl(x.total)}</div><div class="sub">${esc(fdComo(x))}</div></div>
       <div class="card"><div class="k">Se todos os clientes pagarem</div><div class="v">${brl(x.teto)}</div><div class="sub">teto do mês</div></div>
     </div>
-    ${vs.length?`<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Conta como</th><th>Situação no mês</th><th style="text-align:right">Se pagar</th><th style="text-align:right">Garantido</th></tr></thead>
+    ${vs.length?`<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Conta como</th><th>Situação no mês</th><th>Se pagar</th><th>Garantido</th></tr></thead>
       <tbody>${vs.slice().sort((a,b)=>String(a.cliente||'').localeCompare(String(b.cliente||''))).map(l=>`<tr><td>${esc(l.cliente||'-')}</td><td>${esc(FD_LINHA[l.papel]||l.papel)}</td><td>${esc(FD_ST[l.situacao]||l.situacao||'-')}</td>
         <td class="money" style="text-align:right">${brl(l.cheio)}</td><td class="money" style="text-align:right">${brl(l.ganho)}</td></tr>`).join('')}</tbody></table></div>`
       :'<div class="empty">Nada vindo do Controle de Clientes neste mês.</div>'}
