@@ -407,6 +407,25 @@ grupo('Lançamentos: repasse de tokens sai da receita e da despesa, margem nos c
   ok('setembro de exemplo: receita 90 mil, despesa 51 mil, margem 43,3%', g.R.rec===90000&&Math.abs(g.R.desp-51006.55)<0.01&&Math.abs(g.R.margem-43.33)<0.01&&Math.abs(g.R.tec-1006.55)<0.01);
 }
 
+grupo('Recebimentos: o que ainda vai entrar e quanto cada um leva (Gabriel 30/09)');
+{
+  const DB={financeiro:[{id:'rc_r1',tipo:'receita',data:'2026-09-05',valor:1500,descricao:'Mensalidade: GTR MOTORS',pagoEm:null},
+      {id:'rc_r2',tipo:'receita',data:'2026-09-10',valor:1300,descricao:'Mensalidade: NEGOCICAR',pagoEm:'2026-09-10'}],
+    recebimentos:[{id:'r1',comp:'2026-09',clienteId:'c1',nome:'GTR MOTORS',venc:'2026-09-05',valor:1500,status:'areceber'},
+      {id:'r2',comp:'2026-09',clienteId:'c2',nome:'NEGOCICAR',venc:'2026-09-10',valor:1300,status:'recebido'},
+      {id:'r3',comp:'2026-08',clienteId:'c3',nome:'LEAL MOTOS',venc:'2026-08-05',valor:1000,status:'inadimplente',cobravel:true}],
+    projetos:[{clienteId:'c1',gerente:'Luiz'},{clienteId:'c2',gerente:'João'},{clienteId:'c3',gerente:'João'}]};
+  const g=rodar(bloco('const fchN=(v)=>','const FCH_ESC=')+bloco('function fchBloco(','function fchSaldoMes(')+bloco('function fchPendentesHtml(comp){','function renderFechamentoMes(c){'),
+    {DB,brl:v=>'R$ '+Number(v).toFixed(2),esc:s=>String(s??''),fmtComp:c=>c.split('-').reverse().join('/')},['fchPendentesHtml']);
+  const h=g.fchPendentesHtml('2026-09');
+  ok('lista o que foi reconhecido e não caiu e o cobrável antigo', h.indexOf('GTR MOTORS')>0&&h.indexOf('LEAL MOTOS')>0&&h.indexOf('NEGOCICAR')<0);
+  ok('diz quanto cada um leva: comissão do gerente, caixa, Arthur e sócios', ['Comissão do gerente: Luiz','Caixa da empresa','Arthur','José Carlos','Gabriel','Bernardo'].every(k=>h.indexOf(k)>0));
+  ok('GTR: 1.500 menos 150 de comissão, 20% caixa = 270, Arthur 135, cada sócio 315', h.indexOf('R$ 150.00')>0&&h.indexOf('R$ 270.00')>0&&h.indexOf('R$ 135.00')>0&&h.indexOf('R$ 315.00')>0);
+  ok('atraso de mês anterior fica em bloco separado', h.indexOf('Atraso de meses anteriores')>0&&h.indexOf('Deste mês, 09/2026')>0);
+  ok('o Fechamento e o Recebimentos usam a mesma função', (HTML.match(/\$\{fchPendentesHtml\(comp\)\}/g)||[]).length===2);
+  ok('no Recebimentos só o master vê (lê o financeiro)', /currentUser&&currentUser\.role==='master'\)\?`<div class="fchdoc"[\s\S]{0,400}O que ainda vai entrar, e quanto cada um leva quando entrar/.test(HTML));
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);

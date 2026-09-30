@@ -13675,6 +13675,118 @@ function fchMudResumo(rows,comp,novos,gerCli){
   return {ups,downs,novos:semUp,entUp:ups.reduce((s,m)=>s+dif(m),0),saiDown:downs.reduce((s,m)=>s-dif(m),0),entGer,saiGer,
     linha:(m)=>{ const nm=noMes(m); return [m.cliente_nome||m.cliente_id||'-','de '+brl(m.valor_antes)+' para '+brl(m.valor_novo)+(Math.abs(nm-fchN(m.valor_novo))>0.005?' · neste mês '+brl(nm)+' (pro rata)':''),Math.abs(dif(m))]; }};
 }
+/* O QUE AINDA VAI ENTRAR (Gabriel 30/09): o mesmo bloco do Fechamento, agora também no fim do
+   Recebimentos. Recebíveis do mês (reconhecido e não recebido, inadimplente, cobrável, adiantamento
+   a ressarcir) e, para cada um, quanto cada pessoa leva quando o dinheiro cair. */
+function fchPendentesHtml(comp){
+  const fin=DB.financeiro.filter(x=>fchData(x)===comp);
+  const rec=fin.filter(x=>x.tipo==='receita'), desp=fin.filter(x=>x.tipo==='despesa');
+  const rcb=DB.recebimentos.filter(x=>x.comp===comp);
+  const gerCli={}; (DB.projetos||[]).forEach(p=>{ if(p.clienteId) gerCli[p.clienteId]=(p.gerente||'').trim(); });
+  const rid={}; DB.recebimentos.forEach(r=>{ rid[r.id]=r; });
+  const gerDe=(x)=>{ const i=String(x.id||'');
+    const k=i.startsWith('rcs_')?i.slice(4):(i.startsWith('rc_')?i.slice(3):null);
+    const r=k?rid[k]:null; return {g:(r?gerCli[r.clienteId]:'')||'', nome:r?r.nome:null, st:r?r.status:null}; };
+  const COMISSAO=['Luiz','João'];
+  const dec=(v)=>Math.round(v*100)/100;
+  const aReceber=rec.filter(x=>!x.pagoEm);
+  const porSt={}; rcb.forEach(x=>{ if(['churn','churnpago','carencia','inadimplente','areceber'].includes(x.status)) (porSt[x.status]=porSt[x.status]||[]).push(x); });
+ /* recebiveis: reconhecido e nao recebido, inadimplente, e adiantamento a ressarcir.
+      Para cada um, mostra o destino do dinheiro no dia em que cair. */
+     /* Dois grupos com destinos diferentes:
+        rateia=true  -> quando o dinheiro cair vira lucro novo e se divide 20/10/70.
+                        Sao os casos em que o valor JA passou pelo resultado: receita
+                        reconhecida e nao recebida, inadimplente, e despesa lancada que
+                        sera estornada na volta.
+        rateia=false -> dinheiro que nunca tocou o resultado (saiu direto do caixa, ou e de
+                        competencia que ja foi fechada). Na volta so recompoe o caixa; se
+                        entrasse no rateio, a empresa distribuiria duas vezes o mesmo dinheiro. */
+     const PEND=[];
+     aReceber.forEach(x=>{ const d=gerDe(x), r=rid[String(x.id||'').replace(/^rcs?_/,'')];
+       PEND.push({nome:String(x.descricao).replace('Restante: ','').split(', ')[0],
+         quando:'reconhecido no mês · vence '+fchDT((r&&r.venc)||x.data), v:fchN(x.valor), g:d.g, rateia:true}); });
+     /* cobraveis: mensalidade em aberto que a empresa ainda persegue, inclusive de cliente
+        que ja saiu. Vem de qualquer competencia, nao so do mes escolhido. aCobrar guarda o
+        saldo quando parte ja foi paga. Dedupe por id para nao repetir o inadimplente do mes. */
+     const vistos=new Set();
+     const addCob=(x,rot)=>{ if(vistos.has(x.id)) return; vistos.add(x.id);
+       /* atraso: cobranca de competencia anterior a escolhida. Continua na lista porque a
+          empresa ainda persegue o dinheiro, mas fica em bloco separado para nao dar a
+          impressao de que faltou algo no mes que esta na tela. */
+       const cc=String(x.comp||'');
+       PEND.push({nome:x.nome, quando:rot, v:fchN(x.aCobrar!=null?x.aCobrar:x.valor),
+         g:gerCli[x.clienteId]||'', rateia:true, ant:!!cc&&cc<comp, comp:cc}); };
+     (DB.recebimentos||[]).filter(x=>x.cobravel).forEach(x=>addCob(x,
+       (x.status==='churn'?'saiu, mas segue em cobrança':(x.status==='sinal'?'pagou parte, falta o resto':'em aberto'))
+       +' · competência '+fmtComp(x.comp)));
+     (porSt.inadimplente||[]).forEach(x=>addCob(x,'inadimplente · vencia '+fchDT(x.venc)));
+     desp.filter(x=>/ressarc|não ressarcida|nao ressarcida/i.test(String(x.descricao))).forEach(x=>
+       PEND.push({nome:String(x.descricao), quando:'já reduziu o lucro deste mês · na volta é estorno', v:fchN(x.valor), g:'', rateia:true}));
+     (DB.financeiro||[]).filter(x=>x.tipo==='recebivel'&&!x.pagoEm).forEach(x=>
+       PEND.push({nome:String(x.descricao), quando:(x.comp?'competência '+fmtComp(x.comp)+' · ':'')+'nunca passou pelo resultado', v:fchN(x.valor), g:'', rateia:false}));
+     if(!PEND.length) return '<div class="hint">Nada pendente: tudo que foi reconhecido no mês já entrou.</div>';
+     const ord=(a,b)=>b.v-a.v;
+     const A=PEND.filter(p=>p.rateia).sort(ord), B=PEND.filter(p=>!p.rateia).sort(ord);
+     let TC=0,TX=0,TA=0,TS=0; const comGer={};
+     const linhasA=A.map(p=>{
+       const com=COMISSAO.some(k=>(p.g||'').includes(k))?dec(p.v*0.10):0;
+       const luc=p.v-com, cx=dec(luc*0.20), ar=dec(luc*0.10), so=dec(dec(luc*0.70)/3);
+       TC+=com; TX+=cx; TA+=ar; TS+=so;
+       if(com) comGer[p.g]=(comGer[p.g]||0)+com;
+       const its=[];
+       if(com) its.push(['Comissão do gerente: '+p.g,'10% sobre o valor recebido',com]);
+       its.push(['Caixa da empresa','20% do que sobrar',cx],['Arthur','10% do que sobrar',ar],
+                ['José Carlos','⅓ dos 70%',so],['Gabriel','⅓ dos 70%',so],['Bernardo','⅓ dos 70%',so]);
+       return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''));
+     }).join('');
+     const TA_=A.reduce((s,p)=>s+p.v,0), TB=B.reduce((s,p)=>s+p.v,0);
+     const Ames=A.filter(p=>!p.ant), Aant=A.filter(p=>p.ant);
+     const TMES=Ames.reduce((s,p)=>s+p.v,0), TANT=Aant.reduce((s,p)=>s+p.v,0);
+     const bloco=(p)=>{
+       const com=COMISSAO.some(k=>(p.g||'').includes(k))?dec(p.v*0.10):0;
+       const luc=p.v-com, cx=dec(luc*0.20), ar=dec(luc*0.10), so=dec(dec(luc*0.70)/3);
+       const its=[];
+       if(com) its.push(['Comissão do gerente: '+p.g,'10% sobre o valor recebido',com]);
+       its.push(['Caixa da empresa','20% do que sobrar',cx],['Arthur','10% do que sobrar',ar],
+                ['José Carlos','⅓ dos 70%',so],['Gabriel','⅓ dos 70%',so],['Bernardo','⅓ dos 70%',so]);
+       return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''));
+     };
+     const grupo=(tit,lst,tot,sub)=>!lst.length?'':
+       ('<details class="fch-g" style="margin-top:10px"><summary><span class="fch-cv"></span><span class="fch-t">'+tit+'</span>'+
+        '<span class="fch-s">'+lst.length+(lst.length===1?' item':' itens')+' · clique para abrir</span>'+
+        '<span class="fch-tv">'+brl(tot)+'</span></summary>'+
+        '<div class="fch-corpo" style="padding:10px 12px">'+(sub?'<p class="hint" style="margin-top:0">'+sub+'</p>':'')+
+        lst.map(bloco).join('')+'</div></details>');
+     const linhasB=B.length?('<div class="tablewrap" style="margin-top:6px"><table><tbody>'+B.map(p=>
+       `<tr><td>${esc(p.nome)} <span style="color:var(--muted);font-size:12px">${esc(p.quando)}</span></td><td class="money" style="text-align:right">${brl(p.v)}</td></tr>`).join('')+
+       `<tr><td><strong>Total que só repõe caixa</strong></td><td class="money" style="text-align:right"><strong>${brl(TB)}</strong></td></tr>`+
+       '</tbody></table></div>'):'';
+     return '<p class="hint">Dinheiro da empresa que está na mão de terceiro. Nada disso entrou no rateio acima, porque não está em caixa. '+
+       'Mas o destino na volta <strong>não é o mesmo para todos</strong>, por isso a lista está partida em dois.</p>'+
+       '<div class="fch-cab">1 · Vira lucro quando entrar, '+brl(TA_)+
+         (TANT?' <span style="font-weight:400;font-size:13px;color:var(--muted)">('+brl(TMES)+' de '+fmtComp(comp)+' + '+brl(TANT)+' de atraso antigo)</span>':'')+'</div>'+
+       '<p class="hint">Já passaram pelo resultado: ou foram reconhecidos como receita e não caíram, ou viraram despesa que será estornada na volta. '+
+       'Se <strong>todos</strong> pagarem, é isto que cada um leva:</p>'+
+       '<div class="tablewrap"><table><tbody>'+
+       Object.entries(comGer).sort((a,b)=>b[1]-a[1]).map(([g,v])=>
+         '<tr><td>'+esc(g)+' <span style="color:var(--muted);font-size:12px">comissão de 10% sobre o que ele receber</span></td><td class="money" style="text-align:right">'+brl(v)+'</td></tr>').join('')+
+       '<tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20% do que sobrar depois das comissões</span></td><td class="money" style="text-align:right">'+brl(TX)+'</td></tr>'+
+       '<tr><td>Arthur <span style="color:var(--muted);font-size:12px">10%</span></td><td class="money" style="text-align:right">'+brl(TA)+'</td></tr>'+
+       '<tr><td>José Carlos <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
+       '<tr><td>Gabriel <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
+       '<tr><td>Bernardo <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
+       '</tbody></table></div>'+
+       '<p class="hint">'+brl(TA_)+' a receber − '+brl(TC)+' de comissão = '+brl(TA_-TC)+' de lucro novo, dividido em 20/10/70.</p>'+
+       grupo('Deste mês, '+fmtComp(comp), Ames, TMES, '')+
+       grupo('Atraso de meses anteriores', Aant, TANT,
+         'Não é buraco de '+fmtComp(comp)+': são cobranças de competências já fechadas que a empresa ainda persegue. '+
+         'Cada linha diz de qual mês veio.')+
+       (B.length?('<div class="fch-cab" style="margin-top:22px">2 · Só repõe o caixa, não entra em rateio</div>'+
+         '<p class="hint">Saiu direto do caixa ou é de competência já fechada: <strong>nunca reduziu o lucro de mês nenhum</strong>. '+
+         'Quando voltar, apenas tapa o buraco no caixa. Se entrasse no rateio, a empresa distribuiria duas vezes o mesmo dinheiro, '+
+         'uma quando o lucro daquele mês foi dividido, outra agora.</p>'+linhasB):'')+
+       '<p class="hint">Total na mão de terceiros: <strong>'+brl(TA_+TB)+'</strong>. Destes, só '+brl(TA_)+' viram lucro novo; '+brl(TB)+' apenas recompõem o caixa.</p>';
+}
 function renderFechamentoMes(c){
   const comp=fechComp;
   if(!FCH_MUD.rows||Date.now()-FCH_MUD.em>60000){ FCH_MUD.em=Date.now(); fchMudCarregar().then(()=>{ if(finTab==='fechames') renderFinanceiro($('#content')); }); }
@@ -13914,101 +14026,7 @@ function renderFechamentoMes(c){
 Distribuição de lucro não é despesa e não entra no Financeiro: o honorário de cada sócio já foi descontado como custo antes daqui.</p>
 
    <h2 class="verde"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> O que ainda vai entrar, e quanto cada um leva quando entrar</h2>
-   ${(()=>{ /* recebiveis: reconhecido e nao recebido, inadimplente, e adiantamento a ressarcir.
-      Para cada um, mostra o destino do dinheiro no dia em que cair. */
-     /* Dois grupos com destinos diferentes:
-        rateia=true  -> quando o dinheiro cair vira lucro novo e se divide 20/10/70.
-                        Sao os casos em que o valor JA passou pelo resultado: receita
-                        reconhecida e nao recebida, inadimplente, e despesa lancada que
-                        sera estornada na volta.
-        rateia=false -> dinheiro que nunca tocou o resultado (saiu direto do caixa, ou e de
-                        competencia que ja foi fechada). Na volta so recompoe o caixa; se
-                        entrasse no rateio, a empresa distribuiria duas vezes o mesmo dinheiro. */
-     const PEND=[];
-     aReceber.forEach(x=>{ const d=gerDe(x), r=rid[String(x.id||'').replace(/^rcs?_/,'')];
-       PEND.push({nome:String(x.descricao).replace('Restante: ','').split(', ')[0],
-         quando:'reconhecido no mês · vence '+fchDT((r&&r.venc)||x.data), v:fchN(x.valor), g:d.g, rateia:true}); });
-     /* cobraveis: mensalidade em aberto que a empresa ainda persegue, inclusive de cliente
-        que ja saiu. Vem de qualquer competencia, nao so do mes escolhido. aCobrar guarda o
-        saldo quando parte ja foi paga. Dedupe por id para nao repetir o inadimplente do mes. */
-     const vistos=new Set();
-     const addCob=(x,rot)=>{ if(vistos.has(x.id)) return; vistos.add(x.id);
-       /* atraso: cobranca de competencia anterior a escolhida. Continua na lista porque a
-          empresa ainda persegue o dinheiro, mas fica em bloco separado para nao dar a
-          impressao de que faltou algo no mes que esta na tela. */
-       const cc=String(x.comp||'');
-       PEND.push({nome:x.nome, quando:rot, v:fchN(x.aCobrar!=null?x.aCobrar:x.valor),
-         g:gerCli[x.clienteId]||'', rateia:true, ant:!!cc&&cc<comp, comp:cc}); };
-     (DB.recebimentos||[]).filter(x=>x.cobravel).forEach(x=>addCob(x,
-       (x.status==='churn'?'saiu, mas segue em cobrança':(x.status==='sinal'?'pagou parte, falta o resto':'em aberto'))
-       +' · competência '+fmtComp(x.comp)));
-     (porSt.inadimplente||[]).forEach(x=>addCob(x,'inadimplente · vencia '+fchDT(x.venc)));
-     desp.filter(x=>/ressarc|não ressarcida|nao ressarcida/i.test(String(x.descricao))).forEach(x=>
-       PEND.push({nome:String(x.descricao), quando:'já reduziu o lucro deste mês · na volta é estorno', v:fchN(x.valor), g:'', rateia:true}));
-     (DB.financeiro||[]).filter(x=>x.tipo==='recebivel'&&!x.pagoEm).forEach(x=>
-       PEND.push({nome:String(x.descricao), quando:(x.comp?'competência '+fmtComp(x.comp)+' · ':'')+'nunca passou pelo resultado', v:fchN(x.valor), g:'', rateia:false}));
-     if(!PEND.length) return '<div class="hint">Nada pendente: tudo que foi reconhecido no mês já entrou.</div>';
-     const ord=(a,b)=>b.v-a.v;
-     const A=PEND.filter(p=>p.rateia).sort(ord), B=PEND.filter(p=>!p.rateia).sort(ord);
-     let TC=0,TX=0,TA=0,TS=0; const comGer={};
-     const linhasA=A.map(p=>{
-       const com=COMISSAO.some(k=>(p.g||'').includes(k))?dec(p.v*0.10):0;
-       const luc=p.v-com, cx=dec(luc*0.20), ar=dec(luc*0.10), so=dec(dec(luc*0.70)/3);
-       TC+=com; TX+=cx; TA+=ar; TS+=so;
-       if(com) comGer[p.g]=(comGer[p.g]||0)+com;
-       const its=[];
-       if(com) its.push(['Comissão do gerente: '+p.g,'10% sobre o valor recebido',com]);
-       its.push(['Caixa da empresa','20% do que sobrar',cx],['Arthur','10% do que sobrar',ar],
-                ['José Carlos','⅓ dos 70%',so],['Gabriel','⅓ dos 70%',so],['Bernardo','⅓ dos 70%',so]);
-       return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''));
-     }).join('');
-     const TA_=A.reduce((s,p)=>s+p.v,0), TB=B.reduce((s,p)=>s+p.v,0);
-     const Ames=A.filter(p=>!p.ant), Aant=A.filter(p=>p.ant);
-     const TMES=Ames.reduce((s,p)=>s+p.v,0), TANT=Aant.reduce((s,p)=>s+p.v,0);
-     const bloco=(p)=>{
-       const com=COMISSAO.some(k=>(p.g||'').includes(k))?dec(p.v*0.10):0;
-       const luc=p.v-com, cx=dec(luc*0.20), ar=dec(luc*0.10), so=dec(dec(luc*0.70)/3);
-       const its=[];
-       if(com) its.push(['Comissão do gerente: '+p.g,'10% sobre o valor recebido',com]);
-       its.push(['Caixa da empresa','20% do que sobrar',cx],['Arthur','10% do que sobrar',ar],
-                ['José Carlos','⅓ dos 70%',so],['Gabriel','⅓ dos 70%',so],['Bernardo','⅓ dos 70%',so]);
-       return fchBloco(p.nome, p.v, its, p.quando+(p.g?' · '+p.g:''));
-     };
-     const grupo=(tit,lst,tot,sub)=>!lst.length?'':
-       ('<details class="fch-g" style="margin-top:10px"><summary><span class="fch-cv"></span><span class="fch-t">'+tit+'</span>'+
-        '<span class="fch-s">'+lst.length+(lst.length===1?' item':' itens')+' · clique para abrir</span>'+
-        '<span class="fch-tv">'+brl(tot)+'</span></summary>'+
-        '<div class="fch-corpo" style="padding:10px 12px">'+(sub?'<p class="hint" style="margin-top:0">'+sub+'</p>':'')+
-        lst.map(bloco).join('')+'</div></details>');
-     const linhasB=B.length?('<div class="tablewrap" style="margin-top:6px"><table><tbody>'+B.map(p=>
-       `<tr><td>${esc(p.nome)} <span style="color:var(--muted);font-size:12px">${esc(p.quando)}</span></td><td class="money" style="text-align:right">${brl(p.v)}</td></tr>`).join('')+
-       `<tr><td><strong>Total que só repõe caixa</strong></td><td class="money" style="text-align:right"><strong>${brl(TB)}</strong></td></tr>`+
-       '</tbody></table></div>'):'';
-     return '<p class="hint">Dinheiro da empresa que está na mão de terceiro. Nada disso entrou no rateio acima, porque não está em caixa. '+
-       'Mas o destino na volta <strong>não é o mesmo para todos</strong>, por isso a lista está partida em dois.</p>'+
-       '<div class="fch-cab">1 · Vira lucro quando entrar, '+brl(TA_)+
-         (TANT?' <span style="font-weight:400;font-size:13px;color:var(--muted)">('+brl(TMES)+' de '+fmtComp(comp)+' + '+brl(TANT)+' de atraso antigo)</span>':'')+'</div>'+
-       '<p class="hint">Já passaram pelo resultado: ou foram reconhecidos como receita e não caíram, ou viraram despesa que será estornada na volta. '+
-       'Se <strong>todos</strong> pagarem, é isto que cada um leva:</p>'+
-       '<div class="tablewrap"><table><tbody>'+
-       Object.entries(comGer).sort((a,b)=>b[1]-a[1]).map(([g,v])=>
-         '<tr><td>'+esc(g)+' <span style="color:var(--muted);font-size:12px">comissão de 10% sobre o que ele receber</span></td><td class="money" style="text-align:right">'+brl(v)+'</td></tr>').join('')+
-       '<tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20% do que sobrar depois das comissões</span></td><td class="money" style="text-align:right">'+brl(TX)+'</td></tr>'+
-       '<tr><td>Arthur <span style="color:var(--muted);font-size:12px">10%</span></td><td class="money" style="text-align:right">'+brl(TA)+'</td></tr>'+
-       '<tr><td>José Carlos <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
-       '<tr><td>Gabriel <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
-       '<tr><td>Bernardo <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">'+brl(TS)+'</td></tr>'+
-       '</tbody></table></div>'+
-       '<p class="hint">'+brl(TA_)+' a receber − '+brl(TC)+' de comissão = '+brl(TA_-TC)+' de lucro novo, dividido em 20/10/70.</p>'+
-       grupo('Deste mês, '+fmtComp(comp), Ames, TMES, '')+
-       grupo('Atraso de meses anteriores', Aant, TANT,
-         'Não é buraco de '+fmtComp(comp)+': são cobranças de competências já fechadas que a empresa ainda persegue. '+
-         'Cada linha diz de qual mês veio.')+
-       (B.length?('<div class="fch-cab" style="margin-top:22px">2 · Só repõe o caixa, não entra em rateio</div>'+
-         '<p class="hint">Saiu direto do caixa ou é de competência já fechada: <strong>nunca reduziu o lucro de mês nenhum</strong>. '+
-         'Quando voltar, apenas tapa o buraco no caixa. Se entrasse no rateio, a empresa distribuiria duas vezes o mesmo dinheiro, '+
-         'uma quando o lucro daquele mês foi dividido, outra agora.</p>'+linhasB):'')+
-       '<p class="hint">Total na mão de terceiros: <strong>'+brl(TA_+TB)+'</strong>. Destes, só '+brl(TA_)+' viram lucro novo; '+brl(TB)+' apenas recompõem o caixa.</p>'; })()}
+   ${fchPendentesHtml(comp)}
    </div>`}`;
 }
 function renderFinanceiro(c){
@@ -16534,6 +16552,9 @@ function renderRecebimentos(c){
    ${rcBlocoReembolsos()}
    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th>Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
+   ${(currentUser&&currentUser.role==='master')?`<div class="fchdoc" style="margin-top:26px">
+   <h2 class="verde"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> O que ainda vai entrar, e quanto cada um leva quando entrar</h2>
+   ${fchPendentesHtml(comp)}</div>`:''}
    <p class="hint" style="margin-top:12px">Planilha única, em ordem de vencimento (dia 01 primeiro) e nome. Contas do mesmo dono aparecem juntas em uma linha, com a soma: clique no nome para abrir as contas, e o status dessa linha muda todas de uma vez. A coluna <strong>Status</strong> é clicável: A receber, Inadimplente, Recebido, escolher Recebido lança a receita no Financeiro na data; mudar de volta remove. Clientes "a definir" ganham status quando você define o dia (Editar). O Painel reflete esses números automaticamente. <strong><i class="emi-dot" style="background:#a78bfa"></i> Carência</strong> mantém o cliente ativo mas isenta o mês: não lança receita, não conta como inadimplência nem como churn (e desfaz o churn, se havia). <strong><i class="emi-dot" style="background:#6b7280"></i> Churn</strong> marca perda definitiva: o valor do mês vira receita perdida, o cliente sai da planilha na hora e o card dele vai para o Controle de Churns. A perda continua somada no cartão Churn, pra ver quem é, use o filtro de status: ele mostra só quem saiu no mês escolhido. <strong><i class="emi-dot" style="background:#6b7280"></i> Churn (mês pago)</strong> é para quem pagou e depois saiu: a mensalidade continua contando como recebida e o lançamento no Financeiro fica como está, o cliente só some da carteira a partir do mês seguinte.</p>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
