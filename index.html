@@ -7804,7 +7804,7 @@ function tkViewLista(){
        Conta CLIENTE distinto: quem é gestor e gerente do mesmo card não conta duas vezes. */
     /* Jose entrou em 30/09 (Gabriel: "jose tbm e socio"). A comparacao usa primNome, que
        tira o acento: ltPrim nao tirava, e 'Jose' com acento nunca casaria com 'jose'. */
-    const SOCIOS=['bernardo','jose'];
+    const SOCIOS=['bernardo','jose','gabriel'];
     const ehSocio=(n)=>SOCIOS.indexOf(primNome(n))>=0;
     const R={}, REMG='b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01', REMGER='46c3b98b-6590-4aff-bf80-ed03801206c7';
     const poe=(nome,val,tid)=>{ const nm=String(nome||'').trim(); if(!nm||ehSocio(nm)) return;
