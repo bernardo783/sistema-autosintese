@@ -7516,6 +7516,14 @@ window.tkMonEditar=(btn,tid,cid)=>{
    mesmo pcPessoaSet da ficha. Muda quem muda as colunas travadas: master e o gerente do cliente.
    Popup no mesmo desenho do Gestor (tkpop). */
 const LC_GER_COL='__gerente';
+/* Colunas que saem do Controle de Clientes (Gabriel 30/09: "nao e informacao importante
+   pra mim"): Verba Semanal, Forma de Pagamento e Canal de comunicacao. Some so da LISTA —
+   o campo e o que ja foi preenchido (28, 30 e 29 clientes) continuam no banco e no card do
+   cliente. Nao apagar: se ele quiser de volta, e so tirar daqui.
+   A linha "Total da carteira" deixa de somar a verba sozinha, porque ela mapeia o cps. */
+const LC_FORA=['5416ae4d-6ea2-4d3b-9510-9abccbdb96e2',   /* Verba Semanal */
+               '271de509-620c-4f31-a473-137f483f5849',   /* Forma de Pagamento */
+               'b39c6e52-332f-4e2d-97bb-aa8ea9527402'];  /* Canal */
 /* Troca o mes que a coluna Situacao (e a vista de gerentes) esta mostrando. E o mesmo
    cliComp da tela de Recebimentos de proposito: os dois falam do mesmo mes. */
 window.lcMes=(v)=>{ cliComp=v||compNow(); tkDesenhar($('#content')); };
@@ -7593,7 +7601,7 @@ const tkSelo=(t)=>{
 function tkViewLista(){
   const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
   let cps=TK.escopo!=='lista'?[]:tkCamposDe(TK.listaSel);
-  if(lc) cps=lcComGerente(cps);
+  if(lc) cps=lcComGerente(cps.filter(c=>LC_FORA.indexOf(c.id)<0));
   let grupos=tkGrupos(); const hoje=tkHoje();
   if(lc) grupos=grupos.filter(g=>g.its.length);
   const seta=(k)=>TK.ord===k?(TK.dir===1?' ▲':' ▼'):'';
