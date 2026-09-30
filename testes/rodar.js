@@ -960,7 +960,8 @@ grupo('Ficha: estágio e squad clicáveis no topo (Gabriel 23/09)');
 {
   const cod=bloco('const pcCardLC=','window.pcEditar=');
   const mk=(u,ger)=>rodar(cod,{currentUser:u,esc:s=>String(s),LC_ID:'LC',
-    TK:{tarefas:[{lista_id:'LC',ficha_id:'f1',status_id:'s5'}]},tkStatus1:id=>id==='s5'?{nome:'5. CLIENTE ATIVO',cor:'#3ec46d'}:null,
+    TK:{tarefas:[{lista_id:'LC',ficha_id:'f1',status_id:'s5'}]},tkStatus1:id=>id==='s5'?{nome:'5. CLIENTE ATIVO',cor:'#3ec46d'}:id==='s4'?{nome:'4. CHURN CONFIRMADO'}:null,
+    CH_ID:'CH',lcCardDe:pid=>pid==='fc'?{lista_id:'CH',status_id:'s4'}:null,
     ST_LABEL:{ativo:'Cliente ativo'},PRJ_NORM:()=>'ativo',sqEtiqueta:q=>'<span>'+q+'</span>',
     souGerenteDaFicha:()=>ger,DB:{projetos:[]},SQUADS:()=>['01','02']},['pcStatusHtml','pcSquadHtml']);
   const it={id:'f1',squad:'01',status:'ativo'};
@@ -971,6 +972,24 @@ grupo('Ficha: estágio e squad clicáveis no topo (Gabriel 23/09)');
   ok('gerente do cliente: squad clicável pra PEDIR', /Abrir solicitação de mudança de squad/.test(ger.pcSquadHtml(it)));
   ok('gestor: squad só aparece, sem clique', !/pcSquadMenu/.test(gest.pcSquadHtml(it))&&/01/.test(gest.pcSquadHtml(it)));
   ok('pedido de squad vira chamado de suporte pro Bernardo', /suporte_abrir_chamado/.test(cod));
+  /* SPAÇO VEÍCULOS (Gabriel 30/09): trocar o status na ficha de quem está em churn só mudava a ficha */
+  const hc=mst.pcStatusHtml({id:'fc',status:'churn'});
+  ok('card no Controle de Churns: a etiqueta mostra o estágio do churn', /4\. CHURN CONFIRMADO/.test(hc)&&/tag churn/.test(hc));
+  ok('o menu dele só oferece voltar para o Controle de Clientes', /if\(!t&&pcCardCH\(pid\)\)\{ ctxAbrir\(ev,\[\{cab:'Cliente no Controle de Churns'\},\s*\{ic:'○',t:'Voltar para Controle de Clientes',f:\(\)=>lcReativar\(pid\)\}\]\); return; \}/.test(cod));
+  ok('sair de churn pelo status da ficha move o card, não só a ficha', /if\(k&&k!=='churn'&&pcCardCH\(pid\)\) return lcReativar\(pid\);/.test(cod));
+}
+
+grupo('Voltar do churn devolve a cobrança (Gabriel 30/09)');
+{
+  const DB={recebimentos:[{comp:'2026-09',clienteId:'a',status:'churn',churnEm:'2026-09-10'},{comp:'2026-09',clienteId:'b',status:'churnpago',recebido:true},
+    {comp:'2026-07',clienteId:'c',status:'churn'}]};
+  const g=rodar(bloco('function lcDesfazerChurnFin(','window.arqRestaurar='),{DB},['lcDesfazerChurnFin']);
+  const a={id:'a',churnComp:'2026-09',fim:'2026-09'}, b={id:'b',churnComp:'2026-09',fim:'2026-09'}, c={id:'c',churnComp:'2026-07',fim:'2026-07'};
+  ok('churn do próprio mês: cadastro limpo e a cobrança do mês reabre', g.lcDesfazerChurnFin(a,'2026-09')==='mes'&&!a.churnComp&&!a.fim&&DB.recebimentos[0].status===null&&DB.recebimentos[0].churnEm===null);
+  ok('churn com o mês pago: a cobrança do mês fica como recebida', g.lcDesfazerChurnFin(b,'2026-09')==='mes'&&DB.recebimentos[1].status==='recebido');
+  ok('saiu em mês anterior: a saída fica no histórico e a carteira volta a contar do mês da volta', g.lcDesfazerChurnFin(c,'2026-09')==='depois'&&!c.churnComp&&c.inicio==='2026-09'&&DB.recebimentos[2].status==='churn');
+  ok('sem churn no cadastro não mexe em nada', g.lcDesfazerChurnFin({id:'z'},'2026-09')==='');
+  ok('lcReativar chama a volta da cobrança e grava', /const fin=cli\?lcDesfazerChurnFin\(cli,compNow\(\)\):'';\s*if\(fin\)\{ try\{ await saveDB\(\); \}catch\(_\)\{\} \}/.test(HTML));
 }
 
 /* ---------------- ficha estilo ClickUp: propriedades, atividade, relacionamentos ---------------- */
@@ -985,7 +1004,9 @@ grupo('Ficha estilo ClickUp: propriedades e Relacionamentos (Gabriel 23/09)');
     ehListaCli:l=>l==='LC',arquivada:()=>false,spNome:l=>l.nome,tkHoje:()=>'2026-09-23',tkStatus1:()=>null,tkCorLinha:()=>'#888',
     TK_ST:{todo:'A fazer',feito:'Concluída'},PRIO_COR:{},TK_PRIO:{alta:'Alta'},dtCurto:x=>x.slice(8,10)+'/'+x.slice(5,7),tkCaminho:()=>'',
     abaFinCliente:()=>'<div>FIN</div>',currentUser:{role:'master'},contasDoCliente:()=>[],MT_LEADS:[],LT_PER:{},brl:v=>'R$ '+v,
-    finDaFicha:()=>({}),linkIg:()=>'',linkUrl:()=>'',zapsDe:()=>[],CAT_LABEL:{trafego:'Tráfego Pago'},pcSquadHtml:()=>'<i></i><span>01</span>',
+    finDaFicha:()=>({valor:1500}),linkIg:()=>'',linkUrl:()=>'',zapsDe:()=>[],CAT_LABEL:{trafego:'Tráfego Pago'},pcSquadHtml:()=>'<i></i><span>01</span>',
+    verbaSemDe:()=>null,souGerenteDaFicha:()=>false,pcCardLC:()=>({id:'t3',valores:{MENS:1500}}),LC_MENS:'MENS',compNow:()=>'2026-09',
+    fmtComp:()=>'set/2026',lcMensVigente:()=>1200,
     pcStatusHtml:()=>'<button>4. EM MANUTENÇÃO</button>',avatarDoNome:n=>'',RISCO_COR:{},RISCO_TXT:{},localStorage:{getItem:()=>null,setItem(){}}},
     ['pcRelTarefas','pcRelPainel','pcProps']);
   const it={id:'f1',nome:'LEAL MOTOS',clienteId:'c1',categoria:'trafego',squad:'01',responsavel:'Luan',gerente:'João'};
@@ -999,6 +1020,13 @@ grupo('Ficha estilo ClickUp: propriedades e Relacionamentos (Gabriel 23/09)');
   ok('propriedades: Status, Tipo, Squad, Gestor, Gerente, Conta, Verba, Gasto, Saldo, Links',
     ['Status','Tipo','Squad','Gestor de tráfego','Gerente','Conta de anúncio','Verba','Gasto','Saldo','Links'].every(r=>pp.indexOf('>'+r+'</span>')>0||pp.indexOf(r+'</span>')>0));
   ok('campo vazio marcado pra poder recolher', /class="pr vz"/.test(pp)&&/Recolher campos vazios/.test(pp));
+  /* mensalidade na ficha (Gabriel 30/09) */
+  ok('master vê a Mensalidade do mês e clica para mudar', /Mensalidade<\/span>/.test(pp)&&/pcMensEditar\('f1'\)/.test(pp)&&/R\$ 1200/.test(pp));
+  ok('valor só do mês avisa qual é o recorrente', /só em set\/2026 · recorrente R\$ 1500/.test(pp));
+  ok('Mensalidade fica entre Gerente e Conta de anúncio', pp.indexOf('Gerente</span>')<pp.indexOf('Mensalidade</span>')&&pp.indexOf('Mensalidade</span>')<pp.indexOf('Conta de anúncio</span>'));
+  ok('mudar pela ficha usa o mesmo caminho da coluna da lista', /await tkSetVal\(M\.t\.id,LC_MENS,v\);/.test(cod));
+  { const g2=rodar(cod,Object.assign({},g,{currentUser:{role:'membro'}}),['pcProps']);
+    ok('quem não é master nem gerente do cliente não vê a Mensalidade', !/Mensalidade<\/span>/.test(g2.pcProps(it))); }
   ok('cartão principal sem aba Financeiro', !/onclick="cliIrPara\('\$\{it\.id\}','fin'\)">Financeiro/.test(HTML));
   ok('barra da direita: Detalhes, Atividade e Relacionamentos', /title="Detalhes"/.test(HTML)&&/title="Atividade"/.test(HTML)&&/title="Relacionamentos"/.test(HTML));
 }

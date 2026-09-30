@@ -11811,11 +11811,31 @@ window.lcReativar=async (fid)=>{
   if(error){ toast('Erro: '+error.message); return; }
   Object.assign(t,patch);
   try{ await lcSincronizarFicha(t.id,LC_ATIVO); }catch(_){}
+  /* A cobranca volta junto (Gabriel 30/09, SPACO VEICULOS): o card voltava e o cadastro
+     seguia marcado como churn, entao o cliente ativo nao era mais cobrado. */
+  const fin=cli?lcDesfazerChurnFin(cli,compNow()):'';
+  if(fin){ try{ await saveDB(); }catch(_){} }
   try{ arqFechar(); }catch(_){}
   try{ spDesenhar(); }catch(_){}
   try{ render(currentView); }catch(_){}
-  toast(((f&&f.nome)||'Cliente')+' voltou para o Controle de Clientes.'+(semFin?' Falta o cadastro no Financeiro.':''));
+  const mst=!!(currentUser&&currentUser.role==='master');
+  toast(((f&&f.nome)||'Cliente')+' voltou para o Controle de Clientes.'+(semFin?' Falta o cadastro no Financeiro.':'')
+    +(fin==='mes'?' A cobrança de '+fmtComp(compNow())+' voltou a ficar em aberto.':fin==='depois'?' Volta a ser cobrado a partir de '+fmtComp(compNow())+'.':'')
+    +(mst?'':' Avise o financeiro para voltar a cobrança.'));
 };
+/* Desfaz o churn no cadastro financeiro. Devolve 'mes' quando o churn era da propria
+   competencia (a cobranca do mes reabre: churn vira em aberto, churn pago vira recebido),
+   'depois' quando ele saiu em mes anterior (o mes da saida fica como historico e a
+   carteira volta a contar dali pra frente) e '' quando nao havia churn no cadastro. */
+function lcDesfazerChurnFin(cli,comp){
+  const saiu=cli.churnComp||cli.fim; if(!saiu) return '';
+  cli.churnComp=null; cli.fim='';
+  if(saiu<comp){ if(!(cli.inicio&&cli.inicio>=comp)) cli.inicio=comp; return 'depois'; }
+  const r=(DB.recebimentos||[]).find(x=>x.comp===saiu&&x.clienteId===cli.id);
+  if(r&&r.status==='churn'){ r.status=null; r.churnEm=null; }
+  else if(r&&r.status==='churnpago'){ r.status='recebido'; r.churnEm=null; }
+  return 'mes';
+}
 window.arqRestaurar=async (id)=>{
   const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
   const {error}=await sb.from('tarefas').update({arquivada_em:null,arquivada_por:null}).eq('id',id);
@@ -14753,6 +14773,7 @@ const PCX_I=(()=>{ const s=(d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="cu
     ig:s('<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.8"/><path d="M17.4 6.6h.01"/>'),
     drive:s('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.2l2 2.4h8.8A1.5 1.5 0 0 1 21 9.9v8.6a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>'),
     chave:s('<rect x="4" y="10" width="16" height="11" rx="2.2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'),
+    mens:s('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),
     abre:s('<path d="M6 9l6 6 6-6"/>'),
     rel:s('<path d="M7 17 17 7M9 7h8v8"/>'),
     foto:s('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>'),
@@ -14870,6 +14891,36 @@ window.pcPessoaSet=async (pid,campo,nome,daLista)=>{
   if(!daLista) pcReabrir(pid); try{ if(currentView==='lista') tkDesenhar($('#content')); }catch(_){}
   toast((campo==='gerente'?'Gerente: ':'Gestor: ')+(novo||'ninguém')+'.');
 };
+/* MENSALIDADE NA FICHA (Gabriel 30/09: "dentro do card de clientes tem que ter como mudar
+   mensalidade"). So master e o gerente do cliente veem e mudam. O valor e o do mes corrente:
+   master le o cadastro (recebimento do mes, senao o valor recorrente); gerente le o card,
+   que o banco mantem igual. Mudar passa pelo MESMO caminho da coluna Mensalidade da lista
+   (tkSetVal): pergunta se vale so neste mes ou daqui em diante e, pro gerente, avisa o
+   financeiro. Nada de regra nova aqui. */
+const pcMensPode=(pid)=>!!(currentUser&&currentUser.role==='master')||souGerenteDaFicha(pid);
+function pcMensDe(it){
+  const t=pcCardLC(it.id), cli=finDaFicha(it), comp=compNow();
+  if(cli){ const v=lcMensVigente(cli,comp), cad=Number(cli.valor)||0;
+    return {t,v,sub:v!==cad?('só em '+fmtComp(comp)+' · recorrente '+brl(cad)):'por mês'}; }
+  return {t,v:Number(((t&&t.valores)||{})[LC_MENS]||0),sub:'por mês'};
+}
+window.pcMensEditar=(pid)=>{
+  const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
+  if(!pcMensPode(pid)){ toast('Só master e o gerente do cliente mudam a mensalidade.'); return; }
+  const M=pcMensDe(it);
+  if(!M.t){ toast('Este cliente não tem card no Controle de Clientes.'); return; }
+  modal('Mensalidade de '+esc(it.nome||'cliente'),
+    `<p class="hint" style="margin:0 0 12px">Hoje: <b>${brl(M.v)}</b>. Ao salvar, o sistema pergunta se o valor novo vale só neste mês ou daqui em diante.</p>
+     <div class="field"><label>Nova mensalidade (R$)</label><input id="pm_v" type="number" step="0.01" min="0" value="${M.v||''}" placeholder="0,00" autocomplete="off"></div>`,
+    async ()=>{
+      const v=parseFloat(String(($('#pm_v')||{}).value||'').replace(',','.'));
+      if(isNaN(v)||v<0){ toast('Informe o valor da mensalidade.'); return false; }
+      if(v===M.v) return true;
+      await tkSetVal(M.t.id,LC_MENS,v);
+      pcReabrir(pid); return true;
+    });
+  setTimeout(()=>{ const e=$('#pm_v'); if(e){ e.focus(); e.select(); } },40);
+};
 /* cor de cada tipo de cliente, a mesma das etiquetas .tag.cat-* do resto do sistema */
 const PCX_CAT_COR={trafego:'var(--info)',ia:'var(--info2)',full:'var(--warn)',outro:'var(--muted)'};
 function pcProps(it){
@@ -14897,6 +14948,8 @@ function pcProps(it){
   if(rk){ const cor=RISCO_COR[rk.nivel]||'var(--txt)';
     const sub=rk.pg&&rk.pg.prepago?((rk.saldo!=null?brl(rk.saldo):'')+(rk.dias!=null?' · ~'+Math.max(0,Math.round(rk.dias))+' dias':'')):(rk.motivo||(rk.pg&&rk.pg.cartao?rk.pg.cartao:'cartão'));
     sal=`<button type="button" class="pcx-cel" onclick="${irContas}"><b style="color:${cor}">${esc(RISCO_TXT[rk.nivel]||'-')}</b> <small>${esc(sub||'')}</small></button>`; }
+  const MS=pcMensPode(it.id)?pcMensDe(it):null;
+  const mens=MS?`<button type="button" class="pcx-cel" title="Mudar a mensalidade" onclick="pcMensEditar('${esc(it.id)}')">${MS.v?brl(MS.v)+' <small>'+esc(MS.sub)+'</small>':VZ}</button>`:'';
   const cli=finDaFicha(it)||{};
   const igLk=linkIg(it.instagram||cli.instagram), drLk=linkUrl(it.drive||cli.drive), nZaps=zapsDe(it).length;
   const lk=(ic,tit,href,campo)=>href?`<a class="pcx-lk" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(tit)}">${PCX_I[ic]}</a>`
@@ -14914,6 +14967,7 @@ function pcProps(it){
     ${row('squad','Squad',sq||VZ,!it.squad)}
     ${ia?'':row('pessoa','Gestor de tráfego',pes(it.responsavel,'responsavel'),!String(it.responsavel||'').trim())}
     ${row('chefe','Gerente',pes(it.gerente,'gerente'),!String(it.gerente||'').trim())}
+    ${MS&&MS.t?row('mens','Mensalidade',mens,!MS.v):''}
     ${ia?'':`${row('conta','Conta de anúncio',conta,!c0)}
     ${row('verba','Verba',verba,!vbV)}
     ${row('gasto','Gasto',gas,!c0)}
@@ -15557,8 +15611,13 @@ function pcReabrir(pid){
   openProjCard(pid);
   const mb2=document.querySelector('#pcModal .mbody'); if(mb2) mb2.scrollTop=sc;
 }
+/* card do cliente parado no Controle de Churns (nao arquivado de proposito: arquivado tambem volta por aqui) */
+const pcCardCH=(pid)=>{ const t=lcCardDe(pid); return (t&&t.lista_id===CH_ID)?t:null; };
 function pcStatusHtml(it){
   const t=pcCardLC(it.id), s=t?tkStatus1(t.status_id):null;
+  const tch=t?null:pcCardCH(it.id);
+  if(tch){ const sc=tkStatus1(tch.status_id);
+    return `<button type="button" class="pc-st tag churn" title="Cliente no Controle de Churns: clique para voltar" onclick="pcStatusMenu(event,'${esc(it.id)}')">${esc((sc&&sc.nome)||'Churn')}<span class="pc-tipo-s">&#9662;</span></button>`; }
   if(s){ const cor=s.cor||'#8e8e99';
     return `<button type="button" class="pc-st" style="color:${esc(cor)};background:${esc(cor)}1f;border-color:${esc(cor)}55" title="Mudar o estágio do cliente" onclick="pcStatusMenu(event,'${esc(it.id)}')">${esc(s.nome)}<span class="pc-tipo-s">&#9662;</span></button>`; }
   return `<button type="button" class="pc-st tag ${PRJ_NORM(it.status)}" title="Mudar o status do cliente" onclick="pcStatusMenu(event,'${esc(it.id)}')">${esc(ST_LABEL[PRJ_NORM(it.status)])}<span class="pc-tipo-s">&#9662;</span></button>`;
@@ -15566,6 +15625,10 @@ function pcStatusHtml(it){
 window.pcStatusMenu=(ev,pid)=>{
   const it=(DB.projetos||[]).find(x=>x.id===pid); if(!it) return;
   const t=pcCardLC(pid);
+  /* No Controle de Churns o unico caminho e voltar (Gabriel 30/09, SPACO VEICULOS): o menu
+     antigo trocava so o status da ficha e o card ficava preso la. */
+  if(!t&&pcCardCH(pid)){ ctxAbrir(ev,[{cab:'Cliente no Controle de Churns'},
+    {ic:'○',t:'Voltar para Controle de Clientes',f:()=>lcReativar(pid)}]); return; }
   if(t){ ctxAbrir(ev,[{cab:'Estágio do cliente'}].concat(tkStatusDe(t.lista_id).map(s=>({
       ic:String(s.id)===String(t.status_id)?'●':'○',t:s.nome,f:()=>pcStatusSet(pid,s.id)})))); return; }
   ctxAbrir(ev,[{cab:'Status do cliente'}].concat(Object.keys(ST_LABEL).map(k=>({
@@ -15580,6 +15643,7 @@ window.pcStatusSet=async (pid,sid,k)=>{
     if(String(sid)===String(LC_CHURN)){ const m=document.getElementById('pcModal'); const ov=m?m.closest('.overlay'):null; if(ov) ov.remove();
       await tkSetStatus(t.id,sid); return; }
     await tkSetStatus(t.id,sid); pcReabrir(pid); return; }
+  if(k&&k!=='churn'&&pcCardCH(pid)) return lcReativar(pid); /* sair de churn e voltar pro Controle de Clientes */
   if(!k||PRJ_NORM(it.status)===k) return;
   it.status=k; await saveDB(); pcReabrir(pid); toast('Status: '+ST_LABEL[k]+'.');
 };
