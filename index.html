@@ -7618,7 +7618,14 @@ const tkCorLinha=(t)=>{ const s=tkStatus1(t.status_id); return (s&&s.cor)||'#8e8
 const souGerenteDaFicha=(fid)=>{ if(!currentUser||!currentUser.gerente) return false;
   const f=fichaDe(fid), eu=primNome(currentUser.nome);
   return !!(f&&eu&&primNome(f.gerente)===eu); };
-const podeMexerCampo=(c,t)=>!(c&&c.so_master)||!!(currentUser&&currentUser.role==='master')||!!(t&&t.ficha_id&&souGerenteDaFicha(t.ficha_id));
+/* Gestor da ficha (Gabriel 30/09): define o Início do projeto quando o contrato não trouxe
+   a data. É o único campo travado que ele mexe; o banco confere igual (lc_gestor_da_ficha). */
+const LC_INI='1c17a1d0-5e3a-4b62-9f77-0c4b8e2a51d9';
+const souGestorDaFicha=(fid)=>{ if(!currentUser) return false;
+  const f=fichaDe(fid), eu=primNome(currentUser.nome);
+  return !!(f&&eu&&primNome(f.responsavel)===eu); };
+const podeMexerCampo=(c,t)=>!(c&&c.so_master)||!!(currentUser&&currentUser.role==='master')||!!(t&&t.ficha_id&&souGerenteDaFicha(t.ficha_id))
+  ||!!(c&&c.id===LC_INI&&t&&t.ficha_id&&souGestorDaFicha(t.ficha_id));
 /* Situacao do Controle de Clientes (Gabriel 23/09): A receber / Inadimplente / Pago. Valor
    antigo gravado ("OK", "INADIMPLENTE") e lido com o nome novo; editar a celula grava o novo. */
 const OPC_LEGADO={'06102f93-48d6-4e1f-96fc-ed8c0ed4da15':{'OK':'Pago','INADIMPLENTE':'Inadimplente'}};
@@ -7657,6 +7664,10 @@ const LC_GER_COL='__gerente';
    o campo e o que ja foi preenchido (28, 30 e 29 clientes) continuam no banco e no card do
    cliente. Nao apagar: se ele quiser de volta, e so tirar daqui.
    A linha "Total da carteira" deixa de somar a verba sozinha, porque ela mapeia o cps. */
+/* Gestor (Gabriel 30/09): na lista ele vê só a remuneração DELE. Mensalidade e os 10% do
+   gerente ficam pra master e gerente. */
+const LC_SO_GERENCIA=['7fb37164-cc32-494c-a93c-c336afe163ea','46c3b98b-6590-4aff-bf80-ed03801206c7'];
+const LC_REM_GESTOR='b7e1c2a0-5d3f-4c8e-9a61-2f0d7c4e1a01';
 const LC_FORA=['5416ae4d-6ea2-4d3b-9510-9abccbdb96e2',   /* Verba Semanal */
                '271de509-620c-4f31-a473-137f483f5849',   /* Forma de Pagamento */
                'b39c6e52-332f-4e2d-97bb-aa8ea9527402'];  /* Canal */
@@ -7707,6 +7718,8 @@ function lcComGerente(cps){
   out.splice(i<0?0:i,0,col); return out;
 }
 const tkCelula=(t,c)=>{
+  if(c.id===LC_REM_GESTOR&&ehLC(t.lista_id)&&!souGerente()&&!souGestorDaFicha(t.ficha_id))
+    return '<span class="hint" style="margin:0" title="Remuneração de outro gestor">-</span>';
   if(c.id===LC_GER_COL){ const g=String((fichaDe(t.ficha_id)||{}).gerente||'').trim();
     if(!t.ficha_id) return '<span class="hint" style="margin:0" title="Card sem ficha de cliente">-</span>';
     if(!lcPodeGerente(t)) return g?`<span class="tk-trava" title="Gerente, só o master e o gerente do cliente alteram">${avatarDoNome(g,'av sm','Gerente')}</span>`
@@ -7764,7 +7777,7 @@ const tkSelo=(t)=>{
 function tkViewLista(){
   const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
   let cps=TK.escopo!=='lista'?[]:tkCamposDe(TK.listaSel);
-  if(lc) cps=lcComGerente(cps.filter(c=>LC_FORA.indexOf(c.id)<0));
+  if(lc) cps=lcComGerente(cps.filter(c=>LC_FORA.indexOf(c.id)<0&&(souGerente()||LC_SO_GERENCIA.indexOf(c.id)<0)));
   let grupos=tkGrupos(); const hoje=tkHoje();
   if(lc) grupos=grupos.filter(g=>g.its.length);
   const seta=(k)=>TK.ord===k?(TK.dir===1?' ▲':' ▼'):'';
@@ -7860,6 +7873,12 @@ function tkViewLista(){
     if(ks.length) porGest=`<div class="lc-porgest"><span>Remuneração:</span>${ks.map(k=>{
       const n=Object.keys(R[k].ids).length;
       return `<span class="c">${esc(k)} · ${n} cliente${n===1?'':'s'} · <b>${esc(moedaCurta(R[k].v)||'R$ 0')}</b></span>`; }).join('')}</div>`;
+  }
+  if(lc&&!souGerente()&&total&&currentUser){
+    const meus=grupos.reduce((a,g)=>a.concat(g.its),[]).filter(t=>souGestorDaFicha(t.ficha_id));
+    const v=meus.reduce((a,t)=>a+(Number((t.valores||{})[LC_REM_GESTOR])||0),0);
+    const semIni=meus.filter(t=>!String((t.valores||{})[LC_INI]||'')).length;
+    if(meus.length) porGest=`<div class="lc-porgest"><span>Sua remuneração:</span><span class="c">${meus.length} cliente${meus.length===1?'':'s'} · <b>${esc(moedaCurta(v)||'R$ 0')}</b></span>${semIni?`<span class="c" title="Sem a data de Início o cliente não conta. Clique na coluna Início do card para definir.">${semIni} sem Início, não contam ainda</span>`:''}</div>`;
   }
   return `<div class="tk-bar">${tkBarraSquad()}
     <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
@@ -14395,6 +14414,7 @@ function renderFechamento(c){
         <div class="field"><label id="fc_lbl_valor">Mensalidade (R$) *</label><input id="fc_valor" type="number" min="0" step="50" placeholder="ex: 1500"></div>
         <div class="field"><label>Forma de pagamento *</label><select id="fc_forma">${FC_PAGTOS.map(p=>`<option>${p}</option>`).join('')}</select></div></div>
       <div class="row2">
+        <div class="field"><label data-dica="Dia em que o projeto começa. Vai direto pra coluna Início do Controle de Clientes: o gestor recebe a partir dessa data e o gerente a partir dela, desde que o cliente tenha pago.">Início do projeto *</label><input id="fc_inicio" type="date" value="${hojeISO()}"></div>
         <div class="field"><label id="fc_lbl_data" data-dica="No fluxo normal: quando a 1ª mensalidade é paga (o DIA vira o vencimento recorrente). Com sinal: quando o RESTANTE será acertado.">Data da 1ª parcela *</label><input id="fc_data" type="date" onchange="fcCalcFim()"></div>
         <div class="field"><label>Status do pagamento *</label><select id="fc_status" onchange="fcStatusPagto(this.value)" data-dica="'Sinal pago' registra a entrada agora e deixa o restante como a receber. 'Pagamento integral' é o projeto pago à vista: entra como receita do mês e o cliente não ganha mensalidade."><option value="aguardando">Aguardando pagamento</option><option value="pago">Pago</option><option value="sinal">Sinal pago (entrada)</option><option value="integral">Pagamento integral (à vista, sem mensalidade)</option></select></div></div>
       <div class="row2" id="fc_sw" style="display:none">
@@ -14462,11 +14482,16 @@ window.fcChecaNome=()=>{
     Esse projeto já está cadastrado: <strong>${esc(d.nome)}</strong>${d.tipo==='ficha'?`, <a class="link" style="cursor:pointer" onclick="abrirCliente('${d.id}')">abrir a ficha</a>`:' (já está na fila de Novos Contratos)'}</div>`;
 };
 /* Todo fechamento nasce como card em "0. NAO ATIVO" na lista Base de Clientes. */
-async function lcCriarCard(fichaId,nome){
+async function lcCriarCard(fichaId,nome,inicio){
   if(!fichaId) return;
-  const q=await sb.from('tarefas').select('id').eq('lista_id',LC_ID).eq('ficha_id',String(fichaId)).limit(1);
-  if(q.data&&q.data.length) return;
-  const {error}=await sb.from('tarefas').insert({lista_id:LC_ID,ficha_id:String(fichaId),titulo:TIT_CLI(LC_ID,nome||'Novo cliente'),status:'todo',status_id:LC_NAOATIVO,prioridade:'med'});
+  const ini=/^\d{4}-\d{2}-\d{2}$/.test(String(inicio||''))?String(inicio):'';
+  const q=await sb.from('tarefas').select('id,valores').eq('lista_id',LC_ID).eq('ficha_id',String(fichaId)).limit(1);
+  if(q.data&&q.data.length){
+    /* card ja existe: o Inicio do contrato manda */
+    if(ini){ const t0=q.data[0]; await sb.from('tarefas').update({valores:Object.assign({},t0.valores||{},{[LC_INI]:ini})}).eq('id',t0.id); }
+    return; }
+  const {error}=await sb.from('tarefas').insert({lista_id:LC_ID,ficha_id:String(fichaId),titulo:TIT_CLI(LC_ID,nome||'Novo cliente'),status:'todo',status_id:LC_NAOATIVO,prioridade:'med',
+    valores:ini?{[LC_INI]:ini}:{}});
   if(error){ toast('Cliente criado, mas o card falhou: '+error.message); return; }
   try{ await tkCarregar(); spDesenhar(); }catch(_){}
 }
@@ -14530,7 +14555,7 @@ window.fechEnviar=async ()=>{
     if(error){ let msg=error.message||'falha'; try{ const j=await error.context.json(); if(j&&j.erro) msg=j.erro; }catch(_){}
       toast('Erro: '+msg); b.disabled=false; b.textContent='Enviar fechamento →'; return; }
     if(!data||!data.ok){ toast('Erro: '+((data&&data.erro)||'falha ao gravar')); b.disabled=false; b.textContent='Enviar fechamento →'; return; }
-    try{ await lcCriarCard(data.projetoId, body.nome); }catch(_){}
+    try{ await lcCriarCard(data.projetoId, body.nome, (($('#fc_inicio')||{}).value||'')); }catch(_){}
     try{ await loadDB(); }catch(_){}
     $('#fcForm').style.display='none';
     const okEl=$('#fcOk'); okEl.style.display='';
