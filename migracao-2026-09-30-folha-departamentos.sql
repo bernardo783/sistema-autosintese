@@ -153,3 +153,9 @@ $f$;
 revoke all on function public.folha_linhas_todas(text) from public, anon, authenticated;
 revoke all on function public.folha_linhas(text) from public, anon;
 grant execute on function public.folha_linhas(text) to authenticated;
+
+-- Aplicado em seguida (migracao lc_auto_gerente_pro_rata): a coluna "Remuneracao Gerente (10%)"
+-- do Controle de Clientes passou a ter o mesmo pro rata da Folha no mes de entrada, sobre o
+-- valor de cadastro (declara `cad`/`gbase`, le clientes.valor e usa
+-- gbase := case when fator < 1 then coalesce(cad,m)*fator else m end). Valor combinado a mao
+-- continua respeitado. Os cards foram recalculados com lc_auto(ficha, valores, valores).
