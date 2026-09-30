@@ -1777,6 +1777,7 @@
   .rc-gr-b[aria-expanded="true"] .fch-cv{transform:rotate(90deg)}
   tr.rc-gr-f td{background:var(--panel2)}
   tr.rc-gr-f td:first-child{padding-left:31px}
+  tr.rc-gr-f.lc-n2 td:first-child{padding-left:53px}   /* Lançamentos: dentro do sub-bloco */
   .rc-sub{color:var(--muted);font-size:11px;margin-top:3px}
   .rc-who{min-width:150px;flex:1}
   .rc-who strong{font-size:13.5px}
@@ -13803,12 +13804,38 @@ window.apgCancelar=async (id)=>{
   if(error){ toast('Erro: '+error.message); return; }
   toast('Cancelada: preservada no histórico.'); renderFinAPagar($('#finSub'));
 };
-/* Meta Ads em destaque (Gabriel 30/09): anúncio da própria AutoSíntese entra como "Meta Ads"
-   (Pix) ou "Facebk" (compra no cartão), quase sempre na categoria Comercial. O cartão soma
-   o período filtrado e o total de sempre; clicar filtra a tabela só nesses lançamentos. */
-const ehMetaAds=(x)=>x&&x.tipo==='despesa'&&/meta ads|facebk|facebook/i.test(String(x.descricao||''));
-let lancSoMeta=false;
-window.lancMeta=()=>{ lancSoMeta=!lancSoMeta; render('financeiro'); };
+/* Lançamentos por departamento (Gabriel 30/09): a tabela divide tudo pelo departamento (a
+   categoria do lançamento: Tecnologia, Comercial, Marketing, Administrativo...), uma linha
+   por departamento com a soma, e o clique abre (mesma linha de grupo dos Recebimentos).
+   Dentro do departamento, Meta Ads (anúncio da própria AutoSíntese: "Meta Ads" no Pix,
+   "Facebk" no cartão) e a folha de pagamento viram um sub-bloco cada, também com a soma.
+   Despesas primeiro, do departamento maior para o menor; depois as receitas. Lançamento
+   sozinho fica linha comum. O cartão de Meta Ads do topo saiu: não é número de capa. */
+const ehMetaAds=(x)=>!!x&&x.tipo==='despesa'&&/meta ads|facebk|facebook/i.test(String(x.descricao||''));
+const ehFolhaPg=(x)=>!!x&&x.tipo==='despesa'&&(/^folha:/i.test(String(x.descricao||'').trim())||/^folha de pagamento$/i.test(String(x.categoria||'').trim()));
+const lancDepto=(x)=>String((x&&x.categoria)||'').trim()||'Sem categoria';
+const lancSub=(x)=>ehMetaAds(x)?'Meta Ads':ehFolhaPg(x)?'Folha de pagamento':'';
+function lancAgrupar(rows){
+  const por={}, blocos=[], val=(x)=>Number(x.valor)||0;
+  rows.forEach(r=>{ const nome=lancDepto(r), k=(r.tipo||'')+':'+nome;
+    if(!por[k]){ por[k]={k,nome,tipo:r.tipo,itens:[],total:0}; blocos.push(por[k]); }
+    por[k].itens.push(r); por[k].total+=val(r); });
+  blocos.forEach(b=>{
+    b.itens.sort((x,y)=>val(y)-val(x));
+    const subs={}; let partes=[];
+    b.itens.forEach(r=>{ const n=lancSub(r);
+      if(!n){ partes.push({item:r,total:val(r)}); return; }
+      if(!subs[n]){ subs[n]={k:b.k+'>'+n,nome:n,tipo:b.tipo,itens:[],total:0}; partes.push(subs[n]); }
+      subs[n].itens.push(r); subs[n].total+=val(r); });
+    /* sub-bloco de um lançamento só, ou que é o departamento inteiro, não precisa existir */
+    partes=partes.flatMap(p=>(p.itens&&(p.itens.length<2||p.itens.length===b.itens.length))?p.itens.map(r=>({item:r,total:val(r)})):[p]);
+    b.partes=partes.sort((x,y)=>y.total-x.total);
+  });
+  const desp=(b)=>b.tipo==='despesa'?0:1;
+  return blocos.sort((a,b)=>desp(a)-desp(b)||b.total-a.total);
+}
+let lancGrAberto={}, lancRedesenha=null;
+window.lancBlocoAbre=(k)=>{ lancGrAberto[k]=!lancGrAberto[k]; if(lancRedesenha) lancRedesenha(); };
 function renderLanc(c){
   const lrange=!!(lancDe&&lancAte);
   const base=lrange?DB.financeiro.filter(x=>{const d=x.data||''; return d>=lancDe&&d<=lancAte;}):(lancComp?DB.financeiro.filter(x=>(x.data||'').slice(0,7)===lancComp):[...DB.financeiro]);
@@ -13819,9 +13846,6 @@ function renderLanc(c){
   const porCat={}; base.filter(x=>x.tipo==='despesa').forEach(x=>{ const k=(x.categoria||'Sem categoria'); porCat[k]=(porCat[k]||0)+Number(x.valor); });
   const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
   const mxc=Math.max(1,...cats.map(x=>x[1]));
-  const metaPer=base.filter(ehMetaAds).reduce((s,x)=>s+Number(x.valor||0),0);
-  const metaTudo=DB.financeiro.filter(ehMetaAds).reduce((s,x)=>s+Number(x.valor||0),0);
-  const filtrado=lrange||!!lancComp;
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Lançamentos</h2><div class="desc">${lrange?('Período: '+fmtDate(lancDe)+' até '+fmtDate(lancAte)):(lancComp?('Receitas e despesas de '+fmtComp(lancComp)):'Todas as receitas e despesas')}</div></div>
@@ -13836,9 +13860,6 @@ function renderLanc(c){
      <div class="card"><div class="k">Saldo</div><div class="v ${saldo>=0?'pos':'neg'}">${brl(saldo)}</div></div>
      <div class="card"><div class="k">Receitas</div><div class="v pos">${brl(rec)}</div></div>
      <div class="card"><div class="k">Despesas</div><div class="v neg">${brl(desp)}</div></div>
-     <div class="card" style="cursor:pointer;${lancSoMeta?'border-color:var(--brand2)':''}" onclick="lancMeta()" title="${lancSoMeta?'Mostrar todos os lançamentos':'Ver só os lançamentos de Meta Ads'}">
-       <div class="k">Meta Ads · total</div><div class="v neg">${brl(metaTudo)}</div>
-       <div class="hint" style="margin:4px 0 0">${filtrado?`${lrange?'Período':fmtComp(lancComp)}: <strong>${brl(metaPer)}</strong> · ${desp?Math.round(metaPer/desp*100):0}% das despesas`:'soma de todos os meses'}${lancSoMeta?' · filtrando':''}</div></div>
      <div class="card"><div class="k">Comparativo</div>
        <div class="barchart"><div class="barwrap"><div class="bar r" style="height:${rec/mx*100}%"></div><div class="lbl">Receitas</div></div>
        <div class="barwrap"><div class="bar d" style="height:${desp/mx*100}%"></div><div class="lbl">Despesas</div></div></div>
@@ -13856,20 +13877,44 @@ function renderLanc(c){
       </div>`).join('')}
    </div>`:''}
    <div class="tablewrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th><th></th></tr></thead>
-   <tbody id="fBody"></tbody></table><div id="fEmpty"></div></div>`;
+   <tbody id="fBody"></tbody></table><div id="fEmpty"></div></div>
+   <p class="hint" style="margin-top:12px">A tabela é dividida por departamento, uma linha cada, com a soma: clique no nome para abrir. Dentro do departamento, Meta Ads e folha de pagamento aparecem juntos em uma linha. Despesas primeiro, do departamento maior para o menor, depois as receitas.</p>`;
+  const tagTipo=(tp)=>`<span class="tag ${tp}">${tp==='receita'?'Receita':(tp==='despesa'?'Despesa':'A receber')}</span>`;
+  const corTipo=(tp)=>tp==='receita'?'var(--ok)':(tp==='despesa'?'var(--danger)':'var(--warn)');
+  /* linha do bloco: nome, quantos lançamentos, a soma e o clique que abre.
+     nivel 0 = departamento, 1 = dentro do departamento, 2 = dentro do sub-bloco */
+  const clsNivel=(n)=>n===2?' class="rc-gr-f lc-n2"':(n===1?' class="rc-gr-f"':'');
+  const linhaBloco=(b,ab,nivel)=>{
+    const cs=[...new Set(b.itens.map(x=>String(x.categoria||'').trim()))], cat=cs.length===1?(cs[0]||'-'):'várias';
+    return `<tr${nivel?clsNivel(nivel):' class="rc-gr"'}>
+      <td colspan="2"><button type="button" class="rc-gr-b" aria-expanded="${ab}" data-k="${esc(b.k)}" onclick="lancBlocoAbre(this.dataset.k)" title="${ab?'Fechar os lançamentos':'Abrir os lançamentos'}"><i class="fch-cv"></i><strong>${esc(b.nome)}</strong><small>${b.itens.length} lançamentos</small></button></td>
+      <td>${esc(cat)}</td>
+      <td>${tagTipo(b.tipo)}</td>
+      <td class="money" style="text-align:right;color:${corTipo(b.tipo)}">${b.tipo==='despesa'?'-':''}${brl(b.total)}</td>
+      <td><div class="rowact"><button class="iconbtn" data-k="${esc(b.k)}" onclick="lancBlocoAbre(this.dataset.k)">${ab?'Fechar lançamentos':'Ver lançamentos'}</button></div></td>
+    </tr>`; };
+  const linha=(r,nivel)=>`<tr${clsNivel(nivel)}>
+      <td>${fmtDate(r.data)}${r.pagoEm&&r.pagoEm!==r.data?`<div style="color:var(--muted);font-size:11px">pago em ${fmtDate(r.pagoEm)}</div>`:''}</td><td>${esc(r.descricao)}</td><td>${esc(r.categoria)||'-'}</td>
+      <td>${tagTipo(r.tipo)}</td>
+      <td class="money" style="text-align:right;color:${corTipo(r.tipo)}">${r.tipo==='despesa'?'-':''}${brl(r.valor)}</td>
+      <td><div class="rowact"><button class="iconbtn" onclick="openFinModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('financeiro','${r.id}')">Excluir</button></div></td>
+    </tr>`;
   const draw=()=>{
     const t=searchTerm.toLowerCase();
-    const list=rows.filter(r=>(!lancSoMeta||ehMetaAds(r))&&(!t||(r.descricao+r.categoria).toLowerCase().includes(t)));
-    $('#fBody').innerHTML=list.map(r=>`<tr>
-      <td>${fmtDate(r.data)}${r.pagoEm&&r.pagoEm!==r.data?`<div style="color:var(--muted);font-size:11px">pago em ${fmtDate(r.pagoEm)}</div>`:''}</td><td>${esc(r.descricao)}</td><td>${esc(r.categoria)||'-'}</td>
-      <td><span class="tag ${r.tipo}">${r.tipo==='receita'?'Receita':(r.tipo==='despesa'?'Despesa':'A receber')}</span></td>
-      <td class="money" style="text-align:right;color:${r.tipo==='receita'?'var(--ok)':(r.tipo==='despesa'?'var(--danger)':'var(--warn)')}">${r.tipo==='despesa'?'-':''}${brl(r.valor)}</td>
-      <td><div class="rowact"><button class="iconbtn" onclick="openFinModal('${r.id}')">Editar</button><button class="iconbtn del" onclick="delItem('financeiro','${r.id}')">Excluir</button></div></td>
-    </tr>`).join('');
+    const list=rows.filter(r=>!t||(r.descricao+' '+r.categoria+' '+lancSub(r)).toLowerCase().includes(t));
+    /* buscando, os blocos já vêm abertos: o que foi achado tem que estar na tela */
+    const aberto=(k)=>!!t||!!lancGrAberto[k];
+    $('#fBody').innerHTML=lancAgrupar(list).map(b=>{
+      if(b.itens.length<2) return linha(b.itens[0],0);
+      if(!aberto(b.k)) return linhaBloco(b,false,0);
+      return linhaBloco(b,true,0)+b.partes.map(p=>p.item?linha(p.item,1)
+        :linhaBloco(p,aberto(p.k),1)+(aberto(p.k)?p.itens.map(r=>linha(r,2)).join(''):'')).join('');
+    }).join('');
     $('#fEmpty').innerHTML=list.length?'':'<div class="empty">Nenhum lançamento. Clique em “+ Lançamento”.</div>';
   };
   $('#fSearch').oninput=e=>{searchTerm=e.target.value;draw();};
   $('#lancCompInp').onchange=e=>{ lancComp=e.target.value||''; lancDe=''; lancAte=''; render('financeiro'); };
+  lancRedesenha=draw;
   draw();
 }
 window.openFinModal=(id)=>{

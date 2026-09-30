@@ -133,6 +133,38 @@ grupo('Recebimentos: churn conta só o da competência (Gabriel 30/09)');
   ok('o filtro e o cartão leem a lista do mês, não a de todos os tempos', /const foraChurn=\(r\)=>R\.st\(r\)!=='churn'\|\|\(statusFiltro==='churn'&&R\.churnMes\(r\)\)/.test(HTML)&&HTML.indexOf('${R.g.churn.length} cliente')<0);
 }
 
+grupo('Lançamentos: tabela por departamento, maior despesa primeiro (Gabriel 30/09)');
+{
+  const g=rodar(bloco('const ehMetaAds=','let lancGrAberto='),null,['ehMetaAds','ehFolhaPg','lancDepto','lancSub','lancAgrupar']);
+  const D=(descricao,categoria,valor,tipo)=>({tipo:tipo||'despesa',descricao,categoria,valor});
+  const rows=[D('Pix: Meta Ads: aporte, anúncios AutoSíntese','Comercial',1000),D('Cartão Nubank: Facebk *Vl6f7z5ea2','Comercial',354.03),
+    D('Pix: Casa dos Dados','Comercial',100),
+    D('Folha: Luan, Base mensal','Marketing',2552),D('Folha: Maria Eduarda, Editora','Marketing',1348),D('Pix: Modelo para criação de conteúdo','Marketing',200),
+    D('Folha: Bernardo, Head','Sócios',3000),D('Folha: Gabriel, Head','Sócios',3000),
+    D('Cartão Nubank: Openai (20 compras)','Tecnologia',7502.12),D('Cartão Nubank: Supabase','Tecnologia',723.97),D('Folha: Arthur, Head de Produto','Tecnologia',950),
+    D('Pix: Pagamento contabilidade','Administrativo',890),
+    D('Mensalidade: GTR MOTORS','Mensalidade Clientes',1500,'receita'),D('Mensalidade: NEGOCICAR','Mensalidade Clientes',1300,'receita'),
+    D('Sem nada','',50)];
+  const b=g.lancAgrupar(rows), nomes=b.map(x=>x.nome).join(' > '), de=n=>b.find(x=>x.nome===n);
+  ok('o departamento é a categoria do lançamento', g.lancDepto(rows[0])==='Comercial'&&g.lancDepto(rows[3])==='Marketing'&&g.lancDepto(rows[14])==='Sem categoria');
+  ok('despesas primeiro, do departamento maior para o menor, depois as receitas',
+    nomes==='Tecnologia > Sócios > Marketing > Comercial > Administrativo > Sem categoria > Mensalidade Clientes');
+  ok('o departamento soma os lançamentos dele', Math.abs(de('Comercial').total-1454.03)<0.001&&de('Comercial').itens.length===3&&de('Marketing').total===4100);
+  ok('Pix "Meta Ads" e cartão "Facebk" viram o sub-bloco Meta Ads dentro do Comercial',
+    de('Comercial').partes[0].nome==='Meta Ads'&&de('Comercial').partes[0].itens.length===2&&Math.abs(de('Comercial').partes[0].total-1354.03)<0.001&&de('Comercial').partes[1].item.valor===100);
+  ok('folha vira um sub-bloco dentro do departamento dela', de('Marketing').partes[0].nome==='Folha de pagamento'&&de('Marketing').partes[0].total===3900&&de('Marketing').partes[1].item.valor===200);
+  ok('departamento que é só folha não ganha sub-bloco', de('Sócios').partes.length===2&&de('Sócios').partes.every(p=>p.item));
+  ok('sub-bloco de um lançamento só vira linha comum', de('Tecnologia').partes.length===3&&de('Tecnologia').partes.every(p=>p.item));
+  ok('dentro do departamento, o maior primeiro', de('Tecnologia').partes[0].item.valor===7502.12&&de('Tecnologia').itens[2].valor===723.97);
+  ok('receita nunca é Meta Ads nem folha', g.lancSub(D('Folha: estorno Facebk','Mensalidade Clientes',10,'receita'))==='');
+  ok('a soma dos departamentos bate com a soma dos lançamentos', Math.abs(b.reduce((s,x)=>s+x.total,0)-rows.reduce((s,x)=>s+x.valor,0))<0.001);
+  ok('as partes de cada departamento somam o departamento', b.every(x=>Math.abs(x.partes.reduce((s,p)=>s+p.total,0)-x.total)<0.001));
+  ok('o cartão de Meta Ads saiu do topo', HTML.indexOf('lancSoMeta')<0&&HTML.indexOf('Meta Ads · total')<0&&HTML.indexOf('metaTudo')<0&&HTML.indexOf('onclick="lancMeta()"')<0);
+  ok('bloco usa a mesma linha de grupo dos Recebimentos', /<td colspan="2"><button type="button" class="rc-gr-b"[^>]*onclick="lancBlocoAbre/.test(HTML));
+  ok('lançamento sozinho fica linha comum', HTML.indexOf('if(b.itens.length<2) return linha(b.itens[0],0);')>0);
+  ok('busca abre os blocos', HTML.indexOf('const aberto=(k)=>!!t||!!lancGrAberto[k];')>0);
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
