@@ -13991,7 +13991,7 @@ function fchPendentesHtml(comp){
   const gerDe=(x)=>{ const i=String(x.id||'');
     const k=i.startsWith('rcs_')?i.slice(4):(i.startsWith('rc_')?i.slice(3):null);
     const r=k?rid[k]:null; return {g:(r?gerCli[r.clienteId]:'')||'', nome:r?r.nome:null, st:r?r.status:null}; };
-  const COMISSAO=['Luiz','João'];
+  const COMISSAO=['Luiz','João','Luan']; /* Gabriel 01/10: Luan e gerente da MULTIKAP e recebe os 10% */
   const dec=(v)=>Math.round(v*100)/100;
   const aReceber=rec.filter(x=>!x.pagoEm);
   const porSt={}; rcb.forEach(x=>{ if(['churn','churnpago','carencia','inadimplente','areceber'].includes(x.status)) (porSt[x.status]=porSt[x.status]||[]).push(x); });
@@ -14130,7 +14130,7 @@ function renderFechamentoMes(c){
   const cart={};
   recMes.forEach(x=>{ const d=gerDe(x); if(d.g) (cart[d.g]=cart[d.g]||[]).push([d.nome||x.descricao,d.st||'',fchN(x.valor),x.data]); });
   const semGer=recMes.filter(x=>!gerDe(x).g);
-  const COMISSAO=['Luiz','João'];
+  const COMISSAO=['Luiz','João','Luan']; /* Gabriel 01/10: Luan e gerente da MULTIKAP e recebe os 10% */
 
   /* folha por DEPARTAMENTO (Gabriel 30/09: "no fechamento, saber quanto eles custam para cada
      setor"). A provisao da Folha ja vem com o departamento (dp) e o gerente vem repartido entre
