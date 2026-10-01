@@ -3050,6 +3050,7 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .f1-aviso{display:flex;align-items:center;gap:9px;margin:12px 0 0;padding:9px 12px;border-radius:11px;
   background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.30);color:#f3ce7a;font-size:12px;font-weight:700;line-height:1.35}
 .f1-aviso b{font-weight:900}
+:root[data-tema="claro"] .f1-aviso,:root[data-tema="branco"] .f1-aviso{background:rgba(160,106,6,.10);border-color:rgba(160,106,6,.38);color:var(--warn)}
 .f1-it.adi .tt{color:var(--fraco)}
 .f1-it.done .tt{color:var(--fraco);text-decoration:line-through}
 .f1-it .h{font-size:11.5px;color:var(--fraco);font-variant-numeric:tabular-nums;flex:none}
@@ -14144,6 +14145,7 @@ function renderFechamentoMes(c){
 
    <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/></svg> Custo por escritório</h2>
    ${fchKpiEsc(porEsc,TD)||'<div class="hint">Nenhum gasto de escritório neste mês.</div>'}
+   ${fdAvisosEscHtml()}
 
    <h2><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg> Folha de pagamento por departamento: ${brl(TFOLHA)}</h2>
    ${FD_DEPS.concat(['Outros']).filter(s=>porSet[s]).map(s=>{ const its=porSet[s];
@@ -18375,6 +18377,15 @@ function fdHistorico(comp){
    os botões de sempre. Antes era uma tabela corrida com o escritório numa coluna. */
 let fdEscAberto={};
 window.fdEscAbre=(e,ab)=>{ fdEscAberto[e]=!!ab; };
+/* Aviso fixo por escritorio (Gabriel 01/10: "deixa sempre um aviso la nas despesas do escritorio: a gente esta
+   sem receber a conta de luz ha alguns meses, e isso pode estar cobrando juros e acumulando"). Mora no campo
+   `aviso` da conta fixa do escritorio (Editar na conta) e aparece SEMPRE, em qualquer mes, em Gastos de escritorio
+   e no Fechamento, ate alguem apagar o texto. E dado, nao codigo: quando a conta for regularizada, some editando. */
+const fdAvisosEsc=()=>(DB.folhaFixos||[]).filter(f=>f.tipo!=='pessoa'&&f.ativo&&String(f.esc||'').trim()&&String(f.aviso||'').trim());
+function fdAvisosEscHtml(){
+  const L=fdAvisosEsc(); if(!L.length) return '';
+  return L.map(f=>`<div class="f1-aviso" role="status"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span><b>${esc(f.esc)}:</b> ${esc(f.aviso)}</span></div>`).join('');
+}
 function fdEscritorios(comp){
   const hoje=hojeISO(), fixoById={}; DB.folhaFixos.forEach(f=>{ fixoById[f.id]=f; });
   const escDe=(p)=>{ const f=fixoById[p.fixoId]; return String((f?f.esc:p.esc)||'').trim(); };
@@ -18396,6 +18407,7 @@ function fdEscritorios(comp){
       <div class="fch-corpo"><div class="tablewrap" style="margin:0"><table><thead><tr><th>Conta</th><th>Vencimento</th><th>Valor</th><th>Status</th><th></th></tr></thead>
       <tbody>${ps.map(linha).join('')}</tbody></table></div></div></details>`; }).join('');
   return `<h2 style="font-size:16px;margin:24px 0 10px">Gastos de escritório: ${fmtComp(comp)} <small style="font-weight:600;color:var(--muted);font-size:12px;margin-left:6px">${pays.length?brl(fdSoma(pays,'valor'))+' em '+escs.length+' escritório'+(escs.length===1?'':'s')+' · clique no escritório para abrir as contas':''}</small></h2>
+   ${fdAvisosEscHtml()}
    ${blocos||'<div class="empty">Nenhum gasto de escritório em '+fmtComp(comp)+'.</div>'}
    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
      <button class="btn secondary small" onclick="fdEscNovo=true;openFpModal()">+ Gasto avulso</button>
@@ -18405,7 +18417,7 @@ function fdEscritorios(comp){
 window.fdEscFixos=()=>{
   const fixos=DB.folhaFixos.filter(f=>f.tipo!=='pessoa'&&String(f.esc||'').trim());
   modal('Contas fixas dos escritórios',`<p class="hint" style="margin:0 0 12px">Entram sozinhas todo mês em Gastos de escritório, com o valor cadastrado.</p>
-    ${fixos.map(f=>`<div class="rc-ent"><div class="rc-who"><strong>${esc(f.nome)}</strong><div>${esc(f.esc)} · dia ${esc(f.dia)} · ${f.variavel?'valor variável':brl(f.valor)}${f.autoPago?' · débito automático':''}${f.ativo?'':' · desativada'}</div></div>
+    ${fixos.map(f=>`<div class="rc-ent"><div class="rc-who"><strong>${esc(f.nome)}</strong><div>${esc(f.esc)} · dia ${esc(f.dia)} · ${f.variavel?'valor variável':brl(f.valor)}${f.autoPago?' · débito automático':''}${String(f.aviso||'').trim()?' · com aviso':''}${f.ativo?'':' · desativada'}</div></div>
       <button class="iconbtn" onclick="document.querySelector('.overlay .mcancel').click();openFixoModal('${f.id}')">Editar</button></div>`).join('')||'<div class="empty">Nenhuma conta fixa.</div>'}
     <div style="margin-top:12px"><button class="btn secondary small" onclick="document.querySelector('.overlay .mcancel').click();fdEscNovo=true;openFixoModal()">+ Conta fixa</button></div>`,
     async ()=>true);
@@ -18672,6 +18684,8 @@ window.openFixoModal=(id)=>{
       <div class="field"><label>Modelo</label><select id="m_pos"><option value="0"${!it.posPago?' selected':''}>Pré-pago: mês vigente</option><option value="1"${it.posPago?' selected':''}>Pós-pago: ref. mês anterior</option></select></div>
       <div class="field"><label>Gerar a partir de (opcional)</label><input type="month" id="m_inicioComp" value="${it.inicioComp||''}"></div>
     </div>
+    <div class="field"><label>Aviso fixo (opcional)</label><input id="m_aviso" value="${esc(it.aviso||'')}" placeholder="Ex.: estamos sem receber a conta de luz há meses">
+      <p class="hint" style="margin:4px 0 0">Aparece sempre em Gastos de escritório e no Fechamento, até você apagar o texto.</p></div>
     <div class="field"><label>Ativo (entra na geração do mês)</label><select id="m_ativo"><option value="1"${it.ativo?' selected':''}>Sim</option><option value="0"${!it.ativo?' selected':''}>Não</option></select></div>`,
     async ()=>{
       const v={nome:$('#m_nome').value.trim(),descricao:$('#m_desc').value.trim(),pix:$('#m_pix').value.trim(),titular:((($('#m_titular')||{}).value)||'').trim(),banco:$('#m_banco').value.trim(),dp:(($('#m_dp')||{}).value||'').trim(),freq:$('#m_freq').value,diaSemana:parseInt($('#m_dsem').value)||0,posPago:$('#m_pos').value==='1',inicioComp:$('#m_inicioComp').value||null,dia:Math.min(31,Math.max(1,parseInt($('#m_dia').value)||1)),valor:parseFloat($('#m_valor').value)||0,ativo:$('#m_ativo').value==='1',proxData:$('#m_prox').value||null,recorrente:$('#m_rec').checked,variavel:!!(($('#m_var')||{}).checked),autoPago:!!(($('#m_autopago')||{}).checked)};
@@ -18679,6 +18693,7 @@ window.openFixoModal=(id)=>{
       if(!v.nome){ toast('Informe o nome.'); return false; }
       /* o campo aparece sempre agora: preenchido = pagamento de escritorio, vazio = equipe */
       v.esc=(($('#m_esc')||{}).value||'').trim()||null;
+      v.aviso=(($('#m_aviso')||{}).value||'').trim()||null;
       if(id){ Object.assign(it,v); } else { DB.folhaFixos.push({id:uid(),...v}); }
       await saveDB(); render(folhaView()); toast('Salvo.'); return true;
     });
