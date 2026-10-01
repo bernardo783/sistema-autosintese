@@ -223,3 +223,11 @@ union all select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*raz
 union all select pessoa, papel, ficha, cliente, st, base, cheio, round(cheio*razao,2), ref, null::text from ven
 union all select pessoa, 'fixo', null, null, null, null, v, v, null::text, null::text from fixo
 $function$;
+
+-- 3. COMISSÃO INTEGRAL (Gabriel 30/09, F3 MULTIMARCAS): cobrança com comissaoCheia=true no
+--    Recebimentos faz gerente e gestor receberem o mês cheio mesmo com o cliente pagando só o
+--    sinal. Aplicado no banco por replace sobre folha_linhas_todas (ger: razao_ger; gest: razao):
+--      ger : case when coalesce((rec->>'comissaoCheia')='true', false) then 1 else razao end razao_ger
+--            ... select ... round(cheio*razao_ger,2) ... from ger
+--      gest: case when coalesce((rec->>'comissaoCheia')='true', false) then 1 else razao end razao
+

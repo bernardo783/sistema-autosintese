@@ -16682,6 +16682,14 @@ function rcGrupoStatus(membros,stFn){
   return {igual, pagas, total:membros.length, texto:pagas+' de '+membros.length+' recebidas'};
 }
 window.rcGrupoAbre=(g)=>{ rcGrAberto[g]=!rcGrAberto[g]; if(rcRedesenha) rcRedesenha(); };
+/* COMISSÃO INTEGRAL (Gabriel 30/09, F3 MULTIMARCAS): o cliente pagou só o sinal, mas o gerente e o
+   gestor recebem a comissão cheia do mês. A flag mora na cobrança (comissaoCheia) e quem lê é a
+   folha no banco (folha_linhas_todas): a linha deles sai com o ganho cheio. */
+window.rcComissaoCheia=async (cid,on)=>{
+  const r=(DB.recebimentos||[]).find(x=>x.clienteId===cid&&x.comp===cliComp); if(!r) return;
+  r.comissaoCheia=!!on; if(!on) delete r.comissaoCheia;
+  await saveDB(); toast(on?'Comissão integral: gerente e gestor recebem o mês cheio.':'Comissão volta a ser proporcional ao que entrou.');
+};
 window.rcStatusGrupo=async (g,novo)=>{
   if(RC_LOTE.indexOf(novo)<0) return;
   const volta=()=>{ if(currentView==='recebimentos') render('recebimentos'); };
@@ -16767,7 +16775,8 @@ function renderRecebimentos(c){
         ${s==='parceria'?'<option value="parceria" selected>Parceria (sem mensalidade)</option>':''}
       </select>${(s==='recebido'||s==='churnpago')&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${s==='sinal'&&rec?(()=>{ const pz=rcPrazoTexto(rcRestVenc(rec));
         return `<div style="color:var(--muted);font-size:11px;margin-top:3px">entrada ${brl(rec.sinal)} em ${fmtDate(rec.sinalEm)}</div>
-        <div style="font-size:11px;margin-top:2px;color:${pz.cor};font-weight:600">resta ${brl(rcRestante(rec))} · ${esc(pz.txt)}</div>`; })():''}`:'<span class="tag st">defina o dia</span>';
+        <div style="font-size:11px;margin-top:2px;color:${pz.cor};font-weight:600">resta ${brl(rcRestante(rec))} · ${esc(pz.txt)}</div>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;margin-top:4px;color:var(--muted);cursor:pointer" title="Gerente e gestor recebem a comissão cheia do mês mesmo com o cliente pagando só o sinal (Gabriel 30/09, F3 MULTIMARCAS)"><input type="checkbox" ${rec.comissaoCheia?'checked':''} onchange="rcComissaoCheia('${r.id}',this.checked)" style="accent-color:var(--brand2)">comissão integral da equipe</label>`; })():''}`:'<span class="tag st">defina o dia</span>';
       return `<tr${filho?' class="rc-gr-f"':''}>
       <td><strong>${esc(filho?contaSufixo({nome:r.nome}):r.nome)}</strong></td>
       <td><span class="tag st">${esc(r.nicho)||'-'}</span></td>

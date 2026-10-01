@@ -539,6 +539,13 @@ grupo('Parceria: cliente ativo sem receita, gerente recebe 10% da referência (G
   ok('banco: gestor e social media não recebem pela parceria', SQL.indexOf("from b where devido and st<>'parceria' and coalesce(gest_user")>0&&SQL.indexOf("return v - k_gest - k_rsoc;")>0);
 }
 
+grupo('Comissão integral com sinal (Gabriel 30/09, F3 MULTIMARCAS)');
+{
+  ok('a cobrança com sinal tem a caixa "comissão integral da equipe"', HTML.indexOf("onchange=\"rcComissaoCheia('${r.id}',this.checked)\"")>0&&HTML.indexOf('comissão integral da equipe')>0);
+  ok('ligar grava comissaoCheia na cobrança do mês escolhido', /r\.comissaoCheia=!!on; if\(!on\) delete r\.comissaoCheia;\s*await saveDB\(\)/.test(HTML));
+  ok('a regra está documentada na migração', fs.readFileSync(path.join(__dirname,'..','migracao-2026-09-30-parceria.sql'),'utf8').indexOf("(rec->>'comissaoCheia')='true'")>0);
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);
