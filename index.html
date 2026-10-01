@@ -1791,6 +1791,10 @@
   tr.rc-gr-f td:first-child{padding-left:31px}
   tr.rc-gr-f.lc-n2 td:first-child{padding-left:53px}   /* Lançamentos: dentro do sub-bloco */
   .rc-sub{color:var(--muted);font-size:11px;margin-top:3px}
+  .rc-cob{text-align:center}
+  .rc-cob-l{display:inline-flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+  .rc-cob-l input{width:17px;height:17px;accent-color:var(--ok);cursor:pointer}
+  .rc-cob-l small{color:var(--muted);font-size:10.5px}
   .rc-who{min-width:150px;flex:1}
   .rc-who strong{font-size:13.5px}
   .rc-who div{color:var(--muted);font-size:11.5px;margin-top:2px}
@@ -4002,6 +4006,7 @@ async function enterApp(){
   if(souGerente()&&currentUser.role!=='master'){ show($('#navCarteira')); } else { hide($('#navCarteira')); }
   try{ await tkCarregar(); }catch(e){}
   setTimeout(()=>{ lcSyncMens().catch(()=>{}); },0);   /* fee do mês no Controle de Clientes (virada do mês) */
+  setTimeout(()=>{ cbSincronizar(); },300);   /* cobranças vencidas viram tarefa pro master (Gabriel 01/10) */
   spDesenhar();
   /* veio de um link? cai direto no destino em vez da tela padrão —
      mas link velho de lista da empresa não arranca você do workspace pessoal salvo */
@@ -9726,6 +9731,7 @@ async function tkPatch(id,patch,msg){
   const t=TK.tarefas.find(x=>x.id===id);
   if(t){ Object.assign(t,patch); if(data&&data.valores) t.valores=data.valores; }
   if(t&&patch.valores){ try{ lcIniAvisar(t,iniAntes); }catch(_){} }
+  if(t&&t.lista_id===CB_LISTA&&('status' in patch)){ try{ cbSincronizar(); }catch(_){} }
   tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); recAgendar(); return true;
 }
 /* ======================= TAREFAS RECORRENTES (Gabriel 23/09) =======================
@@ -16834,7 +16840,7 @@ function renderRecebimentos(c){
    </div>
    ${rcBlocoEntradas(R,comp)}
    ${rcBlocoReembolsos()}
-   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th>Valor</th><th>Status (${fmtComp(comp)})</th><th></th></tr></thead>
+   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Nicho</th><th>Serviço</th><th>Venc.</th><th>Dono / contato</th><th>Valor</th><th>Status (${fmtComp(comp)})</th><th title="Já mandei a cobrança pro cliente neste mês">Cobrei</th><th></th></tr></thead>
    <tbody id="cBody"></tbody></table><div id="cEmpty"></div></div>
    ${(currentUser&&currentUser.role==='master')?`<div class="fchdoc" style="margin-top:26px">
    <h2 class="verde"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> O que ainda vai entrar, e quanto cada um leva quando entrar</h2>
@@ -16876,6 +16882,8 @@ function renderRecebimentos(c){
       <td>${esc(r.resp)||'-'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
       <td class="money" style="text-align:right">${s==='carencia'?`<span style="color:var(--muted);text-decoration:line-through">${brl(R.val(r))}</span><div style="color:var(--brand2);font-size:11px">carência</div>`:s==='churn'?(R.churnMes(r)?`<span style="color:var(--danger)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">perdido</div>`:`<span style="color:var(--muted)">-</span>`):s==='churnpago'?`<span style="color:var(--ok)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">pago · último mês</div>`:`${brl(R.val(r))}${(R.byCli[r.id]&&R.byCli[r.id].integral)?`<div style="color:var(--brand2);font-size:11px">projeto à vista · sem mensalidade</div>`:(R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:'')}`}</td>
       <td>${selHtml}</td>
+      <td class="rc-cob">${(s==='recebido'||s==='churnpago'||s==='churn'||s==='carencia'||s==='parceria')?'<span class="hint" style="margin:0">-</span>'
+        :`<label class="rc-cob-l" title="${rec&&rec.cobradoEm?'Cobrado em '+fmtDate(rec.cobradoEm)+' · desmarcar volta a lembrar':'Marque quando mandar a cobrança'}"><input type="checkbox" ${rec&&rec.cobradoEm?'checked':''} onchange="rcCobrado('${r.id}',this.checked)">${rec&&rec.cobradoEm?`<small>${fmtDate(rec.cobradoEm).slice(0,5)}</small>`:''}</label>`}</td>
       <td><div class="rowact"><button class="iconbtn" onclick="openCliModal('${r.id}')">Editar</button><button class="iconbtn" onclick="cliAcoes('${r.id}')" data-dica="NOVO: aqui dentro você arquiva o cliente (sai da carteira sem virar churn), move para o Controle de Churns ou exclui de vez, a exclusão leva junto cobranças, lançamentos e ficha.">⋯</button></div></td>
     </tr>`;};
     /* linha do grupo: soma das contas, status resumido e o clique que abre as contas */
@@ -16900,6 +16908,7 @@ function renderRecebimentos(c){
         <option value="inadimplente"${S.igual==='inadimplente'?' selected':''}>Inadimplente</option>
         <option value="recebido"${S.igual==='recebido'?' selected':''}>Recebido</option>
       </select></td>
+      <td></td>
       <td><div class="rowact"><button class="iconbtn" data-g="${esc(g)}" onclick="rcGrupoAbre(this.dataset.g)">${ab?'Fechar contas':'Ver contas'}</button></div></td>
     </tr>`;};
     rcGrIds={};
@@ -17126,6 +17135,79 @@ window.rcRestanteData=async (cliId)=>{
       toast('Restante de '+(c.nome||'cliente')+' combinado para '+fmtDate(d)+'.'); return true;
     });
 };
+/* ---------- COBRANÇAS DO DIA (Gabriel 01/10) ----------
+   "Tudo que for pra eu fazer no dia... quero que fique me cobrando e só suma quando eu marcar
+   como concluído." Toda cobrança do mês que venceu e ainda não caiu vira uma tarefa na lista
+   Cobranças (Administrativo > Financeiro), com o Bernardo (master) de responsável e prazo no
+   vencimento: aparece no Início corporativo dele até ser concluída, e atrasada continua
+   aparecendo. A caixa "Cobrei" no Recebimentos e a conclusão da tarefa são a mesma coisa:
+   marcar uma marca a outra. Quem abre o sistema materializa (igual ao Contas a Pagar). */
+const CB_LISTA='c2000000-0000-4000-8000-0000000000c1', CB_ABERTO='c2000000-0000-4000-8000-00000000c101', CB_FEITO='c2000000-0000-4000-8000-00000000c102';
+const CB_QUEM=NC_PAGADOR;   /* Bernardo Antunes */
+const cbChave=(cliId,comp)=>cliId+'|'+comp;
+/* função pura: o que precisa existir, fechar ou refletir de volta. hoje = 'AAAA-MM-DD'. */
+function cbPlano(o){
+  const hoje=o.hoje, comp=o.comp, criar=[], concluir=[], reabrir=[], cobrar=[];
+  const R=o.R, tarefas=(o.tarefas||[]).filter(t=>t.lista_id===CB_LISTA&&!t.arquivada_em);
+  const porChave={}; tarefas.forEach(t=>{ const k=(t.valores||{}).cobranca; if(k) porChave[k]=t; });
+  (o.clientes||[]).forEach(c=>{
+    if(o.cliArq(c)||(c.inicio&&comp<c.inicio)||(c.fim&&comp>c.fim)) return;
+    const st=R.st(c), rec=R.byCli[c.id];
+    const venc=(rec&&rec.venc)||((c.diaVenc>=1&&c.diaVenc<=31)?o.vencOf(comp,c.diaVenc):null);
+    const aberta=!st||st==='areceber'||st==='inadimplente';
+    const k=cbChave(c.id,comp), t=porChave[k], feita=t&&t.status==='feito';
+    const cobrado=!!(rec&&rec.cobradoEm);
+    if(aberta&&venc&&venc<=hoje&&!cobrado){
+      if(!t) criar.push({titulo:'Cobrar '+String(c.nome||'').trim()+': '+o.brl(R.val(c))+', venceu '+venc.slice(8,10)+'/'+venc.slice(5,7),prazo:venc,chave:k,cliId:c.id});
+      else if(feita) cobrar.push({cliId:c.id,em:String(t.concluida_em||hoje).slice(0,10)});   /* concluiu a tarefa: reflete no Recebimentos */
+      return; }
+    if(t&&!feita&&(cobrado||!aberta)) concluir.push(t.id);   /* marcou Cobrei ou já caiu: fecha a tarefa */
+  });
+  return {criar,concluir,cobrar};
+}
+let CB_LOCK=false;
+async function cbSincronizar(){
+  if(CB_LOCK||!currentUser||currentUser.role!=='master'||!DB||!(DB.clientes||[]).length||!(TK.listas||[]).some(l=>l.id===CB_LISTA)) return;
+  CB_LOCK=true;
+  try{
+    const comp=compNow(), R=calcRecebimentos(comp);
+    const P=cbPlano({hoje:hojeISO(),comp,R,clientes:DB.clientes,tarefas:TK.tarefas,cliArq,vencOf,brl});
+    let mexeuDB=false;
+    for(const x of P.criar){
+      const {data,error}=await sb.from('tarefas').insert({lista_id:CB_LISTA,titulo:x.titulo,status:'todo',status_id:CB_ABERTO,prioridade:'alta',prazo:x.prazo,
+        responsavel_id:CB_QUEM,responsaveis:[CB_QUEM],valores:{cobranca:x.chave},criado_por:currentUser.id,ordem:TK.tarefas.length}).select().single();
+      if(!error&&data) TK.tarefas.push(data);
+    }
+    for(const id of P.concluir){
+      const patch={status:'feito',status_id:CB_FEITO,concluida_em:new Date().toISOString()};
+      const {error}=await sb.from('tarefas').update(patch).eq('id',id);
+      if(!error){ const t=TK.tarefas.find(x=>x.id===id); if(t) Object.assign(t,patch); }
+    }
+    for(const x of P.cobrar){ const r=rcRegistro(x.cliId,comp); if(r&&!r.cobradoEm){ r.cobradoEm=x.em; mexeuDB=true; } }
+    if(mexeuDB) await saveDB();
+    if(P.criar.length||P.concluir.length||P.cobrar.length){ try{ spDesenhar(); }catch(_){} if(currentView==='inicio') try{ renderInicio($('#content')); }catch(_){} }
+  }catch(_){}
+  finally{ CB_LOCK=false; }
+}
+/* registro do mês do cliente, criado na hora se ainda não existe (precisa do dia de vencimento) */
+function rcRegistro(cliId,comp){
+  const c=(DB.clientes||[]).find(x=>x.id===cliId); if(!c) return null;
+  let r=(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===cliId);
+  if(!r){ if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
+    r={id:uid(),comp,clienteId:c.id,nome:MAIUS(c.nome),resp:c.resp||'',tel:c.tel||'',valor:Number(c.valor)||0,venc:vencOf(comp,c.diaVenc),recebido:false,recebidoEm:null,status:null};
+    DB.recebimentos.push(r); }
+  return r;
+}
+/* caixa "Cobrei" no Recebimentos */
+window.rcCobrado=async (cliId,on)=>{
+  const comp=cliComp, r=rcRegistro(cliId,comp);
+  if(!r){ toast('Defina o dia de vencimento primeiro (Editar).'); render('recebimentos'); return; }
+  r.cobradoEm=on?hojeISO():null;
+  await saveDB();
+  await cbSincronizar();
+  if(currentView==='recebimentos') render('recebimentos');
+  toast(on?'Marcado como cobrado.':'Desmarcado: volta a cobrar.');
+};
 window.rcStatusCli=async (cliId,novo,lote)=>{
   if(!novo)return;
   /* De onde a pessoa mexeu: o status agora tambem muda no Controle de Clientes (Gabriel
@@ -17204,7 +17286,7 @@ window.rcStatusCli=async (cliId,novo,lote)=>{
   }
   if(novo!=='churn' && novo!=='churnpago' && c.churnComp && comp>=c.churnComp){ c.churnComp=null; c.fim=''; await chVoltarDeChurns(c); }
   if(lote) return true; /* rcStatusGrupo muda varias contas e grava uma vez so, no fim */
-  await saveDB(); rcVolta(); toast('Status de '+c.nome+': '+(novo==='recebido'?'Recebido':novo==='sinal'?'Sinal pago':novo==='inadimplente'?'Inadimplente':novo==='churn'?'Churn: receita perdida':novo==='churnpago'?'Churn: mês pago, receita mantida':novo==='carencia'?'Carência: isento no mês':'A receber')+(moveuChurn?' · card movido para Controle de Churns':''));
+  await saveDB(); rcVolta(); cbSincronizar(); toast('Status de '+c.nome+': '+(novo==='recebido'?'Recebido':novo==='sinal'?'Sinal pago':novo==='inadimplente'?'Inadimplente':novo==='churn'?'Churn: receita perdida':novo==='churnpago'?'Churn: mês pago, receita mantida':novo==='carencia'?'Carência: isento no mês':'A receber')+(moveuChurn?' · card movido para Controle de Churns':''));
 };
 
 /* ======================= CONTRATOS (minutas) ======================= */

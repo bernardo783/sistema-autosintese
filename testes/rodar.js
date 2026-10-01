@@ -287,6 +287,27 @@ grupo('Volta do Controle de Churns pergunta o combinado (Gabriel 30/09, SPAÇO V
   ok('não usa mais o confirmar simples', r.indexOf("{sim:'Voltar para ativo'}")<0&&r.indexOf("bs.textContent='Voltar para ativo'")>0);
 }
 
+grupo('Cobranças do dia: tarefa pro master até marcar Cobrei (Gabriel 01/10)');
+{
+  const g=rodar(bloco('const CB_LISTA=','let CB_LOCK=false;'),{NC_PAGADOR:'u_bernardo'},['cbPlano','cbChave','CB_LISTA']);
+  const CB='c2000000-0000-4000-8000-0000000000c1';
+  const clientes=[{id:'a',nome:'SPAÇO VEÍCULOS',diaVenc:1,valor:600},{id:'b',nome:'G MOTORS',diaVenc:10,valor:1500},{id:'c',nome:'PAGOU',diaVenc:1,valor:900},{id:'d',nome:'JÁ COBREI',diaVenc:1,valor:700},{id:'e',nome:'CHURN',diaVenc:1,valor:500},{id:'f',nome:'ARQUIVADO',diaVenc:1,valor:500},{id:'g',nome:'CONCLUÍ A TAREFA',diaVenc:1,valor:800}];
+  const recs={c:{status:'recebido',venc:'2026-10-01'},d:{status:null,venc:'2026-10-01',cobradoEm:'2026-10-01'},e:{status:'churn',venc:'2026-10-01'},g:{status:'areceber',venc:'2026-10-01'}};
+  const R={byCli:recs,st:(c)=>recs[c.id]?(recs[c.id].status||'areceber'):'',val:(c)=>c.valor};
+  const tarefas=[{id:'t_g',lista_id:CB,status:'feito',concluida_em:'2026-10-01T12:00:00Z',valores:{cobranca:'g|2026-10'}},{id:'t_c',lista_id:CB,status:'todo',valores:{cobranca:'c|2026-10'}},{id:'t_d',lista_id:CB,status:'todo',valores:{cobranca:'d|2026-10'}}];
+  const P=g.cbPlano({hoje:'2026-10-01',comp:'2026-10',R,clientes,tarefas,cliArq:(c)=>c.id==='f',vencOf:(comp,d)=>comp+'-'+String(d).padStart(2,'0'),brl:(v)=>'R$ '+v});
+  ok('cria tarefa só pra quem venceu até hoje e não foi cobrado nem pagou (Spaço, dia 1)', P.criar.length===1&&P.criar[0].chave==='a|2026-10'&&P.criar[0].prazo==='2026-10-01');
+  ok('título diz quem, quanto e quando venceu, sem travessão', P.criar[0].titulo==='Cobrar SPAÇO VEÍCULOS: R$ 600, venceu 01/10');
+  ok('quem vence dia 10 ainda não entra; churn e arquivado nunca', !P.criar.some(x=>['b','e','f'].includes(x.cliId)));
+  ok('pagou ou marcou Cobrei: a tarefa aberta é concluída', P.concluir.sort().join()==='t_c,t_d');
+  ok('concluiu a tarefa no Início: reflete como Cobrei no Recebimentos', P.cobrar.length===1&&P.cobrar[0].cliId==='g'&&P.cobrar[0].em==='2026-10-01');
+  const P2=g.cbPlano({hoje:'2026-10-05',comp:'2026-10',R,clientes,tarefas:tarefas.concat([{id:'t_a',lista_id:CB,status:'todo',valores:{cobranca:'a|2026-10'}}]),cliArq:(c)=>c.id==='f',vencOf:(comp,d)=>comp+'-'+String(d).padStart(2,'0'),brl:(v)=>'R$ '+v});
+  ok('tarefa já existente e ainda aberta não duplica; continua cobrando até ser concluída', !P2.criar.some(x=>x.cliId==='a')&&!P2.concluir.includes('t_a'));
+  ok('a tarefa nasce pro Bernardo, na lista Cobranças, com prazo no vencimento e chave do cliente+mês', HTML.indexOf("insert({lista_id:CB_LISTA,titulo:x.titulo,status:'todo',status_id:CB_ABERTO,prioridade:'alta',prazo:x.prazo,\n        responsavel_id:CB_QUEM,responsaveis:[CB_QUEM],valores:{cobranca:x.chave}")>0&&HTML.indexOf("const CB_QUEM=NC_PAGADOR;")>0);
+  ok('Recebimentos ganhou a coluna Cobrei com a caixa e a data', HTML.indexOf('<th title="Já mandei a cobrança pro cliente neste mês">Cobrei</th>')>0&&HTML.indexOf("onchange=\"rcCobrado('${r.id}',this.checked)\"")>0);
+  ok('sincroniza ao entrar, ao mudar status no Recebimentos e ao concluir a tarefa', HTML.indexOf("setTimeout(()=>{ cbSincronizar(); },300);")>0&&HTML.indexOf("await saveDB(); rcVolta(); cbSincronizar();")>0&&HTML.indexOf("if(t&&t.lista_id===CB_LISTA&&('status' in patch)){ try{ cbSincronizar(); }catch(_){} }")>0);
+}
+
 grupo('Modo restrito: usuário de uma lista só (Gabriel 01/10, ADM TARAF)');
 {
   const g=rodar(bloco('const rsLista=','/* esconde os atalhos que essa pessoa não tem'),{currentUser:{id:'u1',role:'membro',so_lista:'c2000000-0000-4000-8000-0000000000b1'},TK:{listas:[]},document:{body:{classList:{add(){}}},getElementById:()=>null},esc:s=>String(s),spNome:l=>l.nome},['rsLista','restrito']);
