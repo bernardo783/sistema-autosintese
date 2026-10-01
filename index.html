@@ -13968,9 +13968,16 @@ function fchPendentesHtml(comp){
 const fchImpostoLer=()=>{ let n=40, a=6; try{ n=Number(localStorage.getItem('fch_notas_pct')); a=Number(localStorage.getItem('fch_aliq')); }catch(_){}
   return {notas:(n>0&&n<=100)?n:40, aliq:(a>0&&a<=40)?a:6}; };
 const fchImposto=(base,notas,aliq)=>Math.round(base*(notas/100)*(aliq/100)*100)/100;
-function fchImpostoCard(RMES){
+/* imposto DECLARADO do mês: quando existe o lançamento de despesa (Imposto Simples Nacional), ele
+   vale no lugar da estimativa e já está dentro da despesa, então o rateio não desconta de novo */
+const fchEhImposto=(x)=>x&&x.tipo==='despesa'&&/simples nacional|^imposto/i.test(String(x.descricao||''));
+const fchImpostoReal=(desp)=>(desp||[]).filter(fchEhImposto);
+function fchImpostoCard(RMES,reais,comp){
   const o=fchImpostoLer(), v=fchImposto(RMES,o.notas,o.aliq);
-  return `<div class="card" id="fchImp" data-base="${RMES}"><div class="k">Imposto estimado</div><div class="v neg" id="fchImpV">${brl(v)}</div>
+  if(reais&&reais.length){ const tot=reais.reduce((s,x)=>s+fchN(x.valor),0), x=reais[0];
+    return `<div class="card" id="fchImp"><div class="k">Imposto do mês</div><div class="v neg">${brl(tot)}</div>
+      <div class="sub">${x.declarado?'declarado '+brl(x.declarado)+(x.aliquota?' a '+String(x.aliquota).replace('.',',')+'%':''):esc(String(x.descricao||'').slice(0,60))}${x.venc?' · vence '+fchDT(x.venc).slice(0,5):''}${x.pagoEm?' · pago':''} · ${(tot/(RMES||1)*100).toFixed(1).replace('.',',')}% da receita</div></div>`; }
+  return `<div class="card" id="fchImp" data-base="${RMES}" data-comp="${esc(comp||'')}"><div class="k">Imposto estimado <button type="button" class="iconbtn" style="float:right" onclick="fchImpostoRegistrar()" title="Lançar o imposto de verdade do mês (valor declarado e alíquota)">registrar</button></div><div class="v neg" id="fchImpV">${brl(v)}</div>
     <div class="sub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       <input type="number" min="1" max="100" step="1" value="${o.notas}" id="fchImpN" oninput="fchImpostoMudou()" onchange="fchImpostoMudou(true)" style="width:52px;font:inherit;font-size:12px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)">% com nota ·
       <input type="number" min="0.5" max="40" step="0.5" value="${o.aliq}" id="fchImpA" oninput="fchImpostoMudou()" onchange="fchImpostoMudou(true)" style="width:52px;font:inherit;font-size:12px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)">% de alíquota
@@ -13986,6 +13993,33 @@ window.fchImpostoMudou=(fim)=>{
   document.getElementById('fchImpS').textContent='('+(v/(base||1)*100).toFixed(1).replace('.',',')+'% da receita)';
   /* soltou o campo: a distribuição do lucro (retirada dos sócios) redesenha com o imposto novo */
   if(fim){ try{ if(finTab==='fechames') renderFinanceiro($('#content')); }catch(_){} }
+};
+/* Registrar o imposto declarado do mês: vira despesa de competência (vence dia 01 do mês seguinte) */
+window.fchImpostoRegistrar=()=>{
+  const c=document.getElementById('fchImp'), comp=c?c.dataset.comp:'', base=c?Number(c.dataset.base)||0:0; if(!comp) return;
+  const o=fchImpostoLer();
+  const [y,m]=comp.split('-').map(Number), d=new Date(y,m,1), venc=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
+  modal('Imposto de '+esc(fmtComp(comp)),`
+    <p class="hint" style="margin:0 0 12px">Entra como despesa de ${esc(fmtComp(comp))}, categoria Administrativo, e sai da base do rateio no lugar da estimativa.</p>
+    <div class="row2">
+      <div class="field"><label>Valor declarado (R$)</label><input type="number" id="im_dec" step="0.01" min="0" value="${Math.round(base*o.notas/100)}"></div>
+      <div class="field"><label>Alíquota (%)</label><input type="number" id="im_al" step="0.01" min="0" max="40" value="${o.aliq}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Imposto (R$)</label><input type="number" id="im_v" step="0.01" min="0" value="${fchImposto(base,o.notas,o.aliq)}"></div>
+      <div class="field"><label>Vencimento</label><input type="date" id="im_venc" value="${venc}"></div>
+    </div>`,
+    async ()=>{
+      const dec=parseFloat(($('#im_dec')||{}).value||'0')||0, al=parseFloat(($('#im_al')||{}).value||'0')||0, v=parseFloat(($('#im_v')||{}).value||'0'), vc=($('#im_venc')||{}).value||venc;
+      if(!(v>0)){ toast('Informe o valor do imposto.'); return false; }
+      const [yy,mm]=comp.split('-').map(Number), fim=comp+'-'+String(new Date(yy,mm,0).getDate()).padStart(2,'0');
+      DB.financeiro.push({id:'imp'+comp.replace('-','').slice(2)+'_'+uid(),comp,data:fim,tipo:'despesa',valor:v,pagoEm:null,categoria:'Administrativo',
+        descricao:'Imposto Simples Nacional: declarado '+brl(dec)+(al?' a '+String(al).replace('.',',')+'%':'')+', vence '+fmtDate(vc)+' · a pagar',declarado:dec,aliquota:al,venc:vc});
+      await saveDB(); toast('Imposto de '+fmtComp(comp)+' lançado: '+brl(v)+'.'); renderFinanceiro($('#content')); return true;
+    });
+  const ov=document.querySelectorAll('.overlay'); const bs=ov.length&&ov[ov.length-1].querySelector('.msave'); if(bs) bs.textContent='Lançar imposto';
+  const liga=()=>{ const d=parseFloat(($('#im_dec')||{}).value||'0')||0, a=parseFloat(($('#im_al')||{}).value||'0')||0; const e=$('#im_v'); if(e) e.value=(Math.round(d*a)/100).toFixed(2); };
+  ['im_dec','im_al'].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener('input',liga); });
 };
 function renderFechamentoMes(c){
   const comp=fechComp;
@@ -14051,7 +14085,8 @@ function renderFechamentoMes(c){
   const LUCROC=dec(BASE-DESPLIQ);
   const TAR=dec(aReceber.reduce((s,x)=>s+fchN(x.valor),0));
   /* imposto estimado (Gabriel 30/09): sai antes do rateio, igual a qualquer despesa */
-  const IMPO=fchImpostoLer(), IMP=dec(fchImposto(RMES,IMPO.notas,IMPO.aliq));
+  const IMPO=fchImpostoLer(), IMPR=fchImpostoReal(desp), IMPREAL=IMPR.reduce((s,x)=>s+fchN(x.valor),0);
+  const IMP=IMPR.length?0:dec(fchImposto(RMES,IMPO.notas,IMPO.aliq));
   const LUCRO=dec(LUCROC-TAR-IMP);
   const art=dec(LUCRO*0.10), cota=dec(dec(LUCRO*0.70)/3);
   const caixa=dec(LUCRO-art-cota*3);
@@ -14070,7 +14105,7 @@ function renderFechamentoMes(c){
      <div class="card"><div class="k">Receita total</div><div class="v">${brl(TR)}</div><div class="sub">${RFORA?'+ '+brl(RFORA)+' de repasse':'sem repasse'}</div></div>
      <div class="card"><div class="k">Despesa</div><div class="v neg">${brl(TD)}</div><div class="sub">${(TD/(TR||1)*100).toFixed(1)}% da receita</div></div>
      <div class="card"><div class="k">Lucro</div><div class="v ${LU>=0?'pos':'neg'}">${brl(LU)}</div><div class="sub">margem de ${(LU/(RMES||1)*100).toFixed(1)}%</div></div>
-     ${fchImpostoCard(RMES)}
+     ${fchImpostoCard(RMES,IMPR,comp)}
    </div>
    <p class="hint"><strong>Receita do mês</strong> é o que o cliente pagou pelo serviço prestado. Fica de fora repasse de custo,
    antecipação e projeto pago de uma vez, entrada que não se repete não serve para medir o mês nem para o rateio.</p>
@@ -14213,7 +14248,8 @@ function renderFechamentoMes(c){
      <tr><td>Despesa líquida <span style="color:var(--muted);font-size:12px">já abatida do repasse</span></td><td class="money" style="text-align:right">− ${brl(DESPLIQ)}</td></tr>
      <tr><td><strong>Lucro de competência</strong></td><td class="money" style="text-align:right"><strong>${brl(LUCROC)}</strong></td></tr>
      <tr><td>Receita reconhecida que ainda não caiu <span style="color:var(--muted);font-size:12px">${aReceber.length?esc(aReceber.map(x=>x.descricao).join('; ')):'-'}</span></td><td class="money" style="text-align:right;color:#f0616b">− ${brl(TAR)}</td></tr>
-     <tr><td>Imposto estimado <span style="color:var(--muted);font-size:12px">${IMPO.notas}% com nota a ${String(IMPO.aliq).replace('.',',')}%, ajuste no cartão do topo</span></td><td class="money" style="text-align:right;color:#f0616b">− ${brl(IMP)}</td></tr>
+     ${IMPR.length?`<tr><td>Imposto do mês <span style="color:var(--muted);font-size:12px">já descontado na despesa líquida (${brl(IMPREAL)})</span></td><td class="money" style="text-align:right;color:var(--muted)">incluído</td></tr>`
+       :`<tr><td>Imposto estimado <span style="color:var(--muted);font-size:12px">${IMPO.notas}% com nota a ${String(IMPO.aliq).replace('.',',')}%, ajuste no cartão do topo</span></td><td class="money" style="text-align:right;color:#f0616b">− ${brl(IMP)}</td></tr>`}
      <tr><td><strong>Base do rateio</strong> <span style="color:var(--muted);font-size:12px">só o que já é dinheiro em caixa</span></td><td class="money" style="text-align:right"><strong>${brl(LUCRO)}</strong></td></tr>
      <tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20% do lucro</span></td><td class="money" style="text-align:right">${brl(caixa)}</td></tr>
      <tr><td>Arthur <span style="color:var(--muted);font-size:12px">10% do lucro</span></td><td class="money" style="text-align:right">${brl(art)}</td></tr>

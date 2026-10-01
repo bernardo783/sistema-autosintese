@@ -552,12 +552,19 @@ grupo('Fechamento: imposto estimado sobre a receita com nota (Gabriel 30/09)');
   ok('padrão: 40% com nota a 6%', g.fchImpostoLer().notas===40&&g.fchImpostoLer().aliq===6);
   ok('R$ 102.708,69 de receita: 40% com nota a 6% dá R$ 2.465,01', g.fchImposto(102708.69,40,6)===2465.01);
   ok('100% com nota a 6% dá 6% da receita', g.fchImposto(100000,100,6)===6000);
-  const h=rodar(bloco('const fchImpostoLer=','function renderFechamentoMes(c){'),{localStorage:{getItem:(k)=>k==='fch_notas_pct'?'50':'8'},brl:v=>'R$ '+v,document:{}},['fchImpostoCard']);
-  const c=h.fchImpostoCard(100000);
+  const h=rodar(bloco('const fchImpostoLer=','function renderFechamentoMes(c){'),{localStorage:{getItem:(k)=>k==='fch_notas_pct'?'50':'8'},brl:v=>'R$ '+v,esc:s=>String(s),fchN:v=>Number(v)||0,document:{}},['fchImpostoCard']);
+  const c=h.fchImpostoCard(100000,[],'2026-09');
   ok('o cartão lê o que a pessoa ajustou (50% a 8%) e mostra a parte da receita', c.indexOf('R$ 4000')>0&&c.indexOf('value="50"')>0&&c.indexOf('value="8"')>0&&c.indexOf('(4,0% da receita)')>0);
   ok('o imposto sai antes do rateio e aparece na Distribuição do lucro', HTML.indexOf('const LUCRO=dec(LUCROC-TAR-IMP);')>0&&HTML.indexOf('<tr><td>Imposto estimado <span')>0&&HTML.indexOf("O imposto estimado sai antes do rateio")>0);
   ok('mudar o percentual redesenha a distribuição', HTML.indexOf('onchange="fchImpostoMudou(true)"')>0&&/if\(fim\)\{ try\{ if\(finTab==='fechames'\) renderFinanceiro/.test(HTML));
-  ok('o cartão está nos cartões do Fechamento, depois do Lucro', /margem de \$\{\(LU\/\(RMES\|\|1\)\*100\)\.toFixed\(1\)\}%<\/div><\/div>\s*\$\{fchImpostoCard\(RMES\)\}/.test(HTML));
+  const r=rodar(bloco('const fchImpostoLer=','function fchImpostoCard('),{localStorage:{getItem:()=>null}},['fchEhImposto','fchImpostoReal']);
+  ok('o lançamento "Imposto Simples Nacional" é o imposto do mês', r.fchEhImposto({tipo:'despesa',descricao:'Imposto Simples Nacional: declarado R$ 32.000 a 6%'})&&!r.fchEhImposto({tipo:'despesa',descricao:'Pix: contabilidade'})&&!r.fchEhImposto({tipo:'receita',descricao:'Imposto'}));
+  ok('com o imposto lançado, a estimativa some do rateio (já está na despesa)', HTML.indexOf('const IMP=IMPR.length?0:dec(fchImposto(RMES,IMPO.notas,IMPO.aliq));')>0&&HTML.indexOf('já descontado na despesa líquida')>0);
+  const h2=rodar(bloco('const fchImpostoLer=','function renderFechamentoMes(c){'),{localStorage:{getItem:()=>null},brl:v=>'R$ '+v,esc:s=>String(s),fchN:v=>Number(v)||0,fchDT:s=>s.split('-').reverse().join('/'),document:{}},['fchImpostoCard']);
+  const c2=h2.fchImpostoCard(100000,[{valor:1920,declarado:32000,aliquota:6,venc:'2026-10-01',descricao:'Imposto Simples Nacional'}],'2026-09');
+  ok('cartão mostra o imposto declarado de verdade, com vencimento', c2.indexOf('Imposto do mês')>0&&c2.indexOf('R$ 1920')>0&&c2.indexOf('declarado R$ 32000 a 6%')>0&&c2.indexOf('vence 01/10')>0);
+  ok('sem lançamento, o cartão estimado tem o botão registrar', h2.fchImpostoCard(100000,[],'2026-09').indexOf('fchImpostoRegistrar()')>0);
+  ok('o cartão está nos cartões do Fechamento, depois do Lucro', /margem de \$\{\(LU\/\(RMES\|\|1\)\*100\)\.toFixed\(1\)\}%<\/div><\/div>\s*\$\{fchImpostoCard\(RMES,IMPR,comp\)\}/.test(HTML));
 }
 
 grupo('Ordem alfabética');
