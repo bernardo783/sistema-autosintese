@@ -14138,7 +14138,16 @@ function renderFechamentoMes(c){
   const folP=fol.filter(x=>!(x.esc||'')&&!x.lucro&&!/aluguel|maria zilda/i.test(x.nome||''));
   const fdDpRec=(x)=>x.dp||((DB.folhaFixos||[]).find(f=>f.id===x.fixoId)||{}).dp
     ||(fdPessoas().find(p=>primNome(p.nome)===primNome(x.nome))||{}).dp||'Outros';
-  const porSet={}; folP.forEach(x=>{ const d=fdDpRec(x); (porSet[d]=porSet[d]||[]).push(x); });
+  /* GERENTE REPARTIDO (Gabriel 01/10): o pagamento do gerente se divide entre Marketing e
+     Tecnologia na proporcao do 10% dele (tipo de cada cliente), em vez de cair inteiro no
+     departamento da pessoa. Vale pra quem tem mais de um departamento (Luan: gestor + gerente). */
+  const fdRateio={}; if(comp>=FD_INICIO&&FD.comp===comp&&FD.linhas){
+    fdResumo(fdPessoas(),FD.linhas).forEach(r=>{ const ds=Object.keys(r.dps), t=ds.reduce((s,d)=>s+r.dps[d].ganho,0);
+      if(t>0&&ds.length>1) fdRateio[primNome(r.p.nome)]=ds.map(d=>[d,r.dps[d].ganho/t]); }); }
+  const porSet={}; folP.forEach(x=>{ const rat=fdRateio[primNome(x.nome)];
+    if(!rat){ const d=fdDpRec(x); (porSet[d]=porSet[d]||[]).push(x); return; }
+    rat.forEach(([d,f])=>{ if(f<=0) return;
+      (porSet[d]=porSet[d]||[]).push(Object.assign({},x,{valor:fdR2(fchN(x.valor)*f),parte:Math.round(f*100)+'% em '+d})); }); });
   const fdSetorTot=(d)=>(porSet[d]||[]).reduce((a,x)=>a+fchN(x.valor),0);
 
   /* falta receber e churn */
@@ -14190,7 +14199,7 @@ function renderFechamentoMes(c){
    ${FD_DEPS.concat(['Outros']).filter(s=>porSet[s]).map(s=>{ const its=porSet[s];
      const ab=its.filter(x=>!x.pago), tot=its.reduce((a,x)=>a+fchN(x.valor),0);
      return fchBloco(s, tot, its.sort((a,b)=>fchN(b.valor)-fchN(a.valor))
-       .map(x=>[x.nome+' · '+String(x.descricao||'pagamento').slice(0,52), fchDT(x.venc)+(x.pago?' · pago':' · a pagar'), x.valor]),
+       .map(x=>[x.nome+' · '+String(x.descricao||'pagamento').slice(0,52)+(x.parte?' · '+x.parte:''), fchDT(x.venc)+(x.pago?' · pago':' · a pagar'), x.valor]),
        new Set(its.map(x=>x.nome)).size+' pessoa(s)'+(ab.length?' · '+brl(ab.reduce((a,x)=>a+fchN(x.valor),0))+' a pagar':''));
    }).join('')}
    ${(()=>{ /* GERENTES POR SETOR (Gabriel 30/09): o 10% de cada cliente vai pro setor do que o
@@ -14222,7 +14231,7 @@ function renderFechamentoMes(c){
        .map(r=>Object.assign(r,{tot:r.folha+r.oper})).filter(r=>r.tot>0).sort((a,b)=>b.tot-a.tot);
      const T=lin.reduce((s,r)=>s+r.tot,0); if(!lin.length) return '';
      return '<h2 style="margin-top:18px">Custo por departamento: '+brl(T)+'</h2>'+lin.map(r=>fchBloco(r.d, r.tot,
-         r.g.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.nome+' · '+String(x.descricao||'pagamento').slice(0,52), 'gente'+(x.pago?' · pago':' · a pagar'), x.valor])
+         r.g.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[x.nome+' · '+String(x.descricao||'pagamento').slice(0,52)+(x.parte?' · '+x.parte:''), 'gente'+(x.pago?' · pago':' · a pagar'), x.valor])
          .concat(r.o.sort((a,b)=>fchN(b.valor)-fchN(a.valor)).map(x=>[String(x.descricao).replace(' · a pagar',''), 'gasto · '+fchDT(x.data)+(x.pagoEm?'':' · a pagar'), x.valor])),
          'gente '+brl(r.folha)+' · outros gastos '+brl(r.oper)+' · '+(r.tot/(T||1)*100).toFixed(1).replace('.',',')+'% do mês')).join('')+
        '<div class="fch-tot"><span>Total dos departamentos</span><span>gente '+brl(lin.reduce((s,r)=>s+r.folha,0))+' · outros '+brl(lin.reduce((s,r)=>s+r.oper,0))+'</span><span>'+brl(T)+'</span></div>'+

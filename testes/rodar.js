@@ -513,7 +513,10 @@ grupo('Downsell e upsell registrados na hora da mudança (Gabriel 30/09, JOTA\'S
 grupo('Fechamento: folha por departamento e custo por setor (Gabriel 30/09)');
 {
   const r=bloco('function renderFechamentoMes(c){','/* ======================= CONTRATOS');
-  ok('a folha do fechamento agrupa pelo departamento da provisão, não pela função', /const porSet=\{\}; folP\.forEach\(x=>\{ const d=fdDpRec\(x\);/.test(r)&&r.indexOf("Folha de pagamento por departamento: ${brl(TFOLHA)}")>0&&r.indexOf("FD_DEPS.concat(['Outros']).filter(s=>porSet[s])")>0);
+  ok('a folha do fechamento agrupa pelo departamento da provisão, não pela função', /if\(!rat\)\{ const d=fdDpRec\(x\); \(porSet\[d\]=porSet\[d\]\|\|\[\]\)\.push\(x\); return; \}/.test(r)&&r.indexOf("Folha de pagamento por departamento: ${brl(TFOLHA)}")>0&&r.indexOf("FD_DEPS.concat(['Outros']).filter(s=>porSet[s])")>0);
+  /* Gabriel 01/10: "tem que dividir os gerentes entre tecnologia e marketing" */
+  ok('gerente é repartido entre Marketing e Tecnologia na proporção do 10% dele', /fdResumo\(fdPessoas\(\),FD\.linhas\)\.forEach/.test(r)&&/fdRateio\[primNome\(r\.p\.nome\)\]=ds\.map\(d=>\[d,r\.dps\[d\]\.ganho\/t\]\)/.test(r)&&/valor:fdR2\(fchN\(x\.valor\)\*f\),parte:/.test(r));
+  ok('a linha repartida diz quanto foi pra cada departamento', r.split("(x.parte?' · '+x.parte:'')").length===3);
   ok('registro antigo cai no departamento da pessoa e a divisão do lucro fica fora', /x\.dp\|\|\(\(DB\.folhaFixos\|\|\[\]\)\.find\(f=>f\.id===x\.fixoId\)\|\|\{\}\)\.dp/.test(r)&&r.indexOf('!x.lucro&&!/aluguel|maria zilda/i')>0);
   ok('Custo por departamento é bloco clicável por setor, somando gente e outros gastos', r.indexOf("'<h2 style=\"margin-top:18px\">Custo por departamento: '")>0&&/lin\.map\(r=>fchBloco\(r\.d, r\.tot,/.test(r)&&/tot:r\.folha\+r\.oper/.test(r));
 }
