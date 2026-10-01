@@ -14981,10 +14981,28 @@ function fcSquads(){
    que nascem na ordem dos fechamentos — então o rodízio vale pra empresa inteira,
    e nao so pro navegador de quem fechou o ultimo contrato.
    Se aparecer um Squad 03, ele entra no ciclo sozinho (01 -> 02 -> 03 -> 01). */
-let FC_SQ_VEZ='';
+let FC_SQ_VEZ='', FC_SQ_CART=[];
+/* RODIZIO POR RECEITA (Gabriel 01/10): o 50/50 por contagem deixou o Luiz com muito mais
+   carteira que o Joao (ALTOGIRO e ticket maior). Agora o cliente novo vai pro squad cujo
+   gerente tem a MENOR carteira (soma da mensalidade dos clientes ativos dele), ate empatar.
+   Empatou, ou nao da pra medir (squad sem gerente, nenhum cliente)? Volta a alternar. */
+function fcCarteiraGerente(nome){
+  const k=primNome(nome); if(!k) return 0;
+  const cli={}; (DB.clientes||[]).forEach(c=>{ if(c&&!cliArq(c)) cli[c.id]=c; });
+  return (DB.projetos||[]).reduce((s,p)=>{
+    if(primNome(p.gerente)!==k||p.status==='churn') return s;
+    const c=cli[p.clienteId]; return c?s+(Number(c.valor)||0):s; },0);
+}
 function fcProximoSquad(){
-  const lista=fcSquads().map(x=>String(x.squad||'')).filter(Boolean).sort();
+  const sqs=fcSquads().filter(x=>x.squad).sort((a,b)=>String(a.squad).localeCompare(String(b.squad)));
+  const lista=sqs.map(x=>String(x.squad));
   if(lista.length<2) return lista[0]||'';
+  FC_SQ_CART=sqs.map(x=>({squad:String(x.squad),gerente:x.gerente||'',v:x.gerente?fcCarteiraGerente(x.gerente):0}));
+  const med=FC_SQ_CART.filter(x=>x.gerente);
+  if(med.length>=2){
+    const ord=med.slice().sort((a,b)=>a.v-b.v);
+    if(ord[0].v<ord[1].v) return ord[0].squad;
+  }
   const prjs=(DB.projetos||[]);
   let ultimo='';
   for(let i=prjs.length-1;i>=0;i--){
@@ -14999,9 +15017,12 @@ window.fcNotaRodizio=()=>{
   const el=$('#fc_rodizio'); if(!el) return;
   const atual=(($('#fc_squad')||{}).value||'');
   if(!FC_SQ_VEZ){ el.innerHTML=''; return; }
+  /* mostra a carteira de cada gerente: o closer entende por que a vez e de quem e */
+  const cart=FC_SQ_CART.filter(x=>x.gerente).map(x=>`${esc(primNome(x.gerente))} ${esc(moedaCurta(x.v)||'R$ 0')}`).join(' · ');
+  const pq=cart?` Carteira: ${cart}. Quem está mais baixo leva o próximo até empatar.`:'';
   el.innerHTML=(atual===FC_SQ_VEZ)
-    ? `<strong style="color:var(--brand2)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg> Rodízio automático: a vez é do Squad ${esc(FC_SQ_VEZ)}.</strong> `
-    : `<strong style="color:var(--warn)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg> O rodízio apontava o Squad ${esc(FC_SQ_VEZ)}: você trocou na mão.</strong> `;
+    ? `<strong style="color:var(--brand2)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg> Rodízio automático: a vez é do Squad ${esc(FC_SQ_VEZ)}.</strong>${pq} `
+    : `<strong style="color:var(--warn)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg> O rodízio apontava o Squad ${esc(FC_SQ_VEZ)}: você trocou na mão.</strong>${pq} `;
 };
 window.fcSquadMudou=()=>{
   const s=($('#fc_squad')||{}).value||'', info=fcSquads().find(x=>x.squad===s), el=$('#fc_equipe');

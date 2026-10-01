@@ -1169,6 +1169,22 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
     ok('lista apagada: volta pra lista da própria tarefa', dx&&dx.lista_id==='L'&&dx.status==='todo');
     ok('banco: migração cria a coluna recorrencia', /add column if not exists recorrencia jsonb/.test(fs.readFileSync(path.join(__dirname,'..','migracao-recorrencia.sql'),'utf8')));
     await testeTarefasPaginadas();
+    grupo('Rodízio por receita: cliente novo vai pro gerente com menor carteira (Gabriel 01/10)');
+    {
+      const cod=bloco("let FC_SQ_VEZ='', FC_SQ_CART=[];","/* O closer pode trocar na mão");
+      const DB={clientes:[{id:'c1',valor:3000},{id:'c2',valor:1000},{id:'c3',valor:5000,arquivadoEm:'2026-09-30'},{id:'c4',valor:900}],
+        projetos:[{clienteId:'c1',gerente:'Luiz',squad:'01'},{clienteId:'c2',gerente:'João',squad:'02'},{clienteId:'c3',gerente:'João',squad:'02'},{clienteId:'c4',gerente:'João',squad:'02',status:'churn'}]};
+      const sq=[{squad:'01',gerente:'Luiz Marcelo'},{squad:'02',gerente:'João Vitor'}];
+      const g=rodar(cod,{DB,fcSquads:()=>sq,primNome:(x)=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().split(/\s+/)[0].toLowerCase(),cliArq:(c)=>!!(c&&c.arquivadoEm)},['fcProximoSquad','fcCarteiraGerente']);
+      ok('carteira soma a mensalidade dos clientes ativos do gerente', g.fcCarteiraGerente('Luiz Marcelo')===3000);
+      ok('cliente arquivado e cliente em churn ficam fora da carteira', g.fcCarteiraGerente('João Vitor')===1000);
+      ok('a vez é de quem tem a menor carteira, mesmo tendo levado o último', g.fcProximoSquad()==='02');
+      DB.clientes.push({id:'c5',valor:2000}); DB.projetos.push({clienteId:'c5',gerente:'João',squad:'02'});
+      ok('empatou: volta a alternar (último foi o 02, agora é o 01)', g.fcProximoSquad()==='01');
+      sq[1].gerente='';
+      ok('squad sem gerente: não dá pra medir, alterna como antes', g.fcProximoSquad()==='01');
+      ok('a tela explica a carteira de cada gerente', HTML.indexOf('Quem está mais baixo leva o próximo até empatar.')>0);
+    }
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
