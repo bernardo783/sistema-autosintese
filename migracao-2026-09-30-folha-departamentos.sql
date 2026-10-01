@@ -171,3 +171,9 @@ grant execute on function public.folha_linhas(text) to authenticated;
 -- valor de cadastro (declara `cad`/`gbase`, le clientes.valor e usa
 -- gbase := case when fator < 1 then coalesce(cad,m)*fator else m end). Valor combinado a mao
 -- continua respeitado. Os cards foram recalculados com lc_auto(ficha, valores, valores).
+
+-- 01/10/2026 (aplicada: folha_linhas_base_sigilo). Sigilo da mensalidade, pedido do Gabriel:
+-- gestor de tráfego nunca vê a mensalidade. Em folha_linhas a coluna base só vai pra master ou
+-- pra gerente de carteira (flag gerente) na própria linha de gerente:
+--   case when is_master() or (is_gerente() and l.papel='gerente') or l.papel in ('venda','fixo') then l.base end
+-- (antes: is_master() or l.papel in ('gerente','venda','fixo'), que entregava a base pro Luan na MULTIKAP).

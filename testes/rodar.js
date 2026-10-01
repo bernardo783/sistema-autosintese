@@ -287,6 +287,32 @@ grupo('Volta do Controle de Churns pergunta o combinado (Gabriel 30/09, SPAÇO V
   ok('não usa mais o confirmar simples', r.indexOf("{sim:'Voltar para ativo'}")<0&&r.indexOf("bs.textContent='Voltar para ativo'")>0);
 }
 
+grupo('Sigilo da mensalidade: gestor vê só a variável dele (Gabriel 01/10)');
+{
+  const fichas={m:{id:'m',nome:'MULTIKAP TAPETES',gerente:'Luan Santiago',responsavel:'Luan Santiago'},g:{id:'g',nome:'G MOTORS',gerente:'Luiz',responsavel:'Luan Santiago'},d:{id:'d',nome:'DL REPASSE',gerente:'João',responsavel:'Yghor'}};
+  const ctx={LC_ID:'LC',LC_MENS:'mens',LC_SO_GERENCIA:['mens','remger'],LC_REM_GESTOR:'remg',LC_SOCIAL:'soc',LC_REM_SOCIAL:'remsoc',LC_GER_COL:'__g',LC_GEST:'gest',LC_INI:'ini',
+    fichaDe:(id)=>fichas[id]||null,primNome:(x)=>String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().split(/\s+/)[0].toLowerCase(),
+    ehLC:(l)=>l==='LC',souGerente:()=>!!(ctx.currentUser&&(ctx.currentUser.role==='master'||ctx.currentUser.gerente)),
+    souGestorDaFicha:(fid)=>{ const f=fichas[fid]; return !!(f&&ctx.primNome(f.responsavel)===ctx.primNome(ctx.currentUser.nome)); },
+    currentUser:{id:'u_luan',nome:'Luan Santiago',role:'membro',gerente:false}};
+  const g=rodar(bloco('const lcVeDinheiro=','const podeMexerCampo='),ctx,['lcVeDinheiro','gerenteDaFichaNome','lcVisivelProGestor']);
+  ok('Luan não vê dinheiro (mensalidade, 10% dos outros): não é master nem gerente de carteira', g.lcVeDinheiro()===false);
+  ok('Luan é gerente da MULTIKAP pelo nome, mesmo sem a flag', g.gerenteDaFichaNome('m')===true&&g.gerenteDaFichaNome('g')===false);
+  ok('Luan vê os cards onde é gestor ou gerente, e não os outros', g.lcVisivelProGestor({lista_id:'LC',ficha_id:'m'})&&g.lcVisivelProGestor({lista_id:'LC',ficha_id:'g'})&&!g.lcVisivelProGestor({lista_id:'LC',ficha_id:'d'}));
+  g.currentUser.nome='Luiz'; g.currentUser.gerente=true; ctx.currentUser=g.currentUser;
+  ok('Luiz (gerente de carteira) vê a mensalidade', g.lcVeDinheiro()===true);
+  const cel=bloco('const tkCelula=(t,c)=>{',"  if(c.id===LC_GER_COL){");
+  ok('célula da mensalidade vira "-" pra quem não vê dinheiro', cel.indexOf("if(c.id===LC_MENS&&ehLC(t.lista_id)&&!lcVeDinheiro())")>0);
+  ok('célula dos 10% do gerente só aparece pro gerente daquele cliente', cel.indexOf("if(c.id===LC_SO_GERENCIA[1]&&ehLC(t.lista_id)&&!lcVeDinheiro()&&!gerenteDaFichaNome(t.ficha_id))")>0);
+  const cols=bloco("  if(lc){ const souGerDeAlgum=","  let grupos=tkGrupos();");
+  ok('a coluna Mensalidade nunca entra pra quem não vê dinheiro; Rem. Gerente entra se ele é gerente de algum cliente', cols.indexOf("lcVeDinheiro()||LC_SO_GERENCIA.indexOf(c.id)<0||(c.id===LC_SO_GERENCIA[1]&&souGerDeAlgum)")>0);
+  const res=bloco("    const tkm=(comV.length&&lcVeDinheiro())","porGest=tkm+linhaRem");
+  ok('ticket médio (média da mensalidade) só pra quem vê dinheiro', res.length>0);
+  ok('resumo por gerente usa o gerente pelo nome (Luan vê os 10% dele na MULTIKAP)', HTML.indexOf("if(mst||gerenteDaFichaNome(t.ficha_id)) poeEm(G,f.gerente")>0);
+  ok('resumo do grupo esconde mensalidade somada de quem não vê dinheiro', HTML.indexOf("${lcVeDinheiro()?`<span>mensalidade somada")>0);
+  ok('o card do cliente só mostra mensalidade pra master ou gerente de carteira', HTML.indexOf("const pcMensPode=(pid)=>!!(currentUser&&currentUser.role==='master')||souGerenteDaFicha(pid);")>0);
+}
+
 grupo('Início do cliente pede aprovação do master (Gabriel 30/09)');
 {
   const avisos=[];

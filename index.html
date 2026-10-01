@@ -7698,7 +7698,16 @@ const souGerenteDaFicha=(fid)=>{ if(!currentUser||!currentUser.gerente) return f
 /* Gestor da ficha (Gabriel 30/09): define o Início do projeto quando o contrato não trouxe
    a data. É o único campo travado que ele mexe; o banco confere igual (lc_gestor_da_ficha). */
 const LC_INI='1c17a1d0-5e3a-4b62-9f77-0c4b8e2a51d9';
-const lcVisivelProGestor=(t)=>!t||t.lista_id!==LC_ID||souGerente()||souGestorDaFicha(t.ficha_id);
+/* SIGILO DA MENSALIDADE (Gabriel 01/10): gestor de tráfego (Luan, Yghor) NUNCA vê a mensalidade
+   nem a remuneração dos outros, mesmo quando é o gerente de um cliente (Luan na MULTIKAP TAPETES).
+   Ele vê só a variável dele: os 10% onde é o gerente e os R$ 100 onde é o gestor. Mensalidade e
+   dinheiro dos outros ficam pra master e pros gerentes de carteira (Luiz, João: flag gerente). */
+const lcVeDinheiro=()=>souGerente();
+/* gerente da ficha pelo NOME, sem exigir a flag: serve pra mostrar a própria variável */
+const gerenteDaFichaNome=(fid)=>{ if(!currentUser) return false;
+  const f=fichaDe(fid), eu=primNome(currentUser.nome);
+  return !!(f&&eu&&primNome(f.gerente)===eu); };
+const lcVisivelProGestor=(t)=>!t||t.lista_id!==LC_ID||souGerente()||souGestorDaFicha(t.ficha_id)||gerenteDaFichaNome(t.ficha_id);
 const souGestorDaFicha=(fid)=>{ if(!currentUser) return false;
   const f=fichaDe(fid), eu=primNome(currentUser.nome);
   return !!(f&&eu&&primNome(f.responsavel)===eu); };
@@ -7805,6 +7814,11 @@ function lcComGerente(cps){
 const tkCelula=(t,c)=>{
   if(c.id===LC_REM_GESTOR&&ehLC(t.lista_id)&&!souGerente()&&!souGestorDaFicha(t.ficha_id))
     return '<span class="hint" style="margin:0" title="Remuneração de outro gestor">-</span>';
+  /* mensalidade e 10% de outro gerente: nunca pra quem não é master nem gerente de carteira */
+  if(c.id===LC_MENS&&ehLC(t.lista_id)&&!lcVeDinheiro())
+    return '<span class="hint" style="margin:0" title="Só master e gerente veem a mensalidade">-</span>';
+  if(c.id===LC_SO_GERENCIA[1]&&ehLC(t.lista_id)&&!lcVeDinheiro()&&!gerenteDaFichaNome(t.ficha_id))
+    return '<span class="hint" style="margin:0" title="Remuneração de outro gerente">-</span>';
   /* a remuneração do social media só o master, o gerente e ela mesma veem */
   if(c.id===LC_REM_SOCIAL&&ehLC(t.lista_id)&&!souGerente()
      &&String((t.valores||{})[LC_SOCIAL]||'')!==String((currentUser||{}).id||''))
@@ -7875,7 +7889,8 @@ const tkSelo=(t)=>{
 function tkViewLista(){
   const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
   let cps=TK.escopo!=='lista'?[]:tkCamposDe(TK.listaSel);
-  if(lc) cps=lcComGerente(cps.filter(c=>LC_FORA.indexOf(c.id)<0&&(souGerente()||LC_SO_GERENCIA.indexOf(c.id)<0)));
+  if(lc){ const souGerDeAlgum=!lcVeDinheiro()&&(TK.tarefas||[]).some(t=>ehLC(t.lista_id)&&!arquivada(t)&&gerenteDaFichaNome(t.ficha_id));
+    cps=lcComGerente(cps.filter(c=>LC_FORA.indexOf(c.id)<0&&(lcVeDinheiro()||LC_SO_GERENCIA.indexOf(c.id)<0||(c.id===LC_SO_GERENCIA[1]&&souGerDeAlgum)))); }
   let grupos=tkGrupos(); const hoje=tkHoje();
   if(lc) grupos=grupos.filter(g=>g.its.length);
   const seta=(k)=>TK.ord===k?(TK.dir===1?' ▲':' ▼'):'';
@@ -7967,7 +7982,7 @@ function tkViewLista(){
       const su=(t.valores||{})[LC_SOC];
       if(su) poeEm(SM,tkNomeUser(su), (t.valores||{})[LC_REMSOC], t.id);
       /* o 10% dos outros gerentes não é da conta de quem não é master */
-      if(mst||souGerenteDaFicha(t.ficha_id)) poeEm(G,f.gerente, (t.valores||{})[REMGER], t.id); });
+      if(mst||gerenteDaFichaNome(t.ficha_id)) poeEm(G,f.gerente, (t.valores||{})[REMGER], t.id); });
     /* quem não é master só vê a própria linha: o dinheiro dos outros não aparece */
     const eu=primNome(currentUser.nome);
     const meus=(M)=>{ if(mst) return M; const o={}; Object.keys(M).forEach(k=>{ if(primNome(k)===eu) o[k]=M[k]; }); return o; };
@@ -7979,7 +7994,7 @@ function tkViewLista(){
     /* ticket médio: só entra quem tem mensalidade, senão cliente sem valor derruba a média */
     const comV=todos.filter(t=>Number((t.valores||{})[LC_MENS])>0);
     const somaM=comV.reduce((a,t)=>a+Number((t.valores||{})[LC_MENS]),0);
-    const tkm=comV.length?`<div class="lc-porgest"><span>Ticket médio</span>
+    const tkm=(comV.length&&lcVeDinheiro())?`<div class="lc-porgest"><span>Ticket médio</span>
       <span class="c"><b>${esc(moedaCurta(somaM/comV.length)||'R$ 0')}</b> por cliente</span>
       <span class="c">${comV.length} cliente${comV.length===1?'':'s'} com mensalidade${todos.length-comV.length?' · '+(todos.length-comV.length)+' sem valor':''}</span></div>`:'';
     porGest=tkm+linhaRem('Por gerente',meus(G))+linhaRem('Por gestor',meus(S))+linhaRem('Por social media',meus(SM));
@@ -12550,7 +12565,7 @@ function lcGrupoResumo(){
   const soma=cards.reduce((s,t)=>s+(Number((t.valores||{})[LC_MENS])||0),0);
   const rem=cards.reduce((s,t)=>s+(Number((t.valores||{})[LC_REM])||0),0);
   return `<div class="lc-gr-res"><b>${esc(q)}</b><span>${cards.length} conta${cards.length===1?'':'s'} ativa${cards.length===1?'':'s'}</span>
-    <span>mensalidade somada <b>${brl(soma)}</b></span>${rem?`<span>remuneração somada <b>${brl(rem)}</b></span>`:''}
+    ${lcVeDinheiro()?`<span>mensalidade somada <b>${brl(soma)}</b></span>${rem?`<span>remuneração somada <b>${brl(rem)}</b></span>`:''}`:''}
     <button type="button" class="btn ghost small" onclick="tkBusca('')">limpar</button></div>`;
 }
 function lcAlertaContas(){
