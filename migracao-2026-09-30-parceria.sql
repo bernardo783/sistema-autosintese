@@ -230,4 +230,8 @@ $function$;
 --      ger : case when coalesce((rec->>'comissaoCheia')='true', false) then 1 else razao end razao_ger
 --            ... select ... round(cheio*razao_ger,2) ... from ger
 --      gest: case when coalesce((rec->>'comissaoCheia')='true', false) then 1 else razao end razao
+--    E o inverso, semComissao=true na cobrança: gerente e gestor não recebem por ela no mês mesmo
+--    que o cliente pague depois (decisão pontual do Gabriel pro DL REPASSE de set/26, não é regra):
+--      ger : when coalesce((rec->>'semComissao')='true', false) then 0
+--      gest: when coalesce((rec->>'semComissao')='true', false) then 0
 
