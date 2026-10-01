@@ -1,0 +1,13 @@
+-- Modo restrito NO BANCO (Gabriel 01/10/2026, ADM TARAF em Novas Contas). Aplicada em 01/10/2026
+-- pelas migrações modo_restrito_bloqueio_no_banco, modo_restrito_fecha_funcoes,
+-- modo_restrito_bloqueio_geral e modo_restrito_storage_seguro. Resumo:
+--  * rs_lista() = perfis.so_lista de quem chama (não master). is_aprovado() fica FALSO pra essa pessoa,
+--    então toda policy/função que usa is_aprovado() já nega.
+--  * Policy restritiva rs_bloqueia em TODA tabela com RLS do public, menos as da tela dela.
+--  * Liberado: a lista (e espaço/pasta/workspace dela, só leitura), status e campos da lista,
+--    as tarefas que ELA criou nessa lista (ver/criar/alterar/arquivar/apagar), anexos e comentários
+--    dessas tarefas, o próprio perfil e as próprias notificações; storage só em anexos/t/<id da conta dela>/.
+--  * equipe_nomes mostra só ela mesma.
+--  * Gatilho trg_rs_tarefa_nova: conta nova dela vai pra 1ª etapa da lista ("0. AGUARDANDO APROVAÇÃO"),
+--    responsável = Bernardo (master), "Nome do Solicitante" = nome dela.
+--  * fin_gerar_parcelas / fin_lancar_avulsa recusam e lc_auto devolve o que recebeu pra ela.

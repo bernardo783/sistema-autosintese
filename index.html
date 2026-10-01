@@ -11304,7 +11304,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
           ${t?(arquivada(t)
             ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
                ${(currentUser&&currentUser.role==='master')?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:'<span class="hint" style="margin:0">só master exclui de vez</span>'}`
-            : `<button class="btn ghost small" onclick="tkArquivar('${t.id}')">Arquivar</button>`):''}
+            : `<button class="btn ghost small" onclick="tkArquivar('${t.id}')">${restrito()?'Cancelar conta':'Arquivar'}</button>`):''}
         </div>
       </div>
 
@@ -11981,7 +11981,8 @@ window.tkArquivar=async (id)=>{
   t.arquivada_em=new Date().toISOString();
   const ov=document.querySelector('.overlay'); if(ov) ov.remove();
   tkDesenhar($('#content')); spDesenhar();
-  toast('Arquivada. Está em Arquivados, dentro da lista.');
+  /* modo restrito (ADM TARAF): "arquivar" é cancelar a conta que ela subiu */
+  toast(restrito()?'Conta cancelada.':'Arquivada. Está em Arquivados, dentro da lista.');
 };
 window.tkRestaurar=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
