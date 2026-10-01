@@ -11,3 +11,6 @@
 --  * Gatilho trg_rs_tarefa_nova: conta nova dela vai pra 1ª etapa da lista ("0. AGUARDANDO APROVAÇÃO"),
 --    responsável = Bernardo (master), "Nome do Solicitante" = nome dela.
 --  * fin_gerar_parcelas / fin_lancar_avulsa recusam e lc_auto devolve o que recebeu pra ela.
+--  * (01/10, modo_restrito_comprovantes) o anexo do formulário vai pra comprovantes/<uid>/: pra ela, só a própria pasta.
+--  * (01/10, liberar_acessos_pula_restrito) restrito não ganha o acesso automático a Acessos.
+--  * (01/10, perfis_pre_config) tabela perfis_pre: e-mail provisionado já nasce com nome/função/so_lista e vira membro.

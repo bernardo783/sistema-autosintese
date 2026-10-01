@@ -812,6 +812,16 @@
   body.restrito #app{grid-template-columns:70px 1fr}
   body.restrito .sidebar,body.restrito .tb-esp,body.restrito .tb-busca,body.restrito #railbar .rl{display:none!important}
   body.restrito #railbar .rl.rs-ok{display:flex!important}
+  /* restrito (Gabriel 01/10): sem barra nenhuma, o formulario ocupa a tela, centralizado */
+  body.restrito #app{grid-template-columns:1fr!important}
+  body.restrito #railbar,body.restrito #topbar{display:none!important}
+  .nc-cheio{max-width:780px;margin:0 auto;padding:40px 20px 64px;display:grid;gap:18px}
+  .nc-cheio .nc-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+  .nc-cheio .nc-topo h2{margin:0;font-size:28px;font-weight:800;letter-spacing:-.01em}
+  .nc-cheio .nc-topo .hint{margin:6px 0 0;font-size:14px}
+  .nc-cheio .nc-regras,.nc-cheio .card{max-width:none!important;margin:0!important}
+  .nc-cheio .card{padding:24px!important}
+  @media(max-width:600px){.nc-cheio{padding:22px 14px 48px}.nc-cheio .nc-topo h2{font-size:23px}}
   @media(max-width:820px){
     #app{grid-template-columns:70px 1fr}
     .sidebar{display:none}
@@ -8345,10 +8355,14 @@ function ncUltimasHTML(n){
 }
 function ncFormulario(c){
   const meu=(window.currentUser&&currentUser.nome)||'';
-  c.innerHTML=`
-   <div class="page-head">
+  /* restrito (ADM TARAF): tela cheia, centralizada, com o proprio botao de sair */
+  const cab=restrito()
+    ?`<div class="nc-topo"><div><h2>Nova conta</h2><div class="hint">Preencha os dados, anexe o comprovante e envie. A conta vai direto pro financeiro aprovar.</div></div>
+        <button class="btn secondary small" onclick="rsSair()">Sair</button></div>`
+    :`<div class="page-head">
      <div><h2>Novas Contas</h2></div>
-   </div>
+   </div>`;
+  c.innerHTML=`${cab}
    <div class="nc-regras">
      <h4>Antes de enviar</h4>
      <ol>${NC_REGRAS.map(r=>`<li>${r}</li>`).join('')}</ol>
@@ -8398,7 +8412,31 @@ function ncFormulario(c){
      </div>
    </div>
 `;
+  if(restrito()){ c.innerHTML='<div class="nc-cheio">'+c.innerHTML+'<div id="rsMinhas"></div></div>'; rsMinhasCarregar(); }
 }
+/* restrito: as contas que ELA enviou (o banco so devolve as dela), com Cancelar enquanto
+   ninguem pagou. Cancelar = arquivar: sai da lista dela e fica guardada pro financeiro. */
+async function rsMinhasCarregar(){
+  const box=document.getElementById('rsMinhas'); if(!box) return;
+  const {data,error}=await sb.from('tarefas').select('id,titulo,status_id,valores,criado_em,arquivada_em')
+    .eq('lista_id',NC_LISTA).is('arquivada_em',null).order('criado_em',{ascending:false}).limit(50);
+  if(error||!data||!data.length){ box.innerHTML=''; return; }
+  const st=(id)=>{ const s=(TK.status||[]).find(x=>x.id===id); return s?String(s.nome).replace(/^\d+\.\s*/,''):''; };
+  box.innerHTML=`<h3 style="margin:10px 0 0;font-size:17px;font-weight:800">Suas contas enviadas</h3>
+    <div class="tablewrap"><table><thead><tr><th>Conta</th><th>Valor</th><th>Vencimento</th><th>Situação</th><th></th></tr></thead><tbody>
+    ${data.map(t=>{ const v=t.valores||{}; const sit=st(t.status_id), pago=/conclu/i.test(sit);
+      return `<tr><td><strong>${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">enviada em ${fmtDate(String(t.criado_em).slice(0,10))}</div></td>
+        <td class="money">${v[NC_C.val]?brl(Number(v[NC_C.val])):'-'}</td><td>${v[NC_C.venc]?fmtDate(v[NC_C.venc]):'-'}</td>
+        <td><span class="tag ${pago?'concluido':'pausado'}">${esc(sit||'Enviada')}</span></td>
+        <td>${pago?'':`<button class="iconbtn del" onclick="rsCancelar('${t.id}')">Cancelar</button>`}</td></tr>`; }).join('')}
+    </tbody></table></div>`;
+}
+window.rsCancelar=async (id)=>{
+  if(!confirm('Cancelar esta conta? Ela sai da sua lista e o financeiro não paga.')) return;
+  const {error}=await sb.from('tarefas').update({arquivada_em:new Date().toISOString(),arquivada_por:(currentUser||{}).id||null}).eq('id',id);
+  if(error){ toast('Não consegui cancelar: '+error.message); return; }
+  toast('Conta cancelada.'); rsMinhasCarregar();
+};
 /* Atalho 💸 da barra lateral: mesmo canal de solicitação, já em Reembolso.
    (o roteador chamava renderReembolsos, que não existia — a tela quebrava sem renderizar nada) */
 /* ---------- SUPORTE ----------
@@ -20539,6 +20577,7 @@ const tlBloqueada=(v)=>TL_FIXAS.indexOf(String(v))<0&&tlOff(currentUser).indexOf
    atalho da lista e o avatar; busca, árvore, Início, Avisos e toda tela fora da lista somem,
    e qualquer navegação (link, F5, atalho) volta pra lista. */
 const rsLista=()=>String((currentUser||{}).so_lista||'');
+window.rsSair=async ()=>{ if(!confirm('Sair do sistema?')) return; try{ navEsquecer(); }catch(_){} try{ await sb.auth.signOut(); }catch(e){} location.reload(); };
 const restrito=()=>!!(currentUser&&currentUser.role!=='master'&&rsLista());
 function rsAplicar(){
   if(!restrito()) return;
