@@ -287,6 +287,21 @@ grupo('Volta do Controle de Churns pergunta o combinado (Gabriel 30/09, SPAÇO V
   ok('não usa mais o confirmar simples', r.indexOf("{sim:'Voltar para ativo'}")<0&&r.indexOf("bs.textContent='Voltar para ativo'")>0);
 }
 
+grupo('Modo restrito: usuário de uma lista só (Gabriel 01/10, ADM TARAF)');
+{
+  const g=rodar(bloco('const rsLista=','/* esconde os atalhos que essa pessoa não tem'),{currentUser:{id:'u1',role:'membro',so_lista:'c2000000-0000-4000-8000-0000000000b1'},TK:{listas:[]},document:{body:{classList:{add(){}}},getElementById:()=>null},esc:s=>String(s),spNome:l=>l.nome},['rsLista','restrito']);
+  ok('membro com so_lista é restrito', g.restrito()===true&&g.rsLista()==='c2000000-0000-4000-8000-0000000000b1');
+  g.currentUser.role='master'; ok('master nunca é restrito, mesmo com a lista marcada', g.restrito()===false);
+  g.currentUser.role='membro'; g.currentUser.so_lista=''; ok('sem so_lista é acesso normal', g.restrito()===false);
+  ok('toda tela fora da lista volta pra lista', HTML.indexOf("if(restrito()&&view!=='lista'){ if(TK.listaSel!==rsLista()) return spSelLista(rsLista()); view='lista'; }")>0);
+  ok('trocar de lista cai sempre na lista dela', HTML.indexOf("if(restrito()&&id!==rsLista()) id=rsLista();")>0);
+  ok('busca global não abre', HTML.indexOf("window.gsAbrir=(q)=>{\n  if(restrito()) return;")>0);
+  ok('no login: barra só com a lista e abre nela, sem foto obrigatória', HTML.indexOf("if(restrito()){ rsAplicar(); spSelLista(rsLista()); NAV_PRONTO=true; return; }")>0);
+  ok('CSS esconde barra lateral, busca e todos os atalhos menos o da lista', HTML.indexOf("body.restrito .sidebar,body.restrito .tb-esp,body.restrito .tb-busca,body.restrito #railbar .rl{display:none!important}")>0&&HTML.indexOf("body.restrito #railbar .rl.rs-ok{display:flex!important}")>0);
+  ok('Usuários: master marca "Modo restrito: só usa esta lista" e a pessoa vira membro da lista', HTML.indexOf("Modo restrito: só usa esta lista")>0&&HTML.indexOf("if(campo==='so_lista'&&v){")>0&&HTML.indexOf("insert({tipo:'lista',no_id:v,user_id:uid,permissao:'editar'")>0);
+  ok('menu do avatar sem Arquivados e sem remuneração no restrito', HTML.indexOf("...(restrito()?[]:[{ic:MICO.arq,t:'Arquivados'")>0);
+}
+
 grupo('Sigilo da mensalidade: gestor vê só a variável dele (Gabriel 01/10)');
 {
   const fichas={m:{id:'m',nome:'MULTIKAP TAPETES',gerente:'Luan Santiago',responsavel:'Luan Santiago'},g:{id:'g',nome:'G MOTORS',gerente:'Luiz',responsavel:'Luan Santiago'},d:{id:'d',nome:'DL REPASSE',gerente:'João',responsavel:'Yghor'}};

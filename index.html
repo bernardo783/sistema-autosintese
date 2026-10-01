@@ -807,6 +807,11 @@
   .tb-esp:hover{border-color:var(--brand2);color:var(--txt)}
   @media(max-width:760px){.tb-busca{width:auto}.tb-busca span,.tb-busca kbd{display:none}}
   /* Mobile: o painel de espaços sai do fluxo e vira gaveta aberta pelo botão do topo */
+  /* MODO RESTRITO (Gabriel 01/10, usuario ADM TARAF): a pessoa so tem UMA lista (Novas Contas).
+     Sem barra lateral, sem arvore, sem busca: a tela e o formulario da lista e o avatar pra sair. */
+  body.restrito #app{grid-template-columns:70px 1fr}
+  body.restrito .sidebar,body.restrito .tb-esp,body.restrito .tb-busca,body.restrito #railbar .rl{display:none!important}
+  body.restrito #railbar .rl.rs-ok{display:flex!important}
   @media(max-width:820px){
     #app{grid-template-columns:70px 1fr}
     .sidebar{display:none}
@@ -3991,6 +3996,7 @@ async function enterApp(){
   if(podeContratos()&&!noComercial){ show($('#navContratos')); } else { hide($('#navContratos')); }
   if(podeContratos()&&!noComercial){ show($('#navLeads')); } else { hide($('#navLeads')); }
   tlAplicar();   /* tira da barra as telas que essa pessoa não tem */
+  rsAplicar();   /* modo restrito: só a lista dela */
   /* Carteira virou aba do Financeiro. Master usa por la; gerente, que nao tem
      Financeiro, continua com o atalho na barra. */
   if(souGerente()&&currentUser.role!=='master'){ show($('#navCarteira')); } else { hide($('#navCarteira')); }
@@ -4004,6 +4010,7 @@ async function enterApp(){
     const lid=String(location.hash).slice(3);
     if(mpListaIds().indexOf(String(lid))<0) lkLimpar();
   }
+  if(restrito()){ rsAplicar(); spSelLista(rsLista()); NAV_PRONTO=true; return; }   /* só a lista dela, sem foto obrigatória */
   const foi=await lkIr();
   /* sem link explicito, volta pro lugar exato onde a pessoa parou (F5 nao perde nada) */
   if(!foi){ let voltou=false; try{ voltou=await navVoltar(); }catch(_){}
@@ -4254,6 +4261,8 @@ document.addEventListener('click',(e)=>{
   if(dentro&&e.target.closest('.tk-lista')) setTimeout(()=>document.body.classList.remove('sb-aberta'),120);
 });
 function render(view){
+  /* modo restrito: qualquer tela fora da lista dela volta pra lista */
+  if(restrito()&&view!=='lista'){ if(TK.listaSel!==rsLista()) return spSelLista(rsLista()); view='lista'; }
   if(view!=='pessoal'){ document.body.classList.remove('mob-pessoal'); const sn=document.querySelector('.topbar .mp-sino'); if(sn) sn.remove(); const kb=document.querySelector('.topbar .mp-kpibt'); if(kb) kb.remove(); const mm=document.querySelector('.topbar .mp-mini'); if(mm) mm.remove(); const fm=document.getElementById('mpFabMenu'); if(fm) fm.remove(); }
   /* a tela pedida, antes das reescritas internas (senhas/links viram acessos etc.):
      e ela que vai pra barra de enderecos, pra F5 e link colado voltarem no mesmo lugar */
@@ -6374,6 +6383,7 @@ async function gsBuscarPessoal(qRaw){
 }
 let GS={sel:0,flat:[],tok:0};
 window.gsAbrir=(q)=>{
+  if(restrito()) return;
   gsFechar();
   const o=document.createElement('div'); o.className='overlay gs-ov'; o.id='gsOv';
   o.innerHTML=`<div class="gs-box">
@@ -6680,9 +6690,9 @@ window.menuUsuario=(ev)=>{
   ctxAbrir(ev,[
     {cab:currentUser.nome||'Meu perfil'},
     {ic:MICO.perfil,t:'Meu perfil',f:()=>meuPerfil()},
-    ...(currentUser.role==='master'?[]:[{ic:MICO.fin,t:'Minha remuneração',f:()=>minhaRemAbrir()}]),
+    ...((currentUser.role==='master'||restrito())?[]:[{ic:MICO.fin,t:'Minha remuneração',f:()=>minhaRemAbrir()}]),
     {ic:MICO.senha,t:'Mudar senha',f:()=>document.getElementById('btnChangePw').click()},
-    {ic:MICO.arq,t:'Arquivados',f:()=>render('arquivados')},
+    ...(restrito()?[]:[{ic:MICO.arq,t:'Arquivados',f:()=>render('arquivados')}]),
     {sep:true},
     ...temaItens(),
     {sep:true},
@@ -8942,6 +8952,7 @@ function spDesenhar(){
     +'<div class="hint" style="margin:14px 6px 4px;opacity:.5;font-size:11px">Botão direito abre renomear, cor, duplicar e excluir.</div>';
 }
 window.spSelLista=(id,semAbrir)=>{
+  if(restrito()&&id!==rsLista()) id=rsLista();
   navPush('l',id);
   TK.listaSel=id; TK.escopo='lista'; searchTerm=''; TK.arqVista=false; spMarcarAtalho(''); if(!semAbrir) spAbrirCaminho(id);
   if(LCOM[id]){ currentView='funil'; lkHash('l',id); render('funil/aba/'+LCOM[id]); spDesenhar(); return; }
@@ -20356,10 +20367,10 @@ window.spEspacos=()=>{
 };
 /* A lista de usuários vem da edge function e não traz estas colunas — busco direto. */
 async function uaExtras(){
-  const r=await sb.from('perfis').select('id,telas_off,inicio,lista_inicial');
+  const r=await sb.from('perfis').select('id,telas_off,inicio,lista_inicial,so_lista');
   if(r&&r.data) r.data.forEach(p=>{
     const u=(PERFIS||[]).find(x=>String(x.id)===String(p.id));
-    if(u){ u.telas_off=p.telas_off||[]; u.inicio=p.inicio||''; u.lista_inicial=p.lista_inicial||''; }
+    if(u){ u.telas_off=p.telas_off||[]; u.inicio=p.inicio||''; u.lista_inicial=p.lista_inicial||''; u.so_lista=p.so_lista||''; }
   });
 }
 function inBloco(uid){
@@ -20379,7 +20390,13 @@ function inBloco(uid){
           ${opt('','só abre a árvore',u.lista_inicial)}
           ${ls.map(l=>opt(l.id,tkCaminho(l.id),u.lista_inicial)).join('')}
         </select></span></div>
+      ${u.role==='master'?'':`<div class="ua-l"><span class="ua-nm">Modo restrito: só usa esta lista</span><span class="ua-a">
+        <select onchange="inSet('${uid}','so_lista',this.value)">
+          ${opt('','não, acesso normal',u.so_lista)}
+          ${ls.map(l=>opt(l.id,tkCaminho(l.id),u.so_lista)).join('')}
+        </select></span></div>`}
     </div>
+    ${u.so_lista?'<p class="hint" style="margin:8px 0 0;color:var(--warn)">Restrito: essa pessoa vê só essa lista. Sem Início, busca, avisos ou qualquer outra tela. Ela entra como membro da lista sozinha.</p>':''}
     <p class="hint" style="margin:8px 0 0">Serve para quem passa o dia na mesma lista: entra já no lugar certo
       e chega nela num clique, sem abrir a árvore.</p>`;
 }
@@ -20389,6 +20406,13 @@ window.inSet=async (uid,campo,v)=>{
   if(error){ toast('Erro: '+error.message); return; }
   const u=(PERFIS||[]).find(x=>String(x.id)===String(uid)); if(u) u[campo]=v||'';
   if(String(uid)===String((currentUser||{}).id)) currentUser[campo]=v||null;
+  /* restrito: garante que a pessoa é membro da lista, senão ela entra e não vê nada */
+  if(campo==='so_lista'&&v){
+    try{ const q=await sb.from('no_membros').select('id').eq('tipo','lista').eq('no_id',v).eq('user_id',uid).maybeSingle();
+      if(!q.data){ const r=await sb.from('no_membros').insert({tipo:'lista',no_id:v,user_id:uid,permissao:'editar',criado_por:(currentUser||{}).id||null}); if(r.error) toast('Não consegui pôr como membro da lista: '+r.error.message); }
+    }catch(_){}
+    uaPintar(uid);
+  }
   toast('Salvo.');
 };
 
@@ -20411,6 +20435,26 @@ const tlOff=(u)=>((u&&u.telas_off)||[]);
 /* Reembolsos virou o Suporte: e por onde qualquer pessoa pede alguma coisa.
    Nao entra na lista de telas ocultaveis nem pode ser bloqueada por telas_off. */
 const tlBloqueada=(v)=>TL_FIXAS.indexOf(String(v))<0&&tlOff(currentUser).indexOf(String(v))>=0;
+/* ---------- MODO RESTRITO: uma lista só ----------
+   perfis.so_lista = id da única lista que a pessoa usa (Gabriel 01/10: "ADM TARAF só vê Novas
+   Contas, mais nada, só vai subir contas"). Master nunca é restrito. A barra fica só com o
+   atalho da lista e o avatar; busca, árvore, Início, Avisos e toda tela fora da lista somem,
+   e qualquer navegação (link, F5, atalho) volta pra lista. */
+const rsLista=()=>String((currentUser||{}).so_lista||'');
+const restrito=()=>!!(currentUser&&currentUser.role!=='master'&&rsLista());
+function rsAplicar(){
+  if(!restrito()) return;
+  document.body.classList.add('restrito');
+  const rail=document.getElementById('railbar'); if(!rail) return;
+  rail.querySelectorAll('.rl').forEach(b=>b.classList.remove('rs-ok'));
+  if(!document.getElementById('rlRestrito')){
+    const l=(TK.listas||[]).find(x=>x.id===rsLista());
+    const b=document.createElement('button'); b.className='rl rs-ok'; b.id='rlRestrito'; b.title=l?spNome(l):'Minha lista';
+    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/></svg><span class="t">'+esc(l?spNome(l):'Lista')+'</span>';
+    b.onclick=()=>spSelLista(rsLista());
+    rail.insertBefore(b,rail.firstChild);
+  }
+}
 /* esconde os atalhos que essa pessoa não tem — chamado no login */
 function tlAplicar(){
   const off=tlOff(currentUser);
