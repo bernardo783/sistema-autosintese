@@ -9169,9 +9169,11 @@ window.iniDesfazer=async (ev,id)=>{
 window.iniConcluir=async (ev,id)=>{
   ev.stopPropagation();
   const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
-  const feito=(tkStatusDe(t.lista_id)||[]).filter(s=>s.grupo==='feito')[0]||null;
+  /* lista sem coluna "feito" (Cobranças: A cobrar / Cobrado) cai na coluna fechada. Antes o
+     status virava feito mas a coluna ficava em A cobrar, e a tarefa não saía do Para hoje. */
+  const col=tkColunaDe(t.lista_id,true);
   const patch={status:'feito',concluida_em:new Date().toISOString()};
-  if(feito) patch.status_id=feito.id;
+  if(col) patch.status_id=col;
   const ex=await cnAntes(t); if(!ex) return; Object.assign(patch,ex);
   const {error}=await sb.from('tarefas').update(patch).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }

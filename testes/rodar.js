@@ -1185,6 +1185,19 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('squad sem gerente: não dá pra medir, alterna como antes', g.fcProximoSquad()==='01');
       ok('a tela explica a carteira de cada gerente', HTML.indexOf('Quem está mais baixo leva o próximo até empatar.')>0);
     }
+    grupo('Início: concluir no Para hoje em lista sem coluna "feito" (Gabriel 01/10)');
+    {
+      const cod=bloco("const tkColunaDe=(lid,ok)=>","window.tkConcluir=")+bloco("window.iniConcluir=async","window.inicioPeriodo=");
+      const t={id:'c1',lista_id:'CB',titulo:'Cobrar X',status:'todo',status_id:'a'};
+      let gravado=null;
+      const g=rodar(cod,{TK:{tarefas:[t]},tkStatusDe:(l)=>l==='CB'?[{id:'a',grupo:'nao_iniciado'},{id:'b',grupo:'fechado'}]:[],
+        cnAntes:async()=>({}),cnDepois:()=>{},toast:()=>{},renderInicio:()=>{},spDesenhar:()=>{},recAgendar:()=>{},$:()=>null,
+        sb:{from:()=>({update:(p)=>({eq:async()=>{ gravado=p; return {error:null}; }})})}},[]);
+      PROMESSAS.push(g.iniConcluir({stopPropagation(){}},'c1').then(()=>{
+        ok('grava a coluna fechada quando a lista não tem coluna feito', gravado&&gravado.status==='feito'&&gravado.status_id==='b');
+        ok('a tarefa em memória sai de A cobrar', t.status_id==='b');
+      }));
+    }
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
