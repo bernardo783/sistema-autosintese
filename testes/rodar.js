@@ -546,6 +546,18 @@ grupo('Comissão integral com sinal (Gabriel 30/09, F3 MULTIMARCAS)');
   ok('a regra está documentada na migração', fs.readFileSync(path.join(__dirname,'..','migracao-2026-09-30-parceria.sql'),'utf8').indexOf("(rec->>'comissaoCheia')='true'")>0);
 }
 
+grupo('Fechamento: imposto estimado sobre a receita com nota (Gabriel 30/09)');
+{
+  const g=rodar(bloco('const fchImpostoLer=','function fchImpostoCard('),{localStorage:{getItem:()=>null}},['fchImpostoLer','fchImposto']);
+  ok('padrão: 40% com nota a 6%', g.fchImpostoLer().notas===40&&g.fchImpostoLer().aliq===6);
+  ok('R$ 102.708,69 de receita: 40% com nota a 6% dá R$ 2.465,01', g.fchImposto(102708.69,40,6)===2465.01);
+  ok('100% com nota a 6% dá 6% da receita', g.fchImposto(100000,100,6)===6000);
+  const h=rodar(bloco('const fchImpostoLer=','function renderFechamentoMes(c){'),{localStorage:{getItem:(k)=>k==='fch_notas_pct'?'50':'8'},brl:v=>'R$ '+v,document:{}},['fchImpostoCard']);
+  const c=h.fchImpostoCard(100000);
+  ok('o cartão lê o que a pessoa ajustou (50% a 8%) e mostra a parte da receita', c.indexOf('R$ 4000')>0&&c.indexOf('value="50"')>0&&c.indexOf('value="8"')>0&&c.indexOf('(4,0% da receita)')>0);
+  ok('o cartão está nos cartões do Fechamento, depois do Lucro', /margem de \$\{\(LU\/\(RMES\|\|1\)\*100\)\.toFixed\(1\)\}%<\/div><\/div>\s*\$\{fchImpostoCard\(RMES\)\}/.test(HTML));
+}
+
 grupo('Ordem alfabética');
 {
   const g=rodar(bloco('const porNome=','const brl ='),null,['porNome','alfab']);

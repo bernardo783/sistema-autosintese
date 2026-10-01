@@ -13962,6 +13962,29 @@ function fchPendentesHtml(comp){
     '<p class="hint">Total na mão de terceiros: <strong>'+brl(P.TA+P.TB)+'</strong>. Destes, só '+brl(P.TA)+' viram lucro novo; '+brl(P.TB)+' apenas recompõem o caixa.</p>';
 }
 
+/* IMPOSTO ESTIMADO (Gabriel 30/09): "se eu declarar 40% dos clientes emitindo nota, a 6% do
+   Simples, quanto pago?" Base = receita de clientes do mês (sem repasse). Os dois percentuais
+   ficam no navegador de quem ajusta (localStorage); mudar recalcula na hora, sem redesenhar. */
+const fchImpostoLer=()=>{ let n=40, a=6; try{ n=Number(localStorage.getItem('fch_notas_pct')); a=Number(localStorage.getItem('fch_aliq')); }catch(_){}
+  return {notas:(n>0&&n<=100)?n:40, aliq:(a>0&&a<=40)?a:6}; };
+const fchImposto=(base,notas,aliq)=>Math.round(base*(notas/100)*(aliq/100)*100)/100;
+function fchImpostoCard(RMES){
+  const o=fchImpostoLer(), v=fchImposto(RMES,o.notas,o.aliq);
+  return `<div class="card" id="fchImp" data-base="${RMES}"><div class="k">Imposto estimado</div><div class="v neg" id="fchImpV">${brl(v)}</div>
+    <div class="sub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <input type="number" min="1" max="100" step="1" value="${o.notas}" id="fchImpN" oninput="fchImpostoMudou()" style="width:52px;font:inherit;font-size:12px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)">% com nota ·
+      <input type="number" min="0.5" max="40" step="0.5" value="${o.aliq}" id="fchImpA" oninput="fchImpostoMudou()" style="width:52px;font:inherit;font-size:12px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)">% de alíquota
+      <span id="fchImpS">(${(v/(RMES||1)*100).toFixed(1).replace('.',',')}% da receita)</span></div></div>`;
+}
+window.fchImpostoMudou=()=>{
+  const c=document.getElementById('fchImp'); if(!c) return;
+  const base=Number(c.dataset.base)||0, n=Number((document.getElementById('fchImpN')||{}).value)||0, a=Number((document.getElementById('fchImpA')||{}).value)||0;
+  if(!(n>0&&n<=100&&a>0&&a<=40)) return;
+  try{ localStorage.setItem('fch_notas_pct',String(n)); localStorage.setItem('fch_aliq',String(a)); }catch(_){}
+  const v=fchImposto(base,n,a);
+  document.getElementById('fchImpV').textContent=brl(v);
+  document.getElementById('fchImpS').textContent='('+(v/(base||1)*100).toFixed(1).replace('.',',')+'% da receita)';
+};
 function renderFechamentoMes(c){
   const comp=fechComp;
   if(!FCH_MUD.rows||Date.now()-FCH_MUD.em>60000){ FCH_MUD.em=Date.now(); fchMudCarregar().then(()=>{ if(finTab==='fechames') renderFinanceiro($('#content')); }); }
@@ -14043,6 +14066,7 @@ function renderFechamentoMes(c){
      <div class="card"><div class="k">Receita total</div><div class="v">${brl(TR)}</div><div class="sub">${RFORA?'+ '+brl(RFORA)+' de repasse':'sem repasse'}</div></div>
      <div class="card"><div class="k">Despesa</div><div class="v neg">${brl(TD)}</div><div class="sub">${(TD/(TR||1)*100).toFixed(1)}% da receita</div></div>
      <div class="card"><div class="k">Lucro</div><div class="v ${LU>=0?'pos':'neg'}">${brl(LU)}</div><div class="sub">margem de ${(LU/(RMES||1)*100).toFixed(1)}%</div></div>
+     ${fchImpostoCard(RMES)}
    </div>
    <p class="hint"><strong>Receita do mês</strong> é o que o cliente pagou pelo serviço prestado. Fica de fora repasse de custo,
    antecipação e projeto pago de uma vez, entrada que não se repete não serve para medir o mês nem para o rateio.</p>
