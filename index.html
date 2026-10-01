@@ -13972,11 +13972,11 @@ function fchImpostoCard(RMES){
   const o=fchImpostoLer(), v=fchImposto(RMES,o.notas,o.aliq);
   return `<div class="card" id="fchImp" data-base="${RMES}"><div class="k">Imposto estimado</div><div class="v neg" id="fchImpV">${brl(v)}</div>
     <div class="sub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <input type="number" min="1" max="100" step="1" value="${o.notas}" id="fchImpN" oninput="fchImpostoMudou()" style="width:52px;font:inherit;font-size:12px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)">% com nota ·
-      <input type="number" min="0.5" max="40" step="0.5" value="${o.aliq}" id="fchImpA" oninput="fchImpostoMudou()" style="width:52px;font:inherit;font-size:12px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)">% de alíquota
+      <input type="number" min="1" max="100" step="1" value="${o.notas}" id="fchImpN" oninput="fchImpostoMudou()" onchange="fchImpostoMudou(true)" style="width:52px;font:inherit;font-size:12px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)">% com nota ·
+      <input type="number" min="0.5" max="40" step="0.5" value="${o.aliq}" id="fchImpA" oninput="fchImpostoMudou()" onchange="fchImpostoMudou(true)" style="width:52px;font:inherit;font-size:12px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)">% de alíquota
       <span id="fchImpS">(${(v/(RMES||1)*100).toFixed(1).replace('.',',')}% da receita)</span></div></div>`;
 }
-window.fchImpostoMudou=()=>{
+window.fchImpostoMudou=(fim)=>{
   const c=document.getElementById('fchImp'); if(!c) return;
   const base=Number(c.dataset.base)||0, n=Number((document.getElementById('fchImpN')||{}).value)||0, a=Number((document.getElementById('fchImpA')||{}).value)||0;
   if(!(n>0&&n<=100&&a>0&&a<=40)) return;
@@ -13984,6 +13984,8 @@ window.fchImpostoMudou=()=>{
   const v=fchImposto(base,n,a);
   document.getElementById('fchImpV').textContent=brl(v);
   document.getElementById('fchImpS').textContent='('+(v/(base||1)*100).toFixed(1).replace('.',',')+'% da receita)';
+  /* soltou o campo: a distribuição do lucro (retirada dos sócios) redesenha com o imposto novo */
+  if(fim){ try{ if(finTab==='fechames') renderFinanceiro($('#content')); }catch(_){} }
 };
 function renderFechamentoMes(c){
   const comp=fechComp;
@@ -14048,7 +14050,9 @@ function renderFechamentoMes(c){
   const dec=(v)=>Math.round(v*100)/100;
   const LUCROC=dec(BASE-DESPLIQ);
   const TAR=dec(aReceber.reduce((s,x)=>s+fchN(x.valor),0));
-  const LUCRO=dec(LUCROC-TAR);
+  /* imposto estimado (Gabriel 30/09): sai antes do rateio, igual a qualquer despesa */
+  const IMPO=fchImpostoLer(), IMP=dec(fchImposto(RMES,IMPO.notas,IMPO.aliq));
+  const LUCRO=dec(LUCROC-TAR-IMP);
   const art=dec(LUCRO*0.10), cota=dec(dec(LUCRO*0.70)/3);
   const caixa=dec(LUCRO-art-cota*3);
 
@@ -14209,6 +14213,7 @@ function renderFechamentoMes(c){
      <tr><td>Despesa líquida <span style="color:var(--muted);font-size:12px">já abatida do repasse</span></td><td class="money" style="text-align:right">− ${brl(DESPLIQ)}</td></tr>
      <tr><td><strong>Lucro de competência</strong></td><td class="money" style="text-align:right"><strong>${brl(LUCROC)}</strong></td></tr>
      <tr><td>Receita reconhecida que ainda não caiu <span style="color:var(--muted);font-size:12px">${aReceber.length?esc(aReceber.map(x=>x.descricao).join('; ')):'-'}</span></td><td class="money" style="text-align:right;color:#f0616b">− ${brl(TAR)}</td></tr>
+     <tr><td>Imposto estimado <span style="color:var(--muted);font-size:12px">${IMPO.notas}% com nota a ${String(IMPO.aliq).replace('.',',')}%, ajuste no cartão do topo</span></td><td class="money" style="text-align:right;color:#f0616b">− ${brl(IMP)}</td></tr>
      <tr><td><strong>Base do rateio</strong> <span style="color:var(--muted);font-size:12px">só o que já é dinheiro em caixa</span></td><td class="money" style="text-align:right"><strong>${brl(LUCRO)}</strong></td></tr>
      <tr><td>Caixa da empresa <span style="color:var(--muted);font-size:12px">20% do lucro</span></td><td class="money" style="text-align:right">${brl(caixa)}</td></tr>
      <tr><td>Arthur <span style="color:var(--muted);font-size:12px">10% do lucro</span></td><td class="money" style="text-align:right">${brl(art)}</td></tr>
@@ -14216,7 +14221,7 @@ function renderFechamentoMes(c){
      <tr><td>Gabriel <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
      <tr><td>Bernardo <span style="color:var(--muted);font-size:12px">⅓ dos 70%</span></td><td class="money" style="text-align:right">${brl(cota)}</td></tr>
    </tbody></table></div>
-   <p class="hint">O lucro se divide em <strong>20% caixa + 10% Arthur + 70% sócios</strong>, todos sobre o mesmo número, as três fatias somam 100%.
+   <p class="hint">O imposto estimado sai antes do rateio, como qualquer despesa. O que sobra se divide em <strong>20% caixa + 10% Arthur + 70% sócios</strong>, todos sobre o mesmo número, as três fatias somam 100%.
 Distribuição de lucro não é despesa e não entra no Financeiro: o honorário de cada sócio já foi descontado como custo antes daqui.</p>
 
    <h2 class="verde"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> O que ainda vai entrar, e quanto cada um leva quando entrar</h2>

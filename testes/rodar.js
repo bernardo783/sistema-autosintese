@@ -555,6 +555,8 @@ grupo('Fechamento: imposto estimado sobre a receita com nota (Gabriel 30/09)');
   const h=rodar(bloco('const fchImpostoLer=','function renderFechamentoMes(c){'),{localStorage:{getItem:(k)=>k==='fch_notas_pct'?'50':'8'},brl:v=>'R$ '+v,document:{}},['fchImpostoCard']);
   const c=h.fchImpostoCard(100000);
   ok('o cartão lê o que a pessoa ajustou (50% a 8%) e mostra a parte da receita', c.indexOf('R$ 4000')>0&&c.indexOf('value="50"')>0&&c.indexOf('value="8"')>0&&c.indexOf('(4,0% da receita)')>0);
+  ok('o imposto sai antes do rateio e aparece na Distribuição do lucro', HTML.indexOf('const LUCRO=dec(LUCROC-TAR-IMP);')>0&&HTML.indexOf('<tr><td>Imposto estimado <span')>0&&HTML.indexOf("O imposto estimado sai antes do rateio")>0);
+  ok('mudar o percentual redesenha a distribuição', HTML.indexOf('onchange="fchImpostoMudou(true)"')>0&&/if\(fim\)\{ try\{ if\(finTab==='fechames'\) renderFinanceiro/.test(HTML));
   ok('o cartão está nos cartões do Fechamento, depois do Lucro', /margem de \$\{\(LU\/\(RMES\|\|1\)\*100\)\.toFixed\(1\)\}%<\/div><\/div>\s*\$\{fchImpostoCard\(RMES\)\}/.test(HTML));
 }
 
