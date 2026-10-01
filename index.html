@@ -11329,7 +11329,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <div class="tkf-sec mt">Anexos<span class="ln"></span><span class="n" id="tkmBAnx"></span></div>
         <div class="tkm-drop" id="tkmDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="tkmAnxDrop(event)" onclick="document.getElementById('tkmFile').click()">
           Arraste arquivos aqui ou <u>clique para escolher</u>
-          <div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar, até 50 MB por arquivo</div>
+          <div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar, até ${AX_MAX_TXT} por arquivo</div>
         </div>
         <input type="file" id="tkmFile" multiple class="hidden" onchange="tkmAnxUpload('',this.files)">
         <div class="tkm-lnk">
@@ -11426,7 +11426,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     const md=ov.querySelector('.modal');
     if(md){
       const alvo=document.createElement('div'); alvo.className='tkf-alvo';
-      alvo.innerHTML='<div class="cx"><div class="ic">\u2913</div><b>Solte para anexar</b><span>'+(t?'em qualquer canto da tarefa \u00b7 at\u00e9 50 MB por arquivo':'a tarefa \u00e9 criada na hora \u2014 s\u00f3 precisa de t\u00edtulo')+'</span></div>';
+      alvo.innerHTML='<div class="cx"><div class="ic">\u2913</div><b>Solte para anexar</b><span>'+(t?'em qualquer canto da tarefa \u00b7 at\u00e9 '+AX_MAX_TXT+' por arquivo':'a tarefa \u00e9 criada na hora \u2014 s\u00f3 precisa de t\u00edtulo')+'</span></div>';
       md.appendChild(alvo);
       let prof=0;
       /* so reage a arquivo de verdade: arrastar texto ou card nao pode acender o alvo */
@@ -11570,8 +11570,66 @@ const tkmQuando=(iso)=>{ const d=new Date(iso); const h=String(d.getHours()).pad
    Arquivo sobe pro bucket privado 'anexos' (Storage) e o banco guarda o ponteiro em
    tarefa_anexos; link externo (Drive, YouTube) entra na mesma lista com tipo='link'.
    Quem enxerga a tarefa enxerga os anexos — a RLS herda squad e workspace da tarefa. */
-const AX_MAX=52428800;  /* 50 MB — mesmo limite do bucket */
-const axFmtB=(b)=>{ b=Number(b)||0; if(b>=1048576) return (b/1048576).toFixed(1).replace('.',',')+' MB';
+/* LIMITE POR ARQUIVO (Gabriel 01/10: "pode ser 5gb por arquivo"). Um lugar so: todo texto de
+   tela le AX_MAX_TXT. O Supabase esta no plano gratuito, que trava em 50 MB; quando virar Pro,
+   trocar AX_MAX para 5*1024*1024*1024 e subir o file_size_limit do bucket 'anexos'. */
+const AX_MAX=52428800;
+const AX_MAX_TXT=AX_MAX>=1073741824?String(Math.round(AX_MAX/1073741824*10)/10).replace('.',',')+' GB':Math.round(AX_MAX/1048576)+' MB';
+/* ENVIO EM PEDACOS (TUS): arquivo acima de 6 MB sobe em partes de 6 MB, com progresso, e se a
+   internet cair ele tenta de novo de onde parou. Abaixo disso sobe de uma vez, como sempre.
+   Sem "retomar envio antigo": a chave do arquivo e nova a cada envio, e retomar gravaria no
+   caminho velho enquanto o banco registra o novo. */
+const AX_DIRETO=6*1024*1024;
+let AX_TUS=null;
+function axTusLib(){
+  if(window.tus) return Promise.resolve(window.tus);
+  if(!AX_TUS) AX_TUS=new Promise((ok,err)=>{ const el=document.createElement('script');
+    el.src='https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js';
+    el.onload=()=>window.tus?ok(window.tus):err(new Error('envio em partes indisponível'));
+    el.onerror=()=>{ AX_TUS=null; err(new Error('não consegui carregar o envio em partes, confira a internet')); };
+    document.head.appendChild(el); });
+  return AX_TUS;
+}
+function axErroEnvio(e){
+  const m=String((e&&(e.message||e))||'erro');
+  if(/413|maximum allowed size|exceeded/i.test(m)) return 'o arquivo passa do limite do servidor ('+AX_MAX_TXT+')';
+  if(/401|403|jwt|unauthorized/i.test(m)) return 'sua sessão expirou, entre de novo e reenvie';
+  return m.replace(/^tus: /,'').slice(0,160);
+}
+/* devolve {error} igual ao upload do Supabase; prog(enviado,total) so no envio em pedacos */
+async function axSubir(chave,f,prog){
+  const tipo=f.type||'application/octet-stream';
+  if(f.size<=AX_DIRETO) return sb.storage.from('anexos').upload(chave,f,{contentType:tipo});
+  try{
+    const tus=await axTusLib();
+    const tok=async()=>{ const r=await sb.auth.getSession(); return ((r.data||{}).session||{}).access_token||''; };
+    const t0=await tok(); if(!t0) throw new Error('401');
+    await new Promise((ok,err)=>{
+      new tus.Upload(f,{
+        endpoint:SUPA_URL.replace('.supabase.co','.storage.supabase.co')+'/storage/v1/upload/resumable',
+        retryDelays:[0,3000,5000,10000,20000,30000],
+        headers:{authorization:'Bearer '+t0,apikey:SUPA_KEY},
+        /* envio longo atravessa a troca do token (1h): cada pedaco pega o token da hora */
+        onBeforeRequest:async (req)=>{ const t=await tok(); if(t) req.setHeader('authorization','Bearer '+t); },
+        uploadDataDuringCreation:true,storeFingerprintForResuming:false,removeFingerprintOnSuccess:true,
+        metadata:{bucketName:'anexos',objectName:chave,contentType:tipo,cacheControl:'3600'},
+        chunkSize:AX_DIRETO,
+        onError:err,onSuccess:()=>ok(),
+        onProgress:(a,b)=>{ try{ if(prog) prog(a,b); }catch(_){} }
+      }).start();
+    });
+    return {error:null};
+  }catch(e){
+    /* rede de seguranca: ate 50 MB o envio de uma vez sempre funcionou. Se o envio em partes
+       falhar por outro motivo que nao tamanho ou sessao, cai nele em vez de perder o anexo. */
+    const m=String((e&&(e.message||e))||'');
+    if(f.size<=52428800&&!/413|maximum allowed size|exceeded|401|403|jwt|unauthorized/i.test(m))
+      return sb.storage.from('anexos').upload(chave,f,{contentType:tipo});
+    return {error:{message:axErroEnvio(e)}}; }
+}
+const axProgTxt=(nome,a,b)=>'Enviando '+nome+': '+Math.floor(a/(b||1)*100)+'% ('+axFmtB(a)+' de '+axFmtB(b)+')';
+const axFmtB=(b)=>{ b=Number(b)||0; if(b>=1073741824) return (b/1073741824).toFixed(2).replace('.',',')+' GB';
+  if(b>=1048576) return (b/1048576).toFixed(1).replace('.',',')+' MB';
   if(b>=1024) return Math.round(b/1024)+' KB'; return b+' B'; };
 const axIcone=(x)=>{ const I=(k)=>svgIco(k,17); if(x.tipo==='link') return I('link');
   const m=String(x.mime||''); if(m.startsWith('image/')) return I('imagem');
@@ -11642,10 +11700,10 @@ window.tkmAnxUpload=async (tid,files)=>{
   tid=tid||await tkmAlvo(); if(!tid) return;
   const dz=document.getElementById('tkmDrop');
   for(const f of lista){
-    if(f.size>AX_MAX){ toast('"'+f.name+'" passa de 50 MB: suba no Drive e anexe o link.'); continue; }
+    if(f.size>AX_MAX){ toast('"'+f.name+'" passa de '+AX_MAX_TXT+': suba no Drive e anexe o link.'); continue; }
     if(dz) dz.textContent='Enviando '+f.name+'…';
     const chave='t/'+tid+'/'+uid()+'_'+String(f.name).replace(/[^\w.\-]+/g,'_').slice(-80);
-    const up=await sb.storage.from('anexos').upload(chave,f,{contentType:f.type||'application/octet-stream'});
+    const up=await axSubir(chave,f,(a,b)=>{ if(dz) dz.textContent=axProgTxt(f.name,a,b); });
     if(up.error){ toast('Erro ao subir "'+f.name+'": '+up.error.message); continue; }
     const {error}=await sb.from('tarefa_anexos').insert({tarefa_id:tid,tipo:'arquivo',nome:f.name,
       caminho:chave,mime:f.type||null,bytes:f.size,autor:(currentUser||{}).id||null});
@@ -11654,7 +11712,7 @@ window.tkmAnxUpload=async (tid,files)=>{
       continue; }
     toast('Anexado: '+f.name);
   }
-  if(dz) dz.innerHTML='Arraste arquivos aqui ou <u>clique para escolher</u><div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar, até 50 MB por arquivo</div>';
+  if(dz) dz.innerHTML='Arraste arquivos aqui ou <u>clique para escolher</u><div class="hint" style="margin:4px 0 0">mídia, documento, o que precisar, até '+AX_MAX_TXT+' por arquivo</div>';
   const inp=document.getElementById('tkmFile'); if(inp) inp.value='';
   tkmAnxCarregar(tid);
 };
@@ -11831,7 +11889,7 @@ window.lgPintar=async (boxId,fid,modo)=>{
       ${tid?`<div class="tkm-drop" id="lgDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')"
           ondrop="event.preventDefault();this.classList.remove('on');lgSubir('${esc(fid)}',event.dataTransfer.files)" onclick="document.getElementById('lgFile').click()">
           Arraste a logo aqui ou <u>clique para escolher</u>
-          <div class="hint" style="margin:4px 0 0">pode subir mais de uma versão, até 50 MB por arquivo</div></div>
+          <div class="hint" style="margin:4px 0 0">pode subir mais de uma versão, até ${AX_MAX_TXT} por arquivo</div></div>
         <input type="file" id="lgFile" multiple class="hidden" onchange="lgSubir('${esc(fid)}',this.files)">`
       :`<p class="hint" style="color:var(--warn)">Este cliente ainda não tem card no Controle de Clientes, é lá que a logo fica guardada.</p>`}
       <div style="margin-top:14px">${grade||(tid?'<p class="hint">Nenhuma logo guardada ainda.</p>':'')}</div>`;
@@ -11871,10 +11929,10 @@ window.lgSubir=async (fid,files)=>{
   const dz=document.getElementById('lgDrop');
   let n=0;
   for(const f of lista){
-    if(f.size>AX_MAX){ toast('"'+f.name+'" passa de 50 MB: suba no Drive do cliente.'); continue; }
+    if(f.size>AX_MAX){ toast('"'+f.name+'" passa de '+AX_MAX_TXT+': suba no Drive do cliente.'); continue; }
     if(dz) dz.textContent='Enviando '+f.name+'…';
     const chave=lgChave(tid,f.name);
-    const up=await sb.storage.from('anexos').upload(chave,f,{contentType:f.type||'application/octet-stream'});
+    const up=await axSubir(chave,f,(a,b)=>{ if(dz) dz.textContent=axProgTxt(f.name,a,b); });
     if(up.error){ toast('Erro ao subir "'+f.name+'": '+up.error.message); continue; }
     const {error}=await sb.from('tarefa_anexos').insert({tarefa_id:tid,tipo:'arquivo',nome:f.name,
       caminho:chave,mime:f.type||null,bytes:f.size,autor:(currentUser||{}).id||null});

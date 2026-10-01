@@ -1198,6 +1198,38 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
         ok('a tarefa em memória sai de A cobrar', t.status_id==='b');
       }));
     }
+    grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
+    {
+      const cod=bloco("const AX_MAX=52428800;","const axIcone=");
+      const mk=(tusFalha)=>{ const log={direto:0,tus:null,prog:[],hdr:null};
+        function Upload(f,o){ this.start=()=>{ log.tus=o;
+          Promise.resolve(o.onBeforeRequest({setHeader:(k,v)=>{ log.hdr=v; }})).then(()=>{
+            if(tusFalha) return o.onError(new Error(tusFalha));
+            o.onProgress(6291456,f.size); o.onProgress(f.size,f.size); o.onSuccess(); }); }; }
+        const g=rodar(cod,{tus:{Upload},SUPA_URL:'https://x.supabase.co',SUPA_KEY:'k',document:{},
+          sb:{auth:{getSession:async()=>({data:{session:{access_token:'TOK'}}})},
+              storage:{from:()=>({upload:async()=>{ log.direto++; return {error:null}; }})}}},['axSubir','AX_MAX_TXT','axProgTxt','axFmtB','AX_MAX']);
+        return {g,log}; };
+      const A=mk(''), B=mk('tus: falha de rede'), C=mk('tus: 413 maximum allowed size');
+      PROMESSAS.push((async()=>{
+        await A.g.axSubir('t/1/a.png',{size:1000,type:'image/png',name:'a.png'});
+        ok('arquivo pequeno sobe de uma vez, sem pedaços', A.log.direto===1&&!A.log.tus);
+        const r=await A.g.axSubir('t/1/v.mp4',{size:30*1048576,type:'video/mp4',name:'v.mp4'},(a,b)=>A.log.prog.push([a,b]));
+        ok('arquivo grande sobe em pedaços de 6 MB no endpoint de retomada', !r.error&&A.log.tus&&A.log.tus.chunkSize===6291456&&/x\.storage\.supabase\.co\/storage\/v1\/upload\/resumable$/.test(A.log.tus.endpoint)&&A.log.direto===1);
+        ok('vai pro bucket anexos com a chave do arquivo', A.log.tus.metadata.bucketName==='anexos'&&A.log.tus.metadata.objectName==='t/1/v.mp4');
+        ok('cada pedaço usa o token da hora', A.log.hdr==='Bearer TOK');
+        ok('avisa o progresso', A.log.prog.length===2&&A.log.prog[1][0]===30*1048576);
+        ok('não retoma envio antigo (a chave muda a cada envio)', A.log.tus.storeFingerprintForResuming===false);
+        const rb=await B.g.axSubir('t/1/v.mp4',{size:30*1048576,type:'video/mp4',name:'v.mp4'});
+        ok('falhou o envio em partes e o arquivo cabe em 50 MB: cai no envio direto', !rb.error&&B.log.direto===1);
+        const rc=await C.g.axSubir('t/1/g.mp4',{size:30*1048576,type:'video/mp4',name:'g.mp4'});
+        ok('passou do limite do servidor: erro claro, sem tentar de novo', rc.error&&/limite do servidor/.test(rc.error.message)&&C.log.direto===0);
+        ok('texto do limite sai de AX_MAX', A.g.AX_MAX_TXT===(A.g.AX_MAX>=1073741824?'5 GB':'50 MB'));
+        ok('progresso legível', A.g.axProgTxt('v.mp4',1073741824,2147483648)==='Enviando v.mp4: 50% (1,00 GB de 2,00 GB)');
+      })());
+      ok('nenhum texto de tela com o limite escrito à mão', !/(passa de|até|at\\u00e9) 50 MB/.test(HTML));
+      ok('os dois pontos de upload usam o envio em pedaços', HTML.split("const up=await axSubir(chave,f,(a,b)=>{ if(dz) dz.textContent=axProgTxt(f.name,a,b); });").length===3&&HTML.indexOf("sb.storage.from('anexos').upload(chave,f,{contentType:f.type")<0);
+    }
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
