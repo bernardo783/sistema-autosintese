@@ -1224,6 +1224,25 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
         ok('a tarefa em memória sai de A cobrar', t.status_id==='b');
       }));
     }
+    grupo('Uma logo por cliente: Controle de Clientes, editora e relatório (Gabriel 02/10)');
+    {
+      const cod=bloco("const logoFichaKey=(fid)=>","function logosCarregar(){");
+      const DB={contasMeta:[{id:'act_1',fichaId:'F1'},{id:'act_2',fichaId:'F2'},{id:'act_3',fichaId:'F3'}]};
+      let pediu=0;
+      const g=rodar(cod+';window.__set=(v)=>{LOGOS_META=v;};',{DB,LOGOS_META:null,esc:(x)=>String(x),soAgentIA:(f)=>!!(f&&f.ia),fichaDe:(id)=>id==='IA'?{ia:1}:{id},
+        logosCarregar:()=>{ pediu++; return Promise.resolve(); },document:{querySelectorAll:()=>[]}},['logoDe','logoDoCliente','lcLogoCel','logoFichaKey']);
+      ok('sem logos carregadas: a lista pede uma vez só e mostra o espaço vazio', /class="lc-logo vz"/.test(g.lcLogoCel('F1'))&&/lc-logo/.test(g.lcLogoCel('F2'))&&pediu===1);
+      g.__set({act_1:'data:conta1','ficha:F2':'data:ficha2'});
+      ok('relatório usa a logo da própria conta quando existe', g.logoDe(DB.contasMeta[0])==='data:conta1'&&g.logoDe('act_1')==='data:conta1');
+      ok('relatório sem logo própria usa a logo do cliente', g.logoDe(DB.contasMeta[1])==='data:ficha2'&&g.logoDe('act_2')==='data:ficha2');
+      ok('conta sem logo e cliente sem logo: vazio', g.logoDe(DB.contasMeta[2])===''&&g.logoDoCliente('F3')==='');
+      ok('logo do cliente: a da ficha ou, na falta, a de uma conta dele', g.logoDoCliente('F2')==='data:ficha2'&&g.logoDoCliente('F1')==='data:conta1');
+      ok('miniatura no Controle de Clientes abre a aba Logos da ficha', /<img src="data:conta1"/.test(g.lcLogoCel('F1'))&&/abrirCliente\('F1','logos'\)/.test(g.lcLogoCel('F1'))&&!/ vz"/.test(g.lcLogoCel('F1')));
+      ok('cliente só de Agent IA não mostra o campo', g.lcLogoCel('IA')==='');
+      ok('a lista do Controle de Clientes desenha a miniatura antes do nome', HTML.indexOf("${ehLC(t.lista_id)?lcLogoCel(t.ficha_id):''}<span class=\"tk-titcel")>0);
+      ok('a aba Logo mostra a logo dos relatórios para baixar', HTML.indexOf("lgBaixarRel('${esc(fid)}')")>0&&HTML.indexOf("const grade=(logos.length||rel)?")>0);
+      ok('primeira imagem subida na ficha vira a logo do cliente', /if\(!logoDoCliente\(fid\)\)\{ try\{ const d=await lgMiniatura\(f\); if\(d\) await logoSalvar\(logoFichaKey\(fid\),d\);/.test(HTML));
+    }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
       const cod=bloco("const AX_MAX=52428800;","const axIcone=");

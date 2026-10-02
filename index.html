@@ -2252,6 +2252,10 @@
     color:var(--warn);background:rgba(230,177,63,.12);border:1px solid rgba(230,177,63,.35);vertical-align:1px;white-space:nowrap}
   .lc-av{width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;font-size:9px;font-weight:800;color:#fff;margin-right:6px;flex:none;vertical-align:-3px;overflow:hidden}
   .lc-av img{width:100%;height:100%;object-fit:cover;display:block}
+  .lc-logo{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:#fff;display:inline-grid;place-items:center;overflow:hidden;margin-right:8px;vertical-align:-7px;padding:0;cursor:pointer;flex:none}
+  .lc-logo img{width:100%;height:100%;object-fit:contain;display:block}
+  .lc-logo.vz{background:transparent;border-style:dashed;color:var(--muted)}
+  .lc-logo:hover{border-color:var(--brand2);color:var(--txt)}
   .lc-av.g{width:22px;height:22px;font-size:10px;vertical-align:-5px}
   .tk-pes{display:inline-flex;align-items:center;margin-right:10px;white-space:nowrap}
   .lc-n{color:var(--muted);font-weight:800;font-size:10.5px;margin-left:6px}
@@ -3695,7 +3699,32 @@ function curarInicio(){ (DB.clientes||[]).forEach(c=>{ if(c&&typeof c.inicio==='
    Aqui: DB.contasMeta[].logo fica sempre vazio, o base64 mora no cache LOGOS_META e
    e buscado uma unica vez por sessao, em segundo plano, sem travar a tela. */
 let LOGOS_META=null; let __logosPend=null;
-function logoDe(m){ const id=(m&&m.id)||m; if(!id) return ''; return (LOGOS_META&&LOGOS_META[id])||((m&&m.logo)||''); }
+/* UMA LOGO POR CLIENTE (Gabriel 02/10: "vai servir tanto pros relatorios como pra editora de
+   video"). Alem da logo de cada conta de anuncio, a tabela guarda a logo do CLIENTE na chave
+   'ficha:<id da ficha>'. Relatorio sem logo propria usa a do cliente; e o Controle de Clientes,
+   a ficha e a aba Logo da editora mostram a do cliente ou, na falta, a de uma conta dele. */
+const logoFichaKey=(fid)=>'ficha:'+fid;
+function logoDe(m){ const id=(m&&m.id)||m; if(!id) return ''; const L=LOGOS_META||{};
+  if(L[id]) return L[id]; if(m&&m.logo) return m.logo;
+  const fid=(m&&m.fichaId)||(((DB&&DB.contasMeta)||[]).find(x=>x.id===id)||{}).fichaId;
+  return fid?(L[logoFichaKey(fid)]||''):''; }
+function logoDoCliente(fid){ if(!fid) return ''; const L=LOGOS_META||{};
+  if(L[logoFichaKey(fid)]) return L[logoFichaKey(fid)];
+  const c=((DB&&DB.contasMeta)||[]).find(m=>m.fichaId===fid&&L[m.id]); return c?L[c.id]:''; }
+/* Controle de Clientes: miniatura ao lado do nome. Clicou, abre a aba Logos da ficha. */
+let LC_LG_PED=false;
+const LC_LG_MAIS='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.6"/><path d="m21 15-4.5-4.5L6 21"/></svg>';
+const lcLogoHtml=(fid)=>{ const l=logoDoCliente(fid); return l?`<img src="${l}" alt="">`:LC_LG_MAIS; };
+const lcLogoDica=(fid)=>logoDoCliente(fid)?'Logo do cliente: clique para ver, baixar ou subir outra':'Sem logo: clique para subir';
+function lcLogoCel(fid){
+  if(!fid||soAgentIA(fichaDe(fid))) return '';
+  if(!LOGOS_META&&!LC_LG_PED){ LC_LG_PED=true; logosCarregar().then(lcLogosPintar).catch(()=>{}); }
+  return `<button type="button" class="lc-logo${logoDoCliente(fid)?'':' vz'}" data-lcl="${esc(fid)}" title="${lcLogoDica(fid)}" onclick="event.stopPropagation();abrirCliente('${esc(fid)}','logos')">${lcLogoHtml(fid)}</button>`;
+}
+function lcLogosPintar(){
+  document.querySelectorAll('[data-lcl]').forEach(el=>{ const fid=el.dataset.lcl;
+    el.classList.toggle('vz',!logoDoCliente(fid)); el.innerHTML=lcLogoHtml(fid); el.title=lcLogoDica(fid); });
+}
 function logosCarregar(){
   if(LOGOS_META) return Promise.resolve();
   if(__logosPend) return __logosPend;
@@ -7946,7 +7975,7 @@ function tkViewLista(){
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
-  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${t.rascunho?rascSelo(t):''}${esc(t.titulo)}</span>${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id)+lcSeloGrupo(t.ficha_id)+lcSeloParceria(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
+  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}${ehLC(t.lista_id)?lcLogoCel(t.ficha_id):''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${t.rascunho?rascSelo(t):''}${esc(t.titulo)}</span>${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id)+lcSeloGrupo(t.ficha_id)+lcSeloParceria(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr style="--bar:${esc(tkCorLinha(t))}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map((c,i)=>`<td class="${clsCp(c,i)}">${tkCelula(t,c)}</td>`).join('')}</tr>`;
@@ -11874,14 +11903,22 @@ window.lgPintar=async (boxId,fid,modo)=>{
       .like('caminho','t/'+tid+'/'+LG_PREF+'%').order('criado_em');
     if(r.error) erro=r.error.message; else logos=r.data||[];
   }
+  try{ await logosCarregar(); }catch(_){}
   if(box.dataset.fid!==String(fid)) return;   /* trocou de cliente enquanto carregava */
-  if(bdg) bdg.textContent=logos.length||'';
+  const rel=logoDoCliente(fid);   /* a logo unica do cliente: a mesma dos relatorios */
+  if(bdg) bdg.textContent=(logos.length+(rel?1:0))||'';
   window.__lg=window.__lg||{}; logos.forEach(x=>{ window.__lg[x.id]=x; });
   window.__lgDe=window.__lgDe||{}; window.__lgDe[fid]=logos.map(x=>x.id);
   const f=fichaDe(fid)||{}, master=!!(currentUser&&currentUser.role==='master');
   if(erro){ box.innerHTML='<p class="hint">Não consegui carregar as logos: '+esc(erro)+'</p>'; return; }
   const ext=(n)=>{ const m=String(n||'').match(/\.([a-z0-9]{2,5})$/i); return m?m[1].toUpperCase():'ARQ'; };
-  const grade=logos.length?`<div class="lg-grid">${logos.map(x=>`<div class="lg-it">
+  const itRel=rel?`<div class="lg-it">
+      <div class="lg-pv" title="Clique para alternar fundo claro / escuro" onclick="this.classList.toggle('esc')"><img src="${rel}" alt="Logo dos relatórios"></div>
+      <div class="lg-rod">
+        <div class="nm"><div class="t1">Logo dos relatórios</div><div class="t2">a mesma do relatório de tráfego</div></div>
+        <button class="iconbtn" type="button" title="Baixar" aria-label="Baixar a logo dos relatórios" onclick="lgBaixarRel('${esc(fid)}')">${LG_DL}</button>
+      </div></div>`:'';
+  const grade=(logos.length||rel)?`<div class="lg-grid">${itRel}${logos.map(x=>`<div class="lg-it">
       <div class="lg-pv" data-lg="${x.id}" title="Clique para alternar fundo claro / escuro" onclick="this.classList.toggle('esc')"><span class="ext">${esc(ext(x.nome))}</span></div>
       <div class="lg-rod">
         <div class="nm"><div class="t1" title="${esc(x.nome)}">${esc(x.nome)}</div><div class="t2">${axFmtB(x.bytes)}</div></div>
@@ -11890,8 +11927,9 @@ window.lgPintar=async (boxId,fid,modo)=>{
       </div></div>`).join('')}</div>`:'';
   if(modo==='ficha'){
     box.innerHTML=`
-      <p class="hint" style="margin:0 0 12px">Suba aqui a logo oficial do cliente (PNG sem fundo, SVG, PDF, AI…). Fica guardada
-      no card e aparece sozinha na aba <b>Logo</b> de toda demanda da Linha Editorial deste cliente.</p>
+      <p class="hint" style="margin:0 0 12px">Suba aqui a logo oficial do cliente (PNG sem fundo, SVG, PDF, AI…). É uma logo só para tudo:
+      aparece no Controle de Clientes, na aba <b>Logo</b> de toda demanda da Linha Editorial e, se a conta de anúncio não tiver
+      logo própria, no relatório de tráfego.</p>
       ${tid?`<div class="tkm-drop" id="lgDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')"
           ondrop="event.preventDefault();this.classList.remove('on');lgSubir('${esc(fid)}',event.dataTransfer.files)" onclick="document.getElementById('lgFile').click()">
           Arraste a logo aqui ou <u>clique para escolher</u>
@@ -11900,7 +11938,7 @@ window.lgPintar=async (boxId,fid,modo)=>{
       :`<p class="hint" style="color:var(--warn)">Este cliente ainda não tem card no Controle de Clientes, é lá que a logo fica guardada.</p>`}
       <div style="margin-top:14px">${grade||(tid?'<p class="hint">Nenhuma logo guardada ainda.</p>':'')}</div>`;
   } else {
-    box.innerHTML=logos.length
+    box.innerHTML=(logos.length||rel)
       ? `<p class="hint" style="margin:0 0 12px">Logo de <b>${esc(f.nome||'cliente')}</b> guardada na ficha. Use sempre esta versão, clique na prévia para ver em fundo escuro.</p>
          ${grade}
          ${logos.length>1?`<button class="btn secondary small" type="button" style="margin-top:12px" onclick="lgBaixarTodas('${esc(fid)}')">Baixar todas (${logos.length})</button>`:''}`
@@ -11925,6 +11963,23 @@ window.lgBaixar=async (id)=>{
     document.body.appendChild(a); a.click(); a.remove();
   }catch(e){ toast('Não consegui baixar: '+(e.message||e)); }
 };
+window.lgBaixarRel=(fid)=>{
+  const l=logoDoCliente(fid); if(!l) return;
+  const nm=String((fichaDe(fid)||{}).nome||'cliente').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'cliente';
+  const a=document.createElement('a'); a.href=l; a.download=nm+'-logo.png'; document.body.appendChild(a); a.click(); a.remove();
+};
+/* imagem do arquivo reduzida a 420px, em PNG, do jeito que o relatorio usa */
+function lgMiniatura(f){
+  return new Promise((ok)=>{
+    if(!/^image\/(png|jpe?g|webp|gif)$/i.test(f.type||'')) return ok('');
+    const rd=new FileReader(); rd.onerror=()=>ok('');
+    rd.onload=()=>{ const img=new Image(); img.onerror=()=>ok('');
+      img.onload=()=>{ try{ const MAX=420, k=Math.min(1,MAX/Math.max(img.width,img.height));
+          const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(img.width*k)); cv.height=Math.max(1,Math.round(img.height*k));
+          cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height); ok(cv.toDataURL('image/png')); }catch(_){ ok(''); } };
+      img.src=rd.result; };
+    rd.readAsDataURL(f); });
+}
 window.lgBaixarTodas=async (fid)=>{
   for(const id of ((window.__lgDe||{})[fid]||[])){ await lgBaixar(id); await new Promise(r=>setTimeout(r,400)); }
 };
@@ -11946,9 +12001,11 @@ window.lgSubir=async (fid,files)=>{
       try{ await sb.storage.from('anexos').remove([chave]); }catch(_){}
       continue; }
     n++;
+    /* cliente ainda sem logo: a primeira imagem vira a logo dele (lista, editora e relatorio) */
+    if(!logoDoCliente(fid)){ try{ const d=await lgMiniatura(f); if(d) await logoSalvar(logoFichaKey(fid),d); }catch(_){} }
   }
   if(n) toast(n===1?'Logo guardada no card do cliente.':n+' logos guardadas no card do cliente.');
-  lgPintar('lgBox',fid,'ficha');
+  lgPintar('lgBox',fid,'ficha'); try{ lcLogosPintar(); }catch(_){}
 };
 window.lgApagar=async (id,fid)=>{
   const x=(window.__lg||{})[id]; if(!x) return;
