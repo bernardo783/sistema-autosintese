@@ -1801,6 +1801,12 @@
   tr.rc-gr-f td:first-child{padding-left:31px}
   tr.rc-gr-f.lc-n2 td:first-child{padding-left:53px}   /* Lançamentos: dentro do sub-bloco */
   .rc-sub{color:var(--muted);font-size:11px;margin-top:3px}
+  .rc-ct{display:flex;align-items:center;gap:6px}
+  .rc-ct.tel{color:var(--muted);font-size:12px;margin-top:2px}
+  .rc-cp{flex:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;border:1px solid transparent;background:none;color:var(--fraco);cursor:pointer;padding:0}
+  .rc-cp svg{width:14px;height:14px}
+  .rc-cp:hover{color:var(--txt);background:var(--hov2);border-color:var(--line)}
+  .rc-cp.link{color:var(--ok)}
   .rc-cob{text-align:center}
   .rc-cob-l{display:inline-flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
   .rc-cob-l input{width:17px;height:17px;accent-color:var(--ok);cursor:pointer}
@@ -16935,6 +16941,7 @@ window.rcStatusGrupo=async (g,novo)=>{
 };
 function renderRecebimentos(c){
   const comp=cliComp;
+  rcAsaasCarregar();   /* links das cobranças em aberto, pra mensagem de cobrança */
   const R=calcRecebimentos(comp);
   const ativos=DB.clientes.filter(x=>!cliArq(x)&&(!x.inicio||comp>=x.inicio)&&(!x.fim||comp<=x.fim));
   const nArqCli=DB.clientes.filter(cliArq).length;
@@ -17010,7 +17017,7 @@ function renderRecebimentos(c){
       <td><span class="tag st">${esc(r.nicho)||'-'}</span></td>
       <td>${esc(r.servico)||'-'}</td>
       <td>${r.diaVenc?('dia '+r.diaVenc):'<span class="tag pausado">a definir</span>'}</td>
-      <td>${esc(r.resp)||'-'}${r.tel?`<div style="color:var(--muted);font-size:12px">${esc(r.tel)}</div>`:''}</td>
+      <td>${rcContatoHtml(r,comp)}</td>
       <td class="money" style="text-align:right">${s==='carencia'?`<span style="color:var(--muted);text-decoration:line-through">${brl(R.val(r))}</span><div style="color:var(--brand2);font-size:11px">carência</div>`:s==='churn'?(R.churnMes(r)?`<span style="color:var(--danger)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">perdido</div>`:`<span style="color:var(--muted)">-</span>`):s==='churnpago'?`<span style="color:var(--ok)">${brl(R.val(r))}</span><div style="color:var(--muted);font-size:11px">pago · último mês</div>`:`${brl(R.val(r))}${(R.byCli[r.id]&&R.byCli[r.id].integral)?`<div style="color:var(--brand2);font-size:11px">projeto à vista · sem mensalidade</div>`:(R.byCli[r.id]&&Number(R.byCli[r.id].valor)!==Number(r.valor)?`<div style="color:var(--muted);font-size:11px">cadastro: ${brl(r.valor)}</div>`:'')}`}</td>
       <td>${selHtml}</td>
       <td class="rc-cob">${(s==='recebido'||s==='churnpago'||s==='churn'||s==='carencia'||s==='parceria')?'<span class="hint" style="margin:0">-</span>'
@@ -17031,7 +17038,7 @@ function renderRecebimentos(c){
       <td><span class="tag st">${nicho===null?'vários':(esc(nicho)||'-')}</span></td>
       <td>${serv===null?'vários':(esc(serv)||'-')}</td>
       <td>${dia===null?'vários dias':(dia?('dia '+dia):'<span class="tag pausado">a definir</span>')}</td>
-      <td>${esc(dono.resp)||'-'}${dono.tel?`<div style="color:var(--muted);font-size:12px">${esc(dono.tel)}</div>`:''}</td>
+      <td>${rcContatoHtml(dono.id?dono:{},comp,m)}</td>
       <td class="money" style="text-align:right">${S.igual==='churn'?`<span style="color:var(--danger)">${brl(m.reduce((a,x)=>a+(R.churnMes(x)?R.val(x):0),0))}</span><div class="rc-sub">perdido</div>`:`${brl(tot)}${(S.pagas&&S.pagas<S.total)?`<div class="rc-sub">recebido ${brl(pago)}</div>`:''}`}</td>
       <td><select class="stSel ${esc(S.igual)}" data-g="${esc(g)}" onchange="rcStatusGrupo(this.dataset.g,this.value)" title="Muda todas as contas do grupo de uma vez">
         ${emLote?'':`<option value="" selected>${esc(S.igual?(RC_ST_TXT[S.igual]||'-'):S.texto)}</option>`}
@@ -17330,6 +17337,73 @@ function rcRegistro(cliId,comp){
   return r;
 }
 /* caixa "Cobrei" no Recebimentos */
+/* ---------- COPIAR CONTATO E MENSAGEM DE COBRANÇA (Gabriel 02/10) ----------
+   Na coluna Dono / contato: um botão copia o telefone (só os números, pra colar na busca do
+   WhatsApp) e outro copia a mensagem pronta, "Olá Fulano, tudo bem? Segue boleto referente aos
+   serviços prestados.", já com o link da cobrança em aberto no Asaas quando o cliente é achado
+   lá. Os links vêm da edge asaas-links (só leitura, só master) e ficam 10 min em memória. */
+const RC_ASAAS={em:0,cobrancas:null,erro:'',indo:false};
+const RC_COPIA_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const RC_MSG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+const rcSoDig=(s)=>String(s||'').replace(/\D/g,'');
+const rcNorm=(s)=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+const RC_NOME_FORA=['LTDA','ME','EPP','EIRELI','SA','CIA','COMERCIO','DE','DO','DA','E','VEICULOS','AUTOMOVEIS'];
+const rcNomeBase=(s)=>rcNorm(s).split(' ').filter(w=>w&&RC_NOME_FORA.indexOf(w)<0).join(' ');
+/* "NIVALDO SILVA" ou "nivaldo" vira "Nivaldo" */
+function rcPrimeiroNome(resp){ const p=String(resp||'').trim().split(/\s+/)[0]||''; return p?p.charAt(0).toUpperCase()+p.slice(1).toLowerCase():''; }
+/* cobrança em aberto do cliente no Asaas: pelo id do Asaas, depois pelo CNPJ/CPF, depois pelo nome.
+   Entre várias, prefere a que vence na competência da tela; senão a mais antiga. */
+function rcAsaasDe(c,comp,cobrancas){
+  if(!c||!Array.isArray(cobrancas)||!cobrancas.length) return null;
+  const cus=c.asaas&&c.asaas.customerId, ct=c.contrato||{};
+  const docs=[rcSoDig(ct.cnpj),rcSoDig(ct.rep_cpf)].filter(d=>d.length>=11);
+  const nomes=[rcNomeBase(c.nome),rcNomeBase(ct.razao)].filter(n=>n.length>=4);
+  let ls=cus?cobrancas.filter(x=>x.customer===cus):[];
+  if(!ls.length&&docs.length) ls=cobrancas.filter(x=>x.doc&&docs.indexOf(x.doc)>=0);
+  /* pelo nome só vale igualdade (sem LTDA, VEÍCULOS e afins) e um único cliente do Asaas:
+     na dúvida não devolve link, pra nunca mandar o boleto de outro cliente parecido */
+  if(!ls.length&&nomes.length){ ls=cobrancas.filter(x=>nomes.indexOf(rcNomeBase(x.nome))>=0);
+    if(new Set(ls.map(x=>x.customer)).size>1) ls=[]; }
+  if(!ls.length) return null;
+  ls=ls.slice().sort((a,b)=>String(a.venc).localeCompare(String(b.venc)));
+  return ls.find(x=>String(x.venc).slice(0,7)===comp)||ls[0];
+}
+function rcMensagem(c,comp,cobrancas,grupo){
+  const nome=rcPrimeiroNome(c&&c.resp);
+  let cob=rcAsaasDe(c,comp,cobrancas);
+  if(!cob&&Array.isArray(grupo)) for(const x of grupo){ cob=rcAsaasDe(x,comp,cobrancas); if(cob) break; }
+  return {txt:'Olá'+(nome?' '+nome:'')+', tudo bem? Segue boleto referente aos serviços prestados.'+(cob?'\n\n'+cob.link:''),link:cob?cob.link:''};
+}
+async function rcAsaasCarregar(){
+  if(RC_ASAAS.indo||!currentUser||currentUser.role!=='master'||(RC_ASAAS.cobrancas&&Date.now()-RC_ASAAS.em<600000)) return;
+  RC_ASAAS.indo=true;
+  try{ const {data,error}=await sb.functions.invoke('asaas-links',{body:{}});
+    if(error||!data||!data.ok){ RC_ASAAS.erro=(data&&data.erro)||(error&&error.message)||'falha'; RC_ASAAS.cobrancas=RC_ASAAS.cobrancas||[]; }
+    else { RC_ASAAS.cobrancas=data.cobrancas||[]; RC_ASAAS.erro=''; }
+    RC_ASAAS.em=Date.now();
+  }catch(e){ RC_ASAAS.erro=String((e&&e.message)||e); RC_ASAAS.cobrancas=RC_ASAAS.cobrancas||[]; RC_ASAAS.em=Date.now(); }
+  finally{ RC_ASAAS.indo=false; }
+  if(currentView==='recebimentos') render('recebimentos');
+}
+/* célula Dono / contato: nome + copiar mensagem, telefone + copiar número */
+function rcContatoHtml(r,comp,grupo){
+  if(!r||(!r.resp&&!r.tel)) return '-';
+  const m=rcMensagem(r,comp,RC_ASAAS.cobrancas,grupo), carregou=!!RC_ASAAS.cobrancas;
+  const dica=m.link?'Copiar a mensagem com o link da cobrança no Asaas':(carregou?'Copiar a mensagem (sem link: não achei cobrança em aberto desse cliente no Asaas)':'Copiar a mensagem (o link do Asaas ainda está carregando)');
+  const gid=grupo?grupo.map(x=>x.id).join(','):'';
+  return `<span class="rc-ct"><span>${esc(r.resp)||'-'}</span>${r.id?`<button type="button" class="rc-cp${m.link?' link':''}" title="${dica}" aria-label="Copiar mensagem de cobrança" data-c="${esc(r.id)}" data-g="${esc(gid)}" onclick="rcCopiarMsg(this.dataset.c,this.dataset.g)">${RC_MSG_SVG}</button>`:''}</span>`
+    +(r.tel?`<span class="rc-ct tel"><span>${esc(r.tel)}</span><button type="button" class="rc-cp" title="Copiar o número" aria-label="Copiar o número" data-t="${esc(rcSoDig(r.tel))}" onclick="rcCopiarTxt(this.dataset.t,'Número copiado.')">${RC_COPIA_SVG}</button></span>`:'');
+}
+window.rcCopiarTxt=async (txt,msg)=>{
+  try{ await navigator.clipboard.writeText(txt); toast(msg||'Copiado.'); }
+  catch(_){ try{ prompt('Copie:',txt); }catch(e){ toast(txt); } }
+};
+window.rcCopiarMsg=(cid,gids)=>{
+  const c=(DB.clientes||[]).find(x=>x.id===cid); if(!c) return;
+  const grupo=gids?String(gids).split(',').map(id=>(DB.clientes||[]).find(x=>x.id===id)).filter(Boolean):null;
+  const m=rcMensagem(c,cliComp,RC_ASAAS.cobrancas,grupo);
+  rcCopiarTxt(m.txt,m.link?'Mensagem copiada com o link do Asaas.':(RC_ASAAS.cobrancas?'Mensagem copiada. Sem link: cliente sem cobrança em aberto no Asaas.':'Mensagem copiada sem o link (ainda carregando o Asaas).'));
+};
 window.rcCobrado=async (cliId,on)=>{
   const comp=cliComp, r=rcRegistro(cliId,comp);
   if(!r){ toast('Defina o dia de vencimento primeiro (Editar).'); render('recebimentos'); return; }

@@ -287,6 +287,32 @@ grupo('Volta do Controle de Churns pergunta o combinado (Gabriel 30/09, SPAÇO V
   ok('não usa mais o confirmar simples', r.indexOf("{sim:'Voltar para ativo'}")<0&&r.indexOf("bs.textContent='Voltar para ativo'")>0);
 }
 
+grupo('Recebimentos: copiar telefone e mensagem de cobrança com o link do Asaas (Gabriel 02/10)');
+{
+  const g=rodar(bloco('const rcSoDig=','async function rcAsaasCarregar('),{},['rcSoDig','rcNorm','rcPrimeiroNome','rcAsaasDe','rcMensagem']);
+  ok('telefone vira só números, pra colar na busca do WhatsApp', g.rcSoDig('(11) 94158-7844')==='11941587844');
+  ok('primeiro nome com inicial maiúscula', g.rcPrimeiroNome('NIVALDO SILVA')==='Nivaldo'&&g.rcPrimeiroNome('thiago')==='Thiago'&&g.rcPrimeiroNome('')==='');
+  const cobs=[{customer:'cus_1',nome:'Loja Um Ltda',doc:'11222333000144',link:'https://www.asaas.com/i/aaa',venc:'2026-10-05',valor:800,status:'PENDING'},
+    {customer:'cus_1',nome:'Loja Um Ltda',doc:'11222333000144',link:'https://www.asaas.com/i/velha',venc:'2026-09-05',valor:800,status:'OVERDUE'},
+    {customer:'cus_2',nome:'G MOTORS VEICULOS',doc:'',link:'https://www.asaas.com/i/bbb',venc:'2026-10-10',valor:1500,status:'PENDING'},
+    {customer:'cus_3',nome:'Outro',doc:'99888777000166',link:'https://www.asaas.com/i/ccc',venc:'2026-10-01',valor:600,status:'OVERDUE'}];
+  ok('acha pelo id do Asaas e prefere a cobrança da competência da tela', g.rcAsaasDe({nome:'X',asaas:{customerId:'cus_1'}},'2026-10',cobs).link==='https://www.asaas.com/i/aaa');
+  ok('sem cobrança na competência, pega a mais antiga em aberto', g.rcAsaasDe({nome:'X',asaas:{customerId:'cus_1'}},'2026-11',cobs).link==='https://www.asaas.com/i/velha');
+  ok('sem id, acha pelo CNPJ do contrato', g.rcAsaasDe({nome:'SPAÇO VEÍCULOS',contrato:{cnpj:'99.888.777/0001-66'}},'2026-10',cobs).link==='https://www.asaas.com/i/ccc');
+  ok('sem id nem CNPJ, acha pelo nome (ignora acento e caixa)', g.rcAsaasDe({nome:'G Motors'},'2026-10',cobs).link==='https://www.asaas.com/i/bbb');
+  ok('cliente que não está no Asaas não ganha link de outro', g.rcAsaasDe({nome:'NEGOCICAR'},'2026-10',cobs)===null&&g.rcAsaasDe({nome:'AB'},'2026-10',cobs)===null);
+  const par=[{customer:'cus_a',nome:'JR MOTORS ABC',doc:'',link:'https://www.asaas.com/i/abc',venc:'2026-10-05'},{customer:'cus_b',nome:'JR MOTORS',doc:'',link:'https://www.asaas.com/i/jr',venc:'2026-10-05'}];
+  ok('nome parecido não casa: JR MOTORS VR não pega o boleto do JR MOTORS ABC nem do JR MOTORS', g.rcAsaasDe({nome:'JR MOTORS VR'},'2026-10',par)===null);
+  const dup=[{customer:'cus_a',nome:'PRIME VEICULOS LTDA',doc:'',link:'https://www.asaas.com/i/1',venc:'2026-10-05'},{customer:'cus_b',nome:'Prime Automóveis',doc:'',link:'https://www.asaas.com/i/2',venc:'2026-10-05'}];
+  ok('dois clientes do Asaas com o mesmo nome base: ambíguo, sem link', g.rcAsaasDe({nome:'PRIME VEÍCULOS'},'2026-10',dup)===null);
+  const m=g.rcMensagem({nome:'G MOTORS',resp:'NIVALDO'},'2026-10',cobs);
+  ok('mensagem padrão com o nome e o link do Asaas', m.txt==='Olá Nivaldo, tudo bem? Segue boleto referente aos serviços prestados.\n\nhttps://www.asaas.com/i/bbb');
+  ok('sem link e sem nome a mensagem continua boa', g.rcMensagem({nome:'NEGOCICAR',resp:''},'2026-10',cobs).txt==='Olá, tudo bem? Segue boleto referente aos serviços prestados.');
+  ok('conta de grupo usa o link de qualquer conta do grupo', g.rcMensagem({nome:'ALTOGIRO | A',resp:'Thiago'},'2026-10',cobs,[{nome:'ALTOGIRO | A'},{nome:'ALTOGIRO | B',asaas:{customerId:'cus_3'}}]).link==='https://www.asaas.com/i/ccc');
+  ok('a célula de contato tem os dois botões: copiar mensagem e copiar número', HTML.indexOf('onclick="rcCopiarMsg(this.dataset.c,this.dataset.g)"')>0&&HTML.indexOf("onclick=\"rcCopiarTxt(this.dataset.t,'Número copiado.')\"")>0);
+  ok('os links vêm da edge só de leitura, só pro master, e ficam 10 min em memória', HTML.indexOf("sb.functions.invoke('asaas-links',{body:{}})")>0&&HTML.indexOf("currentUser.role!=='master'||(RC_ASAAS.cobrancas&&Date.now()-RC_ASAAS.em<600000)")>0);
+}
+
 grupo('Cobranças do dia: tarefa pro master até marcar Cobrei (Gabriel 01/10)');
 {
   const g=rodar(bloco('const CB_LISTA=','let CB_LOCK=false;'),{NC_PAGADOR:'u_bernardo'},['cbPlano','cbChave','CB_LISTA']);
