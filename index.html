@@ -2978,6 +2978,71 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
     background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand2)}
   .mp-fabm button i svg{width:15px;height:15px}
 }
+/* ---------- CORPORATIVO NO CELULAR (Bernardo 04/10: "mesma vertente do modo pessoal") ----------
+   O workspace da empresa ganha o esqueleto do Pessoal: pilula flutuante no rodape (1B),
+   um "+" que cria tarefa (2A) e topo = chip do workspace + busca + sino, sem avatar (4A).
+   So abaixo de 720px e so na empresa. Desktop nao muda nada. */
+.mc-tabbar,.mc-fab,.mc-sino,.mc-ws,.mc-folha-ov{display:none}
+@media(max-width:720px){
+  body.mob-corp .railbar{display:none}
+  body.mob-corp .topbar{padding:calc(10px + env(safe-area-inset-top,0px)) 14px 0;gap:8px}
+  body.mob-corp .topbar .uav{display:none}
+  body.mob-corp .topbar .tb-esp > svg,body.mob-corp .topbar .tb-esp > span:not(.mc-ws){display:none}
+  body.mob-corp .topbar .tb-esp{padding:5px 13px 5px 5px;color:var(--txt)}
+  body.mob-corp .topbar .mc-ws{display:inline-flex;align-items:center;gap:7px;font-weight:800}
+  body.mob-corp .mc-ws i{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;font-style:normal;
+    font-size:11px;font-weight:900;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2))}
+  body.mob-corp .mc-ws::after{content:'\25BE';font-weight:800;color:var(--muted)}
+  body.mob-corp .topbar .tb-busca{margin-left:auto;width:36px;height:36px;padding:0;justify-content:center;flex:none}
+  body.mob-corp .topbar .tb-busca svg{width:16px;height:16px}
+  body.mob-corp .main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}
+  /* modal por cima da pilula e do "+", igual no Pessoal */
+  body.mob-corp .overlay{z-index:980}
+  body.mob-corp .overlay .modal{max-height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+  body.mob-corp .mc-sino{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel);color:var(--txt);position:relative;flex:none;cursor:pointer;padding:0}
+  body.mob-corp .mc-sino svg{width:16px;height:16px}
+  body.mob-corp .mc-sino .bdg{position:absolute;top:-4px;right:-4px;background:var(--brand);color:#fff;border-radius:999px;
+    font-size:10px;font-weight:800;min-width:17px;height:17px;padding:0 5px;display:grid;place-items:center;line-height:1}
+  body.mob-corp .mc-sino .bdg:empty{display:none}
+  body.mob-corp .mc-tabbar{position:fixed;left:14px;right:14px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:900;
+    display:flex;justify-content:space-around;align-items:center;height:60px;padding:0 6px;
+    border-radius:999px;border:1px solid var(--line);
+    background:color-mix(in srgb,var(--panel) 90%,transparent);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 14px 34px rgba(0,0,0,.30)}
+  .mc-tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;
+    color:var(--muted);font:inherit;font-size:10px;font-weight:700;padding:6px 0;border-radius:14px;position:relative;cursor:pointer}
+  .mc-tabbar button svg{width:20px;height:20px}
+  .mc-tabbar button.on{color:var(--brand2)}
+  .mc-tabbar button.on::before{content:'';position:absolute;top:-1px;left:50%;
+    transform:translateX(-50%);width:26px;height:3px;border-radius:0 0 3px 3px;background:var(--brand2)}
+  body.mob-corp .mc-fab{position:fixed;right:18px;bottom:calc(138px + env(safe-area-inset-bottom,0px));z-index:901;
+    width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+    background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:0;
+    display:grid;place-items:center;box-shadow:0 12px 26px rgba(124,58,237,.45)}
+  body.mob-corp .mc-fab.some{display:none}
+  .mc-fab svg{width:24px;height:24px;display:block}
+  /* gaveta de baixo: "Mais" e a escolha de lista do "+" */
+  /* abaixo da pilula (900): ela continua a vista com o "Mais" aceso, como no Pessoal */
+  body.mob-corp .mc-folha-ov{display:flex;align-items:flex-end;position:fixed;inset:0;z-index:899;background:rgba(0,0,0,.45)}
+  .mc-folha{width:100%;max-height:78vh;overflow-y:auto;background:var(--panel);border-top:1px solid var(--line);
+    border-radius:22px 22px 0 0;padding:10px 16px calc(150px + env(safe-area-inset-bottom,0px));
+    box-shadow:0 -16px 40px rgba(0,0,0,.35)}
+  .mc-alca{display:block;width:38px;height:4px;border-radius:4px;background:var(--line);margin:0 auto 14px}
+  .mc-tit{font-size:15px;font-weight:800;margin:0 4px 6px}
+  .mc-sec{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--fraco);font-weight:800;margin:14px 4px 10px}
+  .mc-grade{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 6px}
+  .mc-gi{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;color:var(--muted);
+    font:inherit;font-size:11px;font-weight:700;cursor:pointer;padding:0;min-width:0}
+  .mc-gi span{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:var(--panel2);color:var(--brand2)}
+  .mc-gi span svg{width:21px;height:21px}
+  .mc-gi.on span{background:color-mix(in srgb,var(--brand) 22%,transparent)}
+  .mc-gi.on{color:var(--txt)}
+  .mc-li{display:block;width:100%;text-align:left;background:transparent;border:1px solid transparent;border-radius:12px;
+    padding:11px 12px;color:var(--txt);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+  .mc-li:active,.mc-li:hover{background:var(--hov2)}
+}
 /* 3A — primeiro passo: aparece com zero habitos, em qualquer tamanho de tela */
 /* Menu do chip "Pessoal" no celular: modal centralizado, igual a busca — a gaveta lateral
    abria colada no topo do navegador e nao dava pra entender o que fazer (Gabriel 07/09). */
@@ -20706,6 +20771,139 @@ window.mpGChecar=async()=>{
   delete MP.evtsPorDia[MP.dia]; mpPintar();
 };
 /* ============================ fim modo pessoal ============================ */
+/* ---------- CORPORATIVO NO CELULAR (Bernardo 04/10: "mesma vertente do modo pessoal") ----------
+   A railbar continua existindo, so escondida: a pilula e a gaveta "Mais" clicam nos botoes
+   dela. Assim quem pode ver cada tela (classe hidden) e o realce (active) seguem vindo de um
+   lugar so, e tela nova que entrar na railbar aparece no "Mais" sem mexer aqui. */
+const MC_SV=(d)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
+const MC_IC={
+  inicio:'<path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  tarefas:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  espacos:'<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+  agenda:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  mais:'<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>',
+  sino:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'
+};
+/* [chave, rotulo, botao da railbar que ela representa] */
+const MC_ABAS=[['inicio','Início','rlInicio'],['tarefas','Tarefas','rlInbox'],['espacos','Espaços','rlEspacos'],['agenda','Agenda','rlAgenda']];
+/* o que a pilula e o topo ja cobrem nao se repete no "Mais" */
+const MC_FORA=['rlVoltar','rlInicio','rlBuscar','rlEspacos','rlNtf','rlInbox','rlAgenda','rlRestrito'];
+function mcLigado(){
+  const app=document.getElementById('app');
+  return window.innerWidth<=720&&!!currentUser&&!!app&&!app.classList.contains('hidden')&&!restrito()&&
+    (wsAtual()||{}).tipo!=='pessoal'&&!document.body.classList.contains('mob-pessoal');
+}
+function mcItensMais(){
+  const rail=document.getElementById('railbar'); if(!rail) return [[],[]];
+  const g=[[],[]]; let i=0;
+  [...rail.children].forEach(el=>{
+    if(el.classList.contains('sep')){ i=1; return; }
+    if(!el.id||!el.classList.contains('rl')||el.classList.contains('hidden')||MC_FORA.indexOf(el.id)>=0) return;
+    g[i].push(el);
+  });
+  return g;
+}
+function mcAbaAtual(){
+  const f=document.getElementById('mcMais'); if(f&&f.dataset.tipo==='mais') return 'mais';
+  const ativo=(id)=>{ const b=document.getElementById(id); return !!(b&&b.classList.contains('active')); };
+  if(currentView==='inicio'||ativo('rlInicio')) return 'inicio';
+  if(ativo('rlInbox')) return 'tarefas';
+  const m=mcItensMais(); if(m[0].concat(m[1]).some(b=>b.classList.contains('active'))) return 'mais';
+  if(currentView==='notificacoes') return '';
+  return 'espacos';
+}
+/* chip do topo: no celular (Pessoal ou empresa) abre o modal de workspace; no resto, a gaveta */
+const mcChip=()=>{ const c=document.body.classList;
+  if(c.contains('mob-pessoal')||c.contains('mob-corp')) mpWsMenu(); else spMovel(); };
+function mcPintar(){
+  const tb=document.getElementById('topbar');
+  if(!mcLigado()){
+    document.body.classList.remove('mob-corp');
+    const f=document.getElementById('mcMais'); if(f) f.remove();
+    return;
+  }
+  document.body.classList.add('mob-corp');
+  let nav=document.getElementById('mcTab');
+  if(!nav){ nav=document.createElement('nav'); nav.id='mcTab'; nav.className='mc-tabbar'; document.body.appendChild(nav); }
+  const at=mcAbaAtual(), m=mcItensMais();
+  const abas=MC_ABAS.filter(a=>{ const b=document.getElementById(a[2]); return b&&!b.classList.contains('hidden'); });
+  const html=abas.map(a=>'<button type="button" class="'+(at===a[0]?'on':'')+'" onclick="mcIr(\''+a[0]+'\')">'+MC_SV(MC_IC[a[0]])+a[1]+'</button>').join('')+
+    (m[0].length+m[1].length?'<button type="button" class="'+(at==='mais'?'on':'')+'" onclick="mcMais()">'+MC_SV(MC_IC.mais)+'Mais</button>':'');
+  if(nav.innerHTML!==html) nav.innerHTML=html;
+  let fab=document.getElementById('mcFab');
+  if(!fab){ fab=document.createElement('button'); fab.id='mcFab'; fab.className='mc-fab'; fab.type='button';
+    fab.title='Nova tarefa'; fab.setAttribute('aria-label','Nova tarefa');
+    fab.innerHTML=MC_SV('<path d="M12 5v14M5 12h14"/>'); fab.onclick=mcNova; document.body.appendChild(fab); }
+  /* o "+" so aparece onde criar tarefa faz sentido */
+  fab.classList.toggle('some',!(currentView==='inicio'||currentView==='lista')||!!document.getElementById('mcMais'));
+  if(!tb) return;
+  if(!tb.querySelector('.mc-sino')){
+    const b=document.createElement('button'); b.type='button'; b.className='mc-sino'; b.title='Avisos';
+    b.onclick=()=>render('notificacoes'); b.innerHTML=MC_SV(MC_IC.sino)+'<span class="bdg"></span>';
+    const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b);
+  }
+  const bd=tb.querySelector('.mc-sino .bdg'), n=(document.getElementById('ntfBdg')||{}).textContent||'';
+  if(bd&&bd.textContent!==n) bd.textContent=n;
+  const e=tb.querySelector('.tb-esp');
+  if(e){
+    let w=e.querySelector('.mc-ws'); if(!w){ w=document.createElement('span'); w.className='mc-ws'; e.appendChild(w); }
+    const nm=String(wsNome()||'').trim(), h='<i>'+esc(nm.charAt(0).toUpperCase()||'A')+'</i><b>'+esc(nm)+'</b>';
+    if(w.innerHTML!==h) w.innerHTML=h;
+    /* o mpPintar tambem troca este clique quando entra no Pessoal: aqui ele volta */
+    if(e.onclick!==mcChip) e.onclick=mcChip;
+  }
+}
+window.mcIr=(k)=>{ mcFecha();
+  if(k==='inicio') return spInicio();
+  if(k==='tarefas') return spCaixa();
+  /* depois do clique: o ouvinte de documento fecha a gaveta em qualquer clique fora dela */
+  if(k==='espacos') return setTimeout(spMovel,0);
+  if(k==='agenda') return mpIrAgenda();
+};
+function mcFolha(tipo,html){
+  mcFecha();
+  const ov=document.createElement('div'); ov.id='mcMais'; ov.className='mc-folha-ov'; ov.dataset.tipo=tipo;
+  ov.innerHTML='<div class="mc-folha" role="dialog"><span class="mc-alca"></span>'+html+'</div>';
+  ov.addEventListener('click',(ev)=>{ if(ev.target===ov) mcFecha(); });
+  document.body.appendChild(ov); mcPintar();
+}
+window.mcFecha=()=>{ const f=document.getElementById('mcMais'); if(!f) return; f.remove(); mcPintar(); };
+window.mcMais=()=>{
+  const f=document.getElementById('mcMais'); if(f&&f.dataset.tipo==='mais') return mcFecha();
+  const m=mcItensMais();
+  const it=(b)=>{ const sv=b.querySelector('svg'), t=(b.querySelector('.t')||{}).textContent||b.title||'';
+    return '<button type="button" class="mc-gi'+(b.classList.contains('active')?' on':'')+'" onclick="mcRail(\''+b.id+'\')"><span>'+(sv?sv.outerHTML:'')+'</span>'+esc(t)+'</button>'; };
+  const sec=(tt,arr)=>arr.length?'<div class="mc-sec">'+tt+'</div><div class="mc-grade">'+arr.map(it).join('')+'</div>':'';
+  mcFolha('mais',sec('Trabalho',m[0])+sec('Equipe',m[1]));
+};
+window.mcRail=(id)=>{ mcFecha(); const b=document.getElementById(id); if(b) b.click(); };
+/* "+": dentro de uma lista cria nela; fora, pergunta em qual lista */
+const mcListaCria=(id)=>!!id&&!ehLC(id)&&id!==LF_ID&&!ehFin(id)&&!ehTela(id);
+function mcNova(){
+  if(currentView==='lista'&&TK.escopo==='lista'&&mcListaCria(TK.listaSel)) return tkAbrir();
+  const html=(TK.espacos||[]).filter(espacoDaAtual).map(e=>{
+    const ls=(TK.listas||[]).filter(l=>l.espaco_id===e.id&&mcListaCria(l.id)); if(!ls.length) return '';
+    return '<div class="mc-sec">'+esc(spNome(e))+'</div>'+ls.map(l=>'<button type="button" class="mc-li" onclick="mcNovaEm(\''+l.id+'\')">'+esc(spNome(l))+'</button>').join('');
+  }).join('');
+  mcFolha('nova','<div class="mc-tit">Nova tarefa em qual lista?</div>'+(html||'<div class="hint">Nenhuma lista disponível.</div>'));
+}
+window.mcNovaEm=(id)=>{ mcFecha(); spSelLista(id); setTimeout(()=>tkAbrir(),50); };
+/* repinta quando a tela, o realce da railbar, o contador de avisos ou o tamanho mudam */
+(function(){
+  let pend=false;
+  const agenda=()=>{ if(pend) return; pend=true; requestAnimationFrame(()=>{ pend=false; try{ mcPintar(); }catch(_){} }); };
+  const liga=()=>{
+    const mo=new MutationObserver(agenda), el=(id)=>document.getElementById(id);
+    if(el('content')) mo.observe(el('content'),{childList:true});
+    if(el('railbar')) mo.observe(el('railbar'),{attributes:true,subtree:true,attributeFilter:['class']});
+    if(el('ntfBdg')) mo.observe(el('ntfBdg'),{childList:true,characterData:true,subtree:true});
+    if(el('app')) mo.observe(el('app'),{attributes:true,attributeFilter:['class']});
+    window.addEventListener('resize',agenda);
+    agenda();
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',liga); else liga();
+})();
+
 
 window.spInicio=(quieto)=>{
   if((wsAtual()||{}).tipo==='pessoal'){ MP.aba='inicio'; return render('pessoal'); }
