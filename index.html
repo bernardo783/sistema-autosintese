@@ -3105,7 +3105,31 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .rw-bar{width:160px;height:7px;border-radius:7px;background:var(--panel2);overflow:hidden;display:block}
 .rw-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2))}
 .rw-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.rw-ln{display:grid;grid-template-columns:38px minmax(0,1.4fr) minmax(0,1.2fr) minmax(0,.9fr) auto;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--line)}
+.rw-ln{display:grid;grid-template-columns:38px minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) 128px 132px;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--line)}
+.rw-cab{padding:6px 4px;border-top:none;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);font-weight:800}
+.rw-cc{min-width:0}.rw-ac{justify-self:end}
+.rw-ct{border-style:solid;color:var(--txt)}
+.rw-ct small{color:var(--fraco);font-size:11px;flex:none}
+.rw-mes{display:flex;align-items:center;gap:5px}
+.rw-mes b{font-size:12.5px;margin-left:4px;color:var(--txt)}
+.rw-dt{width:17px;height:17px;border-radius:50%;flex:none;display:grid;place-items:center;font-style:normal;font-size:9px;font-weight:900;
+  border:1.5px solid var(--line);color:var(--fraco)}
+.rw-dt.ok{background:var(--ok);border-color:var(--ok);color:#0b2a1c}
+.rw-dt.pen{border-color:var(--warn);color:var(--warn)}
+.rw-dt.err{background:color-mix(in srgb,var(--danger) 25%,transparent);border-color:var(--danger);color:var(--danger)}
+.rw-dt.falta{border-color:color-mix(in srgb,var(--danger) 55%,transparent);color:var(--danger)}
+.rw-dt.fut{border-style:dashed;border-color:var(--muted);color:var(--muted);opacity:.75}
+.rw-dt.atual{box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--brand2)}
+.rw-fs{align-items:center}
+.rw-fs-k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fraco);font-weight:800;padding:0 10px}
+.rw-fs button small{color:var(--fraco);font-weight:700;margin-left:2px}
+.rw-aviso{font-size:12px;color:var(--fraco);margin:0 0 6px;min-height:0}
+.rw-aviso:empty{display:none}
+.rw-bm{font-size:12.5px;color:var(--muted);line-height:1.5}
+.rw-bm-q{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font:inherit;font-size:11px;font-weight:800;cursor:pointer;vertical-align:middle;margin-left:4px}
+.rw-bm-a{margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--panel2);font-size:12.5px;color:var(--txt)}
+.rw-bm-id{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rw-gi b .rw-gi-id{display:block;font-size:11px;font-weight:600;color:var(--fraco);margin-top:1px}
 .rw-lg{width:38px;height:38px;border-radius:11px;overflow:hidden;display:grid;place-items:center;background:var(--panel2);color:var(--brand2);font-weight:800;font-size:12px}
 .rw-lg img{width:100%;height:100%;object-fit:contain;background:#fff}
 .rw-lgb{position:relative;width:38px;height:38px;border:none;padding:0;background:none;cursor:pointer;display:block}
@@ -3146,7 +3170,8 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .rw-esp div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;font-weight:700;font-size:13.5px}
 @media(max-width:720px){
   .rw-ln{grid-template-columns:38px minmax(0,1fr) auto;row-gap:8px}
-  .rw-nm,.rw-gc{grid-column:2/4}.rw-sc{grid-column:2/3}.rw-ac{grid-column:3/4;justify-self:end}
+  .rw-cab{display:none}
+  .rw-nm,.rw-gc,.rw-cc{grid-column:2/4}.rw-sc{grid-column:2/3}.rw-ac{grid-column:3/4;justify-self:end}
   .rw-prog{margin-left:0;width:100%}.rw-bar{flex:1}
 }
 /* 3A — primeiro passo: aparece com zero habitos, em qualquer tamanho de tela */
@@ -6077,10 +6102,11 @@ function abrirEditorRelatorio(rel,env){   /* env: veio da aba Relatórios, mostr
 const RW_URL='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/relatorio-whats/';
 /* "últimos N dias" fecha em ONTEM: dias completos, do jeito que o Meta conta. true = inclui hoje */
 const RW_ATE_HOJE=false;
-const RW={grupos:{},envios:[],ok:false,lista:null,listaEm:0,gestor:'',busca:''};
+const RW={grupos:{},envios:[],ok:false,lista:null,listaEm:0,gestor:'',busca:'',fsem:''};
 let FC_GRUPO=null;   /* grupo escolhido no Fechamento, gravado depois que a ficha nasce */
 const RW_IC_WA='<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9z"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>';
 const RW_IC_LAPIS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>';
+const RW_IC_META='<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>';
 const RW_IC_LINK='<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15l6-6"/><path d="M11 6l.46-.54a5 5 0 0 1 7.07 7.07L18 13"/><path d="M13 18l-.4.53a5.07 5.07 0 0 1-7.12 0 4.97 4.97 0 0 1 0-7.07L6 11"/></svg>';
 async function rwApi(acao,corpo){
   const s=(await sb.auth.getSession()).data.session;
@@ -6104,41 +6130,58 @@ const rwGrupo=(fid)=>RW.grupos[String(fid||'')]||null;
 const rwNorm=(s)=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const rwCap=(s)=>{ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); };
 const rwDM=(iso)=>String(iso||'').slice(8,10)+'/'+String(iso||'').slice(5,7);
-const rwChefe=()=>{ const u=currentUser||{}; return u.role==='master'||!!u.gerente; };
 function rwPeriodo(dias){ const fim=RW_ATE_HOJE?tkHoje():tkDiaMais(tkHoje(),-1); return {de:tkDiaMais(fim,-(dias-1)),ate:fim,dias}; }
-const rwMsg=(p)=>`Olá pessoal, tudo bem? Segue relatório referente aos últimos ${p.dias} dias (${rwDM(p.de)} até ${rwDM(p.ate)}).`;
+const rwMsg=(p)=>p.dias>=28?`Olá pessoal, tudo bem? Segue o relatório mensal referente aos últimos ${p.dias} dias (${rwDM(p.de)} até ${rwDM(p.ate)}).`
+  :`Olá pessoal, tudo bem? Segue relatório referente aos últimos ${p.dias} dias (${rwDM(p.de)} até ${rwDM(p.ate)}).`;
 const rwArquivo=(nome,p)=>'Relatorio-'+(rwNorm(nome).replace(/ /g,'-')||'cliente')+'-'+rwDM(p.de).replace('/','-')+'-a-'+rwDM(p.ate).replace('/','-')+'.pdf';
 function rwQuando(iso){ const d=new Date(iso); if(isNaN(d)) return '';
   return ['dom','seg','ter','qua','qui','sex','sáb'][d.getDay()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
-/* o que conta pro "enviado" da lista: envio desta semana, desde segunda */
-function rwDaSemana(fid){
-  const seg=mpSegDa(tkHoje());
-  const es=RW.envios.filter(e=>String(e.ficha_id)===String(fid)&&tkISO(new Date(e.enviado_em))>=seg);
-  return {ok:es.find(e=>e.ok)||null, falha:es.find(e=>!e.ok)||null};
-}
-/* Quem entra (Bernardo 05/10: "o gestor vê só os clientes atribuídos pra ele em Controle de
-   Clientes"): os cards vivos do Controle de Clientes, e o gestor é a coluna Gestor de Tráfego do
-   card (LC_GEST, id do perfil). Card sem gestor só entra se tiver conta de anúncio, e só o master
-   ou gerente vê (filtro "Sem gestor"). A edge relatorio-whats usa a mesma coluna pra decidir
-   quem pode enviar e por qual WhatsApp sai. */
+/* Quem entra (Bernardo 05/10, 2ª versão): a aba ESPELHA o Controle de Clientes do gestor
+   responsável. Entra todo card vivo do LC com a coluna Gestor de Tráfego preenchida (LC_GEST, id
+   do perfil); card só de Agent IA não entra (o app apaga o gestor dele, e o catDe confirma).
+   Card de tráfego sem gestor fica fora da lista e só aparece no contador do cabeçalho. A edge
+   relatorio-whats usa a mesma coluna pra decidir quem envia e por qual WhatsApp. */
 function rwClientes(){
   const vistos=new Set(), out=[];
   (TK.tarefas||[]).forEach(t=>{
     if(!ehLC(t.lista_id)||!t.ficha_id||arquivada(t)||faseDe(t)==='fechado') return;
-    const f=fichaDe(t.ficha_id); if(!f||!String(f.nome||'').trim()||vistos.has(String(f.id))) return;
-    const gid=String((t.valores||{})[LC_GEST]||'');
-    if(!gid&&!contasDoCliente(f.id).length) return;
+    const gid=String((t.valores||{})[LC_GEST]||''); if(!gid) return;
+    const f=fichaDe(t.ficha_id); if(!f||!String(f.nome||'').trim()||vistos.has(String(f.id))||catDe(f)==='ia') return;
     vistos.add(String(f.id)); out.push({f,gid});
   });
   return out;
 }
+/* cards de tráfego sem gestor: avisados no cabeçalho pra quem pode atribuir (master e gerente) */
+function rwSemGestor(){
+  const vistos=new Set(), out=[];
+  (TK.tarefas||[]).forEach(t=>{
+    if(!ehLC(t.lista_id)||!t.ficha_id||arquivada(t)||faseDe(t)==='fechado'||(t.valores||{})[LC_GEST]) return;
+    const f=fichaDe(t.ficha_id); if(!f||vistos.has(String(f.id))||!['trafego','full'].includes(catDe(f))) return;
+    vistos.add(String(f.id)); out.push(f);
+  });
+  return out;
+}
 
-/* quem aparece pra quem: master e gerente veem todos (ou um gestor, ou "-" = sem gestor no card);
-   gestor vê só os cards em que ele é o Gestor de Tráfego */
-function rwVisiveis(todos,chefe,eu,filtro){
-  if(!chefe) return todos.filter(x=>x.gid&&x.gid===String(eu||''));
-  if(filtro==='-') return todos.filter(x=>!x.gid);
-  return filtro?todos.filter(x=>x.gid===filtro):todos;
+/* quem aparece pra quem: master vê todos; gerente, a carteira dele (fichaNoMeuSquad, a mesma
+   régua do resto do app); gestor, só os cards em que ele é o Gestor de Tráfego */
+const rwPapel=()=>{ const u=currentUser||{}; return u.role==='master'?'master':(u.gerente?'gerente':'gestor'); };
+function rwVisiveis(todos,papel,eu,filtro,naCarteira){
+  const v=papel==='master'?todos:papel==='gerente'?todos.filter(x=>naCarteira(x.f)):todos.filter(x=>x.gid&&x.gid===String(eu||''));
+  return papel!=='gestor'&&filtro?v.filter(x=>x.gid===filtro):v;
+}
+/* Mês de relatórios (Bernardo 05/10): uma semana por segunda-feira do mês; o relatório sai na
+   semana e cobre a anterior. O da última semana do mês é o MENSAL (30 dias). O mês é o da
+   segunda-feira da semana atual, então de 01 a 04/10 ainda vale setembro. */
+function rwSemanasDoMes(seg){ const d=new Date(seg+'T12:00:00'), y=d.getFullYear(), m=d.getMonth(), out=[];
+  for(let dia=1;dia<=31;dia++){ const x=new Date(y,m,dia,12); if(x.getMonth()!==m) break; if(x.getDay()===1) out.push(tkISO(x)); }
+  return out; }
+const rwEhMensal=(seg)=>tkDiaMais(seg,7).slice(0,7)!==seg.slice(0,7);
+function rwMes(fid,envios,hoje){
+  const atual=mpSegDa(hoje), dias=(e)=>tkISO(new Date(e.enviado_em));
+  const sem=rwSemanasDoMes(atual).map(seg=>{ const fim=tkDiaMais(seg,6);
+    const doCli=(envios||[]).filter(e=>String(e.ficha_id)===String(fid)&&dias(e)>=seg&&dias(e)<=fim);
+    return {seg,ok:doCli.find(e=>e.ok)||null,falha:doCli.find(e=>!e.ok)||null,mensal:rwEhMensal(seg),atual:seg===atual,futura:seg>atual}; });
+  return {sem,feitos:sem.filter(s=>s.ok).length,total:sem.length,agora:sem.find(s=>s.atual)||{}};
 }
 
 /* ---------- aba Relatórios ---------- */
@@ -6154,40 +6197,54 @@ async function rwPintar(){
 }
 function rwDesenhar(){
   const box=document.getElementById('rwBox'); if(!box) return;
-  const chefe=rwChefe(), eu=String((currentUser||{}).id||''), p=rwPeriodo(7);
+  const papel=rwPapel(), chefe=papel!=='gestor', eu=String((currentUser||{}).id||''), hoje=tkHoje();
+  const seg=mpSegDa(hoje), mensal=rwEhMensal(seg), p=rwPeriodo(mensal?30:7);
   const todos=rwClientes();
-  const gestores=[...new Set(todos.map(x=>x.gid).filter(Boolean))].map(id=>({id,nome:tkNomeUser(id)||'Gestor'})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-  const semGestor=todos.some(x=>!x.gid);
-  const sel=rwVisiveis(todos,chefe,eu,RW.gestor);
-  const gDe=new Map(sel.map(x=>[String(x.f.id),x.gid]));
-  const cs=sel.map(x=>x.f);
-  const comConta=cs.filter(f=>contasDoCliente(f.id).length);
-  const env=comConta.filter(f=>rwDaSemana(f.id).ok).length, tot=comConta.length;
+  const base=rwVisiveis(todos,papel,eu,'',fichaNoMeuSquad);
+  const gestores=[...new Set(base.map(x=>x.gid))].map(id=>({id,nome:tkNomeUser(id)||'Gestor'})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  const sel=rwVisiveis(todos,papel,eu,RW.gestor,fichaNoMeuSquad);
+  const info=sel.map(x=>({x,m:rwMes(x.f.id,RW.envios,hoje),contas:contasDoCliente(x.f.id),g:rwGrupo(x.f.id)}));
+  const env=info.filter(i=>i.m.agora.ok).length, tot=info.length, semConta=info.filter(i=>!i.contas.length).length;
+  const semG=chefe?rwSemGestor().filter(f=>papel==='master'||fichaNoMeuSquad(f)):[];
   if(!box.querySelector('#rwLst')){
     box.innerHTML=`<div class="rw-head">
-        <div><h3>Relatórios da semana</h3><div class="hint" style="margin:3px 0 0">Período padrão: ${rwDM(p.de)} a ${rwDM(p.ate)} · ${chefe?'clientes de todos os gestores':'clientes atribuídos a você no Controle de Clientes'}</div></div>
+        <div><h3>Relatórios</h3><div class="hint" style="margin:3px 0 0" id="rwSub"></div></div>
         <div class="rw-prog" id="rwProg"></div></div>
       <div class="rw-tools">
-        ${chefe?`<select class="search" style="max-width:220px" onchange="RW.gestor=this.value;rwDesenhar()"><option value="">Todos os gestores</option>${gestores.map(g=>`<option value="${esc(g.id)}"${RW.gestor===g.id?' selected':''}>${esc(g.nome)}</option>`).join('')}${semGestor?`<option value="-"${RW.gestor==='-'?' selected':''}>Sem gestor no card</option>`:''}</select>`:''}
-        <input class="search" id="rwQ" placeholder="Buscar cliente…" style="max-width:220px" value="${esc(RW.busca)}" oninput="RW.busca=this.value;rwDesenhar()">
+        ${chefe?`<select class="search" id="rwGsel" style="max-width:200px" onchange="RW.gestor=this.value;rwDesenhar()"></select>`:''}
+        <input class="search" id="rwQ" placeholder="Buscar cliente…" style="max-width:200px" value="${esc(RW.busca)}" oninput="RW.busca=this.value;rwDesenhar()">
+        <div class="rw-seg rw-fs" id="rwFs" role="group" aria-label="Filtro desta semana"></div>
         <button class="btn secondary small" onclick="RW.ok=false;rwPintar()" title="Buscar de novo os vínculos e envios">↻ Atualizar</button>
       </div>
+      <div class="rw-aviso" id="rwAviso"></div>
+      <div class="rw-ln rw-cab"><span></span><span>Cliente</span><span>Grupo do WhatsApp</span><span>Conta de anúncios</span><span>Relatórios no mês</span><span></span></div>
       <div id="rwLst"></div>`;
   }
+  const gs=box.querySelector('#rwGsel');
+  if(gs) gs.innerHTML=`<option value="">${papel==='master'?'Todos os gestores':'Toda a minha carteira'}</option>`+gestores.map(g=>`<option value="${esc(g.id)}"${RW.gestor===g.id?' selected':''}>${esc(g.nome)}</option>`).join('');
+  box.querySelector('#rwSub').innerHTML=`Semana de ${rwDM(seg)} · ${mensal?'<b>relatório mensal</b>, últimos 30 dias':'relatório semanal'} (${rwDM(p.de)} a ${rwDM(p.ate)})${chefe?'':' · clientes em que você é o Gestor de Tráfego no Controle de Clientes'}`;
+  box.querySelector('#rwProg').innerHTML=tot?`<span class="rw-bar"><i style="width:${Math.round(env/tot*100)}%"></i></span><span><b>${env} de ${tot}</b> enviados nesta semana</span>`:'';
+  /* filtro desta semana: deixa claro que o "falta" é desta semana, não do mês */
+  const fs=[['','Todos',tot],['falta','Falta enviar',tot-env],['enviados','Enviados',env]];
+  box.querySelector('#rwFs').innerHTML='<span class="rw-fs-k">Esta semana</span>'+fs.map(([k,t,n])=>`<button type="button" class="${(RW.fsem||'')===k?'on':''}" onclick="RW.fsem='${k}';rwDesenhar()">${t} <small>${n}</small></button>`).join('');
+  const av=[];
+  if(semConta) av.push(`<a class="rw-lk" onclick="RW.fsem='semconta';rwDesenhar()">${semConta} sem conta de anúncios</a>`);
+  if(semG.length) av.push(`<span title="${esc(semG.map(f=>f.nome).join(', '))}">${semG.length} de tráfego sem Gestor de Tráfego no Controle de Clientes</span>`);
+  if(RW.fsem==='semconta') av.push(`<a class="rw-lk" onclick="RW.fsem='';rwDesenhar()">mostrar todos</a>`);
+  box.querySelector('#rwAviso').innerHTML=av.join(' · ');
   const q=rwNorm(RW.busca);
-  const vis=cs.filter(f=>!q||rwNorm(f.nome).includes(q));
-  /* o que falta fazer primeiro: falhou, pendente, sem grupo; depois enviados; sem conta no fim */
-  const ordem=(f)=>{ const s=rwDaSemana(f.id); if(!contasDoCliente(f.id).length) return 4; if(s.ok) return 3; if(!rwGrupo(f.id)) return 2; return s.falha?0:1; };
-  vis.sort((a,b)=>ordem(a)-ordem(b)||String(a.nome).localeCompare(String(b.nome),'pt-BR'));
-  const pr=box.querySelector('#rwProg');
-  if(pr) pr.innerHTML=tot?`<span class="rw-bar"><i style="width:${Math.round(env/tot*100)}%"></i></span><span><b>${env} de ${tot}</b> enviados</span>`:'';
-  box.querySelector('#rwLst').innerHTML=vis.map(f=>rwLinha(f,chefe,gDe.get(String(f.id)))).join('')||
-    `<div class="empty">${cs.length?'Nenhum cliente com esse nome.':(chefe?'Nenhum cliente nesse filtro.':'Nenhum cliente atribuído a você no Controle de Clientes. O gestor de cada cliente é a coluna Gestor de Tráfego do card.')}</div>`;
+  const vis=info.filter(i=>(!q||rwNorm(i.x.f.nome).includes(q))
+    &&(RW.fsem==='falta'?!i.m.agora.ok:RW.fsem==='enviados'?!!i.m.agora.ok:RW.fsem==='semconta'?!i.contas.length:true));
+  /* o que falta fazer primeiro: falhou, pendente com tudo pronto, sem grupo, sem conta; enviados no fim */
+  const ordem=(i)=>i.m.agora.ok?4:!i.contas.length?3:!i.g?2:i.m.agora.falha?0:1;
+  vis.sort((a,b)=>ordem(a)-ordem(b)||String(a.x.f.nome).localeCompare(String(b.x.f.nome),'pt-BR'));
+  box.querySelector('#rwLst').innerHTML=vis.map(i=>rwLinha(i,chefe)).join('')||
+    `<div class="empty">${sel.length?'Nenhum cliente nesse filtro.':(chefe?'Nenhum cliente com Gestor de Tráfego no Controle de Clientes.':'Nenhum cliente atribuído a você no Controle de Clientes. O gestor de cada cliente é a coluna Gestor de Tráfego do card.')}</div>`;
 }
-function rwLinha(f,chefe,gid){
-  const contas=contasDoCliente(f.id), g=rwGrupo(f.id), s=rwDaSemana(f.id);
-  const gasto=contas.reduce((t,m)=>{ const v=(window.__mtDados||[]).find(x=>x.id===m.id); return t+(+((v&&v.ins)||{}).spend||0); },0);
-  const cl=contas.find(m=>logoDe(m))||contas[0], lg=cl?logoDe(cl):'';
+function rwLinha(i,chefe){
+  const f=i.x.f, gid=i.x.gid, contas=i.contas, g=i.g, m=i.m;
+  const gasto=contas.reduce((t,c)=>{ const v=(window.__mtDados||[]).find(x=>x.id===c.id); return t+(+((v&&v.ins)||{}).spend||0); },0);
+  const cl=contas.find(c=>logoDe(c))||contas[0], lg=cl?logoDe(cl):'';
   const ini=String(f.nome||'').trim().split(/\s+/).slice(0,2).map(w=>w.charAt(0)).join('').toUpperCase();
   const fig=lg?`<img src="${esc(lg)}" alt="">`:esc(ini);
   /* logo editável aqui mesmo (Bernardo 05/10): abre a Marca da conta, que é a logo e as cores do relatório */
@@ -6195,18 +6252,86 @@ function rwLinha(f,chefe,gid){
     :`<span class="rw-lg">${fig}</span>`;
   const gH=g?`<button type="button" class="rw-g on" onclick="rwEscolher('${f.id}',rwDesenhar)" title="Trocar o grupo">${RW_IC_WA}<span>${esc(g.grupo_nome)}</span></button>`
            :`<button type="button" class="rw-g" onclick="rwEscolher('${f.id}',rwDesenhar)">${RW_IC_LINK}<span>vincular grupo</span></button>`;
-  let stH, ac;
-  if(!contas.length){ stH='<span class="rw-st cin">sem conta de anúncio</span>'; ac='<button class="btn secondary small" onclick="abrirVinculos()">Vincular conta</button>'; }
-  else if(s.ok){ stH=`<span class="rw-st ok" title="${esc('Enviado em '+(s.ok.grupo_nome||'')+(s.ok.instancia?' pelo WhatsApp de '+rwCap(s.ok.instancia):''))}">enviado ${esc(rwQuando(s.ok.enviado_em))}</span>`;
-    ac=`<button class="btn secondary small" onclick="rwEnviar('${f.id}')">Reenviar</button>`; }
-  else{ stH=s.falha?`<span class="rw-st err" title="${esc(s.falha.erro||'')}">falhou ${esc(rwQuando(s.falha.enviado_em))}</span>`:'<span class="rw-st pen">pendente</span>';
-    ac=g?`<button class="btn small" onclick="rwEnviar('${f.id}')">Enviar relatório</button>`
-        :`<button class="btn secondary small" onclick="rwEscolher('${f.id}',()=>rwEnviar('${f.id}'))">Vincular e enviar</button>`; }
-  const sub=[contas.length?esc(contas[0].id)+(contas.length>1?' +'+(contas.length-1):''):'',gasto?brl(gasto)+' em 7 dias':'',chefe?(gid?esc(tkNomeUser(gid)||''):'sem gestor no card'):''].filter(Boolean).join(' · ');
+  const nomeConta=(c)=>{ const v=(window.__mtDados||[]).find(x=>x.id===c.id); return (v&&v.nome)||c.nome||c.id; };
+  const cH=contas.length?`<button type="button" class="rw-g rw-ct" onclick="rwEscolherConta('${f.id}',rwDesenhar)" title="${esc(contas.map(c=>nomeConta(c)+' · '+c.id).join('\n'))}">${RW_IC_META}<span>${esc(nomeConta(contas[0]))}</span>${contas.length>1?`<small>+${contas.length-1}</small>`:''}</button>`
+           :`<button type="button" class="rw-g" onclick="rwEscolherConta('${f.id}',rwDesenhar)">${RW_IC_LINK}<span>vincular conta</span></button>`;
+  const dot=(s)=>{ const est=s.ok?'ok':s.futura?'fut':s.atual?(s.falha?'err':'pen'):'falta';
+    const tx=s.ok?'enviado '+rwQuando(s.ok.enviado_em)+(s.ok.instancia?' pelo WhatsApp de '+rwCap(s.ok.instancia):''):s.futura?'ainda não chegou':s.atual?(s.falha?'falhou: '+(s.falha.erro||''):'falta enviar'):'não foi enviado';
+    return `<i class="rw-dt ${est}${s.atual?' atual':''}" title="${esc('Semana de '+rwDM(s.seg)+' · '+(s.mensal?'mensal':'semanal')+' · '+tx)}">${s.mensal?'M':''}</i>`; };
+  const mH=`<div class="rw-mes">${m.sem.map(dot).join('')}<b>${m.feitos}/${m.total}</b></div>`;
+  let ac;
+  if(!contas.length) ac=`<button class="btn secondary small" onclick="rwEscolherConta('${f.id}',rwDesenhar)">Vincular conta</button>`;
+  else if(m.agora.ok) ac=`<button class="btn secondary small" onclick="rwEnviar('${f.id}')">Reenviar</button>`;
+  else if(!g) ac=`<button class="btn secondary small" onclick="rwEscolher('${f.id}',()=>rwEnviar('${f.id}'))">Vincular e enviar</button>`;
+  else ac=`<button class="btn small" onclick="rwEnviar('${f.id}')">Enviar ${m.agora.mensal?'mensal':'relatório'}</button>`;
+  const sub=[gasto?brl(gasto)+' em 7 dias':'',chefe?esc(tkNomeUser(gid)||''):''].filter(Boolean).join(' · ');
   return `<div class="rw-ln">${tile}
     <div class="rw-nm"><b>${esc(f.nome)}</b><small>${sub||'&nbsp;'}</small></div>
-    <div class="rw-gc">${gH}</div><div class="rw-sc">${stH}</div><div class="rw-ac">${ac}</div></div>`;
+    <div class="rw-gc">${gH}</div><div class="rw-cc">${cH}</div><div class="rw-sc">${mH}</div><div class="rw-ac">${ac}</div></div>`;
 }
+/* ---------- escolher a conta de anúncios (aba Relatórios; o card do Controle de Clientes usa o mesmo) ----------
+   A ligação é a de sempre, DB.contasMeta[].fichaId (igual ao "Vincular a clientes"). A lista é a
+   mtContas(): o /me/adaccounts do token da BM, ou seja, só as contas que a BM enxerga. */
+const RW_BM={nome:'Sintese Solucoes Tecnologicas LTDA',id:'1336723773532458'};
+function rwEsperaContas(ms){ return new Promise(ok=>{ const t0=Date.now();
+  const v=()=>{ if((window.__mtDados||[]).length&&!window.__mtBuscando||Date.now()-t0>ms) return ok(); setTimeout(v,300); }; v(); }); }
+window.rwEscolherConta=async(fid,depois)=>{
+  const f=fichaDe(fid); if(!f){ toast('Cliente não encontrado.'); return; }
+  const v=document.getElementById('rwCOv'); if(v) v.remove();
+  const ov=document.createElement('div'); ov.id='rwCOv'; ov.className='overlay rw-gov';
+  ov.innerHTML=`<div class="modal" style="max-width:500px"><div class="mhead"><h3>Conta de anúncios · ${esc(f.nome)}</h3><button class="x" id="rwCx" title="Fechar" aria-label="Fechar">&times;</button></div>
+    <div class="mbody">
+      <div class="rw-bm">Só aparecem as contas atribuídas como parceiro à BM <b>${esc(RW_BM.nome)}</b>.
+        <button type="button" class="rw-bm-q" id="rwBmQ" aria-expanded="false" title="Não achou a conta?">?</button>
+        <div class="rw-bm-a" id="rwBmA" hidden>Se a conta não está na lista, o cliente precisa compartilhar a conta de anúncios com essa BM como parceira.
+          <div class="rw-bm-id">ID da BM: <b>${RW_BM.id}</b> <button type="button" class="btn secondary small" id="rwBmCp">Copiar ID</button></div></div></div>
+      <input class="search" id="rwCq" placeholder="Buscar conta pelo nome ou ID…" style="width:100%;max-width:none;margin-top:10px" autocomplete="off">
+      <div class="hint" id="rwCi" style="margin:8px 0">Carregando as contas do Meta…</div>
+      <div id="rwCl" class="rw-gl"></div></div>
+    <div class="mfoot"><span style="flex:1"></span><button type="button" class="btn secondary small" id="rwCrec">↻ Atualizar contas</button></div></div>`;
+  document.body.appendChild(ov);
+  const fecha=()=>ov.remove();
+  ov.onclick=e=>{ if(e.target===ov) fecha(); };
+  ov.querySelector('#rwCx').onclick=fecha;
+  ov.querySelector('#rwBmQ').onclick=()=>{ const a=ov.querySelector('#rwBmA'), q=ov.querySelector('#rwBmQ'); a.hidden=!a.hidden; q.setAttribute('aria-expanded',String(!a.hidden)); };
+  ov.querySelector('#rwBmCp').onclick=async()=>{ try{ await navigator.clipboard.writeText(RW_BM.id); toast('ID da BM copiado.'); }catch(_){ toast('ID da BM: '+RW_BM.id); } };
+  const qEl=ov.querySelector('#rwCq'), info=ov.querySelector('#rwCi'), lst=ov.querySelector('#rwCl');
+  let vis=[];
+  const pinta=()=>{
+    const contas=mtContas();
+    if(!contas.length){ info.textContent=window.__mtBuscando?'Carregando as contas do Meta…':'Nenhuma conta do Meta carregada. Use ↻ Atualizar contas.'; lst.innerHTML=''; return; }
+    const q=rwNorm(qEl.value);
+    vis=contas.map(c=>{ const mc=contaMarca(c.id), dono=mc&&mc.fichaId?String(mc.fichaId):'';
+        return {c,dono,minha:dono===String(fid),p:semelhanca(c.nome,f.nome)}; })
+      .filter(x=>!q||rwNorm(x.c.nome+' '+x.c.id).includes(q))
+      .sort((a,b)=>(b.minha-a.minha)||b.p-a.p||String(a.c.nome).localeCompare(String(b.c.nome),'pt-BR')).slice(0,200);
+    info.textContent=contas.length+' contas na BM'+(q?' · '+vis.length+' com esse nome':'');
+    lst.innerHTML=vis.map((x,i)=>{ const outro=x.dono&&!x.minha?(fichaDe(x.dono)||{}).nome||'outro cliente':'';
+      const sug=!x.minha&&!x.dono&&i<3&&x.p>=0.5&&!q;
+      return `<button type="button" class="rw-gi${x.minha?' on':''}" data-i="${i}"><b>${esc(x.c.nome||x.c.id)}<small class="rw-gi-id">${esc(x.c.id)}</small></b>${x.minha?'<span class="rw-sug">ligada · tocar desliga</span>':sug?'<span class="rw-sug">sugerida</span>':''}<small>${outro?'de '+esc(outro):''}</small></button>`; }).join('')
+      ||'<div class="hint" style="margin:0">Nenhuma conta com esse nome. Veja o "?" acima.</div>';
+    lst.querySelectorAll('.rw-gi').forEach(b=>{ b.onclick=()=>escolhe(vis[+b.dataset.i]); });
+  };
+  const escolhe=async(x)=>{
+    const acc=x.c; let m=contaMarca(acc.id);
+    if(x.minha){
+      if(!confirm('Desligar a conta "'+(acc.nome||acc.id)+'" de '+f.nome+'?')) return;
+      delete m.fichaId;
+    }else{
+      if(x.dono&&!confirm('A conta "'+(acc.nome||acc.id)+'" está ligada a '+((fichaDe(x.dono)||{}).nome||'outro cliente')+'. Passar para '+f.nome+'?')) return;
+      if(!m){ m={id:acc.id,nome:acc.nome||acc.id,logo:'',cor1:'#14100b',cor2:'#b08d3e',fundo:'#f5f0e8'}; DB.contasMeta.push(m); }
+      m.fichaId=String(fid); if(f.nome&&!logoDe(m)) m.nome=f.nome;
+    }
+    try{ await saveDB(); }catch(e){ toast('Não salvou: '+(e.message||e)); return; }
+    toast(x.minha?'Conta desligada.':'Conta ligada a '+f.nome+'.');
+    fecha(); try{ metaDesenhar(); }catch(_){} if(depois) depois();
+  };
+  qEl.oninput=pinta;
+  ov.querySelector('#rwCrec').onclick=async()=>{ info.textContent='Buscando as contas no Meta…'; await metaCarregar(true); await rwEsperaContas(20000); pinta(); };
+  setTimeout(()=>qEl.focus(),30);
+  if(!mtContas().length){ if(!window.__mtBuscando) metaCarregar(true); await rwEsperaContas(20000); }
+  pinta();
+};
 
 /* ---------- escolher o grupo (aba, card do Controle de Clientes e Fechamento) ----------
    Sem ficha (Fechamento: o cliente ainda não existe) só devolve a escolha, quem chamou grava. */
@@ -6313,7 +6438,8 @@ window.rwEnviar=async(fid,accId)=>{
     const sv=document.querySelector('.overlay .msave'); if(sv) sv.remove();
     return;
   }
-  await rwAbrir({fid,accId:accId||contas[0].id,dias:7,msg:null,msgAuto:true});
+  /* na última semana do mês o relatório já vem mensal (Bernardo 05/10) */
+  await rwAbrir({fid,accId:accId||contas[0].id,dias:rwEhMensal(mpSegDa(tkHoje()))?30:7,msg:null,msgAuto:true});
 };
 function rwEspera(t){ const el=document.createElement('div'); el.className='rw-esp'; el.innerHTML='<div>'+esc(t)+'</div>'; document.body.appendChild(el); return el; }
 async function rwAbrir(env){
@@ -6336,7 +6462,7 @@ function rwPainelHtml(env){
     <div class="rw-pn-t">${RW_IC_WA} Enviar no WhatsApp</div>
     <div class="rw-pn-k">PERÍODO</div>
     <div class="rw-seg"><button type="button" data-d="7" class="${env.dias===7?'on':''}">7 dias</button><button type="button" data-d="30" class="${env.dias===30?'on':''}">30 dias</button></div>
-    <div class="hint" style="margin:6px 0 0">${rwDM(env.per.de)} a ${rwDM(env.per.ate)}</div>
+    <div class="hint" style="margin:6px 0 0">${rwDM(env.per.de)} a ${rwDM(env.per.ate)}${rwEhMensal(mpSegDa(tkHoje()))?' · última semana do mês: relatório mensal':''}</div>
     <div class="rw-pn-k">PARA</div>
     <div id="rwPara">${rwParaHtml(g)}</div>
     <div class="rw-pn-k">MENSAGEM</div>
