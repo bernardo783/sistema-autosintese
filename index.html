@@ -19162,10 +19162,13 @@ function fdEscritorios(comp){
   const fixos=DB.folhaFixos.filter(f=>f.tipo!=='pessoa'&&String(f.esc||'').trim());
   const linha=(p)=>{
      const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
-     return `<tr><td><strong>${esc(p.nome)}</strong>${p.descricao?`<div class="rc-sub">${esc(p.descricao)}</div>`:''}</td><td>${fmtDate(p.venc)||'-'}</td>
+     /* chave Pix da conta fixa à mão na linha do mês, com botão de copiar (Bernardo 05/10):
+        antes ela só aparecia dentro do formulário da conta fixa */
+     const fx=fixoById[p.fixoId]||{};
+     return `<tr><td><strong>${esc(p.nome)}</strong>${p.descricao?`<div class="rc-sub">${esc(p.descricao)}</div>`:''}${fx.pix?`<div class="rc-sub">Pix: ${esc(fx.pix)}${fx.titular?' · '+esc(fx.titular):''}</div>`:''}</td><td>${fmtDate(p.venc)||'-'}</td>
       <td class="money" style="text-align:right">${(!Number(p.valor)&&(fixoById[p.fixoId]||{}).variavel)?`<button type="button" class="iconbtn" onclick="openFpModal('${p.id}')" title="Conta variável: lance o valor da fatura deste mês">preencher</button>`:brl(p.valor)}</td><td>${st}</td>
       <td><div class="rowact">${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${p.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${p.id}')">Pagar</button>`}
-        <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button><button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button></div></td></tr>`; };
+        ${fx.pix?`<button class="iconbtn" onclick="copyPixFixo('${esc(fx.id)}')">Copiar Pix</button>`:''}<button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button><button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button></div></td></tr>`; };
   /* um bloco por escritório, do que mais gasta pro que menos */
   const por={}; pays.forEach(p=>{ const e=escDe(p); (por[e]=por[e]||[]).push(p); });
   const escs=Object.keys(por).sort((a,b)=>fdSoma(por[b],'valor')-fdSoma(por[a],'valor')||a.localeCompare(b,'pt-BR'));
