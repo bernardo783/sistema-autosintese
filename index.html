@@ -12485,6 +12485,8 @@ async function lgCardDe(fid){
     return r?String(r.id):'';
   }catch(_){ return ''; }
 }
+/* "usar nos relatorios": moldura de imagem com um check */
+const LG_REL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m8 12 3 3 5-6"/></svg>';
 const LG_DL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>';
 /* modo 'ficha' = sobe e remove; modo 'tarefa' = so ve e baixa */
 window.lgPintar=async (boxId,fid,modo)=>{
@@ -12517,12 +12519,14 @@ window.lgPintar=async (boxId,fid,modo)=>{
       <div class="lg-rod">
         <div class="nm"><div class="t1">Logo dos relatórios</div><div class="t2">a mesma do relatório de tráfego</div></div>
         <button class="iconbtn" type="button" title="Baixar" aria-label="Baixar a logo dos relatórios" onclick="lgBaixarRel('${esc(fid)}')">${LG_DL}</button>
+        ${modo==='ficha'?`<button class="iconbtn del" type="button" title="Tirar dos relatórios" aria-label="Tirar a logo dos relatórios" onclick="lgTirarRel('${esc(fid)}')">&times;</button>`:''}
       </div></div>`:'';
   const grade=(logos.length||rel)?`<div class="lg-grid">${itRel}${logos.map(x=>`<div class="lg-it">
       <div class="lg-pv" data-lg="${x.id}" title="Clique para alternar fundo claro / escuro" onclick="this.classList.toggle('esc')"><span class="ext">${esc(ext(x.nome))}</span></div>
       <div class="lg-rod">
         <div class="nm"><div class="t1" title="${esc(x.nome)}">${esc(x.nome)}</div><div class="t2">${axFmtB(x.bytes)}</div></div>
         <button class="iconbtn" type="button" title="Baixar" aria-label="Baixar ${esc(x.nome)}" onclick="lgBaixar('${x.id}')">${LG_DL}</button>
+        ${(modo==='ficha'&&/^image\/(png|jpe?g|webp|gif)$/i.test(x.mime||''))?`<button class="iconbtn" type="button" title="Usar nos relatórios" aria-label="Usar ${esc(x.nome)} nos relatórios" onclick="lgUsarRel('${x.id}','${esc(fid)}')">${LG_REL}</button>`:''}
         ${(modo==='ficha'&&(x.autor===(currentUser||{}).id||master))?`<button class="iconbtn del" type="button" title="Remover" onclick="lgApagar('${x.id}','${esc(fid)}')">&times;</button>`:''}
       </div></div>`).join('')}</div>`:'';
   if(modo==='ficha'){
@@ -12606,6 +12610,34 @@ window.lgSubir=async (fid,files)=>{
   }
   if(n) toast(n===1?'Logo guardada no card do cliente.':n+' logos guardadas no card do cliente.');
   lgPintar('lgBox',fid,'ficha'); try{ lcLogosPintar(); }catch(_){}
+};
+/* Logo dos relatorios (Bernardo 05/10): ela nascia sozinha da primeira imagem que subia na ficha
+   e nao tinha como tirar nem trocar. Subiram a da Toldos Brasil na Anderson Motors por engano,
+   apagaram o arquivo, e a copia continuou nos relatorios. Agora: x tira, e o botao de cada
+   imagem da ficha escolhe qual vai pros relatorios. */
+window.lgUsarRel=async (id,fid)=>{
+  const x=(window.__lg||{})[id]; if(!x) return;
+  try{
+    const {data:u,error}=await sb.storage.from('anexos').createSignedUrl(x.caminho,600);
+    if(error||!u||!u.signedUrl) throw (error||new Error('sem link do arquivo'));
+    const blob=await (await fetch(u.signedUrl)).blob();
+    const d=await lgMiniatura(new File([blob],x.nome,{type:x.mime||blob.type}));
+    if(!d) throw new Error('o arquivo não abriu como imagem');
+    await logoSalvar(logoFichaKey(fid),d);
+    toast('"'+x.nome+'" agora é a logo dos relatórios.');
+  }catch(e){ toast('Não consegui usar essa logo: '+(e.message||e)); return; }
+  lgPintar('lgBox',fid,'ficha'); try{ lcLogosPintar(); }catch(_){}
+};
+window.lgTirarRel=async (fid)=>{
+  const ok=await confirmar('Tirar a logo dos relatórios?','Ela sai do relatório de tráfego, do Controle de Clientes e da aba Logo da editora. Os arquivos da ficha continuam aqui.',{sim:'Tirar',nao:'Não',perigo:true});
+  if(!ok) return;
+  try{
+    await logoSalvar(logoFichaKey(fid),'');
+    /* sem a do cliente, a tela cai na logo da conta de anuncio: essa tambem sai */
+    const L=LOGOS_META||{};
+    for(const m of ((DB&&DB.contasMeta)||[]).filter(m=>m.fichaId===fid&&L[m.id])) await logoSalvar(m.id,'');
+  }catch(e){ toast('Erro: '+(e.message||e)); return; }
+  toast('Logo tirada dos relatórios.'); lgPintar('lgBox',fid,'ficha'); try{ lcLogosPintar(); }catch(_){}
 };
 window.lgApagar=async (id,fid)=>{
   const x=(window.__lg||{})[id]; if(!x) return;
