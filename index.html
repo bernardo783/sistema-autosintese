@@ -6412,6 +6412,34 @@ function rwTkChip(fid){
           :`<button type="button" class="rw-g" onclick="rwEscolherTk('${fid}')">${RW_IC_LINK}<span>vincular grupo</span></button>`;
 }
 window.rwEscolherTk=(fid)=>rwEscolher(fid,()=>{ const el=document.getElementById('tkRwG'); if(el) el.innerHTML=rwTkChip(fid); });
+/* Conta de anúncios no card do Controle de Clientes (Bernardo 05/10). Usa o mesmo seletor da aba
+   Relatórios (rwEscolherConta), então a regra de quais contas aparecem é uma só: as da BM.
+   Liga quem cuida do cliente: o gestor de tráfego do card, o gerente da carteira e o master.
+   Os outros veem a conta, mas não trocam. */
+function rwPodeConta(fid,card){
+  const u=currentUser||{}; if(!fid) return false;
+  if(u.role==='master') return true;
+  if(u.gerente) return fichaNoMeuSquad(fichaDe(fid));
+  return !!card&&String(((card.valores)||{})[LC_GEST]||'')===String(u.id||'');
+}
+function rwTkConta(fid,pode){
+  if(!fid) return '<span class="hint" style="margin:0">escolha o cliente primeiro</span>';
+  const cs=contasDoCliente(fid), c=cs[0];
+  const nm=c?(((window.__mtDados||[]).find(x=>x.id===c.id)||{}).nome||c.nome||c.id):'';
+  const tx=c?esc(nm)+' · '+esc(c.id)+(cs.length>1?' +'+(cs.length-1):''):'';
+  if(!pode) return c?`<span class="rw-g on" style="cursor:default" title="Quem liga a conta é o gestor do cliente, o gerente ou o master">${RW_IC_META}<span>${tx}</span></span>`
+                    :'<span class="hint" style="margin:0">nenhuma conta ligada</span>';
+  return c?`<button type="button" class="rw-g on" onclick="rwTkContaEscolher('${fid}')" title="Trocar ou desligar a conta">${RW_IC_META}<span>${tx}</span></button>`
+          :`<button type="button" class="rw-g" onclick="rwTkContaEscolher('${fid}')">${RW_IC_LINK}<span>ligar conta</span></button>`;
+}
+window.rwTkContaEscolher=(fid)=>rwEscolherConta(fid,()=>{ const el=document.getElementById('tkRwC'); if(el) el.innerHTML=rwTkConta(fid,true); });
+/* o "?" do campo: o mesmo texto e o mesmo ID de BM do seletor */
+function rwBmAjudaHTML(){
+  return `<div class="rw-bm-a" hidden>Só aparecem as contas de anúncio atribuídas como parceiro à BM <b>${esc(RW_BM.nome)}</b>. Se a conta do cliente não está na lista, ele precisa compartilhar a conta de anúncios com essa BM como parceira.
+    <div class="rw-bm-id">ID da BM: <b>${RW_BM.id}</b> <button type="button" class="btn secondary small" onclick="rwBmCopiar()">Copiar ID</button></div></div>`;
+}
+window.rwTkContaAjuda=(b)=>{ const a=b.closest('.tkf-p')&&b.closest('.tkf-p').querySelector('.rw-bm-a'); if(!a) return; a.hidden=!a.hidden; b.setAttribute('aria-expanded',String(!a.hidden)); };
+window.rwBmCopiar=async()=>{ try{ await navigator.clipboard.writeText(RW_BM.id); toast('ID da BM copiado.'); }catch(_){ toast('ID da BM: '+RW_BM.id); } };
 /* Fechamento: campo opcional; a ficha só existe depois do envio, então o vínculo é gravado lá */
 function rwFcCampo(){ FC_GRUPO=null;
   return `<div class="field"><label>Grupo do WhatsApp do cliente <span style="font-weight:500;color:var(--fraco)">· opcional</span></label><div id="fc_grupo">${rwFcChip()}</div>
@@ -12111,6 +12139,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.cliente} Cliente${exigeDaLista(lid).indexOf('cliente')>=0?'<span class="cp-obr">obrigatório</span>':''}</div>
           <div class="tkf-pv">${selFichaBusca('tk_ficha',it.ficha_id||'',exigeDaLista(lid).indexOf('cliente')>=0)}</div></div>
         ${ehLC(lid)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_WA} Grupo WhatsApp</div><div class="tkf-pv" id="tkRwG">${rwTkChip(it.ficha_id)}</div></div>`:''}
+        ${ehLC(lid)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_META} Conta de anúncios <button type="button" class="rw-bm-q" onclick="rwTkContaAjuda(this)" aria-expanded="false" title="Quais contas aparecem aqui">?</button></div><div class="tkf-pv" id="tkRwC">${rwTkConta(it.ficha_id,rwPodeConta(it.ficha_id,it))}</div>${rwBmAjudaHTML()}</div>`:''}
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</div>
           <div class="tkf-pv"><select id="tk_squad"><option value="">Todo o time vê</option>${sqOpc.map(x=>`<option value="${esc(x)}"${sqAtual===x?' selected':''}>Squad ${esc(x)}</option>`).join('')}</select></div></div>
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.tag} Etiquetas</div>
