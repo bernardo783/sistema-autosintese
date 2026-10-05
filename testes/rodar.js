@@ -1874,6 +1874,29 @@ grupo('Logo dos relatórios: dá pra tirar e escolher qual vai (Bernardo 05/10)'
   ok('usar gera a miniatura do arquivo guardado', /window\.lgUsarRel=[\s\S]{0,500}lgMiniatura\(new File\(\[blob\]/.test(HTML));
 }
 
+grupo('Controle de Clientes: Conta de anúncios no card (Bernardo 05/10)');
+{
+  const card=(gid)=>({valores:{G:gid}});
+  const ctx={LC_GEST:'G',RW_BM:{nome:'Sintese Solucoes Tecnologicas LTDA',id:'1336723773532458'},esc:(x)=>String(x),
+    RW_IC_META:'[m]',RW_IC_LINK:'[l]',currentUser:{id:'u1',role:'membro'},
+    fichaDe:(id)=>({id}),fichaNoMeuSquad:(f)=>!!f&&f.id==='f_meu',
+    contasDoCliente:(fid)=>fid==='f_com'?[{id:'act_1',nome:'MARCA'},{id:'act_2'}]:[],
+    __mtDados:[{id:'act_1',nome:'CONTA NO META'}]};   /* o rodar() faz window = contexto */
+  const g=rodar(bloco('function rwPodeConta(','window.rwTkContaAjuda='),ctx,['rwPodeConta','rwTkConta','rwBmAjudaHTML']);
+  ok('gestor do card liga a conta', g.rwPodeConta('f_x',card('u1'))===true);
+  ok('gestor de outro card não liga', g.rwPodeConta('f_x',card('u2'))===false&&g.rwPodeConta('f_x',card(''))===false);
+  g.currentUser={id:'u9',role:'master'}; ok('master liga em qualquer card', g.rwPodeConta('f_x',card(''))===true);
+  g.currentUser={id:'u7',role:'membro',gerente:true};
+  ok('gerente liga só na carteira dele', g.rwPodeConta('f_meu',card(''))===true&&g.rwPodeConta('f_x',card(''))===false);
+  ok('sem cliente no card não liga', g.rwPodeConta('',card('u7'))===false);
+  ok('mostra o nome da conta no Meta, o ID e quantas mais', /CONTA NO META · act_1 \+1/.test(g.rwTkConta('f_com',true)));
+  ok('quem pode: chip abre o seletor da aba (rwEscolherConta)', /rwTkContaEscolher\('f_com'\)/.test(g.rwTkConta('f_com',true))&&/ligar conta/.test(g.rwTkConta('f_sem',true)));
+  ok('quem não pode: só lê, sem botão', !/onclick/.test(g.rwTkConta('f_com',false))&&/nenhuma conta ligada/.test(g.rwTkConta('f_sem',false)));
+  ok('o "?" traz a BM e o ID pra copiar', /Sintese Solucoes Tecnologicas LTDA/.test(g.rwBmAjudaHTML())&&/1336723773532458/.test(g.rwBmAjudaHTML())&&/rwBmCopiar/.test(g.rwBmAjudaHTML()));
+  ok('o seletor do card é o mesmo da aba', HTML.indexOf("window.rwTkContaEscolher=(fid)=>rwEscolherConta(fid,")>0);
+  ok('o campo fica no card do Controle de Clientes, abaixo do Grupo WhatsApp', /id="tkRwG"[\s\S]{0,400}Conta de anúncios[\s\S]{0,300}id="tkRwC"/.test(HTML));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
