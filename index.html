@@ -2934,8 +2934,18 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
   body.mob-pessoal .topbar .tb-esp{padding-left:5px;gap:7px}
   body.mob-pessoal .topbar .tb-esp .mp-mini{display:inline-flex;line-height:0}
   body.mob-pessoal .topbar .tb-esp .mp-mini .av{width:22px;height:22px;font-size:9px;box-shadow:inset 0 0 0 1px var(--line)}
+  /* a regra ".tb-esp span" de cima tambem escondia a foto (o .av e um span): ela nunca
+     apareceu no chip. Volta aqui, que e o que o "Pessoal" com foto sempre quis. (04/10) */
+  body.mob-pessoal .topbar .tb-esp .mp-mini .av{display:inline-grid}
   .mp-mini{display:none}
   body.mob-pessoal .topbar .tb-esp::after{content:'Pessoal \25BE';font-weight:800}
+  /* chave Pessoal/Trabalho (Bernardo 04/10): em Trabalho o chip fica azul e a maleta
+     toma o lugar da foto. O "+" sai: ele so cria coisa do Pessoal. */
+  body.mob-pessoal.mp-trab .topbar .tb-esp::after{content:'Trabalho \25BE'}
+  body.mob-pessoal.mp-trab .topbar .tb-esp{border-color:color-mix(in srgb,#2f7cf6 55%,var(--line));background:color-mix(in srgb,#2f7cf6 14%,var(--panel));color:var(--txt)}
+  body.mob-pessoal.mp-trab .topbar .tb-esp .mp-mini{display:none}
+  body.mob-pessoal.mp-trab .topbar .tb-esp .mp-mala{display:grid;width:22px;height:22px}
+  body.mob-pessoal.mp-trab .mp-fab{display:none}
   body.mob-pessoal .main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}
   /* modal por cima da pilula e do FAB: o Salvar do "Novo habito" ficava escondido atras deles */
   body.mob-pessoal .overlay{z-index:980}
@@ -3138,6 +3148,28 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 :root[data-tema="claro"] .f1-aviso,:root[data-tema="branco"] .f1-aviso{background:rgba(160,106,6,.10);border-color:rgba(160,106,6,.38);color:var(--warn)}
 .f1-it.adi .tt{color:var(--fraco)}
 .f1-it.done .tt{color:var(--fraco);text-decoration:line-through}
+/* ---------- chave Pessoal/Trabalho (Bernardo 04/10, opcao A) ---------- */
+.mp-mzb{width:24px;height:24px;border-radius:50%;background:#2f7cf6;color:#fff;display:grid;place-items:center;flex:none}
+.mp-mzb svg{width:13px;height:13px}
+.topbar .tb-esp .mp-mala{display:none}
+.mp-modo{position:fixed;z-index:990;width:252px;max-width:calc(100vw - 16px);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:6px;box-shadow:var(--shadow)}
+.mp-modo button{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border-radius:11px;background:none;border:0;color:var(--txt);font:inherit;text-align:left;cursor:pointer}
+.mp-modo button:active,.mp-modo button.on{background:var(--panel2)}
+.mp-modo .ic{width:24px;display:grid;place-items:center;flex:none;color:var(--fraco)}
+.mp-modo .ic .av{width:24px;height:24px;font-size:9.5px}
+.mp-modo .ic svg{width:17px;height:17px}
+.mp-modo .tx{flex:1;min-width:0;font-size:14px;font-weight:700}
+.mp-modo .tx small{display:block;font-size:11px;color:var(--fraco);font-weight:500;margin-top:1px}
+.mp-modo .ok{color:var(--brand2);font-weight:900}
+.mp-modo .ok.az{color:#7fb0ff}
+.mp-modo .n{font-size:11px;font-weight:800;color:#fff;background:var(--danger);border-radius:99px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.mp-modo .sep{border-top:1px solid var(--line);margin:4px 6px}
+.mp-modo .mais .tx{font-size:13px;font-weight:600;color:var(--muted)}
+.mp-modo .cv{color:var(--fraco)}
+.f1-lbl.atr,.f1-lbl.atr span{color:var(--danger)}
+.f1-it.atr .o{border-color:var(--danger)}
+.f1-it.atr .tt small{color:var(--danger)}
+.f1-it.trab{cursor:pointer}
 .f1-it .h{font-size:11.5px;color:var(--fraco);font-variant-numeric:tabular-nums;flex:none}
 .f1-vz{padding:28px 0 8px;text-align:center;color:var(--fraco);font-size:13px}
 .mp-zero{margin:18px 0 0;padding:26px 20px;text-align:center;border:1px solid var(--line);border-radius:18px;
@@ -4379,7 +4411,7 @@ document.addEventListener('click',(e)=>{
 function render(view){
   /* modo restrito: qualquer tela fora da lista dela volta pra lista */
   if(restrito()&&view!=='lista'){ if(TK.listaSel!==rsLista()) return spSelLista(rsLista()); view='lista'; }
-  if(view!=='pessoal'){ document.body.classList.remove('mob-pessoal'); const sn=document.querySelector('.topbar .mp-sino'); if(sn) sn.remove(); const kb=document.querySelector('.topbar .mp-kpibt'); if(kb) kb.remove(); const mm=document.querySelector('.topbar .mp-mini'); if(mm) mm.remove(); const fm=document.getElementById('mpFabMenu'); if(fm) fm.remove(); }
+  if(view!=='pessoal') mpSairTopo();
   /* a tela pedida, antes das reescritas internas (senhas/links viram acessos etc.):
      e ela que vai pra barra de enderecos, pra F5 e link colado voltarem no mesmo lugar */
   const __telaPedida=view;
@@ -9734,6 +9766,9 @@ window.tkFLimpar=()=>{ TK.filtro.prazo=''; TK.filtro.de=''; TK.filtro.ate=''; TK
 function tkFAplicar(){ try{ localStorage.setItem('tk_filtro',JSON.stringify(TK.filtro)); }catch(_){}
   tkDesenhar($('#content')); tkPopPintar(); }
 function tkDesenhar(c){
+  /* Tarefa da empresa aberta pelo Pessoal (chave Trabalho, Bernardo 04/10): o autosave do
+     cartao pintava a lista por cima da tela Pessoal. La quem desenha e o mpPintar. */
+  if(currentView==='pessoal'&&(!c||c.id==='content')){ mpPintar(); return; }
   if(TK.escopo==='recorrentes') return recRender(c);
   if(TK.listaSel==='7381fb45-8d78-458d-b432-77dd88972338'&&TK.escopo==='lista'){ return renderTrafego(c); }
   if(TK.listaSel===NC_LISTA&&TK.escopo==='lista'){ return ncFormulario(c); }
@@ -11506,7 +11541,9 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       :(t.rascunho?('Rascunho (só você vê)'+(_fr.length?': falta '+tkFaltaTxt(_fr):'')):'Salvo');
     const foot=ov.querySelector('.mfoot'); if(foot) foot.innerHTML='<span class="tkm-auto'+(t&&t.rascunho?' falta':'')+'" id="tkmAuto">'+esc(_st0)+'</span><button class="btn secondary small mcancel">Fechar</button>';
     const fechar=()=>{ if(window.__tkmTimer){ clearTimeout(window.__tkmTimer); window.__tkmTimer=null; tkmSalvar(window.__tkmT||t,lid,cps,true); } ov.remove(); };
-    const mc=ov.querySelector('.mcancel'); if(mc) mc.onclick=fechar;
+    /* todos os .mcancel: no celular o x do topo tambem e .mcancel, e o querySelector
+       so pegava ele — o Fechar do rodape ficava sem acao (achado em 04/10) */
+    ov.querySelectorAll('.mcancel').forEach(b=>{ b.onclick=fechar; });
     const x=ov.querySelector('.x'); if(x) x.onclick=fechar;
     ov.onclick=e=>{ if(e.target===ov) fechar(); };
     window.__tkmT=t||null;
@@ -11647,7 +11684,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
       const _rTxt=v.rascunho?('Rascunho (só você vê): falta '+tkFaltaTxt(falta)):'';
       if(st){ st.textContent=v.rascunho?_rTxt:'Salvo'; st.className='tkm-auto'+(v.rascunho?' falta':''); }
       if(_eraRasc&&!v.rascunho) toast('Tarefa completa: saiu do rascunho e os responsáveis foram avisados.');
-      if(!silencioso){ render('tarefas'); toast(v.rascunho?('Guardada como rascunho. Falta '+tkFaltaTxt(falta)+'.'):'Salvo.'); }
+      if(!silencioso){ if(currentView==='pessoal') mpPintar(); else render('tarefas'); toast(v.rascunho?('Guardada como rascunho. Falta '+tkFaltaTxt(falta)+'.'):'Salvo.'); }
       else { try{ tkDesenhar($('#content')); }catch(_){} }
       if(t) cnDepois(t.id,cnEx);
       recAgendar();
@@ -19304,6 +19341,14 @@ const MP_SEMD=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
 let MP={aba:'inicio',dia:'',sem:'',per:'7d',perIni:'',perFim:'',cmp:'sem',
         habitos:[],checks:[],evtsPorDia:{},g:null,carregado:false,tarNova:false,evtNovo:false};
+/* ---------- CHAVE PESSOAL / TRABALHO (Bernardo 04/10, opcao A) ----------
+   No celular o Pessoal so mostrava o workspace pessoal, e ver o trabalho do dia pedia
+   trocar de workspace. O chip "Pessoal" agora abre um menu curto: Pessoal ou Trabalho.
+   Trabalho = tarefas da empresa em que a pessoa e responsavel, no dia escolhido (hoje
+   vem com as atrasadas). E so filtro de tela: nada muda no banco. O computador nao muda. */
+let MP_MODO='P'; try{ MP_MODO=localStorage.getItem('mp_modo')==='T'?'T':'P'; }catch(_){}
+const MP_MALA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg>';
+function mpTrab(){ return MP_MODO==='T'&&window.innerWidth<=720; }
 
 const mpDe=(iso)=>new Date(iso+'T12:00:00');
 const mpDow=(iso)=>mpDe(iso).getDay();
@@ -19493,7 +19538,7 @@ function mpTabbarHTML(){
   const sv=(k)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ic[k]+'</svg>';
   const abas=[['inicio','Início','mpAba(\'inicio\')'],['habitos','Hábitos','mpAba(\'habitos\')'],['tarefas','Tarefas','mpAba(\'tarefas\')'],
     ['agenda','Agenda','mpAba(\'agenda\')']];
-  return '<nav class="mp-tabbar">'+abas.map(a=>'<button class="'+(MP.aba===a[0]?'on':'')+'" onclick="'+a[2]+'">'+sv(a[0])+a[1]+'</button>').join('')+'</nav>'+
+  return '<nav class="mp-tabbar">'+abas.filter(a=>!(a[0]==='habitos'&&mpTrab())).map(a=>'<button class="'+(MP.aba===a[0]?'on':'')+'" onclick="'+a[2]+'">'+sv(a[0])+a[1]+'</button>').join('')+'</nav>'+
     '<button class="mp-fab" id="mpFab" onclick="mpFabClique(event)" aria-label="Criar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>';
 }
 window.mpFabClique=(ev)=>{ ev.stopPropagation();
@@ -19552,6 +19597,8 @@ function mpPintar(){
   const abas=[['inicio','Início'],['habitos','Hábitos'],['tarefas','Tarefas'],['agenda','Agenda']];
   const ac=MP_ACAO[MP.aba]||MP_ACAO.inicio;
   document.body.classList.add('mob-pessoal');
+  if(mpTrab()&&MP.aba==='habitos') MP.aba='inicio';
+  document.body.classList.toggle('mp-trab',mpTrab());
   const nB=(document.getElementById('ntfBdg')||{}).textContent||'';
   /* barra de uma linha (opcao G): data | seletor de abas | botao. No celular some
      inteira — la o Inicio tem cabecalho proprio e a barra de baixo faz as abas. */
@@ -19580,22 +19627,26 @@ function mpPintar(){
     if(sn) tb.insertBefore(b,sn); else { const av=tb.querySelector('.uav'); if(av) tb.insertBefore(b,av); else tb.appendChild(b); } })();
   /* foto do usuario pequena dentro do chip "Pessoal" (Gabriel 07/09): e o seletor de workspace */
   (function(){ const e=document.querySelector('#topbar .tb-esp'); if(!e||!currentUser) return;
-    if(!e.dataset.mp){ e.dataset.mp='1';
-      /* Em Pessoal o chip SEMPRE abre o modal centralizado. A gaveta lateral (spMovel) nasce
-         colada no canto superior esquerdo e em tela larga de celular/tablet nao dava pra usar. */
-      e.onclick=()=>{ if(document.body.classList.contains('mob-pessoal')) mpWsMenu(); else spMovel(); }; }
+    /* Em Pessoal o chip nunca abre a gaveta lateral (spMovel): ela nasce colada no canto
+       superior esquerdo e em tela larga de celular/tablet nao dava pra usar. No celular ele
+       abre o menu curto Pessoal/Trabalho (Bernardo 04/10) e o modal centralizado fica no
+       "Perfil, tema e sair"; no tablet abre o modal direto, como antes. Reaplica sempre:
+       o corporativo do celular (mcPintar) poe o mcChip dele quando a pessoa passa pela empresa. */
+    if(e.onclick!==mpChip) e.onclick=mpChip;
     if(e.querySelector('.mp-mini')) return;
     const m=document.createElement('span'); m.className='mp-mini'; m.innerHTML=avatar(currentUser.id,currentUser.nome);
-    e.insertBefore(m,e.firstChild); })();
+    e.insertBefore(m,e.firstChild);
+    const mz=document.createElement('span'); mz.className='mp-mala mp-mzb'; mz.innerHTML=MP_MALA;
+    e.insertBefore(mz,m.nextSibling); })();
   const b=$('#mpCorpo');
   /* KPI nao e aba da barra de baixo, mas e tela propria: no celular o Inicio vira a lista
      do dia e nao carrega o bloco de KPI, entao o atalho do grafico nao tinha pra onde rolar.
      Agora ele abre esta tela. (Gabriel 07/09) */
   if(MP.aba==='progresso'){ b.innerHTML=mpKpiTelaHTML(); }
-  else if(MP.aba==='inicio'){ b.innerHTML=(window.innerWidth<=720)?mpIniMobileHTML():mpInicioHTML(); requestAnimationFrame(()=>{ const r=b.querySelector('.f1-row'); if(r) mpRowSb(r); }); }
+  else if(MP.aba==='inicio'){ b.innerHTML=(window.innerWidth<=720)?(mpTrab()?mpIniTrabHTML():mpIniMobileHTML()):mpInicioHTML(); requestAnimationFrame(()=>{ const r=b.querySelector('.f1-row'); if(r) mpRowSb(r); }); }
   else if(MP.aba==='habitos') b.innerHTML=mpHabsHTML();
   else if(MP.aba==='agenda'){ b.innerHTML=mpAgendaHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
-  else{ b.innerHTML=mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
+  else{ b.innerHTML=mpTrab()?mpTarTrabHTML():mpTarHTML(); if(!MP.evtsPorDia[MP.dia]) mpAgendaSync(); }
   Object.keys(mem).forEach(id=>{ const el=document.getElementById(id);
     if(el){ el.value=mem[id].v; if(mem[id].f){ el.focus(); try{ el.setSelectionRange(el.value.length,el.value.length); }catch(_){} } } });
 }
@@ -19657,8 +19708,6 @@ function mpIniMobileHTML(){
   const tot=hs.length+ts.length; /* agenda fica fora do Inicio (Gabriel 08/09) */
   const feit=hs.reduce((s,h)=>s+mpFrac(h,dia),0)+ts.filter(mpFeita).length;
   const pct=tot?Math.round(feit/tot*100):0;
-  const tit=ehHoje?'Hoje':(dia===tkDiaMais(hoje,-1)?'Ontem':(dia===tkDiaMais(hoje,1)?'Amanhã':mpDataExt(dia).replace(/^(\w)/,m=>m.toUpperCase())));
-  const sub=(ehHoje||dia===tkDiaMais(hoje,-1)||dia===tkDiaMais(hoje,1))?mpDataExt(dia):'';
   const ck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   const o=(on,fn)=>passado?('<span class="o'+(on?' on':' x')+'">'+(on?ck:'')+'</span>')
     :('<button type="button" class="o'+(on?' on':'')+(futuro?' ro':'')+'" '+(futuro?'':'onclick="'+fn+'"')+'>'+ck+'</button>');
@@ -19712,12 +19761,7 @@ function mpIniMobileHTML(){
   const T=itens.filter(x=>x.g==='tar');
   if(T.length){ const nf=T.filter(x=>/f1-it done/.test(x.html)).length;
     linhas.push('<section class="f1-grp tar"><div class="f1-lbl"><span>Tarefas</span><small>'+nf+' de '+T.length+'</small></div>'+T.map(x=>x.html).join('')+'</section>'); }
-  return '<div class="f1">'+
-    '<div class="f1-h"><button type="button" class="ar" onclick="mpIniNav(-1)">‹</button>'+
-      '<button type="button" class="dt" onclick="mpIniCalToggle()" title="Escolher o dia"><b>'+esc(tit)+'<span class="cv">'+(MP.iniCal?'▴':'▾')+'</span></b><small>'+esc(sub)+'</small></button>'+
-      '<button type="button" class="ar" onclick="mpIniNav(1)">›</button></div>'+
-    (MP.iniCal?mpCalMesHTML('inicio'):'')+
-    (ehHoje?'':'<button type="button" class="f1-hoje" onclick="mpIniHoje()">Voltar pra hoje</button>')+
+  return '<div class="f1">'+mpIniCabHTML(dia)+
     '<div class="f1-pb"><i style="width:'+pct+'%"></i></div>'+
     /* placar do dia com nome (Gabriel 08/09, opcao P2): "6 de 11 concluidas" e o % nos dois lados da barra */
     (tot?'<div class="f1-pbl"><span><b>'+mpFmtN(feit)+' de '+tot+'</b> '+(tot===1?'concluída':'concluídas')+'</span><span>'+pct+'%</span></div>':'')+
@@ -19744,6 +19788,131 @@ window.mpIniCalNav=(n)=>{ const base=MP.iniCalMes||(MP.iniDia||tkHoje()).slice(0
   MP.iniCalMes=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); mpPintar(); };
 window.mpIniCalDia=async(iso)=>{ MP.iniCal=false; MP.iniDia=iso; mpPintar();
   if(!MP.evtsPorDia[iso]){ try{ await mpEvtsDia(iso); }catch(_){} if(MP.aba==='inicio') mpPintar(); } };
+/* Cabecalho do dia do Inicio no celular: setas, a data (abre o calendario) e "Voltar pra
+   hoje". O Pessoal e o Trabalho usam o mesmo, pra trocar a chave nao mexer no dia. */
+function mpIniCabHTML(dia){
+  const hoje=tkHoje(), ehHoje=dia===hoje;
+  const tit=ehHoje?'Hoje':(dia===tkDiaMais(hoje,-1)?'Ontem':(dia===tkDiaMais(hoje,1)?'Amanhã':mpDataExt(dia).replace(/^(\w)/,m=>m.toUpperCase())));
+  const sub=(ehHoje||dia===tkDiaMais(hoje,-1)||dia===tkDiaMais(hoje,1))?mpDataExt(dia):'';
+  return '<div class="f1-h"><button type="button" class="ar" onclick="mpIniNav(-1)">‹</button>'+
+      '<button type="button" class="dt" onclick="mpIniCalToggle()" title="Escolher o dia"><b>'+esc(tit)+'<span class="cv">'+(MP.iniCal?'▴':'▾')+'</span></b><small>'+esc(sub)+'</small></button>'+
+      '<button type="button" class="ar" onclick="mpIniNav(1)">›</button></div>'+
+    (MP.iniCal?mpCalMesHTML('inicio'):'')+
+    (ehHoje?'':'<button type="button" class="f1-hoje" onclick="mpIniHoje()">Voltar pra hoje</button>');
+}
+/* ---------- Trabalho: o que e seu na empresa ----------
+   Mesmo recorte do "Minhas tarefas" (responsavel, nao arquivada), so que fora do workspace
+   pessoal e sem os cards de cliente, que sao ficha e nao demanda. Espaco sem workspace_id
+   e da empresa: o campo nasceu depois dos espacos. */
+function mpEhEmpresa(lid){
+  const l=(TK.listas||[]).find(x=>String(x.id)===String(lid)); if(!l) return false;
+  const e=(TK.espacos||[]).find(x=>String(x.id)===String(l.espaco_id)); if(!e) return false;
+  if(!e.workspace_id) return true;
+  const w=(TK.ws||[]).find(x=>String(x.id)===String(e.workspace_id));
+  return !!(w&&w.tipo==='empresa');
+}
+function mpTrabTarefas(){ const u=(currentUser||{}).id; if(!u) return [];
+  return (TK.tarefas||[]).filter(t=>!t.arquivada_em&&!t.pai_id&&ehMinha(t,u)&&!ehListaCli(t.lista_id)&&mpEhEmpresa(t.lista_id)); }
+const mpPrazo=(t)=>String((t&&t.prazo)||'').slice(0,10);
+const mpTrabDia=(iso)=>mpTrabTarefas().filter(t=>mpPrazo(t)===iso);
+const mpTrabAtrasadas=()=>{ const hj=tkHoje(); return mpTrabTarefas().filter(t=>mpPrazo(t)&&mpPrazo(t)<hj&&!mpFeita(t)); };
+/* a bolinha vermelha do menu: atrasadas + as de hoje ainda em aberto */
+const mpTrabFalta=()=>mpTrabAtrasadas().length+mpTrabDia(tkHoje()).filter(t=>!mpFeita(t)).length;
+const mpTrabCaminho=(t)=>{ const l=(TK.listas||[]).find(x=>String(x.id)===String(t.lista_id))||{};
+  const e=(TK.espacos||[]).find(x=>String(x.id)===String(l.espaco_id));
+  return (e?spNome(e)+' › ':'')+spNome(l); };
+/* Linha de tarefa do Trabalho. Tocar abre o cartao normal da tarefa: status, campos e
+   "O que foi feito" sao da lista, entao concluir nao e um toque so como no Pessoal. */
+function mpTrabRow(t,sub,atr){
+  const f=mpFeita(t), hh=/^\d{2}:\d{2}/.test(String(t.hora||''))?String(t.hora).slice(0,5):'';
+  const ck='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  return '<div class="f1-it trab'+(f?' done':'')+(atr?' atr':'')+'" onclick="mpTrabAbrir(\''+t.id+'\')"><span class="o ro'+(f?' on':'')+'">'+ck+'</span>'+
+    '<span class="tt">'+esc(t.titulo||'')+'<small>'+esc(sub)+'</small></span>'+(hh?'<span class="h">'+hh+'</span>':'')+'</div>';
+}
+window.mpTrabAbrir=(id)=>{ if((TK.tarefas||[]).some(x=>String(x.id)===String(id))) tkAbrir(String(id)); };
+const mpTrabOrdem=(a,b)=>{ const x=String(a.hora||''), y=String(b.hora||'');
+  if(x&&y) return x.localeCompare(y); if(x) return -1; if(y) return 1;
+  return String(a.titulo||'').localeCompare(String(b.titulo||'')); };
+function mpIniTrabHTML(){
+  const hoje=tkHoje(); if(!MP.iniDia) MP.iniDia=hoje;
+  const dia=MP.iniDia, ehHoje=dia===hoje;
+  const ts=mpTrabDia(dia).sort((a,b)=>(mpFeita(a)-mpFeita(b))||mpTrabOrdem(a,b));   /* concluida desce pro fim */
+  const atr=ehHoje?mpTrabAtrasadas().sort((a,b)=>mpPrazo(a).localeCompare(mpPrazo(b))||mpTrabOrdem(a,b)):[];
+  const tot=ts.length+atr.length, feit=ts.filter(mpFeita).length, pct=tot?Math.round(feit/tot*100):0;
+  const linhas=[];
+  if(atr.length) linhas.push('<section class="f1-grp tar"><div class="f1-lbl atr"><span>Atrasadas</span><small>'+atr.length+'</small></div>'+
+    atr.map(t=>mpTrabRow(t,mpTrabCaminho(t)+' · era pra '+mpCurto(mpPrazo(t)),true)).join('')+'</section>');
+  if(ts.length) linhas.push('<section class="f1-grp tar"><div class="f1-lbl"><span>Trabalho</span><small>'+feit+' de '+ts.length+'</small></div>'+
+    ts.map(t=>mpTrabRow(t,mpTrabCaminho(t),false)).join('')+'</section>');
+  return '<div class="f1">'+mpIniCabHTML(dia)+
+    '<div class="f1-pb"><i style="width:'+pct+'%"></i></div>'+
+    (tot?'<div class="f1-pbl"><span><b>'+feit+' de '+tot+'</b> '+(tot===1?'concluída':'concluídas')+'</span><span>'+pct+'%</span></div>':'')+
+    '<div class="f1-l">'+(linhas.length?linhas.join(''):'<div class="f1-vz">Nada de trabalho neste dia.</div>')+'</div></div>';
+}
+/* aba Tarefas em Trabalho: tudo da empresa que e seu e esta em aberto, por prazo */
+function mpTarTrabHTML(){
+  const hoje=tkHoje(), abertas=mpTrabTarefas().filter(t=>!mpFeita(t));
+  const porPrazo=(a,b)=>mpPrazo(a).localeCompare(mpPrazo(b))||mpTrabOrdem(a,b);
+  const g=[['Atrasadas',abertas.filter(t=>mpPrazo(t)&&mpPrazo(t)<hoje),true],
+           ['Hoje',abertas.filter(t=>mpPrazo(t)===hoje),false],
+           ['Próximas',abertas.filter(t=>mpPrazo(t)>hoje),false],
+           ['Sem data',abertas.filter(t=>!mpPrazo(t)),false]].filter(x=>x[1].length);
+  const sub=(t,atr)=>mpTrabCaminho(t)+(!mpPrazo(t)?'':atr?' · era pra '+mpCurto(mpPrazo(t)):mpPrazo(t)===hoje?'':' · '+mpTcRotDia(mpPrazo(t)).toLowerCase());
+  const atrN=g.length&&g[0][2]?g[0][1].length:0;
+  return '<div class="mp-tit"><b>Trabalho</b><small>'+abertas.length+' em aberto'+(atrN?' · '+atrN+' atrasada'+(atrN>1?'s':''):'')+'</small></div>'+
+    (g.length?'<div class="f1">'+g.map(x=>'<section class="f1-grp tar"><div class="f1-lbl'+(x[2]?' atr':'')+'"><span>'+x[0]+'</span><small>'+x[1].length+'</small></div>'+
+      x[1].sort(porPrazo).map(t=>mpTrabRow(t,sub(t,x[2]),x[2])).join('')+'</section>').join('')+'</div>'
+      :'<div class="f1-vz">Nada de trabalho em aberto com você.</div>');
+}
+/* O menu curto que desce do chip (opcao A). Perfil, tema e sair continuam no modal de
+   sempre, que agora mora no fim deste menu. */
+/* Tira do topo e do body tudo que so existe no Pessoal. O render chama ao sair dele, mas
+   spSelLista, spCaixa e spInicio trocam a tela sem passar pelo render: vindo do Pessoal
+   (ex.: "Perfil, tema e sair" > workspace da empresa), o topo do Pessoal ficava preso na
+   lista e o corporativo do celular nao ligava. O observador abaixo cobre esses caminhos. */
+function mpSairTopo(){
+  document.body.classList.remove('mob-pessoal','mp-trab');
+  ['.topbar .mp-sino','.topbar .mp-kpibt','.topbar .mp-mini','.topbar .mp-mala'].forEach(q=>{ const x=document.querySelector(q); if(x) x.remove(); });
+  const fm=document.getElementById('mpFabMenu'); if(fm) fm.remove();
+  if(window.mpModoFecha) mpModoFecha();
+}
+(function(){
+  const liga=()=>{ const c=document.getElementById('content'); if(!c) return;
+    /* sincrono de proposito: roda antes do requestAnimationFrame do mcPintar, que so liga
+       o corporativo do celular quando o body ja nao tem mob-pessoal */
+    new MutationObserver(()=>{ if(currentView!=='pessoal'&&document.body.classList.contains('mob-pessoal')) mpSairTopo(); })
+      .observe(c,{childList:true}); };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',liga); else liga();
+})();
+let mpModoFora=null;
+function mpChip(ev){ if(document.body.classList.contains('mob-pessoal')){ if(window.innerWidth<=720) mpModoMenu(ev); else mpWsMenu(); } else spMovel(); }
+window.mpModoFecha=()=>{ const m=document.getElementById('mpModoMenu'); if(m) m.remove();
+  const c=document.querySelector('#topbar .tb-esp'); if(c) c.classList.remove('aberto');
+  if(mpModoFora){ document.removeEventListener('mousedown',mpModoFora,true); mpModoFora=null; } };
+window.mpModoMenu=(ev)=>{
+  if(ev) ev.stopPropagation();
+  if(document.getElementById('mpModoMenu')){ mpModoFecha(); return; }
+  const chip=document.querySelector('#topbar .tb-esp'); if(!chip) return;
+  const eu=currentUser||{}, T=mpTrab(), n=mpTrabFalta();
+  const m=document.createElement('div'); m.id='mpModoMenu'; m.className='mp-modo';
+  m.innerHTML='<button type="button" class="'+(T?'':'on')+'" onclick="mpModo(\'P\')"><span class="ic">'+avatar(eu.id,eu.nome)+'</span>'+
+      '<span class="tx">Pessoal<small>seus hábitos e tarefas</small></span>'+(T?'':'<span class="ok">✓</span>')+'</button>'+
+    '<button type="button" class="'+(T?'on':'')+'" onclick="mpModo(\'T\')"><span class="ic"><span class="mp-mzb">'+MP_MALA+'</span></span>'+
+      '<span class="tx">Trabalho<small>o que é seu na empresa</small></span>'+(T?'<span class="ok az">✓</span>':(n?'<span class="n" title="Atrasadas e de hoje em aberto">'+n+'</span>':''))+'</button>'+
+    '<div class="sep"></div>'+
+    '<button type="button" class="mais" onclick="mpModoFecha();mpWsMenu()"><span class="ic">'+(MICO.perfil||'')+'</span><span class="tx">Perfil, tema e sair</span><span class="cv">›</span></button>';
+  document.body.appendChild(m);
+  const r=chip.getBoundingClientRect();
+  m.style.top=Math.round(r.bottom+8)+'px';
+  m.style.left=Math.round(Math.max(8,Math.min(r.left,window.innerWidth-m.offsetWidth-8)))+'px';
+  chip.classList.add('aberto');
+  mpModoFora=(e)=>{ if(!m.contains(e.target)&&!chip.contains(e.target)) mpModoFecha(); };
+  setTimeout(()=>{ if(mpModoFora) document.addEventListener('mousedown',mpModoFora,true); },0);
+};
+window.mpModo=(k)=>{ MP_MODO=k==='T'?'T':'P'; try{ localStorage.setItem('mp_modo',MP_MODO); }catch(_){}
+  mpModoFecha(); mpFabFecha();
+  if(MP_MODO==='T'&&MP.aba==='habitos') MP.aba='inicio';
+  mpPintar(); };
 function mpInicioHTML(){
   const hoje=tkHoje(), n=mpNotaDia(hoje);
   const ts=mpTarDia(hoje), pend=ts.filter(t=>!mpFeita(t)), feitas=ts.filter(mpFeita);
