@@ -4920,7 +4920,7 @@ function renderTrafego(c){
     mtParar();
     const idade0=window.__mtQuando?(Date.now()-window.__mtQuando)/60000:Infinity;
     if(!(window.__mtDados&&window.__mtDados.length)||idade0>=mtCicloMin())
-      metaCarregar(true).then(()=>{ if(currentView==='trafego'&&trafAba!=='contas') render('trafego'); });
+      metaCarregar(true).then(()=>{ if(currentView==='trafego'&&trafAba!=='contas'&&window.__mtDados&&window.__mtDados.length) render('trafego'); });
     return;
   }
   const draw=()=>{
@@ -5020,8 +5020,14 @@ const MT_LEADS=['lead','leadgen_grouped','onsite_conversion.lead_grouped','offsi
 window.metaCarregar=async (auto)=>{
   const st=$('#mtStatus');
   if(!SESSION){ if(!auto) toast('Sessão expirada: entre de novo.'); return; }
-  if(window.__mtBuscando) return;            /* evita chamadas sobrepostas */
+  /* Busca em andamento: devolve ESSA busca, nao uma promessa ja resolvida (Bernardo 05/10).
+     O Trafego faz metaCarregar(true).then(render) e o render chama de novo; com o "return"
+     vazio, o .then rodava na hora, renderizava, chamava de novo... um laco de microtarefas
+     que nunca deixava o fetch terminar e congelava a pagina. Acontecia ao clicar em
+     "Gerenciar vinculos" na ficha logo depois de abrir: a ficha ja tinha disparado a busca. */
+  if(window.__mtBuscando) return window.__mtEmCurso;
   window.__mtBuscando=true;
+  let mtFim; window.__mtEmCurso=new Promise(r=>{ mtFim=r; });
   const pEl=$('#mtPreset');
   if(st) st.textContent=auto&&window.__mtDados?'Verificando…':'Carregando… (até ~15s)';
   try{
@@ -5036,7 +5042,7 @@ window.metaCarregar=async (auto)=>{
     ltGastos().catch(()=>{});
     if(currentView==='trafego'){ metaDesenhar(); mtStatusTxt(); }
   }catch(e){ if(st) st.textContent=window.__mtDados?'Sem conexão: tentando de novo no próximo ciclo.':'Erro de rede: tente de novo.'; }
-  finally{ window.__mtBuscando=false; }
+  finally{ window.__mtBuscando=false; mtFim(); }
 };
 const contaMarca=(id)=>(DB.contasMeta||[]).find(x=>x.id===id)||null;
 /* ---------- RELACIONAMENTO: conta de anúncio ↔ cliente ----------
@@ -5602,6 +5608,16 @@ function paletaDoLogo(img){
   }catch(_){ return {destaque:null,escura:null}; }
 }
 /* Assistente: liga cada conta de anúncio a um cliente, já sugerindo pelo nome */
+/* "Gerenciar vinculos" da ficha (Bernardo 05/10): abria a janela 400 ms depois de ir pro
+   Trafego, antes das contas do Meta chegarem, e caia no "carregue as contas primeiro".
+   Agora espera a busca (a que ja estiver rodando ou uma nova) e so entao abre. */
+window.mtVinculosQuandoPronto=async()=>{
+  if(!(window.__mtDados&&window.__mtDados.length)){
+    toast('Carregando as contas do Meta…');
+    try{ await metaCarregar(true); }catch(_){}
+  }
+  if(currentView==='trafego'&&!document.querySelector('.overlay')) abrirVinculos();
+};
 window.abrirVinculos=(soEsta)=>{
   const contas=(window.__mtDados||[]).filter(c=>!soEsta||c.id===soEsta);
   if(!contas.length){ toast('Carregue as contas do Meta primeiro.'); return; }
@@ -16506,7 +16522,7 @@ function abaContasCliente(f){
   return `
    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
      <div style="font-size:13px;font-weight:800"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/></svg> Contas de anúncio do Meta</div>
-     <button class="btn ghost small" onclick="document.querySelector('.overlay').remove();render('trafego');setTimeout(()=>abrirVinculos(),400)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Gerenciar vínculos</button>
+     <button class="btn ghost small" onclick="const o=this.closest('.overlay');if(o)o.remove();render('trafego');mtVinculosQuandoPronto()"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Gerenciar vínculos</button>
    </div>
    ${contas.length?contas.map(m=>{
      const viva=dados.find(x=>x.id===m.id);
