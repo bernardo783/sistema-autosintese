@@ -4784,7 +4784,7 @@ function abaConexao(){
         <div class="nm">${esc(x.c.nome)}</div>
         <div class="id">ID: ${esc(String(x.c.id).replace('act_',''))}</div>
       </div>
-      <button class="btn small" onclick="abrirVinculos('${esc(x.c.id)}')">Ligar</button>
+      <span class="cx-tag warn" title="Ligue pelo card do cliente: Controle de Clientes › Conta de anúncios">sem cliente</span>
     </div>`;
   const ligada=(x)=>`<div class="cx-item">
       <div style="flex:1;min-width:0">
@@ -4810,7 +4810,7 @@ function abaConexao(){
         <div><div class="k">Ligadas</div><div class="v">${ligadas.length}</div></div>
         <div><div class="k">Prontas p/ relatório</div><div class="v" style="color:${prontas===ligadas.length&&prontas?'var(--ok)':'var(--warn)'}">${prontas}</div></div>
       </div>
-      ${soltas.length?`<div class="cx-n" style="margin-bottom:6px">Sem cliente</div>
+      ${soltas.length?`<div class="cx-n" style="margin-bottom:6px">Sem cliente <span style="font-weight:400;color:var(--muted)">· ligue pelo card do cliente, em Controle de Clientes › Conta de anúncios</span></div>
         <div class="cx-list" style="max-height:170px;margin-bottom:12px">${soltas.map(pendente).join('')}</div>`:''}
       <div class="cx-n" style="margin-bottom:6px">Contas por cliente</div>
       <div class="cx-list" style="max-height:${soltas.length?'210px':'420px'}">${ligadas.length?ligadas.sort((a,b)=>(a.f.nome||'').localeCompare(b.f.nome||'')).map(ligada).join(''):'<div class="empty">Nenhuma conta ligada ainda.</div>'}</div>
@@ -4982,7 +4982,6 @@ function renderTrafego(c){
          ${SQUADS().map(sq=>`<option value="${esc(sq)}"${mtSqSel()===String(sq)?' selected':''}>Squad ${esc(sq)}</option>`).join('')}
        </select>
        <button class="btn secondary small" onclick="metaCarregar()" title="A tela já se atualiza sozinha; use só se quiser adiantar">↻ Atualizar</button>
-       <button class="btn secondary small" onclick="abrirVinculos()"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Vincular a clientes</button>
        <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;white-space:nowrap">
          Ciclo de verificação
          <input type="number" min="1" max="180" step="1" id="mtCiclo" class="search" style="max-width:64px;padding:6px 8px" title="Intervalo em minutos para atualizar sozinho">
@@ -5553,7 +5552,7 @@ window.metaDesenhar=()=>{
         <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:var(--warn)">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}</div>
         <div style="font-size:12px;margin-top:3px">${(()=>{const f=fichaDaConta(c.id);
           return f?`<a class="link" style="cursor:pointer" onclick="abrirCliente('${f.id}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> ${esc(f.nome)}</a>`
-                  :`<span style="color:var(--warn);cursor:pointer" onclick="abrirVinculos('${esc(c.id)}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> vincular a um cliente</span>`;})()}</div>
+                  :`<span style="color:var(--warn)" title="Ligue pelo card do cliente: Controle de Clientes › Conta de anúncios"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> sem cliente</span>`;})()}</div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap">
         ${col1}
@@ -5690,64 +5689,11 @@ function paletaDoLogo(img){
     return {destaque:vivas[0]?hex(vivas[0]):null, escura:escuras[0]?hex(escuras[0]):null};
   }catch(_){ return {destaque:null,escura:null}; }
 }
-/* Assistente: liga cada conta de anúncio a um cliente, já sugerindo pelo nome */
-/* "Gerenciar vinculos" da ficha (Bernardo 05/10): abria a janela 400 ms depois de ir pro
-   Trafego, antes das contas do Meta chegarem, e caia no "carregue as contas primeiro".
-   Agora espera a busca (a que ja estiver rodando ou uma nova) e so entao abre. */
-window.mtVinculosQuandoPronto=async()=>{
-  if(!(window.__mtDados&&window.__mtDados.length)){
-    toast('Carregando as contas do Meta…');
-    try{ await metaCarregar(true); }catch(_){}
-  }
-  if(currentView==='trafego'&&!document.querySelector('.overlay')) abrirVinculos();
-};
-window.abrirVinculos=(soEsta)=>{
-  const contas=(window.__mtDados||[]).filter(c=>!soEsta||c.id===soEsta);
-  if(!contas.length){ toast('Carregue as contas do Meta primeiro.'); return; }
-  const fichas=[...(DB.projetos||[])].sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
-  if(!fichas.length){ toast('Cadastre um cliente antes de vincular.'); return; }
-  const normNome=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
-  const porNomeFicha=new Map(); fichas.forEach(f=>{ const k=normNome(f.nome); if(k&&!porNomeFicha.has(k)) porNomeFicha.set(k,f.id); });
-  const nomeDaFicha=id=>{ const f=fichas.find(x=>x.id===id); return f?f.nome:''; };
-  const listaFichas=`<datalist id="dlFichas">`+fichas.map(f=>`<option value="${esc(f.nome)}"></option>`).join('')+`</datalist>`;
-  const linhas=contas.map(c=>{
-    const m=contaMarca(c.id), atual=m&&m.fichaId?m.fichaId:'';
-    const pal=atual?null:palpiteCliente(c.nome);
-    return {c, atual, sug:pal?pal.ficha.id:'', sugNome:pal?pal.ficha.nome:'', score:pal?pal.score:0};
-  });
-  const nPal=linhas.filter(l=>!l.atual&&l.sug).length;
-  modal('Vincular contas de anúncio a clientes',`
-    <p class="hint" style="margin:0 0 12px">${nPal?`Encontrei <strong>${nPal}</strong> sugest${nPal===1?'ão':'ões'} pelo nome da conta. Confira e ajuste o que precisar.`:'Escolha o cliente de cada conta de anúncio.'}</p>
-    ${listaFichas}
-    <input id="vlBusca" class="search" placeholder="Buscar conta ou cliente..." autocomplete="off" style="width:100%;margin-bottom:10px" oninput="var v=this.value.toLowerCase();var achou=0;document.querySelectorAll('.overlay .vlRow').forEach(function(r){var i=r.querySelector('input[data-acc]');var alvo=r.getAttribute('data-busca')+' '+((i&&i.value)||'').toLowerCase();var ok=alvo.indexOf(v)>=0;r.style.display=ok?'':'none';if(ok)achou++;});var z=document.getElementById('vlVazio');if(z)z.style.display=achou?'none':'block'">
-    <div id="vlVazio" style="display:none;padding:14px;text-align:center;color:var(--muted);font-size:12.5px">Nenhuma conta encontrada.</div>
-    ${linhas.map(l=>`
-      <div class="vlRow" data-busca="${esc((l.c.nome+' '+l.c.id).toLowerCase())}" style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
-        <div style="font-weight:700;font-size:13.5px">${esc(l.c.nome)}</div>
-        <div style="color:var(--muted);font-size:11.5px;margin-bottom:7px">${esc(l.c.id)}</div>
-        <input class="search" list="dlFichas" autocomplete="off" data-acc="${esc(l.c.id)}" value="${esc(nomeDaFicha(l.atual||l.sug))}" placeholder="digite o nome do cliente..." style="width:100%">
-        ${!l.atual&&l.sug?`<div style="font-size:11.5px;color:var(--ok);margin-top:5px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8 5.8 2.2-5.8 1.9L12 18.7l-1.9-5.8-5.8-1.9 5.8-2.2z"/><path d="M19 3v4"/><path d="M17 5h4"/></svg> sugerido: ${esc(l.sugNome)}${l.score<0.8?' (confira)':''}</div>`:''}
-        ${l.atual?`<div style="font-size:11.5px;color:var(--muted);margin-top:5px">já vinculada</div>`:''}
-      </div>`).join('')}
-    ${nPal?`<p class="hint" style="margin:2px 0 0">As sugestões já vêm selecionadas, é só salvar.</p>`:''}`,
-    async ()=>{
-      let n=0; const ruins=[];
-      document.querySelectorAll('.overlay input[data-acc]').forEach(s=>{
-        const accId=s.dataset.acc, txt=(s.value||'').trim();
-        const fid=txt?(porNomeFicha.get(normNome(txt))||''):'';
-        if(txt&&!fid){ ruins.push(txt); return; }
-        let m=contaMarca(accId);
-        const acc=(window.__mtDados||[]).find(x=>x.id===accId)||{};
-        if(!m){ if(!fid) return; m={id:accId,nome:acc.nome||accId,logo:'',cor1:'#14100b',cor2:'#b08d3e',fundo:'#f5f0e8'}; DB.contasMeta.push(m); }
-        const antes=m.fichaId||'';
-        if(fid!==antes){ n++; if(fid){ m.fichaId=fid; const f=fichaDe(fid); if(f&&f.nome&&!logoDe(m)) m.nome=f.nome; } else delete m.fichaId; }
-      });
-      if(ruins.length){ toast('Cliente nao encontrado: '+ruins.slice(0,2).join(' / ')+(ruins.length>2?'...':'')); return false; }
-      if(n){ await saveDB(); toast(n===1?'1 conta vinculada.':n+' contas vinculadas.'); }
-      if(currentView==='trafego') metaDesenhar(); else render(currentView);
-      return true;
-    });
-};
+/* VINCULO CONTA x CLIENTE (Bernardo 05/10): "o Controle de Clientes e a entidade master; se o
+   servico tem trafego, a gente conecta a uma conta de anuncios, nao precisa dessa firula". A
+   janela "Vincular contas de anuncio a clientes" (todas as contas de uma vez, com palpite pelo
+   nome) saiu. A conta se liga SO pelo cliente: campo Conta de anuncios do card do Controle de
+   Clientes e aba Contas da ficha, os dois no mesmo seletor (rwEscolherConta). */
 window.openMarcaModal=(accId)=>{
   const acc=(window.__mtDados||[]).find(x=>x.id===accId)||{nome:accId};
   const m=contaMarca(accId);
@@ -13702,9 +13648,8 @@ window.lcContasSemFicha=()=>{
     const irma=grupos.indexOf(pre)>=0?(DB.projetos||[]).find(p=>grupoDe(p)===pre):null;
     return `<div class="cx-item"><div style="flex:1;min-width:0"><div class="nm">${esc(c.nome)}</div>
       <div class="id">${irma?'parece conta nova de <b>'+esc(pre)+'</b>':'ID: '+esc(String(c.id).replace('act_',''))}</div></div>
-      ${irma?`<button class="btn small" onclick="document.querySelector('.overlay').remove();novaContaCliente('${esc(irma.id)}','${esc(c.id)}')">Criar conta</button>`:''}
-      <button class="btn ghost small" onclick="document.querySelector('.overlay').remove();abrirVinculos('${esc(c.id)}')">Ligar a uma ficha</button></div>`; };
-  modal('Contas de anúncio sem ficha',`<p class="hint" style="margin:0 0 12px">Contas ativas no Meta que não estão ligadas a nenhum cliente. Conta nova de um grupo (ex.: ALTOGIRO | NOME) vira ficha em um clique; as outras você liga a uma ficha que já existe ou cadastra pelo Fechamento.</p>${s.map(linha).join('')||'<p class="hint">Nenhuma.</p>'}`,async()=>true);
+      ${irma?`<button class="btn small" onclick="document.querySelector('.overlay').remove();novaContaCliente('${esc(irma.id)}','${esc(c.id)}')">Criar conta</button>`:''}</div>`; };
+  modal('Contas de anúncio sem ficha',`<p class="hint" style="margin:0 0 12px">Contas ativas no Meta que não estão ligadas a nenhum cliente. Conta nova de um grupo (ex.: ALTOGIRO | NOME) vira ficha em um clique; as outras você liga pelo card do cliente (Conta de anúncios) ou cadastra pelo Fechamento.</p>${s.map(linha).join('')||'<p class="hint">Nenhuma.</p>'}`,async()=>true);
   const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Fechar';
 };
 /* ---------- MENU ··· DA LISTA (Trello, Gabriel 23/09) ----------
@@ -16605,7 +16550,7 @@ function abaContasCliente(f){
   return `
    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
      <div style="font-size:13px;font-weight:800"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-7"/></svg> Contas de anúncio do Meta</div>
-     <button class="btn ghost small" onclick="const o=this.closest('.overlay');if(o)o.remove();render('trafego');mtVinculosQuandoPronto()"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Gerenciar vínculos</button>
+     <button class="btn ghost small" onclick="rwEscolherConta('${f.id}',()=>cliIrPara('${f.id}','contas'))"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> Escolher conta</button>
    </div>
    ${contas.length?contas.map(m=>{
      const viva=dados.find(x=>x.id===m.id);
@@ -16631,7 +16576,7 @@ function abaContasCliente(f){
          <button class="iconbtn del" onclick="vincularConta('${esc(m.id)}','')">Desvincular</button>
        </div>
      </div>`;}).join('')
-   :`<div class="empty" style="padding:18px">Nenhuma conta de anúncio vinculada a este cliente.<br><span style="font-size:12px;color:var(--muted)">Use “Gerenciar vínculos” para ligar as contas do Meta.</span></div>`}`;
+   :`<div class="empty" style="padding:18px">Nenhuma conta de anúncio vinculada a este cliente.<br><span style="font-size:12px;color:var(--muted)">Use “Escolher conta” para ligar a conta de anúncios deste cliente.</span></div>`}`;
 }
 function abaAcessosCliente(f){
   const alvos=[f.nome,(finDaFicha(f)||{}).nome].filter(Boolean);
