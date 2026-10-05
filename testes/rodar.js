@@ -1282,7 +1282,12 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('cliente só de Agent IA não mostra o campo', g.lcLogoCel('IA')==='');
       ok('a lista do Controle de Clientes desenha a miniatura antes do nome', HTML.indexOf("${ehLC(t.lista_id)?lcLogoCel(t.ficha_id):''}<span class=\"tk-titcel")>0);
       ok('a aba Logo mostra a logo dos relatórios para baixar', HTML.indexOf("lgBaixarRel('${esc(fid)}')")>0&&HTML.indexOf("const grade=(logos.length||rel)?")>0);
-      ok('primeira imagem subida na ficha vira a logo do cliente', /if\(!logoDoCliente\(fid\)\)\{ try\{ const d=await lgMiniatura\(f\); if\(d\) await logoSalvar\(logoFichaKey\(fid\),d\);/.test(HTML));
+      /* Bernardo 05/10: a logo do cliente manda; a da conta (28/08) segurava a logo velha no relatório */
+      g.__set({act_1:'data:conta1','ficha:F1':'data:ficha1'});
+      ok('logo do cliente vence a da conta (lista, Contas de anúncio e PDF)', g.logoDe(DB.contasMeta[0])==='data:ficha1'&&g.logoDe('act_1')==='data:ficha1'&&g.logoDoCliente('F1')==='data:ficha1');
+      ok('primeira imagem subida na ficha vira a logo do cliente quando ele não tem a própria (a da conta não segura)', /if\(!\(LOGOS_META\|\|\{\}\)\[logoFichaKey\(fid\)\]\)\{ try\{ const d=await lgMiniatura\(f\); if\(d\) await logoSalvar\(logoFichaKey\(fid\),d\);/.test(HTML));
+      ok('logo trocada na Marca da conta também vira a do cliente', /const fidMk=\(contaMarca\(accId\)\|\|\{\}\)\.fichaId; if\(fidMk\) await logoSalvar\(logoFichaKey\(fidMk\), window\.__mkLogo\|\|''\)/.test(HTML));
+      ok('Relatórios oferece aplicar as logos novas do card em lote', HTML.indexOf('window.rwUsarLogosNovas=async()=>')>0&&HTML.indexOf(".neq('logo','')")>0);
     }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
