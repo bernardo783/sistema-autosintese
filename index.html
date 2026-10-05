@@ -8468,6 +8468,8 @@ const tkCelula=(t,c)=>{
     return `<button type="button" class="tk-pcel" style="width:auto;padding:0 2px" title="Pagamento em ${esc(quando)} · clique para mudar" onclick="lcPgMenu(event,'${esc(cli.id)}')">${corpo}</button>`;
   }
   if(c.id===LC_VENC){
+    const fp=fichaDe(t.ficha_id), pr=fp&&fp.pagaPor?fichaDe(fp.pagaPor):null;
+    if(pr) return `<span class="tk-trava" title="Grupo com valor fechado: a mensalidade é cobrada na conta ${esc(pr.nome||'')}">pela ${esc(contaSufixo(pr))}</span>`;
     const d=Number((t.valores||{})[LC_VENC])||0;
     if(!(d>=1&&d<=31)) return '<span class="tk-trava vaz" title="Sem dia de vencimento no cadastro do cliente">-</span>';
     const iso=vencOf(cliComp,d);
@@ -9990,6 +9992,9 @@ const lcSeloParceria=(fid)=>{ const f=fid?fichaDe(fid):null; if(!f||!f.parceria)
    aqui. Este e o equivalente com as facetas que fazem sentido pra carteira. */
 const LC_PEND={gestor:'Sem gestor de tráfego',gerente:'Sem gerente',squad:'Sem squad'};
 function lcPgDe(f){
+  /* conta paga pela principal do grupo (Bernardo 05/10): nao tem cobranca propria,
+     a situacao e a da principal */
+  if(f&&f.pagaPor&&f.pagaPor!==f.id){ const pr=fichaDe(f.pagaPor); if(pr&&!pr.pagaPor) return lcPgDe(pr); }
   const c=finDaFicha(f); if(!c) return '';
   const comp=cliComp, hoje=hojeISO();
   const r=(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===c.id);
@@ -13038,6 +13043,12 @@ const GR_SEP=/\s+[|\u2502]\s+/;
 const grupoDe=(f)=>{ if(!f) return ''; const g=String(f.grupo||'').trim(); if(g) return MAIUS(g);
   const m=String(f.nome||'').split(GR_SEP); return m.length>1?MAIUS(m[0].trim()):''; };
 const irmasDe=(f)=>{ const g=grupoDe(f); if(!g) return []; return (DB.projetos||[]).filter(p=>grupoDe(p)===g); };
+/* Grupo com valor fechado (Bernardo 05/10: "a Altogiro paga R$ 7.000 e isso nao muda mesmo que
+   cheguem mais contas"): a mensalidade fica toda numa conta principal e as outras apontam pra
+   ela em ficha.pagaPor, com R$ 0 e sem cobranca propria. Devolve a ficha principal do grupo. */
+const principalDoGrupo=(f)=>{ if(!f) return '';
+  if(f.pagaPor) return String(f.pagaPor);
+  const p=irmasDe(f).find(x=>x.pagaPor); return p?String(p.pagaPor):''; };
 const contaSufixo=(f)=>{ const m=String((f&&f.nome)||'').split(GR_SEP); return m.length>1?m.slice(1).join(' | '):String((f&&f.nome)||''); };
 /* contas ativas no Meta sem ficha: nao entram na contagem, na remuneracao nem na cobranca */
 const contasSemFicha=()=>(window.__mtDados||[]).filter(c=>c&&c.status===1&&!fichaDaConta(c.id));
@@ -13111,7 +13122,8 @@ window.novaContaCliente=async (fid,contaId)=>{
   const falta=ncFalta(dc);
   const card=lcCardDe(fid), cv=(card&&card.valores)||{};
   const mens=Number(cv[LC_MENS])||Number(r0.valor)||'';
-  const rem=Number(cv[LC_REM])||'';
+  const princ=principalDoGrupo(f), fPrinc=princ?fichaDe(princ):null;
+  const rem=princ?'':(Number(cv[LC_REM])||'');
   const dia=Number(r0.diaVenc)||0;
   const venc=dia?vencOf(compNow(),dia):'';
   const soltas=contasSemFicha();
@@ -13119,16 +13131,18 @@ window.novaContaCliente=async (fid,contaId)=>{
   const sufSug=sug?contaSufixo({nome:sug.nome}):'';
   const fch=r0.fechamento||{};
   modal('Novo contrato · '+esc(g),`
-    <p class="hint" style="margin:0 0 4px">Conta nova do grupo, com cobrança própria. Nasce igual a <b>${esc(f.nome)}</b>: mesmo gerente, gestor, squad e serviço.</p>
+    <p class="hint" style="margin:0 0 4px">${princ
+      ?`Conta nova do grupo, <b>sem cobrança própria</b>: o grupo paga valor fechado e a mensalidade fica toda em <b>${esc((fPrinc&&fPrinc.nome)||'conta principal')}</b>. Entra com R$ 0, então o fee do grupo e a parte do gerente não mudam; o gestor recebe os R$ 100 dela normalmente.`
+      :`Conta nova do grupo, com cobrança própria.`} Nasce igual a <b>${esc(f.nome)}</b>: mesmo gerente, gestor, squad e serviço.</p>
     <div class="nc-sec">Conta</div>
     <div class="field"><label>Nome da conta</label>
       <div style="display:flex;align-items:center;gap:8px"><b style="white-space:nowrap">${esc(g)} |</b><input id="nc2_suf" value="${esc(sufSug)}" placeholder="ex: MARCOS" style="flex:1;text-transform:uppercase"></div></div>
     <div class="row2">
-      <div class="field"><label>Mensalidade (R$)</label><input id="nc2_val" type="number" step="0.01" min="0" value="${esc(String(mens))}"></div>
+      <div class="field"><label>Mensalidade (R$)</label><input id="nc2_val" type="number" step="0.01" min="0" value="${esc(String(princ?0:mens))}"${princ?' disabled':''}></div>
       <div class="field"><label>Remuneração por conta <span class="nc-op">opcional</span></label><input id="nc2_rem" type="number" step="0.01" min="0" value="${esc(String(rem))}"></div>
     </div>
     <div class="row2">
-      <div class="field"><label>1ª cobrança</label><input id="nc2_venc" type="date" value="${esc(venc)}"></div>
+      <div class="field"><label>${princ?'Início da conta':'1ª cobrança'}</label><input id="nc2_venc" type="date" value="${esc(princ?hojeISO():venc)}"></div>
       <div class="field"><label>Conta de anúncio <span class="nc-op">opcional</span></label><select id="nc2_conta"><option value="">nenhuma por enquanto</option>
         ${soltas.map(c=>`<option value="${esc(c.id)}"${contaId===c.id?' selected':''}>${esc(c.nome)}</option>`).join('')}</select></div>
     </div>
@@ -13139,7 +13153,7 @@ window.novaContaCliente=async (fid,contaId)=>{
     <div id="nc_form"${falta.length?'':' style="display:none"'}>${ncCampos(dc)}</div>
     <div class="nc-sec">Cobrança e contrato</div>
     <label class="tk-chkline nc-fixo"><input type="checkbox" checked disabled> Cobrança no AutoSíntese <span class="hint" style="margin:0">sempre</span></label>
-    <label class="tk-chkline"><input type="checkbox" id="nc2_asaas"> Criar também no Asaas <span class="hint" style="margin:0">cliente e assinatura, cobrança real</span></label>
+    ${princ?'':`<label class="tk-chkline"><input type="checkbox" id="nc2_asaas"> Criar também no Asaas <span class="hint" style="margin:0">cliente e assinatura, cobrança real</span></label>`}
     <label class="tk-chkline"><input type="checkbox" id="nc2_doc" onchange="$('#nc_doc').style.display=this.checked?'':'none'"> Gerar o contrato (.docx)</label>
     <div id="nc_doc" class="row2 nc-sub" style="display:none">
       <div class="field"><label>Modelo</label><select id="nc2_mod">${Object.keys(CT_MODELOS).map(k=>`<option value="${k}"${k==='marketing'?' selected':''}>${esc(CT_MODELOS[k])}</option>`).join('')}</select></div>
@@ -13150,8 +13164,8 @@ window.novaContaCliente=async (fid,contaId)=>{
       const valor=Number(($('#nc2_val')||{}).value||0), remV=Number(($('#nc2_rem')||{}).value||0);
       const dp=String(($('#nc2_venc')||{}).value||'');
       if(suf.length<2){ toast('Escreva o nome da conta.'); return false; }
-      if(!(valor>0)){ toast('Informe a mensalidade.'); return false; }
-      if(!dp){ toast('Informe a data da 1ª cobrança.'); return false; }
+      if(!(valor>0)&&!princ){ toast('Informe a mensalidade.'); return false; }
+      if(!dp){ toast(princ?'Informe o início da conta.':'Informe a data da 1ª cobrança.'); return false; }
       const nome=g+' | '+suf;
       if((DB.projetos||[]).some(p=>nomeChave(p.nome)===nomeChave(nome))){ toast('Já existe: '+nome+'.'); return false; }
       const d=ncLer(), fl=ncFalta(d);
@@ -13168,7 +13182,7 @@ window.novaContaCliente=async (fid,contaId)=>{
         resumo:'Novo contrato (upsell) do grupo '+g+', criado a partir de '+f.nome+' por '+eu+'.',
         razaoSocial:d.razao,cnpj:d.cnpj,cpf:d.rep_cpf,rg:d.rep_rg,dono:d.rep_nome,respFin:d.rep_nome,
         repCargo:d.rep_cargo,nascimento:d.rep_nascimento,email:d.email,endereco:d.endereco,telFin:d.tel,
-        asaas:asaas?'sim':'nao',contaAdicional:'sim',origemFicha:String(fid)};
+        asaas:asaas?'sim':'nao',contaAdicional:'sim',origemFicha:String(fid),pagaPor:princ||''};
       const b=document.querySelector('.overlay .msave'); if(b){ b.disabled=true; b.textContent='Criando...'; }
       const {data,error}=await sb.functions.invoke('fechamento',{body});
       if(error||!data||!data.ok){ let msg=(data&&data.erro)||(error&&error.message)||'falha';
