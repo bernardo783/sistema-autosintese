@@ -368,6 +368,8 @@
     border-radius:9px;padding:8px 10px;margin-bottom:14px;font-size:12.5px;color:var(--muted)}
   .lk-linha span{flex:1;min-width:0}
   /* ---------- NOVAS CONTAS: regras do canal ---------- */
+  .nc-tit{cursor:pointer}
+  .nc-tit:hover{color:var(--brand2);text-decoration:underline}
   .nc-regras{max-width:920px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand2);
     border-radius:0 10px 10px 0;padding:14px 18px;margin-bottom:14px}
   .nc-regras h4{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
@@ -7462,6 +7464,7 @@ window.spCaixa=()=>{
   spMarcarAtalho('');
   if(!TK.listas.length) return renderTarefas($('#content'));
   tkDesenhar($('#content')); spDesenhar();
+  tkRevalidar(()=>TK.escopo==='minhas'&&currentView==='lista',()=>tkDesenhar($('#content')));
 };
 const spMinhas=()=>{ const u=(currentUser||{}).id; return u?TK.tarefas.filter(t=>ehMinha(t,u)&&t.status!=='feito'&&!arquivada(t)):[]; };
 
@@ -7768,6 +7771,16 @@ async function tkCarregar(){
       });
     }
   }
+}
+/* Telas que pintam direto da memoria (Minhas tarefas, Trabalho, Novas Contas) conferem no
+   banco ao abrir (Bernardo 05/10): o pedido que o Jose mandou pelo Suporte as 11:28 nao
+   aparecia pra quem estava com o sistema aberto desde antes, so com F5. No maximo uma
+   recarga a cada 15 s, porque essas telas se redesenham a cada clique. */
+let TK_REVAL=0;
+function tkRevalidar(aindaAqui,redesenha){
+  if(Date.now()-TK_REVAL<15000) return;
+  TK_REVAL=Date.now();
+  tkCarregar().then(()=>{ if(aindaAqui()){ redesenha(); spDesenhar(); } }).catch(()=>{});
 }
 function renderTarefas(c){
   /* pinta na hora com o que ja esta em memoria e revalida contra o banco logo em seguida */
@@ -8892,14 +8905,19 @@ window.ncRecusar=async (id)=>{
 /* Solicitacoes de reembolso/conta nova: quem pede usa o Suporte; quem PAGA
    acompanha aqui, junto das outras contas a pagar (Gabriel 15/09). Antes ficava
    no pe do proprio formulario, onde o financeiro nunca ia olhar. */
-function ncUltimasHTML(n){
-  const envs=TK.tarefas.filter(t=>t.lista_id===NC_LISTA).slice()
-    .sort((x,y)=>String(y.criado_em||'').localeCompare(String(x.criado_em||''))).slice(0,n||20);
+function ncUltimasHTML(n,fila){
+  const novo=(x,y)=>String(y.criado_em||'').localeCompare(String(x.criado_em||''));
+  const todos=TK.tarefas.filter(t=>t.lista_id===NC_LISTA&&!arquivada(t));
+  /* na fila: tudo que esta em aberto primeiro (mais novo em cima) e depois os 30 ultimos resolvidos */
+  const resolvido=(t)=>{ const s=tkStatus1(t.status_id); return s?(s.grupo==='feito'||s.grupo==='fechado'):t.status==='feito'; };
+  const envs=fila
+    ?todos.filter(t=>!resolvido(t)).sort(novo).concat(todos.filter(resolvido).sort(novo).slice(0,30))
+    :todos.slice().sort(novo).slice(0,n||20);
   const linha=(t)=>{
       const vv=t.valores||{}; const rec=vv[NC_C.rec]||''; const anx=String(vv[NC_C.anexo]||'');
       const lista=anx?anx.split('\n').filter(Boolean):[];
       return `<tr>
-      <td><strong>${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">${esc(vv[NC_C.sol]||'')}${rec&&rec!=='Não é recorrente'?' · <span style="color:var(--brand2)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg> '+esc(rec)+'</span>':''}</div></td>
+      <td><strong class="nc-tit" onclick="tkAbrir('${t.id}')" title="Abrir o pedido completo">${esc(t.titulo)}</strong><div class="hint" style="margin:2px 0 0">${esc(vv[NC_C.sol]||'')}${rec&&rec!=='Não é recorrente'?' · <span style="color:var(--brand2)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg> '+esc(rec)+'</span>':''}</div></td>
       <td>${tkSelo(t)}</td>
       <td>${esc(vv[NC_C.dep]||'-')}</td>
       <td style="text-align:right">${brl(vv[NC_C.val])}</td>
@@ -8907,10 +8925,30 @@ function ncUltimasHTML(n){
       <td>${lista.length?lista.map((p,i)=>`<button class="iconbtn" onclick="ncAbrirAnexo('${esc(p)}')" title="${esc(p.split('/').pop())}">${/^https?:/i.test(p)?'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>':'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>'} ${lista.length>1?(i+1):'ver'}</button>`).join(' '):'<span style="color:var(--muted)">-</span>'}</td>
     </tr>`; };
   return `${ncAprovarHTML()}
-   <h2 style="font-size:15px;margin:26px 0 8px">Solicitações da equipe<small style="font-weight:600;color:var(--fraco);font-size:12px;margin-left:8px">reembolsos e contas novas pedidas pelo Suporte</small></h2>
+   ${fila?'':`<h2 style="font-size:15px;margin:26px 0 8px">Solicitações da equipe<small style="font-weight:600;color:var(--fraco);font-size:12px;margin-left:8px">reembolsos e contas novas pedidas pelo Suporte</small></h2>`}
    <div class="tablewrap"><table><thead><tr><th>Solicitação</th><th style="width:180px">Status</th><th>Depto</th><th>Valor</th><th>Vencimento</th><th>Anexo</th></tr></thead>
    <tbody>${envs.map(linha).join('')}</tbody></table>${envs.length?'':'<div class="empty">Nenhuma solicitação ainda.</div>'}</div>`;
 }
+/* Fila de Novas Contas (Bernardo 05/10: "tudo que vier do Suporte › Novas contas tem que
+   cair em Novas Contas do Financeiro"). A lista da arvore abria o formulario de pedir, e
+   quem paga so via os pedidos no pe de Contas a Pagar. Agora quem enxerga a lista ve a
+   fila; pedir continua pelo Suporte ou pelo "+ Nova conta" daqui. */
+function ncFila(c){
+  const abertos=TK.tarefas.filter(t=>t.lista_id===NC_LISTA&&!arquivada(t)&&(()=>{ const s=tkStatus1(t.status_id); return s?!(s.grupo==='feito'||s.grupo==='fechado'):t.status!=='feito'; })());
+  const soma=abertos.reduce((a,t)=>a+(Number((t.valores||{})[NC_C.val])||0),0);
+  c.innerHTML=`<div class="page-head">
+     <div><h2>Novas Contas</h2><div class="desc">Reembolsos e contas novas pedidos pelo Suporte · ${abertos.length} em aberto${abertos.length?' · '+brl(soma):''}</div></div>
+     <div class="toolbar"><button class="btn small" onclick="ncNovaAqui()">+ Nova conta</button></div>
+   </div>
+   ${ncUltimasHTML(0,true)}`;
+  tkRevalidar(()=>TK.listaSel===NC_LISTA&&TK.escopo==='lista'&&currentView==='lista',()=>tkDesenhar($('#content')));
+}
+/* pedir daqui mesmo: o formulario de sempre, com volta pra fila */
+window.ncNovaAqui=()=>{
+  const c=$('#content'); ncFormulario(c);
+  const ph=c.querySelector('.page-head');
+  if(ph) ph.insertAdjacentHTML('beforebegin','<button class="sup-volta" onclick="tkDesenhar($(\'#content\'))">← Novas Contas</button>');
+};
 function ncFormulario(c){
   const meu=(window.currentUser&&currentUser.nome)||'';
   /* restrito (ADM TARAF): tela cheia, centralizada, com o proprio botao de sair */
@@ -10197,7 +10235,7 @@ function tkDesenhar(c){
   if(currentView==='pessoal'&&(!c||c.id==='content')){ mpPintar(); return; }
   if(TK.escopo==='recorrentes') return recRender(c);
   if(TK.listaSel==='7381fb45-8d78-458d-b432-77dd88972338'&&TK.escopo==='lista'){ return renderTrafego(c); }
-  if(TK.listaSel===NC_LISTA&&TK.escopo==='lista'){ return ncFormulario(c); }
+  if(TK.listaSel===NC_LISTA&&TK.escopo==='lista'){ return restrito()?ncFormulario(c):ncFila(c); }
   const lista=TK.listas.find(x=>x.id===TK.listaSel);
   const cli=ehLC(TK.listaSel)&&TK.escopo==='lista';
   if(TK.visao==='cal') TK.visao='board';   /* calendário removido a pedido do Gabriel */
@@ -19890,6 +19928,8 @@ async function renderPessoal(c){
   try{ await mpArrastarPendentes(); }catch(_){ }
   if(currentView!=='pessoal') return;
   mpPintar();
+  /* a chave Trabalho lista tarefas da empresa: tambem confere no banco */
+  if(mpTrab()) tkRevalidar(()=>currentView==='pessoal',mpPintar);
 }
 window.mpCriarWs=async()=>{ const l=await pessoalGarantir(); if(l){ spDesenhar(); render('pessoal'); } };
 
