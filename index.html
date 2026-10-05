@@ -3094,6 +3094,53 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
     padding:11px 12px;color:var(--txt);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
   .mc-li:active,.mc-li:hover{background:var(--hov2)}
 }
+/* ---------- RELATÓRIOS NO WHATSAPP (Bernardo 05/10) ---------- */
+.rw-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.rw-head{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.rw-head h3{margin:0;font-size:16px;font-weight:800}
+.rw-prog{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.rw-prog b{color:var(--txt)}
+.rw-bar{width:160px;height:7px;border-radius:7px;background:var(--panel2);overflow:hidden;display:block}
+.rw-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2))}
+.rw-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.rw-ln{display:grid;grid-template-columns:38px minmax(0,1.4fr) minmax(0,1.2fr) minmax(0,.9fr) auto;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--line)}
+.rw-lg{width:38px;height:38px;border-radius:11px;overflow:hidden;display:grid;place-items:center;background:var(--panel2);color:var(--brand2);font-weight:800;font-size:12px}
+.rw-lg img{width:100%;height:100%;object-fit:contain;background:#fff}
+.rw-nm{min-width:0}
+.rw-nm b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rw-nm small{display:block;font-size:11.5px;color:var(--fraco);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rw-gc{min-width:0}
+.rw-g{display:inline-flex;align-items:center;gap:6px;max-width:100%;border:1px dashed var(--line);background:none;color:var(--muted);border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;vertical-align:middle}
+.rw-g span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rw-g.on{border-style:solid;border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok)}
+.rw-g:hover{border-color:var(--brand2);color:var(--txt)}
+.rw-st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.rw-st.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.rw-st.pen{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
+.rw-st.err{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+.rw-st.cin{background:var(--panel2);color:var(--fraco)}
+.rw-lk{color:var(--brand2);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.overlay.rw-gov{z-index:2600}
+.rw-gl{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto}
+.rw-gi{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--panel2);border:1px solid transparent;border-radius:11px;padding:9px 12px;color:var(--txt);font:inherit;cursor:pointer}
+.rw-gi:hover{border-color:var(--brand2)}
+.rw-gi b{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rw-gi small{font-size:11px;color:var(--fraco);white-space:nowrap}
+.rw-gi.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 14%,transparent)}
+.rw-sug{font-size:10px;font-weight:800;border-radius:999px;padding:2px 8px;background:color-mix(in srgb,var(--brand) 22%,transparent);color:var(--brand2);flex:none}
+.rw-pn-t{font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px}
+.rw-pn-k{font-size:10px;letter-spacing:.12em;color:var(--fraco);font-weight:800;margin:12px 0 6px}
+.rw-seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.rw-seg button{background:none;border:none;color:var(--muted);font:inherit;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer}
+.rw-seg button.on{background:color-mix(in srgb,var(--brand) 22%,transparent);color:var(--txt)}
+.rw-pn textarea{width:100%;font:inherit;font-size:12.5px;line-height:1.5;resize:vertical}
+.rw-esp{position:fixed;inset:0;z-index:2500;background:rgba(0,0,0,.5);display:grid;place-items:center}
+.rw-esp div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;font-weight:700;font-size:13.5px}
+@media(max-width:720px){
+  .rw-ln{grid-template-columns:38px minmax(0,1fr) auto;row-gap:8px}
+  .rw-nm,.rw-gc{grid-column:2/4}.rw-sc{grid-column:2/3}.rw-ac{grid-column:3/4;justify-self:end}
+  .rw-prog{margin-left:0;width:100%}.rw-bar{flex:1}
+}
 /* 3A — primeiro passo: aparece com zero habitos, em qualquer tamanho de tela */
 /* Menu do chip "Pessoal" no celular: modal centralizado, igual a busca — a gaveta lateral
    abria colada no topo do navegador e nao dava pra entender o que fazer (Gabriel 07/09). */
@@ -4553,7 +4600,7 @@ function render(view){
 const TR_ST={ativo:'Ativo',pausado:'Pausado',encerrado:'Encerrado'};
 /* ===================== RELATÓRIOS: sub-abas Conexão / Equipes / Central =====================
    Reaproveita o que /resumo já traz: pagConta() (Pix×cartão, saldo) e c.dias (gasto dia a dia). */
-let trafAba='contas';
+let trafAba='relatorios';   /* Relatórios é a porta de entrada do gestor (Bernardo 05/10) */
 window.trafGo=(t)=>{ trafAba=t; render('trafego'); };
 /* média de gasto por dia dos últimos dias com gasto — base da previsão de duração */
 function mediaDiaria(c){
@@ -4785,12 +4832,13 @@ function renderTrafego(c){
      <div class="toolbar"><input class="search" id="tSearch" placeholder="Buscar..."><button class="btn small" onclick="openTrafModal()">+ Campanha</button></div>
    </div>
    <div class="fin-tabs">
-     <button class="ftab ${trafAba==='contas'?'active':''}" onclick="trafGo('contas')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6a10 10 0 0 1 14 0M8.5 16.1a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0"/><path d="M12 20h.01"/></svg> Contas e relatórios</button>
+     <button class="ftab ${trafAba==='relatorios'?'active':''}" onclick="trafGo('relatorios')">${RW_IC_WA} Relatórios</button>
+     <button class="ftab ${trafAba==='contas'?'active':''}" onclick="trafGo('contas')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6a10 10 0 0 1 14 0M8.5 16.1a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0"/><path d="M12 20h.01"/></svg> Contas de anúncio</button>
      <button class="ftab ${trafAba==='central'?'active':''}" onclick="trafGo('central')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/></svg> Central da agência</button>
      <button class="ftab ${trafAba==='conexao'?'active':''}" onclick="trafGo('conexao')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5M9 8V2M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"/></svg> Conexão</button>
      <button class="ftab ${trafAba==='equipes'?'active':''}" onclick="trafGo('equipes')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> Squads</button>
    </div>
-   ${trafAba!=='contas'?`<div id="trafSub">${trafAba==='conexao'?abaConexao():trafAba==='equipes'?abaEquipes():abaCentral()}</div>`:`
+   ${trafAba!=='contas'?`<div id="trafSub">${trafAba==='relatorios'?rwAba():trafAba==='conexao'?abaConexao():trafAba==='equipes'?abaEquipes():abaCentral()}</div>`:`
    <div class="cards">
      <div class="card"><div class="k">Clientes ativos</div><div class="v pos" id="mtAtivos">-</div><div class="sub" id="mtAtivosSub">contas habilitadas no Meta</div></div>
      <div class="card"><div class="k">Clientes sem saldo</div><div class="v" id="mtSemSaldo">-</div><div class="sub" id="mtSemSaldoSub">saldo confirmado na conta</div></div>
@@ -5942,7 +5990,7 @@ ${ads.length?`<div class="page pb" id="adsPage">
 const ED_SEL='h1,.csub,.chip,.cmeta,.prow .pl,.prow .pv,.sec,.shl h2,.shs,.sk,.sv,.fin .fr span,'+
   'table.cons th,table.cons td,.rank .rn,.ft,.fx,.frv .n,.frv .l,.ad .an,.ad .ac,.ad .amk,.ad .amv,'+
   '.ad .tag,p.body,.obs,.foot span';
-function abrirEditorRelatorio(rel){
+function abrirEditorRelatorio(rel,env){   /* env: veio da aba Relatórios, mostra o painel de envio */
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:2000;background:#0d0b14;display:flex;flex-direction:column';
   ov.innerHTML=`
@@ -5954,6 +6002,7 @@ function abrirEditorRelatorio(rel){
    </div>
    <div style="flex:1;display:flex;min-height:0">
      <div style="width:290px;flex:none;overflow:auto;border-right:1px solid var(--border);background:var(--panel);padding:14px">
+       ${env?rwPainelHtml(env):''}
        <div style="font-weight:800;font-size:13px;margin-bottom:4px">Anúncios no relatório</div>
        <div class="hint" style="margin:0 0 10px">Desmarque para ocultar do relatório, atualiza na hora. Os totais das outras páginas continuam considerando todos os anúncios; ajuste os textos manualmente se precisar.</div>
        ${rel.adsErro?`<div class="hint" style="margin:0 0 10px;color:var(--warn)"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> Não foi possível carregar os anúncios do Meta (${esc(rel.adsErro)}). O relatório saiu sem a página de anúncios.</div>`:''}
@@ -6007,6 +6056,339 @@ function abrirEditorRelatorio(rel){
     if(w.document.readyState==='complete') setTimeout(go,350); else w.onload=()=>setTimeout(go,350);
     toast('Na janela que abriu: escolha "Salvar como PDF".');
   };
+  if(env) rwPainelLigar(ov,ifr,env);
+}
+
+/* ======================= RELATÓRIOS NO WHATSAPP (Bernardo 05/10) =======================
+   Cada cliente pode ter UM grupo de WhatsApp (tabela cliente_grupos, opcional). Na aba Relatórios
+   o gestor vê os clientes de tráfego dele, confere o relatório da semana e envia o PDF direto no
+   grupo. Quem escolhe o número da equipe que está no grupo, guarda o PDF e grava o envio
+   (relatorio_envios) é a edge relatorio-whats, que também marca o cliente no card
+   "Enviar relatórios da semana" do gestor. O grupo se vincula em três lugares: aqui, no card
+   do Controle de Clientes e no Fechamento. */
+const RW_URL='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/relatorio-whats/';
+/* "últimos N dias" fecha em ONTEM: dias completos, do jeito que o Meta conta. true = inclui hoje */
+const RW_ATE_HOJE=false;
+const RW={grupos:{},envios:[],ok:false,lista:null,listaEm:0,gestor:'',busca:''};
+let FC_GRUPO=null;   /* grupo escolhido no Fechamento, gravado depois que a ficha nasce */
+const RW_IC_WA='<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9z"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>';
+const RW_IC_LINK='<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15l6-6"/><path d="M11 6l.46-.54a5 5 0 0 1 7.07 7.07L18 13"/><path d="M13 18l-.4.53a5.07 5.07 0 0 1-7.12 0 4.97 4.97 0 0 1 0-7.07L6 11"/></svg>';
+async function rwApi(acao,corpo){
+  const s=(await sb.auth.getSession()).data.session;
+  if(!s) throw new Error('Sessão expirada: entre de novo.');
+  const r=await fetch(RW_URL+acao,{method:'POST',headers:{authorization:'Bearer '+s.access_token,apikey:SUPA_KEY,'content-type':'application/json'},body:JSON.stringify(corpo||{})});
+  const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida ('+r.status+')'}));
+  d.status=r.status; return d;
+}
+async function rwCarregar(forca){
+  if(RW.ok&&!forca) return;
+  const desde=new Date(Date.now()-40*864e5).toISOString();
+  const [g,e]=await Promise.all([
+    sb.from('cliente_grupos').select('ficha_id,grupo_jid,grupo_nome'),
+    sb.from('relatorio_envios').select('id,ficha_id,conta_id,de,ate,grupo_nome,instancia,enviado_por,enviado_em,ok,erro')
+      .gte('enviado_em',desde).order('enviado_em',{ascending:false}).limit(1000)]);
+  if(g.error) throw new Error(g.error.message);
+  RW.grupos={}; (g.data||[]).forEach(x=>{ RW.grupos[String(x.ficha_id)]=x; });
+  RW.envios=e.data||[]; RW.ok=true;
+}
+const rwGrupo=(fid)=>RW.grupos[String(fid||'')]||null;
+const rwNorm=(s)=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const rwNome1=(s)=>rwNorm(s).split(' ')[0]||'';
+const rwCap=(s)=>{ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); };
+const rwDM=(iso)=>String(iso||'').slice(8,10)+'/'+String(iso||'').slice(5,7);
+const rwChefe=()=>{ const u=currentUser||{}; return u.role==='master'||!!u.gerente; };
+function rwPeriodo(dias){ const fim=RW_ATE_HOJE?tkHoje():tkDiaMais(tkHoje(),-1); return {de:tkDiaMais(fim,-(dias-1)),ate:fim,dias}; }
+const rwMsg=(p)=>`Olá pessoal, tudo bem? Segue relatório referente aos últimos ${p.dias} dias (${rwDM(p.de)} até ${rwDM(p.ate)}).`;
+const rwArquivo=(nome,p)=>'Relatorio-'+(rwNorm(nome).replace(/ /g,'-')||'cliente')+'-'+rwDM(p.de).replace('/','-')+'-a-'+rwDM(p.ate).replace('/','-')+'.pdf';
+function rwQuando(iso){ const d=new Date(iso); if(isNaN(d)) return '';
+  return ['dom','seg','ter','qua','qui','sex','sáb'][d.getDay()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+/* o que conta pro "enviado" da lista: envio desta semana, desde segunda */
+function rwDaSemana(fid){
+  const seg=mpSegDa(tkHoje());
+  const es=RW.envios.filter(e=>String(e.ficha_id)===String(fid)&&tkISO(new Date(e.enviado_em))>=seg);
+  return {ok:es.find(e=>e.ok)||null, falha:es.find(e=>!e.ok)||null};
+}
+/* clientes de tráfego: mesma régua do card semanal (rel_semanal_clientes) — sem churn, card vivo,
+   categoria tráfego/full — e, além dela, quem já tem conta de anúncio ligada */
+function rwClientes(){
+  return (DB.projetos||[]).filter(f=>{
+    if(!f||!f.id||!String(f.nome||'').trim()) return false;
+    if(String(f.status||'')==='churn') return false;
+    const cd=lcCardDe(f.id); if(cd&&(arquivada(cd)||String(cd.lista_id)===String(CH_ID))) return false;
+    return ['trafego','full'].includes(catDe(f))||contasDoCliente(f.id).length>0;
+  });
+}
+
+/* ---------- aba Relatórios ---------- */
+function rwAba(){ setTimeout(rwPintar,0); return '<div id="rwBox" class="rw-box"><div class="empty">Carregando os relatórios…</div></div>'; }
+async function rwPintar(){
+  const box=document.getElementById('rwBox'); if(!box) return;
+  try{ await rwCarregar(); }catch(e){ box.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
+  rwDesenhar();
+  /* gasto da semana vem das contas do Meta; sem elas a lista sai igual, só sem o valor */
+  if(!(window.__mtDados&&window.__mtDados.length)&&!window.__mtBuscando)
+    metaCarregar(true).then(()=>{ if(document.getElementById('rwBox')) rwDesenhar(); }).catch(()=>{});
+}
+function rwDesenhar(){
+  const box=document.getElementById('rwBox'); if(!box) return;
+  const chefe=rwChefe(), eu=rwNome1((currentUser||{}).nome), p=rwPeriodo(7);
+  const todos=rwClientes();
+  const gestores=[...new Set(todos.map(f=>String(f.responsavel||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  let cs=chefe?(RW.gestor?todos.filter(f=>String(f.responsavel||'').trim()===RW.gestor):todos):todos.filter(f=>rwNome1(f.responsavel)===eu);
+  const comConta=cs.filter(f=>contasDoCliente(f.id).length);
+  const env=comConta.filter(f=>rwDaSemana(f.id).ok).length, tot=comConta.length;
+  if(!box.querySelector('#rwLst')){
+    box.innerHTML=`<div class="rw-head">
+        <div><h3>Relatórios da semana</h3><div class="hint" style="margin:3px 0 0">Período padrão: ${rwDM(p.de)} a ${rwDM(p.ate)} · ${chefe?'clientes de tráfego de todos os gestores':'seus clientes de tráfego'}</div></div>
+        <div class="rw-prog" id="rwProg"></div></div>
+      <div class="rw-tools">
+        ${chefe?`<select class="search" style="max-width:220px" onchange="RW.gestor=this.value;rwDesenhar()"><option value="">Todos os gestores</option>${gestores.map(g=>`<option value="${esc(g)}"${RW.gestor===g?' selected':''}>${esc(g)}</option>`).join('')}</select>`:''}
+        <input class="search" id="rwQ" placeholder="Buscar cliente…" style="max-width:220px" value="${esc(RW.busca)}" oninput="RW.busca=this.value;rwDesenhar()">
+        <button class="btn secondary small" onclick="RW.ok=false;rwPintar()" title="Buscar de novo os vínculos e envios">↻ Atualizar</button>
+      </div>
+      <div id="rwLst"></div>`;
+  }
+  const q=rwNorm(RW.busca);
+  const vis=cs.filter(f=>!q||rwNorm(f.nome).includes(q));
+  /* o que falta fazer primeiro: falhou, pendente, sem grupo; depois enviados; sem conta no fim */
+  const ordem=(f)=>{ const s=rwDaSemana(f.id); if(!contasDoCliente(f.id).length) return 4; if(s.ok) return 3; if(!rwGrupo(f.id)) return 2; return s.falha?0:1; };
+  vis.sort((a,b)=>ordem(a)-ordem(b)||String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+  const pr=box.querySelector('#rwProg');
+  if(pr) pr.innerHTML=tot?`<span class="rw-bar"><i style="width:${Math.round(env/tot*100)}%"></i></span><span><b>${env} de ${tot}</b> enviados</span>`:'';
+  box.querySelector('#rwLst').innerHTML=vis.map(f=>rwLinha(f,chefe)).join('')||
+    `<div class="empty">${cs.length?'Nenhum cliente com esse nome.':(chefe?'Nenhum cliente de tráfego.':'Você não tem clientes de tráfego. O gestor de cada cliente vem do campo Gestor da ficha.')}</div>`;
+}
+function rwLinha(f,chefe){
+  const contas=contasDoCliente(f.id), g=rwGrupo(f.id), s=rwDaSemana(f.id);
+  const gasto=contas.reduce((t,m)=>{ const v=(window.__mtDados||[]).find(x=>x.id===m.id); return t+(+((v&&v.ins)||{}).spend||0); },0);
+  const lg=contas.map(m=>logoDe(m)).find(Boolean);
+  const ini=String(f.nome||'').trim().split(/\s+/).slice(0,2).map(w=>w.charAt(0)).join('').toUpperCase();
+  const gH=g?`<button type="button" class="rw-g on" onclick="rwEscolher('${f.id}',rwDesenhar)" title="Trocar o grupo">${RW_IC_WA}<span>${esc(g.grupo_nome)}</span></button>`
+           :`<button type="button" class="rw-g" onclick="rwEscolher('${f.id}',rwDesenhar)">${RW_IC_LINK}<span>vincular grupo</span></button>`;
+  let stH, ac;
+  if(!contas.length){ stH='<span class="rw-st cin">sem conta de anúncio</span>'; ac='<button class="btn secondary small" onclick="abrirVinculos()">Vincular conta</button>'; }
+  else if(s.ok){ stH=`<span class="rw-st ok" title="${esc('Enviado em '+(s.ok.grupo_nome||'')+(s.ok.instancia?' pelo WhatsApp de '+rwCap(s.ok.instancia):''))}">enviado ${esc(rwQuando(s.ok.enviado_em))}</span>`;
+    ac=`<button class="btn secondary small" onclick="rwEnviar('${f.id}')">Reenviar</button>`; }
+  else{ stH=s.falha?`<span class="rw-st err" title="${esc(s.falha.erro||'')}">falhou ${esc(rwQuando(s.falha.enviado_em))}</span>`:'<span class="rw-st pen">pendente</span>';
+    ac=g?`<button class="btn small" onclick="rwEnviar('${f.id}')">Enviar relatório</button>`
+        :`<button class="btn secondary small" onclick="rwEscolher('${f.id}',()=>rwEnviar('${f.id}'))">Vincular e enviar</button>`; }
+  const sub=[contas.length?esc(contas[0].id)+(contas.length>1?' +'+(contas.length-1):''):'',gasto?brl(gasto)+' em 7 dias':'',chefe&&f.responsavel?esc(f.responsavel):''].filter(Boolean).join(' · ');
+  return `<div class="rw-ln"><div class="rw-lg">${lg?`<img src="${esc(lg)}" alt="">`:esc(ini)}</div>
+    <div class="rw-nm"><b>${esc(f.nome)}</b><small>${sub||'&nbsp;'}</small></div>
+    <div class="rw-gc">${gH}</div><div class="rw-sc">${stH}</div><div class="rw-ac">${ac}</div></div>`;
+}
+
+/* ---------- escolher o grupo (aba, card do Controle de Clientes e Fechamento) ----------
+   Sem ficha (Fechamento: o cliente ainda não existe) só devolve a escolha, quem chamou grava. */
+async function rwListaGrupos(fid,forca){
+  if(!forca&&RW.lista&&Date.now()-RW.listaEm<5*60e3) return RW.lista;
+  const r=await rwApi('grupos',{ficha_id:fid||null});
+  if(!r.ok) throw new Error(r.erro||('falha '+r.status));
+  RW.lista=r; RW.listaEm=Date.now(); return r;
+}
+const RW_FORA=new Set(['sintese','autosintese','grupo','digital','marketing','trafego','de','da','do','das','dos','com','ltda','eireli']);
+function rwPontua(gNome,cNome){
+  const t=rwNorm(cNome).split(' ').filter(w=>w.length>=3&&!RW_FORA.has(w)); if(!t.length) return 0;
+  const g=rwNorm(gNome); return t.filter(w=>g.includes(w)).length/t.length;
+}
+window.rwEscolher=async(fid,depois,nomeNovo)=>{
+  const f=fid?fichaDe(fid):null, nome=f?f.nome:(nomeNovo||''), atual=fid?rwGrupo(fid):null;
+  const v=document.getElementById('rwGOv'); if(v) v.remove();
+  const ov=document.createElement('div'); ov.id='rwGOv'; ov.className='overlay rw-gov';
+  ov.innerHTML=`<div class="modal" style="max-width:480px"><div class="mhead"><h3>Grupo do WhatsApp${nome?' · '+esc(nome):''}</h3><button class="x" id="rwGx" title="Fechar" aria-label="Fechar">&times;</button></div>
+    <div class="mbody"><input class="search" id="rwGq" placeholder="Buscar grupo…" style="width:100%;max-width:none" autocomplete="off">
+      <div class="hint" id="rwGi" style="margin:8px 0">Buscando os grupos dos WhatsApps da equipe…</div>
+      <div id="rwGl" class="rw-gl"></div></div>
+    <div class="mfoot">${atual?'<button type="button" class="btn secondary small" id="rwGdes">Desvincular</button>':''}<span style="flex:1"></span>
+      <button type="button" class="btn secondary small" id="rwGrec" title="Buscar de novo no WhatsApp">↻ Atualizar lista</button></div></div>`;
+  document.body.appendChild(ov);
+  const fecha=()=>ov.remove();
+  ov.onclick=e=>{ if(e.target===ov) fecha(); };
+  ov.querySelector('#rwGx').onclick=fecha;
+  const qEl=ov.querySelector('#rwGq'), info=ov.querySelector('#rwGi'), lst=ov.querySelector('#rwGl');
+  let dados=null, vis=[];
+  const pinta=()=>{
+    if(!dados) return;
+    const q=rwNorm(qEl.value);
+    vis=dados.grupos.map(g=>({g,p:rwPontua(g.nome,nome)})).filter(x=>!q||rwNorm(x.g.nome).includes(q))
+      .sort((a,b)=>(atual&&b.g.jid===atual.grupo_jid)-(atual&&a.g.jid===atual.grupo_jid)||b.p-a.p||a.g.nome.localeCompare(b.g.nome,'pt-BR')).slice(0,200);
+    lst.innerHTML=vis.map((x,i)=>{ const eh=atual&&x.g.jid===atual.grupo_jid, sug=!eh&&i===0&&x.p>=0.5&&!q;
+      return `<button type="button" class="rw-gi${eh?' on':''}" data-i="${i}"><b>${esc(x.g.nome)}</b>${eh?'<span class="rw-sug">atual</span>':sug?'<span class="rw-sug">sugerido</span>':''}<small>${esc(x.g.numeros.map(rwCap).join(', '))}</small></button>`; }).join('')
+      ||'<div class="hint" style="margin:0">Nenhum grupo com esse nome.</div>';
+    lst.querySelectorAll('.rw-gi').forEach(b=>{ b.onclick=()=>escolhe(vis[+b.dataset.i].g); });
+  };
+  const carrega=async(forca)=>{
+    info.textContent='Buscando os grupos dos WhatsApps da equipe…'; lst.innerHTML='';
+    try{ dados=await rwListaGrupos(fid,forca); }
+    catch(e){ info.textContent='Não deu pra buscar os grupos: '+(e.message||e); return; }
+    info.textContent=dados.lidos&&dados.lidos.length
+      ?dados.grupos.length+' grupos · WhatsApp de '+dados.lidos.map(rwCap).join(', ')+(dados.falhas&&dados.falhas.length?' (sem resposta: '+dados.falhas.map(rwCap).join(', ')+')':'')
+      :'Nenhum WhatsApp da equipe respondeu. Confira em Usuários se os números estão conectados.';
+    pinta();
+  };
+  const escolhe=async(g)=>{
+    if(fid){
+      const {error}=await sb.from('cliente_grupos').upsert({ficha_id:String(fid),grupo_jid:g.jid,grupo_nome:g.nome,
+        definido_por:(currentUser||{}).id||null,definido_em:new Date().toISOString()});
+      if(error){ toast('Não vinculou: '+error.message); return; }
+      RW.grupos[String(fid)]={ficha_id:String(fid),grupo_jid:g.jid,grupo_nome:g.nome};
+      toast('Grupo vinculado: '+g.nome);
+    }
+    fecha(); if(depois) depois(g);
+  };
+  const des=ov.querySelector('#rwGdes');
+  if(des) des.onclick=async()=>{
+    if(!confirm('Desvincular o grupo "'+atual.grupo_nome+'" deste cliente?')) return;
+    const {error}=await sb.from('cliente_grupos').delete().eq('ficha_id',String(fid));
+    if(error){ toast('Não desvinculou: '+error.message); return; }
+    delete RW.grupos[String(fid)]; toast('Grupo desvinculado.'); fecha(); if(depois) depois(null);
+  };
+  qEl.oninput=pinta; ov.querySelector('#rwGrec').onclick=()=>carrega(true);
+  setTimeout(()=>qEl.focus(),30);
+  if(!RW.ok) rwCarregar().catch(()=>{});
+  carrega(false);
+};
+/* card do Controle de Clientes */
+function rwTkChip(fid){
+  if(!fid) return '<span class="hint" style="margin:0">escolha o cliente primeiro</span>';
+  if(!RW.ok){ rwCarregar().then(()=>{ const el=document.getElementById('tkRwG'); if(el&&RW.ok) el.innerHTML=rwTkChip(fid); }).catch(()=>{}); return '<span class="hint" style="margin:0">…</span>'; }
+  const g=rwGrupo(fid);
+  return g?`<button type="button" class="rw-g on" onclick="rwEscolherTk('${fid}')" title="Trocar o grupo">${RW_IC_WA}<span>${esc(g.grupo_nome)}</span></button>`
+          :`<button type="button" class="rw-g" onclick="rwEscolherTk('${fid}')">${RW_IC_LINK}<span>vincular grupo</span></button>`;
+}
+window.rwEscolherTk=(fid)=>rwEscolher(fid,()=>{ const el=document.getElementById('tkRwG'); if(el) el.innerHTML=rwTkChip(fid); });
+/* Fechamento: campo opcional; a ficha só existe depois do envio, então o vínculo é gravado lá */
+function rwFcCampo(){ FC_GRUPO=null;
+  return `<div class="field"><label>Grupo do WhatsApp do cliente <span style="font-weight:500;color:var(--fraco)">· opcional</span></label><div id="fc_grupo">${rwFcChip()}</div>
+    <p class="hint" style="margin:6px 0 0">Onde o gestor vai mandar os relatórios. Dá pra vincular depois, no card do Controle de Clientes.</p></div>`; }
+function rwFcChip(){
+  return FC_GRUPO?`<button type="button" class="rw-g on" onclick="rwFcEscolher()" title="Trocar o grupo">${RW_IC_WA}<span>${esc(FC_GRUPO.nome)}</span></button> <a class="rw-lk" onclick="FC_GRUPO=null;document.getElementById('fc_grupo').innerHTML=rwFcChip()">remover</a>`
+    :`<button type="button" class="rw-g" onclick="rwFcEscolher()">${RW_IC_LINK}<span>escolher grupo</span></button>`;
+}
+window.rwFcEscolher=()=>rwEscolher(null,(g)=>{ if(g) FC_GRUPO={jid:g.jid,nome:g.nome}; const el=document.getElementById('fc_grupo'); if(el) el.innerHTML=rwFcChip(); },((document.getElementById('fc_nome')||{}).value||''));
+async function rwFcGravar(fichaId){
+  if(!FC_GRUPO||!fichaId) return;
+  try{ await sb.from('cliente_grupos').upsert({ficha_id:String(fichaId),grupo_jid:FC_GRUPO.jid,grupo_nome:FC_GRUPO.nome}); RW.ok=false; }catch(_){}
+  FC_GRUPO=null;
+}
+
+/* ---------- enviar: monta o relatório padrão e abre o editor com o painel de envio ---------- */
+window.rwEnviar=async(fid,accId)=>{
+  const f=fichaDe(fid); if(!f){ toast('Cliente não encontrado.'); return; }
+  const contas=contasDoCliente(fid);
+  if(!contas.length){ toast('Esse cliente não tem conta de anúncio vinculada.'); return; }
+  if(!accId&&contas.length>1){
+    modal('Qual conta de anúncio? · '+esc(f.nome),`<div class="rw-gl">${contas.map(m=>{ const v=(window.__mtDados||[]).find(x=>x.id===m.id)||{};
+      return `<button type="button" class="rw-gi" onclick="document.querySelector('.overlay .mcancel').click();rwEnviar('${fid}','${esc(m.id)}')"><b>${esc(m.nome||v.nome||m.id)}</b><small>${esc(m.id)}</small></button>`; }).join('')}</div>`,async()=>true);
+    const sv=document.querySelector('.overlay .msave'); if(sv) sv.remove();
+    return;
+  }
+  await rwAbrir({fid,accId:accId||contas[0].id,dias:7,msg:null,msgAuto:true});
+};
+function rwEspera(t){ const el=document.createElement('div'); el.className='rw-esp'; el.innerHTML='<div>'+esc(t)+'</div>'; document.body.appendChild(el); return el; }
+async function rwAbrir(env){
+  const f=fichaDe(env.fid)||{};
+  const esp=rwEspera('Montando o relatório de '+(f.nome||'cliente')+'… (~10s)');
+  try{
+    env.per=rwPeriodo(env.dias);
+    const m=contaMarca(env.accId)||{}, ult=m.ultRel||{}, hj=new Date();
+    env.rel=await montarRelatorio(env.accId,{de:env.per.de,ate:env.per.ate,doc:String(hj.getMonth()+1).padStart(2,'0')+'.'+hj.getFullYear(),
+      impostoPct:ult.impostoPct!=null?ult.impostoPct:12.5});
+  }catch(e){ esp.remove(); toast('Erro ao montar o relatório: '+(e.message||e)); return; }
+  esp.remove();
+  if(env.msgAuto||env.msg==null){ env.msg=rwMsg(env.per); env.msgAuto=true; }
+  env.editado=false;
+  abrirEditorRelatorio(env.rel,env);
+}
+function rwPainelHtml(env){
+  const g=rwGrupo(env.fid);
+  return `<div class="rw-pn">
+    <div class="rw-pn-t">${RW_IC_WA} Enviar no WhatsApp</div>
+    <div class="rw-pn-k">PERÍODO</div>
+    <div class="rw-seg"><button type="button" data-d="7" class="${env.dias===7?'on':''}">7 dias</button><button type="button" data-d="30" class="${env.dias===30?'on':''}">30 dias</button></div>
+    <div class="hint" style="margin:6px 0 0">${rwDM(env.per.de)} a ${rwDM(env.per.ate)}</div>
+    <div class="rw-pn-k">PARA</div>
+    <div id="rwPara">${rwParaHtml(g)}</div>
+    <div class="rw-pn-k">MENSAGEM</div>
+    <textarea id="rwMsg" rows="4">${esc(env.msg)}</textarea>
+    <button type="button" class="btn" id="rwEnviarBt" style="width:100%;margin-top:10px">${RW_IC_WA} Enviar no grupo</button>
+    <div class="hint" id="rwEnvInfo" style="margin:8px 0 0">O PDF vai com as edições que você fizer no relatório e os anúncios marcados abaixo.</div>
+  </div><div class="tkf-divi" style="margin:14px 0"></div>`;
+}
+const rwParaHtml=(g)=>g?`<span class="rw-g on" style="cursor:default">${RW_IC_WA}<span>${esc(g.grupo_nome)}</span></span> <a class="rw-lk" id="rwTroca">trocar</a>`
+  :`<a class="rw-lk" id="rwTroca">${RW_IC_LINK} vincular grupo</a>`;
+function rwPainelLigar(ov,ifr,env){
+  const msg=ov.querySelector('#rwMsg'), info=ov.querySelector('#rwEnvInfo'), bt=ov.querySelector('#rwEnviarBt');
+  msg.oninput=()=>{ env.msg=msg.value; env.msgAuto=false; };
+  ifr.addEventListener('load',()=>{ const d=ifr.contentDocument; if(d) d.addEventListener('input',()=>{ env.editado=true; }); });
+  const ligaTroca=()=>{ const a=ov.querySelector('#rwTroca'); if(a) a.onclick=()=>rwEscolher(env.fid,()=>{ const p=ov.querySelector('#rwPara'); if(p){ p.innerHTML=rwParaHtml(rwGrupo(env.fid)); ligaTroca(); } }); };
+  ligaTroca();
+  ov.querySelectorAll('.rw-seg button').forEach(b=>{ b.onclick=()=>{
+    const d=+b.dataset.d; if(d===env.dias) return;
+    if(env.editado&&!confirm('Trocar o período monta o relatório de novo e perde as edições. Continuar?')) return;
+    ov.remove(); env.dias=d; rwAbrir(env); }; });
+  bt.onclick=async()=>{
+    const g=rwGrupo(env.fid); if(!g){ toast('Vincule o grupo do cliente primeiro.'); return; }
+    const doc=ifr.contentDocument; if(!doc||!doc.querySelector('.page')){ toast('O relatório ainda está carregando.'); return; }
+    bt.disabled=true;
+    try{
+      info.textContent='Gerando o PDF…';
+      const pdf=await rwPdf(doc);
+      info.textContent='Enviando em "'+g.grupo_nome+'"…';
+      const f=fichaDe(env.fid)||{};
+      const r=await rwApi('enviar',{ficha_id:env.fid,conta_id:env.accId,de:env.per.de,ate:env.per.ate,
+        mensagem:String(msg.value||'').trim(),arquivo:rwArquivo(f.nome,env.per),pdf});
+      if(!r.ok) throw new Error(r.erro||('falha '+r.status));
+      toast('Relatório enviado em "'+r.grupo+'"'+(r.por?' pelo WhatsApp de '+rwCap(r.por):'')+'.');
+      if(r.avisos&&r.avisos.length) setTimeout(()=>toast(rwCap(r.avisos[0])),2600);
+      ov.remove(); RW.ok=false; rwPintar();
+    }catch(e){
+      bt.disabled=false; info.textContent='Não enviou: '+(e.message||e); RW.ok=false;
+      toast('Não enviou: '+(e.message||e));
+    }
+  };
+}
+/* PDF de verdade, sem a janela de impressão: cada .page do relatório vira uma imagem numa página
+   do PDF (largura A4, altura da própria página, então nada é cortado). Imagens da CDN do Meta
+   passam pela edge, porque o navegador não deixa desenhá-las no canvas. */
+function rwScript(src){ return new Promise((ok,er)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>er(new Error('não carregou '+src)); document.head.appendChild(s); }); }
+async function rwLibs(){
+  const L=[];
+  if(!window.html2canvas) L.push(rwScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'));
+  if(!(window.jspdf&&window.jspdf.jsPDF)) L.push(rwScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'));
+  await Promise.all(L);
+}
+async function rwPdf(doc){
+  await rwLibs();
+  try{ await doc.fonts.ready; }catch(_){}
+  /* o canvas é desenhado no documento do APP, não no do relatório: as fontes do relatório
+     (Anton, Archivo, Space Mono) precisam estar carregadas aqui também. Sem isso o texto sai
+     com outra fonte por cima do layout medido com a certa, e as letras se atropelam. */
+  await Promise.all([...doc.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis.com"]')].map(l=>new Promise(ok=>{
+    if([...document.querySelectorAll('link[rel="stylesheet"]')].some(x=>x.href===l.href)) return ok();
+    const n=document.createElement('link'); n.rel='stylesheet'; n.href=l.href; n.onload=ok; n.onerror=ok; document.head.appendChild(n); })));
+  const faces=[]; try{ doc.fonts.forEach(f=>{ if(f.status==='loaded') faces.push(f); }); }catch(_){}
+  await Promise.all(faces.map(f=>document.fonts.load(f.style+' '+String(f.weight).split(' ')[0]+' 16px "'+String(f.family).replace(/"/g,'')+'"').catch(()=>{})));
+  await Promise.all([...doc.images].map(async img=>{
+    const s=img.currentSrc||img.src; if(!s||s.startsWith('data:')) return;
+    let h=''; try{ h=new URL(s).hostname; }catch(_){ return; }
+    if(!/(^|\.)(fbcdn\.net|facebook\.com|fbsbx\.com|cdninstagram\.com)$/.test(h)) return;
+    try{ const r=await rwApi('img',{url:s}); if(r.ok&&r.data){ img.src=r.data; try{ await img.decode(); }catch(_){} } }catch(_){}
+  }));
+  const st=doc.createElement('style'); st.textContent='[contenteditable]{outline:none!important;caret-color:transparent}';
+  doc.head.appendChild(st); try{ doc.activeElement&&doc.activeElement.blur&&doc.activeElement.blur(); }catch(_){}
+  try{
+    const pages=[...doc.querySelectorAll('.page')].filter(p=>p.getClientRects().length);
+    if(!pages.length) throw new Error('relatório sem páginas');
+    const {jsPDF}=window.jspdf; let pdf=null;
+    for(const pg of pages){
+      const cv=await window.html2canvas(pg,{scale:2,useCORS:true,logging:false,backgroundColor:null});
+      const w=210, h=Math.max(1,w*cv.height/cv.width), o=h>=w?'portrait':'landscape';
+      if(!pdf) pdf=new jsPDF({unit:'mm',format:[w,h],orientation:o}); else pdf.addPage([w,h],o);
+      pdf.addImage(cv.toDataURL('image/jpeg',0.86),'JPEG',0,0,w,h);
+    }
+    return pdf.output('datauristring').split(',')[1];
+  }finally{ st.remove(); }
 }
 
 /* ---------- PROCESSOS (playbook embutido) ---------- */
@@ -11531,6 +11913,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <div class="tkf-sec">Propriedades<span class="ln"></span></div>
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.cliente} Cliente${exigeDaLista(lid).indexOf('cliente')>=0?'<span class="cp-obr">obrigatório</span>':''}</div>
           <div class="tkf-pv">${selFichaBusca('tk_ficha',it.ficha_id||'',exigeDaLista(lid).indexOf('cliente')>=0)}</div></div>
+        ${ehLC(lid)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_WA} Grupo WhatsApp</div><div class="tkf-pv" id="tkRwG">${rwTkChip(it.ficha_id)}</div></div>`:''}
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</div>
           <div class="tkf-pv"><select id="tk_squad"><option value="">Todo o time vê</option>${sqOpc.map(x=>`<option value="${esc(x)}"${sqAtual===x?' selected':''}>Squad ${esc(x)}</option>`).join('')}</select></div></div>
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.tag} Etiquetas</div>
@@ -15547,7 +15930,8 @@ function renderFechamento(c){
           <p class="hint" style="margin:7px 0 0"><span id="fc_rodizio"></span>O gerente e o gestor de tráfego vêm do squad. Quem é de qual squad se define em Usuários.</p></div>
         <div class="field" id="fc_gw"><label>Gestor de tráfego *</label><input id="fc_gestor" list="dlFcGestores" placeholder="preenchido pelo squad, pode trocar"><datalist id="dlFcGestores">${gestores.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div></div>
       <div id="fc_equipe" class="fc-equipe"></div>
-      ${fcField('Link da call de vendas','fc_call','https://...')}`)}
+      ${fcField('Link da call de vendas','fc_call','https://...')}
+      ${rwFcCampo()}`)}
     ${sec('05','Passagem de bastão','O que a operação precisa saber antes da primeira conversa com o cliente.',`
       <div class="field" style="margin-bottom:2px"><label>Resumo operacional da venda *</label><textarea id="fc_resumo" rows="4" placeholder="O que foi vendido, expectativas do cliente, o que ele quer melhorar, informações cruciais..."></textarea></div>`)}
     <div class="fc-envio">
@@ -15696,6 +16080,7 @@ window.fechEnviar=async ()=>{
       toast('Erro: '+msg); b.disabled=false; b.textContent='Enviar fechamento →'; return; }
     if(!data||!data.ok){ toast('Erro: '+((data&&data.erro)||'falha ao gravar')); b.disabled=false; b.textContent='Enviar fechamento →'; return; }
     try{ await lcCriarCard(data.projetoId, body.nome, (($('#fc_inicio')||{}).value||'')); }catch(_){}
+    await rwFcGravar(data.projetoId);   /* grupo de WhatsApp escolhido no formulário (opcional) */
     /* a venda do painel passa a apontar pro cliente: e isso que paga o SDR */
     if(ganhoId){ try{ await sb.from('crm_calls').update({ficha_id:data.projetoId,vinculado_em:new Date().toISOString(),vinculado_por:(currentUser||{}).id||null}).eq('id',ganhoId); }catch(_){} }
     try{ await loadDB(); }catch(_){}
