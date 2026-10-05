@@ -19179,13 +19179,14 @@ function fdEscritorios(comp){
   const fixos=DB.folhaFixos.filter(f=>f.tipo!=='pessoa'&&String(f.esc||'').trim());
   const linha=(p)=>{
      const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
-     /* chave Pix da conta fixa à mão na linha do mês, com botão de copiar (Bernardo 05/10):
-        antes ela só aparecia dentro do formulário da conta fixa */
+     /* chave Pix da conta fixa numa coluna própria, igual à das pessoas da folha: chave,
+        botão copiar e o banco embaixo (Bernardo 05/10). Antes só aparecia no formulário. */
      const fx=fixoById[p.fixoId]||{};
-     return `<tr><td><strong>${esc(p.nome)}</strong>${p.descricao?`<div class="rc-sub">${esc(p.descricao)}</div>`:''}${fx.pix?`<div class="rc-sub">Pix: ${esc(fx.pix)}${fx.titular?' · '+esc(fx.titular):''}</div>`:''}</td><td>${fmtDate(p.venc)||'-'}</td>
+     return `<tr><td><strong>${esc(p.nome)}</strong>${p.descricao?`<div class="rc-sub">${esc(p.descricao)}</div>`:''}</td>
+      <td>${fx.pix?`${esc(fx.pix)} <button class="iconbtn" onclick="copyPixFixo('${esc(fx.id)}')">copiar</button>`:'-'}${fx.banco?`<div class="rc-sub">${esc(fx.banco)}</div>`:''}</td><td>${fmtDate(p.venc)||'-'}</td>
       <td class="money" style="text-align:right">${(!Number(p.valor)&&(fixoById[p.fixoId]||{}).variavel)?`<button type="button" class="iconbtn" onclick="openFpModal('${p.id}')" title="Conta variável: lance o valor da fatura deste mês">preencher</button>`:brl(p.valor)}</td><td>${st}</td>
       <td><div class="rowact">${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${p.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${p.id}')">Pagar</button>`}
-        ${fx.pix?`<button class="iconbtn" onclick="copyPixFixo('${esc(fx.id)}')">Copiar Pix</button>`:''}<button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button><button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button></div></td></tr>`; };
+        <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button><button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button></div></td></tr>`; };
   /* um bloco por escritório, do que mais gasta pro que menos */
   const por={}; pays.forEach(p=>{ const e=escDe(p); (por[e]=por[e]||[]).push(p); });
   const escs=Object.keys(por).sort((a,b)=>fdSoma(por[b],'valor')-fdSoma(por[a],'valor')||a.localeCompare(b,'pt-BR'));
@@ -19193,7 +19194,7 @@ function fdEscritorios(comp){
     return `<details class="fch-g"${fdEscAberto[e]?' open':''} ontoggle="fdEscAbre('${esc(e)}',this.open)"><summary>
       <span class="fch-cv"></span><span class="fch-t">Escritório ${esc(e)}</span>
       <span class="fch-s">${pagas} de ${ps.length} pagas${semValor?' · '+semValor+' sem valor':''}</span><span class="fch-tv">${brl(tot)}</span></summary>
-      <div class="fch-corpo"><div class="tablewrap" style="margin:0"><table><thead><tr><th>Conta</th><th>Vencimento</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+      <div class="fch-corpo"><div class="tablewrap" style="margin:0"><table><thead><tr><th>Conta</th><th>Chave Pix</th><th>Vencimento</th><th>Valor</th><th>Status</th><th></th></tr></thead>
       <tbody>${ps.map(linha).join('')}</tbody></table></div></div></details>`; }).join('');
   return `<h2 style="font-size:16px;margin:24px 0 10px">Gastos de escritório: ${fmtComp(comp)} <small style="font-weight:600;color:var(--muted);font-size:12px;margin-left:6px">${pays.length?brl(fdSoma(pays,'valor'))+' em '+escs.length+' escritório'+(escs.length===1?'':'s')+' · clique no escritório para abrir as contas':''}</small></h2>
    ${fdAvisosEscHtml()}
