@@ -19057,6 +19057,14 @@ function fdSincronizar(comp,R){
 async function fdCarregar(comp){
   const {data,error}=await sb.rpc('folha_linhas',{p_comp:comp});
   FD.comp=comp; FD.linhas=error?[]:(data||[]); FD.erro=error?String(error.message||'erro'):''; FD.em=Date.now();
+  /* a tarefa da passagem marca a parcela paga direto no banco (Bernardo 05/10): se a folha ou o
+     Financeiro mudaram no servidor, recarrega antes de desenhar, em vez de mostrar a contagem
+     velha e cair no aviso de conflito no proximo salvar */
+  try{
+    const {data:rv}=await sb.from('itens').select('modulo,atualizado_em').in('modulo',['folha','financeiro']);
+    const velhos=(rv||[]).filter(r=>DB.__rev&&DB.__rev[r.modulo]&&r.atualizado_em!==DB.__rev[r.modulo]).map(r=>r.modulo);
+    if(velhos.length) await recarregarModulos(velhos);
+  }catch(_){}
 }
 /* tudo que a tela precisa do mes, de uma vez */
 function fdVisao(comp){
@@ -19267,28 +19275,61 @@ function gerarExtrasCore(comp){
   });
   return n;
 }
+/* Uma linha por pagamento recorrente e mes (Bernardo 05/10: "coloca 1/4 concluido, com um
+   botao que a gente vai aumentando ate o fim do mes, nao precisa de 4 linhas"). As parcelas
+   continuam uma por data em DB.folha, porque a tarefa e o espelho no Financeiro usam isso;
+   so a tela junta. "+1" paga a proxima em aberto; "-1" desfaz a ultima (a manual primeiro). */
+function fdExtraResumo(comp){
+  const hoje=hojeISO(), por={};
+  (DB.folha||[]).filter(p=>p.comp===comp&&p.extra).forEach(p=>{ (por[p.fixoId]=por[p.fixoId]||[]).push(p); });
+  return Object.keys(por).map(fid=>{
+    const ps=por[fid].slice().sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+    const pagas=ps.filter(p=>p.pago), abertas=ps.filter(p=>!p.pago);
+    return {fid,f:fdExtras().find(f=>f.id===fid)||{},nome:ps[0].nome,pagas:pagas.length,total:ps.length,
+      valorPago:fdSoma(pagas,'valor'),valorTotal:fdSoma(ps,'valor'),prox:abertas[0]||null,
+      atrasadas:abertas.filter(p=>p.venc&&p.venc<hoje).length,pelaTarefa:pagas.filter(p=>p.tarefaPagou).length};
+  }).sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+}
 function fdOutros(comp){
-  const byId={}; fdExtras().forEach(f=>{ byId[f.id]=f; });
-  const pays=(DB.folha||[]).filter(p=>p.comp===comp&&p.extra).sort((a,b)=>(a.venc||'').localeCompare(b.venc||'')||String(a.nome).localeCompare(String(b.nome),'pt-BR'));
-  const hoje=hojeISO(), n=fdExtras().length;
+  const R=fdExtraResumo(comp), n=fdExtras().length;
+  if(!R.length&&!n) return '';
   const botoes=`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
      <button class="btn secondary small" onclick="openExtraModal()">+ Pagamento recorrente</button>
      ${n?`<button class="btn secondary small" onclick="fdExtrasLista()">Pagamentos recorrentes (${n})</button>`:''}</div>`;
-  if(!pays.length&&!n) return '';
-  const pesDe=(p)=>{ const f=byId[p.fixoId]||{}; return (DB.folhaFixos||[]).find(x=>x.id===f.pessoaId)||{}; };
-  const linha=(p)=>{ const pe=pesDe(p);
-    const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>${p.tarefaPagou?'<div class="rc-sub">pela tarefa</div>':''}`
-      :(p.venc&&p.venc<hoje?'<span class="tag despesa">Atrasado</span>':'<span class="tag pausado">Pendente</span>');
-    return `<tr><td><strong>${esc(p.nome)}</strong><div class="rc-sub">${esc(p.descricao||'')}</div></td>
+  const pesDe=(x)=>(DB.folhaFixos||[]).find(p=>p.id===x.f.pessoaId)||{};
+  const dia=(v)=>DSEM[new Date(v+'T12:00:00').getDay()]+' '+fmtDate(v).slice(0,5);
+  const linha=(x)=>{ const pe=pesDe(x), pct=x.total?Math.round(x.pagas/x.total*100):0;
+    const st=x.pagas===x.total?'<span class="tag concluido">Pago</span>'
+      :x.atrasadas?`<span class="tag despesa">${x.atrasadas===1?'1 atrasada':x.atrasadas+' atrasadas'}</span>`:'<span class="tag pausado">Em dia</span>';
+    return `<tr><td><strong>${esc(x.nome)}</strong><div class="rc-sub">${esc(x.f.descricao||'Pagamento')}${x.f.freq==='semanal'?', toda '+esc(DSEM[Number(x.f.diaSemana)||0]):''}</div></td>
       <td>${pe.pix?`${esc(pe.pix)} <button class="iconbtn" onclick="copyPixFixo('${esc(pe.id)}')">copiar</button>`:'-'}${pe.banco?`<div class="rc-sub">${esc(pe.banco)}</div>`:''}</td>
-      <td>${fmtDate(p.venc)||'-'}</td><td class="money" style="text-align:right">${brl(p.valor)}</td><td>${st}</td>
-      <td><div class="rowact">${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${esc(p.id)}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${esc(p.id)}')">Pagar</button>`}</div></td></tr>`; };
-  const tot=fdSoma(pays,'valor'), pagas=pays.filter(p=>p.pago).length;
-  return `<h2 style="font-size:16px;margin:24px 0 10px">Outros pagamentos da equipe: ${fmtComp(comp)} <small style="font-weight:600;color:var(--muted);font-size:12px;margin-left:6px">${pays.length?brl(tot)+' · '+pagas+' de '+pays.length+' pagos':'nada neste mês'}</small></h2>
-   <p class="hint" style="margin:0 0 10px">Passagem e outros pagamentos que não são salário: não abatem o que a pessoa tem a receber na folha. Parcela com tarefa ligada fica paga sozinha quando a tarefa é concluída.</p>
-   ${pays.length?`<div class="tablewrap" style="margin:0"><table><thead><tr><th>Pessoa</th><th>Chave Pix</th><th>Vence</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${pays.map(linha).join('')}</tbody></table></div>`:''}
+      <td><strong>${x.pagas}/${x.total} concluído</strong>
+        <div style="height:6px;border-radius:3px;background:var(--panel2);overflow:hidden;margin:6px 0 4px;max-width:170px"><div style="height:100%;width:${pct}%;background:var(--ok)"></div></div>
+        <div class="rc-sub">${x.prox?'próxima: '+esc(dia(x.prox.venc)):'mês completo'}${x.pelaTarefa?' · '+x.pelaTarefa+' pela tarefa':''}</div></td>
+      <td class="money" style="text-align:right">${brl(x.valorPago)}<div class="rc-sub">de ${brl(x.valorTotal)}</div></td>
+      <td>${st}</td>
+      <td><div class="rowact">${x.prox?`<button class="iconbtn" onclick="fdExtraMais('${esc(x.fid)}','${esc(comp)}')">+1 concluído</button>`:''}${x.pagas?`<button class="iconbtn" onclick="fdExtraMenos('${esc(x.fid)}','${esc(comp)}')" title="Desfaz o último pagamento">−1</button>`:''}</div></td></tr>`; };
+  const pago=fdSoma(R,'valorPago'), tot=fdSoma(R,'valorTotal');
+  return `<h2 style="font-size:16px;margin:24px 0 10px">Outros pagamentos da equipe: ${fmtComp(comp)} <small style="font-weight:600;color:var(--muted);font-size:12px;margin-left:6px">${R.length?brl(pago)+' de '+brl(tot):'nada neste mês'}</small></h2>
+   <p class="hint" style="margin:0 0 10px">Passagem e outros pagamentos que não são salário: não abatem o que a pessoa tem a receber na folha. Com tarefa ligada, concluir a tarefa já conta +1.</p>
+   ${R.length?`<div class="tablewrap" style="margin:0"><table><thead><tr><th>Pessoa</th><th>Chave Pix</th><th>Andamento</th><th>Pago</th><th>Status</th><th></th></tr></thead><tbody>${R.map(linha).join('')}</tbody></table></div>`:''}
    ${botoes}`;
 }
+window.fdExtraMais=async (fid,comp)=>{
+  const p=(DB.folha||[]).filter(x=>x.extra&&x.fixoId===fid&&x.comp===comp&&!x.pago).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''))[0];
+  if(!p) return;
+  p.pago=true; p.pagoEm=hojeISO();
+  fpSincronizar(); await saveDB(); render(folhaView());
+  const r=fdExtraResumo(comp).find(x=>x.fid===fid);
+  if(r) toast(String(r.nome).split(' ')[0]+': '+r.pagas+'/'+r.total+' concluído, '+brl(r.valorPago)+' de '+brl(r.valorTotal)+'.');
+};
+window.fdExtraMenos=async (fid,comp)=>{
+  const pagas=(DB.folha||[]).filter(x=>x.extra&&x.fixoId===fid&&x.comp===comp&&x.pago).sort((a,b)=>(b.venc||'').localeCompare(a.venc||''));
+  const p=pagas.find(x=>!x.tarefaPagou)||pagas[0]; if(!p) return;
+  if(p.tarefaPagou&&!confirm('Este pagamento foi contado pela tarefa concluída. Desfazer mesmo assim? A tarefa continua concluída.')) return;
+  p.pago=false; p.pagoEm=null; delete p.tarefaPagou;
+  fpSincronizar(); await saveDB(); render(folhaView());
+};
 window.fdExtrasLista=()=>{
   const pes=(id)=>((DB.folhaFixos||[]).find(x=>x.id===id)||{}).nome||'';
   modal('Pagamentos recorrentes da equipe',`<p class="hint" style="margin:0 0 12px">Entram sozinhos todo mês em Outros pagamentos da equipe.</p>
