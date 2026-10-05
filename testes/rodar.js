@@ -935,7 +935,8 @@ grupo('Autosave da tarefa (sem botão Salvar)');
   ok('tarefa nova usa insert com retorno', /\.insert\(Object\.assign\([\s\S]*?\)\)\.select\(\)\.single\(\)/.test(src));
   ok('e daí em diante vira update', /window\.__tkmT=criada/.test(src));
   ok('painel fechado não tenta salvar', /if\(!\$\('#tk_tit'\)\) return false/.test(src));
-  ok('silencioso não reabre a lista inteira', /if\(!silencioso\)\{ render\('tarefas'\)/.test(src));
+  ok('silencioso não reabre a lista inteira', /if\(!silencioso\)\{ (if\(currentView==='pessoal'\) mpPintar\(\); else )?render\('tarefas'\)/.test(src));
+  ok('salvar aberto pelo Pessoal continua no Pessoal', /if\(!silencioso\)\{ if\(currentView==='pessoal'\) mpPintar\(\); else render\('tarefas'\)/.test(src));
   const abrir=bloco('window.tkAbrir=(id,prazoPre,grupoPre)=>{','async function tkmSalvar(');
   ok('rodapé sem botão Salvar', abrir.indexOf('tkmAuto')>0 && abrir.indexOf("class=\"btn small msave\"")<0);
   ok('texto salva com debounce, select na hora', /rapido\?80:600/.test(abrir));
@@ -1689,6 +1690,46 @@ grupo('Controle de Clientes: colunas de dinheiro e total da carteira (Gabriel 23
   ok('vazio fica vazio', g.moedaCurta('')===''&&g.moedaCurta(null)==='');
   /* 30/09: a linha Total da carteira saiu (dinheiro de folha fica na Folha); ver o grupo do rodapé */
   ok('títulos curtos das colunas de dinheiro', HTML.indexOf("'Remuneração Gerente (10%)':'Gerente 10%'")>0);
+}
+
+grupo('Pessoal no celular: chave Pessoal/Trabalho (Bernardo 04/10)');
+{
+  const TK={ws:[{id:'we',tipo:'empresa'},{id:'wp',tipo:'pessoal',dono:'u1'}],
+    espacos:[{id:'e1',workspace_id:'we',nome:'Administrativo'},{id:'e0',workspace_id:null,nome:'Antigo'},{id:'ep',workspace_id:'wp',nome:'Geral'}],
+    listas:[{id:'l1',espaco_id:'e1',nome:'Cobranças'},{id:'l0',espaco_id:'e0',nome:'Velha'},{id:'lp',espaco_id:'ep',nome:'Tarefas'},{id:'LC',espaco_id:'e1',nome:'Controle de Clientes'}],
+    tarefas:[
+      {id:'a',lista_id:'l1',prazo:'2026-10-04',responsaveis:['u1'],status:'todo'},
+      {id:'b',lista_id:'l1',prazo:'2026-10-03',responsaveis:['u1'],status:'todo'},
+      {id:'c',lista_id:'l1',prazo:'2026-10-02',responsaveis:['u1'],status:'feito'},
+      {id:'d',lista_id:'lp',prazo:'2026-10-04',responsaveis:['u1'],status:'todo'},
+      {id:'e',lista_id:'l1',prazo:'2026-10-04',responsaveis:['u2'],status:'todo'},
+      {id:'f',lista_id:'LC',prazo:'2026-10-04',responsaveis:['u1'],status:'todo'},
+      {id:'g',lista_id:'l1',prazo:'2026-10-04',responsaveis:['u1'],status:'todo',arquivada_em:'2026-10-01'},
+      {id:'h',lista_id:'l1',prazo:'2026-10-04',responsaveis:['u1'],status:'todo',pai_id:'a'},
+      {id:'i',lista_id:'l0',prazo:'2026-10-05',responsaveis:['u1'],status:'todo'},
+      {id:'j',lista_id:'l1',prazo:'2026-10-04',responsaveis:['u1'],status:'feito'}]};
+  const ctx={TK,currentUser:{id:'u1'},ehMinha:(t,u)=>(t.responsaveis||[]).indexOf(u)>=0,ehListaCli:(l)=>l==='LC',
+    mpFeita:(t)=>t.status==='feito'||!!t.concluida_em,tkHoje:()=>'2026-10-04',spNome:(o)=>String((o&&o.nome)||'')};
+  const g=rodar(bloco('function mpEhEmpresa(','/* Linha de tarefa do Trabalho.'),ctx,
+    ['mpEhEmpresa','mpTrabTarefas','mpTrabDia','mpTrabAtrasadas','mpTrabFalta','mpTrabCaminho']);
+  const ids=(a)=>a.map(t=>t.id).sort().join(',');
+  ok('Trabalho = minhas, da empresa, sem arquivada, subtarefa nem card de cliente', ids(g.mpTrabTarefas())==='a,b,c,i,j');
+  ok('tarefa do workspace pessoal não entra no Trabalho', !g.mpTrabTarefas().some(t=>t.id==='d'));
+  ok('espaço sem workspace_id conta como empresa', g.mpEhEmpresa('l0')===true&&g.mpEhEmpresa('lp')===false);
+  ok('o dia mostra as do dia, feitas ou não', ids(g.mpTrabDia('2026-10-04'))==='a,j');
+  ok('atrasada é prazo vencido e não concluída', ids(g.mpTrabAtrasadas())==='b');
+  ok('a bolinha conta atrasadas + as de hoje em aberto', g.mpTrabFalta()===2);
+  ok('subtítulo mostra espaço › lista', g.mpTrabCaminho({lista_id:'l1'})==='Administrativo › Cobranças');
+  ok('Trabalho só vale no celular', HTML.indexOf("function mpTrab(){ return MP_MODO==='T'&&window.innerWidth<=720; }")>0);
+  ok('a escolha fica guardada no aparelho', HTML.indexOf("localStorage.setItem('mp_modo',MP_MODO)")>0);
+  ok('Hábitos sai da barra de baixo em Trabalho', HTML.indexOf("abas.filter(a=>!(a[0]==='habitos'&&mpTrab()))")>0);
+  ok('o chip do celular abre o menu curto; tablet segue no modal', HTML.indexOf("if(window.innerWidth<=720) mpModoMenu(ev); else mpWsMenu();")>0);
+  ok('perfil, tema e sair continuam no fim do menu', HTML.indexOf("onclick=\"mpModoFecha();mpWsMenu()\"")>0);
+  ok('lista da empresa não é pintada por cima do Pessoal', HTML.indexOf("if(currentView==='pessoal'&&(!c||c.id==='content')){ mpPintar(); return; }")>0);
+  ok('chip volta pro menu curto mesmo depois de passar pelo corporativo', HTML.indexOf("if(e.onclick!==mpChip) e.onclick=mpChip;")>0);
+  ok('Fechar do rodapé do cartão fecha (todos os .mcancel)', HTML.indexOf("ov.querySelectorAll('.mcancel').forEach(b=>{ b.onclick=fechar; });")>0);
+  ok('sair do Pessoal fecha o menu e tira a maleta', HTML.indexOf("if(view!=='pessoal') mpSairTopo();")>0&&/function mpSairTopo\(\)\{\s*document\.body\.classList\.remove\('mob-pessoal','mp-trab'\)/.test(HTML)&&HTML.indexOf("'.topbar .mp-mala'")>0);
+  ok('trocar de tela sem o render (spSelLista etc.) também limpa o topo do Pessoal', HTML.indexOf("if(currentView!=='pessoal'&&document.body.classList.contains('mob-pessoal')) mpSairTopo();")>0);
 }
 
 console.log('\n'+(falhas
