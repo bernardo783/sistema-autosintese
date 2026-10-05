@@ -6102,7 +6102,6 @@ async function rwCarregar(forca){
 }
 const rwGrupo=(fid)=>RW.grupos[String(fid||'')]||null;
 const rwNorm=(s)=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-const rwNome1=(s)=>rwNorm(s).split(' ')[0]||'';
 const rwCap=(s)=>{ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); };
 const rwDM=(iso)=>String(iso||'').slice(8,10)+'/'+String(iso||'').slice(5,7);
 const rwChefe=()=>{ const u=currentUser||{}; return u.role==='master'||!!u.gerente; };
@@ -6117,22 +6116,37 @@ function rwDaSemana(fid){
   const es=RW.envios.filter(e=>String(e.ficha_id)===String(fid)&&tkISO(new Date(e.enviado_em))>=seg);
   return {ok:es.find(e=>e.ok)||null, falha:es.find(e=>!e.ok)||null};
 }
-/* clientes de tráfego: mesma régua do card semanal (rel_semanal_clientes) — sem churn, card vivo,
-   categoria tráfego/full — e, além dela, quem já tem conta de anúncio ligada */
+/* Quem entra (Bernardo 05/10: "o gestor vê só os clientes atribuídos pra ele em Controle de
+   Clientes"): os cards vivos do Controle de Clientes, e o gestor é a coluna Gestor de Tráfego do
+   card (LC_GEST, id do perfil). Card sem gestor só entra se tiver conta de anúncio, e só o master
+   ou gerente vê (filtro "Sem gestor"). A edge relatorio-whats usa a mesma coluna pra decidir
+   quem pode enviar e por qual WhatsApp sai. */
 function rwClientes(){
-  return (DB.projetos||[]).filter(f=>{
-    if(!f||!f.id||!String(f.nome||'').trim()) return false;
-    if(String(f.status||'')==='churn') return false;
-    const cd=lcCardDe(f.id); if(cd&&(arquivada(cd)||String(cd.lista_id)===String(CH_ID))) return false;
-    return ['trafego','full'].includes(catDe(f))||contasDoCliente(f.id).length>0;
+  const vistos=new Set(), out=[];
+  (TK.tarefas||[]).forEach(t=>{
+    if(!ehLC(t.lista_id)||!t.ficha_id||arquivada(t)||faseDe(t)==='fechado') return;
+    const f=fichaDe(t.ficha_id); if(!f||!String(f.nome||'').trim()||vistos.has(String(f.id))) return;
+    const gid=String((t.valores||{})[LC_GEST]||'');
+    if(!gid&&!contasDoCliente(f.id).length) return;
+    vistos.add(String(f.id)); out.push({f,gid});
   });
+  return out;
+}
+
+/* quem aparece pra quem: master e gerente veem todos (ou um gestor, ou "-" = sem gestor no card);
+   gestor vê só os cards em que ele é o Gestor de Tráfego */
+function rwVisiveis(todos,chefe,eu,filtro){
+  if(!chefe) return todos.filter(x=>x.gid&&x.gid===String(eu||''));
+  if(filtro==='-') return todos.filter(x=>!x.gid);
+  return filtro?todos.filter(x=>x.gid===filtro):todos;
 }
 
 /* ---------- aba Relatórios ---------- */
 function rwAba(){ setTimeout(rwPintar,0); return '<div id="rwBox" class="rw-box"><div class="empty">Carregando os relatórios…</div></div>'; }
 async function rwPintar(){
   const box=document.getElementById('rwBox'); if(!box) return;
-  try{ await rwCarregar(); }catch(e){ box.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
+  try{ await rwCarregar(); if(!(TK.tarefas||[]).length) await tkCarregar(); }
+  catch(e){ box.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
   rwDesenhar();
   /* gasto da semana vem das contas do Meta; sem elas a lista sai igual, só sem o valor */
   if(!(window.__mtDados&&window.__mtDados.length)&&!window.__mtBuscando)
@@ -6140,18 +6154,21 @@ async function rwPintar(){
 }
 function rwDesenhar(){
   const box=document.getElementById('rwBox'); if(!box) return;
-  const chefe=rwChefe(), eu=rwNome1((currentUser||{}).nome), p=rwPeriodo(7);
+  const chefe=rwChefe(), eu=String((currentUser||{}).id||''), p=rwPeriodo(7);
   const todos=rwClientes();
-  const gestores=[...new Set(todos.map(f=>String(f.responsavel||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  let cs=chefe?(RW.gestor?todos.filter(f=>String(f.responsavel||'').trim()===RW.gestor):todos):todos.filter(f=>rwNome1(f.responsavel)===eu);
+  const gestores=[...new Set(todos.map(x=>x.gid).filter(Boolean))].map(id=>({id,nome:tkNomeUser(id)||'Gestor'})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  const semGestor=todos.some(x=>!x.gid);
+  const sel=rwVisiveis(todos,chefe,eu,RW.gestor);
+  const gDe=new Map(sel.map(x=>[String(x.f.id),x.gid]));
+  const cs=sel.map(x=>x.f);
   const comConta=cs.filter(f=>contasDoCliente(f.id).length);
   const env=comConta.filter(f=>rwDaSemana(f.id).ok).length, tot=comConta.length;
   if(!box.querySelector('#rwLst')){
     box.innerHTML=`<div class="rw-head">
-        <div><h3>Relatórios da semana</h3><div class="hint" style="margin:3px 0 0">Período padrão: ${rwDM(p.de)} a ${rwDM(p.ate)} · ${chefe?'clientes de tráfego de todos os gestores':'seus clientes de tráfego'}</div></div>
+        <div><h3>Relatórios da semana</h3><div class="hint" style="margin:3px 0 0">Período padrão: ${rwDM(p.de)} a ${rwDM(p.ate)} · ${chefe?'clientes de todos os gestores':'clientes atribuídos a você no Controle de Clientes'}</div></div>
         <div class="rw-prog" id="rwProg"></div></div>
       <div class="rw-tools">
-        ${chefe?`<select class="search" style="max-width:220px" onchange="RW.gestor=this.value;rwDesenhar()"><option value="">Todos os gestores</option>${gestores.map(g=>`<option value="${esc(g)}"${RW.gestor===g?' selected':''}>${esc(g)}</option>`).join('')}</select>`:''}
+        ${chefe?`<select class="search" style="max-width:220px" onchange="RW.gestor=this.value;rwDesenhar()"><option value="">Todos os gestores</option>${gestores.map(g=>`<option value="${esc(g.id)}"${RW.gestor===g.id?' selected':''}>${esc(g.nome)}</option>`).join('')}${semGestor?`<option value="-"${RW.gestor==='-'?' selected':''}>Sem gestor no card</option>`:''}</select>`:''}
         <input class="search" id="rwQ" placeholder="Buscar cliente…" style="max-width:220px" value="${esc(RW.busca)}" oninput="RW.busca=this.value;rwDesenhar()">
         <button class="btn secondary small" onclick="RW.ok=false;rwPintar()" title="Buscar de novo os vínculos e envios">↻ Atualizar</button>
       </div>
@@ -6164,10 +6181,10 @@ function rwDesenhar(){
   vis.sort((a,b)=>ordem(a)-ordem(b)||String(a.nome).localeCompare(String(b.nome),'pt-BR'));
   const pr=box.querySelector('#rwProg');
   if(pr) pr.innerHTML=tot?`<span class="rw-bar"><i style="width:${Math.round(env/tot*100)}%"></i></span><span><b>${env} de ${tot}</b> enviados</span>`:'';
-  box.querySelector('#rwLst').innerHTML=vis.map(f=>rwLinha(f,chefe)).join('')||
-    `<div class="empty">${cs.length?'Nenhum cliente com esse nome.':(chefe?'Nenhum cliente de tráfego.':'Você não tem clientes de tráfego. O gestor de cada cliente vem do campo Gestor da ficha.')}</div>`;
+  box.querySelector('#rwLst').innerHTML=vis.map(f=>rwLinha(f,chefe,gDe.get(String(f.id)))).join('')||
+    `<div class="empty">${cs.length?'Nenhum cliente com esse nome.':(chefe?'Nenhum cliente nesse filtro.':'Nenhum cliente atribuído a você no Controle de Clientes. O gestor de cada cliente é a coluna Gestor de Tráfego do card.')}</div>`;
 }
-function rwLinha(f,chefe){
+function rwLinha(f,chefe,gid){
   const contas=contasDoCliente(f.id), g=rwGrupo(f.id), s=rwDaSemana(f.id);
   const gasto=contas.reduce((t,m)=>{ const v=(window.__mtDados||[]).find(x=>x.id===m.id); return t+(+((v&&v.ins)||{}).spend||0); },0);
   const cl=contas.find(m=>logoDe(m))||contas[0], lg=cl?logoDe(cl):'';
@@ -6185,7 +6202,7 @@ function rwLinha(f,chefe){
   else{ stH=s.falha?`<span class="rw-st err" title="${esc(s.falha.erro||'')}">falhou ${esc(rwQuando(s.falha.enviado_em))}</span>`:'<span class="rw-st pen">pendente</span>';
     ac=g?`<button class="btn small" onclick="rwEnviar('${f.id}')">Enviar relatório</button>`
         :`<button class="btn secondary small" onclick="rwEscolher('${f.id}',()=>rwEnviar('${f.id}'))">Vincular e enviar</button>`; }
-  const sub=[contas.length?esc(contas[0].id)+(contas.length>1?' +'+(contas.length-1):''):'',gasto?brl(gasto)+' em 7 dias':'',chefe&&f.responsavel?esc(f.responsavel):''].filter(Boolean).join(' · ');
+  const sub=[contas.length?esc(contas[0].id)+(contas.length>1?' +'+(contas.length-1):''):'',gasto?brl(gasto)+' em 7 dias':'',chefe?(gid?esc(tkNomeUser(gid)||''):'sem gestor no card'):''].filter(Boolean).join(' · ');
   return `<div class="rw-ln">${tile}
     <div class="rw-nm"><b>${esc(f.nome)}</b><small>${sub||'&nbsp;'}</small></div>
     <div class="rw-gc">${gH}</div><div class="rw-sc">${stH}</div><div class="rw-ac">${ac}</div></div>`;
