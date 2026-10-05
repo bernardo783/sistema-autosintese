@@ -1808,6 +1808,23 @@ grupo('Novas Contas: pedido do Suporte cai na fila do Financeiro e telas confere
   ok('na fila não repete o título "Solicitações da equipe"; em Contas a Pagar continua', g2.ncUltimasHTML(0,true).indexOf('Solicitações da equipe')<0&&g2.ncUltimasHTML(20).indexOf('Solicitações da equipe')>0);
 }
 
+/* ---------------- Grupo com valor fechado (conta paga pela principal) ---------------- */
+grupo('Grupo com valor fechado: conta coberta pela principal (Bernardo 05/10)');
+{
+  const FICHAS=[{id:'P',nome:'ALTOGIRO | JÔ ARAUJO'},{id:'A',nome:'ALTOGIRO | MAYCON',pagaPor:'P'},
+    {id:'S',nome:'SABARÁ | CAYMAN',pagaPor:'P'},{id:'X',nome:'OUTRO | LOJA'}];
+  const GR_SEP=/\s+[|│]\s+/;
+  const ctx={DB:{projetos:FICHAS},MAIUS:(s)=>String(s).toUpperCase(),GR_SEP};
+  const g=rodar(bloco('const grupoDe=(f)=>','/* contas ativas no Meta sem ficha'),ctx,['grupoDe','irmasDe','principalDoGrupo']);
+  const F=(id)=>FICHAS.find(x=>x.id===id);
+  ok('conta coberta aponta pra principal', g.principalDoGrupo(F('A'))==='P');
+  ok('a própria principal acha o grupo fechado pelas irmãs', g.principalDoGrupo(F('P'))==='P');
+  ok('Sabará (outro grupo, mesmo pagamento) também', g.principalDoGrupo(F('S'))==='P');
+  ok('cliente comum não tem principal', g.principalDoGrupo(F('X'))==='');
+  ok('situação de pagamento da coberta é a da principal', HTML.indexOf("if(f&&f.pagaPor&&f.pagaPor!==f.id){ const pr=fichaDe(f.pagaPor); if(pr&&!pr.pagaPor) return lcPgDe(pr); }")>0);
+  ok('novo contrato em grupo fechado: R$ 0, sem Asaas, manda pagaPor', HTML.indexOf("pagaPor:princ||''}")>0&&HTML.indexOf("if(!(valor>0)&&!princ){ toast('Informe a mensalidade.')")>0&&HTML.indexOf("${princ?'':`<label class=\"tk-chkline\"><input type=\"checkbox\" id=\"nc2_asaas\">")>0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
