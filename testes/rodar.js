@@ -1865,6 +1865,15 @@ grupo('Grupo com valor fechado: conta coberta pela principal (Bernardo 05/10)');
   ok('novo contrato em grupo fechado: R$ 0, sem Asaas, manda pagaPor', HTML.indexOf("pagaPor:princ||''}")>0&&HTML.indexOf("if(!(valor>0)&&!princ){ toast('Informe a mensalidade.')")>0&&HTML.indexOf("${princ?'':`<label class=\"tk-chkline\"><input type=\"checkbox\" id=\"nc2_asaas\">")>0);
 }
 
+/* ---------------- Logo dos relatórios: tirar e trocar ---------------- */
+grupo('Logo dos relatórios: dá pra tirar e escolher qual vai (Bernardo 05/10)');
+{
+  ok('cartão da logo dos relatórios tem o x na ficha', HTML.indexOf(`onclick="lgTirarRel('\${esc(fid)}')">&times;</button>`)>0);
+  ok('imagem da ficha tem "Usar nos relatórios"', HTML.indexOf(`onclick="lgUsarRel('\${x.id}','\${esc(fid)}')">\${LG_REL}</button>`)>0);
+  ok('tirar limpa a logo do cliente e a da conta de anúncio dele', /window\.lgTirarRel=[\s\S]{0,600}logoSalvar\(logoFichaKey\(fid\),''\)[\s\S]{0,300}logoSalvar\(m\.id,''\)/.test(HTML));
+  ok('usar gera a miniatura do arquivo guardado', /window\.lgUsarRel=[\s\S]{0,500}lgMiniatura\(new File\(\[blob\]/.test(HTML));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
