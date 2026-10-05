@@ -3108,6 +3108,12 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .rw-ln{display:grid;grid-template-columns:38px minmax(0,1.4fr) minmax(0,1.2fr) minmax(0,.9fr) auto;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--line)}
 .rw-lg{width:38px;height:38px;border-radius:11px;overflow:hidden;display:grid;place-items:center;background:var(--panel2);color:var(--brand2);font-weight:800;font-size:12px}
 .rw-lg img{width:100%;height:100%;object-fit:contain;background:#fff}
+.rw-lgb{position:relative;width:38px;height:38px;border:none;padding:0;background:none;cursor:pointer;display:block}
+.rw-lgb .rw-lg{width:100%;height:100%;transition:box-shadow .15s}
+.rw-lgb:hover .rw-lg,.rw-lgb:focus-visible .rw-lg{box-shadow:0 0 0 2px var(--brand2)}
+.rw-lg-bd{position:absolute;right:-4px;bottom:-4px;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-style:normal;
+  background:var(--brand);color:#fff;box-shadow:0 0 0 2px var(--panel)}
+.rw-lg-bd svg{width:9px;height:9px}
 .rw-nm{min-width:0}
 .rw-nm b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rw-nm small{display:block;font-size:11.5px;color:var(--fraco);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -5647,7 +5653,7 @@ window.openMarcaModal=(accId)=>{
       }
       const ex=contaMarca(accId);
       if(ex) Object.assign(ex,v); else DB.contasMeta.push(v);
-      await saveDB(); metaDesenhar(); toast('Marca salva.'); return true;
+      await saveDB(); metaDesenhar(); if(typeof rwDesenhar==='function') rwDesenhar(); toast('Marca salva.'); return true;
     });
   setTimeout(()=>{
     const inp=$('#mk_file'); if(!inp) return;
@@ -6074,6 +6080,7 @@ const RW_ATE_HOJE=false;
 const RW={grupos:{},envios:[],ok:false,lista:null,listaEm:0,gestor:'',busca:''};
 let FC_GRUPO=null;   /* grupo escolhido no Fechamento, gravado depois que a ficha nasce */
 const RW_IC_WA='<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9z"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>';
+const RW_IC_LAPIS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>';
 const RW_IC_LINK='<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15l6-6"/><path d="M11 6l.46-.54a5 5 0 0 1 7.07 7.07L18 13"/><path d="M13 18l-.4.53a5.07 5.07 0 0 1-7.12 0 4.97 4.97 0 0 1 0-7.07L6 11"/></svg>';
 async function rwApi(acao,corpo){
   const s=(await sb.auth.getSession()).data.session;
@@ -6163,8 +6170,12 @@ function rwDesenhar(){
 function rwLinha(f,chefe){
   const contas=contasDoCliente(f.id), g=rwGrupo(f.id), s=rwDaSemana(f.id);
   const gasto=contas.reduce((t,m)=>{ const v=(window.__mtDados||[]).find(x=>x.id===m.id); return t+(+((v&&v.ins)||{}).spend||0); },0);
-  const lg=contas.map(m=>logoDe(m)).find(Boolean);
+  const cl=contas.find(m=>logoDe(m))||contas[0], lg=cl?logoDe(cl):'';
   const ini=String(f.nome||'').trim().split(/\s+/).slice(0,2).map(w=>w.charAt(0)).join('').toUpperCase();
+  const fig=lg?`<img src="${esc(lg)}" alt="">`:esc(ini);
+  /* logo editável aqui mesmo (Bernardo 05/10): abre a Marca da conta, que é a logo e as cores do relatório */
+  const tile=cl?`<button type="button" class="rw-lgb" onclick="openMarcaModal('${esc(cl.id)}')" title="Trocar a logo e as cores do relatório" aria-label="Trocar a logo de ${esc(f.nome)}"><span class="rw-lg">${fig}</span><i class="rw-lg-bd">${RW_IC_LAPIS}</i></button>`
+    :`<span class="rw-lg">${fig}</span>`;
   const gH=g?`<button type="button" class="rw-g on" onclick="rwEscolher('${f.id}',rwDesenhar)" title="Trocar o grupo">${RW_IC_WA}<span>${esc(g.grupo_nome)}</span></button>`
            :`<button type="button" class="rw-g" onclick="rwEscolher('${f.id}',rwDesenhar)">${RW_IC_LINK}<span>vincular grupo</span></button>`;
   let stH, ac;
@@ -6175,7 +6186,7 @@ function rwLinha(f,chefe){
     ac=g?`<button class="btn small" onclick="rwEnviar('${f.id}')">Enviar relatório</button>`
         :`<button class="btn secondary small" onclick="rwEscolher('${f.id}',()=>rwEnviar('${f.id}'))">Vincular e enviar</button>`; }
   const sub=[contas.length?esc(contas[0].id)+(contas.length>1?' +'+(contas.length-1):''):'',gasto?brl(gasto)+' em 7 dias':'',chefe&&f.responsavel?esc(f.responsavel):''].filter(Boolean).join(' · ');
-  return `<div class="rw-ln"><div class="rw-lg">${lg?`<img src="${esc(lg)}" alt="">`:esc(ini)}</div>
+  return `<div class="rw-ln">${tile}
     <div class="rw-nm"><b>${esc(f.nome)}</b><small>${sub||'&nbsp;'}</small></div>
     <div class="rw-gc">${gH}</div><div class="rw-sc">${stH}</div><div class="rw-ac">${ac}</div></div>`;
 }
