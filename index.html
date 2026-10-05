@@ -19017,7 +19017,10 @@ function fdLucro(comp,folhaTotal,pessoas){
   const rec=fin.filter(x=>x.tipo==='receita'), desp=fin.filter(x=>x.tipo==='despesa');
   const repasse=fdSoma(rec.filter(fchEhRepasse),'valor');
   const receita=fdR2(fdSoma(rec,'valor')-repasse);
-  const ehPessoa=(x)=>String(x.id||'').indexOf('fp_')===0&&x.categoria!=='Escritórios';
+  /* pagamento recorrente da equipe (passagem, Bernardo 05/10) nao entra no total da folha
+     calculada, entao o espelho dele conta como despesa comum, senao sumiria do lucro */
+  const extrasFp=new Set((DB.folha||[]).filter(p=>p.extra).map(p=>'fp_'+p.id));
+  const ehPessoa=(x)=>String(x.id||'').indexOf('fp_')===0&&x.categoria!=='Escritórios'&&!extrasFp.has(x.id);
   const oper=fdR2(fdSoma(desp.filter(x=>!ehPessoa(x)),'valor')-repasse);
   const lucro=fdR2(receita-oper-folhaTotal), base=Math.max(0,lucro);
   const caixa=fdR2(base*0.20);
@@ -19072,7 +19075,7 @@ function renderFolha(c){
   const comp=folhaComp;
   const trocaMes=()=>{ const e=$('#fpComp'); if(e) e.onchange=ev=>{ folhaComp=ev.target.value||compNow(); render(folhaView()); }; };
   /* escritorio segue no motor antigo: o fixo do mes nasce sozinho ao abrir */
-  if(comp>=compNow()){ if(gerarFolhaCore(comp)) saveDB(); }
+  if(comp>=compNow()){ if(gerarFolhaCore(comp)+gerarExtrasCore(comp)) saveDB(); }
   if(comp<FD_INICIO){ if(fpSincronizar()) saveDB(); c.innerHTML=fdCabeca(comp)+fdHistorico(comp)+fdEscritorios(comp); trocaMes(); return; }
   if(FD.comp!==comp||!FD.linhas||Date.now()-FD.em>20000){
     c.innerHTML=fdCabeca(comp)+`<div class="empty">Calculando a folha de ${fmtComp(comp)}...</div>`; trocaMes();
@@ -19119,6 +19122,7 @@ function renderFolha(c){
    <div class="tablewrap"><table><thead><tr><th>Pessoa</th><th>Chave Pix</th><th>Vence</th><th>Como é calculado</th><th>Garantido</th><th>Pagamento</th></tr></thead>
    <tbody>${corpo}</tbody></table>
    ${V.R.length?'':'<div class="empty">Ninguém na folha ainda. Use “+ Pessoa”.</div>'}</div>
+   ${fdOutros(comp)}
    ${fdBlocoLucro(comp,V)}
    ${fdEscritorios(comp)}
    <p class="hint" style="margin-top:12px">Ninguém tem valor pré-definido: o sistema soma o fixo de quem tem com o que vem do Controle de Clientes. <strong>Gerente</strong> recebe 10% do que a carteira dele pagou no mês e <strong>gestor de tráfego</strong> R$ 100 por conta paga, os dois proporcionais no mês em que o cliente entrou (entrou dia 29, recebe 2 dias) e cheios do mês seguinte em diante; sobem sozinhos quando o cliente é marcado como Recebido e param quando ele dá churn. <strong>Social media</strong> soma R$ 200 por conta em que aparece no Controle de Clientes. <strong>SDR</strong> soma 5% da primeira mensalidade de cada ganho do painel Comercial ligado ao cliente. Virou o mês, a conta recomeça do zero. O que falta pagar entra no Financeiro como despesa do mês, “a pagar”, e vira pago quando você registra o pagamento.</p>`;
@@ -19194,10 +19198,12 @@ function fdEscritorios(comp){
   const linha=(p)=>{
      const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>`:(p.venc&&p.venc<hoje?`<span class="tag despesa">Atrasado</span>`:`<span class="tag pausado">Pendente</span>`);
      /* chave Pix da conta fixa numa coluna própria, igual à das pessoas da folha: chave,
-        botão copiar e o banco embaixo (Bernardo 05/10). Antes só aparecia no formulário. */
+        botão copiar e o banco embaixo (Bernardo 05/10). Antes só aparecia no formulário.
+        O botão "editar" / "+ chave Pix" abre o cadastro da conta fixa ali mesmo (Bernardo
+        05/10: Itajubá estava sem chave e não dava pra pôr pela tabela). */
      const fx=fixoById[p.fixoId]||{};
      return `<tr><td><strong>${esc(p.nome)}</strong>${p.descricao?`<div class="rc-sub">${esc(p.descricao)}</div>`:''}</td>
-      <td>${fx.pix?`${esc(fx.pix)} <button class="iconbtn" onclick="copyPixFixo('${esc(fx.id)}')">copiar</button>`:'-'}${fx.banco?`<div class="rc-sub">${esc(fx.banco)}</div>`:''}</td><td>${fmtDate(p.venc)||'-'}</td>
+      <td>${fx.pix?`${esc(fx.pix)} <button class="iconbtn" onclick="copyPixFixo('${esc(fx.id)}')">copiar</button>`:'-'}${fx.id?` <button class="iconbtn" onclick="openFixoModal('${esc(fx.id)}')" title="Chave Pix, banco e titular desta conta fixa">${fx.pix?'editar':'+ chave Pix'}</button>`:''}${(fx.titular||fx.banco)?`<div class="rc-sub">${esc([fx.titular,fx.banco].filter(Boolean).join(' · '))}</div>`:''}</td><td>${fmtDate(p.venc)||'-'}</td>
       <td class="money" style="text-align:right">${(!Number(p.valor)&&(fixoById[p.fixoId]||{}).variavel)?`<button type="button" class="iconbtn" onclick="openFpModal('${p.id}')" title="Conta variável: lance o valor da fatura deste mês">preencher</button>`:brl(p.valor)}</td><td>${st}</td>
       <td><div class="rowact">${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${p.id}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${p.id}')">Pagar</button>`}
         <button class="iconbtn" onclick="openFpModal('${p.id}')">Editar</button><button class="iconbtn del" onclick="fpExcluir('${p.id}')">Excluir</button></div></td></tr>`; };
@@ -19225,6 +19231,121 @@ window.fdEscFixos=()=>{
       <button class="iconbtn" onclick="document.querySelector('.overlay .mcancel').click();openFixoModal('${f.id}')">Editar</button></div>`).join('')||'<div class="empty">Nenhuma conta fixa.</div>'}
     <div style="margin-top:12px"><button class="btn secondary small" onclick="document.querySelector('.overlay .mcancel').click();fdEscNovo=true;openFixoModal()">+ Conta fixa</button></div>`,
     async ()=>true);
+};
+/* ---------- OUTROS PAGAMENTOS DA EQUIPE (Bernardo 05/10) ----------
+   Pagamento recorrente de uma pessoa que nao e salario: a passagem de onibus do Luan,
+   R$ 120 toda segunda (mes com 5 segundas tem 5). Fica em DB.folhaFixos com tipo:'extra'
+   (pessoaId, descricao, valor, freq, diaSemana/dia, dp, tarefaSerie) e cada ocorrencia vira
+   um registro de DB.folha com extra:true e o fixoId do extra. Como o fixoId nao e o da
+   pessoa, fdPagosDe nao conta como salario pago; o espelho no Financeiro segue no fpSincronizar.
+   Tarefa ligada: concluir a tarefa recorrente (serie) marca paga a parcela daquela data. Quem
+   faz isso e o banco (trigger folha_extra_tarefa em tarefas), entao vale concluindo pelo app,
+   pelo celular ou de onde for; reabrir a tarefa desfaz. O id da ocorrencia e fixo
+   (ex_<extra>_<venc>) para o app e o banco nunca criarem duas. */
+const fdExtras=()=>(DB.folhaFixos||[]).filter(f=>f.tipo==='extra');
+const fdExtraId=(f,venc)=>'ex_'+f.id+'_'+venc;
+const fdExtraDesc=(f,venc)=>(f.descricao||'Pagamento')+(f.freq==='semanal'?', '+DSEM[new Date(venc+'T12:00:00').getDay()]+' '+venc.slice(8,10)+'/'+venc.slice(5,7):'');
+function gerarExtrasCore(comp){
+  const ativos=fdExtras().filter(f=>f.ativo);
+  if(!ativos.length) return 0;
+  const tem=new Set(DB.folha.filter(p=>p.comp===comp&&p.fixoId).map(p=>p.fixoId+'|'+p.venc));
+  const ids=new Set(DB.folha.map(p=>p.id));
+  const [y,m]=comp.split('-').map(Number), last=new Date(y,m,0).getDate();
+  let n=0;
+  ativos.forEach(f=>{
+    if(f.inicioComp&&comp<f.inicioComp) return;
+    const vencs=[];
+    if(f.freq==='semanal'){ for(let d=1;d<=last;d++) if(new Date(y,m-1,d).getDay()===(Number(f.diaSemana)||0)) vencs.push(comp+'-'+String(d).padStart(2,'0')); }
+    else vencs.push(vencOf(comp,f.dia));
+    vencs.forEach(venc=>{
+      const id=fdExtraId(f,venc);
+      if(tem.has(f.id+'|'+venc)||ids.has(id)) return;
+      DB.folha.push({id,comp,fixoId:f.id,nome:f.nome,esc:'',dp:f.dp||'',descricao:fdExtraDesc(f,venc),valor:Number(f.valor)||0,
+        venc,pago:false,pagoEm:null,extra:true,serie:f.tarefaSerie||null});
+      ids.add(id); n++;
+    });
+  });
+  return n;
+}
+function fdOutros(comp){
+  const byId={}; fdExtras().forEach(f=>{ byId[f.id]=f; });
+  const pays=(DB.folha||[]).filter(p=>p.comp===comp&&p.extra).sort((a,b)=>(a.venc||'').localeCompare(b.venc||'')||String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+  const hoje=hojeISO(), n=fdExtras().length;
+  const botoes=`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+     <button class="btn secondary small" onclick="openExtraModal()">+ Pagamento recorrente</button>
+     ${n?`<button class="btn secondary small" onclick="fdExtrasLista()">Pagamentos recorrentes (${n})</button>`:''}</div>`;
+  if(!pays.length&&!n) return '';
+  const pesDe=(p)=>{ const f=byId[p.fixoId]||{}; return (DB.folhaFixos||[]).find(x=>x.id===f.pessoaId)||{}; };
+  const linha=(p)=>{ const pe=pesDe(p);
+    const st=p.pago?`<span class="tag concluido">Pago ${fmtDate(p.pagoEm)}</span>${p.tarefaPagou?'<div class="rc-sub">pela tarefa</div>':''}`
+      :(p.venc&&p.venc<hoje?'<span class="tag despesa">Atrasado</span>':'<span class="tag pausado">Pendente</span>');
+    return `<tr><td><strong>${esc(p.nome)}</strong><div class="rc-sub">${esc(p.descricao||'')}</div></td>
+      <td>${pe.pix?`${esc(pe.pix)} <button class="iconbtn" onclick="copyPixFixo('${esc(pe.id)}')">copiar</button>`:'-'}${pe.banco?`<div class="rc-sub">${esc(pe.banco)}</div>`:''}</td>
+      <td>${fmtDate(p.venc)||'-'}</td><td class="money" style="text-align:right">${brl(p.valor)}</td><td>${st}</td>
+      <td><div class="rowact">${p.pago?`<button class="iconbtn" onclick="fpDesfazer('${esc(p.id)}')">Desfazer</button>`:`<button class="iconbtn" onclick="fpPagar('${esc(p.id)}')">Pagar</button>`}</div></td></tr>`; };
+  const tot=fdSoma(pays,'valor'), pagas=pays.filter(p=>p.pago).length;
+  return `<h2 style="font-size:16px;margin:24px 0 10px">Outros pagamentos da equipe: ${fmtComp(comp)} <small style="font-weight:600;color:var(--muted);font-size:12px;margin-left:6px">${pays.length?brl(tot)+' · '+pagas+' de '+pays.length+' pagos':'nada neste mês'}</small></h2>
+   <p class="hint" style="margin:0 0 10px">Passagem e outros pagamentos que não são salário: não abatem o que a pessoa tem a receber na folha. Parcela com tarefa ligada fica paga sozinha quando a tarefa é concluída.</p>
+   ${pays.length?`<div class="tablewrap" style="margin:0"><table><thead><tr><th>Pessoa</th><th>Chave Pix</th><th>Vence</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${pays.map(linha).join('')}</tbody></table></div>`:''}
+   ${botoes}`;
+}
+window.fdExtrasLista=()=>{
+  const pes=(id)=>((DB.folhaFixos||[]).find(x=>x.id===id)||{}).nome||'';
+  modal('Pagamentos recorrentes da equipe',`<p class="hint" style="margin:0 0 12px">Entram sozinhos todo mês em Outros pagamentos da equipe.</p>
+    ${fdExtras().map(f=>`<div class="rc-ent"><div class="rc-who"><strong>${esc(pes(f.pessoaId)||f.nome)}</strong><div>${esc(f.descricao||'')} · ${brl(f.valor)} ${f.freq==='semanal'?'toda '+esc(DSEM[Number(f.diaSemana)||0]):'todo dia '+esc(f.dia)}${f.tarefaSerie?' · com tarefa ligada':''}${f.ativo?'':' · inativo'}</div></div>
+      <button class="iconbtn" onclick="document.querySelector('.overlay .mcancel').click();openExtraModal('${esc(f.id)}')">Editar</button></div>`).join('')||'<div class="empty">Nenhum pagamento recorrente.</div>'}
+    <div style="margin-top:12px"><button class="btn secondary small" onclick="document.querySelector('.overlay .mcancel').click();openExtraModal()">+ Pagamento recorrente</button></div>`,
+    async ()=>true);
+};
+window.openExtraModal=(id)=>{
+  const it=id?DB.folhaFixos.find(x=>x.id===id):{tipo:'extra',ativo:true,freq:'semanal',diaSemana:1,dia:30,inicioComp:compNow()};
+  if(!it) return;
+  const pessoas=fdPessoas().slice().sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+  const sem=it.freq!=='mensal';
+  modal(id?'Editar pagamento recorrente':'Novo pagamento recorrente',`
+    <p class="hint" style="margin:0 0 12px">Para pagamento da equipe que não é salário, como passagem. Não abate o que a pessoa tem a receber na folha.</p>
+    <div class="row2">
+      <div class="field"><label>Pessoa</label><select id="ex_pes">${pessoas.map(p=>`<option value="${esc(p.id)}"${it.pessoaId===p.id?' selected':''}>${esc(p.nome)}</option>`).join('')}</select></div>
+      <div class="field"><label>O que é</label><input id="ex_desc" value="${esc(it.descricao||'')}" placeholder="Ex: Passagem de ônibus"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Valor (R$ por pagamento)</label><input type="number" step="0.01" id="ex_valor" value="${it.valor??''}" placeholder="0,00"></div>
+      <div class="field"><label>Frequência</label><select id="ex_freq"><option value="semanal"${sem?' selected':''}>Toda semana</option><option value="mensal"${sem?'':' selected'}>Uma vez por mês</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="field" id="ex_wDsem" style="${sem?'':'display:none'}"><label>Dia da semana</label><select id="ex_dsem">${DSEM.map((d,i)=>`<option value="${i}"${(Number(it.diaSemana)||0)===i?' selected':''}>${d.charAt(0).toUpperCase()+d.slice(1)}</option>`).join('')}</select></div>
+      <div class="field" id="ex_wDia" style="${sem?'display:none':''}"><label>Dia do mês (1–31)</label><input type="number" min="1" max="31" id="ex_dia" value="${it.dia||30}"></div>
+      <div class="field"><label>Departamento (DP)</label><select id="ex_dp">${FD_DEPS.concat(['Administrativo']).map(d=>`<option${(it.dp||'')===d?' selected':''}>${d}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>Tarefa recorrente ligada (opcional)</label><input id="ex_tarefa" value="${it.tarefaSerie?esc(location.origin+'/#t/'+it.tarefaSerie):''}" placeholder="Cole o link de uma tarefa da série">
+      <p class="hint" style="margin:4px 0 0">Ao concluir a tarefa, a parcela da mesma data fica paga sozinha. Reabrir a tarefa desfaz.</p></div>
+    <div class="row2">
+      <div class="field"><label>A partir do mês</label><input type="month" id="ex_ini" value="${it.inicioComp||''}"></div>
+      <div class="field"><label>Ativo</label><select id="ex_ativo"><option value="1"${it.ativo?' selected':''}>Sim</option><option value="0"${it.ativo?'':' selected'}>Não</option></select></div>
+    </div>`,
+    async ()=>{
+      const pid=$('#ex_pes').value, pe=pessoas.find(p=>p.id===pid);
+      if(!pe){ toast('Escolha a pessoa.'); return false; }
+      const v={tipo:'extra',pessoaId:pid,nome:pe.nome,descricao:$('#ex_desc').value.trim(),valor:parseFloat($('#ex_valor').value)||0,
+        freq:$('#ex_freq').value,diaSemana:parseInt($('#ex_dsem').value)||0,dia:Math.min(31,Math.max(1,parseInt($('#ex_dia').value)||1)),
+        dp:$('#ex_dp').value,inicioComp:$('#ex_ini').value||null,ativo:$('#ex_ativo').value==='1',tarefaSerie:null};
+      if(!v.descricao){ toast('Diga o que é o pagamento.'); return false; }
+      if(!(v.valor>0)){ toast('Informe o valor.'); return false; }
+      const lk=$('#ex_tarefa').value.trim();
+      if(lk){
+        const m=lk.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+        if(!m){ toast('Não reconheci o link da tarefa.'); return false; }
+        const {data:t,error}=await sb.from('tarefas').select('id,recorrencia').eq('id',m[0]).maybeSingle();
+        if(error||!t){ toast('Tarefa não encontrada.'); return false; }
+        v.tarefaSerie=(t.recorrencia&&t.recorrencia.serie)||t.id;
+      }
+      let f=it;
+      if(id) Object.assign(it,v); else { f=Object.assign({id:uid()},v); DB.folhaFixos.push(f); }
+      /* parcelas ainda em aberto acompanham o cadastro */
+      DB.folha.forEach(p=>{ if(p.extra&&p.fixoId===f.id&&!p.pago){ p.valor=f.valor; p.nome=f.nome; p.dp=f.dp; p.serie=f.tarefaSerie||null; p.descricao=fdExtraDesc(f,p.venc); } });
+      await saveDB(); render(folhaView()); toast('Salvo.'); return true;
+    });
+  $('#ex_freq').onchange=()=>{ const s=$('#ex_freq').value==='semanal'; $('#ex_wDsem').style.display=s?'':'none'; $('#ex_wDia').style.display=s?'none':''; };
 };
 window.fdAbre=(pid)=>{ FD.aberto[pid]=!FD.aberto[pid]; render(folhaView()); };
 /* registrar pagamento da folha (ou da divisao do lucro, que nao vira despesa) */
@@ -19401,8 +19522,9 @@ window.fpPagar=async (id)=>{
   const escN=(fxp&&fxp.esc)||p.esc||'';
   /* Pagamento de gente e variavel: o valor do pre-definido e so referencia.
      Quem decide quanto foi no mes e voce, na hora de pagar. Gasto de escritorio
-     (aluguel, agua, luz) segue com o valor cadastrado, que nao muda. */
-  if(!escN){
+     (aluguel, agua, luz) segue com o valor cadastrado, que nao muda. O pagamento
+     recorrente da equipe (passagem, Bernardo 05/10) tambem. */
+  if(!escN&&!p.extra){
     const ref=Number(p.valor)||0;
     const dig=prompt('Quanto foi pago para '+p.nome+' em '+fmtComp(p.comp||folhaComp)+'?\n\nReferência do cadastro: '+brl(ref)+'\nDigite o valor real deste mês:', ref?String(ref).replace('.',','):'');
     if(dig===null){ return; }
