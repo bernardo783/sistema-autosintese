@@ -195,7 +195,8 @@ grupo('Folha: outros pagamentos da equipe, passagem do Luan toda segunda (Bernar
       {id:'ex1',tipo:'extra',pessoaId:'pes_luan',nome:'Luan Peixoto Santiago',descricao:'Passagem de ônibus',valor:120,freq:'semanal',diaSemana:1,dp:'Marketing',inicioComp:'2026-10',ativo:true,tarefaSerie:'serie-1'},
       {id:'ex2',tipo:'extra',pessoaId:'pes_luan',nome:'Luan Peixoto Santiago',descricao:'Inativo',valor:50,freq:'mensal',dia:10,ativo:false}],
     folha:[]};
-  const g=rodar(bloco('const fdExtras=','function fdOutros('),{DB,DSEM,vencOf},['gerarExtrasCore','fdExtraId']);
+  const fdSoma=(a,k)=>Math.round((a||[]).reduce((x,y)=>x+(Number(k?y[k]:y)||0),0)*100)/100;
+  const g=rodar(bloco('const fdExtras=','function fdOutros('),{DB,DSEM,vencOf,fdSoma,hojeISO:()=>'2026-10-20'},['gerarExtrasCore','fdExtraId','fdExtraResumo']);
   const out=g.gerarExtrasCore('2026-10'), doMes=c=>DB.folha.filter(p=>p.comp===c);
   ok('outubro tem 4 segundas: 4 parcelas de R$ 120', out===4&&doMes('2026-10').every(p=>p.valor===120&&p.extra===true));
   ok('vencem nas segundas 05, 12, 19 e 26', doMes('2026-10').map(p=>p.venc).join()==='2026-10-05,2026-10-12,2026-10-19,2026-10-26');
@@ -204,6 +205,16 @@ grupo('Folha: outros pagamentos da equipe, passagem do Luan toda segunda (Bernar
   ok('rodar de novo não duplica', g.gerarExtrasCore('2026-10')===0&&doMes('2026-10').length===4);
   ok('novembro tem 5 segundas: 5 parcelas', g.gerarExtrasCore('2026-11')===5);
   ok('antes de começar e inativo não geram', g.gerarExtrasCore('2026-09')===0&&!DB.folha.some(p=>p.fixoId==='ex2'));
+  secao('uma linha por mês: 1/4 concluído, R$ 120 de R$ 480');
+  DB.folha.find(p=>p.venc==='2026-10-05').pago=true; DB.folha.find(p=>p.venc==='2026-10-05').tarefaPagou='t1';
+  const rs=g.fdExtraResumo('2026-10');
+  ok('junta as 4 parcelas numa linha só', rs.length===1&&rs[0].total===4&&rs[0].fid==='ex1');
+  ok('conta 1/4 e R$ 120 de R$ 480', rs[0].pagas===1&&rs[0].valorPago===120&&rs[0].valorTotal===480);
+  ok('a próxima é a primeira em aberto (12/10) e duas já passaram sem pagar', rs[0].prox.venc==='2026-10-12'&&rs[0].atrasadas===2);
+  ok('sabe quantas vieram pela tarefa', rs[0].pelaTarefa===1);
+  ok('botão +1 paga a próxima em aberto; −1 desfaz a manual antes da que veio da tarefa',
+    /x\.extra&&x\.fixoId===fid&&x\.comp===comp&&!x\.pago\)\.sort\(\(a,b\)=>\(a\.venc/.test(HTML)&&HTML.indexOf('pagas.find(x=>!x.tarefaPagou)||pagas[0]')>0);
+  ok('a tela recarrega folha e Financeiro quando o banco mudou (tarefa concluída)', /if\(velhos\.length\) await recarregarModulos\(velhos\);/.test(HTML));
   const f=rodar(bloco('const fdEhProv=','/* junta as linhas do banco'),
     {DB:{folha:[{id:'ex_ex1_2026-10-05',comp:'2026-10',fixoId:'ex1',nome:'Luan Peixoto Santiago',pago:true,valor:120,extra:true},
                 {id:'pg1',comp:'2026-10',fixoId:'pes_luan',nome:'Luan Peixoto Santiago',pago:true,valor:600}]},
