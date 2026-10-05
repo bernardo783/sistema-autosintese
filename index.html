@@ -3922,10 +3922,13 @@ let LOGOS_META=null; let __logosPend=null;
    'ficha:<id da ficha>'. Relatorio sem logo propria usa a do cliente; e o Controle de Clientes,
    a ficha e a aba Logo da editora mostram a do cliente ou, na falta, a de uma conta dele. */
 const logoFichaKey=(fid)=>'ficha:'+fid;
+/* A logo do CLIENTE (aba Logo do card no Controle de Clientes) manda em todo lugar: lista, Contas
+   de anúncio e PDF. A da conta de anúncio só vale quando o cliente não tem a dele (Bernardo 05/10:
+   trocavam a logo no card e o relatório seguia com a logo velha da conta, de 28/08). */
 function logoDe(m){ const id=(m&&m.id)||m; if(!id) return ''; const L=LOGOS_META||{};
-  if(L[id]) return L[id]; if(m&&m.logo) return m.logo;
   const fid=(m&&m.fichaId)||(((DB&&DB.contasMeta)||[]).find(x=>x.id===id)||{}).fichaId;
-  return fid?(L[logoFichaKey(fid)]||''):''; }
+  if(fid&&L[logoFichaKey(fid)]) return L[logoFichaKey(fid)];
+  if(L[id]) return L[id]; if(m&&m.logo) return m.logo; return ''; }
 function logoDoCliente(fid){ if(!fid) return ''; const L=LOGOS_META||{};
   if(L[logoFichaKey(fid)]) return L[logoFichaKey(fid)];
   const c=((DB&&DB.contasMeta)||[]).find(m=>m.fichaId===fid&&L[m.id]); return c?L[c.id]:''; }
@@ -5673,7 +5676,9 @@ window.openMarcaModal=(accId)=>{
       const v={id:accId,nome:$('#mk_nome').value.trim()||acc.nome,logo:'',cor1:$('#mk_cor1').value,cor2:$('#mk_cor2').value,fundo:$('#mk_fundo').value,ultRel:cur.ultRel||null,
         limiteCartao:li?(parseFloat(String(li.value).replace(',','.'))||0):(cur.limiteCartao||0), limiteVisto:cur.limiteVisto||0};
       if(window.__mkLogo!==undefined){
-        try{ await logoSalvar(accId, window.__mkLogo||''); }
+        try{ await logoSalvar(accId, window.__mkLogo||'');
+          /* conta ligada a um cliente: a logo é a dele, que manda em todo lugar (logoDe) */
+          const fidMk=(contaMarca(accId)||{}).fichaId; if(fidMk) await logoSalvar(logoFichaKey(fidMk), window.__mkLogo||''); }
         catch(e){ toast('Erro ao salvar a logo: '+(e.message||e)); return false; }
       }
       const ex=contaMarca(accId);
@@ -6188,9 +6193,10 @@ function rwMes(fid,envios,hoje){
 function rwAba(){ setTimeout(rwPintar,0); return '<div id="rwBox" class="rw-box"><div class="empty">Carregando os relatórios…</div></div>'; }
 async function rwPintar(){
   const box=document.getElementById('rwBox'); if(!box) return;
-  try{ await rwCarregar(); if(!(TK.tarefas||[]).length) await tkCarregar(); }
+  try{ await rwCarregar(); if(!(TK.tarefas||[]).length) await tkCarregar(); try{ await logosCarregar(); }catch(_){} }
   catch(e){ box.innerHTML='<div class="empty">Não deu pra carregar: '+esc(e.message||String(e))+'</div>'; return; }
   rwDesenhar();
+  if(!RW.lgNovas) rwLogosNovas().then(()=>{ if(document.getElementById('rwBox')) rwDesenhar(); }).catch(()=>{});
   /* gasto da semana vem das contas do Meta; sem elas a lista sai igual, só sem o valor */
   if(!(window.__mtDados&&window.__mtDados.length)&&!window.__mtBuscando)
     metaCarregar(true).then(()=>{ if(document.getElementById('rwBox')) rwDesenhar(); }).catch(()=>{});
@@ -6231,6 +6237,8 @@ function rwDesenhar(){
   if(semConta) av.push(`<a class="rw-lk" onclick="RW.fsem='semconta';rwDesenhar()">${semConta} sem conta de anúncios</a>`);
   if(semG.length) av.push(`<span title="${esc(semG.map(f=>f.nome).join(', '))}">${semG.length} de tráfego sem Gestor de Tráfego no Controle de Clientes</span>`);
   if(RW.fsem==='semconta') av.push(`<a class="rw-lk" onclick="RW.fsem='';rwDesenhar()">mostrar todos</a>`);
+  RW.lgVis=sel.map(x=>String(x.f.id)).filter(fid=>RW.lgNovas&&RW.lgNovas[fid]);
+  if(RW.lgVis.length) av.push(`<a class="rw-lk" onclick="rwUsarLogosNovas()" title="${esc(RW.lgVis.map(fid=>(fichaDe(fid)||{}).nome||fid).join(', '))}">${RW.lgVis.length} com logo nova no Controle de Clientes · usar nos relatórios</a>`);
   box.querySelector('#rwAviso').innerHTML=av.join(' · ');
   const q=rwNorm(RW.busca);
   const vis=info.filter(i=>(!q||rwNorm(i.x.f.nome).includes(q))
@@ -6244,7 +6252,7 @@ function rwDesenhar(){
 function rwLinha(i,chefe){
   const f=i.x.f, gid=i.x.gid, contas=i.contas, g=i.g, m=i.m;
   const gasto=contas.reduce((t,c)=>{ const v=(window.__mtDados||[]).find(x=>x.id===c.id); return t+(+((v&&v.ins)||{}).spend||0); },0);
-  const cl=contas.find(c=>logoDe(c))||contas[0], lg=cl?logoDe(cl):'';
+  const cl=contas.find(c=>logoDe(c))||contas[0], lg=logoDoCliente(f.id)||(cl?logoDe(cl):'');
   const ini=String(f.nome||'').trim().split(/\s+/).slice(0,2).map(w=>w.charAt(0)).join('').toUpperCase();
   const fig=lg?`<img src="${esc(lg)}" alt="">`:esc(ini);
   /* logo editável aqui mesmo (Bernardo 05/10): abre a Marca da conta, que é a logo e as cores do relatório */
@@ -6331,6 +6339,43 @@ window.rwEscolherConta=async(fid,depois)=>{
   setTimeout(()=>qEl.focus(),30);
   if(!mtContas().length){ if(!window.__mtBuscando) metaCarregar(true); await rwEsperaContas(20000); }
   pinta();
+};
+
+/* Logos novas no Controle de Clientes (Bernardo 05/10): imagem subida na aba Logo do card depois da
+   logo do cliente (ou cliente sem logo própria). Logo vazia ('' = tirada no x) conta como sem logo.
+   Um clique aplica todas do jeito do "Usar nos relatórios" do card (lgUsarRel): a imagem mais nova
+   vira a logo do cliente. */
+async function rwLogosNovas(){
+  const cards=(TK.tarefas||[]).filter(t=>ehLC(t.lista_id)&&t.ficha_id&&!arquivada(t));
+  const porCard=new Map(cards.map(t=>[String(t.id),String(t.ficha_id)]));
+  const [a,l]=await Promise.all([
+    sb.from('tarefa_anexos').select('id,tarefa_id,nome,caminho,mime,criado_em').eq('tipo','arquivo').like('caminho','t/%/logo-%')
+      .in('mime',['image/png','image/jpeg','image/webp']).order('criado_em',{ascending:false}).limit(3000),
+    sb.from('conta_logos').select('conta_id,atualizado').like('conta_id','ficha:%').neq('logo','')]);
+  if(a.error||l.error) throw new Error((a.error||l.error).message);
+  const quando={}; (l.data||[]).forEach(r=>{ quando[String(r.conta_id).slice(6)]=Date.parse(r.atualizado)||0; });
+  const novas={}, visto=new Set();
+  (a.data||[]).forEach(x=>{ const fid=porCard.get(String(x.tarefa_id)); if(!fid||visto.has(fid)) return; visto.add(fid);
+    if(!quando[fid]||Date.parse(x.criado_em)>quando[fid]) novas[fid]=x; });
+  RW.lgNovas=novas;
+}
+window.rwUsarLogosNovas=async()=>{
+  const fids=(RW.lgVis||[]).filter(fid=>RW.lgNovas&&RW.lgNovas[fid]); if(!fids.length) return;
+  if(!confirm('Usar nos relatórios a logo mais nova do Controle de Clientes de '+fids.length+' cliente'+(fids.length>1?'s':'')+'?\n\nÉ o mesmo que o botão "Usar nos relatórios" do card. Dá pra trocar depois, cliente por cliente.')) return;
+  let n=0; const falhas=[], av=document.getElementById('rwAviso');
+  for(const fid of fids){ const x=RW.lgNovas[fid];
+    try{
+      const {data:u,error}=await sb.storage.from('anexos').createSignedUrl(x.caminho,600);
+      if(error||!u||!u.signedUrl) throw (error||new Error('sem link do arquivo'));
+      const blob=await (await fetch(u.signedUrl)).blob();
+      const d=await lgMiniatura(new File([blob],x.nome,{type:x.mime||blob.type}));
+      if(!d) throw new Error('não abriu como imagem');
+      await logoSalvar(logoFichaKey(fid),d); delete RW.lgNovas[fid]; n++;
+      if(av) av.textContent='Aplicando as logos… '+n+' de '+fids.length;
+    }catch(e){ falhas.push((fichaDe(fid)||{}).nome||fid); }
+  }
+  toast(n+(n===1?' logo atualizada':' logos atualizadas')+(falhas.length?' · não deu: '+falhas.slice(0,3).join(', ')+(falhas.length>3?'…':''):'')+'.');
+  rwDesenhar(); try{ lcLogosPintar(); }catch(_){} try{ metaDesenhar(); }catch(_){}
 };
 
 /* ---------- escolher o grupo (aba, card do Controle de Clientes e Fechamento) ----------
@@ -12760,8 +12805,9 @@ window.lgSubir=async (fid,files)=>{
       try{ await sb.storage.from('anexos').remove([chave]); }catch(_){}
       continue; }
     n++;
-    /* cliente ainda sem logo: a primeira imagem vira a logo dele (lista, editora e relatorio) */
-    if(!logoDoCliente(fid)){ try{ const d=await lgMiniatura(f); if(d) await logoSalvar(logoFichaKey(fid),d); }catch(_){} }
+    /* cliente ainda sem logo PROPRIA: a primeira imagem vira a logo dele (lista, editora e relatorio).
+       A logo da conta de anuncio nao conta: era ela que segurava a logo velha (Bernardo 05/10). */
+    if(!(LOGOS_META||{})[logoFichaKey(fid)]){ try{ const d=await lgMiniatura(f); if(d) await logoSalvar(logoFichaKey(fid),d); }catch(_){} }
   }
   if(n) toast(n===1?'Logo guardada no card do cliente.':n+' logos guardadas no card do cliente.');
   lgPintar('lgBox',fid,'ficha'); try{ lcLogosPintar(); }catch(_){}
