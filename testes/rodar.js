@@ -1321,6 +1321,24 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('nenhum texto de tela com o limite escrito à mão', !/(passa de|até|at\\u00e9) 50 MB/.test(HTML));
       ok('os dois pontos de upload usam o envio em pedaços', HTML.split("const up=await axSubir(chave,f,(a,b)=>{ if(dz) dz.textContent=axProgTxt(f.name,a,b); });").length===3&&HTML.indexOf("sb.storage.from('anexos').upload(chave,f,{contentType:f.type")<0);
     }
+/* ---------------- Gerenciar vínculos não congela ---------------- */
+grupo('Tráfego: busca do Meta em andamento não vira laço infinito (Bernardo 05/10)');
+{
+  /* a ficha dispara a busca; o Tráfego pede de novo enquanto ela roda */
+  const ctx={SESSION:{access_token:'x'},$:()=>null,META_URL:'u',currentView:'outra',toast:()=>{},
+    mtSalvarCache:()=>{},aprenderLimites:async()=>{},ltGastos:async()=>{},metaDesenhar:()=>{},mtStatusTxt:()=>{},
+    fetch:()=>new Promise(r=>setTimeout(()=>r({json:async()=>({ok:true,contas:[{id:'act_1'}]})}),30))};
+  const g=rodar(bloco('window.metaCarregar=async','const contaMarca='),ctx,[]);
+  const p1=g.metaCarregar(true);
+  let viuContas=null;
+  const p2=g.metaCarregar(true).then(()=>{ viuContas=(g.__mtDados||[]).length; });
+  PROMESSAS.push(Promise.all([p1,p2]).then(()=>{
+    ok('a segunda chamada espera a busca que já estava rodando (antes voltava na hora e o Tráfego entrava em laço)', viuContas===1);
+    ok('a busca termina e libera a próxima', g.__mtBuscando===false);
+  }));
+  ok('o Tráfego só redesenha se a busca trouxe contas', HTML.indexOf("trafAba!=='contas'&&window.__mtDados&&window.__mtDados.length) render('trafego'); });")>0);
+  ok('Gerenciar vínculos espera as contas em vez de abrir 400 ms depois', HTML.indexOf("render('trafego');mtVinculosQuandoPronto()")>0&&HTML.indexOf('setTimeout(()=>abrirVinculos(),400)')<0);
+}
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
