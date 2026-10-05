@@ -1732,6 +1732,57 @@ grupo('Pessoal no celular: chave Pessoal/Trabalho (Bernardo 04/10)');
   ok('trocar de tela sem o render (spSelLista etc.) também limpa o topo do Pessoal', HTML.indexOf("if(currentView!=='pessoal'&&document.body.classList.contains('mob-pessoal')) mpSairTopo();")>0);
 }
 
+/* ---------------- WhatsApp na tela Usuários ---------------- */
+grupo('Usuários: cadastrar/gerar número de WhatsApp pelo app (Bernardo 05/10)');
+{
+  const LISTA=[{name:'kennedy',conectado:true,dono:'5535999990000'},{name:'luana',conectado:true,perfil:'Luana'},
+    {name:'ana',conectado:false},{name:'velho',erro:'token da instância inválido'}];
+  const ctx={esc:(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'),
+    fmtFoneWa:(j)=>String(j||''),toast:()=>{},
+    PERFIS:[{id:'u1',nome:'Kennedy Lima'},{id:'u2',nome:'Gabriel Souza'},{id:'u3',nome:'Ana Paula'}],
+    US_WA:LISTA,document:{getElementById:()=>null}};
+  ctx.instDe=(nome)=>LISTA.find(i=>i.name===String(nome).split(' ')[0].toLowerCase())||null;
+  const g=rodar(bloco('function usWaEstado(','async function usWaCarregar('),ctx,['usWaEstado','usWaCelula','usWaSecao']);
+  const cel=(id)=>g.usWaCelula(ctx.PERFIS.find(u=>u.id===id));
+  ok('pessoa sem número ganha o botão cadastrar', /sem número/.test(cel('u2'))&&cel('u2').indexOf("usWaCadastrar('u2')")>0);
+  ok('conectado só mostra o status', /conectado/.test(cel('u1'))&&!/button/.test(cel('u1')));
+  ok('desconectado continua com o QR', cel('u3').indexOf("usWaConectar('ana')")>0);
+  ok('token inválido oferece trocar token', g.usWaEstado(LISTA[3]).indexOf("usWaToken('velho')")>0);
+  /* a seção lista só quem não casa com ninguém pelo primeiro nome */
+  const el={innerHTML:''}; g.document={getElementById:(id)=>id==='usWaSec'?el:null}; g.usWaSecao();
+  ok('seção mostra número sem usuário (luana, velho)', el.innerHTML.indexOf('<b>luana</b>')>0&&el.innerHTML.indexOf('<b>velho</b>')>0);
+  ok('seção não repete número de quem já tem usuário', el.innerHTML.indexOf('<b>kennedy</b>')<0&&el.innerHTML.indexOf('<b>ana</b>')<0);
+  ok('seção tem o botão de número novo', el.innerHTML.indexOf('usWaNovo()')>0&&/4 cadastrados · 2 sem usuário/.test(el.innerHTML));
+  ok('o container fica embaixo da tabela de Usuários', HTML.indexOf('</tbody></table></div>\n   <div id="usWaSec"></div>')>0);
+  ok('módulo novo com cache novo', HTML.indexOf('comercial/instancias.js?v=5')>0);
+  const IJ=fs.readFileSync(path.join(__dirname,'..','comercial','instancias.js'),'utf8');
+  ok('instancias.js tem o formulário (gerar ou colar token)', IJ.indexOf('window.instCadastrar=')>0&&IJ.indexOf("api('criar',{name})")>0&&IJ.indexOf("api('cadastrar',{name,token:tk})")>0);
+  ok('token vai em campo de senha, nunca em texto aberto', /id="inst_tk" type="password"/.test(IJ)&&/id="inst_adm" type="password"/.test(IJ));
+  ok('depois de cadastrar abre o QR se não estiver conectado', IJ.indexOf('if(!d.conectado) setTimeout(()=>instConectar(name),150);')>0);
+}
+
+/* ---------------- Contrato sai direto em Word ---------------- */
+grupo('Contratos: Word direto, PDF pelo Word e assinatura no gov.br (Bernardo 05/10)');
+{
+  ok('a aba Contratos baixa o .docx direto (sem o editor de parágrafos)', HTML.indexOf("await ctGerar(ctModelo,d,'Contrato-'+ctModelo+'-'+nome);")>0&&HTML.indexOf('ctEditor(')<0);
+  ok('o editor que perdia negrito saiu inteiro', HTML.indexOf('function ctAplica(')<0&&HTML.indexOf('ct-folha')<0&&HTML.indexOf('CT_ED')<0);
+  ok('o .docx sai compactado (antes ~950 KB)', /generateAsync\(\{type:'blob',compression:'DEFLATE'/.test(HTML));
+  ok('o contrato continua guardado em contratos_gerados', /async function ctGerar[\s\S]{0,900}from\('contratos_gerados'\)\.insert/.test(HTML));
+  /* os passos: monta o aviso num DOM de mentira e confere o texto */
+  let html='';
+  const el={className:'',set innerHTML(v){ html=v; },get innerHTML(){ return html; },querySelectorAll:()=>[],onclick:null};
+  const g=rodar(bloco('function ctPassosWord(','/* ---- tela ---- */'),{
+    esc:(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'),
+    CT_CLIENTE:[['rep_rg','RG do representante']],CT_NEGOCIO:[],
+    document:{createElement:()=>el,body:{appendChild:()=>{}}}},['ctPassosWord']);
+  g.ctPassosWord('Contrato-marketing-Loja.docx',['rep_rg'],true);
+  ok('o aviso diz o nome do arquivo e que ficou guardado', html.indexOf('Contrato-marketing-Loja.docx')>0&&/ficou guardado no sistema/.test(html));
+  ok('o aviso lista o que ficou em branco pelo nome do campo', /Ficaram em branco: RG do representante/.test(html));
+  ok('os três passos: Word, PDF e gov.br', /Ajuste no Word/.test(html)&&/Salvar como › PDF/.test(html)&&/assinador\.iti\.br/.test(html));
+  g.ctPassosWord('x.docx',[],false);
+  ok('sem campo em branco nem arquivo guardado, não promete o que não houve', !/Ficaram em branco/.test(html)&&!/ficou guardado/.test(html));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
