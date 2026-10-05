@@ -6,8 +6,8 @@
 <title>Sistema Autosíntese</title>
 <link rel="icon" type="image/png" sizes="64x64" href="/icones/favicon-64.png?v=4">
 <link rel="icon" type="image/png" sizes="32x32" href="/icones/favicon-32.png?v=4">
-<link rel="apple-touch-icon" sizes="180x180" href="/icones/icone-180.png?v=4">
-<link rel="manifest" href="/icones/manifest.webmanifest?v=4">
+<link rel="apple-touch-icon" sizes="180x180" href="/icones/icone-180.png?v=5">
+<link rel="manifest" href="/icones/manifest.webmanifest?v=5">
 <link rel="stylesheet" href="crm.css?v=15">
 <meta name="apple-mobile-web-app-title" content="Síntese">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -762,6 +762,40 @@
   #login .err:not(:empty){font-size:13px;line-height:1.45;color:#f0788c;background:rgba(240,120,140,.07);
     border:1px solid rgba(240,120,140,.18);border-radius:10px;padding:10px 13px;margin-top:12px}
   @media(max-width:420px){.login-card{padding:34px 22px 26px;border-radius:18px}#login h2{font-size:21px}}
+  /* Escolha de início no celular (modo app): Pessoal ou Trabalho. Sempre escura, com o
+     brilho roxo e a logo do login, para parecer a continuação dele, mesmo para quem usa
+     tema claro (Bernardo 04/10). Fica acima do #splash (9999): o enterApp espera a escolha. */
+  #ieTela{--ie-bg:#141416;--ie-panel:#1b1b1e;--ie-panel2:#232327;--ie-txt:#fff;--ie-muted:#c8c8d2;--ie-brand2:#a78bfa;
+    --ie-hov3:rgba(255,255,255,.11);color-scheme:dark;
+    position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;justify-content:center;
+    padding:calc(24px + env(safe-area-inset-top,0px)) 18px calc(40px + env(safe-area-inset-bottom,0px));
+    background:var(--ie-bg);color:var(--ie-txt);animation:ieEntra .18s ease-out}
+  #ieTela::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(420px 360px at 50% 30%,rgba(124,58,237,.21),rgba(124,58,237,.055) 48%,transparent 72%)}
+  #ieTela.sai{opacity:0;transition:opacity .16s}
+  #ieTela .ie-in{position:relative;width:100%;max-width:400px;margin:0 auto}
+  #ieTela .ie-marca{display:flex;flex-direction:column;align-items:center;gap:12px}
+  #ieTela .ie-mark{width:56px;height:56px;border-radius:17px;display:grid;place-items:center;
+    background:radial-gradient(90px 60px at 50% -10%,rgba(255,255,255,.28),transparent 60%),linear-gradient(150deg,#9d5cf0 0%,#7c3aed 55%,#6023c9 100%);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.35),inset 0 -8px 14px rgba(24,6,58,.45),0 14px 30px -8px rgba(124,58,237,.45)}
+  #ieTela .ie-mark svg{width:24px;height:auto}
+  #ieTela .ie-mark svg path{fill:#fff}
+  #ieTela .ie-wm{font-size:12px;font-weight:800;letter-spacing:.26em;margin-right:-.26em}
+  #ieTela .ie-wm span{font-weight:300}
+  #ieTela h2{text-align:center;font-size:24px;font-weight:700;letter-spacing:-.025em;line-height:1.2;margin:30px 0 24px;color:var(--ie-txt)}
+  #ieTela .ie-cards{display:grid;gap:10px}
+  #ieTela .ie-card{display:grid;grid-template-columns:46px 1fr;align-items:center;gap:14px;width:100%;padding:18px 16px;
+    border:0;border-radius:18px;background:var(--ie-panel);color:var(--ie-txt);text-align:left;font:inherit;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;box-shadow:inset 0 0 0 1px var(--ie-hov3),0 8px 22px -14px rgba(0,0,0,.5);transition:transform .12s}
+  #ieTela .ie-card:active{transform:scale(.98)}
+  #ieTela .ie-card:focus-visible{outline:2px solid var(--ie-brand2);outline-offset:2px}
+  #ieTela .ie-ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center}
+  #ieTela .ie-ic svg{width:22px;height:22px}
+  #ieTela .ie-pes .ie-ic{background:linear-gradient(150deg,#9d5cf0,#6023c9);color:#fff;box-shadow:0 8px 18px -8px rgba(124,58,237,.7)}
+  #ieTela .ie-trab .ie-ic{background:var(--ie-panel2);color:var(--ie-brand2);box-shadow:inset 0 0 0 1px var(--ie-hov3)}
+  #ieTela .ie-card b{display:block;font-size:17px;font-weight:700;letter-spacing:-.01em}
+  #ieTela .ie-card small{display:block;font-size:13.5px;color:var(--ie-muted);margin-top:1px}
+  @keyframes ieEntra{from{opacity:0}to{opacity:1}}
   .logo{display:flex;align-items:center;gap:13px;margin-bottom:6px}
   .logo .mark{width:46px;height:46px;flex:none}
   .logo .mark svg{width:100%;height:100%;display:block}
@@ -4166,9 +4200,12 @@ async function enterApp(){
     if(mpListaIds().indexOf(String(lid))<0) lkLimpar();
   }
   if(restrito()){ rsAplicar(); spSelLista(rsLista()); NAV_PRONTO=true; return; }   /* só a lista dela, sem foto obrigatória */
-  const foi=await lkIr();
+  /* celular aberto pelo ícone: a pessoa escolhe se começa no Pessoal ou no Trabalho (Bernardo 04/10) */
+  const ini=ieDeveMostrar()?await ieEscolher():'';
+  const foi=ini?true:await lkIr();
   /* sem link explicito, volta pro lugar exato onde a pessoa parou (F5 nao perde nada) */
-  if(!foi){ let voltou=false; try{ voltou=await navVoltar(); }catch(_){}
+  if(ini){ try{ await ieIr(ini); }catch(_){ spInicio(true); } }
+  else if(!foi){ let voltou=false; try{ voltou=await navVoltar(); }catch(_){}
     if(!voltou) spInicio(true); }   /* nunca esteve aqui: abre no proprio dia de trabalho */
   else { try{ navReabrir(); }catch(_){} }
   NAV_PRONTO=true; navSalvar();
@@ -21042,6 +21079,53 @@ window.spInicio=(quieto)=>{
   if(inUUID(v)&&TK.listas.some(l=>l.id===v)) return spSelLista(v,quieto);
   return renderInicio(document.getElementById('content'));   /* padrão: as demandas do dia */
 };
+/* ---------- ESCOLHA DE INÍCIO NO CELULAR ----------
+   Aberto pelo ícone da tela inicial (modo app, tela de toque), o sistema pergunta por
+   onde começar: Pessoal (Modo Pessoal) ou Trabalho (workspace da empresa, na tela
+   inicial de cada um, a mesma do botão Início). Fica de fora: computador, navegador
+   comum, quem chegou por link (#…), modo restrito e quem não tem a tela Pessoal.
+   Uma vez por abertura do app (Bernardo 04/10). */
+let IE_FEITO=false;
+const ieModoApp=()=>{ try{ return !!((window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true); }catch(_){ return false; } };
+const ieToque=()=>{ try{ return !!(window.matchMedia&&matchMedia('(pointer: coarse)').matches); }catch(_){ return false; } };
+function ieDeveMostrar(){
+  if(IE_FEITO||!ieModoApp()||!ieToque()) return false;
+  if(String(location.hash||'').replace(/^#/,'')) return false;   /* veio de link: o link manda */
+  if(restrito()||tlBloqueada('pessoal')) return false;
+  return true;
+}
+function ieEscolher(){
+  IE_FEITO=true;
+  const logo=(document.querySelector('#login .logo .mark svg')||{}).outerHTML||'';
+  const icPes='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12h.01"/></svg>';
+  const icTrab='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="13" rx="2.5"/><path d="M16 7V5.5A2.5 2.5 0 0 0 13.5 3h-3A2.5 2.5 0 0 0 8 5.5V7"/><path d="M2.5 13h19"/></svg>';
+  return new Promise(res=>{
+    const el=document.createElement('div');
+    el.id='ieTela'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-labelledby','ieTit');
+    el.innerHTML='<div class="ie-in">'+
+      '<div class="ie-marca"><div class="ie-mark">'+logo+'</div><div class="ie-wm">AUTO<span>SÍNTESE</span></div></div>'+
+      '<h2 id="ieTit">Como você deseja iniciar?</h2>'+
+      '<div class="ie-cards">'+
+        '<button type="button" class="ie-card ie-pes" data-ie="pessoal"><span class="ie-ic">'+icPes+'</span><span><b>Pessoal</b><small>Hábitos, tarefas e agenda</small></span></button>'+
+        '<button type="button" class="ie-card ie-trab" data-ie="trabalho"><span class="ie-ic">'+icTrab+'</span><span><b>Trabalho</b><small>Demandas, listas e equipe</small></span></button>'+
+      '</div></div>';
+    let foi=false;
+    el.addEventListener('click',ev=>{ const b=ev.target.closest('[data-ie]'); if(!b||foi) return; foi=true;
+      el.classList.add('sai'); setTimeout(()=>el.remove(),170); res(b.dataset.ie); });
+    document.body.appendChild(el);
+    try{ splashFim(); }catch(_){}   /* a escolha já é a primeira tela: o splash pode sair por trás */
+  });
+}
+async function ieIr(qual){
+  if(qual==='pessoal'){
+    if(!meuPessoalWs()){ await pessoalGarantir(); spDesenhar(); }
+    MP.aba='inicio'; return render('pessoal');
+  }
+  /* Trabalho: sai do workspace pessoal (se foi o último usado) e pousa no Início dela */
+  const w=wsAtual(), we=wsEmpresa();
+  if(w&&w.tipo==='pessoal'&&we){ WS_SEL=String(we.id); try{ localStorage.setItem('ws_sel',WS_SEL); }catch(_){} TK.listaSel=''; spDesenhar(); }
+  return spInicio(true);
+}
 window.spEspacos=()=>{
   const abrindo=SP_MINI;          /* estava encolhida: este clique abre */
   spMini();
