@@ -186,6 +186,35 @@ grupo('Folha: o motor de fixos só gera conta de escritório (a equipe é calcul
   ok('a despesa continua na competência (fpDataComp usa o fim do mês quando o venc é do mês seguinte)', /if\(p\.venc && String\(p\.venc\)\.slice\(0,7\)===comp\) return p\.venc;/.test(HTML));
 }
 
+grupo('Folha: outros pagamentos da equipe, passagem do Luan toda segunda (Bernardo 05/10)');
+{
+  const DSEM=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  const vencOf=(c,d)=>{ const [y,m]=c.split('-').map(Number); const last=new Date(y,m,0).getDate(); return c+'-'+String(Math.min(Math.max(1,Number(d)||1),last)).padStart(2,'0'); };
+  const DB={folhaFixos:[
+      {id:'pes_luan',tipo:'pessoa',nome:'Luan Peixoto Santiago',papel:'gestor'},
+      {id:'ex1',tipo:'extra',pessoaId:'pes_luan',nome:'Luan Peixoto Santiago',descricao:'Passagem de ônibus',valor:120,freq:'semanal',diaSemana:1,dp:'Marketing',inicioComp:'2026-10',ativo:true,tarefaSerie:'serie-1'},
+      {id:'ex2',tipo:'extra',pessoaId:'pes_luan',nome:'Luan Peixoto Santiago',descricao:'Inativo',valor:50,freq:'mensal',dia:10,ativo:false}],
+    folha:[]};
+  const g=rodar(bloco('const fdExtras=','function fdOutros('),{DB,DSEM,vencOf},['gerarExtrasCore','fdExtraId']);
+  const out=g.gerarExtrasCore('2026-10'), doMes=c=>DB.folha.filter(p=>p.comp===c);
+  ok('outubro tem 4 segundas: 4 parcelas de R$ 120', out===4&&doMes('2026-10').every(p=>p.valor===120&&p.extra===true));
+  ok('vencem nas segundas 05, 12, 19 e 26', doMes('2026-10').map(p=>p.venc).join()==='2026-10-05,2026-10-12,2026-10-19,2026-10-26');
+  ok('id fixo ex_<extra>_<data>, igual ao que o banco usa', DB.folha[0].id==='ex_ex1_2026-10-05');
+  ok('a parcela leva a série da tarefa e o departamento', DB.folha[0].serie==='serie-1'&&DB.folha[0].dp==='Marketing');
+  ok('rodar de novo não duplica', g.gerarExtrasCore('2026-10')===0&&doMes('2026-10').length===4);
+  ok('novembro tem 5 segundas: 5 parcelas', g.gerarExtrasCore('2026-11')===5);
+  ok('antes de começar e inativo não geram', g.gerarExtrasCore('2026-09')===0&&!DB.folha.some(p=>p.fixoId==='ex2'));
+  const f=rodar(bloco('const fdEhProv=','/* junta as linhas do banco'),
+    {DB:{folha:[{id:'ex_ex1_2026-10-05',comp:'2026-10',fixoId:'ex1',nome:'Luan Peixoto Santiago',pago:true,valor:120,extra:true},
+                {id:'pg1',comp:'2026-10',fixoId:'pes_luan',nome:'Luan Peixoto Santiago',pago:true,valor:600}]},
+     primNome:(x)=>String(x||'').trim().split(/\s+/)[0].toLowerCase()},['fdPagosDe']);
+  const pg=f.fdPagosDe('2026-10',{id:'pes_luan',nome:'Luan Peixoto Santiago'});
+  ok('passagem paga não abate o salário (fdPagosDe só vê o pagamento da folha)', pg.length===1&&pg[0].id==='pg1');
+  ok('no lucro, o espelho da passagem conta como despesa comum', /&&!extrasFp\.has\(x\.id\)/.test(HTML));
+  ok('pagar a passagem não pergunta o valor', /if\(!escN&&!p\.extra\)\{/.test(HTML));
+  ok('Gastos de escritório: botão editar / + chave Pix na linha', HTML.indexOf("${fx.pix?'editar':'+ chave Pix'}")>0);
+}
+
 grupo('Controle de Clientes: rodapé só com ticket médio e remuneração, cada um vê o seu (Gabriel 30/09)');
 {
   const r=bloco('/* RODAPÉ DO CONTROLE DE CLIENTES','return `<div class="tk-bar">');
