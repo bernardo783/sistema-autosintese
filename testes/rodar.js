@@ -1783,6 +1783,31 @@ grupo('Contratos: Word direto, PDF pelo Word e assinatura no gov.br (Bernardo 05
   ok('sem campo em branco nem arquivo guardado, não promete o que não houve', !/Ficaram em branco/.test(html)&&!/ficou guardado/.test(html));
 }
 
+/* ---------------- Novas Contas: a fila no Financeiro ---------------- */
+grupo('Novas Contas: pedido do Suporte cai na fila do Financeiro e telas conferem no banco (Bernardo 05/10)');
+{
+  ok('a lista Novas Contas abre a fila (restrito continua no formulário)', HTML.indexOf("if(TK.listaSel===NC_LISTA&&TK.escopo==='lista'){ return restrito()?ncFormulario(c):ncFila(c); }")>0);
+  ok('a fila tem o botão de pedir dali mesmo', HTML.indexOf('onclick="ncNovaAqui()">+ Nova conta</button>')>0);
+  ok('Minhas tarefas confere no banco ao abrir', HTML.indexOf("tkRevalidar(()=>TK.escopo==='minhas'&&currentView==='lista',()=>tkDesenhar($('#content')));")>0);
+  ok('Trabalho (modo pessoal) confere no banco', HTML.indexOf("if(mpTrab()) tkRevalidar(()=>currentView==='pessoal',mpPintar);")>0);
+  /* ordem da fila: em aberto primeiro, mais novo em cima; resolvidos depois */
+  const ST={a:{id:'a',grupo:'nao_iniciado'},b:{id:'b',grupo:'ativo'},f:{id:'f',grupo:'feito'}};
+  const T=[{id:'velho',lista_id:'NC',status_id:'a',criado_em:'2026-10-01',valores:{}},
+           {id:'pago',lista_id:'NC',status_id:'f',criado_em:'2026-10-04',valores:{}},
+           {id:'super',lista_id:'NC',status_id:'a',criado_em:'2026-10-05T14:28',valores:{}},
+           {id:'arq',lista_id:'NC',status_id:'a',criado_em:'2026-10-05',arquivada_em:'x',valores:{}},
+           {id:'outra',lista_id:'X',status_id:'a',criado_em:'2026-10-05',valores:{}}];
+  const ctx={TK:{tarefas:T},NC_LISTA:'NC',NC_C:{sol:'s',rec:'r',anexo:'x',dep:'d',val:'v',venc:'w'},NC_AGUARDA:'z',
+    arquivada:(t)=>!!t.arquivada_em,tkStatus1:(id)=>ST[id],tkSelo:(t)=>'['+t.id+']',esc:(s)=>String(s==null?'':s),brl:(v)=>'R$'+(v||0),fmtDate:(d)=>d};
+  const g=rodar(bloco('function ncAprovarHTML(','window.ncAprovar='),ctx,['ncAprovarHTML']);
+  const g2=rodar('const ncAprovarHTML=()=>"";'+bloco('function ncUltimasHTML(','/* Fila de Novas Contas'),ctx,['ncUltimasHTML']);
+  const ordem=(h)=>(h.match(/tkAbrir\('([a-z]+)'\)/g)||[]).map(x=>x.slice(9,-2)).join(',');
+  ok('fila: em aberto primeiro (mais novo em cima), depois os resolvidos', ordem(g2.ncUltimasHTML(0,true))==='super,velho,pago');
+  ok('arquivado (cancelado) e outra lista não entram', !/arq|outra/.test(ordem(g2.ncUltimasHTML(20))));
+  ok('o título abre o pedido completo', g2.ncUltimasHTML(0,true).indexOf("tkAbrir('super')")>0);
+  ok('na fila não repete o título "Solicitações da equipe"; em Contas a Pagar continua', g2.ncUltimasHTML(0,true).indexOf('Solicitações da equipe')<0&&g2.ncUltimasHTML(20).indexOf('Solicitações da equipe')>0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
