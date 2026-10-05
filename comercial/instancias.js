@@ -1,11 +1,12 @@
 /* Comercial › Instâncias — números de WhatsApp na UAZAPI (QR code, status, rodízio da landing).
    Arquivo separado do crm.js de propósito: ele só acrescenta a aba, sem mexer no módulo.
    O navegador nunca vê token: tudo passa pela função wa-uazapi com o login do usuário.
-   O servidor UAZAPI é compartilhado com o CRM do grupo: aqui não existe criar, apagar nem
-   desconectar número — isso derrubaria o número lá também. Só status, QR, teste e envio. */
+   O servidor UAZAPI é compartilhado com o CRM do grupo: aqui não existe apagar nem
+   desconectar número — isso derrubaria o número lá também. Só status, QR, teste, envio
+   e, desde 05/10, cadastrar/gerar número novo (só master, pela tela Usuários). */
 (function(){
   const URL_='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/wa-uazapi';
-  const IN={lista:[],fila:[],placar:{},servidor:'',erro:'',carregou:false,carregando:false,qr:null,qrNome:'',qrTimer:null,ativa:false};
+  const IN={lista:[],fila:[],placar:{},servidor:'',erro:'',carregou:false,carregando:false,qr:null,qrNome:'',qrTimer:null,ativa:false,master:false,podeGerar:false};
   const $=(s)=>document.querySelector(s);
   const barra=(c)=>[...c.querySelectorAll('.fin-tabs')].find(t=>t.innerHTML.includes('crmAba('))||null;
   const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -17,12 +18,13 @@
     const S=ses(); if(!S||!S.access_token){ throw new Error('Sessão expirada: entre de novo.'); }
     const r=await fetch(URL_+'/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+S.access_token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
     const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
-    if(!d.ok) throw new Error(d.erro||('erro '+r.status));
+    if(!d.ok){ const e=new Error(d.erro||('erro '+r.status)); e.dados=d; throw e; }
     return d;
   }
   async function carregar(){
     if(IN.carregando) return; IN.carregando=true;
-    try{ const d=await api('listar'); IN.lista=d.instancias||[]; IN.fila=d.fila||[]; IN.placar=d.placar||{}; IN.servidor=d.servidor||''; IN.erro=''; }
+    try{ const d=await api('listar'); IN.lista=d.instancias||[]; IN.fila=d.fila||[]; IN.placar=d.placar||{}; IN.servidor=d.servidor||''; IN.erro='';
+      IN.master=!!d.master; IN.podeGerar=!!d.podeGerar; }
     catch(e){ IN.erro=e.message||'falha'; }
     IN.carregou=true; IN.carregando=false;
   }
@@ -49,13 +51,15 @@
     <div class="crm-intg"><div class="crm-ic wide">
       <div class="hd"><div class="lg" style="font-size:22px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg></div><div><h4>Instâncias de WhatsApp (UAZAPI)</h4><div class="sub">Um número por SDR · ${on}/${L.length} conectado${L.length===1?'':'s'} · rodízio da landing: ${IN.fila.length?esc(IN.fila.join(' → ')):'ninguém'}${IN.servidor?' · '+esc(IN.servidor):''}</div></div>
         <div class="acts"><button class="btn secondary small" onclick="instRecarregar()" title="Recarregar">↻</button></div></div>
-      ${L.length?L.map(linha).join(''):'<div class="crm-vazio">Nenhum número cadastrado. Pra incluir um, o token da instância entra no cofre do servidor (peça ao administrador).</div>'}
+      ${L.length?L.map(linha).join(''):'<div class="crm-vazio">Nenhum número cadastrado. Pra incluir um, um master usa <b>Usuários › WhatsApp</b>.</div>'}
       <div class="crm-hint">Pra conectar: clique em <b>Conectar (QR)</b>, e no celular do SDR abra <b>WhatsApp › Dispositivos conectados › Conectar dispositivo</b> e aponte pro código. Quem está no <b>rodízio</b> reveza a primeira mensagem pros leads de autosintese.app.br/ads: cada lead cai pra quem atendeu menos nos últimos 30 dias, e número desconectado é pulado na hora. Esses números também atendem o CRM do grupo, por isso desconectar ou apagar só pelo painel da UAZAPI.</div>
     </div></div>`;
   }
 
   /* ---- ações ---- */
-  window.instRecarregar=()=>{ IN.carregou=false; if(window.crmPintar) crmPintar(); carregar().then(()=>window.crmPintar&&crmPintar()); };
+  /* a tela Usuarios tambem mostra os numeros: redesenha a coluna dela quando a lista muda */
+  const avisaUsuarios=()=>{ if(typeof window.usWaCarregar==='function'&&document.getElementById('usWaSec')) usWaCarregar(); };
+  window.instRecarregar=()=>{ IN.carregou=false; if(window.crmPintar) crmPintar(); carregar().then(()=>{ if(window.crmPintar) crmPintar(); avisaUsuarios(); }); };
   window.instRodizio=async(name,dentro)=>{
     try{ const d=await api('rodizio',{name,dentro});
       toast(dentro?(name+' entrou no rodízio da landing.'):(name+' saiu do rodízio.'));
@@ -97,6 +101,95 @@
     }catch(e){ c.innerHTML='<div style="color:var(--danger)">'+esc(e.message)+'</div>'; }
   }
 
+  /* ---- cadastro de número pela tela Usuários (Bernardo 05/10) ----
+     Antes o token entrava no cofre na mão, pelo SQL Editor do Supabase. Agora o master
+     cola o token de uma instância que já existe na UAZAPI, ou gera uma nova aqui mesmo
+     (com o token admin do servidor, salvo uma vez). Os tokens vão direto pra função
+     wa-uazapi e nunca voltam pra tela. Depois de cadastrar, já abre o QR. */
+  const apelidoDe=(s)=>String(s||'').trim().split(/\s+/)[0].toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'').slice(0,20);
+  function instCss(){
+    if($('#instCss')) return;
+    const st=document.createElement('style'); st.id='instCss';
+    st.textContent=`.inst-modo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .field .inst-op{display:flex;gap:10px;align-items:flex-start;margin:0;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);cursor:pointer;color:var(--txt)}
+      .field .inst-op:hover{border-color:var(--fraco)}
+      .field .inst-op:has(input:checked){border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand)}
+      .field .inst-op input{width:auto;margin:2px 0 0;accent-color:var(--brand);flex:none}
+      .inst-op b{display:block;font-size:13.5px}
+      .inst-op small{display:block;color:var(--muted);font-size:12px;margin-top:3px;line-height:1.4}
+      .field>label>small{color:var(--fraco);margin-left:6px}
+      @media (max-width:720px){.inst-modo{grid-template-columns:1fr}}`;
+    document.head.appendChild(st);
+  }
+  window.instCadastrar=async(apelido,quem,opc)=>{
+    opc=opc||{};
+    if(!IN.carregou) await carregar();
+    if(!IN.master){ toast('Só master cadastra número de WhatsApp.'); return; }
+    instCss();
+    const modo0=opc.modo||(IN.podeGerar?'gerar':'token');
+    const tituloM=quem?('WhatsApp de '+esc(String(quem).trim().split(/\s+/)[0])):'Novo número de WhatsApp';
+    modal(tituloM,`
+      <p class="hint" style="margin:0 0 14px">Um número por pessoa do comercial. As mensagens dele entram no pipeline e nas conversas do sistema.</p>
+      <div class="field"><label>Apelido do número</label><input id="inst_ap" value="${esc(apelidoDe(apelido))}" placeholder="ex: luana" maxlength="20" autocomplete="off" spellcheck="false">
+        <div class="hint" style="margin-top:6px">O primeiro nome da pessoa no sistema, sem acento. É ele que liga o número à pessoa.</div></div>
+      <div class="field"><label>Como</label><div class="inst-modo">
+        <label class="inst-op"><input type="radio" name="inst_modo" value="gerar"${modo0==='gerar'?' checked':''}><span><b>Gerar número novo</b><small>Cria a instância na UAZAPI e já abre o QR code</small></span></label>
+        <label class="inst-op"><input type="radio" name="inst_modo" value="token"${modo0==='token'?' checked':''}><span><b>Já tenho o token</b><small>A instância já existe no painel da UAZAPI</small></span></label>
+      </div></div>
+      <div id="inst_p_gerar">${IN.podeGerar?'':`<div class="field"><label>Token admin do servidor<small>${esc(IN.servidor)}</small></label><input id="inst_adm" type="password" autocomplete="new-password" spellcheck="false" placeholder="só na primeira vez">
+        <div class="hint" style="margin-top:6px">Fica guardado no servidor e nunca volta pra tela. Depois disso, gerar número é um clique.</div></div>`}</div>
+      <div id="inst_p_token"><div class="field"><label>Token da instância</label><input id="inst_tk" type="password" autocomplete="new-password" spellcheck="false" placeholder="cole aqui">
+        <div class="hint" style="margin-top:6px">Painel da UAZAPI › instância › Token. Fica guardado no servidor e nunca volta pra tela.</div></div></div>`,
+      async()=>{
+        const ov=[...document.querySelectorAll('.overlay')].pop();
+        const modo=(ov.querySelector('input[name=inst_modo]:checked')||{}).value;
+        const name=apelidoDe(ov.querySelector('#inst_ap').value);
+        if(name.length<2){ toast('Apelido: o primeiro nome da pessoa, só letras e números.'); return false; }
+        const bt=ov.querySelector('.msave'), txt=bt.textContent; bt.disabled=true; bt.textContent='Aguarde…';
+        try{
+          let d;
+          if(modo==='gerar'){
+            const adm=ov.querySelector('#inst_adm');
+            if(adm){ const v=adm.value.trim();
+              if(!v){ toast('Cole o token admin do servidor (só na primeira vez), ou use "Já tenho o token".'); return false; }
+              await api('admin-token',{token:v}); IN.podeGerar=true; }
+            try{ d=await api('criar',{name}); }
+            catch(e){
+              /* token admin guardado foi recusado: reabre pedindo de novo */
+              if(!(e.dados&&e.dados.precisaAdmin)) throw e;
+              IN.podeGerar=false; toast(e.message); setTimeout(()=>instCadastrar(name,quem,{modo:'gerar'}),150); return true;
+            }
+          }else{
+            const tk=ov.querySelector('#inst_tk').value.trim();
+            if(!tk){ toast('Cole o token da instância.'); return false; }
+            try{ d=await api('cadastrar',{name,token:tk}); }
+            catch(e){
+              if(!(e.dados&&e.dados.existe)) throw e;
+              const sim=typeof confirmar==='function'
+                ?await confirmar('Trocar o token de "'+name+'"?','Já existe um número com esse apelido e outro token. O token novo entra no lugar do antigo.',{sim:'Sim, trocar',nao:'Não'})
+                :confirm('Já existe "'+name+'" com outro token. Trocar?');
+              if(!sim) return false;
+              d=await api('cadastrar',{name,token:tk,substituir:true});
+            }
+          }
+          if(d.aviso) toast('Atenção: '+d.aviso);
+          else toast(modo==='gerar'?('Número "'+name+'" criado. Escaneie o QR.'):('Número "'+name+'" cadastrado.'));
+          IN.carregou=false; await carregar(); avisaUsuarios();
+          if(!d.conectado) setTimeout(()=>instConectar(name),150);
+          return true;
+        }catch(e){ toast('Erro: '+e.message); return false; }
+        finally{ bt.disabled=false; bt.textContent=txt; }
+      });
+    const ov=[...document.querySelectorAll('.overlay')].pop(); if(!ov) return;
+    const pinta=()=>{ const m=(ov.querySelector('input[name=inst_modo]:checked')||{}).value;
+      ov.querySelector('#inst_p_gerar').style.display=m==='gerar'?'':'none';
+      ov.querySelector('#inst_p_token').style.display=m==='token'?'':'none';
+      const b=ov.querySelector('.msave'); if(b) b.textContent=m==='gerar'?'Gerar e mostrar QR':'Cadastrar'; };
+    ov.querySelectorAll('input[name=inst_modo]').forEach(r=>r.addEventListener('change',pinta)); pinta();
+    const f=ov.querySelector(opc.modo==='token'?'#inst_tk':'#inst_ap'); if(f) f.focus();
+  };
+
   /* ---- entra na aba Comercial sem mexer no crm.js ----
      O CRM guarda a aba num const próprio (fora do window), então a aba "instancias"
      é controlada aqui: quem clica passa por crmAba, e a gente anota. */
@@ -133,4 +226,5 @@
     return (IN.lista||[]).find(i=>i.name===p)||null;
   };
   window.instRecarregarLista=async()=>{ IN.carregou=false; await carregar(); return IN.lista; };
+  window.instPodeCadastrar=()=>IN.master;
 })();
