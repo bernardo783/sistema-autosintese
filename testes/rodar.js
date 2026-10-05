@@ -1321,7 +1321,7 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('nenhum texto de tela com o limite escrito à mão', !/(passa de|até|at\\u00e9) 50 MB/.test(HTML));
       ok('os dois pontos de upload usam o envio em pedaços', HTML.split("const up=await axSubir(chave,f,(a,b)=>{ if(dz) dz.textContent=axProgTxt(f.name,a,b); });").length===3&&HTML.indexOf("sb.storage.from('anexos').upload(chave,f,{contentType:f.type")<0);
     }
-/* ---------------- Gerenciar vínculos não congela ---------------- */
+/* ---------------- busca do Meta não congela; vínculo só pelo cliente ---------------- */
 grupo('Tráfego: busca do Meta em andamento não vira laço infinito (Bernardo 05/10)');
 {
   /* a ficha dispara a busca; o Tráfego pede de novo enquanto ela roda */
@@ -1337,7 +1337,8 @@ grupo('Tráfego: busca do Meta em andamento não vira laço infinito (Bernardo 0
     ok('a busca termina e libera a próxima', g.__mtBuscando===false);
   }));
   ok('o Tráfego só redesenha se a busca trouxe contas', HTML.indexOf("trafAba!=='contas'&&window.__mtDados&&window.__mtDados.length) render('trafego'); });")>0);
-  ok('Gerenciar vínculos espera as contas em vez de abrir 400 ms depois', HTML.indexOf("render('trafego');mtVinculosQuandoPronto()")>0&&HTML.indexOf('setTimeout(()=>abrirVinculos(),400)')<0);
+  ok('vínculo conta x cliente só pelo cliente: sem a janela em massa (Bernardo 05/10)', HTML.indexOf('abrirVinculos')<0&&HTML.indexOf('mtVinculosQuandoPronto')<0);
+  ok('aba Contas da ficha usa o seletor do próprio cliente', HTML.indexOf("rwEscolherConta('${f.id}',()=>cliIrPara('${f.id}','contas'))")>0);
 }
     await Promise.all(PROMESSAS);
     fimDosTestes();
@@ -1918,33 +1919,6 @@ grupo('Controle de Clientes: Conta de anúncios no card (Bernardo 05/10)');
   ok('o "?" traz a BM e o ID pra copiar', /Sintese Solucoes Tecnologicas LTDA/.test(g.rwBmAjudaHTML())&&/1336723773532458/.test(g.rwBmAjudaHTML())&&/rwBmCopiar/.test(g.rwBmAjudaHTML()));
   ok('o seletor do card é o mesmo da aba', HTML.indexOf("window.rwTkContaEscolher=(fid)=>rwEscolherConta(fid,")>0);
   ok('o campo fica no card do Controle de Clientes, abaixo do Grupo WhatsApp', /id="tkRwG"[\s\S]{0,400}Conta de anúncios[\s\S]{0,300}id="tkRwC"/.test(HTML));
-}
-
-grupo('Tráfego Pago: Contas de anúncio vira central de alertas (Bernardo 05/10)');
-{
-  const C=(id,o)=>Object.assign({id},o);
-  const R={a:{nivel:'critico',motivo:'sem saldo',saldo:0},b:{nivel:'atencao',dias:1.2,saldo:40},c:{nivel:'ok'},d:{nivel:'ok'},e:{nivel:'atencao',dias:0.5,saldo:10}};
-  const CPL={a:null,b:20,c:20,d:60,e:22};
-  const ctx={risco:(c)=>R[c.id],custoConversa:(c)=>CPL[c.id]};
-  const g=rodar(bloco('const TP_CPM_MIN_IMPR=','/* {f,gid} de tráfego'),ctx,['TP_CPM_MIN_IMPR','tpMediana']);
-  ok('mediana ignora vazio e zero', g.tpMediana([null,0,10,30,20])===20&&g.tpMediana([10,20])===15&&g.tpMediana([])===0);
-  const g2=rodar(bloco('const TP_CPM_MIN_IMPR=','/* {f,gid} de tráfego')+bloco('function tpAlertasDe(','function tpAlertasHTML('),ctx,['tpAlertasDe']);
-  const L=(id,cpm,impr)=>({f:{id:'f'+id,nome:id},gid:'g',c:C(id,{ins:{cpm,impressions:impr}})});
-  const todas=[L('a',10,5000),L('b',12,5000),L('c',11,5000),L('d',30,5000),L('e',13,500)];
-  const A=g2.tpAlertasDe(todas,todas);
-  const ids=(arr)=>arr.map(x=>x.c.id).join(',');
-  ok('sem saldo = risco crítico', ids(A.semSaldo)==='a');
-  ok('saldo acabando = risco em atenção, o que dura menos primeiro', ids(A.acabando)==='e,b');
-  ok('custo por lead alto = mais de 50% acima da mediana', A.medCpl===21&&ids(A.cplAlto)==='d');
-  ok('CPM alto = mais de 50% acima da mediana, só com 1.000+ impressões', A.medCpm===11.5&&ids(A.cpmAlto)==='d');
-  ok('mediana vem de todas as contas, alerta só das visíveis', ids(g2.tpAlertasDe([todas[1]],todas).cplAlto)===''&&g2.tpAlertasDe([todas[3]],todas).cplAlto.length===1);
-  ok('Central da agência saiu e o ramo antigo cai em Contas', HTML.indexOf("trafGo('central')")<0&&HTML.indexOf('abaCentral')<0&&HTML.indexOf("if(trafAba==='central') trafAba='contas';")>0);
-  ok('a aba Relatórios continua sendo a padrão e a primeira', /let trafAba='relatorios'/.test(HTML)&&HTML.indexOf("trafGo('relatorios')")>0);
-  ok('alertas no topo da aba Contas; a lista completa fica fechada embaixo', /<div id="tpAlertas">\$\{tpAlertasHTML\(\)\}<\/div>\s*<details class="tp-todas">/.test(HTML));
-  ok('a lista repinta os alertas quando os dados chegam', /window\.metaDesenhar=\(\)=>\{\s*const el=\$\('#mtLista'\); if\(!el\) return;\s*tpAlertasPintar\(\);/.test(HTML));
-  ok('marca saiu da lista de contas (fica no lápis da aba Relatórios)', HTML.indexOf('title="Logo e cores da marca do cliente"')<0&&HTML.indexOf('adicionar logo</span>')<0);
-  ok('Arquivar fica no título de Tráfego Pago e usa o mtArquivar', /<h2>Tráfego Pago <button type="button" class="tp-arq" onclick="tpArquivarAbrir\(\)"/.test(HTML)&&/await mtArquivar\(b\.dataset\.id,aba==='arq'\)/.test(HTML));
-  ok('alerta segue a régua da aba Relatórios', /rwVisiveis\(papel==='gestor'\?rwClientes\(\):todos,papel,eu,'',fichaNoMeuSquad\)/.test(HTML));
 }
 
 console.log('\n'+(falhas
