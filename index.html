@@ -17894,6 +17894,11 @@ function calcRecebimentos(comp){
    Pagamento do Controle de Clientes, que é só espelho daqui (Bernardo 06/10: as duas não
    batiam, a coluna tinha uma conta própria sem início, parceria, fim e arquivados).
    r = registro de recebimento do mês (ou nada). null = o cliente não conta nesse mês. */
+/* A regra de cobrança começou em out/2026 (Bernardo 06/10): antes disso só vale o que foi
+   registrado no Recebimentos. A data de entrada do cliente não deduz "a receber" nem
+   "inadimplente" no passado, então dá pra corrigir datas de entrada sem mexer nesses meses.
+   Churn e parceria continuam valendo (são situação do cliente, não cobrança). */
+const RC_REGRA_INI='2026-10';
 function rcSituacao(c,comp,r,hoje){
   if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
   if(c.inicio && comp<c.inicio) return null; /* cliente só conta a partir do mês de início */
@@ -17904,6 +17909,7 @@ function rcSituacao(c,comp,r,hoje){
   if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
   if(c.fim && comp>c.fim) return null; /* churn: depois do último mês o cliente zera */
   if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
+  if(comp<RC_REGRA_INI) return null;   /* mês anterior à regra sem registro: não deduz cobrança */
   if(comp>compNow()) return 'areceber';
   return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber';
 }
@@ -18053,9 +18059,11 @@ function renderRecebimentos(c){
   const comp=cliComp;
   rcAsaasCarregar();   /* links das cobranças em aberto, pra mensagem de cobrança */
   const R=calcRecebimentos(comp);
-  const ativos=DB.clientes.filter(x=>!cliArq(x)&&(!x.inicio||comp>=x.inicio)&&(!x.fim||comp<=x.fim));
+  /* antes da regra (RC_REGRA_INI) a carteira do mês é a registrada, com o valor congelado do mês */
+  const antesRegra=comp<RC_REGRA_INI;
+  const ativos=DB.clientes.filter(x=>!cliArq(x)&&(antesRegra?(!!R.byCli[x.id]&&R.st(x)!=='churn'):((!x.inicio||comp>=x.inicio)&&(!x.fim||comp<=x.fim))));
   const nArqCli=DB.clientes.filter(cliArq).length;
-  const totalMensal=ativos.reduce((s,x)=>s+(Number(x.valor)||0),0);
+  const totalMensal=ativos.reduce((s,x)=>s+(antesRegra?R.val(x):(Number(x.valor)||0)),0);
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Clientes</h2><div class="desc">Carteira e recebimentos: planilha única</div></div>
