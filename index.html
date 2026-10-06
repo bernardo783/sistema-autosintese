@@ -15107,7 +15107,7 @@ function fchPendentesHtml(comp){
   const gerCli={}; (DB.projetos||[]).forEach(p=>{ if(p.clienteId) gerCli[p.clienteId]=(p.gerente||'').trim(); });
   const rid={}; DB.recebimentos.forEach(r=>{ rid[r.id]=r; });
   const gerDe=(x)=>{ const i=String(x.id||'');
-    const k=i.startsWith('rcs_')?i.slice(4):(i.startsWith('rc_')?i.slice(3):null);
+    const k=rcIdDoLanc(i);
     const r=k?rid[k]:null; return {g:(r?gerCli[r.clienteId]:'')||'', nome:r?r.nome:null, st:r?r.status:null}; };
   const COMISSAO=['Luiz','João','Luan']; /* Gabriel 01/10: Luan e gerente da MULTIKAP e recebe os 10% */
   const dec=(v)=>Math.round(v*100)/100;
@@ -15243,7 +15243,7 @@ function renderFechamentoMes(c){
   const gerCli={}; (DB.projetos||[]).forEach(p=>{ if(p.clienteId) gerCli[p.clienteId]=(p.gerente||'').trim(); });
   const rid={}; DB.recebimentos.forEach(r=>{ rid[r.id]=r; });
   const gerDe=(x)=>{ const i=String(x.id||'');
-    const k=i.startsWith('rcs_')?i.slice(4):(i.startsWith('rc_')?i.slice(3):null);
+    const k=rcIdDoLanc(i);
     const r=k?rid[k]:null; return {g:(r?gerCli[r.clienteId]:'')||'', nome:r?r.nome:null, st:r?r.status:null}; };
   const cart={};
   recMes.forEach(x=>{ const d=gerDe(x); if(d.g) (cart[d.g]=cart[d.g]||[]).push([d.nome||x.descricao,d.st||'',fchN(x.valor),x.data]); });
@@ -18062,7 +18062,7 @@ function renderRecebimentos(c){
         <option value="churn"${s==='churn'?' selected':''}>Churn (não vai pagar)</option>
         <option value="churnpago"${s==='churnpago'?' selected':''}>Churn (pagou o mês)</option>
         ${s==='parceria'?'<option value="parceria" selected>Parceria (sem mensalidade)</option>':''}
-      </select>${(s==='recebido'||s==='churnpago')&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${s==='sinal'&&rec?(()=>{ const pz=rcPrazoTexto(rcRestVenc(rec));
+      </select>${(s==='recebido'||s==='churnpago')&&rec&&rec.recebidoEm?`<div style="color:var(--muted);font-size:11px;margin-top:3px">em ${fmtDate(rec.recebidoEm)}${rec.sinal?` (sinal ${brl(rec.sinal)} + restante)`:''}</div>`:''}${rec&&rec.parcelas&&rec.parcelas.length?rcParcHtml(r,rec):''}${s==='sinal'&&rec&&!(rec.parcelas&&rec.parcelas.length)?(()=>{ const pz=rcPrazoTexto(rcRestVenc(rec));
         return `<div style="color:var(--muted);font-size:11px;margin-top:3px">entrada ${brl(rec.sinal)} em ${fmtDate(rec.sinalEm)}</div>
         <div style="font-size:11px;margin-top:2px;color:${pz.cor};font-weight:600">resta ${brl(rcRestante(rec))} · ${esc(pz.txt)}</div>
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;margin-top:4px;color:var(--muted);cursor:pointer" title="Gerente e gestor recebem a comissão cheia do mês mesmo com o cliente pagando só o sinal (Gabriel 30/09, F3 MULTIMARCAS)"><input type="checkbox" ${rec.comissaoCheia?'checked':''} onchange="rcComissaoCheia('${r.id}',this.checked)" style="accent-color:var(--brand2)">comissão integral da equipe</label>`; })():''}`:'<span class="tag st">defina o dia</span>';
@@ -18382,11 +18382,131 @@ async function cbSincronizar(){
   finally{ CB_LOCK=false; }
 }
 /* registro do mês do cliente, criado na hora se ainda não existe (precisa do dia de vencimento) */
+/* ---------- PARCELAS DA MENSALIDADE (Bernardo 06/10, DL Repasse) ----------
+   Mensalidade paga em partes, cada uma com vencimento próprio: setembro em 500 + 250 + 250 e,
+   de outubro em diante, R$ 1.000 em 2 x R$ 500 (dia 25 e 15 dias depois), igual aos boletos do
+   Asaas. A cobrança do mês guarda parcelas:[{valor,venc,pagoEm}]; status, sinal, recebido e
+   restanteVenc saem delas (rcParcSync). Assim os cartões, o Controle de Clientes e a comissão
+   (folha_linhas_todas: proporcional ao que entrou) seguem lendo os campos de sempre. Cada parcela
+   recebida vira uma receita própria no Financeiro (rcp_<cobrança>_p<n>), e não o par rcs_/rc_.
+   Cliente com parcelamento no cadastro ({n,dias}) já nasce com as parcelas no mês novo. */
+const rcIdDoLanc=(id)=>{ const s=String(id||'');
+  if(s.indexOf('rcp_')===0) return s.slice(4).replace(/_p\d+$/,'');
+  if(s.indexOf('rcs_')===0) return s.slice(4);
+  if(s.indexOf('rc_')===0) return s.slice(3);
+  return null; };
+const rcR2=(v)=>Math.round((Number(v)||0)*100)/100;
+const rcIsoMais=(iso,dias)=>{ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+dias);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+/* parcelas de um mês novo, pelo cadastro: a 1ª no vencimento, as outras a cada `dias` */
+function rcParcNovas(c,venc,total){
+  const pc=c&&c.parcelamento, n=Number(pc&&pc.n)||0;
+  if(n<2||!venc) return null;
+  const dias=Number(pc.dias)||15, tot=rcR2(total!=null?total:c.valor), base=Math.floor(tot/n*100)/100;
+  const out=[]; for(let i=0;i<n;i++) out.push({valor:i===n-1?rcR2(tot-base*(n-1)):base,venc:rcIsoMais(venc,i*dias),pagoEm:null});
+  return out;
+}
+/* deriva a cobrança das parcelas e refaz o espelho no Financeiro */
+function rcParcSync(r){
+  const id=String(r.id), ps=r.parcelas||[];
+  DB.financeiro=(DB.financeiro||[]).filter(x=>{ const s=String(x.id||''); return !(s==='rc_'+id||s==='rcs_'+id||s.indexOf('rcp_'+id+'_p')===0); });
+  if(!ps.length){ delete r.parcelas; return; }
+  ps.forEach((p,i)=>{ if(p.pagoEm) DB.financeiro.push({id:'rcp_'+id+'_p'+(i+1),data:p.venc||r.venc,comp:r.comp,pagoEm:p.pagoEm,tipo:'receita',
+    descricao:'Parcela '+(i+1)+'/'+ps.length+': '+r.nome,categoria:'Mensalidade Clientes',valor:rcR2(p.valor)}); });
+  const pagas=ps.filter(p=>p.pagoEm), abertas=ps.filter(p=>!p.pagoEm), datas=pagas.map(p=>p.pagoEm).sort();
+  if(ps[0].venc) r.venc=ps[0].venc;
+  if(!pagas.length){ if(r.status==='sinal'||r.status==='recebido') r.status=null; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.restanteVenc=''; }
+  else if(!abertas.length){ r.status='recebido'; r.recebido=true; r.recebidoEm=datas[datas.length-1]; r.sinal=null; r.sinalEm=null; r.restanteVenc=''; }
+  else { r.status='sinal'; r.recebido=false; r.recebidoEm=null; r.sinal=rcR2(pagas.reduce((a,p)=>a+(Number(p.valor)||0),0)); r.sinalEm=datas[0]; r.restanteVenc=abertas[0].venc||''; }
+}
+/* bloco das parcelas na coluna Status */
+function rcParcHtml(c,rec){
+  const ps=(rec&&rec.parcelas)||null; if(!ps||!ps.length) return '';
+  const hoje=hojeISO(), pagas=ps.filter(p=>p.pagoEm), prox=ps.find(p=>!p.pagoEm);
+  const pago=rcR2(pagas.reduce((a,p)=>a+(Number(p.valor)||0),0)), tot=rcR2(ps.reduce((a,p)=>a+(Number(p.valor)||0),0));
+  const chip=(p)=>p.pagoEm?`<span style="color:var(--ok)">✓ ${brl(p.valor)} ${fmtDate(p.pagoEm).slice(0,5)}</span>`
+    :`<span style="color:${p.venc&&p.venc<hoje?'#ff8b97':'var(--muted)'}">${brl(p.valor)} ${fmtDate(p.venc).slice(0,5)}</span>`;
+  const pz=prox?rcPrazoTexto(prox.venc):null;
+  return `<div style="font-size:11px;margin-top:4px;line-height:1.5">${pagas.length}/${ps.length} parcelas · ${brl(pago)} de ${brl(tot)}</div>
+    <div style="font-size:11px;display:flex;flex-wrap:wrap;gap:2px 8px">${ps.map(chip).join('')}</div>
+    ${prox?`<div style="font-size:11px;margin-top:2px;color:${pz.cor};font-weight:600">próxima ${brl(prox.valor)} · ${esc(pz.txt)}</div>`:''}
+    <div class="rowact" style="margin-top:4px">${prox?`<button class="iconbtn" onclick="rcParcReceber('${esc(c.id)}')">Receber ${brl(prox.valor)}</button>`:''}${pagas.length?`<button class="iconbtn" onclick="rcParcDesfazer('${esc(c.id)}')" title="Desfaz a última parcela recebida">−1</button>`:''}<button class="iconbtn" onclick="rcParcEditar('${esc(c.id)}')">Parcelas</button></div>`;
+}
+const rcParcVolta=()=>{ if(currentView==='recebimentos') render('recebimentos'); else tkDesenhar($('#content')); };
+window.rcParcReceber=async (cid)=>{
+  const c=(DB.clientes||[]).find(x=>x.id===cid), r=rcRegistro(cid,cliComp);
+  if(!c||!r){ toast('Defina o dia de vencimento primeiro (Editar).'); return; }
+  const ps=r.parcelas||[], i=ps.findIndex(p=>!p.pagoEm); if(i<0){ toast('Todas as parcelas já foram recebidas.'); return; }
+  const p=ps[i];
+  const d=await new Promise((ok)=>{ let fechou=false;
+    modal('Receber parcela '+(i+1)+'/'+ps.length+' · '+esc(c.nome||''),
+      `<p class="hint" style="margin:0 0 12px"><b>${brl(p.valor)}</b> com vencimento em ${fmtDate(p.venc)}. Vira receita no Financeiro na data que você marcar.</p>
+       <div class="field"><label>Recebido em</label><input id="rp_d" type="date" value="${hojeISO()}"></div>`,
+      async ()=>{ const v=($('#rp_d')||{}).value; if(!v){ toast('Informe a data.'); return false; } fechou=true; ok(v); return true; });
+    const ov=[...document.querySelectorAll('.overlay')].pop();
+    if(ov){ const fim=()=>{ if(!fechou){ fechou=true; ok(null); } }; ov.querySelector('.x').addEventListener('click',fim); ov.addEventListener('click',e=>{ if(e.target===ov) fim(); }); } });
+  if(!d) return;
+  p.pagoEm=d; rcParcSync(r); await saveDB(); rcParcVolta();
+  toast(c.nome+': parcela '+(i+1)+'/'+ps.length+' recebida ('+brl(p.valor)+').');
+};
+window.rcParcDesfazer=async (cid)=>{
+  const r=(DB.recebimentos||[]).find(x=>x.comp===cliComp&&x.clienteId===cid); if(!r||!r.parcelas) return;
+  let i=-1; r.parcelas.forEach((p,k)=>{ if(p.pagoEm) i=k; }); if(i<0) return;
+  if(!confirm('Desfazer o recebimento da parcela '+(i+1)+' ('+brl(r.parcelas[i].valor)+')? A receita sai do Financeiro.')) return;
+  r.parcelas[i].pagoEm=null; rcParcSync(r); await saveDB(); rcParcVolta();
+};
+/* editar as parcelas do mês: valores, datas e se repete todo mês */
+window.rcParcEditar=(cid)=>{
+  const c=(DB.clientes||[]).find(x=>x.id===cid); if(!c) return;
+  const r=rcRegistro(cid,cliComp); if(!r){ toast('Defina o dia de vencimento primeiro (Editar).'); return; }
+  const tot=rcR2(r.valor!=null&&r.valor!==''?r.valor:c.valor);
+  if(!(r.parcelas&&r.parcelas.length)&&(r.status==='recebido'||r.recebido)){ toast('Esta mensalidade já foi recebida inteira.'); return; }
+  /* cobrança que já tinha sinal (jeito antigo) vira parcela 1 recebida + o restante */
+  let ps=(r.parcelas&&r.parcelas.length)?r.parcelas.map(p=>Object.assign({},p))
+    :(r.status==='sinal'&&Number(r.sinal)>0)?[{valor:rcR2(r.sinal),venc:r.sinalEm||r.venc,pagoEm:r.sinalEm||hojeISO()},{valor:rcR2(tot-Number(r.sinal)),venc:r.restanteVenc||r.venc,pagoEm:null}]
+    :(rcParcNovas({valor:tot,parcelamento:c.parcelamento||{n:2,dias:15}},r.venc||vencOf(cliComp,c.diaVenc),tot)||[]);
+  const pc=c.parcelamento||null;
+  const linhas=()=>ps.map((p,i)=>`<div class="row2" style="align-items:flex-end;margin-bottom:6px">
+      <div class="field" style="margin:0"><label>Parcela ${i+1} (R$)</label><input type="number" step="0.01" class="rpv" data-i="${i}" value="${p.valor}" ${p.pagoEm?'disabled':''}></div>
+      <div class="field" style="margin:0"><label>Vencimento</label><input type="date" class="rpd" data-i="${i}" value="${esc(p.venc||'')}" ${p.pagoEm?'disabled':''}></div>
+      <div style="padding-bottom:8px;min-width:120px;font-size:12px">${p.pagoEm?'<span style="color:var(--ok)">recebida '+fmtDate(p.pagoEm)+'</span>':`<button type="button" class="iconbtn del rpx" data-i="${i}">Tirar</button>`}</div></div>`).join('');
+  modal('Parcelas · '+esc(c.nome||'')+' · '+fmtComp(cliComp),`
+    <p class="hint" style="margin:0 0 12px">Mensalidade do mês: <b>${brl(tot)}</b>. As parcelas precisam somar esse valor.</p>
+    <div id="rpLs">${linhas()}</div>
+    <div style="display:flex;gap:8px;align-items:center;margin:4px 0 12px"><button type="button" class="btn secondary small" id="rpAdd">+ Parcela</button><span class="hint" id="rpSoma" style="margin:0"></span></div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="rpRep" ${pc?'checked':''} style="accent-color:#7c3aed;width:16px;height:16px"> Repetir todo mês: a 1ª no dia ${esc(c.diaVenc||'-')} e as outras a cada <input type="number" id="rpDias" min="1" max="60" value="${esc((pc&&pc.dias)||15)}" style="width:56px" class="search"> dias</label>
+    <p class="hint" style="margin:6px 0 0">Vale para os meses que ainda não foram lançados. Sem marcar, muda só ${fmtComp(cliComp)}.</p>`,
+    async ()=>{
+      ler();
+      if(ps.length<2){
+        if(!(r.parcelas&&r.parcelas.length)) return true;   /* nada a mudar */
+        if(r.parcelas.some(p=>p.pagoEm)){ toast('Tem parcela recebida: desfaça antes de tirar o parcelamento.'); return false; }
+      }
+      const soma=rcR2(ps.reduce((a,p)=>a+(Number(p.valor)||0),0));
+      if(ps.length>=2&&Math.abs(soma-tot)>0.009){ toast('As parcelas somam '+brl(soma)+'; a mensalidade do mês é '+brl(tot)+'.'); return false; }
+      if(ps.some(p=>!p.venc||!(Number(p.valor)>0))){ toast('Cada parcela precisa de valor e vencimento.'); return false; }
+      ps.sort((a,b)=>String(a.venc).localeCompare(String(b.venc)));
+      r.parcelas=ps.length>=2?ps:[]; rcParcSync(r);
+      const rep=$('#rpRep').checked, dias=Math.max(1,parseInt($('#rpDias').value)||15);
+      if(rep&&ps.length>=2) c.parcelamento={n:ps.length,dias}; else if(!rep) delete c.parcelamento;
+      await saveDB(); rcParcVolta(); toast('Parcelas salvas.'); return true;
+    });
+  function ler(){ document.querySelectorAll('.overlay .rpv').forEach(e=>{ const i=+e.dataset.i; if(!ps[i].pagoEm) ps[i].valor=rcR2(parseFloat(String(e.value).replace(',','.'))); });
+    document.querySelectorAll('.overlay .rpd').forEach(e=>{ const i=+e.dataset.i; if(!ps[i].pagoEm) ps[i].venc=e.value; }); }
+  function pinta(){ const box=document.getElementById('rpLs'); if(!box) return; box.innerHTML=linhas();
+    box.querySelectorAll('.rpx').forEach(b=>{ b.onclick=()=>{ ler(); ps.splice(+b.dataset.i,1); pinta(); }; });
+    box.querySelectorAll('.rpv').forEach(e=>{ e.oninput=soma; }); soma(); }
+  function soma(){ ler(); const s=rcR2(ps.reduce((a,p)=>a+(Number(p.valor)||0),0)), el=document.getElementById('rpSoma');
+    if(el) el.innerHTML='soma '+brl(s)+(Math.abs(s-tot)>0.009?' · <b style="color:#ff8b97">falta '+brl(tot-s)+'</b>':' · <span style="color:var(--ok)">bate</span>'); }
+  setTimeout(()=>{ pinta(); const a=document.getElementById('rpAdd');
+    if(a) a.onclick=()=>{ ler(); const ult=ps[ps.length-1]; ps.push({valor:0,venc:ult&&ult.venc?rcIsoMais(ult.venc,parseInt(($('#rpDias')||{}).value)||15):(r.venc||''),pagoEm:null}); pinta(); }; },30);
+};
 function rcRegistro(cliId,comp){
   const c=(DB.clientes||[]).find(x=>x.id===cliId); if(!c) return null;
   let r=(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===cliId);
   if(!r){ if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
     r={id:uid(),comp,clienteId:c.id,nome:MAIUS(c.nome),resp:c.resp||'',tel:c.tel||'',valor:Number(c.valor)||0,venc:vencOf(comp,c.diaVenc),recebido:false,recebidoEm:null,status:null};
+    const ps=rcParcNovas(c,r.venc); if(ps) r.parcelas=ps;
     DB.recebimentos.push(r); }
   return r;
 }
@@ -18478,7 +18598,21 @@ window.rcStatusCli=async (cliId,novo,lote)=>{
   if(!r){
     if(!(c.diaVenc>=1&&c.diaVenc<=31)){ toast('Defina o dia de vencimento primeiro (Editar).'); return; }
     r={id:uid(),comp,clienteId:c.id,nome:MAIUS(c.nome),resp:c.resp||'',tel:c.tel||'',valor:Number(c.valor)||0,venc:vencOf(comp,c.diaVenc),recebido:false,recebidoEm:null,status:null};
+    const ps=rcParcNovas(c,r.venc); if(ps) r.parcelas=ps;
     DB.recebimentos.push(r);
+  }
+  /* cobrança em parcelas (Bernardo 06/10): o status sai das parcelas. Recebido marca todas as
+     que faltam; Sinal recebe a próxima; A receber / Inadimplente desfazem as recebidas. Churn e
+     carência desmancham o parcelamento do mês e seguem o caminho de sempre. */
+  if(r.parcelas&&r.parcelas.length){
+    if(novo==='sinal'){ rcVolta(); return rcParcReceber(cliId); }
+    if(novo==='recebido'){ const h=hojeISO(); r.parcelas.forEach(p=>{ if(!p.pagoEm) p.pagoEm=h; }); rcParcSync(r);
+      if(lote) return true; await saveDB(); rcVolta(); toast('Todas as parcelas recebidas.'); return; }
+    if(novo==='areceber'||novo==='inadimplente'){
+      if(r.parcelas.some(p=>p.pagoEm)&&!lote&&!confirm('Desfazer as parcelas já recebidas? As receitas saem do Financeiro.')){ rcVolta(); return; }
+      r.parcelas.forEach(p=>{ p.pagoEm=null; }); rcParcSync(r); r.status=novo;
+      if(lote) return true; await saveDB(); rcVolta(); return; }
+    DB.financeiro=(DB.financeiro||[]).filter(x=>String(x.id||'').indexOf('rcp_'+r.id+'_p')!==0); delete r.parcelas;
   }
   if(novo==='sinal'){
     const d=await rcSinalModal(c,r);
@@ -22708,11 +22842,12 @@ window.cliAcoes=async (id)=>{
   const arq=cliArq(c);
   const ops=arq
     ? [{v:'desarq',rot:'↩ Desarquivar'},{v:'excluir',rot:'Excluir de vez'}]
-    : [{v:'arquivar',rot:'Arquivar'},{v:'churn',rot:'Mover para Controle de Churns'},{v:'excluir',rot:'Excluir de vez'}];
+    : [{v:'parcelas',rot:'Parcelas da mensalidade'},{v:'arquivar',rot:'Arquivar'},{v:'churn',rot:'Mover para Controle de Churns'},{v:'excluir',rot:'Excluir de vez'}];
   const v=await escolher(c.nome||'Cliente',
     arq?('Arquivado em '+fmtDate(c.arquivadoEm)+'. Desarquivar devolve o cliente à carteira.')
        :'Arquivar tira da carteira e é reversível. Churn marca a saída em '+fmtComp(cliComp)+' e move o card. Excluir apaga cliente, cobranças, lançamentos e ficha.',
     ops);
+  if(v==='parcelas') return rcParcEditar(id);
   if(v==='arquivar') return cliArquivar(id);
   if(v==='desarq') return cliDesarquivar(id);
   if(v==='churn') return rcStatusCli(id,'churn');
@@ -22722,12 +22857,12 @@ window.cliExcluirSeguro=async (id)=>{
   const c=(DB.clientes||[]).find(x=>x.id===id); if(!c) return;
   const recs=(DB.recebimentos||[]).filter(r=>r.clienteId===id);
   const recIds=new Set(recs.map(r=>String(r.id)));
-  const lancs=(DB.financeiro||[]).filter(x=>{ const s=String(x.id||''); return (s.indexOf('rc_')===0&&recIds.has(s.slice(3)))||(s.indexOf('rcs_')===0&&recIds.has(s.slice(4))); });
+  const lancs=(DB.financeiro||[]).filter(x=>{ const k=rcIdDoLanc(x.id); return k!=null&&recIds.has(k); });
   const prj=(DB.projetos||[]).find(p=>p.clienteId===id);
   if(!confirm('Excluir '+(c.nome||'este cliente')+'?\n\nVão junto: '+recs.length+' cobrança(s), '+lancs.length+' lançamento(s) no financeiro'+(prj?' e a ficha do projeto':'')+'.')) return;
   DB.clientes=DB.clientes.filter(x=>x.id!==id);
   DB.recebimentos=DB.recebimentos.filter(r=>r.clienteId!==id);
-  DB.financeiro=DB.financeiro.filter(x=>{ const s=String(x.id||''); return !((s.indexOf('rc_')===0&&recIds.has(s.slice(3)))||(s.indexOf('rcs_')===0&&recIds.has(s.slice(4)))); });
+  DB.financeiro=DB.financeiro.filter(x=>{ const k=rcIdDoLanc(x.id); return !(k!=null&&recIds.has(k)); });
   if(prj){ DB.projetos=DB.projetos.filter(p=>p.id!==prj.id);
     try{ await sb.from('tarefas').delete().eq('ficha_id',prj.id).eq('lista_id',LC_ID); }catch(_){}}
   await saveDB(); render(currentView); toast('Cliente e vínculos excluídos.');
