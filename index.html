@@ -6073,13 +6073,113 @@ ${ads.length?`<div class="page pb" id="adsPage">
 const ED_SEL='h1,.csub,.chip,.cmeta,.prow .pl,.prow .pv,.sec,.shl h2,.shs,.sk,.sv,.fin .fr span,'+
   'table.cons th,table.cons td,.rank .rn,.ft,.fx,.frv .n,.frv .l,.ad .an,.ad .ac,.ad .amk,.ad .amv,'+
   '.ad .tag,p.body,.obs,.foot span';
+/* Excluir com liberdade no relatório, estilo Canva (Bernardo 05/10): clicar num bloco seleciona
+   (contorno roxo) e abre uma barrinha com Excluir, Bloco maior e Excluir página. Delete apaga o
+   bloco quando não se está digitando num texto; Desfazer (ou Ctrl+Z fora do texto) volta.
+   Todo controle tem a classe .ed-ui e mora FORA das .page: o rwPdf desenha só as .page e o
+   Baixar PDF tira o .ed-ui do clone, então nada disso sai no PDF nem na imagem do WhatsApp. */
+const ED_INLINE=/^(inline|contents)$/;
+function edExclusao(ifr,ov){
+  const doc=ifr.contentDocument, win=ifr.contentWindow; if(!doc||!win) return;
+  const pilha=ov.__edPilha=[];
+  const undoBtn=ov.querySelector('#edUndo'); if(undoBtn) undoBtn.disabled=true;
+  const st=doc.createElement('style'); st.className='ed-ui';
+  st.textContent=`.ed-ui-box{position:absolute;pointer-events:none;z-index:2147483000;border-radius:4px}
+  .ed-ui-sel{border:2px solid #7c3aed;background:rgba(124,58,237,.06)}
+  .ed-ui-hov{border:1.5px dashed rgba(124,58,237,.55)}
+  .ed-ui-bar{position:absolute;z-index:2147483001;display:flex;gap:2px;padding:4px;border-radius:10px;background:#1b1b1e;
+    box-shadow:0 8px 22px rgba(0,0,0,.35);font:600 12px/1 Inter,system-ui,sans-serif;white-space:nowrap}
+  .ed-ui-bar button{all:unset;display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:7px;color:#fff;cursor:pointer}
+  .ed-ui-bar button:hover{background:rgba(255,255,255,.1)}
+  .ed-ui-bar button.del{color:#ff8a98}
+  .ed-ui-bar svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .page{cursor:default}`;
+  doc.head.appendChild(st);
+  const caixa=(cls)=>{ const b=doc.createElement('div'); b.className='ed-ui ed-ui-box '+cls; b.style.display='none'; doc.body.appendChild(b); return b; };
+  const boxSel=caixa('ed-ui-sel'), boxHov=caixa('ed-ui-hov');
+  const bar=doc.createElement('div'); bar.className='ed-ui ed-ui-bar'; bar.style.display='none';
+  const ic={lixo:'<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+    maior:'<svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>',
+    pag:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6"/></svg>'};
+  bar.innerHTML=`<button type="button" class="del" data-a="bloco" title="Excluir o que está selecionado (Delete)">${ic.lixo}Excluir</button>`+
+    `<button type="button" data-a="maior" title="Selecionar o bloco que contém este">${ic.maior}Bloco maior</button>`+
+    `<button type="button" class="del" data-a="pagina" title="Excluir a página inteira">${ic.pag}Excluir página</button>`;
+  doc.body.appendChild(bar);
+  let sel=null;
+  const paginaDe=(el)=>el&&el.closest?el.closest('.page'):null;
+  /* o menor bloco "de verdade" sob o clique: sobe enquanto for texto em linha (span, strong…) */
+  const blocoDe=(el)=>{
+    while(el&&el.nodeType===1&&!el.classList.contains('page')&&!el.classList.contains('ed-ui')){
+      if(!ED_INLINE.test(win.getComputedStyle(el).display)) return el;
+      el=el.parentElement;
+    }
+    return el&&el.nodeType===1&&el.classList.contains('page')?el:null;
+  };
+  const pos=(box,el)=>{ const r=el.getBoundingClientRect();
+    box.style.left=(r.left+win.scrollX-3)+'px'; box.style.top=(r.top+win.scrollY-3)+'px';
+    box.style.width=(r.width+6)+'px'; box.style.height=(r.height+6)+'px'; box.style.display=''; };
+  const pintar=()=>{
+    if(!sel||!sel.isConnected){ sel=null; boxSel.style.display='none'; bar.style.display='none'; return; }
+    pos(boxSel,sel);
+    const ehPag=sel.classList.contains('page');
+    bar.querySelector('[data-a=bloco]').style.display=ehPag?'none':'';
+    bar.querySelector('[data-a=maior]').style.display=(ehPag||sel.parentElement===paginaDe(sel))?'none':'';
+    bar.style.display='flex';
+    const r=sel.getBoundingClientRect(), bw=bar.offsetWidth, bh=bar.offsetHeight;
+    let top=r.top+win.scrollY-bh-8; if(r.top-bh-8<0) top=r.bottom+win.scrollY+8;
+    const left=Math.max(win.scrollX+6,Math.min(r.left+win.scrollX,win.scrollX+doc.documentElement.clientWidth-bw-6));
+    bar.style.top=top+'px'; bar.style.left=left+'px';
+  };
+  const selecionar=(el)=>{ sel=el; boxHov.style.display='none'; pintar(); };
+  const limpar=()=>selecionar(null);
+  const estado=()=>{ if(undoBtn) undoBtn.disabled=!pilha.length; };
+  const excluir=(el)=>{
+    if(!el||!el.parentNode) return;
+    pilha.push({el,pai:el.parentNode,prox:el.nextSibling}); el.remove(); limpar(); estado();
+  };
+  ov.__edDesfazer=()=>{
+    const x=pilha.pop(); if(!x) return;
+    x.pai.insertBefore(x.el,(x.prox&&x.prox.parentNode===x.pai)?x.prox:null);
+    selecionar(x.el); estado();
+  };
+  bar.addEventListener('mousedown',e=>e.preventDefault());   /* não tira o foco do texto */
+  bar.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b||!sel) return;
+    const a=b.dataset.a;
+    if(a==='bloco') excluir(sel);
+    else if(a==='pagina') excluir(paginaDe(sel)||sel);
+    else if(a==='maior'){ const p=blocoDe(sel.parentElement); if(p) selecionar(p); }
+  });
+  doc.addEventListener('click',e=>{
+    if(e.target.closest&&e.target.closest('.ed-ui')) return;
+    selecionar(blocoDe(e.target));
+  },true);
+  doc.addEventListener('mousemove',e=>{
+    const b=(e.target.closest&&e.target.closest('.ed-ui'))?null:blocoDe(e.target);
+    if(!b||b===sel||b.classList.contains('page')){ boxHov.style.display='none'; return; }
+    pos(boxHov,b);
+  });
+  doc.addEventListener('mouseleave',()=>{ boxHov.style.display='none'; });
+  doc.addEventListener('keydown',e=>{
+    const digitando=doc.activeElement&&doc.activeElement.isContentEditable;
+    if(e.key==='Escape'){ limpar(); return; }
+    if(digitando) return;
+    if((e.key==='Delete'||e.key==='Backspace')&&sel){ e.preventDefault(); excluir(sel); }
+    else if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&(e.key==='z'||e.key==='Z')){ e.preventDefault(); ov.__edDesfazer(); }
+  });
+  doc.addEventListener('input',pintar);
+  win.addEventListener('resize',pintar);
+  win.addEventListener('blur',limpar);   /* clicou fora (Enviar no grupo, Baixar PDF): some a seleção */
+}
 function abrirEditorRelatorio(rel,env){   /* env: veio da aba Relatórios, mostra o painel de envio */
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:2000;background:#0d0b14;display:flex;flex-direction:column';
   ov.innerHTML=`
    <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--panel)">
      <div style="font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg> ${esc(rel.titulo)}</div>
-     <span style="color:var(--muted);font-size:12px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg> clique em qualquer texto do relatório para editar</span>
+     <span style="color:var(--muted);font-size:12px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg> clique num texto para editar · clique num bloco para excluir</span>
+     <button class="btn secondary small" id="edUndo" disabled title="Desfazer a última exclusão">Desfazer</button>
+     <button class="btn secondary small" id="edReset" title="Volta o relatório ao que foi gerado">Restaurar original</button>
      <button class="btn small" id="edPdf"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Baixar PDF</button>
      <button class="btn secondary small" id="edClose">Fechar</button>
    </div>
@@ -6119,10 +6219,15 @@ function abrirEditorRelatorio(rel,env){   /* env: veio da aba Relatórios, mostr
     const doc=ifr.contentDocument; if(!doc) return;
     doc.querySelectorAll(ED_SEL).forEach(el=>el.setAttribute('contenteditable','true'));
     aplicarAds();
+    edExclusao(ifr,ov);
   };
   ifr.srcdoc=rel.html;
   ov.querySelector('#edAll').onclick=()=>{ lista.querySelectorAll('input').forEach(c=>c.checked=true); aplicarAds(); };
   ov.querySelector('#edNone').onclick=()=>{ lista.querySelectorAll('input').forEach(c=>c.checked=false); aplicarAds(); };
+  ov.querySelector('#edUndo').onclick=()=>{ if(ov.__edDesfazer) ov.__edDesfazer(); };
+  ov.querySelector('#edReset').onclick=()=>{
+    if(confirm('Voltar o relatório ao original? Textos editados e itens excluídos voltam ao que eram.')) ifr.srcdoc=rel.html;
+  };
   ov.querySelector('#edClose').onclick=()=>{ if(confirm('Fechar o editor? As edições feitas no relatório serão perdidas.')) ov.remove(); };
   ov.querySelector('#edPdf').onclick=()=>{
     const doc=ifr.contentDocument;
@@ -6130,6 +6235,7 @@ function abrirEditorRelatorio(rel,env){   /* env: veio da aba Relatórios, mostr
     /* imprime numa janela própria: preserva as edições e evita o bug de print() em iframe (Safari) */
     const clone=doc.documentElement.cloneNode(true);
     clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+    clone.querySelectorAll('.ed-ui').forEach(el=>el.remove());
     clone.querySelectorAll('[data-adix]').forEach(el=>{ if(el.style.display==='none') el.remove(); });
     const t=clone.querySelector('title'); if(t) t.textContent=rel.arquivo||rel.titulo;
     const w=window.open('','_blank');
