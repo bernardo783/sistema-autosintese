@@ -2009,6 +2009,18 @@ grupo('Controle de Clientes: conta paga pela principal mostra o vencimento dela 
   ok('dia 30 vira o último dia em fevereiro', g.vencOf('2027-02',30)==='2027-02-28'&&g.vencOf('2026-10',30)==='2026-10-30');
 }
 
+/* ---------------- melhoria interna dispensa o cliente ---------------- */
+grupo('Tarefa: "Melhoria interna" substitui o cliente obrigatório (Bernardo 06/10)');
+{
+  const g=rodar(bloco('function tkFaltaObrig(v){','/* selo do rascunho'),{tkPessoal:()=>false,
+    exigeDaLista:(l)=>l==='CAMP'?['cliente']:[]},['tkFaltaObrig']);
+  const base={lista_id:'CAMP',prazo:'2026-10-10',responsaveis:['u1']};
+  ok('lista que exige cliente: sem cliente fica em rascunho', g.tkFaltaObrig(Object.assign({},base)).join()==='cliente');
+  ok('marcou melhoria interna: sai do rascunho sem cliente', g.tkFaltaObrig(Object.assign({interna:true},base)).length===0);
+  ok('melhoria interna não dispensa data nem responsável', g.tkFaltaObrig({lista_id:'CAMP',interna:true}).join()==='data,responsável');
+  ok('o checkbox aparece só onde o cliente é obrigatório e grava junto', HTML.indexOf('id="tk_interna"')>0&&HTML.indexOf("if($('#tk_interna')) v.interna=!!$('#tk_interna').checked;")>0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
