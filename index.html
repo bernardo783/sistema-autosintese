@@ -8818,12 +8818,15 @@ const tkCelula=(t,c)=>{
     return `<button type="button" class="tk-pcel" style="width:auto;padding:0 2px" title="Pagamento em ${esc(quando)} · clique para mudar" onclick="lcPgMenu(event,'${esc(cli.id)}')">${corpo}</button>`;
   }
   if(c.id===LC_VENC){
-    const fp=fichaDe(t.ficha_id), pr=fp&&fp.pagaPor?fichaDe(fp.pagaPor):null;
-    if(pr) return `<span class="tk-trava" title="Grupo com valor fechado: a mensalidade é cobrada na conta ${esc(pr.nome||'')}">pela ${esc(contaSufixo(pr))}</span>`;
-    const d=Number((t.valores||{})[LC_VENC])||0;
+    /* conta paga pela principal do grupo: mostra o vencimento DELA, igual aos outros clientes
+       (Bernardo 06/10: "pela JÔ ARAUJO" na coluna nao). Quem paga fica so na dica. */
+    const fp=fichaDe(t.ficha_id), pr=fp&&fp.pagaPor?fichaDe(fp.pagaPor):null, pc=pr?lcCardDe(pr.id):null;
+    const d=Number(((pc&&pc.valores)||t.valores||{})[LC_VENC])||0;
     if(!(d>=1&&d<=31)) return '<span class="tk-trava vaz" title="Sem dia de vencimento no cadastro do cliente">-</span>';
     const iso=vencOf(cliComp,d);
-    return `<span class="tk-trava" title="Vence todo dia ${d} · quem manda é o cadastro do cliente">${esc(iso.slice(8,10)+'/'+iso.slice(5,7))}</span>`;
+    const dica=pr?`Vence todo dia ${d} (no mês mais curto, no último dia) · cobrado junto na conta ${esc(pr.nome||'')}, grupo com valor fechado`
+      :`Vence todo dia ${d} · quem manda é o cadastro do cliente`;
+    return `<span class="tk-trava" title="${dica}">${esc(iso.slice(8,10)+'/'+iso.slice(5,7))}</span>`;
   }
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
   const v=valCampo(c,(t.valores||{})[c.id]);
