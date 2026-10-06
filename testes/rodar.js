@@ -1315,6 +1315,25 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('logo trocada na Marca da conta também vira a do cliente', /const fidMk=\(contaMarca\(accId\)\|\|\{\}\)\.fichaId; if\(fidMk\) await logoSalvar\(logoFichaKey\(fidMk\), window\.__mkLogo\|\|''\)/.test(HTML));
       ok('Relatórios oferece aplicar as logos novas do card em lote', HTML.indexOf('window.rwUsarLogosNovas=async()=>')>0&&HTML.indexOf(".neq('logo','')")>0);
     }
+    grupo('Pagamento do Controle de Clientes é espelho do Recebimentos (Bernardo 06/10)');
+    {
+      const C=[{id:'c1',nome:'PAGO',diaVenc:5},{id:'c2',nome:'ATRASADO',diaVenc:3},{id:'c3',nome:'NO PRAZO',diaVenc:20},
+        {id:'c4',nome:'COMEÇA DEPOIS',diaVenc:10,inicio:'2026-11'},{id:'c5',nome:'PARCERIA',diaVenc:10,parceria:true},
+        {id:'c6',nome:'CHURN',diaVenc:10,churnComp:'2026-09'},{id:'c7',nome:'CONTRATO ACABOU',diaVenc:10,fim:'2026-09'},
+        {id:'c8',nome:'ARQUIVADO',diaVenc:10,arquivadoEm:'2026-10-01'},{id:'c9',nome:'SINAL',diaVenc:10},{id:'c10',nome:'SEM DIA'}];
+      const P=C.map(c=>({id:'f_'+c.id,nome:c.nome,clienteId:c.id})).concat([{id:'f_grupo',nome:'CONTA DO GRUPO',pagaPor:'f_c1'}]);
+      const DB={clientes:C,recebimentos:[{comp:'2026-10',clienteId:'c1',recebido:true},{comp:'2026-10',clienteId:'c9',status:'sinal',sinal:500}],projetos:P};
+      const g=rodar(bloco('const cliArq=','let cliArqVista')+bloco('function calcRecebimentos(comp){','/* Bloco B:')+bloco('function lcPgDe(f){','const lcFVal='),
+        {DB,cliComp:'2026-10',hojeISO:()=>'2026-10-06',compNow:()=>'2026-10',vencOf:(c,d)=>c+'-'+String(d).padStart(2,'0'),
+         fichaDe:(id)=>DB.projetos.find(p=>p.id===id)||null,finDaFicha:(f)=>DB.clientes.find(c=>c.id===f.clienteId)||null},['calcRecebimentos','lcPgDe']);
+      const R=g.calcRecebimentos('2026-10'), daAba={};
+      Object.keys(R.g).forEach(k=>R.g[k].forEach(c=>{ daAba[c.id]=k==='semdia'?'':k; }));
+      const dif=C.filter(c=>g.lcPgDe(P.find(p=>p.clienteId===c.id))!==(c.arquivadoEm?'':(daAba[c.id]||''))).map(c=>c.nome);
+      ok('coluna Pagamento = aba Recebimentos (pago, atraso, prazo, início, parceria, churn, fim, arquivado, sinal, sem dia)', dif.length===0);
+      ok('conta paga pela principal do grupo mostra a situação da principal', g.lcPgDe(P.find(p=>p.id==='f_grupo'))==='recebido');
+      ok('a coluna Pagamento não tem mais o menu de troca', HTML.indexOf('lcPgMenu(')<0);
+      ok('no card do cliente, o Pagamento é espelho só de leitura', HTML.indexOf('if(c.id===LC_SIT&&ehLC(lid))')>0);
+    }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
       const cod=bloco("const AX_MAX=52428800;","const axIcone=");
