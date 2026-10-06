@@ -1921,6 +1921,15 @@ grupo('Controle de Clientes: Conta de anúncios no card (Bernardo 05/10)');
   ok('o campo fica no card do Controle de Clientes, abaixo do Grupo WhatsApp', /id="tkRwG"[\s\S]{0,400}Conta de anúncios[\s\S]{0,300}id="tkRwC"/.test(HTML));
 }
 
+/* ---------------- conta coberta: vencimento igual aos outros ---------------- */
+grupo('Controle de Clientes: conta paga pela principal mostra o vencimento dela (Bernardo 06/10)');
+{
+  ok('a coluna não escreve mais "pela <conta>"', HTML.indexOf('">pela ${esc(contaSufixo(pr))}</span>')<0);
+  ok('a conta coberta usa o dia de vencimento do card da principal', HTML.indexOf("const d=Number(((pc&&pc.valores)||t.valores||{})[LC_VENC])||0;")>0);
+  const g=rodar(bloco('function vencOf(comp,dia){','\n}')+'\n}',{},['vencOf']);
+  ok('dia 30 vira o último dia em fevereiro', g.vencOf('2027-02',30)==='2027-02-28'&&g.vencOf('2026-10',30)==='2026-10-30');
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
