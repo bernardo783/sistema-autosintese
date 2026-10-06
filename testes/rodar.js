@@ -226,6 +226,32 @@ grupo('Folha: outros pagamentos da equipe, passagem do Luan toda segunda (Bernar
   ok('Gastos de escritório: botão editar / + chave Pix na linha', HTML.indexOf("${fx.pix?'editar':'+ chave Pix'}")>0);
 }
 
+grupo('Recebimentos: mensalidade em parcelas, DL Repasse 500 + 250 + 250 e 2 x 500 (Bernardo 06/10)');
+{
+  const DB={financeiro:[{id:'rcs_dlr9',tipo:'receita',valor:500},{id:'outro',tipo:'receita',valor:1}]};
+  const g=rodar(bloco('/* ---------- PARCELAS DA MENSALIDADE','function rcRegistro('),{DB,hojeISO:()=>'2026-10-06'},['rcIdDoLanc','rcParcNovas','rcParcSync']);
+  ok('acha a cobrança pelo id da receita (rcp_, rcs_ e rc_)', g.rcIdDoLanc('rcp_dlr_2026o9_p2')==='dlr_2026o9'&&g.rcIdDoLanc('rcs_abc')==='abc'&&g.rcIdDoLanc('rc_abc')==='abc'&&g.rcIdDoLanc('x')===null);
+  const ps=g.rcParcNovas({valor:1000,parcelamento:{n:2,dias:15}},'2026-10-25');
+  ok('2 x R$ 500: dia 25/10 e 15 dias depois (09/11)', ps.length===2&&ps[0].valor===500&&ps[1].valor===500&&ps[0].venc==='2026-10-25'&&ps[1].venc==='2026-11-09');
+  const p3=g.rcParcNovas({valor:1000,parcelamento:{n:3,dias:10}},'2026-10-25');
+  ok('3 parcelas somam o valor certinho (a última leva o centavo)', Math.round(p3.reduce((a,p)=>a+p.valor,0)*100)===100000&&p3[2].venc==='2026-11-14');
+  ok('sem parcelamento no cadastro, nasce como sempre', g.rcParcNovas({valor:1000},'2026-10-25')===null);
+  const r={id:'dlr9',comp:'2026-09',nome:'DL REPASSE',valor:1000,venc:'2026-10-02',status:'sinal',sinal:500,
+    parcelas:[{valor:500,venc:'2026-10-02',pagoEm:'2026-10-02'},{valor:250,venc:'2026-10-06',pagoEm:null},{valor:250,venc:'2026-10-12',pagoEm:null}]};
+  g.rcParcSync(r);
+  ok('1 de 3 paga: fica Sinal pago com R$ 500 e a próxima em 06/10', r.status==='sinal'&&r.sinal===500&&r.restanteVenc==='2026-10-06'&&r.recebido===false);
+  ok('a receita vira parcela própria e o sinal antigo sai', DB.financeiro.some(x=>x.id==='rcp_dlr9_p1'&&x.valor===500&&x.pagoEm==='2026-10-02')&&!DB.financeiro.some(x=>x.id==='rcs_dlr9')&&DB.financeiro.some(x=>x.id==='outro'));
+  r.parcelas[1].pagoEm='2026-10-06'; g.rcParcSync(r);
+  ok('2 de 3: sinal soma R$ 750 (a comissão sai proporcional) e a próxima é 12/10', r.sinal===750&&r.restanteVenc==='2026-10-12');
+  r.parcelas[2].pagoEm='2026-10-12'; g.rcParcSync(r);
+  ok('todas pagas: Recebido em 12/10, com uma receita por parcela', r.status==='recebido'&&r.recebido===true&&r.recebidoEm==='2026-10-12'&&r.sinal===null&&DB.financeiro.filter(x=>String(x.id).indexOf('rcp_dlr9_p')===0).length===3);
+  r.parcelas.forEach(p=>{ p.pagoEm=null; }); g.rcParcSync(r);
+  ok('desfazer tudo volta a em aberto e tira as receitas', r.status===null&&r.recebido===false&&!DB.financeiro.some(x=>String(x.id).indexOf('rcp_dlr9_p')===0));
+  ok('Status da cobrança em parcelas: Recebido marca todas, Sinal recebe a próxima', HTML.indexOf("if(novo==='sinal'){ rcVolta(); return rcParcReceber(cliId); }")>0);
+  ok('mês novo nasce com as parcelas do cadastro', (HTML.match(/const ps=rcParcNovas\(c,r\.venc\); if\(ps\) r\.parcelas=ps;/g)||[]).length===2);
+  ok('fechamento acha o gerente da receita de parcela', (HTML.match(/const k=rcIdDoLanc\(i\);/g)||[]).length===2);
+}
+
 grupo('Controle de Clientes: rodapé só com ticket médio e remuneração, cada um vê o seu (Gabriel 30/09)');
 {
   const r=bloco('/* RODAPÉ DO CONTROLE DE CLIENTES','return `<div class="tk-bar">');
