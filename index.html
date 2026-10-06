@@ -2481,6 +2481,9 @@
   .tk-tab tbody tr:not(.tk-faixa):hover > td{background:var(--hov1)}
   .tk-tab .tk-faixa > td{height:auto;border-bottom:none}
   .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
+  /* melhoria interna, logo abaixo do cliente (Bernardo 06/10) */
+  .tk-chkline.tkf-int{padding:6px 0 0;font-size:12.5px;color:var(--muted)}
+  .tk-chkline.tkf-int input{accent-color:var(--brand)}
   /* novo contrato / upsell do gerente */
   .nc-sec{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fraco)}
   .nc-sec button{background:none;border:0;padding:0;color:var(--brand2);font:inherit;font-size:12px;letter-spacing:0;text-transform:none;cursor:pointer}
@@ -8592,7 +8595,8 @@ const tkPessoal=(lid)=>{ const e=espacoDaLista(lid); const w=e&&(TK.ws||[]).find
 function tkFaltaObrig(v){
   if(!v||tkPessoal(v.lista_id)) return [];
   const f=[];
-  if(exigeDaLista(v.lista_id).indexOf('cliente')>=0&&!v.ficha_id) f.push('cliente');
+  /* melhoria interna (Bernardo 06/10): tarefa da propria agencia dispensa o cliente */
+  if(exigeDaLista(v.lista_id).indexOf('cliente')>=0&&!v.ficha_id&&!v.interna) f.push('cliente');
   if(!v.prazo) f.push('data');
   if(!(v.responsaveis||[]).length&&!v.responsavel_id) f.push('responsável');
   return f;
@@ -12379,8 +12383,9 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
 
       <div class="tkf-side">
         <div class="tkf-sec">Propriedades<span class="ln"></span></div>
-        <div class="tkf-p"><div class="tkf-pl">${SVG_P.cliente} Cliente${exigeDaLista(lid).indexOf('cliente')>=0?'<span class="cp-obr">obrigatório</span>':''}</div>
-          <div class="tkf-pv">${selFichaBusca('tk_ficha',it.ficha_id||'',exigeDaLista(lid).indexOf('cliente')>=0)}</div></div>
+        <div class="tkf-p"><div class="tkf-pl">${SVG_P.cliente} Cliente${exigeDaLista(lid).indexOf('cliente')>=0?`<span class="cp-obr" id="tkCliObr"${it.interna?' style="display:none"':''}>obrigatório</span>`:''}</div>
+          <div class="tkf-pv">${selFichaBusca('tk_ficha',it.ficha_id||'',exigeDaLista(lid).indexOf('cliente')>=0)}
+          ${exigeDaLista(lid).indexOf('cliente')>=0?`<label class="tk-chkline tkf-int" title="Tarefa da própria agência: sai do rascunho sem precisar de cliente"><input type="checkbox" id="tk_interna"${it.interna?' checked':''} onchange="const b=document.getElementById('tkCliObr'); if(b) b.style.display=this.checked?'none':''"> Melhoria interna <span class="hint" style="margin:0">sem cliente</span></label>`:''}</div></div>
         ${ehLC(lid)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_WA} Grupo WhatsApp</div><div class="tkf-pv" id="tkRwG">${rwTkChip(it.ficha_id)}</div></div>`:''}
         ${ehLC(lid)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_META} Conta de anúncios <button type="button" class="rw-bm-q" onclick="rwTkContaAjuda(this)" aria-expanded="false" title="Quais contas aparecem aqui">?</button></div><div class="tkf-pv" id="tkRwC">${rwTkConta(it.ficha_id,rwPodeConta(it.ficha_id,it))}</div>${rwBmAjudaHTML()}</div>`:''}
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</div>
@@ -12517,6 +12522,7 @@ async function tkmSalvar(t,lid,cps,silencioso){
         descricao:$('#tk_desc').value.trim()};
       const _rs=String(($('#tk_resps')||{}).value||'').split(',').filter(Boolean);
       v.responsaveis=_rs; v.responsavel_id=_rs[0]||null;
+      if($('#tk_interna')) v.interna=!!$('#tk_interna').checked;
       v.tipo_id=($('#tk_tipo')&&$('#tk_tipo').value)||null;
       if(v.iniciada_em&&v.prazo&&v.iniciada_em>v.prazo){ const x=v.iniciada_em; v.iniciada_em=v.prazo; v.prazo=x; }
       if($('#tk_prazo_hora')) v.hora=v.prazo?(horaCheia($('#tk_prazo_hora').value)||null):null;
