@@ -8749,17 +8749,6 @@ const lcPodeGerente=(t)=>!!(t&&t.ficha_id&&currentUser&&(currentUser.role==='mas
    do mês, lança a receita no Financeiro e desfaz quando volta atrás. Vale pro mês que está
    escolhido no seletor da tela. Sinal, carência e churn ficam de fora daqui: têm modal e
    consequência pesada, e churn já está no menu do cliente. */
-window.lcPgMenu=(ev,cliId)=>{
-  ev.stopPropagation();
-  const c=(DB.clientes||[]).find(x=>String(x.id)===String(cliId)); if(!c) return;
-  const r=(DB.recebimentos||[]).find(x=>x.comp===cliComp&&String(x.clienteId)===String(cliId));
-  const at=r?(r.status||(r.recebido?'recebido':'')):'';
-  const item=(k,rot)=>({ic:at===k?ICO_LIB.check:'',t:rot,f:()=>rcStatusCli(cliId,k)});
-  ctxAbrir(ev,[{cab:fmtComp(cliComp)+' · '+(c.nome||'')},
-    item('recebido','Pago'),
-    item('areceber','A receber'),
-    item('inadimplente','Inadimplente')]);
-};
 window.lcGerMenu=(ev,tid)=>{ ev.stopPropagation();
   const chave='ger'+tid;
   const vel=document.getElementById('tkQaMenu'); if(vel){ const ja=vel.dataset.id===chave; vel.remove(); if(ja) return; }
@@ -8808,14 +8797,10 @@ const tkCelula=(t,c)=>{
     const f=fichaDe(t.ficha_id);
     if(!f) return '<span class="hint" style="margin:0" title="Card sem ficha de cliente">-</span>';
     const k=lcPgDe(f);
-    const quando=fmtComp(cliComp);
-    const cli=finDaFicha(f);
     const corpo=LC_PG[k]?lcTagPG(k):'<span class="tk-trava vaz">-</span>';
-    /* Só master mexe: marcar recebido lança receita no Financeiro, e quem não é master
-       nem enxerga clientes/recebimentos (RLS) — o clique só daria erro. */
-    if(!cli||!(currentUser&&currentUser.role==='master'))
-      return `<span title="Pagamento em ${esc(quando)}, calculado dos Recebimentos">${corpo}</span>`;
-    return `<button type="button" class="tk-pcel" style="width:auto;padding:0 2px" title="Pagamento em ${esc(quando)} · clique para mudar" onclick="lcPgMenu(event,'${esc(cli.id)}')">${corpo}</button>`;
+    /* Só leitura, inclusive pro master (Bernardo 06/10): a coluna é espelho da aba
+       Recebimentos, e é lá que o pagamento muda. */
+    return `<span title="Pagamento em ${esc(fmtComp(cliComp))} · espelho da aba Recebimentos: para mudar, use Recebimentos">${corpo}</span>`;
   }
   if(c.id===LC_VENC){
     /* conta paga pela principal do grupo: mostra o vencimento DELA, igual aos outros clientes
@@ -10348,13 +10333,10 @@ function lcPgDe(f){
   /* conta paga pela principal do grupo (Bernardo 05/10): nao tem cobranca propria,
      a situacao e a da principal */
   if(f&&f.pagaPor&&f.pagaPor!==f.id){ const pr=fichaDe(f.pagaPor); if(pr&&!pr.pagaPor) return lcPgDe(pr); }
-  const c=finDaFicha(f); if(!c) return '';
-  const comp=cliComp, hoje=hojeISO();
-  const r=(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===c.id);
-  if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
-  if(c.churnComp&&comp>c.churnComp) return 'churn';
-  if(!(c.diaVenc>=1&&c.diaVenc<=31)) return '';
-  return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber';
+  /* espelho do Recebimentos: mesma função, mesmo mês; arquivado lá também some aqui */
+  const c=finDaFicha(f); if(!c||cliArq(c)) return '';
+  const r=(DB.recebimentos||[]).find(x=>x.comp===cliComp&&x.clienteId===c.id);
+  return rcSituacao(c,cliComp,r,hojeISO())||'';
 }
 const lcFVal=(k,t,f)=> k==='gestor'?(String(f.responsavel||'').trim()||'(sem)')
   : k==='gerente'?(String(f.gerente||'').trim()||'(sem)')
@@ -10492,7 +10474,7 @@ window.lcGestorF=(g)=>{ TK.lcGestor=g; TK.lcVista=''; tkDesenhar($('#content'));
 window.lcPorF=(k)=>{ TK.lcPor=(k==='gerente')?'gerente':'gestor'; TK.lcGestor=''; TK.lcVista=''; tkDesenhar($('#content')); };
 window.lcVerGerentes=()=>{ TK.lcVista=TK.lcVista==='gerentes'?'':'gerentes'; tkDesenhar($('#content')); };
 const LC_NIVEL={promotor:{rot:'Promotor',cor:'#3fcf8e'},neutro:{rot:'Neutro',cor:'#8b95a5'},detrator:{rot:'Detrator',cor:'#ef5b6b'}};
-const LC_PG={recebido:{rot:'PAGO',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},carencia:{rot:'CARÊNCIA',cor:'#a78bfa'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'}};
+const LC_PG={recebido:{rot:'PAGO',cor:'#3fcf8e'},sinal:{rot:'SINAL',cor:'var(--info)'},areceber:{rot:'A RECEBER',cor:'#e6b13f'},inadimplente:{rot:'INADIMPLENTE',cor:'#ef5b6b'},carencia:{rot:'CARÊNCIA',cor:'#a78bfa'},churn:{rot:'CHURN',cor:'#8b95a5'},churnpago:{rot:'CHURN (PAGO)',cor:'#8b95a5'},parceria:{rot:'PARCERIA',cor:'var(--info)'}};
 /* Etiqueta do pagamento do mes. Era um const dentro do lcVistaGerentes; subiu pra ca
    porque a coluna do Controle de Clientes usa a MESMA etiqueta — irmao usa o mesmo
    componente. Cor em var() nao aceita o sufixo de opacidade, por isso o fundo separado.
@@ -12243,6 +12225,10 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   /* Tarefa nova ja nasce no meu squad; quem tem recorte so consegue escolher entre os seus. */
   const sqOpc=squadsQuePosso(), sqAtual=t?String(it.squad||''):(String(it.squad||'')||(meusSquads()[0]||''));
   const campoHtml=(c)=>{ const v=valCampo(c,(it.valores||{})[c.id]);
+    /* Pagamento no card do Controle de Clientes: espelho do Recebimentos, só leitura
+       (Bernardo 06/10). O hidden guarda o valor antigo pra o salvar não mexer nele. */
+    if(c.id===LC_SIT&&ehLC(lid)){ const fic=it.ficha_id?fichaDe(it.ficha_id):null, k=fic?lcPgDe(fic):'';
+      return `<input type="hidden" id="cp_${c.id}" value="${esc(v==null?'':String(v))}"><span class="tkf-trava" title="Pagamento em ${esc(fmtComp(cliComp))} · espelho da aba Recebimentos: para mudar, use Recebimentos">${LC_PG[k]?lcTagPG(k):'-'}</span>`; }
     if(!podeMexerCampo(c)){ const txt=campoTexto(c,v);
       return `<span class="tkf-trava" title="Esse número vem do controle financeiro, na área Administrativa, só o master altera."><span class="cad"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>${esc(txt||'-')}</span>`; }
     if(c.tipo==='select') return `<select id="cp_${c.id}"><option value="">-</option>${(c.opcoes||[]).map(o=>`<option${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
@@ -17820,18 +17806,7 @@ function rcPrazoTexto(iso){
 function calcRecebimentos(comp){
   const hoje=hojeISO();
   const byCli={}; DB.recebimentos.filter(r=>r.comp===comp).forEach(r=>{byCli[r.clienteId]=r;});
-  const st=(c)=>{ const r=byCli[c.id];
-    if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
-    if(c.inicio && comp<c.inicio) return null; /* cliente só conta a partir do mês de início */
-    /* PARCERIA (Gabriel 30/09, JR MOTORS VR): cliente ativo que não paga mensalidade. Não é
-       cobrança nem churn: fica de fora de a receber, inadimplente e das somas. */
-    if(c.parceria) return 'parceria';
-    if(c.churnComp && comp>c.churnComp) return 'churn'; /* churn confirmado: perdido dali em diante */
-    if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
-    if(c.fim && comp>c.fim) return null; /* churn: depois do último mês o cliente zera */
-    if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
-    if(comp>compNow()) return 'areceber';
-    return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber'; };
+  const st=(c)=>rcSituacao(c,comp,byCli[c.id],hoje);   /* a conta fica logo abaixo e é a mesma da coluna Pagamento */
   const g={recebido:[],sinal:[],inadimplente:[],areceber:[],carencia:[],churn:[],churnpago:[],parceria:[],semdia:[]};
   DB.clientes.forEach(c=>{ if(cliArq(c)) return; const s=st(c); if(!s){g.semdia.push(c);} else {g[s].push(c);} });
   const val=(c)=>{ const r=byCli[c.id]; return Number((r&&r.valor!=null)?r.valor:c.valor)||0; }; /* valor congelado do mês, se houver registro */
@@ -17850,6 +17825,23 @@ function calcRecebimentos(comp){
   const recebidoLista=[].concat(g.recebido,g.churnpago);
   const recebidoSoma=soma(recebidoLista);
   return {byCli, st, g, soma, val, sinaisPagos, sinaisRestante, churnMes, churnDoMes, perdaChurn, isentoCarencia, recebidoLista, recebidoSoma};
+}
+/* Situação do cliente no mês. É a MESMA conta para a aba Recebimentos e para a coluna
+   Pagamento do Controle de Clientes, que é só espelho daqui (Bernardo 06/10: as duas não
+   batiam, a coluna tinha uma conta própria sem início, parceria, fim e arquivados).
+   r = registro de recebimento do mês (ou nada). null = o cliente não conta nesse mês. */
+function rcSituacao(c,comp,r,hoje){
+  if(r) return r.status||(r.recebido?'recebido':((r.venc&&r.venc<hoje)?'inadimplente':'areceber'));
+  if(c.inicio && comp<c.inicio) return null; /* cliente só conta a partir do mês de início */
+  /* PARCERIA (Gabriel 30/09, JR MOTORS VR): cliente ativo que não paga mensalidade. Não é
+     cobrança nem churn: fica de fora de a receber, inadimplente e das somas. */
+  if(c.parceria) return 'parceria';
+  if(c.churnComp && comp>c.churnComp) return 'churn'; /* churn confirmado: perdido dali em diante */
+  if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
+  if(c.fim && comp>c.fim) return null; /* churn: depois do último mês o cliente zera */
+  if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
+  if(comp>compNow()) return 'areceber';
+  return vencOf(comp,c.diaVenc)<hoje?'inadimplente':'areceber';
 }
 /* Bloco B: quem tem entrada parcelada sobe pro topo do Recebimentos, com barra de
    progresso e prazo. Some sozinho quando nao ha ninguem nessa situacao. */
