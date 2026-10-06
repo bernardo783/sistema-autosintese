@@ -1334,6 +1334,40 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('a coluna Pagamento não tem mais o menu de troca', HTML.indexOf('lcPgMenu(')<0);
       ok('no card do cliente, o Pagamento é espelho só de leitura', HTML.indexOf('if(c.id===LC_SIT&&ehLC(lid))')>0);
     }
+    grupo('Lista não volta pro começo ao salvar, e calendário estilo ClickUp (Bernardo 06/10)');
+    {
+      /* redesenho da mesma lista devolve a rolagem; trocou de lista, começa do início */
+      const main={scrollTop:500}, est={w:{scrollLeft:900,scrollTop:40}};
+      const alvo={querySelectorAll:()=>[{parentElement:est.w}]};
+      const TK={escopo:'empresa',listaSel:'lc',visao:'lista'};
+      const g=rodar(bloco('function tkRolagemLer(alvo){','function tkDesenharTela(c){'),
+        {TK,currentView:'tarefas',document:{querySelector:()=>main,getElementById:()=>alvo},scrollY:0,scrollX:0,scrollTo:()=>{},
+         requestAnimationFrame:(f)=>f(),
+         tkDesenharTela:()=>{ est.w={scrollLeft:0,scrollTop:0}; main.scrollTop=0; }},['tkDesenhar']);
+      g.tkDesenhar(alvo);                       /* primeira vez: só aprende a lista */
+      main.scrollTop=500; est.w.scrollLeft=900; est.w.scrollTop=40;
+      g.tkDesenhar(alvo);                       /* salvou uma célula: redesenha */
+      ok('salvar uma célula mantém a rolagem lateral (coluna Início continua na tela)', est.w.scrollLeft===900&&est.w.scrollTop===40);
+      ok('e mantém a rolagem de cima pra baixo', main.scrollTop===500);
+      main.scrollTop=300; est.w.scrollLeft=700; TK.listaSel='outra';
+      g.tkDesenhar(alvo);
+      ok('trocar de lista começa do início', est.w.scrollLeft===0&&main.scrollTop===0);
+      const cel=bloco("if(c.tipo==='data'){ const hid='tkd_'","const tp=(c.tipo==='numero'");
+      ok('célula de data da lista abre o calendário do app, não o do navegador', /dtAbrir\(event,'\$\{hid\}'\)/.test(cel)&&/type="hidden"/.test(cel)&&!/type="date"/.test(cel)&&/tkSetVal/.test(cel));
+      /* atalhos: dia certo para cada "hoje" */
+      const comHoje=(iso)=>{ const R=Date; return class extends R{ constructor(...a){ if(a.length) super(...a); else super(iso+'T15:00:00'); } }; };
+      const at=(iso)=>{ const h=rodar(bloco('const dtISO=','const dtDe=')+bloco('const DT_SEMC=','function dtPintar(){'),{Date:comHoje(iso)},['dtAtalhos','dtISO']);
+        const o={}; h.dtAtalhos().forEach(a=>{ o[a.rot]=a.iso+' '+a.dica; }); return o; };
+      const ter=at('2026-10-06'), sab=at('2026-10-10'), dom=at('2026-10-11'), seg=at('2026-10-12');
+      ok('terça 06/10: hoje, amanhã, sábado 10, segunda 12, sábado 17, 20/10 e 03/11',
+        ter['Hoje']==='2026-10-06 ter'&&ter['Amanhã']==='2026-10-07 qua'&&ter['Este fim de semana']==='2026-10-10 sáb'
+        &&ter['Próxima semana']==='2026-10-12 seg'&&ter['Próximo fim de semana']==='2026-10-17 17 out'
+        &&ter['Daqui a 2 semanas']==='2026-10-20 20 out'&&ter['Daqui a 4 semanas']==='2026-11-03 3 nov');
+      ok('no sábado, "este fim de semana" é hoje e o próximo é o outro sábado', sab['Este fim de semana'].startsWith('2026-10-10')&&sab['Próximo fim de semana'].startsWith('2026-10-17'));
+      ok('no domingo, "este fim de semana" é hoje e a próxima semana é amanhã', dom['Este fim de semana'].startsWith('2026-10-11')&&dom['Próxima semana'].startsWith('2026-10-12')&&dom['Próximo fim de semana'].startsWith('2026-10-17'));
+      ok('na segunda, "próxima semana" é a segunda seguinte', seg['Próxima semana'].startsWith('2026-10-19')&&seg['Este fim de semana'].startsWith('2026-10-17'));
+      ok('o calendário tem os atalhos ao lado do mês', HTML.indexOf("pop.classList.add('dt-cu')")>0&&HTML.indexOf('class="dt-at"')>0&&HTML.indexOf('.dtpop.dt-cu{')>0);
+    }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
       const cod=bloco("const AX_MAX=52428800;","const axIcone=");
