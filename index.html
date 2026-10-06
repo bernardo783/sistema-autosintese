@@ -240,6 +240,24 @@
   .dt-f .dt-hoje{color:#c4b8ff}
   .dt-hr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--muted)}
   .dt-hr select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:5px 8px;font:inherit;cursor:pointer}
+  /* estilo ClickUp (Bernardo 06/10): atalhos à esquerda, mês à direita */
+  .dtpop.dt-cu{width:auto;display:flex;padding:0;overflow:hidden}
+  .dt-at{width:204px;flex:none;border-right:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:1px}
+  .dt-at button{display:flex;align-items:center;justify-content:space-between;gap:10px;background:transparent;border:none;color:var(--txt);
+    font:inherit;font-size:12.5px;font-weight:600;padding:7px 9px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
+  .dt-at button span{color:var(--fraco);font-weight:500;font-size:12px}
+  .dt-at button:hover,.dt-at button.on{background:var(--panel2)}
+  .dt-at button.on{color:#c4b8ff}
+  .dt-cal{width:246px;padding:12px;flex:none}
+  @media(max-width:520px){
+    .dtpop.dt-cu{flex-direction:column;max-width:calc(100vw - 16px)}
+    .dt-at{width:auto;border-right:none;border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+    .dt-at button{white-space:normal;font-size:12px;padding:6px 7px;gap:6px}
+    .dt-at button span{white-space:nowrap}
+    .dt-cal{width:auto}
+  }
+  .tk-dtc{font-size:12.5px;padding:4px 8px;justify-content:center}
+  .tk-dtc.vazio span{color:var(--fraco)}
   .pr-box{display:flex;gap:6px;flex-wrap:wrap}
   .pr-chip{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);
     border-radius:999px;padding:6.5px 15px;font-size:12.5px;font-weight:600;color:var(--muted);
@@ -6850,7 +6868,7 @@ window.dtEscolher=(iso)=>{
   const hr=document.getElementById(DT.id+'_hora');
   if(hr&&!iso) hr.value='';                 /* sem data, sem horario */
   const lbl=document.getElementById(DT.id+'_lbl');
-  if(lbl) lbl.textContent=dtRotulo(iso,hr?hr.value:'');
+  if(lbl) lbl.textContent=lbl.dataset.longo?(iso?fmtDate(iso):'-'):dtRotulo(iso,hr?hr.value:'');
   dtFechar();
   try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){}
 };
@@ -6863,6 +6881,19 @@ window.dtHora=(v)=>{
   if(lbl) lbl.textContent=dtRotulo(inp.value,hr.value);
   if(inp.value){ try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(_){} }
 };
+/* Atalhos do calendário, como no ClickUp (Bernardo 06/10): o dia aparece do lado,
+   "qua" na mesma semana e "20 out" mais longe. */
+const DT_SEMC=['dom','seg','ter','qua','qui','sex','sáb'], DT_MESC=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function dtAtalhos(){
+  const h=new Date(); h.setHours(12,0,0,0);
+  const mais=(n)=>{ const d=new Date(h); d.setDate(d.getDate()+n); return d; };
+  const proximo=(dow,de)=>{ for(let i=de;i<de+8;i++){ const d=mais(i); if(d.getDay()===dow) return d; } return mais(de); };
+  const fds=h.getDay()===0?h:proximo(6,0);
+  const fds2=new Date(fds); fds2.setDate(fds2.getDate()+(h.getDay()===0?6:7));
+  return [['Hoje',h],['Amanhã',mais(1)],['Este fim de semana',fds],['Próxima semana',proximo(1,1)],
+    ['Próximo fim de semana',fds2],['Daqui a 2 semanas',mais(14)],['Daqui a 4 semanas',mais(28)]]
+    .map(([rot,d])=>({rot,iso:dtISO(d),dica:Math.round((d-h)/864e5)<7?DT_SEMC[d.getDay()]:d.getDate()+' '+DT_MESC[d.getMonth()]}));
+}
 function dtPintar(){
   const pop=document.getElementById('dtPop'); if(!pop) return;
   const inp=document.getElementById(DT.id);
@@ -6870,7 +6901,9 @@ function dtPintar(){
   const hoje=dtISO(new Date());
   const dias=dtGrade(DT.ano,DT.mes,sel,hoje);
   const hr=document.getElementById(DT.id+'_hora');
-  pop.innerHTML=`
+  pop.classList.add('dt-cu');
+  pop.innerHTML=`<div class="dt-at">${dtAtalhos().map(a=>`<button type="button" class="${a.iso===sel?'on':''}" onclick="dtEscolher('${a.iso}')">${esc(a.rot)}<span>${esc(a.dica)}</span></button>`).join('')}</div>
+    <div class="dt-cal">
     <div class="dt-h">
       <button type="button" onclick="dtMes(-1)" aria-label="Mês anterior">‹</button>
       <b>${DT_MES[DT.mes]} de ${DT.ano}</b>
@@ -6883,7 +6916,7 @@ function dtPintar(){
     <div class="dt-f">
       <button type="button" onclick="dtEscolher('')">Limpar</button>
       <button type="button" class="dt-hoje" onclick="dtEscolher('${hoje}')">Hoje</button>
-    </div>`;
+    </div></div>`;
 }
 
 const TK_PRIO={urgente:'Urgente',alta:'Alta',med:'Normal',baixa:'Baixa'};
@@ -8832,7 +8865,11 @@ const tkCelula=(t,c)=>{
   if(c.tipo==='pessoa'){ const nm=v?tkNomeUser(v):'';
     return `<button type="button" class="tk-pcel${vazio}" title="${v?esc(nm):('Definir '+esc(c.nome||'pessoa'))}" onclick="tkQaCampoPessoa(event,'${t.id}','${c.id}')">${v?avatar(v,nm,'sm'):'<svg class="pcel-add" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 20v-1.6a3.6 3.6 0 0 0-3.6-3.6H6.6A3.6 3.6 0 0 0 3 18.4V20"/><circle cx="9" cy="8" r="3.6"/><path d="M18.5 8.5v5M21 11h-5"/></svg>'}</button>`; }
   if(c.tipo==='checkbox') return `<input type="checkbox" ${v?'checked':''} onchange="tkSetVal('${t.id}','${c.id}',this.checked)">`;
-  const tp=c.tipo==='data'?'date':(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
+  /* data: o calendário do app (estilo ClickUp) em vez do campo do navegador, que gravava a cada
+     parte digitada e redesenhava a lista no meio (Bernardo 06/10) */
+  if(c.tipo==='data'){ const hid='tkd_'+t.id+'_'+c.id;
+    return `<span class="dtf tk-dtc${vazio}" onclick="dtAbrir(event,'${hid}')" title="Escolher ${esc(c.nome||'data')}"><span id="${hid}_lbl" data-longo="1">${v?esc(fmtDate(String(v).slice(0,10))):'-'}</span></span><input type="hidden" id="${hid}" value="${esc(v==null?'':String(v).slice(0,10))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)">`; }
+  const tp=(c.tipo==='numero'||c.tipo==='moeda')?'number':'text';
   if(c.tipo==='moeda') return `<button type="button" class="tk-mon${vazio}" data-v="${esc(v==null?'':String(v))}" title="Clique para editar" onclick="tkMonEditar(this,'${t.id}','${c.id}')">${vazio?'<span class="tk-mon0">·</span>':esc(moedaCurta(v))}</button>`;
   return `<input class="tk-cel${vazio}" type="${tp}" value="${esc(v==null?'':String(v))}" onchange="tkSetVal('${t.id}','${c.id}',this.value)" placeholder="-">`;
 };
@@ -10597,7 +10634,28 @@ window.tkFPrio=(k)=>{ const p=TK.filtro.prios, i=p.indexOf(k); if(i>=0) p.splice
 window.tkFLimpar=()=>{ TK.filtro.prazo=''; TK.filtro.de=''; TK.filtro.ate=''; TK.filtro.prios=[]; tkFAplicar(); };
 function tkFAplicar(){ try{ localStorage.setItem('tk_filtro',JSON.stringify(TK.filtro)); }catch(_){}
   tkDesenhar($('#content')); tkPopPintar(); }
+/* Redesenhar a mesma lista (salvou uma célula, chegou dado novo) não pode jogar a pessoa de
+   volta pro começo (Bernardo 06/10: mudava o Início, a última coluna do Controle de Clientes,
+   e a tabela voltava pra coluna dos nomes). Guarda a rolagem e devolve; trocou de lista, não. */
+function tkRolagemLer(alvo){
+  const m=document.querySelector('.main');
+  return {mt:m?m.scrollTop:0,y:window.scrollY,ws:[...alvo.querySelectorAll('.tk-tab')].map(t=>t.parentElement?[t.parentElement.scrollLeft,t.parentElement.scrollTop]:[0,0])};
+}
+function tkRolagemPor(alvo,p){
+  const m=document.querySelector('.main'); if(m) m.scrollTop=p.mt;
+  if(window.scrollY!==p.y) window.scrollTo(window.scrollX,p.y);
+  [...alvo.querySelectorAll('.tk-tab')].forEach((t,i)=>{ const w=t.parentElement, v=p.ws[i]; if(w&&v){ w.scrollLeft=v[0]; w.scrollTop=v[1]; } });
+}
 function tkDesenhar(c){
+  const alvo=c||document.getElementById('content');
+  const chave=TK.escopo+'|'+TK.listaSel+'|'+TK.visao+'|'+currentView;
+  const pos=(alvo&&TK.__rolChave===chave)?tkRolagemLer(alvo):null;
+  const r=tkDesenharTela(c);
+  TK.__rolChave=TK.escopo+'|'+TK.listaSel+'|'+TK.visao+'|'+currentView;
+  if(pos&&TK.__rolChave===chave&&alvo){ tkRolagemPor(alvo,pos); requestAnimationFrame(()=>tkRolagemPor(alvo,pos)); }
+  return r;
+}
+function tkDesenharTela(c){
   /* Tarefa da empresa aberta pelo Pessoal (chave Trabalho, Bernardo 04/10): o autosave do
      cartao pintava a lista por cima da tela Pessoal. La quem desenha e o mpPintar. */
   if(currentView==='pessoal'&&(!c||c.id==='content')){ mpPintar(); return; }
