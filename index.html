@@ -281,28 +281,135 @@
   .pcx-gruda .pcx-gr-st{margin-left:auto;font-weight:500}
   .pcx-gruda.on>div{opacity:1;transform:none;pointer-events:auto}
   @media(max-width:900px){ .pcx{--pc-k:140px} }
-  /* painel de tráfego da aba Contas (Bernardo 07/10) */
-  .tfp{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--hov1);margin:4px 0 6px}
-  .tfp-h{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .tfp-h button{display:inline-flex;align-items:center;gap:8px;background:none;border:1px solid transparent;border-radius:8px;padding:5px 8px;
-    font:inherit;font-size:13px;color:var(--txt);cursor:pointer;min-width:0;max-width:100%}
-  .tfp-h button:hover{background:var(--hov2);border-color:var(--line)}
-  .tfp-h svg{width:15px;height:15px;flex:none;opacity:.85}
-  .tfp-h b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .tfp-h .tfp-ac span{color:var(--fraco);font-size:12px}
-  .tfp-h .tfp-pg{margin-left:auto;color:var(--muted);font-size:12.5px;font-weight:600}
-  .tfp-h .tfp-pg.vz{color:var(--fraco);font-weight:500;border-style:dashed;border-color:var(--line)}
-  .tfp-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
-  .tfp-g>*{display:block;text-align:left;font:inherit;color:var(--txt);background:none;border:none;border-right:1px solid var(--line);
-    padding:12px 14px;min-width:0}
-  .tfp-g>*:last-child{border-right:0}
-  .tfp-g>button{cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
-  .tfp-g>button:hover{background:var(--hov2)}
-  .tfp-g small{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fraco);margin-bottom:5px}
-  .tfp-g b{display:block;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tfp-g span{display:block;font-size:12px;color:var(--fraco);line-height:1.35}
-  .tfp-dot{display:inline-block;width:7px;height:7px;border-radius:99px;margin-right:5px;vertical-align:1px}
-  .tfp-sep{height:18px}
+  /* META, ITENS RELACIONADOS E ATIVIDADE da ficha (Bernardo 07/10) */
+  .modal.pc.pcx.meta{max-width:1170px}
+  .modal.pc.pcx.atv.meta{max-width:min(1560px,97vw)}
+  .pcx-lrail{width:48px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0}
+  .pcx-pt{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--panel)}
+  .pcx-pt.critico{background:var(--danger)}
+  .pcx-meta{width:340px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel);--pc-k:150px}
+  .pcx-meta .pcx-atvh{align-items:center}
+  .pcx-mx{margin-left:auto;width:28px;height:28px;border:0;border-radius:7px;background:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer}
+  .pcx-mx:hover{background:var(--panel2);color:var(--txt)}
+  .pcx-metac{flex:1;overflow:auto;padding:12px 14px 16px}
+  .pmt-ac{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+    font:inherit;color:var(--txt);cursor:pointer;min-width:0}
+  .pmt-ac:hover{background:var(--hov1)}
+  .pmt-ac svg{width:16px;height:16px;flex:none;opacity:.85}
+  .pmt-ac>span{min-width:0;display:flex;flex-direction:column}
+  .pmt-ac b{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pmt-ac small{font-size:11.5px;color:var(--fraco);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pmt-b{padding:12px 2px;border-bottom:1px solid var(--line)}
+  .pmt-b small{display:block;font-size:12px;font-weight:600;color:var(--fraco)}
+  .pmt-b b{display:block;font-size:21px;font-weight:700;margin-top:4px}
+  .pmt-b>span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+  .pmt-al{margin-top:8px;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:500}
+  .modal.pcx .pcx-meta .pc-cat{margin:16px 0 8px}
+  .modal.pcx .pcx-meta .pc-cat h4{font-size:13.5px}
+  .modal.pcx .pcx-meta .pc-dl>.k{white-space:normal;line-height:1.25;font-size:13px}
+  .modal.pcx .pcx-meta .pc-dl>.v{font-size:13px}
+  .pcx-meta .pcx-mais{margin-top:6px}
+  .pcx-meta .pcx-mais svg{order:2}
+  /* Itens relacionados: cartões com tabela */
+  .pcx-rel .pcx-relc{padding:12px 14px 16px}
+  .pcx-rc{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:12px 14px;margin-bottom:10px}
+  .pcx-rch{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px}
+  .pcx-rch b{font-weight:700}
+  .pcx-rcn{margin-left:auto;font-size:12px;color:var(--fraco)}
+  .pcx-so{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--brand2);white-space:nowrap}
+  .pcx-so svg{width:11px;height:11px}
+  .pcx-big{display:block;border:0;background:none;padding:0;font:inherit;color:var(--txt);font-size:24px;font-weight:800;letter-spacing:-.01em;cursor:pointer;text-align:left;white-space:nowrap}
+  .pcx-big small{font-size:12.5px;font-weight:500;color:var(--fraco);letter-spacing:0}
+  .pcx-big:hover{color:var(--brand2)}
+  .pcx-mes{display:flex;gap:5px;margin:10px 0 12px}
+  .pcx-mes>span{flex:1;text-align:center;font-size:10.5px;color:var(--fraco)}
+  .pcx-mes i{display:block;height:6px;border-radius:3px;margin-bottom:4px;background:var(--line)}
+  .pcx-mes .pg i{background:var(--ok)}.pcx-mes .at i{background:var(--danger)}.pcx-mes .ab i{background:var(--warn)}
+  .pcx-tbl{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+  .pcx-tbl .r{display:grid;grid-template-columns:118px minmax(0,1fr);min-height:36px;border-bottom:1px solid var(--line);font-size:12.5px}
+  .pcx-tbl .r:last-child{border-bottom:0}
+  .pcx-tbl .r>span{display:flex;align-items:center;padding:7px 11px;min-width:0}
+  .pcx-tbl .r>span:first-child{border-right:1px solid var(--line);color:var(--fraco)}
+  .pcx-tbl .r3{grid-template-columns:minmax(0,1fr) 88px 108px}
+  .pcx-tbl .r3>span+span{border-left:1px solid var(--line)}
+  .pcx-tbl .r3>span:first-child{border-right:0;color:var(--txt);flex-direction:column;align-items:flex-start;justify-content:center;gap:1px}
+  .pcx-tbl .r3>span:nth-child(2){color:var(--fraco)}
+  .pcx-tbl .r3.h{min-height:30px;font-size:11px;background:var(--hov1)}
+  .pcx-tbl .r3.h>span{color:var(--fraco)}
+  .pcx-tbl .r3.ab{cursor:pointer}
+  .pcx-tbl .r3.ab:hover{background:var(--hov1)}
+  .pcx-tbl .el{display:block;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .pcx-tbl small{font-size:11px;color:var(--fraco)}
+  .pcx-tbl small.tarde{color:var(--danger)}
+  .pcx-pill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:5px;font-size:11.5px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .pcx-rc:not(.todas) .r3.extra{display:none}
+  .pcx-ver{margin-top:10px;border:0;background:none;padding:0;font:inherit;font-size:12.5px;font-weight:600;color:var(--brand2);cursor:pointer}
+  .pcx-rc.todas .pcx-ver .v1,.pcx-rc:not(.todas) .pcx-ver .v2{display:none}
+  details.pcx-det{padding:0}
+  details.pcx-det>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;cursor:pointer}
+  details.pcx-det>summary::-webkit-details-marker{display:none}
+  details.pcx-det>summary>svg{width:15px;height:15px;opacity:.85}
+  details.pcx-det .pcx-so+.chev,details.pcx-det>summary>.chev{display:inline-flex;margin-left:6px;transition:transform .15s;color:var(--fraco)}
+  details.pcx-det>summary>.chev svg{width:14px;height:14px}
+  details.pcx-det[open]>summary>.chev{transform:rotate(90deg)}
+  details.pcx-det>div{padding:0 14px 14px}
+  .pcx-rel .pcx-dg{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:0 0 10px;background:var(--panel)}
+  .pcx-rel .pcx-ds{margin:0;padding:7px 11px;border-bottom:1px solid var(--line);background:var(--hov1);font-size:10.5px;letter-spacing:.08em}
+  .pcx-rel .pcx-dl{grid-template-columns:118px minmax(0,1fr);gap:0;padding:0;border-bottom:1px solid var(--line);font-size:12.5px}
+  .pcx-rel .pcx-dl:last-child{border-bottom:0}
+  .pcx-rel .pcx-dl>.k{padding:7px 11px;border-right:1px solid var(--line);color:var(--fraco)}
+  .pcx-rel .pcx-dl>.v{padding:7px 11px;min-width:0;word-break:break-word}
+  .pcx-rel .pcx-dl.largo{grid-template-columns:minmax(0,1fr)}
+  .pcx-rel .pcx-dl.largo>.k{border-right:0;border-bottom:1px solid var(--line)}
+  /* Atividade: filtros, histórico com ícone, comentário em cartão */
+  .pcx-fil{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);flex:none}
+  .pcx-fil:empty{display:none}
+  .pcx-fc{height:26px;padding:0 10px;border-radius:99px;border:0;background:none;box-shadow:inset 0 0 0 1px var(--line);font:inherit;font-size:12px;font-weight:600;
+    color:var(--fraco);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .pcx-fc em{font-style:normal;font-weight:500;opacity:.75}
+  .pcx-fc:hover{color:var(--txt)}
+  .pcx-fc.on{background:var(--txt);color:var(--panel);box-shadow:none}
+  .pcx-feed .pcx-mais{width:100%;height:30px;padding:0 10px;border-radius:7px;background:var(--hov2);margin:0 0 6px}
+  .pcx-feed .pcx-dia{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--fraco);margin:16px 0 4px}
+  .pcx-feed .pcx-dia:first-child{margin-top:2px}
+  .pcx-it{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.45}
+  .pcx-it.abre{cursor:pointer}
+  .pcx-it .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--hov2);color:var(--muted)}
+  .pcx-it .ic svg{width:14px;height:14px}
+  .pcx-it.feito .ic,.pcx-it.check.feito .ic,.pcx-it.fin .ic{color:var(--ok)}
+  .pcx-it.gasto .ic{color:var(--info)}.pcx-it.gasto.alerta .ic{color:var(--warn)}.pcx-it.gasto.critico .ic{color:var(--danger)}
+  .pcx-it.ficha .ic{color:var(--brand2)}
+  .pcx-it .c{min-width:0}
+  .pcx-it .t{color:var(--muted);word-break:break-word}
+  .pcx-it .t b{color:var(--txt);font-weight:600}
+  .pcx-it.abre:hover .t{color:var(--txt)}
+  .pcx-it .s{font-size:11.5px;color:var(--fraco);margin-top:1px}
+  .pcx-it .x{opacity:0}.pcx-it:hover .x{opacity:1}
+  .pcx-cc{background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin:10px 0}
+  .pcx-cc .h{display:flex;align-items:center;gap:8px;padding:10px 12px 0;font-size:12.5px}
+  .pcx-cc .h b{font-size:13px}
+  .pcx-cc .h span{color:var(--fraco);font-size:11.5px}
+  .pcx-cc .h .x{margin-left:auto;opacity:0}
+  .pcx-cc:hover .h .x{opacity:1}
+  .pcx-cc .t{padding:8px 12px 10px;font-size:13px;line-height:1.5;word-break:break-word}
+  .pcx-cc .f{display:flex;justify-content:flex-end;border-top:1px solid var(--line);padding:4px 6px}
+  .pcx-cc .f button{height:26px;padding:0 8px;border-radius:6px;border:0;background:none;font:inherit;font-size:12px;color:var(--fraco);cursor:pointer}
+  .pcx-cc .f button:hover{background:var(--hov2);color:var(--txt)}
+  .pcx-cbox{border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+  .pcx-cbox:focus-within{border-color:var(--brand2)}
+  .pcx-comp .pcx-cbox textarea{border:0;background:none;min-height:42px;padding:11px 12px 4px;border-radius:12px;resize:none}
+  .pcx-ctool{display:flex;align-items:center;gap:4px;padding:4px 6px 6px}
+  .pcx-ctipo{height:26px;padding:0 9px;border-radius:7px;background:var(--hov2);font-size:12px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center}
+  .pcx-cbt{width:28px;height:28px;border-radius:7px;border:0;background:none;color:var(--fraco);display:grid;place-items:center;cursor:pointer}
+  .pcx-cbt:hover{background:var(--hov2);color:var(--txt)}
+  .pcx-cbt svg,.pcx-env svg{width:15px;height:15px}
+  .pcx-cdica{flex:1;font-size:11.5px;color:var(--fraco);text-align:right;padding-right:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pcx-env{width:34px;height:30px;flex:none;border-radius:8px;border:0;background:var(--brand);color:#fff;display:grid;place-items:center;cursor:pointer}
+  .pcx-env:hover{filter:brightness(1.1)}
+  @media (max-width:900px){
+    .pcx-lrail{flex-direction:row;width:auto;border-right:0;border-bottom:1px solid var(--line);padding:6px 12px}
+    .pcx-meta{width:auto;border-right:0;border-bottom:1px solid var(--line);max-height:60vh}
+  }
   /* Contato da ficha (Bernardo 07/10): botões no lugar do link cru */
   .pc-dl .v .pc-cts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
   .pc-chip{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:100%;padding:0 11px 0 5px;border-radius:999px;
@@ -2844,8 +2951,6 @@
   .bar.d{background:linear-gradient(180deg,var(--danger),#a5343a)}
   .barwrap .lbl{font-size:12px;color:var(--muted)}
   @media(max-width:720px){
-    /* painel de tráfego da ficha: 2 por linha no celular (Bernardo 07/10) */
-    .tfp .tfp-g{grid-template-columns:1fr 1fr} .tfp .tfp-g>*:nth-child(2){border-right:0} .tfp .tfp-g>*:nth-child(-n+2){border-bottom:1px solid var(--line)}
     /* modal do cofre de senhas (Bernardo 07/10) */
     .sm .sm-k{width:48px} .sm .sm-vis .sm-k2{width:auto} .sm .sm-vdica{margin-left:0}#app{grid-template-columns:1fr;grid-template-rows:auto auto auto 1fr}
     #app.mini{grid-template-columns:1fr}
@@ -17505,7 +17610,19 @@ const PCX_I=(()=>{ const s=(d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="cu
     doc:s('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>'),
     fin:s('<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
     flag:s('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>'),
-    grupo:s('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>') }; })();
+    grupo:s('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
+    meta:s('<path d="M3 15c0-5 2.5-9 5-9 3 0 4.5 6 7 9s4.5 3 5.5 1.5S21 11 19 8"/><path d="M3 15c0 2 1 3 2.2 3 2.3 0 3.8-4 5.3-7"/>'),
+    mais:s('<path d="M12 5v14M5 12h14"/>'),
+    feito:s('<path d="M20 6 9 17l-5-5"/>'),
+    din:s('<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
+    estrela:s('<path d="M12 2l3 7h7l-5.5 4.5 2 7.5L12 17l-6.5 4 2-7.5L2 9h7z"/>'),
+    lapis:s('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
+    arroba:s('<circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>'),
+    envia:s('<path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/>'),
+    chev:s('<path d="m9 18 6-6-6-6"/>') }; })();
+/* atalho do Meta à esquerda (Bernardo 07/10): aberto ou fechado fica lembrado */
+let pcMeta=(()=>{ try{ return localStorage.getItem('pc_meta')==='1'; }catch(_){ return false; } })();
+window.pcMetaSet=(pid,v)=>{ pcMeta=!!v; try{ localStorage.setItem('pc_meta',pcMeta?'1':'0'); }catch(_){} pcReabrir(pid); };
 let pcPainel=(()=>{ try{ const v=localStorage.getItem('pc_painel'); return v===null?'atv':v; }catch(_){ return 'atv'; } })();
 let pcRecolhe=(()=>{ try{ return localStorage.getItem('pc_recolhe')==='1'; }catch(_){ return false; } })();
 window.pcPainelSet=(pid,v)=>{ pcPainel=(v==='atv'||v==='rel')?v:''; try{ localStorage.setItem('pc_painel',pcPainel); }catch(_){} pcReabrir(pid); };
@@ -17533,32 +17650,58 @@ const PCX_DOC=[
   ['Venda',[['sdr','SDR'],['closer','Closer'],['linkCall','Call de fechamento'],
     ['enviadoPor','Fechado por'],['enviadoEm','Fechado em'],['resumo','Resumo da venda','largo']]]
 ];
+/* ITENS RELACIONADOS (Bernardo 07/10): um cartão por assunto, cada um em tabela com linha
+   horizontal e vertical. Mensalidade (master e gerente do cliente) com a barrinha dos meses,
+   Contrato, Tarefas e, fechados, os dados do contrato e o financeiro completo. */
+const PCX_MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function pcRelMeses(cli){
+  if(!cli||typeof rcSituacao!=='function') return '';
+  const [y,m]=String(compNow()).split('-').map(Number), out=[];
+  for(let k=-4;k<=1;k++){ const d=new Date(y,m-1+k,1), comp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const r=(DB.recebimentos||[]).find(x=>x.comp===comp&&x.clienteId===cli.id);
+    let st=''; try{ st=rcSituacao(cli,comp,r,hojeISO())||''; }catch(_){}
+    const cl=(st==='recebido'||st==='churnpago')?'pg':st==='inadimplente'?'at':(st==='areceber'||st==='sinal'||st==='carencia')?'ab':'';
+    out.push(`<span class="${cl}" title="${esc(fmtComp(comp)||comp)}${st&&LC_PG[st]?': '+esc(LC_PG[st].rot.toLowerCase()):''}"><i></i>${PCX_MES[d.getMonth()]}</span>`); }
+  return `<div class="pcx-mes">${out.join('')}</div>`;
+}
 function pcRelPainel(it){
-  const ts=pcRelTarefas(it), master=!!(currentUser&&currentUser.role==='master');
-  const porLista={}; ts.forEach(t=>{ (porLista[t.lista_id]=porLista[t.lista_id]||[]).push(t); });
-  const hoje=tkHoje();
-  const grupos=Object.keys(porLista).map(lid=>{
-    const l=(TK.listas||[]).find(x=>x.id===lid), nome=l?spNome(l):'Lista';
-    const lin=porLista[lid].slice().sort((a,b)=>String(b.prazo||b.criado_em||'').localeCompare(String(a.prazo||a.criado_em||''))).map(t=>{
-      const feito=t.status==='feito', atr=t.prazo&&t.prazo<hoje&&!feito;
-      const s=tkStatus1(t.status_id), cor=tkCorLinha(t);
-      const pr=t.prioridade||'med';
-      return `<div class="pcx-rt${feito?' feito':''}" onclick="ltAbrirTarefa('${t.id}')" title="${esc(tkCaminho(t.lista_id))}">
-        <span class="d" style="background:${esc(cor)}"></span>
-        <span class="n">${esc(t.titulo||'(sem título)')}${t.rascunho?' <span class="tk-rasc">Rascunho</span>':''}</span>
-        <span class="s">${esc(s?s.nome:(TK_ST[t.status]||''))}</span>
-        <span class="p${atr?' tarde':''}">${t.prazo?esc(dtCurto(t.prazo))+(t.hora?' '+esc(t.hora):''):'-'}</span>
-        <span class="f" style="color:${PRIO_COR[pr]||'var(--fraco)'}" title="${esc(TK_PRIO[pr]||'')}">${PCX_I.flag}</span>
-      </div>`; }).join('');
-    return `<div class="pcx-rg"><div class="pcx-rgh">${PCX_I.lista}<b>${esc(nome)}</b><span>${porLista[lid].length}</span></div>
-      <div class="pcx-rth"><span></span><span>Nome</span><span>Status</span><span>Data</span><span></span></div>${lin}</div>`; }).join('');
+  const ts=pcRelTarefas(it).slice().sort((a,b)=>String(b.prazo||b.criado_em||'').localeCompare(String(a.prazo||a.criado_em||'')));
+  const master=!!(currentUser&&currentUser.role==='master'), pode=pcMensPode(it.id), fid=esc(it.id);
+  const cli=finDaFicha(it)||null, fe=(cli&&cli.fechamento)||{}, hoje=tkHoje();
+  const VZ='<span class="pcx-vz">-</span>';
+  const L=(k,v)=>`<div class="r"><span>${k}</span><span>${v||VZ}</span></div>`;
+  const pill=(rot,cor)=>`<span class="pcx-pill" style="color:${esc(cor)};background:color-mix(in srgb,${esc(cor)} 16%,transparent)">${esc(rot)}</span>`;
+  const so=`<span class="pcx-so">${PCX_I.chave}master e gerente</span>`;
+  let mens='';
+  if(pode){ const M=pcMensDe(it), pg=lcPgDe(it), P=pg&&LC_PG[pg];
+    const ger=Number((((M.t&&M.t.valores)||{})[LC_REM])||0);
+    const asa=(cli&&cli.asaas&&cli.asaas.formaCobranca)||'';
+    const forma=fe.formaPagamento||(asa==='PIX'?'Pix':asa==='BOLETO'?'Boleto':'');
+    mens=`<div class="pcx-rc"><div class="pcx-rch"><b>Mensalidade</b>${so}</div>
+      <button type="button" class="pcx-big" title="Mudar a mensalidade" onclick="pcMensEditar('${fid}')">${M.v?brl(M.v):'-'} <small>${esc(M.sub)}</small></button>
+      ${pcRelMeses(cli)}
+      <div class="pcx-tbl">${L('Este mês',P?pill(P.rot.charAt(0)+P.rot.slice(1).toLowerCase(),P.cor):'')}${L('Vencimento',cli&&cli.diaVenc?'todo dia '+esc(cli.diaVenc):'')}${L('Forma',esc(forma))}${L('Gerente recebe',ger?brl(ger):'')}</div></div>`; }
+  const plano=(cli&&cli.servico)||fe.plano||'', vend=[fe.sdr,fe.closer].filter(Boolean).join(' · ');
+  const contrato=(plano||fe.tipoContrato||(cli&&cli.inicio)||vend)?`<div class="pcx-rc"><div class="pcx-rch"><b>Contrato</b></div>
+      <div class="pcx-tbl">${L('Plano',esc(plano))}${L('Modalidade',esc(fe.tipoContrato||''))}${L('Cliente desde',cli&&cli.inicio?esc(fmtComp(cli.inicio)||cli.inicio):'')}${L('Vendeu',esc(vend))}</div></div>`:'';
+  const MAX=5, abertas=ts.filter(t=>t.status!=='feito').length;
+  const linhas=ts.map((t,i)=>{
+    const feito=t.status==='feito', atr=t.prazo&&t.prazo<hoje&&!feito, s=tkStatus1(t.status_id);
+    const l=(TK.listas||[]).find(x=>x.id===t.lista_id), ln=l?spNome(l):'';
+    const cor=(s&&s.cor)||(feito?'#3fcf8e':'#8b95a5');
+    return `<div class="r r3 ab${i>=MAX?' extra':''}" onclick="ltAbrirTarefa('${t.id}')" title="${esc(tkCaminho(t.lista_id))}">
+      <span><span class="el">${esc(t.titulo||'(sem título)')}</span>${t.prazo?`<small class="${atr?'tarde':''}">${esc(dtCurto(t.prazo))}</small>`:''}</span>
+      <span><span class="el">${esc(ln)}</span></span><span>${pill(s?s.nome:(TK_ST[t.status]||'-'),cor)}</span></div>`; }).join('');
+  const tarefas=`<div class="pcx-rc"><div class="pcx-rch"><b>Tarefas</b><span class="pcx-rcn">${ts.length?ts.length+(abertas?' · '+abertas+' aberta'+(abertas===1?'':'s'):''):''}</span></div>
+      ${ts.length?`<div class="pcx-tbl"><div class="r r3 h"><span>Nome</span><span>Lista</span><span>Status</span></div>${linhas}</div>
+      ${ts.length>MAX?`<button type="button" class="pcx-ver" onclick="this.closest('.pcx-rc').classList.toggle('todas')"><span class="v1">Ver as ${ts.length} tarefas →</span><span class="v2">Mostrar menos</span></button>`:''}`
+      :'<p class="hint" style="margin:0">Nenhuma tarefa com este cliente ainda. O que for feito em Tráfego, Linha Editorial e Tecnologia aparece aqui.</p>'}</div>`;
+  const doc=(master||souGerenteDaFicha(it.id))?`<details class="pcx-rc pcx-det" ontoggle="if(this.open&&!this.dataset.ok){this.dataset.ok='1';pcDocCarregar('${fid}')}">
+      <summary>${PCX_I.doc}<b>Dados do contrato</b>${so}<span class="chev">${PCX_I.chev}</span></summary><div id="pcxDoc"><p class="hint" style="margin:6px 0">Carregando…</p></div></details>`:'';
+  const fin=master&&it.clienteId?`<details class="pcx-rc pcx-det"><summary>${PCX_I.fin}<b>Financeiro completo</b><span class="pcx-so">só master</span><span class="chev">${PCX_I.chev}</span></summary><div class="pcx-fin">${abaFinCliente(it)}</div></details>`:'';
   return `<div class="pcx-atv pcx-rel">
     <div class="pcx-atvh"><b>Itens relacionados</b><span>${esc(it.nome)}</span></div>
-    <div class="pcx-relc">
-      <div class="pcx-rg"><div class="pcx-rgh">${PCX_I.doc}<b>Documento do cliente</b></div><div id="pcxDoc"><p class="hint" style="margin:6px 0">Carregando…</p></div></div>
-      ${grupos||'<div class="pcx-rg"><p class="hint" style="margin:6px 0">Nenhuma tarefa com este cliente ainda. O que for feito em Tráfego, Linha Editorial e Tecnologia aparece aqui.</p></div>'}
-      ${master&&it.clienteId?`<div class="pcx-rg"><div class="pcx-rgh">${PCX_I.fin}<b>Financeiro</b><span>só master</span></div><div class="pcx-fin">${abaFinCliente(it)}</div></div>`:''}
-    </div>
+    <div class="pcx-relc">${mens}${contrato}${tarefas}${doc}${fin}</div>
   </div>`;
 }
 window.pcDocCarregar=async (fid)=>{
@@ -17644,35 +17787,28 @@ window.pcMensEditar=(pid)=>{
 };
 /* cor de cada tipo de cliente, a mesma das etiquetas .tag.cat-* do resto do sistema */
 const PCX_CAT_COR={trafego:'var(--info)',ia:'var(--info2)',full:'var(--warn)',outro:'var(--muted)'};
-/* PAINEL DE TRÁFEGO (Bernardo 07/10): saiu do topo da Ficha e mora na aba Contas, que é o atalho
-   de tráfego. Conta, forma de pagamento, verba (semana e mês), gasto, saldo e aviso num lugar só;
-   cada quadro leva pro campo ou pra conta. */
-function pcTrafegoPainel(it){
+/* META ADS DA FICHA (Bernardo 07/10): os números do Meta saíram da frente. Um atalho no
+   canto esquerdo abre o painel com investido, leads, custo por lead, saldo (com quantos dias
+   dura) e, embaixo, verba semanal e mensal, aviso e forma de pagamento para editar. Saldo
+   acabando acende um pontinho no atalho. */
+function pcMetaInfo(it){
   const contas=contasDoCliente(it.id), c0=contas[0]||null;
   const viva=c0?(window.__mtDados||[]).find(x=>x.id===c0.id):null;
   const ins=(viva&&viva.ins)||{}, gasto=+(ins.spend||0);
   const leads=(ins.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
   let pg=null, rk=null; if(viva){ try{ pg=pagConta(viva); rk=risco(viva); }catch(_){} }
-  const per=LT_PER[window.__mtPreset||'last_7d']||'no período';
-  const vbF=verbaSemDe(it.id), vbV=vbF!=null?vbF:(+it.orcamento||0);
-  const forma=it.adsPag||(pg?(pg.prepago?'Pré-pago (Pix ou boleto)':('Cartão'+(pg.cartao?' '+pg.cartao:''))):'');
-  const cor=rk?(RISCO_COR[rk.nivel]||'var(--txt)'):'var(--txt)';
-  const pre=!!(rk&&rk.pg&&rk.pg.prepago);
+  return {contas,c0,viva,gasto,leads,pg,rk,per:LT_PER[window.__mtPreset||'last_7d']||'no período'};
+}
+function pcMetaTopo(it){
+  const M=pcMetaInfo(it), fid=esc(it.id), rk=M.rk;
+  const cor=rk?(RISCO_COR[rk.nivel]||'var(--txt)'):'var(--txt)', pre=!!(rk&&rk.pg&&rk.pg.prepago);
   const salV=rk?(pre&&rk.saldo!=null?brl(rk.saldo):esc(RISCO_TXT[rk.nivel]||'-')):'-';
-  const salS=rk?(pre?`<i class="tfp-dot" style="background:${cor}"></i>${esc(String(RISCO_TXT[rk.nivel]||'').toLowerCase())}${rk.dias!=null?' · ~'+Math.max(0,Math.round(rk.dias))+' dias':''}`
-      :esc(rk.motivo||(rk.pg&&rk.pg.cartao?rk.pg.cartao:'cartão'))):(c0?'buscando no Meta…':'sem conta de anúncio');
-  const fid=esc(it.id);
-  return `<div class="tfp" id="pcxTrafego">
-    <div class="tfp-h">
-      <button type="button" class="tfp-ac" title="Trocar a conta de anúncio" onclick="rwEscolherConta('${fid}',()=>cliIrPara('${fid}','contas'))">${PCX_I.conta}<b>${c0?esc(c0.nome||c0.id):'Escolher conta de anúncio'}</b>${contas.length>1?`<span>+${contas.length-1}</span>`:''}</button>
-      <button type="button" class="tfp-pg${forma?'':' vz'}" title="Forma de pagamento dos anúncios" onclick="pcAbrirCampo('pc_adspag')">${PCX_I.fin}${forma?esc(forma):'forma de pagamento'}</button>
-    </div>
-    <div class="tfp-g">
-      <button type="button" onclick="pcAbrirCampo('pc_orc')"><small>Verba</small><b>${vbV?brl(vbV):'-'}</b><span>${vbV?'por semana':'definir'}</span>${vbV?`<span>${brl(verbaMesDe(it,vbV))} por mês</span>`:''}</button>
-      <div><small>Gasto</small><b>${viva&&gasto?brl(gasto):'-'}</b><span>${esc(per)}${leads?' · '+leads+' lead'+(leads===1?'':'s'):''}</span>${leads&&gasto?`<span>${brl(gasto/leads)} por lead</span>`:''}</div>
-      <div><small>Saldo</small><b style="color:${cor}">${salV}</b><span>${salS}</span></div>
-      <button type="button" onclick="pcAbrirCampo('pc_aviso')"><small>Avisar em</small><b>${(+it.avisoPct||20)}%</b><span>do orçamento</span></button>
-    </div>
+  const salS=rk?(pre?(rk.dias!=null?'Dura ~'+Math.max(0,Math.round(rk.dias))+' dias no ritmo atual':esc(RISCO_TXT[rk.nivel]||'')):esc(rk.motivo||(rk.pg&&rk.pg.cartao?'cartão '+rk.pg.cartao:'cartão'))):(M.c0?'buscando no Meta…':'sem conta de anúncio');
+  const alerta=rk&&(rk.nivel==='atencao'||rk.nivel==='critico');
+  return `<div class="pmt" id="pcxMetaTopo">
+    <button type="button" class="pmt-ac" title="Trocar a conta de anúncio" onclick="rwEscolherConta('${fid}',()=>pcReabrir('${fid}'))">${PCX_I.conta}<span><b>${M.c0?esc(M.c0.nome||M.c0.id):'Escolher conta de anúncio'}</b>${M.c0?`<small>${esc(M.c0.id)}${M.contas.length>1?' · +'+(M.contas.length-1):''}</small>`:''}</span></button>
+    <div class="pmt-b"><small>Investido · ${esc(M.per)}</small><b>${M.viva&&M.gasto?brl(M.gasto):'-'}</b><span>${M.leads?M.leads+' lead'+(M.leads===1?'':'s')+(M.gasto?' · '+brl(M.gasto/M.leads)+' por lead':''):'sem leads no período'}</span></div>
+    <div class="pmt-b"><small>Saldo da conta</small><b style="color:${cor}">${salV}</b>${alerta?`<div class="pmt-al" style="color:${cor};background:color-mix(in srgb,${cor} 12%,transparent)">${salS}</div>`:`<span>${salS}</span>`}</div>
   </div>`;
 }
 function pcProps(it){
@@ -17700,8 +17836,6 @@ function pcProps(it){
   if(rk){ const cor=RISCO_COR[rk.nivel]||'var(--txt)';
     const sub=rk.pg&&rk.pg.prepago?((rk.saldo!=null?brl(rk.saldo):'')+(rk.dias!=null?' · ~'+Math.max(0,Math.round(rk.dias))+' dias':'')):(rk.motivo||(rk.pg&&rk.pg.cartao?rk.pg.cartao:'cartão'));
     sal=`<button type="button" class="pcx-cel" onclick="${irContas}"><b style="color:${cor}">${esc(RISCO_TXT[rk.nivel]||'-')}</b> <small>${esc(sub||'')}</small></button>`; }
-  const MS=pcMensPode(it.id)?pcMensDe(it):null;
-  const mens=MS?`<button type="button" class="pcx-cel" title="Mudar a mensalidade" onclick="pcMensEditar('${esc(it.id)}')">${MS.v?brl(MS.v)+' <small>'+esc(MS.sub)+'</small>':VZ}</button>`:'';
   const cli=finDaFicha(it)||{};
   const igLk=linkIg(it.instagram||cli.instagram), drLk=linkUrl(it.drive||cli.drive), nZaps=zapsDe(it).length;
   const lk=(ic,tit,href,campo)=>href?`<a class="pcx-lk" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(tit)}">${PCX_I[ic]}</a>`
@@ -17719,7 +17853,6 @@ function pcProps(it){
     ${row('squad','Squad',sq||VZ,!it.squad)}
     ${ia?'':row('pessoa','Gestor de tráfego',pes(it.responsavel,'responsavel'),!String(it.responsavel||'').trim())}
     ${row('chefe','Gerente',pes(it.gerente,'gerente'),!String(it.gerente||'').trim())}
-    ${MS&&MS.t?row('mens','Mensalidade',mens,!MS.v):''}
     </div>
     <button type="button" class="pcx-rec" id="pcxRec" onclick="pcRecolher()">${PCX_I.abre}${pcRecolhe?'Mostrar campos vazios':'Recolher campos vazios'}</button>
   </div>`;
@@ -17765,10 +17898,22 @@ function ltDeEvento(e,eu,master){
   else if(e.tipo==='check'){ o.cls=d.feito?'check feito':'check'; o.html='Checklist: <b>'+esc(d.item||'')+'</b> '+(d.feito?'✓ feito':'reaberto'); }
   else if(e.tipo==='gasto'){ o.cls='gasto'+(d.nivel==='critico'?' critico':d.nivel==='atencao'?' alerta':'');
     /* "CLIENTE: R$ … últimos 7 dias" -> "Meta R$ … em 7 dias" (o nome do cliente já está no topo) */
-    o.html='<b>Meta</b> '+esc(String(e.texto||'').replace(/^[^:]{1,80}:\s*/,'').replace(/últimos (\d+) dias/,'em $1 dias')); o.quem=''; o.del=null; }
+    o.html='<b>Meta</b> '+esc(String(e.texto||'').replace(/^[^:]{1,80}:\s*/,'').replace(/últimos (\d+) dias/,'em $1 dias')); o.quem=''; o.del=null;
+    o.meta={conta:d.conta||'',g:+d.gasto||0,l:+d.leads||0}; }
   else o.html=esc(e.texto||'');
   return o;
 }
+/* ATIVIDADE (Bernardo 07/10): filtros no topo, comentário em cartão com Responder e o
+   histórico com ícone do tipo, título e uma linha de detalhe. O Meta aparece uma vez por dia,
+   comparado com o dia anterior. */
+let LT_FIL='tudo';
+const LT_CATS=[['tudo','Tudo'],['com','Comentários'],['tar','Tarefas'],['pag','Pagamentos'],['meta','Meta']];
+function ltCat(x){ const c=String(x.cls||'');
+  if(c==='nota') return 'com'; if(/^(tarefa|feito)\b/.test(c)) return 'tar'; if(c==='fin') return 'pag';
+  if(/^gasto\b/.test(c)) return 'meta'; return 'fic'; }
+function ltIcone(x){ const c=String(x.cls||'');
+  if(/^tarefa\b/.test(c)) return 'mais'; if(/^feito\b/.test(c)||/^check\b/.test(c)) return 'feito'; if(c==='fin') return 'din';
+  if(/^gasto\b/.test(c)) return 'meta'; if(c==='ficha'&&/NPS/.test(x.html)) return 'estrela'; return 'lapis'; }
 window.ltCarregar=async (fid)=>{
   const box=document.getElementById('ltFeed'); if(!box) return;
   const it=fichaDe(fid); if(!it) return;
@@ -17781,38 +17926,60 @@ window.ltCarregar=async (fid)=>{
   const L=evs.map(e=>ltDeEvento(e,eu,master));
   (TK.tarefas||[]).filter(t=>t.ficha_id===fid&&!ehListaCli(t.lista_id)).forEach(t=>{
     const lst=(TK.listas||[]).find(l=>l.id===t.lista_id); const ln=lst?spNome(lst):'';
-    { const qc=ltPrim(tkNomeUser(t.criado_por)||''), qf=ltPrim(tkNomeUser((t.responsaveis||[])[0]||t.responsavel_id)||'');
-      if(t.criado_em) L.push({q:t.criado_em,cls:'tarefa abre',html:(qc?'criou':'Tarefa')+' <b>'+esc(t.titulo)+'</b>'+(qc?'':' criada')+(ln?' em '+esc(ln):''),quem:qc,abrir:t.id});
-      if(t.concluida_em) L.push({q:t.concluida_em,cls:'feito abre',html:(qf?'concluiu':'Tarefa')+' <b>'+esc(t.titulo)+'</b>'+(qf?'':' concluída')+(ln?' em '+esc(ln):''),quem:qf,abrir:t.id}); }
+    const qc=ltPrim(tkNomeUser(t.criado_por)||''), qf=ltPrim(tkNomeUser((t.responsaveis||[])[0]||t.responsavel_id)||'');
+    if(t.criado_em) L.push({q:t.criado_em,cls:'tarefa abre',html:(qc?'criou ':'Tarefa ')+esc(t.titulo)+(qc?'':' criada'),sub:ln,quem:qc,abrir:t.id});
+    if(t.concluida_em) L.push({q:t.concluida_em,cls:'feito abre',html:(qf?'concluiu ':'Tarefa ')+esc(t.titulo)+(qf?'':' concluída'),sub:ln,quem:qf,abrir:t.id});
   });
   if(master){ const cli=finDaFicha(it);
     if(cli) (DB.recebimentos||[]).filter(r=>r.clienteId===cli.id&&r.recebido&&r.recebidoEm).forEach(r=>{
       const q=String(r.recebidoEm).length<=10?r.recebidoEm+'T12:00:00':r.recebidoEm;
-      L.push({q,cls:'fin',html:'Pagamento de <b>'+esc(r.comp||'')+'</b> recebido · '+brl(r.valor)+' <small>(só master vê)</small>'}); }); }
+      L.push({q,cls:'fin',html:'Mensalidade de <b>'+esc(fmtComp(r.comp)||r.comp||'')+'</b> recebida · <b>'+brl(r.valor)+'</b>',sub:'Recebimentos · só master'}); }); }
+  L.forEach(x=>{ if(!x.sub){ const c=String(x.cls||''); x.sub=c==='ficha'?'Ficha':/^check\b/.test(c)?'Checklist':''; } });
+  /* Meta: compara com a leitura anterior da mesma conta */
+  const metas=L.filter(x=>x.meta).sort((a,b)=>(Date.parse(a.q)||0)-(Date.parse(b.q)||0)), ant={};
+  metas.forEach(x=>{ const p=ant[x.meta.conta]; if(p) x.sub='dia anterior '+brl(p.g)+' · '+p.l+' lead'+(p.l===1?'':'s'); ant[x.meta.conta]=x.meta; });
   L.sort((a,b)=>(Date.parse(b.q)||0)-(Date.parse(a.q)||0));
   const nN=L.filter(x=>x.cls==='nota').length, bN=document.getElementById('pcxAtvN'); if(bN) bN.textContent=nN?String(nN):'';
-  if(!L.length){ box.innerHTML='<p class="hint">Nada registrado ainda. Tarefas com este cliente, mudanças na ficha, checklist e comentários aparecem aqui sozinhos.</p>'; return; }
-  /* Atividade estilo ClickUp (Gabriel 23/09): o mais antigo em cima e o mais novo embaixo,
-     perto da caixa de comentário; evento automático é linha cinza, comentário é cartão. */
-  const quando=(q)=>{ const d=ltDia(q); return (d==='Hoje'||d==='Ontem'?d.toLowerCase():d)+' às '+ltHora(q); };
-  const tudo=L.slice(0,LT_LIM).reverse(), MOSTRA=25, esconde=box.dataset.tudo==='1'?0:Math.max(0,tudo.length-MOSTRA);
+  box.__L=L.slice(0,LT_LIM); box.__fid=fid;
+  ltPintar(fid);
+};
+window.ltFiltrar=(fid,f)=>{ LT_FIL=f||'tudo'; const box=document.getElementById('ltFeed'); if(box) delete box.dataset.tudo; ltPintar(fid); };
+function ltPintar(fid){
+  const box=document.getElementById('ltFeed'); if(!box) return;
+  const L=box.__L||[], master=!!(currentUser&&currentUser.role==='master');
+  const n={}; L.forEach(x=>{ const c=ltCat(x); n[c]=(n[c]||0)+1; });
+  if(LT_FIL!=='tudo'&&!n[LT_FIL]) LT_FIL='tudo';
+  const fil=document.getElementById('ltFil');
+  if(fil) fil.innerHTML=L.length?LT_CATS.filter(([k])=>k==='tudo'||n[k]||(k==='com')).filter(([k])=>k!=='pag'||master)
+    .map(([k,rot])=>`<button type="button" class="pcx-fc${LT_FIL===k?' on':''}" onclick="ltFiltrar('${esc(fid)}','${k}')">${rot}${k!=='tudo'&&n[k]?' <em>'+n[k]+'</em>':''}</button>`).join(''):'';
+  const V=LT_FIL==='tudo'?L:L.filter(x=>ltCat(x)===LT_FIL);
+  if(!V.length){ box.innerHTML='<p class="hint">'+(L.length?'Nada desse tipo ainda.':'Nada registrado ainda. Tarefas com este cliente, mudanças na ficha, checklist e comentários aparecem aqui sozinhos.')+'</p>'; return; }
+  /* o mais antigo em cima e o mais novo embaixo, perto da caixa de comentário */
+  const tudo=V.slice().reverse(), MOSTRA=25, esconde=box.dataset.tudo==='1'?0:Math.max(0,tudo.length-MOSTRA);
   const out=[];
-  if(esconde) out.push('<button type="button" class="pcx-mais" onclick="this.parentNode.dataset.tudo=\'1\';ltCarregar(\''+fid+'\')">'+PCX_I.abre+'Mostrar mais ('+esconde+')</button>');
+  if(esconde) out.push('<button type="button" class="pcx-mais" onclick="this.parentNode.dataset.tudo=\'1\';ltPintar(\''+esc(fid)+'\')">'+PCX_I.chev+'Mostrar mais antigos ('+esconde+')</button>');
   let diaAnt='';
   tudo.slice(esconde).forEach(x=>{
     const dia=ltDia(x.q); if(dia!==diaAnt){ out.push('<div class="pcx-dia">'+esc(dia)+'</div>'); diaAnt=dia; }
     const del=x.del?'<button class="iconbtn del x" title="Apagar" onclick="event.stopPropagation();ltApagar(\''+x.del+'\',\''+fid+'\')">&times;</button>':'';
     if(x.cls==='nota'){
-      out.push('<div class="pcx-com"><div class="h">'+(x.quem?avatarDoNome(x.quem,'lc-av'):'')+'<b>'+esc(x.quem||'Alguém')+'</b><span>'+esc(ltHora(x.q))+'</span>'+del+'</div>'
-        +'<div class="t">'+x.html+'</div></div>');
+      const nm=ltPrim(x.quem||'');
+      out.push('<div class="pcx-cc"><div class="h">'+(x.quem?avatarDoNome(x.quem,'lc-av'):'')+'<b>'+esc(x.quem||'Alguém')+'</b><span>'+esc(ltHora(x.q))+'</span>'+del+'</div>'
+        +'<div class="t">'+x.html+'</div>'
+        +(nm?'<div class="f"><button type="button" onclick="ltResponder(\''+esc(nm).replace(/'/g,'')+'\')">Responder</button></div>':'')+'</div>');
     } else {
-      out.push('<div class="pcx-ev '+x.cls+'"'+(x.abrir?' onclick="ltAbrirTarefa(\''+x.abrir+'\')"':'')+'><span class="t">'
-        +(x.quem?'<b>'+esc(x.quem)+'</b> ':'')+x.html+'</span><span class="q">'+esc(ltHora(x.q))+'</span>'+del+'</div>');
+      out.push('<div class="pcx-it '+esc(x.cls)+'"'+(x.abrir?' onclick="ltAbrirTarefa(\''+x.abrir+'\')"':'')+'><span class="ic">'+(PCX_I[ltIcone(x)]||'')+'</span>'
+        +'<div class="c"><div class="t">'+(x.quem?'<b>'+esc(x.quem)+'</b> ':'')+x.html+'</div><div class="s">'+(x.sub?esc(x.sub)+' · ':'')+esc(ltHora(x.q))+'</div></div>'+del+'</div>');
     }
   });
   box.innerHTML=out.join('');
   box.scrollTop=box.scrollHeight;   /* abre no mais novo, como o ClickUp */
-};
+}
+window.ltResponder=(nome)=>{ const el=document.getElementById('ltTxt'); if(!el) return;
+  const pre='@'+nome+' '; if(el.value.indexOf(pre)!==0) el.value=pre+el.value; el.focus(); el.setSelectionRange(el.value.length,el.value.length); };
+window.ltArroba=()=>{ const el=document.getElementById('ltTxt'); if(!el) return;
+  const a=el.selectionStart||el.value.length, ant=el.value.slice(0,a), dep=el.value.slice(a), pre=(ant&&!/\s$/.test(ant))?' @':'@';
+  el.value=ant+pre+dep; el.focus(); const p=ant.length+pre.length; el.setSelectionRange(p,p); };
 window.ltAbrirTarefa=(tid)=>{ const t=(TK.tarefas||[]).find(x=>String(x.id)===String(tid)); if(!t){ toast('Essa tarefa não está mais visível pra você.'); return; }
   const ov=document.querySelector('.overlay'); if(ov) ov.remove();
   spSelLista(t.lista_id); setTimeout(()=>tkAbrir(t.id),80); };
@@ -18212,7 +18379,7 @@ window.openProjCard=(id)=>{
         ${li('Avisar em', (it.avisoPct||20)+'% do orçamento', `<input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20">`, false, 'pc_aviso','sino')}
       </div>
       <p class="hint" style="margin:8px 0 0">Usado na <strong>Central da agência</strong> pra calcular quanto do saldo resta e quando avisar. Verba semanal e mensal andam juntas (mês de 30 dias).</p>`;
-  o.innerHTML=`<div class="modal big pc ver pcx${pcPainel?' atv':''}" id="pcModal" data-pid="${it.id}">
+  o.innerHTML=`<div class="modal big pc ver pcx${pcPainel?' atv':''}${(pcMeta&&!soAgentIA(it))?' meta':''}" id="pcModal" data-pid="${it.id}">
     <div class="pcx-top">
       <span class="pcx-cam">${PCX_I.lista}Controle de Clientes</span>
       <span style="flex:1"></span>
@@ -18220,6 +18387,13 @@ window.openProjCard=(id)=>{
       <button class="x" title="Fechar">&times;</button>
     </div>
     <div class="pcx-corpo">
+    ${soAgentIA(it)?'':(()=>{ const rk=pcMetaInfo(it).rk, al=rk&&(rk.nivel==='atencao'||rk.nivel==='critico');
+      return `<div class="pcx-lrail"><button type="button" class="pcx-ri${pcMeta?' on':''}" title="Meta Ads${al?': '+esc(rk.motivo||'saldo acabando'):''}" onclick="pcMetaSet('${it.id}',${pcMeta?'false':'true'})">${PCX_I.meta}${al?`<span class="pcx-pt${rk.nivel==='critico'?' critico':''}"></span>`:''}</button></div>`; })()}
+    ${(pcMeta&&!soAgentIA(it))?`<aside class="pcx-meta">
+      <div class="pcx-atvh"><b>Meta Ads</b><button type="button" class="pcx-mx" title="Fechar" onclick="pcMetaSet('${it.id}',false)">&times;</button></div>
+      <div class="pcx-metac">${pcMetaTopo(it)}${tfCampos}
+        <button type="button" class="pcx-mais" onclick="cliIrPara('${it.id}','contas')">Contas de anúncio${PCX_I.chev}</button></div>
+    </aside>`:''}
     <div class="pcx-main">
     <div class="pcx-gruda" id="pcxGruda" aria-hidden="true"><div>${PCX_I.loja||''}<b>${esc(it.nome)}</b><span class="pcx-gr-st">${pcStatusHtml(it)}</span></div></div>
     <div class="pcx-cab">
@@ -18236,7 +18410,7 @@ window.openProjCard=(id)=>{
       <button class="ftab ${cliAba==='logos'?'active':''}" onclick="cliIrPara('${it.id}','logos')">${PCX_I.foto}Logos</button>
     </div>
     <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
-     ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?(pcTrafegoPainel(it)+tfCampos+'<div class="tfp-sep"></div>'+abaContasCliente(it)):cliAba==='acessos'?abaAcessosCliente(it):cliAba==='logos'?'<div id="lgBox"></div>':(cliAba==='fin'&&master)?abaFinCliente(it):`
+     ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?('<p class="hint" style="margin:0 0 12px">Verba, saldo e forma de pagamento ficam no atalho do Meta, à esquerda.</p>'+abaContasCliente(it)):cliAba==='acessos'?abaAcessosCliente(it):cliAba==='logos'?'<div id="lgBox"></div>':(cliAba==='fin'&&master)?abaFinCliente(it):`
 
       ${cat('Negócio')}
       <div class="pc-dl">
@@ -18265,9 +18439,10 @@ window.openProjCard=(id)=>{
     ${pcPainel==='rel'?pcRelPainel(it):''}
     ${pcPainel==='atv'?`<div class="pcx-atv">
       <div class="pcx-atvh"><b>Atividade</b><span>${esc(it.nome)}</span></div>
+      <div class="pcx-fil" id="ltFil"></div>
       <div class="lt-feed pcx-feed" id="ltFeed"><p class="hint">Carregando…</p></div>
-      <div class="pcx-comp"><textarea id="ltTxt" rows="2" placeholder="Escreva um comentário… @Nome avisa a pessoa" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();ltPublicar('${it.id}')}"></textarea>
-        <div class="pcx-compb"><span class="hint" style="margin:0">Enter envia · Shift+Enter quebra a linha</span><button class="btn small" onclick="ltPublicar('${it.id}')">Enviar</button></div></div>
+      <div class="pcx-comp"><div class="pcx-cbox"><textarea id="ltTxt" rows="2" placeholder="Escreva um comentário… @Nome avisa a pessoa" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();ltPublicar('${it.id}')}"></textarea>
+        <div class="pcx-ctool"><span class="pcx-ctipo">Comentário</span><button type="button" class="pcx-cbt" title="Mencionar alguém" onclick="ltArroba()">${PCX_I.arroba}</button><span class="pcx-cdica">Enter envia · Shift+Enter quebra a linha</span><button type="button" class="pcx-env" title="Enviar" onclick="ltPublicar('${it.id}')">${PCX_I.envia}</button></div></div></div>
     </div>`:''}
     <div class="pcx-rail">
       <button type="button" class="pcx-ri${pcPainel?'':' on'}" title="Detalhes" onclick="pcPainelSet('${it.id}','')">${PCX_I.det}</button>
@@ -18314,11 +18489,10 @@ window.openProjCard=(id)=>{
       pm.addEventListener('scroll',ve,{passive:true}); ve(); } }
   if(cliAba==='geral') pcGrupoCarregar(it.id);
   if(pcPainel==='atv') ltCarregar(it.id);
-  if(pcPainel==='rel') pcDocCarregar(it.id);
   /* sem dado do Meta: busca em segundo plano e redesenha as propriedades */
   if(!(window.__mtDados&&window.__mtDados.length)&&contasDoCliente(it.id).length&&typeof metaCarregar==='function')
     metaCarregar(true).then(()=>{ const f=document.getElementById('pcxProps'); if(f) f.outerHTML=pcProps(it);
-      const t=document.getElementById('pcxTrafego'); if(t) t.outerHTML=pcTrafegoPainel(it); }).catch(()=>{});
+      const t=document.getElementById('pcxMetaTopo'); if(t) t.outerHTML=pcMetaTopo(it); }).catch(()=>{});
 };
 /* Leitura x edição no card do cliente: o formulário existe sempre no DOM (o Salvar
    continua lendo os mesmos ids), o CSS só decide qual metade aparece. */
@@ -18353,9 +18527,11 @@ window.pcInline=(ev,el)=>{
 const PC_CAMPO_TRAF=['pc_adspag','pc_orc','pc_orcm','pc_aviso'];
 window.pcAbrirCampo=(fid)=>{
   let el=document.querySelector('#pcModal [data-f="'+fid+'"]');
-  if(!el){ const m=document.getElementById('pcModal'); const aba=PC_CAMPO_TRAF.indexOf(fid)>=0?'contas':'geral';
-    if(!m||cliAba===aba) return;
-    cliIrPara(m.dataset.pid,aba); el=document.querySelector('#pcModal [data-f="'+fid+'"]'); if(!el) return; }
+  if(!el){ const m=document.getElementById('pcModal'); if(!m) return;
+    /* campo de tráfego mora no painel do Meta; o resto, na aba Ficha */
+    if(PC_CAMPO_TRAF.indexOf(fid)>=0){ if(pcMeta) return; pcMeta=true; try{ localStorage.setItem('pc_meta','1'); }catch(_){} pcReabrir(m.dataset.pid); }
+    else { if(cliAba==='geral') return; cliIrPara(m.dataset.pid,'geral'); }
+    el=document.querySelector('#pcModal [data-f="'+fid+'"]'); if(!el) return; }
   try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){}
   pcInline(null,el);
 };
