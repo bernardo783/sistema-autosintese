@@ -1305,7 +1305,7 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('conta sem logo e cliente sem logo: vazio', g.logoDe(DB.contasMeta[2])===''&&g.logoDoCliente('F3')==='');
       ok('logo do cliente: a da ficha ou, na falta, a de uma conta dele', g.logoDoCliente('F2')==='data:ficha2'&&g.logoDoCliente('F1')==='data:conta1');
       ok('miniatura no Controle de Clientes abre a aba Logos da ficha', /<img src="data:conta1"/.test(g.lcLogoCel('F1'))&&/abrirCliente\('F1','logos'\)/.test(g.lcLogoCel('F1'))&&!/ vz"/.test(g.lcLogoCel('F1')));
-      ok('cliente só de Agent IA não mostra o campo', g.lcLogoCel('IA')==='');
+      ok('cliente só de Agent IA também tem logo na lista (Bernardo 07/10)', /class="lc-logo vz"/.test(g.lcLogoCel('IA'))&&/abrirCliente\('IA','logos'\)/.test(g.lcLogoCel('IA')));
       ok('a lista do Controle de Clientes desenha a miniatura antes do nome', HTML.indexOf("${ehLC(t.lista_id)?lcLogoCel(t.ficha_id):''}<span class=\"tk-titcel")>0);
       ok('a aba Logo mostra a logo dos relatórios para baixar', HTML.indexOf("lgBaixarRel('${esc(fid)}')")>0&&HTML.indexOf("const grade=(logos.length||rel)?")>0);
       /* Bernardo 05/10: a logo do cliente manda; a da conta (28/08) segurava a logo velha no relatório */
@@ -1438,7 +1438,7 @@ grupo('Tráfego: busca do Meta em andamento não vira laço infinito (Bernardo 0
   })();
 }
 /* ---------------- cliente só de Agent IA: nada de tráfego na ficha ---------------- */
-grupo('Agent IA: ficha sem gestor, conta, verba, gasto, saldo, contas e logos (Gabriel 23/09)');
+grupo('Agent IA: ficha sem gestor, conta, verba, gasto, saldo e contas (Gabriel 23/09); logos ficam (Bernardo 07/10)');
 {
   const g=rodar(bloco('const soAgentIA=',"/* A foto sai do perfil"),{},['soAgentIA']);
   ok('categoria ia é Agent IA', g.soAgentIA({categoria:'ia'})===true);
@@ -1447,7 +1447,9 @@ grupo('Agent IA: ficha sem gestor, conta, verba, gasto, saldo, contas e logos (G
   const props=bloco('function pcProps(it){','function pcFaixa(it){');
   ok('painel: gestor de tráfego some', /\$\{ia\?'':row\('pessoa'/.test(props));
   ok('painel: conta, verba, gasto e saldo somem', /\$\{ia\?'':`\$\{row\('conta'/.test(props) && props.indexOf("row('saldo'")>0);
-  ok('abas Contas e Logos e barra de contas somem', HTML.indexOf("${soAgentIA(it)?'':pcGrupoBarra(it)}")>0 && (HTML.match(/\$\{soAgentIA\(it\)\?'':`<button class="ftab/g)||[]).length===2);
+  ok('aba Contas e barra de contas somem', HTML.indexOf("${soAgentIA(it)?'':pcGrupoBarra(it)}")>0 && (HTML.match(/\$\{soAgentIA\(it\)\?'':`<button class="ftab/g)||[]).length===1);
+  ok('aba Logos aparece para todo cliente, inclusive Agent IA', /\n\s*<button class="ftab \$\{cliAba==='logos'/.test(HTML) && HTML.indexOf("if(soAgentIA(it)&&cliAba==='contas') cliAba='geral';")>0);
+  ok('aba Logos não barra Agent IA', HTML.indexOf('Cliente só de Agent IA: não tem logo guardada')<0);
   ok('virar Agent IA tira o gestor', HTML.indexOf("if(k==='ia') it.responsavel='';")>0);
 }
 
