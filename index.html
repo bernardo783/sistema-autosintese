@@ -6604,7 +6604,7 @@ async function rwApi(acao,corpo){
 async function rwCarregar(forca){
   if(RW.ok&&!forca) return;
   const desde=new Date(Date.now()-40*864e5).toISOString();
-  const [g,e,la]=await Promise.all([
+  const [g,la,e]=await Promise.all([   /* mesma ordem das consultas abaixo (o [g,e,la] trocava envios e Lara, 07/10) */
     sb.from('cliente_grupos').select('ficha_id,grupo_jid,grupo_nome'),
     sb.from('cliente_lara').select('ficha_id,fone'),
     sb.from('relatorio_envios').select('id,ficha_id,conta_id,de,ate,grupo_nome,instancia,enviado_por,enviado_em,ok,erro')
