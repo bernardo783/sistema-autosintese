@@ -4034,7 +4034,8 @@ const LC_LG_MAIS='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" st
 const lcLogoHtml=(fid)=>{ const l=logoDoCliente(fid); return l?`<img src="${l}" alt="">`:LC_LG_MAIS; };
 const lcLogoDica=(fid)=>logoDoCliente(fid)?'Logo do cliente: clique para ver, baixar ou subir outra':'Sem logo: clique para subir';
 function lcLogoCel(fid){
-  if(!fid||soAgentIA(fichaDe(fid))) return '';
+  /* Agent IA tambem tem logo (Bernardo 07/10): a logo agora e do CLIENTE, nao da conta de anuncio */
+  if(!fid) return '';
   if(!LOGOS_META&&!LC_LG_PED){ LC_LG_PED=true; logosCarregar().then(lcLogosPintar).catch(()=>{}); }
   return `<button type="button" class="lc-logo${logoDoCliente(fid)?'':' vz'}" data-lcl="${esc(fid)}" title="${lcLogoDica(fid)}" onclick="event.stopPropagation();abrirCliente('${esc(fid)}','logos')">${lcLogoHtml(fid)}</button>`;
 }
@@ -12954,8 +12955,6 @@ window.lgPintar=async (boxId,fid,modo)=>{
   box.dataset.fid=fid||'';
   if(!fid){ if(bdg) bdg.textContent='';
     box.innerHTML='<p class="hint">Marque o cliente da tarefa, a logo dele aparece aqui pronta para baixar.</p>'; return; }
-  if(soAgentIA(fichaDe(fid))){ if(bdg) bdg.textContent='';
-    box.innerHTML='<p class="hint">Cliente só de Agent IA: não tem logo guardada.</p>'; return; }
   box.innerHTML='<div class="hint">carregando…</div>';
   const tid=await lgCardDe(fid);
   let logos=[], erro='';
@@ -12976,7 +12975,7 @@ window.lgPintar=async (boxId,fid,modo)=>{
   const itRel=rel?`<div class="lg-it">
       <div class="lg-pv" title="Clique para alternar fundo claro / escuro" onclick="this.classList.toggle('esc')"><img src="${rel}" alt="Logo dos relatórios"></div>
       <div class="lg-rod">
-        <div class="nm"><div class="t1">Logo dos relatórios</div><div class="t2">a mesma do relatório de tráfego</div></div>
+        <div class="nm"><div class="t1">${soAgentIA(f)?'Logo principal':'Logo dos relatórios'}</div><div class="t2">${soAgentIA(f)?'a que aparece na lista de clientes':'a mesma do relatório de tráfego'}</div></div>
         <button class="iconbtn" type="button" title="Baixar" aria-label="Baixar a logo dos relatórios" onclick="lgBaixarRel('${esc(fid)}')">${LG_DL}</button>
         ${modo==='ficha'?`<button class="iconbtn del" type="button" title="Tirar dos relatórios" aria-label="Tirar a logo dos relatórios" onclick="lgTirarRel('${esc(fid)}')">&times;</button>`:''}
       </div></div>`:'';
@@ -12991,8 +12990,8 @@ window.lgPintar=async (boxId,fid,modo)=>{
   if(modo==='ficha'){
     box.innerHTML=`
       <p class="hint" style="margin:0 0 12px">Suba aqui a logo oficial do cliente (PNG sem fundo, SVG, PDF, AI…). É uma logo só para tudo:
-      aparece no Controle de Clientes, na aba <b>Logo</b> de toda demanda da Linha Editorial e, se a conta de anúncio não tiver
-      logo própria, no relatório de tráfego.</p>
+      aparece no Controle de Clientes${soAgentIA(f)?' e':','} na aba <b>Logo</b> de toda demanda da Linha Editorial${soAgentIA(f)?'.':` e, se a conta de anúncio não tiver
+      logo própria, no relatório de tráfego.`}</p>
       ${tid?`<div class="tkm-drop" id="lgDrop" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')"
           ondrop="event.preventDefault();this.classList.remove('on');lgSubir('${esc(fid)}',event.dataTransfer.files)" onclick="document.getElementById('lgFile').click()">
           Arraste a logo aqui ou <u>clique para escolher</u>
@@ -16176,7 +16175,8 @@ const ST_LABEL={novo:'Cliente novo',onboarding:'Onboarding',ativo:'Cliente ativo
 const PRJ_NORM=s=>({andamento:'ativo',planejado:'novo',pausado:'churn',concluido:'ativo'}[s]||(ST_LABEL[s]?s:'ativo'));
 const CAT_LABEL={trafego:'Tráfego Pago',ia:'Agent IA',full:'Tráfego + Agent IA',outro:'Outro'};
 /* Cliente so de Agent IA (Gabriel 23/09): nao tem NADA de trafego na ficha: gestor de trafego,
-   conta de anuncio, verba, gasto, saldo, contas e logos somem. Vale o tipo escolhido, nao o palpite. */
+   conta de anuncio, verba, gasto, saldo e contas somem. Vale o tipo escolhido, nao o palpite.
+   A aba Logos voltou para eles (Bernardo 07/10): a logo e do cliente, nao da conta de anuncio. */
 const soAgentIA=(f)=>!!(f&&f.categoria==='ia');
 /* A foto sai do perfil da pessoa: `avatarDoNome` liga o texto da ficha ao usuario. */
 const avtCor=corDoNome;
@@ -17498,7 +17498,7 @@ window.zapRemover=async (fid,zid)=>{
 };
 window.openProjCard=(id)=>{
   const it=DB.projetos.find(x=>x.id===id); if(!it) return;
-  if(soAgentIA(it)&&(cliAba==='contas'||cliAba==='logos')) cliAba='geral';
+  if(soAgentIA(it)&&cliAba==='contas') cliAba='geral';
   /* "linha do tempo" virou o painel Atividade (Gabriel 23/09, igual ao ClickUp) */
   if(cliAba==='linha'){ cliAba='geral'; pcPainel='atv'; }
   /* Financeiro saiu do cartão e mora em Relacionamentos (Gabriel 23/09) */
@@ -17560,7 +17560,7 @@ window.openProjCard=(id)=>{
       <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">${PCX_I.doc}Ficha</button>
       ${soAgentIA(it)?'':`<button class="ftab ${cliAba==='contas'?'active':''}" onclick="cliIrPara('${it.id}','contas')">${PCX_I.conta}Contas${nContas?' <span class="pc-n">'+nContas+'</span>':''}</button>`}
       <button class="ftab ${cliAba==='acessos'?'active':''}" onclick="cliIrPara('${it.id}','acessos')">${PCX_I.chave}Acessos</button>
-      ${soAgentIA(it)?'':`<button class="ftab ${cliAba==='logos'?'active':''}" onclick="cliIrPara('${it.id}','logos')">${PCX_I.foto}Logos</button>`}
+      <button class="ftab ${cliAba==='logos'?'active':''}" onclick="cliIrPara('${it.id}','logos')">${PCX_I.foto}Logos</button>
     </div>
     <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
      ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):cliAba==='logos'?'<div id="lgBox"></div>':(cliAba==='fin'&&master)?abaFinCliente(it):`
