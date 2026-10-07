@@ -1430,6 +1430,14 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('painel de tráfego: conta, forma de pagamento, verba, gasto, saldo e aviso', ['tfp-ac','tfp-pg',"pcAbrirCampo('pc_orc')","pcAbrirCampo('pc_aviso')",'<small>Gasto</small>','<small>Saldo</small>'].every(x=>bloco('function pcTrafegoPainel(it){','function pcProps(it){').indexOf(x)>0));
       ok('Tráfego pago tem forma de pagamento, verba semanal, verba mensal e avisar em', ["li('Forma de pagamento'","li('Verba semanal'","li('Verba mensal'","li('Avisar em'"].every(x=>HTML.indexOf(x)>0));
     }
+    grupo('Ficha v3, parte 1: abas, grade única, tabelas com linhas e cabeçalho que gruda (Bernardo 07/10)');
+    {
+      ok('uma variável só pra coluna dos rótulos (topo, abas e tabelas)', HTML.indexOf('.pcx{--pc-pad:24px;--pc-k:210px}')>0&&HTML.indexOf('.modal.pcx .pcx-props .pr{grid-template-columns:var(--pc-k) minmax(0,1fr);gap:0;min-height:46px}')>0&&HTML.indexOf('.modal.pcx .pc-dl{grid-template-columns:var(--pc-k) minmax(0,1fr);border:1px solid var(--line)')>0);
+      ok('aba ativa com sublinhado colado no texto', HTML.indexOf(".modal.pcx .pc-tabs .ftab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px")>0);
+      ok('topo também em tabela, com linha horizontal e vertical (Bernardo 07/10)', HTML.indexOf('id="pcxProps"><div class="pcx-ptab">')>0&&HTML.indexOf('.modal.pcx .pcx-ptab>.pr>.k{align-self:stretch;padding:8px 14px;border-right:1px solid var(--line)}')>0);
+      ok('tabelas com linha vertical entre rótulo e valor', HTML.indexOf('.modal.pcx .pc-dl>.k{padding:8px 14px;border-right:1px solid var(--line)')>0);
+      ok('cabeçalho que gruda com nome e status', HTML.indexOf('<div class="pcx-gruda" id="pcxGruda" aria-hidden="true"><div>${PCX_I.loja||\'\'}<b>${esc(it.nome)}</b><span class="pcx-gr-st">${pcStatusHtml(it)}</span></div></div>')>0&&HTML.indexOf("gr.classList.toggle('on',on)")>0);
+    }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
       const cod=bloco("const AX_MAX=52428800;","const axIcone=");
@@ -1496,7 +1504,7 @@ grupo('Agent IA: ficha sem gestor, conta, verba, gasto, saldo e contas (Gabriel 
   ok('painel: gestor de tráfego some', /\$\{ia\?'':row\('pessoa'/.test(props));
   ok('conta, verba, gasto e saldo saíram do topo da Ficha e moram na aba Contas (Bernardo 07/10)', props.indexOf("row('conta'")<0&&props.indexOf("row('saldo'")<0&&props.indexOf("row('link'")<0&&HTML.indexOf("cliAba==='contas'?(pcTrafegoPainel(it)+tfCampos+")>0);
   ok('Agent IA não tem campos de tráfego', HTML.indexOf("const tfCampos=soAgentIA(it)?'':`")>0);
-  ok('aba Contas e barra de contas somem', HTML.indexOf("${soAgentIA(it)?'':pcGrupoBarra(it)}")>0 && (HTML.match(/\$\{soAgentIA\(it\)\?'':`<button class="ftab/g)||[]).length===1);
+  ok('aba Contas some para Agent IA; a barra de contas saiu da ficha para todos (Bernardo 07/10)', HTML.indexOf("pcGrupoBarra(it)}")<0 && (HTML.match(/\$\{soAgentIA\(it\)\?'':`<button class="ftab/g)||[]).length===1);
   ok('aba Logos aparece para todo cliente, inclusive Agent IA', /\n\s*<button class="ftab \$\{cliAba==='logos'/.test(HTML) && HTML.indexOf("if(soAgentIA(it)&&cliAba==='contas') cliAba='geral';")>0);
   ok('aba Logos não barra Agent IA', HTML.indexOf('Cliente só de Agent IA: não tem logo guardada')<0);
   ok('virar Agent IA tira o gestor', HTML.indexOf("if(k==='ia') it.responsavel='';")>0);
