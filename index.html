@@ -239,6 +239,28 @@
   .dt-f button:hover{background:var(--panel2);color:var(--txt)}
   .dt-f .dt-hoje{color:#c4b8ff}
   .dt-hr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--muted)}
+  /* painel de tráfego da aba Contas (Bernardo 07/10) */
+  .tfp{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--hov1);margin:4px 0 6px}
+  .tfp-h{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tfp-h button{display:inline-flex;align-items:center;gap:8px;background:none;border:1px solid transparent;border-radius:8px;padding:5px 8px;
+    font:inherit;font-size:13px;color:var(--txt);cursor:pointer;min-width:0;max-width:100%}
+  .tfp-h button:hover{background:var(--hov2);border-color:var(--line)}
+  .tfp-h svg{width:15px;height:15px;flex:none;opacity:.85}
+  .tfp-h b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tfp-h .tfp-ac span{color:var(--fraco);font-size:12px}
+  .tfp-h .tfp-pg{margin-left:auto;color:var(--muted);font-size:12.5px;font-weight:600}
+  .tfp-h .tfp-pg.vz{color:var(--fraco);font-weight:500;border-style:dashed;border-color:var(--line)}
+  .tfp-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .tfp-g>*{display:block;text-align:left;font:inherit;color:var(--txt);background:none;border:none;border-right:1px solid var(--line);
+    padding:12px 14px;min-width:0}
+  .tfp-g>*:last-child{border-right:0}
+  .tfp-g>button{cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
+  .tfp-g>button:hover{background:var(--hov2)}
+  .tfp-g small{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fraco);margin-bottom:5px}
+  .tfp-g b{display:block;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tfp-g span{display:block;font-size:12px;color:var(--fraco);line-height:1.35}
+  .tfp-dot{display:inline-block;width:7px;height:7px;border-radius:99px;margin-right:5px;vertical-align:1px}
+  .tfp-sep{height:18px}
   /* Contato da ficha (Bernardo 07/10): botões no lugar do link cru */
   .pc-dl .v .pc-cts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
   .pc-chip{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:100%;padding:0 11px 0 5px;border-radius:999px;
@@ -2780,6 +2802,8 @@
   .bar.d{background:linear-gradient(180deg,var(--danger),#a5343a)}
   .barwrap .lbl{font-size:12px;color:var(--muted)}
   @media(max-width:720px){
+    /* painel de tráfego da ficha: 2 por linha no celular (Bernardo 07/10) */
+    .tfp .tfp-g{grid-template-columns:1fr 1fr} .tfp .tfp-g>*:nth-child(2){border-right:0} .tfp .tfp-g>*:nth-child(-n+2){border-bottom:1px solid var(--line)}
     /* modal do cofre de senhas (Bernardo 07/10) */
     .sm .sm-k{width:48px} .sm .sm-vis .sm-k2{width:auto} .sm .sm-vdica{margin-left:0}#app{grid-template-columns:1fr;grid-template-rows:auto auto auto 1fr}
     #app.mini{grid-template-columns:1fr}
@@ -4833,6 +4857,21 @@ function verbaSemDe(fid){
 }
 /* Grava a verba no card, que e onde ela mora. Quem nao enxerga o card do cliente (RLS)
    continua gravando na ficha, como era antes, em vez de perder o que digitou. */
+/* TRÁFEGO PAGO DA FICHA (Bernardo 07/10): forma de pagamento dos anúncios e verba mensal.
+   A verba mora numa só (a semanal, no card); a mensal é a mesma em mês de 30 dias:
+   R$ 350/semana = R$ 1.500/mês. Mudou uma, a outra acompanha. */
+const ADS_PAG=['Cartão de crédito','Pix','Boleto'];
+const verbaMes=(sem)=>Math.round((+sem||0)*30/7*100)/100;
+const verbaDoMes=(mes)=>Math.round((parseFloat(String(mes==null?'':mes).replace(',','.'))||0)*7/30*100)/100;
+/* quem digitou a mensal vê exatamente o que digitou (2.000 não vira 2.000,01 na volta) */
+const verbaMesDe=(it,sem)=>(it&&+it.verbaMes>0&&verbaDoMes(it.verbaMes)===+sem)?+it.verbaMes:verbaMes(sem);
+/* sem escolha na ficha, mostra o que o Meta diz da conta (pré-pago ou cartão) */
+function adsPagMeta(fid){
+  let ids=[]; try{ ids=contasDoCliente(fid).map(m=>m.id); }catch(_){ return ''; }
+  const c=(window.__mtDados||[]).find(x=>x&&x.pag&&ids.indexOf(x.id)>=0);
+  const p=c?pagConta(c):null; if(!p) return '';
+  return p.prepago?'Pré-pago (Pix ou boleto)':('Cartão'+(p.cartao?' '+p.cartao:''));
+}
 async function pcVerbaGravar(it,bruto){
   const num=parseFloat(String(bruto==null?'':bruto).replace(',','.'))||0;
   let t=null; try{ t=lcCardDe(it.id); }catch(_){}
@@ -17563,6 +17602,37 @@ window.pcMensEditar=(pid)=>{
 };
 /* cor de cada tipo de cliente, a mesma das etiquetas .tag.cat-* do resto do sistema */
 const PCX_CAT_COR={trafego:'var(--info)',ia:'var(--info2)',full:'var(--warn)',outro:'var(--muted)'};
+/* PAINEL DE TRÁFEGO (Bernardo 07/10): saiu do topo da Ficha e mora na aba Contas, que é o atalho
+   de tráfego. Conta, forma de pagamento, verba (semana e mês), gasto, saldo e aviso num lugar só;
+   cada quadro leva pro campo ou pra conta. */
+function pcTrafegoPainel(it){
+  const contas=contasDoCliente(it.id), c0=contas[0]||null;
+  const viva=c0?(window.__mtDados||[]).find(x=>x.id===c0.id):null;
+  const ins=(viva&&viva.ins)||{}, gasto=+(ins.spend||0);
+  const leads=(ins.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
+  let pg=null, rk=null; if(viva){ try{ pg=pagConta(viva); rk=risco(viva); }catch(_){} }
+  const per=LT_PER[window.__mtPreset||'last_7d']||'no período';
+  const vbF=verbaSemDe(it.id), vbV=vbF!=null?vbF:(+it.orcamento||0);
+  const forma=it.adsPag||(pg?(pg.prepago?'Pré-pago (Pix ou boleto)':('Cartão'+(pg.cartao?' '+pg.cartao:''))):'');
+  const cor=rk?(RISCO_COR[rk.nivel]||'var(--txt)'):'var(--txt)';
+  const pre=!!(rk&&rk.pg&&rk.pg.prepago);
+  const salV=rk?(pre&&rk.saldo!=null?brl(rk.saldo):esc(RISCO_TXT[rk.nivel]||'-')):'-';
+  const salS=rk?(pre?`<i class="tfp-dot" style="background:${cor}"></i>${esc(String(RISCO_TXT[rk.nivel]||'').toLowerCase())}${rk.dias!=null?' · ~'+Math.max(0,Math.round(rk.dias))+' dias':''}`
+      :esc(rk.motivo||(rk.pg&&rk.pg.cartao?rk.pg.cartao:'cartão'))):(c0?'buscando no Meta…':'sem conta de anúncio');
+  const fid=esc(it.id);
+  return `<div class="tfp" id="pcxTrafego">
+    <div class="tfp-h">
+      <button type="button" class="tfp-ac" title="Trocar a conta de anúncio" onclick="rwEscolherConta('${fid}',()=>cliIrPara('${fid}','contas'))">${PCX_I.conta}<b>${c0?esc(c0.nome||c0.id):'Escolher conta de anúncio'}</b>${contas.length>1?`<span>+${contas.length-1}</span>`:''}</button>
+      <button type="button" class="tfp-pg${forma?'':' vz'}" title="Forma de pagamento dos anúncios" onclick="pcAbrirCampo('pc_adspag')">${PCX_I.fin}${forma?esc(forma):'forma de pagamento'}</button>
+    </div>
+    <div class="tfp-g">
+      <button type="button" onclick="pcAbrirCampo('pc_orc')"><small>Verba</small><b>${vbV?brl(vbV):'-'}</b><span>${vbV?'por semana':'definir'}</span>${vbV?`<span>${brl(verbaMesDe(it,vbV))} por mês</span>`:''}</button>
+      <div><small>Gasto</small><b>${viva&&gasto?brl(gasto):'-'}</b><span>${esc(per)}${leads?' · '+leads+' lead'+(leads===1?'':'s'):''}</span>${leads&&gasto?`<span>${brl(gasto/leads)} por lead</span>`:''}</div>
+      <div><small>Saldo</small><b style="color:${cor}">${salV}</b><span>${salS}</span></div>
+      <button type="button" onclick="pcAbrirCampo('pc_aviso')"><small>Avisar em</small><b>${(+it.avisoPct||20)}%</b><span>do orçamento</span></button>
+    </div>
+  </div>`;
+}
 function pcProps(it){
   const ia=it.categoria==='ia';   /* so Agent IA: nada de trafego (ver soAgentIA) */
   const VZ='<span class="pcx-vz">Vazio</span>';
@@ -17608,11 +17678,6 @@ function pcProps(it){
     ${ia?'':row('pessoa','Gestor de tráfego',pes(it.responsavel,'responsavel'),!String(it.responsavel||'').trim())}
     ${row('chefe','Gerente',pes(it.gerente,'gerente'),!String(it.gerente||'').trim())}
     ${MS&&MS.t?row('mens','Mensalidade',mens,!MS.v):''}
-    ${ia?'':`${row('conta','Conta de anúncio',conta,!c0)}
-    ${row('verba','Verba',verba,!vbV)}
-    ${row('gasto','Gasto',gas,!c0)}
-    ${row('saldo','Saldo',sal,!rk)}`}
-    ${row('link','Links',links,false)}
     <button type="button" class="pcx-rec" id="pcxRec" onclick="pcRecolher()">${PCX_I.abre}${pcRecolhe?'Mostrar campos vazios':'Recolher campos vazios'}</button>
   </div>`;
 }
@@ -18090,6 +18155,20 @@ window.openProjCard=(id)=>{
     return n?`<span style="display:inline-flex;align-items:center;gap:9px">${avatarDoNome(n,'lc-av')}${esc(n)}</span>`:'definir'; };
   const ck=drawCheck(), ckN=(it.checklist||[]).length, ckF=(it.checklist||[]).filter(x=>x.feito).length;
   const temTraf=nContas>0;
+  /* campos de tráfego (forma de pagamento, verba semanal e mensal, aviso): moram na aba Contas */
+  const tfCampos=soAgentIA(it)?'':`${cat('Tráfego pago')}
+      <div class="pc-dl">
+        ${(()=>{ const mt=it.adsPag?'':adsPagMeta(it.id);
+          return li('Forma de pagamento', it.adsPag?esc(it.adsPag):(mt?`${esc(mt)} <span class="pc-tg" title="Lido da conta de anúncios no Meta. Escolha aqui pra fixar.">pelo Meta</span>`:'definir'),
+            `<select id="pc_adspag"><option value="">Escolher</option>${ADS_PAG.map(o=>`<option${it.adsPag===o?' selected':''}>${o}</option>`).join('')}</select>`,
+            !it.adsPag&&!mt, 'pc_adspag','fin'); })()}
+        ${li('Verba semanal', vbEd?brl(vbEd):'definir',
+          `<input type="number" step="0.01" min="0" id="pc_orc" value="${vbEd||''}" placeholder="Ex.: 350,00">`, !vbEd, 'pc_orc','verba')}
+        ${li('Verba mensal', vbEd?brl(verbaMesDe(it,vbEd)):'definir',
+          `<input type="number" step="0.01" min="0" id="pc_orcm" value="${vbEd?verbaMesDe(it,vbEd):''}" placeholder="Ex.: 1.500,00">`, !vbEd, 'pc_orcm','verba')}
+        ${li('Avisar em', (it.avisoPct||20)+'% do orçamento', `<input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20">`, false, 'pc_aviso','sino')}
+      </div>
+      <p class="hint" style="margin:8px 0 0">Usado na <strong>Central da agência</strong> pra calcular quanto do saldo resta e quando avisar. Verba semanal e mensal andam juntas (mês de 30 dias).</p>`;
   o.innerHTML=`<div class="modal big pc ver pcx${pcPainel?' atv':''}" id="pcModal" data-pid="${it.id}">
     <div class="pcx-top">
       <span class="pcx-cam">${PCX_I.lista}Controle de Clientes</span>
@@ -18114,7 +18193,7 @@ window.openProjCard=(id)=>{
       <button class="ftab ${cliAba==='logos'?'active':''}" onclick="cliIrPara('${it.id}','logos')">${PCX_I.foto}Logos</button>
     </div>
     <div class="mbody" ${cliAba!=='geral'?'data-aba="outra"':''}>
-     ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?abaContasCliente(it):cliAba==='acessos'?abaAcessosCliente(it):cliAba==='logos'?'<div id="lgBox"></div>':(cliAba==='fin'&&master)?abaFinCliente(it):`
+     ${cliAba==='linha'?abaLinhaCliente(it):cliAba==='contas'?(pcTrafegoPainel(it)+tfCampos+'<div class="tfp-sep"></div>'+abaContasCliente(it)):cliAba==='acessos'?abaAcessosCliente(it):cliAba==='logos'?'<div id="lgBox"></div>':(cliAba==='fin'&&master)?abaFinCliente(it):`
 
       ${cat('Negócio')}
       <div class="pc-dl">
@@ -18130,14 +18209,6 @@ window.openProjCard=(id)=>{
       <div class="pc-dl">
         ${li('Número da Lara', `<span id="pcLaN">${laChip(it.id,'pcLaN')}</span>`, '', false, null, 'mens')}
       </div>`:''}
-
-      ${(!soAgentIA(it)&&(temTraf||it.orcamento||catDe(it)==='trafego'||catDe(it)==='full'))?`${cat('Tráfego pago')}
-      <div class="pc-dl">
-        ${li('Verba semanal', vbEd?brl(vbEd):'definir',
-          `<input type="number" step="0.01" min="0" id="pc_orc" value="${vbEd||''}" placeholder="Ex.: 350,00">`, !vbEd, 'pc_orc','verba')}
-        ${li('Avisar em', (it.avisoPct||20)+'% do orçamento', `<input type="number" step="1" min="1" max="90" id="pc_aviso" value="${it.avisoPct||20}" placeholder="20">`, false, 'pc_aviso','sino')}
-      </div>
-      <p class="hint" style="margin:8px 0 0">Usado na <strong>Central da agência</strong> pra calcular quanto do saldo resta e quando avisar.</p>`:''}
 
       ${cat('Descrição')}
       <div class="pc-txt aberta" data-f="pc_notas" onclick="pcInline(event,this)"><span class="leitura">${it.notas?esc(it.notas):'<span style="color:var(--fraco)">sem descrição</span>'}</span><span class="campo"><textarea id="pc_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></span></div>
@@ -18199,7 +18270,8 @@ window.openProjCard=(id)=>{
   if(pcPainel==='rel') pcDocCarregar(it.id);
   /* sem dado do Meta: busca em segundo plano e redesenha as propriedades */
   if(!(window.__mtDados&&window.__mtDados.length)&&contasDoCliente(it.id).length&&typeof metaCarregar==='function')
-    metaCarregar(true).then(()=>{ const f=document.getElementById('pcxProps'); if(f) f.outerHTML=pcProps(it); }).catch(()=>{});
+    metaCarregar(true).then(()=>{ const f=document.getElementById('pcxProps'); if(f) f.outerHTML=pcProps(it);
+      const t=document.getElementById('pcxTrafego'); if(t) t.outerHTML=pcTrafegoPainel(it); }).catch(()=>{});
 };
 /* Leitura x edição no card do cliente: o formulário existe sempre no DOM (o Salvar
    continua lendo os mesmos ids), o CSS só decide qual metade aparece. */
@@ -18231,10 +18303,12 @@ window.pcInline=(ev,el)=>{
   if(campos[0].tagName==='SELECT'){ try{ campos[0].showPicker(); }catch(_){} }
 };
 /* Atalho dos icones do topo: rola ate o campo vazio e ja abre para digitar. */
+const PC_CAMPO_TRAF=['pc_adspag','pc_orc','pc_orcm','pc_aviso'];
 window.pcAbrirCampo=(fid)=>{
   let el=document.querySelector('#pcModal [data-f="'+fid+'"]');
-  if(!el){ const m=document.getElementById('pcModal'); if(!m||cliAba==='geral') return;
-    cliIrPara(m.dataset.pid,'geral'); el=document.querySelector('#pcModal [data-f="'+fid+'"]'); if(!el) return; }
+  if(!el){ const m=document.getElementById('pcModal'); const aba=PC_CAMPO_TRAF.indexOf(fid)>=0?'contas':'geral';
+    if(!m||cliAba===aba) return;
+    cliIrPara(m.dataset.pid,aba); el=document.querySelector('#pcModal [data-f="'+fid+'"]'); if(!el) return; }
   try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){}
   pcInline(null,el);
 };
@@ -18270,8 +18344,12 @@ window.pcAplicar=async (pid)=>{
   if(g('pc_insta')!==null) it.instagram=g('pc_insta').trim();
   if(g('pc_drive')!==null) it.drive=g('pc_drive').trim();
   if(g('pc_notas')!==null) it.notas=g('pc_notas').trim();
+  if(g('pc_adspag')!==null) it.adsPag=g('pc_adspag');
   if(document.getElementById('pc_orc')){
-    await pcVerbaGravar(it,g('pc_orc'));
+    /* quem mudou foi a mensal? então a semanal sai dela */
+    const em=document.getElementById('pc_orcm'), peloMes=!!(em&&em.value!==em.defaultValue);
+    if(peloMes) it.verbaMes=parseFloat(String(em.value).replace(',','.'))||0;
+    await pcVerbaGravar(it,peloMes?verbaDoMes(em.value):g('pc_orc'));
     it.avisoPct=Math.min(90,Math.max(1,parseInt(g('pc_aviso'),10)||20));
   }
   if(cli){ if(it.nicho&&currentUser&&currentUser.role==='master') cli.nicho=it.nicho;
