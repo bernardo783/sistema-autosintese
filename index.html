@@ -1243,6 +1243,49 @@
   .tkf-sec .n{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0;color:var(--fraco)}
   .tkf-sec.mt{margin-top:24px}
   .tkf-main .tk-desc{min-height:120px;line-height:1.7}
+  /* editor rico da descrição (Bernardo 07/10): blocos planos com data-t (tipo) e data-n (recuo) */
+  .rt{border:1px solid var(--line);border-radius:11px;background:var(--panel2);transition:border-color .15s}
+  .rt:focus-within{border-color:var(--brand2)}
+  .rt-bar{display:flex;align-items:center;gap:2px;flex-wrap:wrap;padding:5px 6px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:2;background:var(--panel2);border-radius:11px 11px 0 0}
+  .rt-bar button{display:inline-flex;align-items:center;justify-content:center;min-width:29px;height:29px;padding:0 6px;
+    border:0;border-radius:7px;background:none;color:var(--muted);font:inherit;font-size:13.5px;cursor:pointer}
+  .rt-bar button:hover{background:var(--hov2);color:var(--txt)}
+  .rt-bar button.on{background:color-mix(in srgb,var(--brand2) 18%,transparent);color:var(--brand2)}
+  .rt-bar .rt-sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+  .rt-tipo{background:transparent;border:1px solid transparent;border-radius:7px;color:var(--txt);font:inherit;font-size:12.5px;
+    font-weight:600;padding:5px 6px;cursor:pointer;color-scheme:dark}
+  .rt-tipo:hover{border-color:var(--line)}
+  :root[data-tema="claro"] .rt-tipo,:root[data-tema="branco"] .rt-tipo{color-scheme:light}
+  .rt-ed{min-height:140px;padding:12px 16px 16px;outline:none;font-size:13.5px;line-height:1.65;color:var(--txt);
+    overflow-wrap:anywhere;--rt-rec:22px;position:relative}
+  .rt-ed.vazio::before{content:attr(data-ph);position:absolute;left:16px;top:12px;color:var(--fraco);pointer-events:none}
+  .rt-b{position:relative;padding-left:calc(var(--rt-rec) * var(--n,0));min-height:1.65em}
+  .rt-b[data-n="1"]{--n:1}.rt-b[data-n="2"]{--n:2}.rt-b[data-n="3"]{--n:3}.rt-b[data-n="4"]{--n:4}.rt-b[data-n="5"]{--n:5}.rt-b[data-n="6"]{--n:6}
+  .rt-b a{color:var(--brand2);text-decoration:underline;text-underline-offset:2px}
+  .rt-b[data-t="h1"]{font-size:19px;font-weight:800;line-height:1.35;margin:14px 0 4px;letter-spacing:-.01em}
+  .rt-b[data-t="h2"]{font-size:16px;font-weight:750;line-height:1.4;margin:12px 0 3px}
+  .rt-b[data-t="h3"]{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand2);margin:10px 0 2px}
+  .rt-ed>.rt-b:first-child{margin-top:0}
+  /* listas: o marcador mora no recuo do próprio bloco */
+  .rt-b[data-t="ul"],.rt-b[data-t="ol"],.rt-b[data-t="ck"]{padding-left:calc(var(--rt-rec) * var(--n,0) + 24px)}
+  .rt-b[data-t="ul"]::before{content:'';position:absolute;left:calc(var(--rt-rec) * var(--n,0) + 8px);top:.68em;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.75}
+  .rt-b[data-t="ul"][data-n="1"]::before,.rt-b[data-t="ul"][data-n="4"]::before{background:none;border:1.5px solid currentColor;width:5px;height:5px}
+  .rt-b[data-t="ul"][data-n="2"]::before,.rt-b[data-t="ul"][data-n="5"]::before{border-radius:1px}
+  .rt-b[data-t="ol"]::before{content:attr(data-num) '.';position:absolute;left:calc(var(--rt-rec) * var(--n,0));width:20px;text-align:right;
+    color:var(--muted);font-variant-numeric:tabular-nums;font-weight:600}
+  .rt-b[data-t="ck"]::before{content:'';position:absolute;left:calc(var(--rt-rec) * var(--n,0) + 2px);top:.28em;width:14px;height:14px;
+    border:1.5px solid var(--fraco);border-radius:4px;cursor:pointer;box-sizing:border-box}
+  .rt-b[data-t="ck"][data-ok="1"]::before{background:var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat;border-color:var(--ok)}
+  .rt-b[data-t="ck"][data-ok="1"]{color:var(--fraco);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--fraco) 60%,transparent)}
+  /* destaque: blocos seguidos viram uma caixa só */
+  .rt-b[data-t="q"]{margin-left:calc(var(--rt-rec) * var(--n,0));padding:3px 12px 3px 14px;
+    background:color-mix(in srgb,var(--brand2) 10%,transparent);border-left:3px solid var(--brand2)}
+  .rt-b:not([data-t="q"])+.rt-b[data-t="q"],.rt-ed>.rt-b[data-t="q"]:first-child{border-top-right-radius:8px;padding-top:8px;margin-top:4px}
+  .rt-b[data-t="q"]:not(:has(+[data-t="q"])){border-bottom-right-radius:8px;padding-bottom:8px;margin-bottom:4px}
+  .rt-b[data-t="hr"]{padding:10px 0;min-height:0;cursor:default;user-select:none}
+  .rt-b[data-t="hr"]>span{display:block;height:1px;background:var(--line)}
+  @media (max-width:720px){ .rt-ed{--rt-rec:16px;padding:10px 12px 14px} .rt-bar{overflow-x:auto;flex-wrap:nowrap} }
   .tkf-addi{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--muted);
     border:1px dashed var(--line2,var(--line));border-radius:9px;padding:8px 13px;margin-top:8px;
     background:transparent;font-family:inherit;cursor:pointer}
@@ -8154,6 +8197,335 @@ const ckCont=(L,ids)=>ids.filter(i=>L[i]&&L[i].ok).length+' de '+ids.length;
    quem nunca usou secao continua vendo a lista limpa de sempre */
 const ckTemSec=(gs)=>gs.length>1||!!(gs[0]&&gs[0].nome);
 let TK_CK=[], TK_CK_SE=[];
+/* ======================= EDITOR RICO DA DESCRIÇÃO (Bernardo 07/10) =======================
+   A descrição continua sendo TEXTO em tarefas.descricao, num Markdown simples, linha a linha:
+   o que já foi escrito (1.033 demandas, muitas com "- " e "**") aparece formatado, e quem grava
+   texto puro (suporte, relatório semanal, vídeo) continua funcionando. O <textarea id="tk_desc">
+   segue sendo a fonte da verdade, escondido: o editor escreve nele e dispara 'input', então o
+   autosave e o tkmSalvar não mudam.
+   Dialeto (uma linha = um bloco; recuo = 2 espaços por nível):
+     # Título · ## Subtítulo · ### Tópico · --- separador · > destaque
+     - item · 1. item · - [ ] tarefa · - [x] feita · texto com recuo
+     **negrito** (ou *negrito*, como no WhatsApp) · _itálico_ · ++sublinhado++ · [texto](https://link) · \ escapa
+   Os blocos ficam "planos" (div com data-t e data-n), sem <ul>/<ol> aninhados: é o que deixa o
+   contenteditable previsível. A numeração das listas é recalculada a cada mudança. */
+const RT_MAXN=6;
+const RT_TIPOS={p:'Texto',h1:'Título',h2:'Subtítulo',h3:'Tópico',ul:'Lista',ol:'Lista numerada',ck:'Checklist',q:'Destaque',hr:'Separador'};
+const rtEsc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const rtUrlOk=(u)=>/^(https?:\/\/|mailto:)/i.test(String(u||'').trim());
+
+/* ---------- Markdown -> HTML (inline) ---------- */
+function rtInline(md){
+  const guarda=[]; const G=(html)=>'\u0000'+(guarda.push(html)-1)+'\u0000';
+  let s=String(md||'');
+  s=s.replace(/\\([\\*+\[\]#>\-_`.•0-9])/g,(_,c)=>G(rtEsc(c)));                       /* escapes */
+  s=s.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g,(m,t,u)=>rtUrlOk(u)?G('<a href="'+rtEsc(u)+'" target="_blank" rel="noopener">'+rtInlineSimples(t)+'</a>'):m);
+  s=s.replace(/(https?:\/\/[^\s<>"'\u0000]+[^\s<>"'.,;:!?)\]\u0000])/g,(u)=>G('<a href="'+rtEsc(u)+'" target="_blank" rel="noopener">'+rtEsc(u)+'</a>'));
+  s=rtInlineSimples(s);
+  return s.replace(/\u0000(\d+)\u0000/g,(_,i)=>guarda[+i]);
+}
+/* negrito, sublinhado e itálico sobre texto já sem links */
+function rtInlineSimples(s){
+  const partes=String(s).split(/(\u0000\d+\u0000)/);
+  return partes.map(p=>/^\u0000\d+\u0000$/.test(p)?p:rtEsc(p)
+    .replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g,'<b>$1</b>')
+    .replace(/(^|[^*\p{L}\d])\*(?=\S)([^*]*?\S)\*(?![*\p{L}\d])/gu,'$1<b>$2</b>')      /* *assim* = negrito, como no WhatsApp */
+    .replace(/\+\+(?=\S)([\s\S]*?\S)\+\+/g,'<u>$1</u>')
+    .replace(/(^|[^\p{L}\d_])_(?=\S)([^_]*?\S)_(?![\p{L}\d_])/gu,'$1<i>$2</i>')).join('');   /* _assim_ = itálico */
+}
+
+/* ---------- Markdown -> blocos ---------- */
+function rtParseLinha(l){
+  const m=/^([ \t]*)(.*)$/.exec(l); const esp=m[1].replace(/\t/g,'  ').length; let r=m[2];
+  let n=Math.min(RT_MAXN,Math.floor(esp/2)), t='p', ok=0, x;
+  if(r.charAt(0)==='\\'&&/^\\[-*•#>\d\[]/.test(r)) return {t:'p',n,txt:r,ok};   /* o rtInline tira a barra */
+  if((x=/^(#{1,3})\s+(.*)$/.exec(r))){ t='h'+x[1].length; r=x[2]; n=0; }
+  else if(/^([-*_─━═=])\1{2,}\s*$/.test(r)||/^—{2,}\s*$/.test(r)){ t='hr'; r=''; n=0; }
+  else if((x=/^[-*•]\s+\[( |x|X)\]\s?(.*)$/.exec(r))||(x=/^\[( |x|X)\]\s+(.*)$/.exec(r))){ t='ck'; ok=x[1]===' '?0:1; r=x[2]; }
+  else if((x=/^[-*•]\s+(.*)$/.exec(r))){ t='ul'; r=x[1]; }
+  else if((x=/^\d{1,3}[.)]\s+(.*)$/.exec(r))){ t='ol'; r=x[1]; }
+  else if((x=/^>\s?(.*)$/.exec(r))){ t='q'; r=x[1]; }
+  return {t,n,txt:r,ok};
+}
+function rtBlocoHtml(b){
+  if(b.t==='hr') return '<div class="rt-b" data-t="hr" contenteditable="false"><span></span></div>';
+  return '<div class="rt-b" data-t="'+b.t+'" data-n="'+(b.n||0)+'"'+(b.t==='ck'?' data-ok="'+(b.ok?1:0)+'"':'')+'>'+(rtInline(b.txt)||'<br>')+'</div>';
+}
+function rtMdParaHtml(md){
+  const ls=String(md||'').replace(/\r\n?/g,'\n').split('\n');
+  return ls.map(l=>rtBlocoHtml(rtParseLinha(l))).join('');
+}
+
+/* ---------- DOM -> Markdown ---------- */
+function rtEscTxt(s){
+  return String(s).replace(/\u00a0/g,' ').replace(/\\/g,'\\\\').replace(/\*/g,'\\*').replace(/\+\+/g,'\\+\\+').replace(/(?<![\p{L}\d])_|_(?![\p{L}\d])/gu,'\\_').replace(/\[(?=[^\]]*\]\()/g,'\\[');
+}
+function rtInlineMd(no){
+  let out='';
+  no.childNodes.forEach(c=>{
+    if(c.nodeType===3){ out+=rtEscTxt(c.nodeValue); return; }
+    if(c.nodeType!==1) return;
+    const tg=c.tagName, dentro=rtInlineMd(c);
+    const embrulha=(mk,mk2)=>{ const m=/^(\s*)([\s\S]*?)(\s*)$/.exec(dentro); return m[2]?m[1]+mk+m[2]+(mk2||mk)+m[3]:dentro; };
+    if(tg==='BR') return;
+    if(tg==='B'||tg==='STRONG'||(c.style&&/^(bold|[6-9]00)$/.test(c.style.fontWeight))) out+=embrulha('**');
+    else if(tg==='I'||tg==='EM') out+=embrulha('_');
+    else if(tg==='U'||tg==='INS') out+=embrulha('++');
+    else if(tg==='A'){ const h=c.getAttribute('href')||''; const tx=c.textContent;
+      out+=!rtUrlOk(h)?dentro:(tx===h?h:'['+dentro.replace(/[\[\]]/g,'')+']('+h+')'); }
+    else out+=dentro;
+  });
+  return out;
+}
+function rtBlocoMd(b){
+  const t=b.dataset.t||'p', n=Math.min(RT_MAXN,+b.dataset.n||0), ind='  '.repeat(n);
+  let tx=rtInlineMd(b).replace(/\n/g,' ').replace(/^\s+/,'');
+  if(t==='hr') return '---';
+  if(t==='h1'||t==='h2'||t==='h3') return tx.trim()?'#'.repeat(+t[1])+' '+tx:'';
+  if(t==='ul') return ind+'- '+tx;
+  if(t==='ol') return ind+(b.dataset.num||1)+'. '+tx;
+  if(t==='ck') return ind+'- ['+(b.dataset.ok==='1'?'x':' ')+'] '+tx;
+  if(t==='q') return ind+'> '+tx;
+  if(rtParseLinha(tx).t!=='p') tx='\\'+tx;              /* texto que o parser leria como marcador */
+  return ind+tx;
+}
+function rtHtmlParaMd(ed){
+  return [...ed.children].map(rtBlocoMd).join('\n').replace(/\s+$/,'');
+}
+
+/* ---------- utilidades de seleção ---------- */
+function rtBlocoDe(ed,no){ while(no&&no.parentNode!==ed) no=no.parentNode; return no&&no.parentNode===ed?no:null; }
+function rtBlocosSel(ed){
+  const s=getSelection(); if(!s.rangeCount) return [];
+  const r=s.getRangeAt(0), a=rtBlocoDe(ed,r.startContainer), z=rtBlocoDe(ed,r.endContainer);
+  if(!a) return []; const out=[]; let b=a;
+  while(b){ out.push(b); if(b===z) break; b=b.nextElementSibling; }
+  return out;
+}
+/* posição do cursor como (bloco, deslocamento no texto) e de volta, para desfazer e transformar blocos */
+function rtCursor(ed){
+  const s=getSelection(); if(!s.rangeCount||!ed.contains(s.anchorNode)) return null;
+  const r=s.getRangeAt(0), b=rtBlocoDe(ed,r.startContainer); if(!b) return null;
+  const pre=document.createRange(); pre.selectNodeContents(b); pre.setEnd(r.startContainer,r.startOffset);
+  return {i:[...ed.children].indexOf(b),o:pre.toString().length};
+}
+function rtPor(ed,c){
+  if(!c) return; const b=ed.children[Math.min(c.i,ed.children.length-1)]; if(!b) return;
+  let o=c.o; const w=document.createTreeWalker(b,NodeFilter.SHOW_TEXT); let tn, ult=null;
+  const r=document.createRange();
+  while((tn=w.nextNode())){ ult=tn; if(o<=tn.length){ r.setStart(tn,o); r.collapse(true); break; } o-=tn.length; }
+  if(!r.startContainer||r.startContainer===document){ if(ult){ r.setStart(ult,ult.length); } else { r.setStart(b,0); } r.collapse(true); }
+  const s=getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+const rtNoInicio=(ed)=>{ const c=rtCursor(ed), s=getSelection(); return !!c&&c.o===0&&s.isCollapsed; };
+
+/* ---------- normalização: todo filho é um bloco .rt-b, numeração em dia ---------- */
+function rtNormaliza(ed){
+  [...ed.childNodes].forEach(c=>{
+    if(c.nodeType===1&&c.classList.contains('rt-b')) return;
+    if(c.nodeType===3&&!c.nodeValue.trim()&&ed.children.length){ c.remove(); return; }
+    const d=document.createElement('div'); d.className='rt-b'; d.dataset.t='p'; d.dataset.n='0';
+    ed.insertBefore(d,c); d.appendChild(c);
+  });
+  /* blocos dentro de blocos (o navegador às vezes aninha ao colar ou dar Enter) */
+  ed.querySelectorAll('.rt-b .rt-b').forEach(x=>{ const pai=rtBlocoDe(ed,x); if(pai) ed.insertBefore(x,pai.nextSibling); });
+  if(!ed.children.length) ed.innerHTML=rtBlocoHtml({t:'p',n:0,txt:''});
+  const cont=[], ultT=[];
+  [...ed.children].forEach(b=>{
+    const t=b.dataset.t||'p', n=t==='hr'||t[0]==='h'?0:Math.min(RT_MAXN,+b.dataset.n||0);
+    b.dataset.n=n; cont.length=Math.min(cont.length,n+1); ultT.length=Math.min(ultT.length,n+1);
+    if(t==='ol'){ cont[n]=ultT[n]==='ol'?(cont[n]||0)+1:1; b.dataset.num=cont[n]; } else delete b.dataset.num;
+    if(t!=='ck') delete b.dataset.ok;
+    if(t!=='hr'&&!b.textContent&&!b.querySelector('br')) b.appendChild(document.createElement('br'));
+    ultT[n]=t;
+  });
+  ed.classList.toggle('vazio',ed.children.length===1&&!ed.textContent&&(ed.firstElementChild.dataset.t||'p')==='p');
+}
+
+/* ---------- montar o editor em cima de um textarea ---------- */
+function rtMontar(ta,opc){
+  opc=opc||{};
+  const caixa=document.createElement('div'); caixa.className='rt';
+  caixa.innerHTML=`<div class="rt-bar" role="toolbar" aria-label="Formatação">
+      <select class="rt-tipo" title="Tipo do bloco">${['p','h1','h2','h3'].map(k=>`<option value="${k}">${RT_TIPOS[k]}</option>`).join('')}</select>
+      <span class="rt-sep"></span>
+      <button type="button" data-c="b" title="Negrito (Ctrl+B)"><b>B</b></button>
+      <button type="button" data-c="i" title="Itálico (Ctrl+I)"><i>I</i></button>
+      <button type="button" data-c="u" title="Sublinhado (Ctrl+U)"><u>U</u></button>
+      <button type="button" data-c="a" title="Link (Ctrl+K)">${RT_IC.link}</button>
+      <span class="rt-sep"></span>
+      <button type="button" data-c="ul" title="Lista com marcadores ( - espaço )">${RT_IC.ul}</button>
+      <button type="button" data-c="ol" title="Lista numerada ( 1. espaço )">${RT_IC.ol}</button>
+      <button type="button" data-c="ck" title="Checklist ( [] espaço )">${RT_IC.ck}</button>
+      <button type="button" data-c="q" title="Bloco de destaque ( > espaço )">${RT_IC.q}</button>
+      <button type="button" data-c="hr" title="Separador de seção ( --- Enter )">${RT_IC.hr}</button>
+      <span class="rt-sep"></span>
+      <button type="button" data-c="out" title="Diminuir recuo (Shift+Tab)">${RT_IC.out}</button>
+      <button type="button" data-c="in" title="Aumentar recuo (Tab)">${RT_IC.in}</button>
+    </div>
+    <div class="rt-ed" contenteditable="true" spellcheck="true" data-ph="${rtEsc(ta.getAttribute('placeholder')||'Escreva aqui…')}"></div>`;
+  ta.style.display='none'; ta.parentNode.insertBefore(caixa,ta);
+  const ed=caixa.querySelector('.rt-ed'), bar=caixa.querySelector('.rt-bar'), selT=caixa.querySelector('.rt-tipo');
+  try{ document.execCommand('defaultParagraphSeparator',false,'div'); document.execCommand('styleWithCSS',false,false); }catch(_){}
+  ed.innerHTML=rtMdParaHtml(ta.value); rtNormaliza(ed);
+
+  /* desfazer próprio: as trocas de bloco mexem no DOM direto e quebrariam o Ctrl+Z do navegador */
+  const hist=[], fut=[]; let tHist=null, ultMd=ta.value;
+  const foto=()=>({h:ed.innerHTML,c:rtCursor(ed)});
+  const guardar=()=>{ const f=foto(); if(hist.length&&hist[hist.length-1].h===f.h) return; hist.push(f); if(hist.length>200) hist.shift(); fut.length=0; };
+  guardar();
+  const sync=()=>{ rtNormaliza(ed); const md=rtHtmlParaMd(ed); if(md!==ultMd){ ultMd=md; ta.value=md; ta.dispatchEvent(new Event('input',{bubbles:true})); }
+    clearTimeout(tHist); tHist=setTimeout(guardar,400); pintaBar(); };
+  /* troca de estrutura: fn pode devolver {b,o} para onde o cursor deve ir; senão ele fica onde estava */
+  const estrutura=(fn)=>{ clearTimeout(tHist); guardar(); const c=rtCursor(ed); const dest=fn(); rtNormaliza(ed);
+    rtPor(ed,dest&&dest.b?{i:[...ed.children].indexOf(dest.b),o:dest.o||0}:c); guardar(); sync(); };
+  const volta=(de,para)=>{ if(!de.length) return; clearTimeout(tHist); const atual=foto(); const f=de.pop();
+    if(f.h===atual.h&&de.length){ para.push(f); const g=de.pop(); para.push(atual); ed.innerHTML=g.h; rtPor(ed,g.c); de.push(g); }
+    else { para.push(atual); ed.innerHTML=f.h; rtPor(ed,f.c); de.push(f); }
+    rtNormaliza(ed); const md=rtHtmlParaMd(ed); if(md!==ultMd){ ultMd=md; ta.value=md; ta.dispatchEvent(new Event('input',{bubbles:true})); } pintaBar(); };
+
+  const setTipo=(t)=>estrutura(()=>{
+    const bs=rtBlocosSel(ed).filter(b=>b.dataset.t!=='hr'); if(!bs.length) return;
+    const todos=bs.every(b=>b.dataset.t===t);
+    bs.forEach(b=>{ b.dataset.t=todos?'p':t; if(t==='ck'&&!todos) b.dataset.ok='0'; });
+  });
+  const recuo=(d)=>estrutura(()=>{ rtBlocosSel(ed).forEach(b=>{ const t=b.dataset.t; if(t==='hr'||t[0]==='h') return;
+    b.dataset.n=Math.max(0,Math.min(RT_MAXN,(+b.dataset.n||0)+d)); }); });
+  const separador=()=>estrutura(()=>{
+    const b=rtBlocosSel(ed).pop(); const hr=document.createElement('div'); hr.className='rt-b'; hr.dataset.t='hr'; hr.contentEditable='false'; hr.innerHTML='<span></span>';
+    const p=document.createElement('div'); p.className='rt-b'; p.dataset.t='p'; p.dataset.n='0'; p.innerHTML='<br>';
+    if(b&&!b.textContent&&b.dataset.t==='p'){ ed.insertBefore(hr,b); return {b,o:0}; }
+    const ref=b?b.nextSibling:null; ed.insertBefore(hr,ref); ed.insertBefore(p,hr.nextSibling); return {b:p,o:0};
+  });
+  const linkar=()=>{
+    const s=getSelection(); if(!s.rangeCount||!ed.contains(s.anchorNode)) return;
+    const r=s.getRangeAt(0).cloneRange(); const a=(s.anchorNode.parentElement||{}).closest?s.anchorNode.parentElement.closest('a'):null;
+    let u=prompt('Endereço do link (https://…)',a?a.getAttribute('href'):'https://'); if(u==null) return; u=u.trim();
+    getSelection().removeAllRanges(); getSelection().addRange(r);
+    if(!u||u==='https://'){ if(a) document.execCommand('unlink'); sync(); return; }
+    if(!/^[a-z]+:/i.test(u)) u='https://'+u;
+    if(!rtUrlOk(u)){ alert('Use um link http(s).'); return; }
+    if(r.collapsed&&!a){ document.execCommand('insertHTML',false,'<a href="'+rtEsc(u)+'">'+rtEsc(u)+'</a>&nbsp;'); }
+    else document.execCommand('createLink',false,u);
+    sync();
+  };
+  const cmd=(c)=>{ ed.focus();
+    if(c==='b') document.execCommand('bold'); else if(c==='i') document.execCommand('italic'); else if(c==='u') document.execCommand('underline');
+    else if(c==='a') return linkar(); else if(c==='hr') return separador();
+    else if(c==='in') return recuo(1); else if(c==='out') return recuo(-1);
+    else return setTipo(c);
+    sync(); };
+  bar.addEventListener('mousedown',e=>{ if(e.target.closest('button')) e.preventDefault(); });
+  bar.addEventListener('click',e=>{ const b=e.target.closest('button[data-c]'); if(b) cmd(b.dataset.c); });
+  selT.addEventListener('change',()=>{ ed.focus(); const c=selT.dataset.c; if(c) rtPor(ed,JSON.parse(c)); setTipo(selT.value); });
+  selT.addEventListener('mousedown',()=>{ selT.dataset.c=JSON.stringify(rtCursor(ed)); });
+  const pintaBar=()=>{
+    const bs=rtBlocosSel(ed); const t=bs[0]?bs[0].dataset.t:'p';
+    selT.value=['h1','h2','h3'].includes(t)?t:'p';
+    bar.querySelectorAll('button[data-c]').forEach(b=>{ const c=b.dataset.c; let on=false;
+      if(['ul','ol','ck','q'].includes(c)) on=t===c;
+      else if(c==='b'||c==='i'||c==='u'){ try{ on=document.queryCommandState({b:'bold',i:'italic',u:'underline'}[c]); }catch(_){} }
+      b.classList.toggle('on',on); });
+  };
+  const aoSel=()=>{ if(!ed.isConnected){ document.removeEventListener('selectionchange',aoSel); return; } if(document.activeElement===ed) pintaBar(); };
+  document.addEventListener('selectionchange',aoSel);   /* sai sozinho quando a folha fecha */
+
+  /* atalhos de Markdown enquanto digita: "# ", "## ", "### ", "- ", "1. ", "[] ", "> " */
+  /* vale quando o espaço logo depois do marcador acabou de ser digitado (tecla a tecla ou colado de uma vez) */
+  const ATALHOS=[[/^###\s/,'h3'],[/^##\s/,'h2'],[/^#\s/,'h1'],[/^[-*•]\s\[\s?\]\s/,'ck'],[/^\[\s?\]\s/,'ck'],[/^[-*•]\s/,'ul'],[/^1[.)]\s/,'ol'],[/^>\s/,'q']];
+  ed.addEventListener('input',e=>{
+    if(e.inputType==='insertText'&&/\s/.test(e.data||'')){
+      const b=rtBlocosSel(ed)[0], c=rtCursor(ed);
+      if(b&&c&&(b.dataset.t||'p')==='p'){ const tx=b.textContent.replace(/\u00a0/g,' '), ini=c.o-(e.data||'').length;
+        for(const [re,t] of ATALHOS){ const m=re.exec(tx); if(m&&ini<m[0].length&&c.o>=m[0].length){
+          const k0=m[0].length;
+          estrutura(()=>{ /* tira o marcador digitado */
+            const w=document.createTreeWalker(b,NodeFilter.SHOW_TEXT); let k=k0, tn;
+            while(k>0&&(tn=w.nextNode())){ const q=Math.min(k,tn.length); tn.nodeValue=tn.nodeValue.slice(q); k-=q; }
+            b.dataset.t=t; if(t==='ck') b.dataset.ok='0'; return {b,o:c.o-k0}; });
+          return; } } }
+    }
+    sync();
+  });
+  ed.addEventListener('keydown',e=>{
+    const mod=e.ctrlKey||e.metaKey, k=e.key.toLowerCase();
+    if(mod&&k==='z'&&!e.shiftKey){ e.preventDefault(); volta(hist,fut); return; }
+    if(mod&&(k==='y'||(k==='z'&&e.shiftKey))){ e.preventDefault(); volta(fut,hist); return; }
+    if(mod&&k==='k'){ e.preventDefault(); linkar(); return; }
+    if(mod&&(k==='b'||k==='i'||k==='u')){ e.preventDefault(); cmd(k); return; }
+    if(e.key==='Tab'){ e.preventDefault(); recuo(e.shiftKey?-1:1); return; }
+    const b=rtBlocosSel(ed)[0]; if(!b) return;
+    const t=b.dataset.t||'p';
+    if(e.key==='Enter'){
+      if(/^([-*_─━═=])\1{2,}$|^—{2,}$/.test(b.textContent.trim())&&t==='p'){ e.preventDefault(); estrutura(()=>{ b.innerHTML='<br>'; return {b,o:0}; }); separador(); return; }
+      if(!b.textContent&&t!=='p'&&getSelection().isCollapsed){     /* Enter em item vazio: sai da lista (ou volta um nível) */
+        e.preventDefault(); estrutura(()=>{ if(+b.dataset.n>0) b.dataset.n=+b.dataset.n-1; else b.dataset.t='p'; }); return; }
+      /* Enter divide o bloco: lista, checklist e destaque continuam; título vira texto */
+      e.preventDefault();
+      const c=rtCursor(ed), novoT=(t[0]==='h')?'p':t;
+      estrutura(()=>{
+        const r=getSelection().getRangeAt(0); if(!r.collapsed) r.deleteContents();
+        const nb=document.createElement('div'); nb.className='rt-b'; nb.dataset.n=b.dataset.n||'0';
+        if(c&&c.o===0&&b.textContent){            /* no começo de um bloco com texto: abre linha em cima */
+          nb.dataset.t=t[0]==='h'?'p':t; if(nb.dataset.t==='ck') nb.dataset.ok='0'; nb.innerHTML='<br>'; ed.insertBefore(nb,b); return {b,o:0}; }
+        const fim=document.createRange(); fim.setStart(r.startContainer,r.startOffset); fim.setEnd(b,b.childNodes.length);
+        const resto=fim.extractContents(); resto.querySelectorAll&&resto.querySelectorAll('br').forEach(x=>x.remove());
+        nb.dataset.t=novoT; if(novoT==='ck') nb.dataset.ok='0';
+        if(resto.textContent) nb.appendChild(resto); else nb.innerHTML='<br>';
+        b.querySelectorAll('br').forEach(x=>x.remove());
+        ed.insertBefore(nb,b.nextSibling); return {b:nb,o:0};
+      });
+      return;
+    }
+    if(e.key==='Backspace'&&rtNoInicio(ed)){
+      if(t!=='p'){ e.preventDefault(); estrutura(()=>{ b.dataset.t='p'; }); return; }       /* tira o tipo, mantém o texto */
+      if(+b.dataset.n>0){ e.preventDefault(); recuo(-1); return; }
+      const ant=b.previousElementSibling; if(ant&&ant.dataset.t==='hr'){ e.preventDefault(); estrutura(()=>ant.remove()); return; }
+    }
+  });
+  /* checkbox do checklist: clique na caixinha (à esquerda do texto) marca e desmarca */
+  ed.addEventListener('mousedown',e=>{
+    const b=e.target.closest&&e.target.closest('.rt-b[data-t="ck"]'); if(!b||b.parentNode!==ed) return;
+    const r=b.getBoundingClientRect(), pad=parseFloat(getComputedStyle(b).paddingLeft)||0;
+    if(e.clientX<r.left+pad&&e.clientX>r.left+pad-26){ e.preventDefault(); estrutura(()=>{ b.dataset.ok=b.dataset.ok==='1'?'0':'1'; }); }
+  });
+  /* link: Ctrl/Cmd+clique abre; clique simples mostra a dica */
+  ed.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a'); if(!a) return;
+    if(e.ctrlKey||e.metaKey){ e.preventDefault(); window.open(a.href,'_blank','noopener'); }
+    else { a.title='Ctrl+clique (⌘+clique no Mac) para abrir'; } });
+  /* colar: só texto. Várias linhas viram blocos pelo mesmo dialeto (dá para colar Markdown) */
+  ed.addEventListener('paste',e=>{
+    const tx=(e.clipboardData||window.clipboardData).getData('text/plain'); if(tx==null) return;
+    e.preventDefault();
+    if(!/\n/.test(tx)){ document.execCommand('insertText',false,tx); return; }
+    estrutura(()=>{
+      const s=getSelection(); if(!s.rangeCount) return; const r=s.getRangeAt(0); r.deleteContents();
+      const b=rtBlocoDe(ed,r.startContainer); const tmp=document.createElement('div'); tmp.innerHTML=rtMdParaHtml(tx.replace(/\s+$/,''));
+      const novos=[...tmp.children];
+      if(!b){ novos.forEach(n=>ed.appendChild(n)); return; }
+      const fim=document.createRange(); fim.setStart(r.startContainer,r.startOffset); fim.setEnd(b,b.childNodes.length);
+      const resto=fim.extractContents();                                   /* o que estava depois do cursor */
+      const prim=novos.shift(); if(prim&&prim.dataset.t!=='hr'){ while(prim.firstChild&&prim.firstChild.nodeName!=='BR') b.appendChild(prim.firstChild); if(b.dataset.t==='p'&&!b.textContent.trim()) b.dataset.t=prim.dataset.t; } else if(prim) novos.unshift(prim);
+      let ref=b; novos.forEach(n=>{ ed.insertBefore(n,ref.nextSibling); ref=n; });
+      if(resto.textContent){ const ult=ref.dataset.t==='hr'?null:ref; if(ult){ ult.querySelectorAll('br').forEach(x=>x.remove()); ult.appendChild(resto); } }
+    });
+  });
+  ed.addEventListener('blur',()=>{ clearTimeout(tHist); guardar(); });
+  pintaBar();
+  return {ed,caixa,md:()=>rtHtmlParaMd(ed),definir:(md)=>{ ed.innerHTML=rtMdParaHtml(md); rtNormaliza(ed); ultMd=md; guardar(); }};
+}
+const RT_IC=(()=>{ const s=(d)=>`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  return {
+    link:s('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>'),
+    ul:s('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/>'),
+    ol:s('<path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 4.5h1.2V9M3.6 9h2.4M3.6 14.2c.3-.7 2.4-.9 2.4.4 0 1-2.4 1.6-2.4 3h2.5" stroke-width="1.5"/>'),
+    ck:s('<rect x="3.5" y="4" width="7" height="7" rx="1.6"/><path d="m5.3 7.6 1.4 1.4 2.3-2.6"/><rect x="3.5" y="14" width="7" height="7" rx="1.6"/><path d="M14 7.5h7M14 17.5h7"/>'),
+    q:s('<rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M7.5 9.5h9M7.5 14.5h6"/><path d="M3 4.5v15" stroke-width="3.2"/>'),
+    hr:s('<path d="M3 12h18"/><path d="M7 6.5h10M7 17.5h10" opacity=".45"/>'),
+    in:s('<path d="M3 5h18M11 10h10M11 14h10M3 19h18"/><path d="m3 9.5 3.5 2.5L3 14.5"/>'),
+    out:s('<path d="M3 5h18M11 10h10M11 14h10M3 19h18"/><path d="M6.5 9.5 3 12l3.5 2.5"/>')
+  }; })();
+
 function ckLer(){ TK_CK.forEach((x,i)=>{ const e=document.getElementById('ck_t'+i), k=document.getElementById('ck_k'+i); if(e) x.t=e.value; if(k) x.ok=k.checked; }); }
 function ckPintar(){
   const el=document.getElementById('ck_lista'); if(!el) return;
@@ -12582,6 +12954,9 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         <span class="tkm-b" id="tkmBLogo"></span></button>`:''}
     </div></div>`,
     async ()=>{ return await tkmSalvar(t,lid,cps,false); });
+  /* editor rico por cima do #tk_desc (Bernardo 07/10): o textarea fica escondido e continua
+     sendo o que o autosave lê; o editor escreve nele e dispara 'input' */
+  { const _td=document.getElementById('tk_desc'); if(_td&&!_td.dataset.rt){ _td.dataset.rt='1'; try{ rtMontar(_td); }catch(e){ _td.style.display=''; console.error('editor da descrição',e); } } }
   /* ---------- AUTOSAVE, estilo ClickUp ----------
      Tarefa existente: cada mudanca grava sozinha (debounce de 600ms no texto,
      imediato em select/data/checkbox). Tarefa nova: o primeiro campo preenchido
