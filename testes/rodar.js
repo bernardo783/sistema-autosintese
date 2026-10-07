@@ -1382,6 +1382,32 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('a inicial do serviço vira o ícone', g.smIni(' instagram')==='I'&&g.smIni('')==='?');
       ok('na tabela, o link também copia', HTML.indexOf("onclick=\"copyLink('${r.id}')\"")>0&&HTML.indexOf('window.copyLink=')>0);
     }
+    grupo('Contato da ficha: dono, grupo, financeiro e botões (Bernardo 07/10)');
+    {
+      const cod=bloco('/* CONTATO DA FICHA (Bernardo 07/10)','window.openProjCard=');
+      const mk=(papel)=>rodar(cod,{esc:x=>String(x==null?'':x),zapsDe:f=>Array.isArray(f&&f.zaps)?f.zaps:[],
+        zapDe:t=>{ const d=String(t||'').replace(/\D+/g,''); return d.length<10?'':'https://wa.me/55'+d; },
+        mascTel:t=>'('+String(t).replace(/\D+/g,'').slice(0,2)+') '+String(t).replace(/\D+/g,'').slice(2),
+        linkIg:v=>{ v=String(v||'').trim(); return !v?'':(/^https?:\/\//i.test(v)?v:'https://instagram.com/'+v.replace(/^@/,'')); },
+        linkUrl:v=>{ v=String(v||'').trim(); return /^https?:\/\//i.test(v)?v:''; },
+        PCX_I:{}, RW:{grupos:{}}, rwGrupo:()=>null, currentUser:{role:papel}},['pcContatoDados','pcContatoHtml','igArroba']);
+      const g=mk('master');
+      const f={id:'p1',zaps:[{et:'Vendedor',nome:'Caio',num:'83966661111'},{et:'Dono',nome:'Irenio',num:'83988881234'},{et:'financeiro',nome:'Marta',num:'83977775678'}],
+        instagram:'https://www.instagram.com/ireniojr/',drive:'https://drive.google.com/x'};
+      const d=g.pcContatoDados(f,{resp:'Irenio',tel:'11900000000'});
+      ok('WhatsApp do dono sai da agenda pela etiqueta Dono', d.donoTel==='83988881234');
+      ok('financeiro sai da agenda pela etiqueta (sem diferenciar maiúscula)', d.finNome==='Marta'&&d.finTel==='83977775678');
+      const d2=g.pcContatoDados({id:'p2'},{resp:'Paulo',tel:'11912345678',fechamento:{telFin:'11955554444'}});
+      ok('sem agenda: dono pelo cadastro, financeiro pelo fechamento (respFin vazio = o próprio dono)', d2.donoTel==='11912345678'&&d2.finNome==='Paulo'&&d2.finTel==='11955554444');
+      ok('Instagram vira @perfil, sem o link', g.igArroba('https://www.instagram.com/ireniojr/')==='@ireniojr'&&g.igArroba('@loja')==='@loja'&&g.igArroba('loja')==='@loja');
+      const h=g.pcContatoHtml(f,{resp:'Irenio'}), hm=mk('membro').pcContatoHtml(f,{resp:'Irenio'});
+      ok('master vê Financeiro e WhatsApp do financeiro', h.indexOf('>Financeiro<')>0&&h.indexOf('WhatsApp do financeiro')>0);
+      ok('quem não é master não vê o financeiro', hm.indexOf('Financeiro<')<0&&hm.indexOf('Marta')<0&&hm.indexOf('77775678')<0);
+      ok('Instagram e Drive viram botão, sem o endereço escrito', h.indexOf('>@ireniojr<')>0&&h.indexOf('>Abrir pasta<')>0&&h.indexOf('>https://www.instagram.com/ireniojr/<')<0);
+      ok('os campos de editar continuam com os mesmos ids', h.indexOf('id="pc_insta"')>0&&h.indexOf('id="pc_drive"')>0);
+      ok('grupo do WhatsApp aparece e vincula pelo seletor da aba Relatórios', h.indexOf('Grupo do WhatsApp')>0&&cod.indexOf("rwEscolher(fid,")>0);
+      ok('mexer na agenda redesenha o Contato', HTML.indexOf("pcC.innerHTML=pcContatoHtml(f,c)")>0);
+    }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
       const cod=bloco("const AX_MAX=52428800;","const axIcone=");
