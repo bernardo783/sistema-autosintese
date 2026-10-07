@@ -9802,8 +9802,9 @@ window.renderFormularios=(c)=>{
         </div>
       </div>`; };
     c.innerHTML=`<div class="page-head">
-        <div><h2>Formulários recebidos</h2><div class="desc">Tudo que o cliente preencheu em autosintese.app.br/contrato.</div></div>
-        <div class="toolbar"><button class="btn secondary small" onclick="venCopiarLink()">Copiar link do formulário</button></div>
+        <div><h2>Formulários recebidos</h2><div class="desc">Tudo que o cliente preencheu em autosintese.app.br/contrato (loja de veículos) e /contrato-geral (outros negócios).</div></div>
+        <div class="toolbar"><button class="btn secondary small" onclick="venCopiarLink('loja')">Copiar link · Loja de veículos</button>
+          <button class="btn secondary small" onclick="venCopiarLink('geral')">Copiar link · Outros negócios</button></div>
       </div>
       <div class="fm-barra">
         ${perCampo(FM_DE,FM_ATE,"fmPer('de',this.value)","fmPer('ate',this.value)")}
@@ -9880,20 +9881,28 @@ window.venEscolher=(k)=>{
   if(k==='formularios')return render('formularios');
   if(k==='leads')      return render('leads');
 };
+/* Dois links do mesmo formulario (07/10): /contrato fala com loja de veiculos na abertura,
+   /contrato-geral e o mesmo formulario com texto generico pra quem nao e loja de carro.
+   Os dois caem na mesma tabela (contratos_form) e aparecem juntos em Formularios recebidos. */
 const VEN_FORM='https://autosintese.app.br/contrato';
-window.venCopiarLink=async ()=>{
-  try{ await navigator.clipboard.writeText(VEN_FORM); toast('Link copiado: é só colar pro cliente.'); }
+const VEN_FORM_GERAL='https://autosintese.app.br/contrato-geral';
+window.venCopiarLink=async (qual)=>{
+  const url=qual==='geral'?VEN_FORM_GERAL:VEN_FORM;
+  const pra=qual==='geral'?'cliente que não é loja de veículos':'loja de veículos';
+  try{ await navigator.clipboard.writeText(url); toast('Link copiado ('+pra+'): é só colar pro cliente.'); }
   catch(_){ /* o navegador bloqueou a copia: o link nao esta mais na tela, entao
                mostramos ele no proprio aviso pra pessoa copiar na mao */
-    toast('Não consegui copiar. O link é: '+VEN_FORM); }
+    toast('Não consegui copiar. O link é: '+url); }
 };
 window.renderVendas=(c)=>{
   c.innerHTML=`<div class="page-head"><div><h2>Vendas</h2><div class="desc">O que você vai fazer?</div></div></div>
     <div class="sup-grid">
       <div class="sup-card sup-copia">${venIco('form')}
         <b>Formulário de informações contratuais</b>
-        <span>Mande para o cliente preencher antes da reunião. O que vier dali abastece as duas etapas seguintes.</span>
-        <span class="sup-pe"><button onclick="venCopiarLink()">Copiar link</button>
+        <span>Mande para o cliente preencher antes da reunião. O que vier dali abastece as duas etapas seguintes.
+          São dois links com as mesmas perguntas: um para <b>loja de veículos</b> e um <b>genérico</b> para os demais negócios.</span>
+        <span class="sup-pe"><button onclick="venCopiarLink('loja')" title="autosintese.app.br/contrato">Copiar link · Loja de veículos</button>
+          <button onclick="venCopiarLink('geral')" title="autosintese.app.br/contrato-geral">Copiar link · Outros negócios</button>
           <button onclick="render('formularios')">Ver os recebidos${FC_FORMS.length?' ('+FC_FORMS.length+')':''}</button></span>
       </div>
       ${vendasOpcoes().map(o=>{
