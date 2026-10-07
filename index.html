@@ -17851,8 +17851,8 @@ function pcProps(it){
     ${row('status','Status',pcStatusHtml(it))}
     ${row('tipo','Tipo',tipo)}
     ${row('squad','Squad',sq||VZ,!it.squad)}
-    ${ia?'':row('pessoa','Gestor de tráfego',pes(it.responsavel,'responsavel'),!String(it.responsavel||'').trim())}
     ${row('chefe','Gerente',pes(it.gerente,'gerente'),!String(it.gerente||'').trim())}
+    ${ia?'':row('pessoa','Gestor de tráfego',pes(it.responsavel,'responsavel'),!String(it.responsavel||'').trim())}
     </div>
     <button type="button" class="pcx-rec" id="pcxRec" onclick="pcRecolher()">${PCX_I.abre}${pcRecolhe?'Mostrar campos vazios':'Recolher campos vazios'}</button>
   </div>`;
