@@ -239,6 +239,31 @@
   .dt-f button:hover{background:var(--panel2);color:var(--txt)}
   .dt-f .dt-hoje{color:#c4b8ff}
   .dt-hr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--muted)}
+  /* Contato da ficha (Bernardo 07/10): botões no lugar do link cru */
+  .pc-dl .v .pc-cts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+  .pc-chip{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:100%;padding:0 11px 0 5px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--txt);font:inherit;font-size:13px;font-weight:600;
+    text-decoration:none!important;cursor:pointer;transition:border-color .12s,background .12s;white-space:nowrap}
+  .pc-chip>span{overflow:hidden;text-overflow:ellipsis}
+  .pc-dl .v a.pc-chip,.pc-dl .v a.pc-chip:visited{color:var(--txt)}
+  .pc-chip:hover{border-color:var(--brand2);background:var(--hov2)}
+  .pc-chip .pc-ci{width:21px;height:21px;flex:none;border-radius:999px;display:grid;place-items:center;color:#fff}
+  .pc-chip .pc-ci svg{width:12px;height:12px}
+  .pc-chip .pc-ci.wa{background:#25d366}
+  .pc-chip .pc-ci.ig{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285aeb 90%)}
+  .pc-chip .pc-ci.dr{background:linear-gradient(135deg,#1fa463,#4688f4)}
+  .pc-chip .pc-ci.gr{background:color-mix(in srgb,#25d366 22%,transparent);color:#25d366}
+  .pc-chip .pc-sa{width:12px;height:12px;flex:none;opacity:.55}
+  .pc-chip.vz{border-style:dashed;background:none;color:var(--fraco);padding:0 12px;font-weight:500}
+  .pc-chip.vz:hover{color:var(--txt)}
+  .pc-chip.mini{height:26px;padding:0 10px;font-size:12px;color:var(--muted);background:none}
+  .pc-nm{font-weight:600}
+  .pc-ed{width:26px;height:26px;flex:none;display:grid;place-items:center;border:none;border-radius:7px;background:none;color:var(--fraco);
+    cursor:pointer;opacity:0;transition:opacity .12s;padding:0}
+  .pc-ed svg{width:14px;height:14px}
+  .pc-dl .v:hover .pc-ed,.pc-ed:focus-visible{opacity:1}
+  .pc-ed:hover{background:var(--hov3);color:var(--txt)}
+  @media(hover:none){ .pc-ed{opacity:1} }
   /* modal do cofre de senhas (Bernardo 07/10) */
   .sm-ov .modal{max-width:500px}
   .sm-top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
@@ -16949,7 +16974,8 @@ const PCX_I=(()=>{ const s=(d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="cu
     quadro:s('<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/>'),
     doc:s('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>'),
     fin:s('<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
-    flag:s('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>') }; })();
+    flag:s('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>'),
+    grupo:s('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>') }; })();
 let pcPainel=(()=>{ try{ const v=localStorage.getItem('pc_painel'); return v===null?'atv':v; }catch(_){ return 'atv'; } })();
 let pcRecolhe=(()=>{ try{ return localStorage.getItem('pc_recolhe')==='1'; }catch(_){ return false; } })();
 window.pcPainelSet=(pid,v)=>{ pcPainel=(v==='atv'||v==='rel')?v:''; try{ localStorage.setItem('pc_painel',pcPainel); }catch(_){} pcReabrir(pid); };
@@ -17449,6 +17475,8 @@ function zapPintar(fid,abrirForm,editando){
 /* mantem o texto verde da linha e a bolinha do icone em dia sem redesenhar o card */
 function zapContador(f){
   const n=zapsDe(f).length;
+  const pcC=document.getElementById('pcContato');
+  if(pcC&&!pcC.querySelector('.ed1')){ const c=f.clienteId?(DB.clientes||[]).find(x=>x.id===f.clienteId):null; pcC.innerHTML=pcContatoHtml(f,c); }
   const b=document.getElementById('zpBtnN');
   if(b){ b.textContent=n?(n+' número'+(n===1?'':'s')):'adicionar';
     const bt=b.closest('.zp-lk'); if(bt) bt.classList.toggle('vz',!n);
@@ -17496,6 +17524,69 @@ window.zapRemover=async (fid,zid)=>{
   zapContador(f);
   toast('Contato removido.');
 };
+/* CONTATO DA FICHA (Bernardo 07/10): Dono, WhatsApp do dono, grupo do WhatsApp, financeiro (nome e,
+   embaixo, o WhatsApp; só o master vê), Instagram e Drive. Instagram e Drive viram botão, sem o link
+   cru na frente. Os números vêm da agenda do cliente pela etiqueta ("Dono", "Financeiro"); sem
+   etiqueta, do cadastro (dono) e do fechamento (financeiro). */
+const PC_IC={
+  wa:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>',
+  ig:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="3.6"/></svg>',
+  dr:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"><path d="M3 8a1.5 1.5 0 0 1 1.5-1.5h4l2 2.4h9A1.5 1.5 0 0 1 21 10.4V18a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z"/></svg>',
+  gr:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>',
+  sa:'<svg class="pc-sa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>',
+  lap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'
+};
+const pcZapEt=(f,et)=>zapsDe(f).find(z=>String(z.et||'').trim().toLowerCase()===et)||null;
+const igArroba=(v)=>{ v=String(v||'').trim(); if(!v) return '';
+  const m=/instagram\.com\/([^/?#]+)/i.exec(v); return '@'+(m?m[1]:v.replace(/^@/,'')).replace(/\/+$/,''); };
+/* respFin some do fechamento quando é o próprio dono (fechamento grava só se for outra pessoa) */
+function pcContatoDados(f,cli){
+  const fe=(cli&&cli.fechamento)||{}, zd=pcZapEt(f,'dono'), zf=pcZapEt(f,'financeiro');
+  return {
+    donoTel:(zd&&zd.num)||(cli&&cli.tel)||'',
+    finNome:(zf&&zf.nome)||fe.respFin||(fe.telFin?(fe.dono||(cli&&cli.resp)||''):''),
+    finTel:(zf&&zf.num)||fe.telFin||''
+  };
+}
+const pcLinha=(rot,ic,leitura,o)=>{ o=o||{};
+  return `<div class="k"${o.titulo?` title="${esc(o.titulo)}"`:''}>${PCX_I[ic]||''}${rot}</div><div class="v${o.vazio?' vz':''}${o.fid?' aberta':''}"${o.fid?` data-f="${o.fid}" onclick="pcInline(event,this)"`:''}><span class="leitura">${leitura}</span><span class="campo">${o.campo||''}</span></div>`; };
+const pcChipZap=(num)=>{ const lk=zapDe(num);
+  return lk?`<a class="pc-chip" href="${esc(lk)}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp"><span class="pc-ci wa">${PC_IC.wa}</span><span>${esc(mascTel(num))}</span>${PC_IC.sa}</a>`
+    :`<span class="pc-nm">${esc(num)}</span>`; };
+const pcAddNum=(fid)=>`<button type="button" class="pc-chip vz" onclick="zapAbrir(event,'${esc(fid)}')">adicionar número</button>`;
+function pcGrupoChip(fid){
+  const g=rwGrupo(fid);
+  return g&&g.grupo_nome
+    ?`<button type="button" class="pc-chip" title="Trocar o grupo" onclick="pcGrupoEscolher('${esc(fid)}')"><span class="pc-ci gr">${PC_IC.gr}</span><span>${esc(g.grupo_nome)}</span></button>`
+    :`<button type="button" class="pc-chip vz" onclick="pcGrupoEscolher('${esc(fid)}')">vincular grupo</button>`;
+}
+window.pcGrupoEscolher=(fid)=>rwEscolher(fid,()=>{ const el=document.getElementById('pcGrupoWa'); if(el) el.innerHTML=pcGrupoChip(fid); });
+/* o grupo mora em cliente_grupos: a ficha busca o dela se a aba Relatórios ainda não carregou */
+async function pcGrupoCarregar(fid){
+  if(rwGrupo(fid)) return;
+  try{ const {data}=await sb.from('cliente_grupos').select('ficha_id,grupo_jid,grupo_nome').eq('ficha_id',String(fid)).maybeSingle();
+    if(data){ RW.grupos[String(fid)]=data; const el=document.getElementById('pcGrupoWa'); if(el) el.innerHTML=pcGrupoChip(fid); } }catch(_){}
+}
+window.pcEditar=(b)=>{ const v=b&&b.closest('.v'); if(v) pcInline({target:v},v); };
+function pcContatoHtml(f,cli){
+  const fid=f.id, d=pcContatoDados(f,cli), nZ=zapsDe(f).length, master=!!(currentUser&&currentUser.role==='master');
+  const lap=`<button type="button" class="pc-ed" title="Trocar o link" onclick="pcEditar(this)">${PC_IC.lap}</button>`;
+  const igV=f.instagram||(cli&&cli.instagram)||'', drV=f.drive||(cli&&cli.drive)||'';
+  const igL=linkIg(igV), drL=linkUrl(drV);
+  return pcLinha('Dono','pessoa', (cli&&cli.resp)?esc(cli.resp):'<span class="pcx-vz">Vazio</span>', {vazio:!(cli&&cli.resp)})
+    +pcLinha('WhatsApp do dono','zap', `<span class="pc-cts">${d.donoTel?pcChipZap(d.donoTel):pcAddNum(fid)}${nZ?`<button type="button" class="pc-chip mini" title="Todos os números do cliente" onclick="zapAbrir(event,'${esc(fid)}')">agenda · ${nZ}</button>`:''}</span>`, {vazio:!d.donoTel})
+    +pcLinha('Grupo do WhatsApp','grupo', `<span class="pc-cts" id="pcGrupoWa">${pcGrupoChip(fid)}</span>`)
+    +(master
+      ?pcLinha('Financeiro','chave', d.finNome?esc(d.finNome):'<span class="pcx-vz">Vazio</span>', {vazio:!d.finNome,titulo:'Responsável financeiro · só o master vê'})
+       +pcLinha('WhatsApp do financeiro','zap', `<span class="pc-cts">${d.finTel?pcChipZap(d.finTel):pcAddNum(fid)}</span>`, {vazio:!d.finTel,titulo:'Só o master vê'})
+      :'')
+    +pcLinha('Instagram','ig', `<span class="pc-cts">${igL?`<a class="pc-chip" href="${esc(igL)}" target="_blank" rel="noopener" title="Abrir o Instagram"><span class="pc-ci ig">${PC_IC.ig}</span><span>${esc(igArroba(igV))}</span>${PC_IC.sa}</a>${lap}`
+        :`<button type="button" class="pc-chip vz" onclick="pcEditar(this)">adicionar Instagram</button>`}</span>`,
+      {vazio:!igL,fid:'pc_insta',campo:`<input id="pc_insta" value="${esc(igV)}" placeholder="@perfil ou link">`})
+    +pcLinha('Drive','drive', `<span class="pc-cts">${drL?`<a class="pc-chip" href="${esc(drL)}" target="_blank" rel="noopener" title="Abrir a pasta no Drive"><span class="pc-ci dr">${PC_IC.dr}</span><span>Abrir pasta</span>${PC_IC.sa}</a>${lap}`
+        :`<button type="button" class="pc-chip vz" onclick="pcEditar(this)">adicionar pasta</button>`}</span>`,
+      {vazio:!drL,fid:'pc_drive',campo:`<input id="pc_drive" value="${esc(drV)}" placeholder="Link da pasta no Drive">`});
+}
 window.openProjCard=(id)=>{
   const it=DB.projetos.find(x=>x.id===id); if(!it) return;
   if(soAgentIA(it)&&cliAba==='contas') cliAba='geral';
@@ -17573,13 +17664,7 @@ window.openProjCard=(id)=>{
       </div>
 
       ${cat('Contato')}
-      <div class="pc-dl">
-        ${li('Dono', esc((cli&&cli.resp)||'definir'), `<input value="${esc((cli&&cli.resp)||'')}" disabled style="opacity:.6">`, !(cli&&cli.resp),null,'pessoa')}
-        ${(()=>{ const zl=`<button type="button" class="zp-lk${nZaps?'':' vz'}" onclick="zapAbrir(event,'${it.id}')">${I_ZAP}<span id="zpBtnN">${nZaps?(nZaps+' número'+(nZaps===1?'':'s')):'adicionar'}</span></button>`;
-          return li('WhatsApp', zl, zl, !nZaps, null, 'zap'); })()}
-        ${li('Instagram', igLk?`<a href="${esc(igLk)}" target="_blank" rel="noopener">${esc(it.instagram||(cli&&cli.instagram))}</a>`:'definir', `<input id="pc_insta" value="${esc(it.instagram||(cli&&cli.instagram)||'')}" placeholder="@perfil ou link">`, !igLk, 'pc_insta','ig')}
-        ${li('Drive', drLk?`<a href="${esc(drLk)}" target="_blank" rel="noopener">abrir a pasta</a>`:'definir', `<input id="pc_drive" value="${esc(it.drive||(cli&&cli.drive)||'')}" placeholder="Link da pasta no Drive">`, !drLk, 'pc_drive','drive')}
-      </div>
+      <div class="pc-dl" id="pcContato">${pcContatoHtml(it,cli)}</div>
 
       ${(!soAgentIA(it)&&(temTraf||it.orcamento||catDe(it)==='trafego'||catDe(it)==='full'))?`${cat('Tráfego pago')}
       <div class="pc-dl">
@@ -17644,6 +17729,7 @@ window.openProjCard=(id)=>{
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
   if(cliAba==='logos') lgPintar('lgBox',it.id,'ficha');
+  if(cliAba==='geral') pcGrupoCarregar(it.id);
   if(pcPainel==='atv') ltCarregar(it.id);
   if(pcPainel==='rel') pcDocCarregar(it.id);
   /* sem dado do Meta: busca em segundo plano e redesenha as propriedades */
