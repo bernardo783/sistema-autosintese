@@ -239,6 +239,48 @@
   .dt-f button:hover{background:var(--panel2);color:var(--txt)}
   .dt-f .dt-hoje{color:#c4b8ff}
   .dt-hr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--muted)}
+  /* FICHA v3 (Bernardo 07/10, estilo ClickUp): uma grade só pra topo, abas e tabelas;
+     abas com o sublinhado colado no texto; tabelas com moldura e linha vertical */
+  .pcx{--pc-pad:24px;--pc-k:210px}
+  .pcx-cab{padding:22px var(--pc-pad) 6px}
+  .pcx-props{padding:6px var(--pc-pad) 4px}
+  .modal.pcx .pcx-props .pr{grid-template-columns:var(--pc-k) minmax(0,1fr);gap:0;min-height:46px}
+  .modal.pcx .pcx-ptab{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .modal.pcx .pcx-ptab>.pr+.pr{border-top:1px solid var(--line)}
+  .modal.pcx .pcx-ptab>.pr>.k{align-self:stretch;padding:8px 14px;border-right:1px solid var(--line)}
+  .modal.pcx .pcx-ptab>.pr>.v{padding:8px 14px}
+  .modal.pcx .pcx-ptab>.pr:hover{background:var(--hov1)}
+  .modal.pcx .pcx-rec{margin-top:8px}
+  .modal.pcx .mbody{padding:18px var(--pc-pad)}
+  .modal.pcx .pc-tabs{margin:22px var(--pc-pad) 0;padding:0;gap:24px;border-bottom:1px solid var(--line)}
+  .modal.pcx .pc-tabs .ftab{position:relative;padding:0 0 11px;margin:0;border:0!important;border-radius:0!important;background:none!important;
+    box-shadow:none!important;font-size:14px;font-weight:500;color:var(--fraco)}
+  .modal.pcx .pc-tabs .ftab:hover{color:var(--txt)}
+  .modal.pcx .pc-tabs .ftab.active{color:var(--txt);font-weight:600}
+  .modal.pcx .pc-tabs .ftab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--brand2)}
+  .modal.pcx .pc-tabs .ftab .pc-n{background:var(--hov2);color:var(--fraco)}
+  .modal.pcx .pc-cat{margin:26px 0 10px}
+  .modal.pcx .pc-cat::after{display:none}
+  .modal.pcx .pc-cat h4{font-size:15px;font-weight:700;color:var(--txt)}
+  .modal.pcx .pc-dl{grid-template-columns:var(--pc-k) minmax(0,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .modal.pcx .pc-dl>div{min-height:46px;border-bottom:1px solid var(--line)}
+  .modal.pcx .pc-dl>div:nth-last-child(-n+2){border-bottom:0}
+  .modal.pcx .pc-dl>.k{padding:8px 14px;border-right:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .modal.pcx .pc-dl>.v{margin:0;padding:8px 14px;border-radius:0}
+  .modal.pcx .pc-chip{height:26px;padding:0 10px 0 4px;font-size:12.5px}
+  .modal.pcx .pc-chip .pc-ci{width:19px;height:19px}
+  .modal.pcx .pc-chip.mini{height:24px;padding:0 9px}
+  .modal.pcx .pc-chip.vz{padding:0 11px}
+  .modal.pcx .pc-dl>.v.aberta:hover{background:var(--hov1)}
+  .modal.pcx .pc-dl .pc-pes{padding-left:0}
+  .pcx-gruda{position:sticky;top:0;z-index:6;height:0}
+  .pcx-gruda>div{display:flex;align-items:center;gap:10px;height:48px;padding:0 var(--pc-pad);background:var(--panel);border-bottom:1px solid var(--line);
+    font-size:14.5px;font-weight:700;opacity:0;transform:translateY(-6px);transition:opacity .15s,transform .15s;pointer-events:none}
+  .pcx-gruda>div>svg{width:16px;height:16px;flex:none;opacity:.8}
+  .pcx-gruda>div>b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pcx-gruda .pcx-gr-st{margin-left:auto;font-weight:500}
+  .pcx-gruda.on>div{opacity:1;transform:none;pointer-events:auto}
+  @media(max-width:900px){ .pcx{--pc-k:140px} }
   /* painel de tráfego da aba Contas (Bernardo 07/10) */
   .tfp{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--hov1);margin:4px 0 6px}
   .tfp-h{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
@@ -17671,13 +17713,14 @@ function pcProps(it){
     ?`<button type="button" class="pc-st" style="color:${catCor};background:color-mix(in srgb,${catCor} 12%,transparent);border-color:color-mix(in srgb,${catCor} 33%,transparent)" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">${esc(CAT_LABEL[it.categoria])}<span class="pc-tipo-s">&#9662;</span></button>`
     :`<button type="button" class="pc-tipo vz" title="Mudar o tipo de cliente" onclick="pcTipoMenu(event,'${esc(it.id)}')">definir tipo<span class="pc-tipo-s">&#9662;</span></button>`;
   const sq=pcSquadHtml(it).replace(/^<i><\/i>/,'');
-  return `<div class="pcx-props${pcRecolhe?' recolhe':''}" id="pcxProps">
+  return `<div class="pcx-props${pcRecolhe?' recolhe':''}" id="pcxProps"><div class="pcx-ptab">
     ${row('status','Status',pcStatusHtml(it))}
     ${row('tipo','Tipo',tipo)}
     ${row('squad','Squad',sq||VZ,!it.squad)}
     ${ia?'':row('pessoa','Gestor de tráfego',pes(it.responsavel,'responsavel'),!String(it.responsavel||'').trim())}
     ${row('chefe','Gerente',pes(it.gerente,'gerente'),!String(it.gerente||'').trim())}
     ${MS&&MS.t?row('mens','Mensalidade',mens,!MS.v):''}
+    </div>
     <button type="button" class="pcx-rec" id="pcxRec" onclick="pcRecolher()">${PCX_I.abre}${pcRecolhe?'Mostrar campos vazios':'Recolher campos vazios'}</button>
   </div>`;
 }
@@ -18178,13 +18221,13 @@ window.openProjCard=(id)=>{
     </div>
     <div class="pcx-corpo">
     <div class="pcx-main">
+    <div class="pcx-gruda" id="pcxGruda" aria-hidden="true"><div>${PCX_I.loja||''}<b>${esc(it.nome)}</b><span class="pcx-gr-st">${pcStatusHtml(it)}</span></div></div>
     <div class="pcx-cab">
       ${(master||souGerenteDaFicha(it.id))
         ?`<div class="pc-nome ed" title="Clique para renomear" onclick="cliNomeInline(this,'${it.id}')">${esc(it.nome)}</div>`
         :`<div class="pc-nome">${esc(it.nome)}</div>`}
     </div>
     ${pcProps(it)}
-    ${soAgentIA(it)?'':pcGrupoBarra(it)}
 
     <div class="fin-tabs pc-tabs">
       <button class="ftab ${cliAba==='geral'?'active':''}" onclick="cliIrPara('${it.id}','geral')">${PCX_I.doc}Ficha</button>
@@ -18265,6 +18308,10 @@ window.openProjCard=(id)=>{
   };
   window.__pcRedraw=()=>{ const el=document.getElementById('pcCheck'); if(el) el.innerHTML=drawCheck(); };
   if(cliAba==='logos') lgPintar('lgBox',it.id,'ficha');
+  /* rolou passando do nome: o cabeçalho compacto aparece (Bernardo 07/10, estilo ClickUp) */
+  { const pm=o.querySelector('.pcx-main'), gr=o.querySelector('#pcxGruda'), cb=o.querySelector('.pcx-cab');
+    if(pm&&gr&&cb){ const ve=()=>{ const on=pm.scrollTop>cb.offsetTop+cb.offsetHeight-8; gr.classList.toggle('on',on); gr.setAttribute('aria-hidden',String(!on)); };
+      pm.addEventListener('scroll',ve,{passive:true}); ve(); } }
   if(cliAba==='geral') pcGrupoCarregar(it.id);
   if(pcPainel==='atv') ltCarregar(it.id);
   if(pcPainel==='rel') pcDocCarregar(it.id);
