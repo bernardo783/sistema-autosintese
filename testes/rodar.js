@@ -1368,6 +1368,20 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('na segunda, "próxima semana" é a segunda seguinte', seg['Próxima semana'].startsWith('2026-10-19')&&seg['Este fim de semana'].startsWith('2026-10-17'));
       ok('o calendário tem os atalhos ao lado do mês', HTML.indexOf("pop.classList.add('dt-cu')")>0&&HTML.indexOf('class="dt-at"')>0&&HTML.indexOf('.dtpop.dt-cu{')>0);
     }
+    grupo('Cofre de senhas: copiar no modal, sem campo Cliente (Bernardo 07/10)');
+    {
+      const cod=bloco('/* Modal do cofre (Bernardo 07/10)','window.delSenha=');
+      ok('o modal não pede mais o cliente', cod.indexOf("selFicha('m_ficha'")<0&&cod.indexOf("$('#m_ficha')")<0);
+      ok('senha que já tinha cliente continua com ele ao salvar', cod.indexOf("fichaId:it.fichaId||''")>0);
+      ok('login, senha e link têm botão de copiar dentro do modal', ['m_login','m_senha','m_url'].every(k=>cod.indexOf("linha(`<input id=\""+k+"\"")>0)&&cod.indexOf("onclick=\"smCopiar('${campo}','${rot}',this)\"")>0);
+      ok('"Copiar acesso" leva login, senha e link juntos', cod.indexOf("'Login: '+l")>0&&cod.indexOf("'Senha: '+p")>0&&cod.indexOf("'Link: '+u")>0);
+      ok('a senha abre escondida e o olho mostra', cod.indexOf('id="m_senha" class="sm-oculta"')>0&&HTML.indexOf('.sm-oculta.sm-ver{-webkit-text-security:none')>0);
+      ok('a visibilidade continua indo pelo m_vis', cod.indexOf('<input type="hidden" id="m_vis" value="${vis}">')>0&&cod.indexOf("const priv=$('#m_vis').value==='priv';")>0);
+      const g=rodar(bloco('const smIni=','function smFeito('),{},['smIni','smUrl']);
+      ok('link sem https abre com https', g.smUrl('instagram.com')==='https://instagram.com'&&g.smUrl('http://a.b')==='http://a.b'&&g.smUrl('')==='');
+      ok('a inicial do serviço vira o ícone', g.smIni(' instagram')==='I'&&g.smIni('')==='?');
+      ok('na tabela, o link também copia', HTML.indexOf("onclick=\"copyLink('${r.id}')\"")>0&&HTML.indexOf('window.copyLink=')>0);
+    }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
       const cod=bloco("const AX_MAX=52428800;","const axIcone=");
