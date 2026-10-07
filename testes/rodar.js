@@ -2100,3 +2100,4 @@ console.log('\n'+(falhas
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
 process.exit(falhas?1:0);
 }
+
