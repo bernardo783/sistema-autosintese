@@ -1407,6 +1407,7 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('os campos de editar continuam com os mesmos ids', h.indexOf('id="pc_insta"')>0&&h.indexOf('id="pc_drive"')>0);
       ok('grupo do WhatsApp aparece e vincula pelo seletor da aba Relatórios', h.indexOf('Grupo do WhatsApp')>0&&cod.indexOf("rwEscolher(fid,")>0);
       ok('mexer na agenda redesenha o Contato', HTML.indexOf("pcC.innerHTML=pcContatoHtml(f,c)")>0);
+      ok('lápis e "adicionar" abrem só a linha, não a ficha inteira (Bernardo 07/10)', cod.indexOf('pcEditar(this)')<0&&cod.indexOf('onclick="pcEditarLinha(this)"')>0&&(HTML.match(/window\.pcEditarLinha=/g)||[]).length===1);
     }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
