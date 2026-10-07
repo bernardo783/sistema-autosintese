@@ -1426,8 +1426,8 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       g.__mtDados=[];
       ok('sem dado do Meta, fica vazio', g.adsPagMeta('p1')==='');
       ok('a ficha grava a forma escolhida e a verba pelo campo que mudou', HTML.indexOf("if(g('pc_adspag')!==null) it.adsPag=g('pc_adspag');")>0&&HTML.indexOf("await pcVerbaGravar(it,peloMes?verbaDoMes(em.value):g('pc_orc'));")>0);
-      ok('atalho de campo de tráfego abre a aba Contas', HTML.indexOf("const PC_CAMPO_TRAF=['pc_adspag','pc_orc','pc_orcm','pc_aviso'];")>0&&HTML.indexOf("const aba=PC_CAMPO_TRAF.indexOf(fid)>=0?'contas':'geral';")>0);
-      ok('painel de tráfego: conta, forma de pagamento, verba, gasto, saldo e aviso', ['tfp-ac','tfp-pg',"pcAbrirCampo('pc_orc')","pcAbrirCampo('pc_aviso')",'<small>Gasto</small>','<small>Saldo</small>'].every(x=>bloco('function pcTrafegoPainel(it){','function pcProps(it){').indexOf(x)>0));
+      ok('atalho de campo de tráfego abre o painel do Meta (Bernardo 07/10)', HTML.indexOf("const PC_CAMPO_TRAF=['pc_adspag','pc_orc','pc_orcm','pc_aviso'];")>0&&HTML.indexOf("if(PC_CAMPO_TRAF.indexOf(fid)>=0){ if(pcMeta) return; pcMeta=true;")>0);
+      ok('painel do Meta: conta, investido, leads e saldo', ['pmt-ac','Investido · ','por lead','Saldo da conta',"rwEscolherConta("].every(x=>bloco('function pcMetaTopo(it){','function pcProps(it){').indexOf(x)>0));
       ok('Tráfego pago tem forma de pagamento, verba semanal, verba mensal e avisar em', ["li('Forma de pagamento'","li('Verba semanal'","li('Verba mensal'","li('Avisar em'"].every(x=>HTML.indexOf(x)>0));
     }
     grupo('Ficha v3, parte 1: abas, grade única, tabelas com linhas e cabeçalho que gruda (Bernardo 07/10)');
@@ -1437,6 +1437,18 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('topo também em tabela, com linha horizontal e vertical (Bernardo 07/10)', HTML.indexOf('id="pcxProps"><div class="pcx-ptab">')>0&&HTML.indexOf('.modal.pcx .pcx-ptab>.pr>.k{align-self:stretch;padding:8px 14px;border-right:1px solid var(--line)}')>0);
       ok('tabelas com linha vertical entre rótulo e valor', HTML.indexOf('.modal.pcx .pc-dl>.k{padding:8px 14px;border-right:1px solid var(--line)')>0);
       ok('cabeçalho que gruda com nome e status', HTML.indexOf('<div class="pcx-gruda" id="pcxGruda" aria-hidden="true"><div>${PCX_I.loja||\'\'}<b>${esc(it.nome)}</b><span class="pcx-gr-st">${pcStatusHtml(it)}</span></div></div>')>0&&HTML.indexOf("gr.classList.toggle('on',on)")>0);
+    }
+    grupo('Ficha v3, parte 2: Meta à esquerda, Itens relacionados em cartões e Atividade nova (Bernardo 07/10)');
+    {
+      ok('atalho do Meta no canto esquerdo, com pontinho quando o saldo acaba', HTML.indexOf('<div class="pcx-lrail"><button type="button" class="pcx-ri${pcMeta?\' on\':\'\'}" title="Meta Ads')>0&&HTML.indexOf('<span class="pcx-pt${rk.nivel===\'critico\'?\' critico\':\'\'}"></span>')>0);
+      ok('aberto ou fechado fica lembrado', HTML.indexOf("let pcMeta=(()=>{ try{ return localStorage.getItem('pc_meta')==='1';")>0);
+      ok('aba Contas fica só com as contas de anúncio', HTML.indexOf("cliAba==='contas'?('<p class=\"hint\" style=\"margin:0 0 12px\">Verba, saldo e forma de pagamento ficam no atalho do Meta, à esquerda.</p>'+abaContasCliente(it))")>0);
+      const g=rodar(bloco('let LT_FIL=','window.ltCarregar='),{},['ltCat','ltIcone']);
+      ok('atividade separa comentário, tarefa, pagamento e Meta', g.ltCat({cls:'nota'})==='com'&&g.ltCat({cls:'tarefa abre'})==='tar'&&g.ltCat({cls:'feito abre'})==='tar'&&g.ltCat({cls:'fin'})==='pag'&&g.ltCat({cls:'gasto alerta'})==='meta'&&g.ltCat({cls:'ficha'})==='fic');
+      ok('cada registro com o ícone do tipo', g.ltIcone({cls:'tarefa abre'})==='mais'&&g.ltIcone({cls:'feito abre'})==='feito'&&g.ltIcone({cls:'fin'})==='din'&&g.ltIcone({cls:'gasto'})==='meta'&&g.ltIcone({cls:'ficha',html:'NPS: <b>Neutro</b>'})==='estrela');
+      ok('filtros no topo e comentário com Responder', HTML.indexOf('<div class="pcx-fil" id="ltFil"></div>')>0&&HTML.indexOf("ltResponder(")>0&&HTML.indexOf('window.ltFiltrar=')>0);
+      ok('caixa de comentário com barra de ferramentas', HTML.indexOf('<div class="pcx-ctool"><span class="pcx-ctipo">Comentário</span>')>0&&HTML.indexOf('onclick="ltArroba()"')>0);
+      ok('Meta compara com a leitura anterior da mesma conta', HTML.indexOf("x.sub='dia anterior '+brl(p.g)")>0&&HTML.indexOf("o.meta={conta:d.conta||'',g:+d.gasto||0,l:+d.leads||0};")>0);
     }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
@@ -1502,7 +1514,7 @@ grupo('Agent IA: ficha sem gestor, conta, verba, gasto, saldo e contas (Gabriel 
   ok('sem tipo não é (palpite não conta)', g.soAgentIA({})===false);
   const props=bloco('function pcProps(it){','function pcFaixa(it){');
   ok('painel: gestor de tráfego some', /\$\{ia\?'':row\('pessoa'/.test(props));
-  ok('conta, verba, gasto e saldo saíram do topo da Ficha e moram na aba Contas (Bernardo 07/10)', props.indexOf("row('conta'")<0&&props.indexOf("row('saldo'")<0&&props.indexOf("row('link'")<0&&HTML.indexOf("cliAba==='contas'?(pcTrafegoPainel(it)+tfCampos+")>0);
+  ok('conta, verba, gasto e saldo saíram do topo e moram no painel do Meta, à esquerda (Bernardo 07/10)', props.indexOf("row('conta'")<0&&props.indexOf("row('saldo'")<0&&props.indexOf("row('link'")<0&&HTML.indexOf('<div class="pcx-metac">${pcMetaTopo(it)}${tfCampos}')>0&&HTML.indexOf("cliAba==='contas'?(pcTrafegoPainel")<0);
   ok('Agent IA não tem campos de tráfego', HTML.indexOf("const tfCampos=soAgentIA(it)?'':`")>0);
   ok('aba Contas some para Agent IA; a barra de contas saiu da ficha para todos (Bernardo 07/10)', HTML.indexOf("pcGrupoBarra(it)}")<0 && (HTML.match(/\$\{soAgentIA\(it\)\?'':`<button class="ftab/g)||[]).length===1);
   ok('aba Logos aparece para todo cliente, inclusive Agent IA', /\n\s*<button class="ftab \$\{cliAba==='logos'/.test(HTML) && HTML.indexOf("if(soAgentIA(it)&&cliAba==='contas') cliAba='geral';")>0);
@@ -1826,7 +1838,8 @@ grupo('Ficha estilo ClickUp: propriedades e Relacionamentos (Gabriel 23/09)');
   const g=rodar(cod,{esc:s=>String(s),TK:{tarefas:T,listas:[{id:'CAMP',nome:'Campanhas'},{id:'TEC',nome:'03. Tecnologia'}]},
     ehListaCli:l=>l==='LC',arquivada:()=>false,spNome:l=>l.nome,tkHoje:()=>'2026-09-23',tkStatus1:()=>null,tkCorLinha:()=>'#888',
     TK_ST:{todo:'A fazer',feito:'Concluída'},PRIO_COR:{},TK_PRIO:{alta:'Alta'},dtCurto:x=>x.slice(8,10)+'/'+x.slice(5,7),tkCaminho:()=>'',
-    abaFinCliente:()=>'<div>FIN</div>',currentUser:{role:'master'},contasDoCliente:()=>[],MT_LEADS:[],LT_PER:{},brl:v=>'R$ '+v,
+    abaFinCliente:()=>'<div>FIN</div>',currentUser:{role:'master'},lcPgDe:()=>'recebido',LC_PG:{recebido:{rot:'PAGO',cor:'#3fcf8e'}},LC_REM:'REM',
+    DB:{recebimentos:[]},rcSituacao:()=>null,hojeISO:()=>'2026-09-23',contasDoCliente:()=>[],MT_LEADS:[],LT_PER:{},brl:v=>'R$ '+v,
     finDaFicha:()=>({valor:1500}),linkIg:()=>'',linkUrl:()=>'',zapsDe:()=>[],CAT_LABEL:{trafego:'Tráfego Pago'},pcSquadHtml:()=>'<i></i><span>01</span>',
     verbaSemDe:()=>null,souGerenteDaFicha:()=>false,pcCardLC:()=>({id:'t3',valores:{MENS:1500}}),LC_MENS:'MENS',compNow:()=>'2026-09',
     fmtComp:()=>'set/2026',lcMensVigente:()=>1200,
@@ -1835,9 +1848,9 @@ grupo('Ficha estilo ClickUp: propriedades e Relacionamentos (Gabriel 23/09)');
   const it={id:'f1',nome:'LEAL MOTOS',clienteId:'c1',categoria:'trafego',squad:'01',responsavel:'Luan',gerente:'João'};
   ok('relacionamentos: só as tarefas desse cliente, sem o card do Controle de Clientes', g.pcRelTarefas(it).length===2);
   const h=g.pcRelPainel(it);
-  ok('documento do cliente vem primeiro', h.indexOf('Documento do cliente')>0&&h.indexOf('Documento do cliente')<h.indexOf('Campanhas'));
-  ok('tarefas agrupadas por lista (Campanhas e Tecnologia)', /Campanhas/.test(h)&&/03\. Tecnologia/.test(h));
-  ok('prazo vencido fica marcado', /class="p tarde">20\/09/.test(h));
+  ok('dados do contrato ficam fechados no fim e só abrem ao clicar (Bernardo 07/10)', /<details class="pcx-rc pcx-det" ontoggle="if\(this\.open/.test(h)&&h.indexOf('Dados do contrato')>h.indexOf('Tarefas'));
+  ok('tarefas em tabela com a lista de cada uma (Campanhas e Tecnologia)', /<span>Nome<\/span><span>Lista<\/span><span>Status<\/span>/.test(h)&&/Campanhas/.test(h)&&/03\. Tecnologia/.test(h));
+  ok('prazo vencido fica marcado', /class="tarde">20\/09/.test(h));
   ok('financeiro mora em Relacionamentos (master)', /FIN/.test(h));
   const pp=g.pcProps(it);
   ok('propriedades: Status, Tipo, Squad, Gestor e Gerente; tráfego e Links não ficam mais no topo (Bernardo 07/10)',
@@ -1845,12 +1858,13 @@ grupo('Ficha estilo ClickUp: propriedades e Relacionamentos (Gabriel 23/09)');
     &&['Conta de anúncio','Verba','Gasto','Saldo','Links'].every(r=>pp.indexOf('>'+r+'</span>')<0&&pp.indexOf(r+'</span>')<0));
   ok('campo vazio marcado pra poder recolher', /class="pr vz"/.test(g.pcProps(Object.assign({},it,{squad:'',gerente:''})))&&/Recolher campos vazios/.test(pp));
   /* mensalidade na ficha (Gabriel 30/09) */
-  ok('master vê a Mensalidade do mês e clica para mudar', /Mensalidade<\/span>/.test(pp)&&/pcMensEditar\('f1'\)/.test(pp)&&/R\$ 1200/.test(pp));
-  ok('valor só do mês avisa qual é o recorrente', /só em set\/2026 · recorrente R\$ 1500/.test(pp));
-  ok('Mensalidade fica logo depois do Gerente, por último', pp.indexOf('Gerente</span>')<pp.indexOf('Mensalidade</span>')&&pp.indexOf('Mensalidade</span>')<pp.indexOf('pcxRec'));
+  ok('master vê a Mensalidade nos Itens relacionados e clica para mudar (Bernardo 07/10)', /<b>Mensalidade<\/b>/.test(h)&&/pcMensEditar\('f1'\)/.test(h)&&/R\$ 1200/.test(h));
+  ok('valor só do mês avisa qual é o recorrente', /só em set\/2026 · recorrente R\$ 1500/.test(h));
+  ok('Mensalidade saiu do topo e vem primeiro nos Itens relacionados', pp.indexOf('Mensalidade')<0&&h.indexOf('<b>Mensalidade</b>')<h.indexOf('<b>Tarefas</b>'));
+  ok('pagamento do mês aparece na Mensalidade', /Este mês<\/span><span><span class="pcx-pill"[^>]*>Pago</.test(h));
   ok('mudar pela ficha usa o mesmo caminho da coluna da lista', /await tkSetVal\(M\.t\.id,LC_MENS,v\);/.test(cod));
   { const g2=rodar(cod,Object.assign({},g,{currentUser:{role:'membro'}}),['pcProps']);
-    ok('quem não é master nem gerente do cliente não vê a Mensalidade', !/Mensalidade<\/span>/.test(g2.pcProps(it))); }
+    ok('quem não é master nem gerente do cliente não vê a Mensalidade nem os dados do contrato', !/Mensalidade/.test(g2.pcRelPainel(it))&&!/Dados do contrato/.test(g2.pcRelPainel(it))&&!/Mensalidade/.test(g2.pcProps(it))); }
   ok('cartão principal sem aba Financeiro', !/onclick="cliIrPara\('\$\{it\.id\}','fin'\)">Financeiro/.test(HTML));
   ok('barra da direita: Detalhes, Atividade e Relacionamentos', /title="Detalhes"/.test(HTML)&&/title="Atividade"/.test(HTML)&&/title="Relacionamentos"/.test(HTML));
 }
