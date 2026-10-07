@@ -1411,6 +1411,25 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('mexer na agenda redesenha o Contato', HTML.indexOf("pcC.innerHTML=pcContatoHtml(f,c)")>0);
       ok('lápis e "adicionar" abrem só a linha, não a ficha inteira (Bernardo 07/10)', cod.indexOf('pcEditar(this)')<0&&cod.indexOf('onclick="pcEditarLinha(this)"')>0&&(HTML.match(/window\.pcEditarLinha=/g)||[]).length===1);
     }
+    grupo('Tráfego pago da ficha: forma de pagamento dos anúncios e verba mensal (Bernardo 07/10)');
+    {
+      const cod=bloco('/* TRÁFEGO PAGO DA FICHA (Bernardo 07/10)','async function pcVerbaGravar(');
+      const g=rodar(cod,{contasDoCliente:()=>[{id:'act_1'}],pagConta:(c)=>c.pag},['verbaMes','verbaDoMes','verbaMesDe','adsPagMeta','ADS_PAG']);
+      ok('semanal vira mensal em mês de 30 dias (350 → 1.500)', g.verbaMes(350)===1500&&g.verbaMes(0)===0);
+      ok('mensal vira semanal de volta (1.500 → 350; aceita vírgula)', g.verbaDoMes(1500)===350&&g.verbaDoMes('1000,00')===233.33);
+      ok('mensal digitada aparece igual (2.000 não vira 2.000,01)', g.verbaMesDe({verbaMes:2000},g.verbaDoMes(2000))===2000&&g.verbaMesDe({verbaMes:2000},350)===1500);
+      ok('opções: cartão, Pix ou boleto', JSON.stringify(g.ADS_PAG)===JSON.stringify(['Cartão de crédito','Pix','Boleto']));
+      g.__mtDados=[{id:'act_1',pag:{prepago:true}}];
+      ok('sem escolha na ficha, mostra o que o Meta diz (pré-pago)', g.adsPagMeta('p1')==='Pré-pago (Pix ou boleto)');
+      g.__mtDados=[{id:'act_1',pag:{prepago:false,cartao:'Visa ····1234'}}];
+      ok('… ou o cartão da conta', g.adsPagMeta('p1')==='Cartão Visa ····1234');
+      g.__mtDados=[];
+      ok('sem dado do Meta, fica vazio', g.adsPagMeta('p1')==='');
+      ok('a ficha grava a forma escolhida e a verba pelo campo que mudou', HTML.indexOf("if(g('pc_adspag')!==null) it.adsPag=g('pc_adspag');")>0&&HTML.indexOf("await pcVerbaGravar(it,peloMes?verbaDoMes(em.value):g('pc_orc'));")>0);
+      ok('atalho de campo de tráfego abre a aba Contas', HTML.indexOf("const PC_CAMPO_TRAF=['pc_adspag','pc_orc','pc_orcm','pc_aviso'];")>0&&HTML.indexOf("const aba=PC_CAMPO_TRAF.indexOf(fid)>=0?'contas':'geral';")>0);
+      ok('painel de tráfego: conta, forma de pagamento, verba, gasto, saldo e aviso', ['tfp-ac','tfp-pg',"pcAbrirCampo('pc_orc')","pcAbrirCampo('pc_aviso')",'<small>Gasto</small>','<small>Saldo</small>'].every(x=>bloco('function pcTrafegoPainel(it){','function pcProps(it){').indexOf(x)>0));
+      ok('Tráfego pago tem forma de pagamento, verba semanal, verba mensal e avisar em', ["li('Forma de pagamento'","li('Verba semanal'","li('Verba mensal'","li('Avisar em'"].every(x=>HTML.indexOf(x)>0));
+    }
     grupo('Anexos: envio em pedaços com retomada e limite num lugar só (Gabriel 01/10)');
     {
       const cod=bloco("const AX_MAX=52428800;","const axIcone=");
@@ -1475,7 +1494,8 @@ grupo('Agent IA: ficha sem gestor, conta, verba, gasto, saldo e contas (Gabriel 
   ok('sem tipo não é (palpite não conta)', g.soAgentIA({})===false);
   const props=bloco('function pcProps(it){','function pcFaixa(it){');
   ok('painel: gestor de tráfego some', /\$\{ia\?'':row\('pessoa'/.test(props));
-  ok('painel: conta, verba, gasto e saldo somem', /\$\{ia\?'':`\$\{row\('conta'/.test(props) && props.indexOf("row('saldo'")>0);
+  ok('conta, verba, gasto e saldo saíram do topo da Ficha e moram na aba Contas (Bernardo 07/10)', props.indexOf("row('conta'")<0&&props.indexOf("row('saldo'")<0&&props.indexOf("row('link'")<0&&HTML.indexOf("cliAba==='contas'?(pcTrafegoPainel(it)+tfCampos+")>0);
+  ok('Agent IA não tem campos de tráfego', HTML.indexOf("const tfCampos=soAgentIA(it)?'':`")>0);
   ok('aba Contas e barra de contas somem', HTML.indexOf("${soAgentIA(it)?'':pcGrupoBarra(it)}")>0 && (HTML.match(/\$\{soAgentIA\(it\)\?'':`<button class="ftab/g)||[]).length===1);
   ok('aba Logos aparece para todo cliente, inclusive Agent IA', /\n\s*<button class="ftab \$\{cliAba==='logos'/.test(HTML) && HTML.indexOf("if(soAgentIA(it)&&cliAba==='contas') cliAba='geral';")>0);
   ok('aba Logos não barra Agent IA', HTML.indexOf('Cliente só de Agent IA: não tem logo guardada')<0);
@@ -1812,13 +1832,14 @@ grupo('Ficha estilo ClickUp: propriedades e Relacionamentos (Gabriel 23/09)');
   ok('prazo vencido fica marcado', /class="p tarde">20\/09/.test(h));
   ok('financeiro mora em Relacionamentos (master)', /FIN/.test(h));
   const pp=g.pcProps(it);
-  ok('propriedades: Status, Tipo, Squad, Gestor, Gerente, Conta, Verba, Gasto, Saldo, Links',
-    ['Status','Tipo','Squad','Gestor de tráfego','Gerente','Conta de anúncio','Verba','Gasto','Saldo','Links'].every(r=>pp.indexOf('>'+r+'</span>')>0||pp.indexOf(r+'</span>')>0));
-  ok('campo vazio marcado pra poder recolher', /class="pr vz"/.test(pp)&&/Recolher campos vazios/.test(pp));
+  ok('propriedades: Status, Tipo, Squad, Gestor e Gerente; tráfego e Links não ficam mais no topo (Bernardo 07/10)',
+    ['Status','Tipo','Squad','Gestor de tráfego','Gerente'].every(r=>pp.indexOf(r+'</span>')>0)
+    &&['Conta de anúncio','Verba','Gasto','Saldo','Links'].every(r=>pp.indexOf('>'+r+'</span>')<0&&pp.indexOf(r+'</span>')<0));
+  ok('campo vazio marcado pra poder recolher', /class="pr vz"/.test(g.pcProps(Object.assign({},it,{squad:'',gerente:''})))&&/Recolher campos vazios/.test(pp));
   /* mensalidade na ficha (Gabriel 30/09) */
   ok('master vê a Mensalidade do mês e clica para mudar', /Mensalidade<\/span>/.test(pp)&&/pcMensEditar\('f1'\)/.test(pp)&&/R\$ 1200/.test(pp));
   ok('valor só do mês avisa qual é o recorrente', /só em set\/2026 · recorrente R\$ 1500/.test(pp));
-  ok('Mensalidade fica entre Gerente e Conta de anúncio', pp.indexOf('Gerente</span>')<pp.indexOf('Mensalidade</span>')&&pp.indexOf('Mensalidade</span>')<pp.indexOf('Conta de anúncio</span>'));
+  ok('Mensalidade fica logo depois do Gerente, por último', pp.indexOf('Gerente</span>')<pp.indexOf('Mensalidade</span>')&&pp.indexOf('Mensalidade</span>')<pp.indexOf('pcxRec'));
   ok('mudar pela ficha usa o mesmo caminho da coluna da lista', /await tkSetVal\(M\.t\.id,LC_MENS,v\);/.test(cod));
   { const g2=rodar(cod,Object.assign({},g,{currentUser:{role:'membro'}}),['pcProps']);
     ok('quem não é master nem gerente do cliente não vê a Mensalidade', !/Mensalidade<\/span>/.test(g2.pcProps(it))); }
