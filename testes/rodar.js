@@ -1390,7 +1390,7 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
         mascTel:t=>'('+String(t).replace(/\D+/g,'').slice(0,2)+') '+String(t).replace(/\D+/g,'').slice(2),
         linkIg:v=>{ v=String(v||'').trim(); return !v?'':(/^https?:\/\//i.test(v)?v:'https://instagram.com/'+v.replace(/^@/,'')); },
         linkUrl:v=>{ v=String(v||'').trim(); return /^https?:\/\//i.test(v)?v:''; },
-        PCX_I:{}, RW:{grupos:{}}, rwGrupo:()=>null, currentUser:{role:papel}},['pcContatoDados','pcContatoHtml','igArroba']);
+        PCX_I:{}, RW:{grupos:{}}, rwGrupo:()=>null, currentUser:{role:papel}, corDoNome:()=>'#000'},['pcContatoDados','pcContatoHtml','igArroba','nomeGente','pcIni']);
       const g=mk('master');
       const f={id:'p1',zaps:[{et:'Vendedor',nome:'Caio',num:'83966661111'},{et:'Dono',nome:'Irenio',num:'83988881234'},{et:'financeiro',nome:'Marta',num:'83977775678'}],
         instagram:'https://www.instagram.com/ireniojr/',drive:'https://drive.google.com/x'};
@@ -1406,6 +1406,8 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('Instagram e Drive viram botão, sem o endereço escrito', h.indexOf('>@ireniojr<')>0&&h.indexOf('>Abrir pasta<')>0&&h.indexOf('>https://www.instagram.com/ireniojr/<')<0);
       ok('os campos de editar continuam com os mesmos ids', h.indexOf('id="pc_insta"')>0&&h.indexOf('id="pc_drive"')>0);
       ok('grupo do WhatsApp aparece e vincula pelo seletor da aba Relatórios', h.indexOf('Grupo do WhatsApp')>0&&cod.indexOf("rwEscolher(fid,")>0);
+      ok('nome em CAIXA ALTA vira nome de gente, com iniciais', g.nomeGente('GUILHERME CESAR DE OLIVEIRA')==='Guilherme Cesar de Oliveira'&&g.pcIni('GUILHERME CESAR DE OLIVEIRA')==='GO'&&g.pcIni('Marta (esposa)')==='M');
+      ok('financeiro igual ao dono aparece como "o próprio dono"', g.pcContatoHtml({id:'p3'},{resp:'Paulo Lima',fechamento:{telFin:'11955554444'}}).indexOf('o próprio dono')>0);
       ok('mexer na agenda redesenha o Contato', HTML.indexOf("pcC.innerHTML=pcContatoHtml(f,c)")>0);
       ok('lápis e "adicionar" abrem só a linha, não a ficha inteira (Bernardo 07/10)', cod.indexOf('pcEditar(this)')<0&&cod.indexOf('onclick="pcEditarLinha(this)"')>0&&(HTML.match(/window\.pcEditarLinha=/g)||[]).length===1);
     }
