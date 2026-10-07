@@ -17567,10 +17567,11 @@ async function pcGrupoCarregar(fid){
   try{ const {data}=await sb.from('cliente_grupos').select('ficha_id,grupo_jid,grupo_nome').eq('ficha_id',String(fid)).maybeSingle();
     if(data){ RW.grupos[String(fid)]=data; const el=document.getElementById('pcGrupoWa'); if(el) el.innerHTML=pcGrupoChip(fid); } }catch(_){}
 }
-window.pcEditar=(b)=>{ const v=b&&b.closest('.v'); if(v) pcInline({target:v},v); };
+/* pcEditar (sem Linha) é o que liga a edição da ficha inteira: este abre só a linha */
+window.pcEditarLinha=(b)=>{ const v=b&&b.closest('.v'); if(v) pcInline({target:v},v); };
 function pcContatoHtml(f,cli){
   const fid=f.id, d=pcContatoDados(f,cli), nZ=zapsDe(f).length, master=!!(currentUser&&currentUser.role==='master');
-  const lap=`<button type="button" class="pc-ed" title="Trocar o link" onclick="pcEditar(this)">${PC_IC.lap}</button>`;
+  const lap=`<button type="button" class="pc-ed" title="Trocar o link" onclick="pcEditarLinha(this)">${PC_IC.lap}</button>`;
   const igV=f.instagram||(cli&&cli.instagram)||'', drV=f.drive||(cli&&cli.drive)||'';
   const igL=linkIg(igV), drL=linkUrl(drV);
   return pcLinha('Dono','pessoa', (cli&&cli.resp)?esc(cli.resp):'<span class="pcx-vz">Vazio</span>', {vazio:!(cli&&cli.resp)})
@@ -17581,10 +17582,10 @@ function pcContatoHtml(f,cli){
        +pcLinha('WhatsApp do financeiro','zap', `<span class="pc-cts">${d.finTel?pcChipZap(d.finTel):pcAddNum(fid)}</span>`, {vazio:!d.finTel,titulo:'Só o master vê'})
       :'')
     +pcLinha('Instagram','ig', `<span class="pc-cts">${igL?`<a class="pc-chip" href="${esc(igL)}" target="_blank" rel="noopener" title="Abrir o Instagram"><span class="pc-ci ig">${PC_IC.ig}</span><span>${esc(igArroba(igV))}</span>${PC_IC.sa}</a>${lap}`
-        :`<button type="button" class="pc-chip vz" onclick="pcEditar(this)">adicionar Instagram</button>`}</span>`,
+        :`<button type="button" class="pc-chip vz" onclick="pcEditarLinha(this)">adicionar Instagram</button>`}</span>`,
       {vazio:!igL,fid:'pc_insta',campo:`<input id="pc_insta" value="${esc(igV)}" placeholder="@perfil ou link">`})
     +pcLinha('Drive','drive', `<span class="pc-cts">${drL?`<a class="pc-chip" href="${esc(drL)}" target="_blank" rel="noopener" title="Abrir a pasta no Drive"><span class="pc-ci dr">${PC_IC.dr}</span><span>Abrir pasta</span>${PC_IC.sa}</a>${lap}`
-        :`<button type="button" class="pc-chip vz" onclick="pcEditar(this)">adicionar pasta</button>`}</span>`,
+        :`<button type="button" class="pc-chip vz" onclick="pcEditarLinha(this)">adicionar pasta</button>`}</span>`,
       {vazio:!drL,fid:'pc_drive',campo:`<input id="pc_drive" value="${esc(drV)}" placeholder="Link da pasta no Drive">`});
 }
 window.openProjCard=(id)=>{
