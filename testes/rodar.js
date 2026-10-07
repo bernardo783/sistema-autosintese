@@ -1856,6 +1856,7 @@ grupo('Ficha estilo ClickUp: propriedades e Relacionamentos (Gabriel 23/09)');
   ok('propriedades: Status, Tipo, Squad, Gestor e Gerente; tráfego e Links não ficam mais no topo (Bernardo 07/10)',
     ['Status','Tipo','Squad','Gestor de tráfego','Gerente'].every(r=>pp.indexOf(r+'</span>')>0)
     &&['Conta de anúncio','Verba','Gasto','Saldo','Links'].every(r=>pp.indexOf('>'+r+'</span>')<0&&pp.indexOf(r+'</span>')<0));
+  ok('Gerente vem antes do Gestor de tráfego no topo da ficha (Bernardo 07/10)', pp.indexOf('Gerente</span>')>0&&pp.indexOf('Gerente</span>')<pp.indexOf('Gestor de tráfego</span>'));
   ok('campo vazio marcado pra poder recolher', /class="pr vz"/.test(g.pcProps(Object.assign({},it,{squad:'',gerente:''})))&&/Recolher campos vazios/.test(pp));
   /* mensalidade na ficha (Gabriel 30/09) */
   ok('master vê a Mensalidade nos Itens relacionados e clica para mudar (Bernardo 07/10)', /<b>Mensalidade<\/b>/.test(h)&&/pcMensEditar\('f1'\)/.test(h)&&/R\$ 1200/.test(h));
