@@ -258,6 +258,10 @@
   .pc-chip.vz:hover{color:var(--txt)}
   .pc-chip.mini{height:26px;padding:0 10px;font-size:12px;color:var(--muted);background:none}
   .pc-nm{font-weight:600}
+  .pc-pes{display:inline-flex;align-items:center;gap:9px;min-width:0;padding-left:6px}
+  .pc-av{width:21px;height:21px;flex:none;border-radius:999px;display:grid;place-items:center;color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.02em}
+  .pc-pn{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pc-tg{font-size:11px;font-weight:600;color:var(--fraco);border:1px solid var(--line);border-radius:999px;padding:1px 8px;white-space:nowrap}
   .pc-ed{width:26px;height:26px;flex:none;display:grid;place-items:center;border:none;border-radius:7px;background:none;color:var(--fraco);
     cursor:pointer;opacity:0;transition:opacity .12s;padding:0}
   .pc-ed svg{width:14px;height:14px}
@@ -17993,6 +17997,15 @@ function pcContatoDados(f,cli){
     finTel:(zf&&zf.num)||fe.telFin||''
   };
 }
+/* nome de gente com bolinha de iniciais; o fechamento grava em CAIXA ALTA e ficava gritando
+   na ficha (Bernardo 07/10) */
+const PC_PART=['de','da','do','das','dos','e'];
+const nomeGente=(n)=>String(n||'').trim().toLowerCase().split(/\s+/).filter(Boolean)
+  .map((w,i)=>i&&PC_PART.indexOf(w)>=0?w:w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+const pcIni=(n)=>{ const p=nomeGente(n).replace(/\(.*?\)/g,' ').split(/\s+/).filter(w=>w&&PC_PART.indexOf(w)<0);
+  return ((p[0]||'?').charAt(0)+(p.length>1?p[p.length-1].charAt(0):'')).toUpperCase(); };
+const pcPessoa=(n,extra)=>{ const nm=nomeGente(n);
+  return `<span class="pc-pes"><span class="pc-av" style="background:${corDoNome(nm)}">${esc(pcIni(nm))}</span><span class="pc-pn">${esc(nm)}</span>${extra||''}</span>`; };
 const pcLinha=(rot,ic,leitura,o)=>{ o=o||{};
   return `<div class="k"${o.titulo?` title="${esc(o.titulo)}"`:''}>${PCX_I[ic]||''}${rot}</div><div class="v${o.vazio?' vz':''}${o.fid?' aberta':''}"${o.fid?` data-f="${o.fid}" onclick="pcInline(event,this)"`:''}><span class="leitura">${leitura}</span><span class="campo">${o.campo||''}</span></div>`; };
 const pcChipZap=(num)=>{ const lk=zapDe(num);
@@ -18019,11 +18032,12 @@ function pcContatoHtml(f,cli){
   const lap=`<button type="button" class="pc-ed" title="Trocar o link" onclick="pcEditarLinha(this)">${PC_IC.lap}</button>`;
   const igV=f.instagram||(cli&&cli.instagram)||'', drV=f.drive||(cli&&cli.drive)||'';
   const igL=linkIg(igV), drL=linkUrl(drV);
-  return pcLinha('Dono','pessoa', (cli&&cli.resp)?esc(cli.resp):'<span class="pcx-vz">Vazio</span>', {vazio:!(cli&&cli.resp)})
+  const mesmo=d.finNome&&cli&&cli.resp&&nomeGente(d.finNome)===nomeGente(cli.resp);
+  return pcLinha('Dono','pessoa', (cli&&cli.resp)?pcPessoa(cli.resp):'<span class="pcx-vz">Vazio</span>', {vazio:!(cli&&cli.resp)})
     +pcLinha('WhatsApp do dono','zap', `<span class="pc-cts">${d.donoTel?pcChipZap(d.donoTel):pcAddNum(fid)}${nZ?`<button type="button" class="pc-chip mini" title="Todos os números do cliente" onclick="zapAbrir(event,'${esc(fid)}')">agenda · ${nZ}</button>`:''}</span>`, {vazio:!d.donoTel})
     +pcLinha('Grupo do WhatsApp','grupo', `<span class="pc-cts" id="pcGrupoWa">${pcGrupoChip(fid)}</span>`)
     +(master
-      ?pcLinha('Financeiro','chave', d.finNome?esc(d.finNome):'<span class="pcx-vz">Vazio</span>', {vazio:!d.finNome,titulo:'Responsável financeiro · só o master vê'})
+      ?pcLinha('Financeiro','chave', d.finNome?pcPessoa(d.finNome,mesmo?'<span class="pc-tg">o próprio dono</span>':''):'<span class="pcx-vz">Vazio</span>', {vazio:!d.finNome,titulo:'Responsável financeiro · só o master vê'})
        +pcLinha('WhatsApp do financeiro','zap', `<span class="pc-cts">${d.finTel?pcChipZap(d.finTel):pcAddNum(fid)}</span>`, {vazio:!d.finTel,titulo:'Só o master vê'})
       :'')
     +pcLinha('Instagram','ig', `<span class="pc-cts">${igL?`<a class="pc-chip" href="${esc(igL)}" target="_blank" rel="noopener" title="Abrir o Instagram"><span class="pc-ci ig">${PC_IC.ig}</span><span>${esc(igArroba(igV))}</span>${PC_IC.sa}</a>${lap}`
