@@ -1274,6 +1274,80 @@
   .tk-lista:hover .tk-n{display:none}
   .tk-star{color:var(--warn);font-size:10px;flex:none}
   /* menu de contexto */
+  /* Tráfego Pago › Contas de anúncio (Bernardo 07/10): tabela no lugar dos cartões, alertas viram filtros */
+  .tp-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);background:none;padding:0;border-radius:0}
+  .tp-tabs .ftab{position:relative;background:none;border:0;border-radius:0;padding:10px 12px;font-size:13.5px;font-weight:600;color:var(--fraco);box-shadow:none}
+  .tp-tabs .ftab:hover{color:var(--txt);background:none}
+  .tp-tabs .ftab.active{color:var(--txt);background:none;box-shadow:none}
+  .tp-tabs .ftab.active::after{content:'';position:absolute;left:8px;right:8px;bottom:-1px;height:2px;border-radius:2px;background:var(--brand2)}
+  .tp-tabs .tp-n{font-size:11px;font-weight:700;color:var(--fraco);background:var(--hov2);padding:1px 6px;border-radius:99px;margin-left:6px}
+  .tp-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 0}
+  .tp-busca{display:flex;align-items:center;gap:8px;height:34px;padding:0 11px;border-radius:9px;box-shadow:inset 0 0 0 1px var(--line);background:var(--panel);color:var(--fraco);min-width:220px;flex:0 1 300px}
+  .tp-busca svg{width:15px;height:15px;flex:none}
+  .tp-busca input{border:0;background:none;outline:none;color:var(--txt);font:inherit;font-size:13.5px;width:100%;padding:0;box-shadow:none}
+  .tp-sel{height:34px;padding:0 10px;border-radius:9px;border:0;box-shadow:inset 0 0 0 1px var(--line);background:var(--panel);color:var(--muted);font:inherit;font-size:13px}
+  .tp-seg{display:inline-flex;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line);border-radius:9px;padding:3px}
+  .tp-seg button{border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--fraco);padding:5px 11px;border-radius:6px;cursor:pointer}
+  .tp-seg button.on{background:var(--panel2);color:var(--txt);box-shadow:0 1px 2px rgba(0,0,0,.25),inset 0 0 0 1px var(--line)}
+  .tp-sp{flex:1}
+  .tp-upd{font-size:12.5px;color:var(--fraco)}
+  .tp-ib{width:34px;height:34px;border-radius:9px;display:inline-grid;place-items:center;color:var(--fraco);border:0;background:none;cursor:pointer;padding:0}
+  .tp-ib:hover{background:var(--hov2);color:var(--txt)}
+  .tp-ib.sm{width:28px;height:28px}
+  .tp-ib svg,.tp-rel svg{width:15px;height:15px}
+  .tp-cfgw{position:relative}
+  .tp-pop{position:absolute;right:0;top:40px;z-index:50;min-width:260px;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);padding:12px;display:grid;gap:10px;font-size:13px;color:var(--muted)}
+  .tp-pop[hidden]{display:none}
+  .tp-pop input{width:64px;margin:0 6px;height:30px;padding:0 8px;border-radius:7px;border:0;box-shadow:inset 0 0 0 1px var(--line);background:var(--hov1);color:var(--txt);font:inherit}
+  .tp-pop button{border:0;background:var(--hov2);color:var(--txt);font:inherit;font-size:12.5px;font-weight:600;padding:8px 10px;border-radius:8px;cursor:pointer;text-align:left}
+  .tp-res{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+  .tp-res:empty{display:none}
+  @media(max-width:820px){.tp-res{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .tp-r{padding:14px 16px;border-radius:12px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line)}
+  .tp-r .k{font-size:12px;font-weight:600;color:var(--fraco)}
+  .tp-r .v{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+  .tp-r .s{font-size:12.5px;color:var(--fraco);margin-top:2px}
+  .tp-r.al{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 40%,transparent);background:color-mix(in srgb,var(--warn) 6%,var(--panel))}
+  .tp-r.al .v{color:var(--warn)}
+  .tp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+  .tp-chips:empty{display:none}
+  .tp-chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:99px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);cursor:pointer}
+  .tp-chip:hover{background:var(--hov2)}
+  .tp-chip.on{background:var(--txt);color:var(--bg);box-shadow:none}
+  .tp-chip i{width:7px;height:7px;border-radius:50%}
+  .tp-chip span{font-size:11.5px;opacity:.75}
+  .tp-tw{margin-top:12px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);background:var(--panel);overflow:auto}
+  .tp-t{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;min-width:860px}
+  .tp-t th{position:sticky;top:0;background:var(--panel);text-align:left;font-size:12px;font-weight:600;color:var(--fraco);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none;text-transform:none;letter-spacing:0}
+  .tp-t th.on{color:var(--txt)}
+  .tp-t th .o{margin-left:4px}
+  .tp-t .num{text-align:right}
+  .tp-t td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .tp-t tbody tr{cursor:pointer}
+  .tp-t tbody tr:hover td{background:var(--hov1)}
+  .tp-t tbody td:first-child{box-shadow:inset 3px 0 0 var(--sev,transparent)}
+  .tp-t tfoot td{font-weight:700;border-bottom:0;background:var(--hov1)}
+  .tp-cli{max-width:290px}
+  .tp-cli b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+  .tp-cli small{display:block;font-size:12px;color:var(--fraco);margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+  .tp-ges{display:inline-flex;align-items:center;gap:8px}
+  .tp-semg{color:var(--warn);font-weight:600}
+  .tp-wn{color:var(--warn)}
+  .tp-fr{color:var(--fraco)}
+  .tp-st{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600}
+  .tp-st::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+  .tp-st.ok{color:var(--ok)}.tp-st.wn{color:var(--warn)}.tp-st.dg{color:var(--danger)}.tp-st.fr{color:var(--fraco)}
+  .tp-dl{display:inline-block;margin-left:6px;font-size:11.5px;font-weight:700;padding:1px 6px;border-radius:5px}
+  .tp-dl.up{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
+  .tp-dl.dn{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+  .tp-sal{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+  .tp-sal small{font-size:11.5px;color:var(--fraco)}
+  .tp-bar{width:84px;height:4px;border-radius:4px;background:var(--hov3);overflow:hidden}
+  .tp-bar i{display:block;height:100%;border-radius:4px}
+  .tp-ac{display:flex;gap:4px;justify-content:flex-end;align-items:center}
+  .tp-rel{height:28px;padding:0 10px;border-radius:7px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .tp-rel:hover{background:var(--hov2);color:var(--txt)}
+  .tp-vazio{padding:26px;text-align:center;color:var(--fraco);font-size:13.5px}
   .ctxm{position:fixed;z-index:3000;min-width:200px;background:var(--panel);border:1px solid var(--line);
     border-radius:10px;padding:5px;box-shadow:0 16px 44px rgba(0,0,0,.55)}
   .ctxm button{display:flex;align-items:center;gap:9px;width:100%;background:transparent;border:none;
@@ -5271,70 +5345,18 @@ window.tpArquivarAbrir=async()=>{
   if(!mtContas().length){ if(!window.__mtBuscando) metaCarregar(true); await rwEsperaContas(20000); }
   pinta();
 };
-function renderTrafego(c){
-  if(trafAba==='central') trafAba='contas';   /* a Central da agência virou os alertas da aba Contas (05/10) */
-  c.innerHTML=`
-   <div class="page-head">
-     <div><h2>Tráfego Pago <button type="button" class="tp-arq" onclick="tpArquivarAbrir()" title="Arquivar a conta de anúncios de um cliente">Arquivar</button></h2><div class="desc">Campanhas e contas de anúncio por cliente</div></div>
-     <div class="toolbar"><input class="search" id="tSearch" placeholder="Buscar..."><button class="btn small" onclick="openTrafModal()">+ Campanha</button></div>
-   </div>
-   <div class="fin-tabs">
-     <button class="ftab ${trafAba==='relatorios'?'active':''}" onclick="trafGo('relatorios')">${RW_IC_WA} Relatórios</button>
-     <button class="ftab ${trafAba==='contas'?'active':''}" onclick="trafGo('contas')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6a10 10 0 0 1 14 0M8.5 16.1a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0"/><path d="M12 20h.01"/></svg> Contas de anúncio</button>
-     <button class="ftab ${trafAba==='conexao'?'active':''}" onclick="trafGo('conexao')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5M9 8V2M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"/></svg> Conexão</button>
-     <button class="ftab ${trafAba==='equipes'?'active':''}" onclick="trafGo('equipes')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> Squads</button>
-   </div>
-   ${trafAba!=='contas'?`<div id="trafSub">${trafAba==='relatorios'?rwAba():trafAba==='conexao'?abaConexao():trafAba==='equipes'?abaEquipes():rwAba()}</div>`:`
-   <div id="tpAlertas">${tpAlertasHTML()}</div>
-   <details class="tp-todas"><summary>Todas as contas do Meta e campanhas</summary>
-   <div class="cards">
-     <div class="card"><div class="k">Clientes ativos</div><div class="v pos" id="mtAtivos">-</div><div class="sub" id="mtAtivosSub">contas habilitadas no Meta</div></div>
-     <div class="card"><div class="k">Clientes sem saldo</div><div class="v" id="mtSemSaldo">-</div><div class="sub" id="mtSemSaldoSub">saldo confirmado na conta</div></div>
-     <div class="card"><div class="k">Pararam de gastar</div><div class="v" id="mtParou">-</div><div class="sub" id="mtParouSub">gasto zerado ontem/hoje</div></div>
-     <div class="card"><div class="k">Orçamento diário (ativas)</div><div class="v pos">${brl(DB.trafego.filter(x=>x.status==='ativo').reduce((s,x)=>s+(Number(x.orcamento)||0),0))}</div></div>
-     <div class="card"><div class="k">Total de campanhas</div><div class="v">${DB.trafego.length}</div></div>
-   </div>
-   <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
-     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
-       <div style="font-weight:800;font-size:15px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6a10 10 0 0 1 14 0M8.5 16.1a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0"/><path d="M12 20h.01"/></svg> Meta Ads: contas de anúncio</div>
-       <select id="mtPreset" class="search" style="max-width:170px">
-         <option value="today">Hoje</option>
-         <option value="yesterday">Ontem</option>
-         <option value="last_7d" selected>Últimos 7 dias</option>
-         <option value="last_14d">Últimos 14 dias</option>
-         <option value="last_30d">Últimos 30 dias</option>
-         <option value="this_month">Este mês</option>
-         <option value="last_month">Mês passado</option>
-       </select>
-       <input class="search" id="mtBusca" placeholder="Filtrar conta..." style="max-width:180px" oninput="metaDesenhar()">
-       <select id="mtSquad" class="search" style="max-width:150px" title="Ver só as contas de um squad" onchange="mtSquadSet(this.value)">
-         <option value="">Todos os squads</option>
-         ${SQUADS().map(sq=>`<option value="${esc(sq)}"${mtSqSel()===String(sq)?' selected':''}>Squad ${esc(sq)}</option>`).join('')}
-       </select>
-       <button class="btn secondary small" onclick="metaCarregar()" title="A tela já se atualiza sozinha; use só se quiser adiantar">↻ Atualizar</button>
-       <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;white-space:nowrap">
-         Ciclo de verificação
-         <input type="number" min="1" max="180" step="1" id="mtCiclo" class="search" style="max-width:64px;padding:6px 8px" title="Intervalo em minutos para atualizar sozinho">
-         min
-       </label>
-       <span id="mtStatus" style="color:var(--muted);font-size:12px"></span>
-     </div>
-     <div id="mtAlerta"></div>
-     <div id="mtArqLn"></div>
-     <div id="mtTotais" style="color:var(--muted);font-size:13px;margin:6px 0 10px"></div>
-     <div id="mtLista"><div style="color:var(--muted);padding:14px 2px;font-size:13px">Carregando contas do Meta…</div></div>
-   </div>
-   <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Plataforma</th><th>Orçamento/dia</th><th>Status</th><th>Responsável</th><th></th></tr></thead>
-   <tbody id="tBody"></tbody></table><div id="tEmpty"></div></div>
-   </details>`}`;
-  /* as outras abas usam os mesmos dados do Meta, mas não têm os controles da aba Contas */
-  if(trafAba!=='contas'){
-    mtParar();
-    const idade0=window.__mtQuando?(Date.now()-window.__mtQuando)/60000:Infinity;
-    if(!(window.__mtDados&&window.__mtDados.length)||idade0>=mtCicloMin())
-      metaCarregar(true).then(()=>{ if(currentView==='trafego'&&trafAba!=='contas'&&window.__mtDados&&window.__mtDados.length) render('trafego'); });
-    return;
-  }
+/* ---------- Tráfego Pago: peças da aba Contas e da aba Campanhas (Bernardo 07/10) ---------- */
+const TP_PER=[['today','Hoje'],['last_7d','7 dias'],['last_30d','30 dias'],['this_month','Este mês']];
+const TP_ICO={busca:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  atual:'<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
+  ajuste:'<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h12M20 18h0"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  doc:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+  mais:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  camp:'<path d="M3 11l18-8-8 18-2-8z"/>'};
+const tpI=(k)=>MI(TP_ICO[k]||'');
+function tpCfgFecha(){ const pp=document.getElementById('tpCfgP'); if(pp) pp.hidden=true; document.removeEventListener('click',tpCfgFora); }
+function tpCfgFora(e){ const w=document.querySelector('.tp-cfgw'); if(!w||!w.contains(e.target)) tpCfgFecha(); }
+function tpCampanhasDesenhar(){
   const draw=()=>{
     const t=searchTerm.toLowerCase();
     const list=[...DB.trafego].sort((a,b)=>(a.cliente||'').localeCompare(b.cliente||'')).filter(r=>!t||((r.cliente||'')+(r.plataforma||'')+(r.resp||'')).toLowerCase().includes(t));
@@ -5349,6 +5371,70 @@ function renderTrafego(c){
     $('#tEmpty').innerHTML=list.length?'':'<div class="empty">Nenhuma campanha. Clique em "+ Campanha".</div>';
   };
   $('#tSearch').oninput=e=>{searchTerm=e.target.value;draw();}; draw();
+}
+function renderTrafego(c){
+  if(trafAba==='central') trafAba='contas';   /* a Central da agência virou os alertas da aba Contas (05/10) */
+  const tpN=(window.__mtDados||[]).length?mtDaTela().length:0, tpPre=window.__mtPreset||'last_7d';
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Tráfego Pago <button type="button" class="tp-arq" onclick="tpArquivarAbrir()" title="Arquivar a conta de anúncios de um cliente">Arquivar</button></h2><div class="desc">Campanhas e contas de anúncio por cliente</div></div>
+   </div>
+   <div class="fin-tabs tp-tabs">
+     <button class="ftab ${trafAba==='relatorios'?'active':''}" onclick="trafGo('relatorios')">${RW_IC_WA} Relatórios</button>
+     <button class="ftab ${trafAba==='contas'?'active':''}" onclick="trafGo('contas')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6a10 10 0 0 1 14 0M8.5 16.1a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0"/><path d="M12 20h.01"/></svg> Contas de anúncio${tpN?`<span class="tp-n">${tpN}</span>`:''}</button>
+     <button class="ftab ${trafAba==='campanhas'?'active':''}" onclick="trafGo('campanhas')">${tpI('camp')} Campanhas</button>
+     <button class="ftab ${trafAba==='conexao'?'active':''}" onclick="trafGo('conexao')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5M9 8V2M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"/></svg> Conexão</button>
+     <button class="ftab ${trafAba==='equipes'?'active':''}" onclick="trafGo('equipes')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> Squads</button>
+   </div>
+   ${trafAba==='contas'?`
+   <div class="tp-ctl">
+     <label class="tp-busca">${tpI('busca')}<input id="mtBusca" placeholder="Buscar cliente ou conta" oninput="metaDesenhar()" autocomplete="off"></label>
+     <select id="mtSquad" class="tp-sel" title="Ver só as contas de um squad" onchange="mtSquadSet(this.value)">
+         <option value="">Todos os squads</option>
+         ${SQUADS().map(sq=>`<option value="${esc(sq)}"${mtSqSel()===String(sq)?' selected':''}>Squad ${esc(sq)}</option>`).join('')}
+       </select>
+     <div class="tp-seg" id="mtPer">${TP_PER.map(([v,t])=>`<button type="button" data-p="${v}"${tpPre===v?' class="on"':''}>${t}</button>`).join('')}</div>
+     <select id="mtPreset" hidden>
+         <option value="today">Hoje</option>
+         <option value="yesterday">Ontem</option>
+         <option value="last_7d">Últimos 7 dias</option>
+         <option value="last_14d">Últimos 14 dias</option>
+         <option value="last_30d">Últimos 30 dias</option>
+         <option value="this_month">Este mês</option>
+         <option value="last_month">Mês passado</option>
+       </select>
+     <span class="tp-sp"></span>
+     <span id="mtStatus" class="tp-upd"></span>
+     <button type="button" class="tp-ib" onclick="metaCarregar()" title="Atualizar agora (a tela já se atualiza sozinha)">${tpI('atual')}</button>
+     <span class="tp-cfgw"><button type="button" class="tp-ib" id="tpCfgB" title="Ajustes da lista">${tpI('ajuste')}</button>
+       <div class="tp-pop" id="tpCfgP" hidden>
+         <label>Atualizar sozinho a cada<input type="number" min="1" max="180" step="1" id="mtCiclo" title="Intervalo em minutos">min</label>
+         <button type="button" onclick="tpCfgFecha();mtVerArquivadas();render('trafego')">${window.__mtArq?'Voltar para a lista normal':'Ver contas arquivadas'}</button>
+       </div></span>
+   </div>
+   <div id="mtAlerta"></div>
+   <div id="mtTotais" class="tp-res"></div>
+   <div id="mtArqLn"></div>
+   <div id="mtChips" class="tp-chips"></div>
+   <div id="mtLista"><div class="tp-vazio">Carregando contas do Meta…</div></div>`
+   :trafAba==='campanhas'?`
+   <div class="tp-ctl">
+     <label class="tp-busca">${tpI('busca')}<input id="tSearch" placeholder="Buscar campanha, plataforma ou responsável" autocomplete="off"></label>
+     <span class="tp-sp"></span>
+     <button class="btn small" onclick="openTrafModal()">+ Campanha</button>
+   </div>
+   <div class="tp-tw"><table class="tp-t"><thead><tr><th>Cliente</th><th>Plataforma</th><th class="num">Orçamento/dia</th><th>Status</th><th>Responsável</th><th></th></tr></thead>
+   <tbody id="tBody"></tbody></table><div id="tEmpty"></div></div>`
+   :`<div id="trafSub">${trafAba==='relatorios'?rwAba():trafAba==='conexao'?abaConexao():trafAba==='equipes'?abaEquipes():rwAba()}</div>`}`;
+  if(trafAba==='campanhas') tpCampanhasDesenhar();
+  /* as outras abas usam os mesmos dados do Meta, mas não têm os controles da aba Contas */
+  if(trafAba!=='contas'){
+    mtParar();
+    const idade0=window.__mtQuando?(Date.now()-window.__mtQuando)/60000:Infinity;
+    if(!(window.__mtDados&&window.__mtDados.length)||idade0>=mtCicloMin())
+      metaCarregar(true).then(()=>{ if(currentView==='trafego'&&trafAba!=='contas'&&window.__mtDados&&window.__mtDados.length) render('trafego'); });
+    return;
+  }
   const ci=$('#mtCiclo');
   if(ci){
     ci.value=mtCicloMin();
@@ -5362,6 +5448,13 @@ function renderTrafego(c){
   }
   const pr=$('#mtPreset');
   if(pr) pr.onchange=()=>metaCarregar();   /* trocar o período já recarrega */
+  if(pr&&pr.value!==tpPre&&[...pr.options].some(o=>o.value===tpPre)) pr.value=tpPre;   /* abre no período que está na tela */
+  document.querySelectorAll('#mtPer button').forEach(b=>{ b.onclick=()=>{
+    if(!pr||pr.value===b.dataset.p) return;
+    pr.value=b.dataset.p; document.querySelectorAll('#mtPer button').forEach(x=>x.classList.toggle('on',x===b)); metaCarregar(); }; });
+  const cfgB=$('#tpCfgB');
+  if(cfgB) cfgB.onclick=(e)=>{ e.stopPropagation(); const pp=$('#tpCfgP'); if(!pp) return; pp.hidden=!pp.hidden;
+    if(!pp.hidden) setTimeout(()=>document.addEventListener('click',tpCfgFora),0); };
   /* pinta na hora com o que já está em memória ou no cache local; nada de tela vazia */
   const temDado=!!(window.__mtDados&&window.__mtDados.length);
   if(temDado){ metaDesenhar(); mtStatusTxt(); }
@@ -5823,94 +5916,107 @@ const mtProblema=(c)=>{
   if(sn&&sn.nivel==='baixo') return sn.txt;
   return '';
 };
+/* ---------- CONTAS DE ANÚNCIO (Bernardo 07/10) ----------
+   Uma tabela no lugar dos cartões: uma linha por conta, números em colunas alinhadas e
+   ordenáveis pelo cabeçalho. Os alertas (saldo crítico, saldo acabando, custo por lead alto,
+   sem gestor) viram filtros e uma faixa na própria linha; o painel que repetia as mesmas
+   contas saiu. Saldo e situação vêm do risco(), o mesmo que a ficha do cliente usa. */
+let MT_ORD={k:'gasto',dir:-1}, MT_FIL='todas';
+window.mtOrd=(k)=>{ if(MT_ORD.k===k) MT_ORD.dir*=-1; else MT_ORD={k,dir:(k==='nome'||k==='gestor')?1:-1}; metaDesenhar(); };
+window.mtFil=(k)=>{ MT_FIL=k; metaDesenhar(); };
+window.mtLinhaAbrir=(id)=>{ const c=(window.__mtDados||[]).find(x=>x.id===id);
+  const f=fichaDaConta(id)||fichaDaContaMeta(c);
+  if(f) abrirCliente(f.id); else toast('Esta conta não está ligada a um cliente: ligue pela ficha do cliente, aba Contas.'); };
+window.mtMais=(ev,id)=>{ const arq=!!window.__mtArq; ctxAbrir(ev,[
+  {t:'Gerar relatório',ic:MICO.lista,f:()=>openRelatorioModal(id)},
+  {t:'Marca e limite do cartão',ic:MICO.cor,f:()=>openMarcaModal(id)},
+  {sep:1},
+  {t:arq?'Trazer de volta para a lista':'Arquivar conta',ic:MICO.arq,f:()=>mtArquivar(id,arq)}]); };
 window.metaDesenhar=()=>{
   const el=$('#mtLista'); if(!el) return;
   tpAlertasPintar();
-  const t=($('#mtBusca')?$('#mtBusca').value:'').trim().toLowerCase();
-  const rows=mtDaTela().filter(c=>!t||(c.nome||'').toLowerCase().includes(t))
-    .sort((a,b)=>(semSaldoReal(b)?1:0)-(semSaldoReal(a)?1:0)||(saldoConta(b).parou?1:0)-(saldoConta(a).parou?1:0)||(+((b.ins||{}).spend)||0)-(+((a.ins||{}).spend)||0));
-  let G=0,I=0,C=0,L=0;
-  const cards=rows.map(c=>{
-    const i=c.ins||{};
+  const q=rwNorm(($('#mtBusca')?$('#mtBusca').value:'').trim());
+  const gidDe={}; try{ rwClientes().forEach(x=>{ gidDe[String(x.f.id)]=x.gid; }); }catch(_){}
+  const daTela=mtDaTela();
+  const medCpl=tpMediana(daTela.map(custoConversa));
+  const base=daTela.map(c=>{
+    const i=c.ins||{}, m=contaMarca(c.id), f=fichaDaConta(c.id)||fichaDaContaMeta(c);
     const leads=(i.actions||[]).filter(a=>MT_LEADS.includes(a.action_type)).reduce((s,a)=>s+(+a.value||0),0);
-    const gasto=+(i.spend||0); G+=gasto; I+=(+i.impressions||0); C+=(+i.clicks||0); L+=leads;
-    const m=contaMarca(c.id);
-    const sd=saldoConta(c);
-    const __lg=m?logoDe(m):''; const logo=__lg?`<img src="${__lg}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--border);flex:none">`
-      :`<div onclick="openMarcaModal('${esc(c.id)}')" title="Adicionar a logo do cliente" style="width:44px;height:44px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;background:${m&&m.cor2?m.cor2:'rgba(168,85,247,.18)'};color:#fff;cursor:pointer;border:1px dashed rgba(255,255,255,.45)">${esc((c.nome||'?').trim().charAt(0).toUpperCase())}</div>`;
-    const met=(k,v,hl)=>`<div style="min-width:74px"><div style="font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)">${k}</div><div style="font-weight:700;font-size:13.5px${hl?';color:var(--brand2)':''}">${v}</div></div>`;
-    /* 1ª coluna: saldo (Pix) ou quanto falta pro limite de cobrança (cartão) */
-    const pg=pagConta(c);
-    const sn=saldoNivel(pg);
-    let col1='';
-    if(!pg) col1=`<div style="min-width:132px"><div style="font-size:10.5px;text-transform:uppercase;color:var(--muted)">Pagamento</div><div style="color:var(--muted);font-size:12.5px">-</div></div>`;
-    else if(pg.problema) col1=`<div style="min-width:132px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="tag" style="background:rgba(248,113,113,.18);color:var(--danger);font-size:10px;font-weight:800;letter-spacing:.5px">${pg.prepago?'PIX':'CARTÃO'}</span>
-        </div>
-        <div style="font-weight:800;font-size:14px;color:var(--danger)">${esc(pg.statusTxt)}</div>
-        <div style="font-size:10.5px;color:var(--danger)">${pg.motivoTxt?esc(pg.motivoTxt)+' · ':''}anúncios parados</div>
-      </div>`;
-    else if(pg.prepago){
-      const s=pg.saldo, zero=s!=null&&s<1, baixo=s!=null&&s>=1&&s<50;
-      col1=`<div style="min-width:132px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="tag" style="background:rgba(52,211,153,.16);color:var(--ok);font-size:10px;font-weight:800;letter-spacing:.5px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg> PIX</span>
-          <span style="font-size:10px;color:var(--muted);text-transform:uppercase">saldo</span>
-        </div>
-        <div style="font-weight:800;font-size:16px;color:${zero?'var(--danger)':baixo?'var(--warn)':'var(--ok)'}">${s!=null?brl(s):'-'}</div>
-        ${zero?'<div style="font-size:10.5px;color:var(--danger)">precisa recarregar</div>':baixo?'<div style="font-size:10.5px;color:var(--warn)">saldo baixo</div>':''}
-      </div>`;
-    }else{
-      const f=pg.falta, perto=f!=null&&pg.limite&&f<pg.limite*0.15;
-      col1=`<div style="min-width:132px">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span class="tag" style="background:rgba(96,165,250,.16);color:var(--info);font-size:10px;font-weight:800;letter-spacing:.5px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg> CARTÃO</span>
-          <span style="font-size:10px;color:var(--muted)">${esc(pg.cartao||'')}</span>
-        </div>
-        ${f!=null
-          ? `<div style="font-weight:800;font-size:16px;color:${perto?'var(--warn)':'var(--info)'}">${brl(f)}</div>
-             <div style="font-size:10.5px;color:var(--muted)">falta p/ cobrar${pg.limiteEstimado?' <span title="Limite estimado observando as cobranças. Informe o valor exato em Marca." style="color:var(--warn);cursor:help">~</span>':''} · limite ${brl(pg.limite)}</div>`
-          : `<div style="font-weight:800;font-size:16px;color:var(--info)">${pg.acumulado!=null?brl(pg.acumulado):'-'}</div>
-             <div style="font-size:10.5px;color:var(--muted)">acumulado · <span style="color:var(--warn)">informe o limite</span></div>`}
-      </div>`;
+    const gasto=+(i.spend||0), cpl=leads?gasto/leads:null, r=risco(c), pg=r.pg, sd=saldoConta(c);
+    const gid=f?(gidDe[String(f.id)]||''):'';
+    const gnome=gid?(tkNomeUser(gid)||''):String((f&&f.responsavel)||'').trim();
+    const inativa=c.status!==1, crit=!inativa&&r.nivel==='critico', acab=!inativa&&r.nivel==='atencao';
+    const cplAlto=!inativa&&cpl!=null&&medCpl>0&&cpl>medCpl*1.5;
+    return {c,f,pg,r,sd,gid,gnome,leads,gasto,cpl,inativa,crit,acab,cplAlto,semG:!gnome,semC:!f,
+      sev:crit?3:(acab||cplAlto)?2:0, squad:String((f&&f.squad)||''),
+      nome:String((f&&f.nome)||(m&&m.nome)||c.nome||c.id)};
+  }).filter(x=>!q||rwNorm(x.nome+' '+(x.c.nome||'')+' '+x.c.id).includes(q));
+  const FIL=[['todas','Todas',()=>true,''],
+    ['atencao','Precisa de atenção',x=>x.sev>=2,'var(--warn)'],
+    ['critico','Saldo crítico',x=>x.crit,'var(--danger)'],
+    ['acabando','Saldo acabando',x=>x.acab,'var(--warn)'],
+    ['cpl','Custo por lead alto',x=>x.cplAlto,'var(--warn)'],
+    ['semg','Sem gestor',x=>x.semG,'var(--fraco)'],
+    ['semc','Sem cliente',x=>x.semC,'var(--fraco)']];
+  const fAt=FIL.find(f=>f[0]===MT_FIL)||FIL[0];
+  const ok_=MT_ORD.k, d_=MT_ORD.dir;
+  const val=(x)=>ok_==='nome'?x.nome:ok_==='gestor'?(x.gnome||'~'):ok_==='sev'?x.sev:ok_==='leads'?x.leads
+    :ok_==='cpl'?(x.cpl==null?-1:x.cpl):ok_==='saldo'?(x.r.saldo==null?-1:x.r.saldo):x.gasto;
+  const rows=base.filter(fAt[2]).sort((a,b)=>{ const va=val(a), vb=val(b);
+    return ((typeof va==='string')?va.localeCompare(vb,'pt-BR'):(va-vb))*d_||(b.gasto-a.gasto); });
+  /* resumo: sobre todas as contas da tela (busca e squad valem; o filtro de alerta não) */
+  const G=base.reduce((s,x)=>s+x.gasto,0), L=base.reduce((s,x)=>s+x.leads,0), nAt=base.filter(x=>x.sev>=2).length;
+  const per=LT_PER[window.__mtPreset||'last_7d']||'no período';
+  const tot=$('#mtTotais');
+  if(tot) tot.innerHTML=base.length?`
+    <div class="tp-r"><div class="k">Investido · ${esc(per)}</div><div class="v">${brl(G)}</div><div class="s">${base.length} conta${base.length===1?'':'s'}</div></div>
+    <div class="tp-r"><div class="k">Leads</div><div class="v">${L.toLocaleString('pt-BR')}</div><div class="s">soma das contas</div></div>
+    <div class="tp-r"><div class="k">Custo por lead</div><div class="v">${L?brl(G/L):'-'}</div><div class="s">${medCpl?'mediana das contas '+brl(medCpl):'sem leads no período'}</div></div>
+    <div class="tp-r${nAt?' al':''}"><div class="k">Precisa de atenção</div><div class="v">${nAt}</div><div class="s">${base.filter(x=>x.crit).length} com saldo crítico · ${base.filter(x=>x.semG).length} sem gestor</div></div>`:'';
+  const ch=$('#mtChips');
+  if(ch) ch.innerHTML=base.length?FIL.filter(f=>f[0]!=='semc'||base.some(f[2])).map(([k,t,fn,cor])=>
+    `<button type="button" class="tp-chip${fAt[0]===k?' on':''}" onclick="mtFil('${k}')">${cor?`<i style="background:${cor}"></i>`:''}${t}<span>${base.filter(fn).length}</span></button>`).join(''):'';
+  const nada='<span class="tp-fr">-</span>';
+  const linha=(x)=>{
+    let st;
+    if(x.inativa) st='<span class="tp-st fr">Inativa</span>';
+    else if(x.pg&&x.pg.problema) st=`<span class="tp-st dg" title="${esc(x.pg.motivoTxt||'')}">${esc(x.pg.statusTxt)}</span>`;
+    else if(x.crit) st='<span class="tp-st dg">Sem saldo</span>';
+    else if(x.acab) st=`<span class="tp-st wn">${x.r.motivo==='parou de gastar'?'Parou de gastar':'Saldo acabando'}</span>`;
+    else if(x.cplAlto) st='<span class="tp-st wn">Custo por lead alto</span>';
+    else st='<span class="tp-st ok">Ativa</span>';
+    const ges=x.gnome?`<span class="tp-ges">${avatar(x.gid,x.gnome,'sm')}${esc(x.gnome.split(' ')[0])}</span>`:'<span class="tp-semg">sem gestor</span>';
+    const dl=(x.cpl!=null&&medCpl>0)?(x.cpl/medCpl-1):0;
+    const dlh=x.cplAlto?`<span class="tp-dl up">+${Math.round(dl*100)}%</span>`:(x.cpl!=null&&dl<-0.3)?`<span class="tp-dl dn">${Math.round(dl*100)}%</span>`:'';
+    let sal=nada;
+    if(x.pg&&x.pg.prepago&&x.r.saldo!=null){
+      const di=x.r.dias, cor=x.r.saldo<1?'var(--danger)':(x.acab||(di!=null&&di<2))?'var(--warn)':'var(--ok)';
+      const pct=di!=null?Math.max(4,Math.min(100,di/10*100)):(x.r.pct!=null?Math.max(4,x.r.pct):50);
+      sal=`<div class="tp-sal"><span>${brl(x.r.saldo)}</span><span class="tp-bar"><i style="width:${pct}%;background:${cor}"></i></span><small>${x.r.saldo<1?'precisa recarregar':di!=null?'dura ~'+di.toFixed(1).replace('.',',')+' dia'+(di<2?'':'s'):'Pix'}</small></div>`;
+    }else if(x.pg&&!x.pg.prepago){
+      sal=`<div class="tp-sal"><span>${x.pg.falta!=null?brl(x.pg.falta):(x.pg.acumulado!=null?brl(x.pg.acumulado):'-')}</span><small>${x.pg.falta!=null?'falta p/ cobrar · '+esc(x.pg.cartao||'cartão'):(x.pg.acumulado!=null?'acumulado · informe o limite':esc(x.pg.cartao||'cartão'))}</small></div>`;
     }
-    return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;border:1px solid ${pg&&pg.problema?'var(--danger)':'var(--border)'};border-radius:12px;padding:12px 14px;margin-bottom:10px;background:${pg&&pg.problema?'rgba(248,113,113,.07)':'rgba(255,255,255,.02)'}">
-      ${logo}
-      <div style="flex:1;min-width:170px">
-        <div style="font-weight:800">${esc((m&&m.nome)||c.nome)}${c.status!==1?' <span class="tag churn" style="font-size:11px">inativa</span>':''}${sn&&sn.nivel==='zero'?' <span class="tag churn" style="font-size:11px">sem saldo</span>':''}${sd.parou?' <span class="tag" style="font-size:11px;background:rgba(251,191,36,.18);color:var(--warn)">parou de gastar</span>':''}${pg&&pg.problema?` <span class="tag churn" style="font-size:11px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> ${esc(pg.statusTxt)}</span>`:''}</div>
-        <div style="color:var(--muted);font-size:12px">${esc(c.nome)} · ${esc(c.id)}${sd.parou?` · <span style="color:var(--warn)">sem gastar há ${sd.haDias} dia${sd.haDias===1?'':'s'}</span>`:''}</div>
-        <div style="font-size:12px;margin-top:3px">${(()=>{const f=fichaDaConta(c.id);
-          return f?`<a class="link" style="cursor:pointer" onclick="abrirCliente('${f.id}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg> ${esc(f.nome)}</a>`
-                  :`<span style="color:var(--warn)" title="Ligue pelo card do cliente: Controle de Clientes › Conta de anúncios"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg> sem cliente</span>`;})()}</div>
-      </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap">
-        ${col1}
-        ${met('Gasto',gasto?brl(gasto):'-',1)}
-        ${met('Impressões',(+i.impressions||0).toLocaleString('pt-BR'))}
-        ${met('Cliques',(+i.clicks||0).toLocaleString('pt-BR'))}
-        ${met('CPC',i.cpc?brl(+i.cpc):'-')}
-        ${met('CPM',i.cpm?brl(+i.cpm):'-')}
-        ${met('Leads',leads||'-')}
-        ${met('CPL',leads&&gasto?brl(gasto/leads):'-')}
-      </div>
-      <div style="display:flex;gap:8px;flex:none">
-        <button class="iconbtn" onclick="mtArquivar('${esc(c.id)}',${window.__mtArq?'true':'false'})" title="${window.__mtArq?'Trazer de volta pra lista':'Arquivar: some da lista sem apagar nada'}"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg></button>
-        <button class="btn small" onclick="openRelatorioModal('${esc(c.id)}')"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg> Gerar relatório</button>
-      </div>
-    </div>`;
-  });
-  /* problema primeiro: quem precisa de ação fica aberto em cima; o resto vai para o recolhível */
-  const itens=rows.map((c,i)=>({c,html:cards[i],p:mtProblema(c)}));
-  const comProb=itens.filter(x=>x.p), okList=itens.filter(x=>!x.p);
-  el.innerHTML = !rows.length
-    ? '<div style="color:var(--muted);padding:14px 2px;font-size:13px">Nenhuma conta encontrada.</div>'
-    : (comProb.length
-        ? `<div class="mt-sec"><span class="tag churn" style="font-size:11px"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> Precisa de atenção</span><span class="tk-n">${comProb.length} de ${rows.length}</span></div>`+comProb.map(x=>x.html).join('')
-        : '<div class="mt-ok">✓ Nenhuma conta pedindo atenção agora.</div>')
-      + (okList.length
-        ? `<details class="mt-det"${comProb.length?'':' open'}><summary>Contas saudáveis (${okList.length})</summary>${okList.map(x=>x.html).join('')}</details>`
-        : '');
+    const sub=esc(x.c.id)+(x.squad?' · squad '+esc(x.squad):'')+(x.semC?' · <span class="tp-semg">sem cliente</span>':'')
+      +(x.sd&&x.sd.parou?` · <span class="tp-wn">sem gastar há ${x.sd.haDias} dia${x.sd.haDias===1?'':'s'}</span>`:'');
+    const sev=x.sev===3?'var(--danger)':x.sev===2?'var(--warn)':'';
+    return `<tr${sev?` style="--sev:${sev}"`:''} onclick="mtLinhaAbrir('${esc(x.c.id)}')">
+      <td class="tp-cli"><b>${esc(x.nome)}</b><small>${sub}</small></td>
+      <td>${ges}</td><td>${st}</td>
+      <td class="num">${x.gasto?brl(x.gasto):nada}</td>
+      <td class="num">${x.leads?x.leads.toLocaleString('pt-BR'):nada}</td>
+      <td class="num">${x.cpl!=null?brl(x.cpl)+dlh:nada}</td>
+      <td class="num">${sal}</td>
+      <td><div class="tp-ac"><button type="button" class="tp-rel" onclick="event.stopPropagation();openRelatorioModal('${esc(x.c.id)}')">${tpI('doc')}Relatório</button><button type="button" class="tp-ib sm" title="Mais: marca, limite do cartão, arquivar" onclick="event.stopPropagation();mtMais(event,'${esc(x.c.id)}')">${tpI('mais')}</button></div></td>
+    </tr>`;
+  };
+  const th=(k,t,num)=>`<th class="${num?'num':''}${ok_===k?' on':''}" onclick="mtOrd('${k}')">${t}${ok_===k?`<span class="o">${d_<0?'↓':'↑'}</span>`:''}</th>`;
+  const g2=rows.reduce((s,x)=>s+x.gasto,0), l2=rows.reduce((s,x)=>s+x.leads,0);
+  el.innerHTML=!base.length
+    ? `<div class="tp-vazio">${(window.__mtDados||[]).length?'Nenhuma conta encontrada.':'Carregando contas do Meta…'}</div>`
+    : `<div class="tp-tw"><table class="tp-t"><thead><tr>${th('nome','Cliente')}${th('gestor','Gestor')}${th('sev','Situação')}${th('gasto','Investido',1)}${th('leads','Leads',1)}${th('cpl','Custo por lead',1)}${th('saldo','Saldo',1)}<th></th></tr></thead>
+      <tbody>${rows.length?rows.map(linha).join(''):'<tr><td colspan="8" class="tp-vazio">Nenhuma conta neste filtro.</td></tr>'}</tbody>
+      ${rows.length?`<tfoot><tr><td>Total · ${rows.length} conta${rows.length===1?'':'s'}</td><td></td><td></td><td class="num">${brl(g2)}</td><td class="num">${l2.toLocaleString('pt-BR')}</td><td class="num">${l2?brl(g2/l2):'-'}</td><td></td><td></td></tr></tfoot>`:''}
+      </table></div>`;
   const arq=mtContas().filter(contaVisivel).filter(contaNoSquadSel).filter(contaOculta).length;
   const av=$('#mtArqLn');
   if(av){ const antes=av.getAttribute('data-arq')||'';
@@ -5920,13 +6026,6 @@ window.metaDesenhar=()=>{
           : `<b>${arq}</b> conta${arq===1?'':'s'} arquivada${arq===1?'':'s'} fora da lista. <button class="mp-add" style="margin-left:0" onclick="mtVerArquivadas()">ver</button>`}</div>`
       : '';
     if(antes!==novo){ av.innerHTML=novo; av.setAttribute('data-arq',novo); } }
-  const tot=$('#mtTotais');
-  if(tot) tot.innerHTML=rows.length?`<div class="cards" style="margin:2px 0 6px">
-     <div class="card"><div class="k">Gasto no período</div><div class="v" style="color:var(--brand2)">${brl(G)}</div><div class="sub">${rows.length} conta${rows.length===1?'':'s'}${comProb.length?' · <span style="color:var(--danger)">'+comProb.length+' com problema</span>':''}</div></div>
-     <div class="card"><div class="k">Leads</div><div class="v">${L.toLocaleString('pt-BR')}</div><div class="sub">${(L&&G)?('CPL médio '+brl(G/L)):'sem leads no período'}</div></div>
-     <div class="card"><div class="k">Cliques</div><div class="v">${C.toLocaleString('pt-BR')}</div><div class="sub">${(C&&G)?('CPC médio '+brl(G/C)):'-'}</div></div>
-     <div class="card"><div class="k">Impressões</div><div class="v">${I.toLocaleString('pt-BR')}</div><div class="sub">${(I&&C)?((C/I*100).toFixed(2).replace('.',',')+'% de CTR'):'-'}</div></div>
-   </div>`:'';
   /* cards do topo — sempre sobre todas as contas ATIVAS na carteira, independente do
      filtro de busca. Quem deu churn nao entra: era ele que inflava esses numeros. */
   const todas=mtDaTela();
