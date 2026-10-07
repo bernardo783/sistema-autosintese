@@ -3267,6 +3267,10 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .rw-g span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rw-g.on{border-style:solid;border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok)}
 .rw-g:hover{border-color:var(--brand2);color:var(--txt)}
+.rw-g.la.on{border-color:color-mix(in srgb,var(--brand2) 50%,transparent);background:color-mix(in srgb,var(--brand2) 14%,transparent);color:var(--brand2)}
+.la-sug{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px 11px;border:1px dashed var(--line);border-radius:10px;font-size:12.5px;color:var(--muted)}
+.la-sug b{color:var(--txt);font-weight:700}
+.la-sug .btn{margin-left:auto;flex:none}
 .rw-st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:700;white-space:nowrap}
 .rw-st.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
 .rw-st.pen{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
@@ -6367,12 +6371,14 @@ async function rwApi(acao,corpo){
 async function rwCarregar(forca){
   if(RW.ok&&!forca) return;
   const desde=new Date(Date.now()-40*864e5).toISOString();
-  const [g,e]=await Promise.all([
+  const [g,e,la]=await Promise.all([
     sb.from('cliente_grupos').select('ficha_id,grupo_jid,grupo_nome'),
+    sb.from('cliente_lara').select('ficha_id,fone'),
     sb.from('relatorio_envios').select('id,ficha_id,conta_id,de,ate,grupo_nome,instancia,enviado_por,enviado_em,ok,erro')
       .gte('enviado_em',desde).order('enviado_em',{ascending:false}).limit(1000)]);
   if(g.error) throw new Error(g.error.message);
   RW.grupos={}; (g.data||[]).forEach(x=>{ RW.grupos[String(x.ficha_id)]=x; });
+  RW.lara={}; (la.data||[]).forEach(x=>{ RW.lara[String(x.ficha_id)]=x; });
   RW.envios=e.data||[]; RW.ok=true;
 }
 const rwGrupo=(fid)=>RW.grupos[String(fid||'')]||null;
@@ -6701,6 +6707,69 @@ function rwTkChip(fid){
           :`<button type="button" class="rw-g" onclick="rwEscolherTk('${fid}')">${RW_IC_LINK}<span>vincular grupo</span></button>`;
 }
 window.rwEscolherTk=(fid)=>rwEscolher(fid,()=>{ const el=document.getElementById('tkRwG'); if(el) el.innerHTML=rwTkChip(fid); });
+/* NÚMERO DA LARA (Bernardo 07/10): a Lara é a IA do Agent IA. Cliente com Agent IA (só IA ou
+   Tráfego + IA) guarda o número onde a Lara atende na tabela cliente_lara (um por ficha, só dígitos
+   com 55 + DDD). É a base do relatório diário da Lara, que sai pela credencial do gerente do squad;
+   o grupo é o mesmo de cliente_grupos. Edita no card do Controle de Clientes e na ficha (aba Geral, seção Agent IA · Lara). */
+const LA_IC='<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9.5 15.5h5"/></svg>';
+const temAgentIA=(f)=>!!f&&['ia','full'].includes(catDe(f));
+const laFone=(fid)=>((RW.lara||{})[String(fid||'')]||{}).fone||'';
+/* aceita (35) 9 1234-5678, 35912345678 ou +55 35 9...; devolve 55+DDD+número, ou '' se não for número do Brasil */
+function laNorm(v){ let d=String(v||'').replace(/\D/g,'');
+  if(d.length===10||d.length===11) d='55'+d;
+  return /^55[1-9][0-9][0-9]{8,9}$/.test(d)?d:''; }
+function laFmt(d){ d=String(d||''); if(!/^55[0-9]{10,11}$/.test(d)) return d; const n=d.slice(4);
+  return '('+d.slice(2,4)+') '+(n.length===9?n[0]+' '+n.slice(1,5)+'-'+n.slice(5):n.slice(0,4)+'-'+n.slice(4)); }
+/* sugestão: número da agenda de WhatsApp da ficha com etiqueta de IA ("IA", "IA / Tráfego").
+   Só sugere: a etiqueta "IA / Tráfego" aparece até em cliente só de tráfego. */
+function laSugestao(f){ const z=zapsDe(f).find(x=>/\bia\b/i.test(String(x.et||''))&&laNorm(x.num));
+  return z?{et:String(z.et),fone:laNorm(z.num)}:null; }
+window.laEscolher=(fid,depois)=>{
+  const f=fichaDe(fid); if(!f) return;
+  const atual=laFone(fid), sug=laSugestao(f);
+  const v=document.getElementById('laOv'); if(v) v.remove();
+  const ov=document.createElement('div'); ov.id='laOv'; ov.className='overlay';
+  ov.innerHTML=`<div class="modal" style="max-width:420px"><div class="mhead"><h3>Número da Lara · ${esc(f.nome)}</h3><button class="x" id="laX" title="Fechar" aria-label="Fechar">&times;</button></div>
+    <div class="mbody"><div class="field" style="margin:0"><label>WhatsApp onde a Lara atende este cliente</label>
+      <input id="laIn" inputmode="tel" autocomplete="off" placeholder="(DDD) 9 0000-0000" value="${esc(atual?laFmt(atual):'')}"></div>
+      ${sug&&sug.fone!==atual?`<div class="la-sug"><span>Na agenda da ficha: <b>${esc(sug.et)} · ${esc(laFmt(sug.fone))}</b></span><button type="button" class="btn secondary small" id="laSug">usar</button></div>`:''}
+      <p class="hint" id="laInfo" style="margin:10px 0 0">Fica salvo para o relatório diário da Lara. Número do Brasil, com DDD.</p></div>
+    <div class="mfoot">${atual?'<button type="button" class="btn secondary small" id="laDel">Remover</button>':''}<span style="flex:1"></span>
+      <button type="button" class="btn small" id="laOk">Salvar</button></div></div>`;
+  document.body.appendChild(ov);
+  const fecha=()=>ov.remove(), inp=ov.querySelector('#laIn'), info=ov.querySelector('#laInfo');
+  ov.onclick=e=>{ if(e.target===ov) fecha(); };
+  ov.querySelector('#laX').onclick=fecha;
+  const bs=ov.querySelector('#laSug'); if(bs) bs.onclick=()=>{ inp.value=laFmt(sug.fone); inp.focus(); };
+  const salva=async()=>{
+    const d=laNorm(inp.value);
+    if(!d){ info.textContent='Número inválido: use DDD + número, ex.: (35) 9 1234-5678.'; info.style.color='var(--danger)'; inp.focus(); return; }
+    if(d===atual){ fecha(); return; }
+    const {error}=await sb.from('cliente_lara').upsert({ficha_id:String(fid),fone:d,
+      definido_por:(currentUser||{}).id||null,definido_em:new Date().toISOString()});
+    if(error){ toast('Não salvou: '+error.message); return; }
+    RW.lara=RW.lara||{}; RW.lara[String(fid)]={ficha_id:String(fid),fone:d};
+    toast('Número da Lara salvo: '+laFmt(d)); fecha(); if(depois) depois(d);
+  };
+  ov.querySelector('#laOk').onclick=salva;
+  inp.onkeydown=e=>{ if(e.key==='Enter') salva(); else if(e.key==='Escape') fecha(); };
+  const del=ov.querySelector('#laDel');
+  if(del) del.onclick=async()=>{
+    if(!confirm('Remover o número da Lara deste cliente?')) return;
+    const {error}=await sb.from('cliente_lara').delete().eq('ficha_id',String(fid));
+    if(error){ toast('Não removeu: '+error.message); return; }
+    delete RW.lara[String(fid)]; toast('Número da Lara removido.'); fecha(); if(depois) depois('');
+  };
+  setTimeout(()=>inp.focus(),30);
+};
+/* chips que se repintam sozinhos no elemento `alvo` (card: tkLaN; ficha: pcLaN). O grupo da ficha fica no Contato (pcGrupoWa) */
+function laChip(fid,alvo){
+  if(!RW.ok){ rwCarregar().then(()=>{ const el=document.getElementById(alvo); if(el&&RW.ok) el.innerHTML=laChip(fid,alvo); }).catch(()=>{}); return '<span class="hint" style="margin:0">…</span>'; }
+  const n=laFone(fid);
+  return n?`<button type="button" class="rw-g la on" onclick="laEscolherEm('${fid}','${alvo}')" title="Trocar o número">${LA_IC}<span>${esc(laFmt(n))}</span></button>`
+          :`<button type="button" class="rw-g" onclick="laEscolherEm('${fid}','${alvo}')">${RW_IC_LINK}<span>número da Lara</span></button>`;
+}
+window.laEscolherEm=(fid,alvo)=>laEscolher(fid,()=>{ const el=document.getElementById(alvo); if(el) el.innerHTML=laChip(fid,alvo); });
 /* Conta de anúncios no card do Controle de Clientes (Bernardo 05/10). Usa o mesmo seletor da aba
    Relatórios (rwEscolherConta), então a regra de quais contas aparecem é uma só: as da BM.
    Liga quem cuida do cliente: o gestor de tráfego do card, o gerente da carteira e o master.
@@ -12468,6 +12537,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
           <div class="tkf-pv">${selFichaBusca('tk_ficha',it.ficha_id||'',exigeDaLista(lid).indexOf('cliente')>=0)}
           ${exigeDaLista(lid).indexOf('cliente')>=0?`<label class="tk-chkline tkf-int" title="Tarefa da própria agência: sai do rascunho sem precisar de cliente"><input type="checkbox" id="tk_interna"${it.interna?' checked':''} onchange="const b=document.getElementById('tkCliObr'); if(b) b.style.display=this.checked?'none':''"> Melhoria interna <span class="hint" style="margin:0">sem cliente</span></label>`:''}</div></div>
         ${ehLC(lid)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_WA} Grupo WhatsApp</div><div class="tkf-pv" id="tkRwG">${rwTkChip(it.ficha_id)}</div></div>`:''}
+        ${(ehLC(lid)&&it.ficha_id&&temAgentIA(fichaDe(it.ficha_id)))?`<div class="tkf-p"><div class="tkf-pl">${LA_IC} Número da Lara</div><div class="tkf-pv" id="tkLaN">${laChip(it.ficha_id,'tkLaN')}</div></div>`:''}
         ${ehLC(lid)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_META} Conta de anúncios <button type="button" class="rw-bm-q" onclick="rwTkContaAjuda(this)" aria-expanded="false" title="Quais contas aparecem aqui">?</button></div><div class="tkf-pv" id="tkRwC">${rwTkConta(it.ficha_id,rwPodeConta(it.ficha_id,it))}</div>${rwBmAjudaHTML()}</div>`:''}
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</div>
           <div class="tkf-pv"><select id="tk_squad"><option value="">Todo o time vê</option>${sqOpc.map(x=>`<option value="${esc(x)}"${sqAtual===x?' selected':''}>Squad ${esc(x)}</option>`).join('')}</select></div></div>
@@ -17666,6 +17736,11 @@ window.openProjCard=(id)=>{
 
       ${cat('Contato')}
       <div class="pc-dl" id="pcContato">${pcContatoHtml(it,cli)}</div>
+
+      ${temAgentIA(it)?`${cat('Agent IA · Lara')}
+      <div class="pc-dl">
+        ${li('Número da Lara', `<span id="pcLaN">${laChip(it.id,'pcLaN')}</span>`, '', false, null, 'mens')}
+      </div>`:''}
 
       ${(!soAgentIA(it)&&(temTraf||it.orcamento||catDe(it)==='trafego'||catDe(it)==='full'))?`${cat('Tráfego pago')}
       <div class="pc-dl">
