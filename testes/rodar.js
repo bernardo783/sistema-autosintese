@@ -1651,6 +1651,25 @@ grupo('Cartão do lead: abre como CRM, não como tarefa (Bernardo 08/10)');
   { const i=HTML.indexOf('function cnPrecisa(t){'), j=HTML.indexOf('function cnPedir(t){'), k=HTML.indexOf("if(typeof crmForm==='function'&&crmForm(t.lista_id)) return false;",i);
     ok('"5. FECHADO" no CRM não pede relatório de tarefa concluída', i>0&&k>i&&k<j); }
 }
+grupo('Seta pro wa.me ao lado do número do lead (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){')+'\n'+
+    bloco('/* ======================= CARTÃO DO LEAD (Bernardo 08/10)','window.tkAbrir=(id,prazoPre,grupoPre)=>{');
+  const C=[{id:'w',lista_id:'L',nome:'WhatsApp',tipo:'link'},{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const lead={id:'a',lista_id:'L',titulo:'Ana',status_id:'',valores:{w:'https://wa.me/5561992054765',d:'2026-10-07'}};
+  const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:[lead],campos:C,colsOff:{},listas:[]},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
+    tkStatusDe:()=>[],tkStatus1:()=>null,esc,campoTexto:(c,v)=>v==null?'':String(v),arquivada:()=>false,tkSelo:()=>'',tpSvg:()=>'',toast:()=>{},
+    equipeDe:()=>[],currentUser:{id:'u0',role:'master'},waDoLead:()=>{},setTimeout:()=>0,
+    document:{getElementById:()=>null,querySelector:()=>null,addEventListener:()=>{}}},['rspFoneCel','crmLdHtml']);
+  const cel=g.rspFoneCel('https://wa.me/5561992054765');
+  ok('tabela: seta ao lado do número leva pro wa.me', /href="https:\/\/wa\.me\/5561992054765"[^>]*><svg[^>]*><path d="M7 17 17 7"\/>/.test(cel));
+  ok('tabela: o ícone do WhatsApp não se repete ao lado do número', cel.indexOf('M12 2a10 10')<0);
+  const h=g.crmLdHtml(lead);
+  ok('cartão: seta ao lado do número, abrindo o wa.me em outra aba', /<div class="cl-fone"><input[^>]*value="\(61\) 99205-4765"[^>]*><a class="cl-seta" href="https:\/\/wa\.me\/5561992054765" target="_blank"/.test(h));
+  const semNum=Object.assign({},lead,{valores:{}});
+  ok('cartão: sem número, sem seta', g.crmLdHtml(semNum).indexOf('cl-seta')<0);
+}
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
