@@ -2852,9 +2852,10 @@
   .rsp-dir .btn{display:inline-flex;align-items:center;gap:6px;border-radius:999px}
   .rsp-nm{display:inline-flex;align-items:center;gap:10px;max-width:100%;min-width:0}
   .rsp-nm input{width:16px;height:16px;accent-color:var(--brand);cursor:pointer;flex:none;margin:0}
-  .rsp-nm button{background:none;border:0;padding:0;color:var(--txt);font:inherit;font-weight:600;cursor:pointer;
+  .rsp-nm button:not(.tk-wa){background:none;border:0;padding:0;color:var(--txt);font:inherit;font-weight:600;cursor:pointer;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
-  .rsp-nm button:hover{color:var(--brand2);text-decoration:underline}
+  .rsp-nm button:not(.tk-wa):hover{color:var(--brand2);text-decoration:underline}
+  .rsp-nm .tk-wa{margin-left:-4px;flex:none}
   #rspTab td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
   .rsp-or{cursor:pointer}
   .rsp-hr{color:var(--muted);margin-left:4px}
@@ -2960,6 +2961,7 @@
     background:color-mix(in srgb,#25d366 16%,transparent);color:#25d366;text-decoration:none;transition:background .15s,color .15s}
   .tk-wa:hover{background:#25d366;color:#fff}
   .tk-wa svg{width:14px;height:14px}
+  button.tk-wa{border:0;padding:0;cursor:pointer;font:inherit}
   .mt-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:5px;vertical-align:middle}
   .mt-live.buscando{background:var(--warn);animation:mtpulse 1s ease-in-out infinite}
   @keyframes mtpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(.7)}}
@@ -9731,10 +9733,11 @@ const RSP_MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov'
 const rspData=(v)=>{ const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if(!m) return '';
   return Number(m[3])+' de '+RSP_MES[Number(m[2])-1]+' de '+m[1]+(m[4]?` <span class="rsp-hr">${m[4]}:${m[5]}</span>`:''); };
 /* valor da celula: WhatsApp vira o numero (link pra conversa), Instagram vira @ com link */
-function rspCel(c,v){
+function rspCel(c,v,t){
   if(v==null||v==='') return '';
   if(/whats/i.test(c.nome)){ const n=String(v).replace(/\D/g,''); if(!n) return esc(v);
-    return `<a class="rsp-lk" href="https://wa.me/${n}" target="_blank" rel="noopener" onclick="event.stopPropagation()">+${n}</a>`; }
+    const dentro=t&&rspWaDentro();
+    return `<a class="rsp-lk" href="https://wa.me/${n}" target="_blank" rel="noopener" onclick="event.stopPropagation()${dentro?`;return rspWaAbrir('${t.id}')`:''}"${dentro?' title="Abrir a conversa aqui no sistema"':''}>+${n}</a>`; }
   if(/insta/i.test(c.nome)){ const u=String(v).trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/^@/,'').replace(/\/.*$/,'');
     return /^[\w.]{2,30}$/.test(u)?`<a class="rsp-lk" href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">@${esc(u)}</a>`:esc(v); }
   if(c.tipo==='data') return rspData(v);
@@ -9748,8 +9751,23 @@ function rspWaNum(t){
   if(n.length===10||n.length===11) n='55'+n;
   return n.length>=12?n:'';
 }
+/* conversa DENTRO do sistema (Bernardo 08/10: "o botão de WhatsApp pra abrir a conversa
+   dentro do sistema"): usa o mesmo painel da ficha do pipeline (comercial/conversas.js),
+   que acha em qual número do time o lead falou e deixa responder dali. Esse painel é só
+   master/gestor; quem não pode ver continua indo pro wa.me. */
+const rspWaDentro=()=>{ const u=(typeof currentUser!=='undefined')?currentUser:null;
+  return typeof waDoLead==='function'&&!!u&&(u.role==='master'||['admin','gestor'].includes(u.papel_crm)); };
+function rspWaAbrir(id){
+  const t=(TK.tarefas||[]).find(x=>x.id===id), n=t?rspWaNum(t):'';
+  if(!n){ toast('Esse lead não tem WhatsApp.'); return false; }
+  if(!rspWaDentro()){ window.open('https://wa.me/'+n,'_blank','noopener'); return false; }
+  waDoLead(n,t.titulo||''); return false;
+}
+const RSP_WA_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.5-.6-2.7-1.2-4.4-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 1.9 1.1.9 2 1.2 2.3 1.4.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg>';
 const rspWaBtn=(t)=>{ const n=rspWaNum(t); if(!n) return '';
-  return `<a class="tk-wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp (+${n})" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.5-.6-2.7-1.2-4.4-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 1.9 1.1.9 2 1.2 2.3 1.4.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg></a>`; };
+  return rspWaDentro()
+    ? `<button type="button" class="tk-wa" title="Abrir a conversa aqui no sistema (+${n})" onclick="event.stopPropagation();rspWaAbrir('${t.id}')">${RSP_WA_SVG}</button>`
+    : `<a class="tk-wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp (+${n})" onclick="event.stopPropagation()">${RSP_WA_SVG}</a>`; };
 function rspLinhas(){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA);
   const dt=(t)=>String((cD&&(t.valores||{})[cD.id])||String(t.criado_em||'').slice(0,10));
@@ -9771,10 +9789,10 @@ function tkViewRespostas(){
   const larg=(c)=>Math.max(110,Number(c.largura)||150);
   const cor=(t)=>typeof tkCorLinha==='function'?tkCorLinha(t):'';
   const linha=(t)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}">
-      <td><span class="rsp-nm"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button></span></td>
+      <td><span class="rsp-nm"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}</span></td>
       <td class="tk-cen">${tkSelo(t)}</td>
       <td class="tk-cen">${cD?rspCel(cD,(t.valores||{})[cD.id]):''}</td>
-      ${outros.map(c=>`<td${cen(c)?' class="tk-cen"':''}>${rspCel(c,(t.valores||{})[c.id])}</td>`).join('')}
+      ${outros.map(c=>`<td${cen(c)?' class="tk-cen"':''}>${rspCel(c,(t.valores||{})[c.id],t)}</td>`).join('')}
     </tr>`;
   const largMin=300+180+170+outros.reduce((a,c)=>a+larg(c),0);
   return `<div class="rsp-bar">
@@ -24212,6 +24230,6 @@ initLoginScreen();
 </script>
 <script src="crm.js?v=27" defer></script>
 <script src="comercial/instancias.js?v=5" defer></script>
-<script src="comercial/conversas.js?v=3" defer></script>
+<script src="comercial/conversas.js?v=4" defer></script>
 </body>
 </html>
