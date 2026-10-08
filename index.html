@@ -2990,6 +2990,13 @@
   .rsp-funil.filtrado .rsp-fe:not(.on):hover{opacity:.8}
   .rsp-fe.on{outline:2px solid var(--txt);outline-offset:2px}
   .rsp-jm{display:block;font-size:10.5px;font-weight:600;opacity:.85;margin-top:2px;white-space:nowrap}
+  /* REUNIÃO MARCADA por dentro (Bernardo 08/10): A acontecer e No-show, subgrupos da etapa */
+  #rspTab .rsp-g > tr.rsp-sub:not(.tk-faixa) > td{padding:10px 14px 6px;font-size:10.5px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--txt);background:var(--panel);border-bottom:1px solid var(--line)}
+  #rspTab .rsp-sub small{margin-left:8px;font-size:11.5px;letter-spacing:0;color:var(--muted);font-variant-numeric:tabular-nums}
+  .rsp-ns{flex:none;border:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;font-size:11.5px;font-weight:600;
+    padding:2px 9px;border-radius:999px;cursor:pointer;white-space:nowrap}
+  .rsp-ns:hover{color:var(--txt);border-color:var(--muted)}
   .rsp-tudo{display:inline-flex;align-items:center;gap:4px;margin:2px 0 10px;padding:3px 8px 3px 4px;border:0;border-radius:8px;
     background:transparent;color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer}
   .rsp-tudo:hover{color:var(--txt);background:var(--panel2)}
@@ -10260,6 +10267,27 @@ function rspGrupos(arr){
   if(sem.length) gs.push({k:'sem',rot:'Sem etapa',cor:'#64748b',its:sem});
   return gs;
 }
+/* REUNIÃO MARCADA por dentro (Bernardo 08/10: "quando o SDR clicar em Reunião Marcada, ele vai ter
+   o controle do que está à mesa pra ele, que vai acontecer ainda. E consegue diferenciar o que é
+   no-show, o cara do follow-up infinito"). Show não é etapa: show é a PROPOSTA ENVIADA. O no-show
+   fica no card (valores._reuniao) e o banco mantém a call do Painel igual (crm_lead_sync /
+   crm_call_sync): marcar aqui vira No-show lá, e o No-show lançado lá aparece aqui. */
+const rspStReun=()=>{ const s=(typeof tkStatusDe==='function'?tkStatusDe(TK.listaSel):[]).find(x=>/REUNI[ÃA]O MARCADA$/i.test(String(x.nome||'')));
+  return s?String(s.id):''; };
+const rspNoShow=(t)=>String((t.valores||{})._reuniao||'')==='no_show';
+function rspReuniao(its,linha,ncols){
+  const ns=its.filter(rspNoShow), vai=its.filter(t=>!rspNoShow(t));
+  const sub=(rot,n)=>`<tr class="rsp-sub"><td colspan="${ncols}">${rot}<small>${n}</small></td></tr>`;
+  return sub('A acontecer',vai.length)+vai.map(linha).join('')+sub('No-show',ns.length)+ns.map(linha).join('');
+}
+const rspNsBtn=(t)=>rspNoShow(t)
+  ?`<button type="button" class="rsp-ns" onclick="event.stopPropagation();rspNoShowMarca('${t.id}',false)" title="O lead remarcou: volta pra A acontecer">Remarcou</button>`
+  :`<button type="button" class="rsp-ns" onclick="event.stopPropagation();rspNoShowMarca('${t.id}',true)" title="O lead não apareceu na reunião">No-show</button>`;
+window.rspNoShowMarca=async(id,on)=>{
+  const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
+  const val=Object.assign({},t.valores||{}); if(on) val._reuniao='no_show'; else delete val._reuniao;
+  await tkPatch(id,{valores:val},on?'No-show marcado. A call no Painel também.':'Remarcou: voltou pra A acontecer.');
+};
 /* RELÓGIO DO LEAD (Bernardo 08/10: "um símbolo de relógio que contabiliza quanto tempo o cliente
    está… nas primeiras 6 horas fica vermelho, bem destacado, pra chamar atenção do SDR… depois 1 dia,
    2 dias, 30 dias… quando fechar, a gente sabe a jornada de compra média"). Conta desde que o card
@@ -10288,7 +10316,7 @@ if(!window.__rspTic) window.__rspTic=setInterval(()=>{ try{
 }catch(_){} },60000);
 function tkViewRespostas(){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA), outros=cps.filter(c=>c!==cD);
-  const arr=rspLinhas();
+  const arr=rspLinhas(), stReun=rspStReun();
   RSP.sel=Object.fromEntries(Object.entries(RSP.sel||{}).filter(([id])=>arr.some(t=>t.id===id)));
   const nSel=Object.keys(RSP.sel).length;
   const busca=(t)=>esc([t.titulo,...outros.map(c=>{ const v=(t.valores||{})[c.id]; return v==null?'':String(campoTexto(c,v)); })].join(' ').toLowerCase());
@@ -10301,7 +10329,7 @@ function tkViewRespostas(){
   const larg=(c)=>rspLarg(c.id,Math.max(110,Number(c.largura)||150));
   const cor=(t)=>typeof tkCorLinha==='function'?tkCorLinha(t):'';
   const linha=(t)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}" draggable="true" ondragstart="rspPega(event,'${t.id}')" ondragend="rspPegaFim(event)">
-      <td><span class="rsp-nm rsp-lin"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}${rspMvBtn(t)}</span></td>
+      <td><span class="rsp-nm rsp-lin"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}${rspMvBtn(t)}${stReun&&t.status_id===stReun?rspNsBtn(t):''}</span></td>
       <td class="tk-cen">${rspRelogio(t,cD)}</td>
       ${outros.map(c=>`<td${cen(c)?' class="tk-cen"':''}>${rspCel(c,(t.valores||{})[c.id],t)}</td>`).join('')}
     </tr>`;
@@ -10328,7 +10356,7 @@ function tkViewRespostas(){
         <span class="rsp-cv${(fech||!g.its.length)?'':' ab'}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 4.5l9 7.5-9 7.5z"/></svg></span>
         <span class="tk-selo" style="background-color:${esc(g.cor)};color:${esc(corTx(g.cor))}">${esc(g.rot)}</span>
         <span class="tk-n rsp-gn">${q?nV:g.its.length}</span></span></td></tr>
-      ${(fech||!g.its.length)?'':cab(g)+g.its.map(linha).join('')}</tbody>`; };
+      ${(fech||!g.its.length)?'':cab(g)+(stReun&&g.k===stReun?rspReuniao(g.its,linha,ncols):g.its.map(linha).join(''))}</tbody>`; };
   return `<div class="rsp-bar">
       <input class="search rsp-q" id="rspQ" placeholder="Pesquisar nas respostas…" value="${esc(RSP.q||'')}" oninput="rspBusca(this.value)" autocomplete="off">
       <div class="rsp-dir">
@@ -10342,7 +10370,7 @@ function tkViewRespostas(){
     </div>
     <div class="rsp-funil${RSP.etapa?' filtrado':''}" role="navigation" aria-label="Etapas do funil">${grupos.map(g=>{ const n=q?g.its.filter(passa).length:g.its.length;
       const st=typeof tkStatus1==='function'?tkStatus1(g.k):null, jm=(st&&st.grupo==='feito')?rspJornada(g.its,cD):'';
-      return `<button type="button" class="rsp-fe${g.its.length?'':' zero'}${RSP.etapa===g.k?' on':''}" data-g="${esc(g.k)}" style="--c:${esc(g.cor)};color:${esc(corTx(g.cor))}" onclick="rspIrEtapa('${esc(g.k)}')"${rspAlvo(g.k)} title="${RSP.etapa===g.k?'Voltar a ver todas as etapas':'Ver só '+esc(g.rot)}"><span class="rsp-fen">${esc(g.rot)}</span><b>${n}</b>${jm?`<small class="rsp-jm" title="Jornada média de compra: da entrada até fechar">jornada média ${esc(jm)}</small>`:''}</button>`; }).join('')}</div>
+      return `<button type="button" class="rsp-fe${g.its.length?'':' zero'}${RSP.etapa===g.k?' on':''}" data-g="${esc(g.k)}" style="--c:${esc(g.cor)};color:${esc(corTx(g.cor))}" onclick="rspIrEtapa('${esc(g.k)}')"${rspAlvo(g.k)} title="${RSP.etapa===g.k?'Voltar a ver todas as etapas':'Ver só '+esc(g.rot)}"><span class="rsp-fen">${esc(g.rot)}</span><b>${n}</b>${(stReun&&g.k===stReun&&g.its.length)?`<small class="rsp-jm">${g.its.filter(rspNoShow).length} de ${g.its.length} no-show</small>`:''}${jm?`<small class="rsp-jm" title="Jornada média de compra: da entrada até fechar">jornada média ${esc(jm)}</small>`:''}</button>`; }).join('')}</div>
     ${gSel?`<button type="button" class="rsp-tudo" onclick="rspIrEtapa('')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Ver todas as etapas</button>`:''}
     <div class="tablewrap rolavel" ondragover="rspRola(event)"><table class="tk-tab lc-tab" id="rspTab" style="width:${largMin}px">
       <colgroup><col data-k="nome" style="width:${wN}px"><col data-k="data" style="width:${wD}px">${outros.map(c=>`<col data-k="${esc(c.id)}" style="width:${larg(c)}px">`).join('')}</colgroup>
@@ -10438,6 +10466,8 @@ window.rspMoverPara=async (ids,sid,lote)=>{
   if(error){ toast('Erro: '+error.message); return; }
   ids.forEach(id=>{ const t=TK.tarefas.find(x=>x.id===id); if(t) Object.assign(t,patch); });
   RSP.sel={}; tkDesenhar($('#content')); spDesenhar();
+  /* o banco mexe nas calls do Painel e limpa o no-show de quem saiu da reunião: relê os leads */
+  if(typeof CRM_PAINEL!=='undefined'&&CRM_PAINEL[TK.listaSel]){ try{ crmLeadsRecarregar(TK.listaSel); }catch(_){} }
   toast(ids.length+' leads foram para '+rspEtNome(s)+'.');
 };
 /* arrastar: a linha vai pra etapa em que for solta; "Sem etapa" não recebe */
@@ -10466,17 +10496,54 @@ window.rspRola=(ev)=>{ if(!TK.arrastando) return;
 const CRM_PAINEL=Object.fromEntries(CRM_FORMS.map(f=>[f.lista,f.calls]));
 const crmPainelPode=(lid)=>{ const u=(typeof currentUser!=='undefined')?currentUser:null;
   return !!CRM_PAINEL[lid]&&!!u&&(u.role==='master'||!!u.papel_crm); };
-const CPN={carregando:{},erro:{}};
+const CPN={carregando:{},erro:{},em:{}};
+/* Painel e lista andam juntos (Bernardo 08/10): o banco move o lead quando a call muda e mexe na
+   call quando o lead muda de etapa. Por isso o Painel relê as calls toda vez que aparece (mais de
+   5 s desde a última leitura) e, depois de salvar ou apagar uma call, os leads deste CRM recarregam. */
+async function crmLeadsRecarregar(lid){
+  if(!lid) return;
+  const r=await tudoPaginado(()=>sb.from('tarefas').select('*').eq('lista_id',lid).order('criado_em').order('id'));
+  if(r.error||!r.data) return;
+  const ids=new Set(r.data.map(x=>x.id));
+  TK.tarefas=TK.tarefas.filter(t=>t.lista_id!==lid||ids.has(t.id));
+  r.data.forEach(n=>{ const i=TK.tarefas.findIndex(t=>t.id===n.id); if(i>=0) TK.tarefas[i]=n; else TK.tarefas.push(n); });
+  if(TK.listaSel===lid&&TK.visao!=='painel') tkDesenhar($('#content'));
+}
+/* "+ Nova call" do CRM de formulário: o nome do lead sugere os leads da lista (o banco liga a call
+   ao card pelo nome; nome que não está na lista vira card novo em REUNIÃO MARCADA) e, escolhido
+   um lead, a Origem dele já vem marcada */
+function crmCallModalLeads(){
+  if(typeof window.crmCallModal!=='function'||window.crmCallModal.__leads) return;
+  const orig=window.crmCallModal;
+  const novo=function(){ const r=orig.apply(this,arguments);
+    try{ const lid=TK.listaSel;
+      if(CRM.ccBase!=='crm_calls'&&CRM_PAINEL[lid]===CRM.ccBase){
+        const inp=document.getElementById('cc_lead');
+        if(inp&&!document.getElementById('ccLeads')){
+          const leads=TK.tarefas.filter(t=>t.lista_id===lid&&!arquivada(t)&&!t.pai_id);
+          const nomes=[...new Set(leads.map(t=>String(t.titulo||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+          const dl=document.createElement('datalist'); dl.id='ccLeads'; dl.innerHTML=nomes.map(n=>`<option value="${esc(n)}">`).join('');
+          inp.after(dl); inp.setAttribute('list','ccLeads'); inp.placeholder='lead da lista ou um nome novo';
+          const cO=tkCamposDe(lid).find(c=>c.nome==='Origem');
+          inp.addEventListener('change',()=>{ const t=leads.find(x=>String(x.titulo||'').trim().toLowerCase()===inp.value.trim().toLowerCase());
+            const rot=t&&cO?String((t.valores||{})[cO.id]||''):'', o=rot&&typeof CC_ORIGENS!=='undefined'?CC_ORIGENS.find(x=>x[1]===rot):null;
+            const sel=document.getElementById('cc_origem'); if(o&&sel) sel.value=o[0]; });
+        } } }catch(_){}
+    return r; };
+  novo.__leads=true; window.crmCallModal=novo;
+}
 function crmPainelView(){
-  const base=CRM_PAINEL[TK.listaSel];
+  const base=CRM_PAINEL[TK.listaSel], lid=TK.listaSel;
   if(typeof ccPainelHTML!=='function'||typeof ccUsar!=='function'||typeof CRM==='undefined') return '<div class="empty">Carregando o painel…</div>';
+  crmCallModalLeads();
   const pinta=()=>{ if(TK.visao==='painel'&&CRM_PAINEL[TK.listaSel]===base) tkDesenhar($('#content')); };
-  ccUsar(base,pinta);
-  if(!(base in CRM.ccDados)){
-    if(!CPN.carregando[base]){ CPN.carregando[base]=true;
-      ccCarregarBase(base).then(ok=>{ CPN.carregando[base]=false; if(!ok){ CPN.erro[base]=true; CRM.ccDados[base]=[]; } pinta(); }); }
-    return '<div class="empty">Carregando o painel…</div>';
+  ccUsar(base,()=>{ pinta(); crmLeadsRecarregar(lid); });
+  if(!CPN.carregando[base]&&(!(base in CRM.ccDados)||Date.now()-(CPN.em[base]||0)>5000)){
+    CPN.carregando[base]=true;
+    ccCarregarBase(base).then(ok=>{ CPN.carregando[base]=false; CPN.em[base]=Date.now();
+      if(!ok){ CPN.erro[base]=true; if(!(base in CRM.ccDados)) CRM.ccDados[base]=[]; } else CPN.erro[base]=false; pinta(); });
   }
+  if(!(base in CRM.ccDados)) return '<div class="empty">Carregando o painel…</div>';
   return `<div class="crm-pn">
       <div class="crm-pn-bar">${CPN.erro[base]?'<span class="hint" style="margin:0">Não consegui ler as calls deste CRM.</span>':''}<button class="btn small" onclick="crmCallModal()">+ Nova call</button></div>
       ${ccPainelHTML()}${ccCallsHTML()}
@@ -12725,7 +12792,9 @@ async function tkPatch(id,patch,msg){
   if(t){ Object.assign(t,patch); if(data&&data.valores) t.valores=data.valores; }
   if(t&&patch.valores){ try{ lcIniAvisar(t,iniAntes); }catch(_){} }
   if(t&&t.lista_id===CB_LISTA&&('status' in patch)){ try{ cbSincronizar(); }catch(_){} }
-  tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); recAgendar(); return true;
+  tkDesenhar($('#content')); spDesenhar(); if(msg) toast(msg); recAgendar();
+  if(t&&('status_id' in patch)&&typeof CRM_PAINEL!=='undefined'&&CRM_PAINEL[t.lista_id]){ try{ crmLeadsRecarregar(t.lista_id); }catch(_){} }
+  return true;
 }
 /* ======================= TAREFAS RECORRENTES (Gabriel 23/09) =======================
    A regra mora em tarefas.recorrencia (jsonb) na tarefa ATUAL da série. Quando ela é
