@@ -2181,7 +2181,7 @@ grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (B
   const h=g.tkViewRespostas();
   ok('mais novo em cima, arquivado fora', h.indexOf('>Bia<')>0&&h.indexOf('>Bia<')<h.indexOf('>Ana<')&&h.indexOf('Velho')<0);
   ok('contagem de respostas', /2 respostas/.test(h));
-  ok('data por extenso como no Yay', g.rspData('2026-10-05')==='5 de out de 2026');
+  ok('data curta dd/mm/aa', g.rspData('2026-10-05')==='05/10/26');
   ok('WhatsApp vira o número com link pra conversa', /href="https:\/\/wa.me\/5511999990000"[^>]*>\+5511999990000</.test(h));
   ok('Instagram vira @ com link', /href="https:\/\/instagram.com\/ana"[^>]*>@ana</.test(h));
   ok('status continua editável na linha', h.indexOf('[st:a]')>0);
