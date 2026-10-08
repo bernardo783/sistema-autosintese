@@ -1725,7 +1725,8 @@ grupo('Respostas separada por etapa, estilo ClickUp (Bernardo 08/10)');
   const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{}},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
     tkStatusDe:()=>ST,esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,tkSelo:()=>'<select></select>',
     tpSvg:()=>'',setTimeout:()=>0,currentUser:{role:'master'},corTexto:()=>'#fff'},['tkViewRespostas','rspGrupos']);
-  const h=g.tkViewRespostas();
+  /* só a tabela: o funil do topo (opção 4) também escreve o nome das etapas */
+  const h0=g.tkViewRespostas(), h=h0.slice(h0.indexOf('id="rspTab"'));
   const pos=(x)=>h.indexOf(x);
   ok('uma faixa por etapa, na ordem do funil (não na ordem que veio do banco)', pos('>NOVO LEAD<')>0&&pos('>NOVO LEAD<')<pos('>SEM RESPOSTA<')&&pos('>SEM RESPOSTA<')<pos('>EM CONVERSA<')&&pos('>EM CONVERSA<')<pos('>GANHOU<'));
   ok('pílula com a cor da etapa e sem o número na frente', /class="tk-selo" style="background-color:#7c3aed;[^"]*">NOVO LEAD<\/span>/.test(h)&&h.indexOf('1. NOVO LEAD')<0);
@@ -1742,6 +1743,28 @@ grupo('Respostas separada por etapa, estilo ClickUp (Bernardo 08/10)');
   ok('"marcar todos" marca só a etapa', /onchange="rspTodos\(this\.checked,'s1'\)"/.test(h)&&/window\.rspTodos=\(on,g\)=>/.test(HTML));
   ok('busca conta só linhas de lead e atualiza a contagem de cada etapa', HTML.indexOf("#rspTab tbody tr[data-b]")>0&&HTML.indexOf("#rspTab tbody.rsp-g")>0);
   ok('arrastar a borda muda a <col>', HTML.indexOf(`const col=tb.querySelector('col[data-k="'+k+'"]')`)>0);
+}
+grupo('Respostas: funil no topo + etapas sem caixa, a opção 4 (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const C=[{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const ST=[{id:'s2',nome:'2. SEM RESPOSTA',cor:'#f97316',ordem:2},{id:'s1',nome:'1. NOVO LEAD',cor:'#7c3aed',ordem:1},{id:'s6',nome:'6. GANHOU',cor:'#3ec46d',ordem:6}];
+  const T=[{id:'a',lista_id:'L',titulo:'Ana',status_id:'s1',valores:{d:'2026-10-07'}},{id:'b',lista_id:'L',titulo:'Bia',status_id:'s1',valores:{d:'2026-10-06'}},
+    {id:'c',lista_id:'L',titulo:'Caio',status_id:'s2',valores:{d:'2026-10-05'}}];
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{}},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
+    tkStatusDe:()=>ST,esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,tkSelo:()=>'',
+    tpSvg:()=>'',setTimeout:()=>0,currentUser:{role:'master'},corTexto:()=>'#fff'},['tkViewRespostas']);
+  const h=g.tkViewRespostas();
+  const fun=(h.match(/<div class="rsp-funil"[^>]*>([\s\S]*?)<\/div>/)||[])[1]||'';
+  const bt=fun.match(/<button[\s\S]*?<\/button>/g)||[];
+  ok('funil no topo, antes da tabela', h.indexOf('rsp-funil')>0&&h.indexOf('rsp-funil')<h.indexOf('id="rspTab"'));
+  ok('uma etapa por botão, na ordem do funil, com a contagem', bt.length===3&&/>NOVO LEAD<\/span><b>2</.test(bt[0])&&/>SEM RESPOSTA<\/span><b>1</.test(bt[1])&&/>GANHOU<\/span><b>0</.test(bt[2]));
+  ok('cada etapa na própria cor; etapa vazia fica cinza', /--c:#7c3aed/.test(bt[0])&&/rsp-fe zero/.test(bt[2])&&!/zero/.test(bt[0]));
+  ok('clicar leva até a etapa', /onclick="rspIrEtapa\('s1'\)"/.test(bt[0])&&/window\.rspIrEtapa=\(k\)=>/.test(HTML)&&/scrollIntoView\(\{behavior:'smooth',block:'start'\}\)/.test(HTML));
+  ok('etapa recolhida abre antes de rolar até ela', /if\(TK\.fechadas&&TK\.fechadas\['gr'\+k\]\)\{ TK\.fechadas\['gr'\+k\]=false; tkDesenhar/.test(HTML));
+  ok('etapas sem caixa: fundo da página, sem linha vertical', HTML.indexOf('.tablewrap:has(> #rspTab){background:transparent;border:0;border-radius:0;box-shadow:none}')>0&&HTML.indexOf('#rspTab th+th,#rspTab td+td{border-left:0}')>0);
+  ok('saiu o cartão com cantos redondos por etapa', HTML.indexOf('border-top-left-radius:12px}')<0||!/#rspTab \.rsp-ch > th:first-child\{border-left/.test(HTML));
+  ok('busca atualiza o número do funil junto', HTML.indexOf(`const f=document.querySelector('.rsp-fe[data-g="'+g.dataset.g+'"] b'); if(f) f.textContent=c.textContent;`)>0);
 }
     await Promise.all(PROMESSAS);
     fimDosTestes();
