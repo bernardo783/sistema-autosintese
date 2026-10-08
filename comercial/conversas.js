@@ -302,6 +302,7 @@
   /* botão roxo muda a etapa; vendedor virou pílula no topo (Bernardo 08/10) */
   .wald-pop.cl{right:16px;bottom:204px;width:240px;max-height:50vh;overflow:auto}
   .wald-pop.tr{left:66px;top:92px;width:260px}
+  .wald-pop.cl .wald-mi.on{background:color-mix(in srgb,var(--c,var(--brand)) 26%,transparent);font-weight:700}
   .wald-vd{padding-left:3px}
   .wald-vd .wald-av.sm{width:20px;height:20px;font-size:10.5px}
   span.wald-vd{cursor:default}
@@ -544,7 +545,7 @@
         return `<button class="wald-mi" ${at?'disabled':''} onclick="waLdTransferir('${esc(v.id)}')"><span class="wald-av sm">${esc(inicial(v.nome))}</span>${esc(v.nome)}${at?'<small>atual</small>':''}</button>`; }).join('')+
       '<small class="wald-dica">O lead passa a ser de quem você escolher, e as próximas mensagens saem pelo WhatsApp dessa pessoa.</small>';
     else if(LD.pop==='cl'){ const t=tarefaDe(LD.tarefa), sts=t&&typeof tkStatusDe==='function'?tkStatusDe(t.lista_id):[];
-      p.innerHTML=sts.length?'<b>Mover para</b>'+sts.map(s=>`<button class="wald-mi${t.status_id===s.id?' on':''}" onclick="waLdStatus('${esc(s.id)}')"><i class="wald-dot" style="background:${esc(s.cor)}"></i>${esc(String(s.nome||'').replace(/^\d+\.\s*/,''))}${t.status_id===s.id?'<small>atual</small>':''}</button>`).join('')
+      p.innerHTML=sts.length?'<b>Mover para</b>'+sts.map(s=>`<button class="wald-mi${t.status_id===s.id?' on':''}" style="--c:${esc(s.cor)}" onclick="waLdStatus('${esc(s.id)}')"><i class="wald-dot" style="background:${esc(s.cor)}"></i>${esc(String(s.nome||'').replace(/^\d+\.\s*/,''))}</button>`).join('')
         :'<small class="wald-dica">Essa lista não tem etapas.</small>'; }
   }
   function ldMic(){
