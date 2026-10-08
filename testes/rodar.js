@@ -1820,7 +1820,7 @@ grupo('Respostas: etapa vazia só no funil, selo leve na linha (Bernardo 08/10)'
 grupo('CRM Sofás: planilha voltou ao jeito do vídeo das 17h (Bernardo 08/10)');
 {
   ok('sem filtro de hoje, sem botões de data e sem aviso de pendentes', HTML.indexOf('rspAvisoPendentes')<0&&HTML.indexOf('RSP_PER')<0&&HTML.indexOf('class="rsp-per"')<0&&HTML.indexOf("let RSP={dir:-1,sel:{},q:'',larg:{}};")>0);
-  ok('Filtros continua sem "Data de vencimento" na lista de lead (lead não tem prazo)', /\$\{tkFSemPrio\(\)\?`<p class="hint"[^`]*`:`<div class="tkp-sec">Data de vencimento<\/div>/.test(HTML)&&HTML.indexOf("if(tkFSemPrio()){ /* lead não tem prazo")>0&&HTML.indexOf("((F.prazo||F.de||F.ate)&&!tkFSemPrio()?1:0)")>0);
+  ok('Filtros continua sem "Data de vencimento" na lista de lead (lead não tem prazo): lá é a Data de entrada', /\$\{tkFSemPrio\(\)\?`<div class="tkp-sec">Data de entrada<\/div>[\s\S]*?`:`<div class="tkp-sec">Data de vencimento<\/div>/.test(HTML)&&HTML.indexOf("if(tkFSemPrio()){ if(tkFLeadAtivo(F))")>0&&HTML.indexOf("(tkFSemPrio()?tkFLeadAtivo(F):(F.prazo||F.de||F.ate))")>0);
 }
     await Promise.all(PROMESSAS);
     fimDosTestes();
@@ -2525,6 +2525,33 @@ grupo('Equipe do CRM Sofás: resumo, status no avatar e conectar pelo QR ali mes
   g.currentUser.role='gestor'; g.eqDesenhar();
   ok('gestor não gera número (usa o token admin): só o aviso', els.content.innerHTML.indexOf("eqNovoNumero('jose')")<0&&/só master gera o número/.test(els.content.innerHTML));
   ok('o botão abre o "Gerar número novo" do instancias.js com o apelido', HTML.indexOf("instCadastrar(ap,v.perfil_id?")>0&&HTML.indexOf("{modo:'gerar'}")>0);
+}
+
+/* ---------------- filtro de data de entrada no CRM (Bernardo 08/10) ---------------- */
+grupo('CRM: filtro de data pela data de entrada (Hoje, Ontem, 7 e 30 dias, Personalizado) (Bernardo 08/10)');
+{
+  const F={prazo:'',de:'',ate:'',prios:[],resps:[]};
+  const C=[{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const lead=(d,cri)=>({lista_id:'L',valores:d?{d}:{},criado_em:cri||'2026-10-08T15:00:00Z'});
+  const g=rodar(bloco('function tkDiaMais(','/* Redesenhar a mesma lista'),{TK:{filtro:F,escopo:'lista',listaSel:'L'},tkHoje:()=>'2026-10-08',
+    crmForm:(l)=>l==='L',tkCamposDe:(l)=>C.filter(c=>c.lista_id===l),RSP_DATA:'Preencheu em',
+    esc:(x)=>String(x==null?'':x),PRIO_COR:{},TK_PRIO:{},prioFlag:()=>'',TK_MESES:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    svgIco:()=>'',avatar:()=>'',localStorage:{setItem(){}},tkDesenhar(){},$:()=>null,
+    document:{getElementById:()=>null,addEventListener(){},removeEventListener(){}}},['tkPopFiltroHTML','tkFLeadBate','tkFiltroN']);
+  const h=g.tkPopFiltroHTML();
+  ok('no CRM o painel mostra "Data de entrada" com Hoje, Ontem, 7, 15 e 30 dias e Personalizado', /Data de entrada/.test(h)&&/>Hoje</.test(h)&&/>Ontem</.test(h)&&/>Últimos 7 dias</.test(h)&&/>Últimos 15 dias</.test(h)&&/>Últimos 30 dias</.test(h)&&/Personalizado/.test(h)&&/class="tkc-grade"/.test(h));
+  ok('nada de prazo ou futuro no CRM', !/Amanhã|Atrasadas|Próximos 7 dias|Sem prazo|Esta semana|Data de vencimento|Prioridade/.test(h));
+  F.prazo='hoje';
+  ok('Hoje vale pela coluna "Preencheu em", não pelo dia em que o card nasceu', g.tkFLeadBate(lead('2026-10-08','2026-10-07T10:00:00Z'),F)&&!g.tkFLeadBate(lead('2026-10-07','2026-10-08T16:34:00Z'),F));
+  F.prazo='ontem'; ok('Ontem', g.tkFLeadBate(lead('2026-10-07'),F)&&!g.tkFLeadBate(lead('2026-10-08'),F));
+  F.prazo='ult7'; ok('Últimos 7 dias conta hoje e os 6 anteriores', g.tkFLeadBate(lead('2026-10-02'),F)&&!g.tkFLeadBate(lead('2026-10-01'),F));
+  F.prazo='ult15'; ok('Últimos 15 dias', g.tkFLeadBate(lead('2026-09-24'),F)&&!g.tkFLeadBate(lead('2026-09-23'),F));
+  F.prazo='ult30'; ok('Últimos 30 dias', g.tkFLeadBate(lead('2026-09-09'),F)&&!g.tkFLeadBate(lead('2026-09-08'),F)&&g.tkFiltroN()===1);
+  F.prazo=''; F.de='2026-10-05'; F.ate='2026-10-07';
+  ok('Personalizado pelo calendário (de/até)', g.tkFLeadBate(lead('2026-10-06'),F)&&!g.tkFLeadBate(lead('2026-10-08'),F));
+  F.de=''; F.ate=''; F.prazo='amanha';
+  ok('atalho de tarefa guardado em outra lista não filtra nem conta no CRM', g.tkFLeadBate(lead('2026-10-01'),F)&&g.tkFiltroN()===0);
+  ok('a Respostas aplica o filtro', HTML.indexOf("!t.pai_id&&(typeof tkFLeadBate!=='function'||tkFLeadBate(t,TK.filtro||{}))")>0);
 }
 
 /* ---------------- CRM de formulário com o visual do Controle de Clientes ---------------- */
