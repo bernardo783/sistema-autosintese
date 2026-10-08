@@ -754,11 +754,11 @@ grupo('Cada lista lembra da própria visão');
   const g=rodar(bloco("const VIS_KEY=",'window.tkVisao=')+bloco('window.tkVisao=(v)=>{','window.tkEscopo='),{
     localStorage:{getItem:k=>loja[k]||null,setItem:(k,v)=>{loja[k]=v;}},
     LC_ID:'LC', TK:{listaSel:'',visao:'lista',lcVista:''},
-    tkStatusDe:id=>({L4:[1,2,3,4],LF:[1,2,3,4],LS:[1,2,3,4]}[id]||[]), crmForm:id=>id==='LF'||id==='LS', crmSoLista:id=>id==='LS', $:()=>null, tkDesenhar:()=>{}},['visaoDe','visaoPadrao']);
+    tkStatusDe:id=>({L4:[1,2,3,4],LF:[1,2,3,4],LS:[1,2,3,4]}[id]||[]), crmForm:id=>id==='LF'||id==='LS', crmSoResp:id=>id==='LS', $:()=>null, tkDesenhar:()=>{}},['visaoDe','visaoPadrao']);
   ok('lista comum abre em lista', g.visaoDe('L1')==='lista');
   ok('lista com 4+ status abre em board', g.visaoDe('L4')==='board');
   ok('lista de leads de formulário abre em Respostas, mesmo com 4+ status (Bernardo 08/10)', g.visaoDe('LF')==='tabela');
-  ok('CRM Sofás abre em Lista (só Lista ali, Bernardo 08/10)', g.visaoDe('LS')==='lista');
+  ok('CRM Sofás abre em Respostas (só Respostas ali, Bernardo 08/10)', g.visaoDe('LS')==='tabela');
   g.TK.listaSel='L1'; g.tkVisao('board');
   ok('L1 guardou board', g.visaoDe('L1')==='board');
   ok('L2 não foi junto', g.visaoDe('L2')==='lista');
@@ -1608,7 +1608,8 @@ grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernar
   ok('a tela do Comercial sempre volta pra base da agência', /window\.crmRender=function\(c,viewPedida\)\{\n\s*ccUsar\('crm_calls'\)/.test(CJ));
   ok('CRM Sofás aponta pra sofas_calls', /const CRM_PAINEL=\{'2e85f701-0616-4b74-9732-6ebfeba016b8':'sofas_calls'\}/.test(HTML));
   ok('aba Painel ao lado de Respostas, Lista e Quadro', /\['board',PCX_I\.quadro\+'Quadro'\],\.\.\.\(pnl\?\[\['painel'/.test(HTML)&&/TK\.visao==='painel'\?crmPainelView\(\)/.test(HTML));
-  ok('CRM Sofás só em Lista: sem Respostas e sem Quadro, Painel ao lado', /const CRM_SO_LISTA=\{'2e85f701-0616-4b74-9732-6ebfeba016b8':1\}/.test(HTML)&&/:soLst\?\[\['lista',PCX_I\.lista\+'Lista'\],\.\.\.\(pnl\?/.test(HTML)&&/if\(soLst&&TK\.visao!=='lista'&&TK\.visao!=='painel'\) TK\.visao='lista';/.test(HTML));
+  ok('CRM Sofás só em Respostas: sem Lista e sem Quadro, Painel ao lado', /const CRM_SO_RESP=\{'2e85f701-0616-4b74-9732-6ebfeba016b8':1\}/.test(HTML)&&/:soResp\?\[\['tabela',tpSvg\('tabela',14\)\+'Respostas'\],\.\.\.\(pnl\?/.test(HTML)&&/if\(soResp&&TK\.visao!=='tabela'&&TK\.visao!=='painel'\) TK\.visao='tabela';/.test(HTML));
+  ok('no topo do CRM Sofás some o ícone da Lista e o do Quadro', /\$\{soBoard\|\|\(TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\)\?'':tpIb\('lista'/.test(HTML)&&/\$\{TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\?'':tpIb\('quadro'/.test(HTML));
   ok('crm.js com cache novo', HTML.indexOf('crm.js?v=28')>0);
 }
 grupo('Seletor de emoji da conversa é conteúdo da mensagem, não ícone (Bernardo 08/10)');
