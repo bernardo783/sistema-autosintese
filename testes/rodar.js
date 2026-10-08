@@ -1655,6 +1655,24 @@ grupo('CRM Motos e CRM Veículos: o mesmo código do CRM Sofás, cada um com a s
   ok('salvar grava no form que está na tela (não num fixo)', HTML.indexOf("sb.rpc('crm_rodizio_salvar',{p_form:EQ.cfg.form_id,")>0&&HTML.indexOf('EQ_FORM')<0);
   ok('trocar de CRM no meio da carga não pinta a Equipe errada', /if\(form!==eqForm\(\)\) return;/.test(HTML)&&/currentView!=='crm-equipe'\|\|form!==eqForm\(\)\) return;/.test(HTML));
 }
+grupo('Novo lead pelo + nos CRMs de formulário, e a reserva do disparo (Bernardo 08/10)');
+{
+  ok('o + dentro do CRM abre o cadastro de lead, não a tela de tarefa', /if\(!id&&TK\.escopo==='lista'&&crmForm\(TK\.listaSel\)\)\{ crmLdNovo\(TK\.listaSel,grupoPre\); return; \}/.test(HTML));
+  ok('abrir um lead que já existe continua indo pro cartão', /if\(id&&typeof crmLdAbrir==='function'&&crmLdAbrir\(id\)\) return;/.test(HTML));
+  ok('cadastro grava tudo de uma vez pela RPC crm_lead_novo', HTML.indexOf("sb.rpc('crm_lead_novo',{p_lista:CLN.lid,p:{nome,whats:d,")>0);
+  ok('cadastro: nome e WhatsApp obrigatórios, origem em botões e primeira anotação', /id="clnNome"/.test(HTML)&&/WhatsApp<em>\*<\/em>/.test(HTML)&&/const CLN_ORIGENS=\['Indicação','Instagram orgânico','Evento','Prospecção','Outro'\];/.test(HTML)&&/id="clnNota"/.test(HTML));
+  ok('cadastro: o próximo do rodízio já vem marcado, sem passar por cima de quem a pessoa escolheu', /if\(sel&&!CLN\.mexeu&&/.test(HTML));
+  const cod=bloco('/* ======================= CARTÃO DO LEAD (Bernardo 08/10)','/* devolve true quando é lead de CRM');
+  const g=rodar(cod,{},['clHistorico']);
+  const h=g.clHistorico({descricao:'Lead cadastrado à mão por Bernardo Antunes · Indicação (indicado por João, da JR).'});
+  ok('cartão entende o lead cadastrado à mão (quem, origem e quem indicou)', !!h.mao&&h.mao.por==='Bernardo Antunes'&&h.mao.origem==='Indicação'&&h.mao.ind==='João, da JR'&&h.obs==='');
+  const h2=g.clHistorico({descricao:'Lead cadastrado à mão por Luana · Evento.'});
+  ok('sem indicação também', !!h2.mao&&h2.mao.origem==='Evento'&&h2.mao.ind==='');
+  const h3=g.clHistorico({descricao:'Lead do formulário "Loja de sofás" (Yay Forms).\nID da resposta no Yay: abc'});
+  ok('lead do formulário continua como era', !h3.mao&&h3.form==='Loja de sofás');
+  ok('cartão de lead manual mostra Origem, Indicado por e Cadastrado por', /\$\{h\.mao\?`<section class="cl-box"><h4>De onde veio<\/h4>\n\s*<div class="cl-kv"><span>Origem<\/span>\$\{ed\('origem','-'\)\}/.test(HTML));
+  ok('Equipe explica a reserva do disparo', HTML.indexOf('a mensagem sai pelo número de <b>${esc(eqNomeAp(cfg.reserva))}</b> e o lead fica com ele')>0);
+}
 grupo('Equipe do CRM: card Disparo automático Yay Forms e botão Conectado (Bernardo 08/10)');
 {
   ok('título novo, sem a descrição embaixo', HTML.indexOf('<h4>Disparo automático Yay Forms</h4></div>')>0&&HTML.indexOf('Disparo automático do formulário')<0);
