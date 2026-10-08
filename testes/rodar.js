@@ -1555,6 +1555,59 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
     ok('depois de enviar vira conversa normal (sem o seletor)', !/waLdDe/.test(els.waLdResp.innerHTML)&&/textarea/.test(els.waLdResp.innerHTML)&&/Bernardo/.test(els.waLdPor.textContent));
   })());
 }
+grupo('Cartão do lead: abre como CRM, não como tarefa (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){')+'\n'+
+    bloco('/* ======================= CARTÃO DO LEAD (Bernardo 08/10)','window.tkAbrir=(id,prazoPre,grupoPre)=>{');
+  const nomes=['WhatsApp','Instagram','Cargo','Estado','Cidade','Campanha','Conjunto','Anúncio','Preencheu em','Mensagem automática','Formulário'];
+  const C=nomes.map((n,i)=>({id:'c'+i,lista_id:'L',nome:n,tipo:n==='Preencheu em'?'data':'texto'})).concat([{id:'cx',lista_id:'L',nome:'Faturamento',tipo:'texto'}]);
+  const ST=[{id:'s0',nome:'0. INCOMPLETO',grupo:'nao_iniciado',cor:'#888'},{id:'s1',nome:'1. NOVO LEAD',grupo:'nao_iniciado',cor:'#7c3aed'},
+    {id:'s2',nome:'2. EM CONVERSA',grupo:'ativo',cor:'#2f7cf6'},{id:'s5',nome:'5. FECHADO',grupo:'feito',cor:'#3ec46d'},{id:'s6',nome:'6. PERDIDO',grupo:'fechado',cor:'#64748b'}];
+  const lead={id:'a',lista_id:'L',titulo:'Ana Souza',status_id:'s2',criado_em:'2026-10-07T12:00:00Z',
+    descricao:'Lead do formulário "Loja de sofás" (Yay Forms), anúncio AD1. ID da resposta no Yay: x1\n\nPreencheu de novo em 08/10/2026 14:32. ID da resposta no Yay: x2',
+    valores:{c0:'https://wa.me/5561992054765',c1:'@anastore',c2:'Dono(a)',c3:'DF',c4:'Brasília',c5:'Campanha Sofás',c7:'AD1',c8:'2026-10-07',c9:'Pausada',c10:'Completo'}};
+  const tarefa={id:'b',lista_id:'T',titulo:'Fazer post',valores:{}};
+  const els={}, patches=[], status=[];
+  const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:[lead,tarefa],campos:C,colsOff:{},listas:[{id:'L',nome:'Leads · Loja de sofás'}]},
+    tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),tkStatusDe:(l)=>l==='L'?ST:[],tkStatus1:(id)=>ST.find(s=>s.id===id)||null,
+    esc,campoTexto:(c,v)=>v==null?'':String(v),arquivada:()=>false,tkSelo:()=>'',tpSvg:()=>'',toast:()=>{},
+    equipeDe:()=>[{id:'u1',nome:'Kennedy'},{id:'u2',nome:'Luana'}],avatar:()=>'',tkNomeUser:()=>'Bernardo',tkmQuando:()=>'hoje',
+    currentUser:{id:'u0',role:'master'},waDoLead:()=>{},setTimeout:()=>0,
+    sb:{from:()=>({select:()=>({eq:()=>({order:async ()=>({data:[],error:null})})})})},
+    tkPatch:async (id,p)=>{ patches.push(p); Object.assign(lead,p); return true; },
+    tkSetStatus:async (id,sid)=>{ status.push(sid); lead.status_id=sid; },
+    document:{getElementById:(id)=>els[id]||null,querySelector:()=>null,addEventListener:()=>{},
+      createElement:()=>({set id(v){ els[v]=this; },className:'',innerHTML:'',querySelector:()=>null}),body:{appendChild:()=>{}}}},
+    ['crmLdAbrir','crmLdHtml','clHistorico','clCampoSalvar','clEtapa','clFone']);
+  ok('lead de lista de formulário abre o cartão de lead', g.crmLdAbrir('a')===true&&!!els.clOv);
+  ok('tarefa comum continua no painel de tarefa', g.crmLdAbrir('b')===false);
+  const h=els.clOv.innerHTML;
+  ok('nada de tarefa no cartão (prazo, prioridade, checklist, subtarefa)', !/Prazo|Prioridade|Checklist|Subtarefa/i.test(h));
+  ok('topo: nome, cargo, cidade e estado', /value="Ana Souza"/.test(h)&&/Dono\(a\) · Brasília, DF/.test(h));
+  ok('botão Conversar abre a conversa no sistema', /class="cl-wa" onclick="rspWaAbrir\('a'\)"/.test(h));
+  ok('Instagram com link', /href="https:\/\/instagram\.com\/anastore"/.test(h));
+  ok('funil com as etapas em ordem, a atual marcada e as anteriores pintadas', /cl-et foi[^>]*>NOVO LEAD/.test(h)&&/cl-et on"[^>]*>EM CONVERSA/.test(h)&&h.indexOf('NOVO LEAD')<h.indexOf('EM CONVERSA'));
+  ok('Perdido fica separado do funil', /cl-et cl-perd[^>]*>PERDIDO/.test(h)&&!/PERDIDO/.test((h.match(/<div class="cl-passos">([\s\S]*?)<\/div>/)||[])[1]||'PERDIDO'));
+  ok('WhatsApp aparece formatado', /value="\(61\) 99205-4765"/.test(h));
+  ok('de onde veio: campanha e anúncio; o que não veio fica avisado', /Campanha Sofás/.test(h)&&/AD1/.test(h)&&/<span>Conjunto<\/span><b class="vz">não veio/.test(h));
+  ok('mensagem automática com selo', /class="cl-msg" data-v="Pausada"/.test(h));
+  ok('campo extra da lista aparece em Outras informações', /Outras informações/.test(h)&&/<span>Faturamento<\/span>/.test(h));
+  ok('vendedor responsável escolhido na lista do time', /Ninguém ainda<\/option><option value="u1">Kennedy/.test(h));
+  const hi=g.clHistorico(lead);
+  ok('histórico: formulário e "preencheu de novo", sem o código interno do Yay', hi.form==='Loja de sofás'&&hi.de[0]==='08/10/2026 14:32'&&!hi.obs&&h.indexOf('ID da resposta')<0);
+  PROMESSAS.push((async ()=>{
+    await g.clCampoSalvar('c0',{value:'(11) 98888-7777'},'whats');
+    ok('WhatsApp editado grava no formato do formulário (wa.me com 55)', patches[0]&&patches[0].valores.c0==='https://wa.me/5511988887777');
+    await g.clCampoSalvar('c1',{value:'https://instagram.com/novaloja/'},'insta');
+    ok('Instagram editado grava como @perfil', patches[1]&&patches[1].valores.c1==='@novaloja');
+    await g.clEtapa('s5');
+    ok('clicar na etapa muda o status do lead', status[0]==='s5');
+  })());
+  ok('o tkAbrir desvia lead de CRM pro cartão', /window\.tkAbrir=\(id,prazoPre,grupoPre\)=>\{\s*\/\*[^*]*\*\/\s*if\(id&&typeof crmLdAbrir==='function'&&crmLdAbrir\(id\)\) return;/.test(HTML));
+  { const i=HTML.indexOf('function cnPrecisa(t){'), j=HTML.indexOf('function cnPedir(t){'), k=HTML.indexOf("if(typeof crmForm==='function'&&crmForm(t.lista_id)) return false;",i);
+    ok('"5. FECHADO" no CRM não pede relatório de tarefa concluída', i>0&&k>i&&k<j); }
+}
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
