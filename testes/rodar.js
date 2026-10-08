@@ -1522,7 +1522,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   ok('quem não vê conversas (só master/gestor) continua indo pro wa.me', /<a class="tk-wa" href="https:\/\/wa\.me\/5511999990001"/.test(g2.rspWaBtn(g2.TK.tarefas[0])));
   const g3=rodar(cod,ctx({role:'master'},false),['rspWaBtn']);
   ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
-  ok('a Lista usa o mesmo botão', /rspWaBtn\(t\):''/.test(HTML));
+  ok('a Lista usa o mesmo botão', /rspWaBtn\(t\)(\+rspIgBtn\(t\))?:''/.test(HTML));
   ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
   ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=4')>0);
 
@@ -2176,14 +2176,18 @@ grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (B
     TK:{listaSel:'L',tarefas:T,campos:C.concat([{id:'o',lista_id:'O',nome:'Outra',tipo:'texto'}])},
     tkCamposDe:(l)=>C.filter(c=>c.lista_id===l),arquivada:(t)=>!!t.arquivada_em,tkSelo:(t)=>'[st:'+t.id+']',
     esc:(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'),
-    campoTexto:(c,v)=>String(v),tpSvg:()=>'<svg></svg>'},['crmForm','tkViewRespostas','rspData','rspCel']);
+    campoTexto:(c,v)=>String(v),tpSvg:()=>'<svg></svg>',PC_IC:{ig:'<svg class="ig"></svg>',sa:''}},['crmForm','tkViewRespostas','rspData','rspCel','rspIgDe','rspIgBtn']);
   ok('lista com "Preencheu em" é de formulário; as outras não', g.crmForm('L')===true&&g.crmForm('O')===false);
   const h=g.tkViewRespostas();
   ok('mais novo em cima, arquivado fora', h.indexOf('>Bia<')>0&&h.indexOf('>Bia<')<h.indexOf('>Ana<')&&h.indexOf('Velho')<0);
   ok('contagem de respostas', /2 respostas/.test(h));
   ok('data curta dd/mm/aa', g.rspData('2026-10-05')==='05/10/26');
   ok('WhatsApp vira o número com link pra conversa', /href="https:\/\/wa.me\/5511999990000"[^>]*>\+5511999990000</.test(h));
-  ok('Instagram vira @ com link', /href="https:\/\/instagram.com\/ana"[^>]*>@ana</.test(h));
+  ok('Instagram vira o botão da ficha do cliente, com o @', /class="pc-chip rsp-ig" href="https:\/\/instagram.com\/ana"[^>]*><span class="pc-ci ig"><svg class="ig"><\/svg><\/span><span>@ana<\/span>/.test(h));
+  ok('Instagram: link, @ e usuário solto viram o usuário', g.rspIgDe('https://www.instagram.com/sr.sofa1429?stkn=x')==='sr.sofa1429'&&g.rspIgDe('@@loja_ ')==='loja_'&&g.rspIgDe('Belaarte')==='Belaarte');
+  ok('Instagram: resposta que não é @ fica sem botão', g.rspIgDe('Não temos')===''&&g.rspIgDe('Fenix estofados')===''&&g.rspIgDe('')==='');
+  ok('Lista: botão do Instagram só com @ válido', /class="tk-ig" href="https:\/\/instagram.com\/ana"/.test(g.rspIgBtn(T[0]))&&g.rspIgBtn(T[1])===''
+    &&HTML.indexOf("crmForm(t.lista_id)?rspWaBtn(t)+rspIgBtn(t):''")>0);
   ok('status continua editável na linha', h.indexOf('[st:a]')>0);
   ok('lista de formulário abre em Respostas por padrão', HTML.indexOf("crmForm(id)?'tabela':")>0&&HTML.indexOf("TK.visao==='tabela'?tkViewRespostas():")>0);
 }
