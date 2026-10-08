@@ -1728,13 +1728,13 @@ grupo('Respostas separada por etapa, estilo ClickUp (Bernardo 08/10)');
   /* só a tabela: o funil do topo (opção 4) também escreve o nome das etapas */
   const h0=g.tkViewRespostas(), h=h0.slice(h0.indexOf('id="rspTab"'));
   const pos=(x)=>h.indexOf(x);
-  ok('uma faixa por etapa, na ordem do funil (não na ordem que veio do banco)', pos('>NOVO LEAD<')>0&&pos('>NOVO LEAD<')<pos('>SEM RESPOSTA<')&&pos('>SEM RESPOSTA<')<pos('>EM CONVERSA<')&&pos('>EM CONVERSA<')<pos('>GANHOU<'));
+  ok('uma faixa por etapa com lead, na ordem do funil (não na ordem que veio do banco)', pos('>NOVO LEAD<')>0&&pos('>NOVO LEAD<')<pos('>EM CONVERSA<'));
   ok('pílula com a cor da etapa e sem o número na frente', /class="tk-selo" style="background-color:#7c3aed;[^"]*">NOVO LEAD<\/span>/.test(h)&&h.indexOf('1. NOVO LEAD')<0);
   ok('contagem em cada faixa', /NOVO LEAD<\/span>\s*<span class="tk-n rsp-gn">2</.test(h)&&/EM CONVERSA<\/span>\s*<span class="tk-n rsp-gn">1</.test(h));
   ok('cada etapa com lead tem o próprio cabeçalho de colunas', (h.match(/<tr class="rsp-ch">/g)||[]).length===3);
-  ok('etapa vazia fica só com a faixa, sem cabeçalho', /tk-faixa vazio[\s\S]*?>SEM RESPOSTA<[\s\S]*?<\/tbody>/.test(h)&&!/>SEM RESPOSTA<[\s\S]*?<\/tr>\s*<tr class="rsp-ch">[\s\S]*?<\/tbody><tbody[^>]*data-g="s3"/.test(h));
-  ok('lead sem etapa vai num grupo no fim', pos('>Sem etapa<')>pos('>GANHOU<')&&pos('>Zeca<')>pos('>Sem etapa<'));
-  ok('leads ficam dentro da própria etapa', pos('>Ana<')>pos('>NOVO LEAD<')&&pos('>Ana<')<pos('>SEM RESPOSTA<')&&pos('>Beto<')>pos('>EM CONVERSA<'));
+  ok('etapa vazia sai da tabela (fica só no funil do topo)', pos('>SEM RESPOSTA<')<0&&pos('>GANHOU<')<0&&h0.indexOf('>SEM RESPOSTA<')>0);
+  ok('lead sem etapa vai num grupo no fim', pos('>Sem etapa<')>pos('>EM CONVERSA<')&&pos('>Zeca<')>pos('>Sem etapa<'));
+  ok('leads ficam dentro da própria etapa', pos('>Ana<')>pos('>NOVO LEAD<')&&pos('>Ana<')<pos('>EM CONVERSA<')&&pos('>Beto<')>pos('>EM CONVERSA<'));
   ok('clicar na faixa recolhe a etapa', /onclick="tkToggle\('g','rs1'\)"/.test(h));
   g.TK.fechadas={grs1:true};
   const h2=g.tkViewRespostas();
@@ -1765,6 +1765,22 @@ grupo('Respostas: funil no topo + etapas sem caixa, a opção 4 (Bernardo 08/10)
   ok('etapas sem caixa: fundo da página, sem linha vertical', HTML.indexOf('.tablewrap:has(> #rspTab){background:transparent;border:0;border-radius:0;box-shadow:none}')>0&&HTML.indexOf('#rspTab th+th,#rspTab td+td{border-left:0}')>0);
   ok('saiu o cartão com cantos redondos por etapa', HTML.indexOf('border-top-left-radius:12px}')<0||!/#rspTab \.rsp-ch > th:first-child\{border-left/.test(HTML));
   ok('busca atualiza o número do funil junto', HTML.indexOf(`const f=document.querySelector('.rsp-fe[data-g="'+g.dataset.g+'"] b'); if(f) f.textContent=c.textContent;`)>0);
+}
+grupo('Respostas: etapa vazia só no funil, selo leve na linha (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const C=[{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const ST=[{id:'s1',nome:'1. NOVO LEAD',cor:'#7c3aed',ordem:1},{id:'s4',nome:'4. REUNIÃO MARCADA',cor:'#f59e0b',ordem:4},{id:'s7',nome:'7. PERDEU',cor:'#e5484d',ordem:7}];
+  const T=[{id:'a',lista_id:'L',titulo:'Ana',status_id:'s1',valores:{d:'2026-10-07'}},{id:'b',lista_id:'L',titulo:'Bia',status_id:'s7',valores:{d:'2026-10-06'}}];
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{}},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
+    tkStatusDe:()=>ST,esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,tkSelo:()=>'',
+    tpSvg:()=>'',setTimeout:()=>0,currentUser:{role:'master'},corTexto:()=>'#fff'},['tkViewRespostas']);
+  const h=g.tkViewRespostas(), tab=h.slice(h.indexOf('id="rspTab"')), fun=h.slice(0,h.indexOf('id="rspTab"'));
+  ok('etapa vazia não ocupa linha na lista', tab.indexOf('REUNIÃO MARCADA')<0&&tab.indexOf('tk-faixa vazio')<0);
+  ok('etapa vazia continua no funil com o zero', /rsp-fe zero[^>]*>[\s\S]*?REUNIÃO MARCADA<\/span><b>0</.test(fun));
+  ok('etapas com lead continuam na lista, na ordem', tab.indexOf('>NOVO LEAD<')>0&&tab.indexOf('>NOVO LEAD<')<tab.indexOf('>PERDEU<'));
+  ok('clicar numa etapa vazia do funil avisa', HTML.indexOf("toast('Nenhum lead em '+")>0);
+  ok('status da linha num selo leve, a cor cheia fica na pílula do grupo', /#rspTab \.tk-stsel\{background-color:color-mix\(in srgb,var\(--c\) 15%,transparent\)!important/.test(HTML));
 }
     await Promise.all(PROMESSAS);
     fimDosTestes();
