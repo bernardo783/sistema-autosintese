@@ -3035,6 +3035,18 @@
   .tk-ig svg{width:13px;height:13px}
   .lc-tab .pc-chip.rsp-ig{height:26px;padding:0 10px 0 4px;font-size:12.5px;max-width:100%}
   .lc-tab .pc-chip.rsp-ig .pc-ci{width:19px;height:19px}
+  /* Instagram que nao e @: x pequeno + o que o lead escreveu; lapis pra corrigir (Bernardo 08/10) */
+  .rsp-ig-c{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-width:0;vertical-align:middle}
+  .rsp-ig-x{flex:none;display:inline-grid;place-items:center;width:15px;height:15px;border-radius:999px;font-size:12px;line-height:1;font-weight:700;
+    color:var(--danger);background:color-mix(in srgb,var(--danger) 16%,transparent)}
+  .rsp-ig-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rsp-ig-ed{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:6px;background:none;
+    color:var(--fraco);cursor:pointer;opacity:0;transition:opacity .12s,background .12s}
+  .rsp-ig-ed svg{width:13px;height:13px}
+  .lc-tab tr:hover .rsp-ig-ed,.rsp-ig-ed.sempre,.rsp-ig-ed:focus-visible{opacity:1}
+  .rsp-ig-ed:hover{background:var(--panel2);color:var(--txt)}
+  @media (hover:none){ .rsp-ig-ed{opacity:1} }
+  .rsp-ig-in{width:100%;min-width:150px;height:28px;padding:0 8px;font-size:12.5px}
   button.tk-wa{border:0;padding:0;cursor:pointer;font:inherit}
   .mt-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:5px;vertical-align:middle}
   .mt-live.buscando{background:var(--warn);animation:mtpulse 1s ease-in-out infinite}
@@ -9811,13 +9823,39 @@ const rspData=(v)=>{ const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T 
 const rspIgDe=(v)=>{ const u=String(v==null?'':v).trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/^@+/,'').replace(/[/?#].*$/,'');
   return /^[\w.]{2,30}$/.test(u)?u:''; };
 /* valor da celula: WhatsApp vira o numero (link pra conversa), Instagram vira o botao da ficha do cliente */
+/* Instagram na Respostas (Bernardo 08/10): @ certo vira o botao da ficha do cliente; resposta
+   que nao e @ fica visivel com um x pequeno do lado; o lapis deixa o SDR corrigir quando achar o
+   perfil. A resposta original nao se perde: fica na Atividade do card (comentario do robo, que o
+   banco grava quando o lead chega) e em leads.respostas. */
+function rspIgCel(c,v,t){
+  const u=rspIgDe(v), txt=String(v==null?'':v).trim();
+  const lap=t?`<button type="button" class="rsp-ig-ed${u?'':' sempre'}" title="${txt?'Corrigir o Instagram':'Adicionar o Instagram'}" onclick="event.stopPropagation();rspIgEditar(this,'${t.id}','${c.id}')">${PC_IC.lap}</button>`:'';
+  const val=u?`<a class="pc-chip rsp-ig" href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener" title="Abrir o Instagram" onclick="event.stopPropagation()"><span class="pc-ci ig">${PC_IC.ig}</span><span>@${esc(u)}</span>${PC_IC.sa}</a>`
+    :txt?`<span class="rsp-ig-x" title="Não é um @ do Instagram: é o que o lead escreveu">×</span><span class="rsp-ig-t" title="${esc(txt)}">${esc(txt)}</span>`:'';
+  return (val||lap)?`<span class="rsp-ig-c">${val}${lap}</span>`:'';
+}
+window.rspIgEditar=(btn,tid,cid)=>{
+  const t=(TK.tarefas||[]).find(x=>x.id===tid); if(!t) return;
+  const box=btn.closest('.rsp-ig-c')||btn.parentNode, atual=String((t.valores||{})[cid]||'').trim(), u0=rspIgDe(atual);
+  box.innerHTML=`<input class="rsp-ig-in" value="${esc(u0?'@'+u0:atual)}" placeholder="@perfil ou link">`;
+  const inp=box.querySelector('input'); let feito=false;
+  const sai=async(gravar)=>{ if(feito) return; feito=true;
+    const bruto=inp.value.trim(), u=rspIgDe(bruto), novo=u?'@'+u:bruto;
+    /* "@loja" no lugar de "loja" nao e mudanca: nao suja a Atividade */
+    if(!gravar||bruto===atual||(u&&u===u0)){ tkDesenhar($('#content')); return; }
+    const val=Object.assign({},t.valores||{}); if(novo) val[cid]=novo; else delete val[cid];
+    await tkPatch(tid,{valores:val},novo?'Instagram atualizado':'Instagram apagado'); };
+  inp.onkeydown=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); sai(true); } else if(e.key==='Escape'){ e.preventDefault(); sai(false); } };
+  inp.onblur=()=>sai(true);
+  inp.onclick=(e)=>e.stopPropagation();
+  inp.focus(); inp.select();
+};
 function rspCel(c,v,t){
+  if(/insta/i.test(c.nome)) return rspIgCel(c,v,t);
   if(v==null||v==='') return '';
   if(/whats/i.test(c.nome)){ const n=String(v).replace(/\D/g,''); if(!n) return esc(v);
     const dentro=t&&rspWaDentro();
     return `<a class="rsp-lk" href="https://wa.me/${n}" target="_blank" rel="noopener" onclick="event.stopPropagation()${dentro?`;return rspWaAbrir('${t.id}')`:''}"${dentro?' title="Abrir a conversa aqui no sistema"':''}>+${n}</a>`; }
-  if(/insta/i.test(c.nome)){ const u=rspIgDe(v);
-    return u?`<a class="pc-chip rsp-ig" href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener" title="Abrir o Instagram" onclick="event.stopPropagation()"><span class="pc-ci ig">${PC_IC.ig}</span><span>@${esc(u)}</span>${PC_IC.sa}</a>`:esc(v); }
   if(c.tipo==='data') return rspData(v);
   return esc(campoTexto(c,v));
 }
