@@ -2842,6 +2842,73 @@
   .tk-tab tbody tr:not(.tk-faixa):hover > td{background:var(--hov1)}
   .tk-tab .tk-faixa > td{height:auto;border-bottom:none}
   .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
+  /* ---------- CARTÃO DO LEAD (Bernardo 08/10): é CRM, não tarefa ---------- */
+  .overlay.cl-ov{align-items:stretch;justify-content:flex-end;padding:0}
+  .cl{width:min(980px,100vw);height:100vh;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;box-shadow:-24px 0 60px rgba(0,0,0,.35)}
+  .cl-h{display:flex;align-items:center;gap:16px;padding:22px 28px 16px}
+  .cl-av{width:52px;height:52px;border-radius:16px;flex:none;display:grid;place-items:center;font-weight:800;font-size:18px;color:#fff;
+    background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 55%,#000))}
+  .cl-q{flex:1;min-width:0}
+  .cl-tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco);font-weight:700}
+  .cl-nome{display:block;width:100%;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--txt);font:inherit;font-size:22px;font-weight:800;padding:2px 6px;margin:2px 0 2px -7px}
+  .cl-nome:hover{border-color:var(--line)}
+  .cl-nome:focus{outline:none;border-color:var(--brand);background:var(--panel2)}
+  .cl-sub{color:var(--muted);font-size:13px}
+  .cl-acoes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .cl-wa{display:inline-flex;align-items:center;gap:7px;background:#25d366;color:#06301a;border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+  .cl-wa svg{width:16px;height:16px}
+  .cl-wa:hover{filter:brightness(1.08)}
+  .cl-x{background:none;border:0;color:var(--muted);font-size:26px;cursor:pointer;line-height:1;padding:0 4px}
+  .cl-funil{display:flex;gap:10px;align-items:center;padding:0 28px 18px;border-bottom:1px solid var(--line)}
+  .cl-passos{display:flex;flex:1;min-width:0;gap:3px}
+  .cl-et{flex:1;min-width:0;border:0;background:var(--panel2);color:var(--muted);font:inherit;font-size:12px;font-weight:700;padding:10px 14px 10px 18px;cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%);transition:background .15s,color .15s}
+  .cl-passos .cl-et:first-child{clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%);border-radius:8px 0 0 8px;padding-left:14px}
+  .cl-et.foi{background:color-mix(in srgb,var(--c) 24%,var(--panel2));color:var(--txt)}
+  .cl-et.on{background:var(--c);color:#fff}
+  .cl-et:not(.on):hover{background:color-mix(in srgb,var(--c) 38%,var(--panel2));color:var(--txt)}
+  .cl-et.cl-perd{flex:none;clip-path:none;border-radius:8px;padding:10px 14px}
+  .cl-corpo{flex:1;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;padding:20px 28px 28px;align-content:start}
+  .cl-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+  .cl-box{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+  .cl-box h4{margin:0 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco)}
+  .cl-kv{display:grid;grid-template-columns:130px minmax(0,1fr);align-items:center;gap:10px;min-height:38px;border-top:1px solid var(--line)}
+  .cl-box h4+.cl-kv{border-top:0}
+  .cl-kv>span{color:var(--muted);font-size:13px}
+  .cl-kv>b{font-weight:600;font-size:13.5px;overflow-wrap:anywhere}
+  .cl-kv>b.vz{color:var(--fraco);font-weight:400;font-style:italic}
+  .cl-in{width:calc(100% + 9px);background:transparent;border:1px solid transparent;border-radius:8px;color:var(--txt);font:inherit;font-size:13.5px;font-weight:600;padding:6px 8px;margin-left:-9px}
+  .cl-in:hover{border-color:var(--line)}
+  .cl-in:focus{outline:none;border-color:var(--brand);background:var(--panel)}
+  .cl-in::placeholder{color:var(--fraco);font-weight:400}
+  select.cl-in{cursor:pointer}
+  .cl-resp{width:100%;margin-left:0;border-color:var(--line);background:var(--panel)}
+  .cl-msg{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;background:color-mix(in srgb,var(--muted) 16%,transparent)}
+  .cl-msg[data-v="Enviada"]{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+  .cl-msg[data-v="Falhou"],.cl-msg[data-v="Sem WhatsApp"]{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}
+  .cl-msg[data-v="Na fila"],.cl-msg[data-v="Pausada"]{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+  .cl-dica{margin:10px 0 0;font-size:12px;color:var(--fraco)}
+  .cl-novo{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+  .cl-novo textarea{resize:vertical;min-height:64px;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px;line-height:1.45}
+  .cl-novo textarea:focus{outline:none;border-color:var(--brand)}
+  .cl-novo .btn{align-self:flex-end}
+  .cl-nota{padding:10px 0;border-top:1px solid var(--line)}
+  .cl-notah{display:flex;align-items:center;gap:8px;font-size:12.5px}
+  .cl-notah>span{color:var(--fraco);font-size:12px}
+  .cl-apaga{margin-left:auto;background:none;border:0;color:var(--fraco);cursor:pointer;font-size:17px;line-height:1}
+  .cl-apaga:hover{color:var(--danger)}
+  .cl-notat{margin-top:5px;font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}
+  .cl-hist{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+  .cl-ev{position:relative;padding:5px 0 5px 18px;font-size:12.5px;color:var(--muted)}
+  .cl-ev i{position:absolute;left:3px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--brand)}
+  @media(max-width:760px){
+    .cl-h{flex-wrap:wrap;padding:16px}
+    .cl-acoes{width:100%;justify-content:flex-start}
+    .cl-funil{padding:0 16px 14px;overflow-x:auto}
+    .cl-passos .cl-et,.cl-et{flex:none}
+    .cl-corpo{grid-template-columns:1fr;padding:16px}
+    .cl-kv{grid-template-columns:104px minmax(0,1fr)}
+  }
   /* ---------- RESPOSTAS: leads de formulário (Bernardo 08/10) ----------
      a tabela é a do Controle de Clientes (.tk-tab.lc-tab); aqui só a barra de cima e o nome */
   .rsp-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 12px}
@@ -12360,6 +12427,8 @@ const tkAlvo=(ev)=>{ let id=''; try{ id=ev.dataTransfer.getData('text/plain'); }
    Fora: Controle de Clientes (lá a coluna é o estágio do cliente) e o workspace pessoal. */
 function cnPrecisa(t){
   if(!t||t.status==='feito'||ehLC(t.lista_id)) return false;
+  /* CRM de formulário também: "5. FECHADO" é etapa do funil, não demanda concluída (Bernardo 08/10) */
+  if(typeof crmForm==='function'&&crmForm(t.lista_id)) return false;
   const e=espacoDaLista(t.lista_id); if(!e) return true;
   const w=e.workspace_id?(wsTodas()||[]).find(x=>String(x.id)===String(e.workspace_id)):null;
   return !(w&&w.tipo==='pessoal');
@@ -13256,7 +13325,187 @@ window.tkfPintarTrilha=()=>{
   const px=document.getElementById('tkfProx');
   if(px) px.innerHTML=(i>=0&&sts[i+1])?`próximo: <b>${esc(sts[i+1].nome)}</b>`:(i>=0?'<b>última etapa</b>':'sem status definido');
 };
+/* ======================= CARTÃO DO LEAD (Bernardo 08/10) =======================
+   "Quando eu abro o cartão do cliente, as informações são completamente diferentes: não é
+   uma tarefa, é um sistema à parte, é um CRM, é o cartão de um lead." Lista de formulário
+   (crmForm, CRM Sofás e os próximos) abre aqui em vez do painel de tarefa: contato, de onde
+   o lead veio (UTM do anúncio), etapa do funil, vendedor e anotações do time. Nada de prazo,
+   prioridade, checklist ou subtarefa. Cada mudança grava na hora (tkPatch), igual ao painel. */
+const CL={id:''};
+const CL_RE={whats:/whats/i,insta:/insta/i,cargo:/^cargo$/i,cidade:/^cidade$/i,estado:/^estado$/i,
+  campanha:/^campanha$/i,conjunto:/^conjunto$/i,anuncio:/^an[uú]ncio$/i,msg:/mensagem autom/i,form:/^formul/i};
+const clCampo=(t,k)=>tkCamposDe(t.lista_id).find(c=>k==='data'?c.nome===RSP_DATA:CL_RE[k].test(c.nome))||null;
+const clVal=(t,k)=>{ const c=clCampo(t,k), v=c?(t.valores||{})[c.id]:''; return v==null?'':String(v); };
+const clFone=(n)=>{ const d=String(n||'').replace(/\D/g,''), s=d.startsWith('55')&&d.length>=12?d.slice(2):d;
+  return s.length===11?`(${s.slice(0,2)}) ${s.slice(2,7)}-${s.slice(7)}`:s.length===10?`(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`:(d?'+'+d:''); };
+const clInsta=(v)=>{ const u=String(v||'').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/^@/,'').replace(/[/?].*$/,'');
+  return /^[\w.]{2,30}$/.test(u)?u:''; };
+const clIni=(n)=>String(n||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'?';
+const clDia=(iso)=>{ const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1].slice(2)}`:''; };
+/* o que veio escrito pelo robô na descrição vira histórico; o resto (anotação antiga) aparece como observação */
+function clHistorico(t){
+  const d=String(t.descricao||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
+  const form=(d.match(/formulário "([^"]+)"/)||[])[1]||'';
+  const de=[...d.matchAll(/Preencheu de novo em ([^.]+?)\./g)].map(m=>m[1].trim());
+  const obs=d.replace(/Lead do formulário "[^"]*"[^.]*\./g,'').replace(/Preencheu de novo em [^.]+?\./g,'')
+    .replace(/ID da resposta no Yay:\s*\S+/g,'').replace(/\s+/g,' ').trim();
+  return {form,de,obs};
+}
+/* devolve true quando é lead de CRM (o tkAbrir para por aqui) */
+function crmLdAbrir(id){
+  const t=id?(TK.tarefas||[]).find(x=>x.id===id):null;
+  if(!t||!crmForm(t.lista_id)) return false;
+  CL.id=t.id; window.TK_ABERTA=String(t.id);
+  let ov=document.getElementById('clOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='clOv'; ov.className='overlay cl-ov';
+    ov.onclick=(e)=>{ if(e.target===ov) clFechar(); };
+    document.body.appendChild(ov); }
+  ov.innerHTML=crmLdHtml(t);
+  setTimeout(()=>clNotas(t.id),0);
+  return true;
+}
+window.clFechar=()=>{ const o=document.getElementById('clOv'); if(o) o.remove(); CL.id=''; window.TK_ABERTA=''; };
+/* Esc fecha o cartão (se a conversa do WhatsApp estiver aberta por cima, ela fecha primeiro) */
+if(typeof document!=='undefined') document.addEventListener('keydown',(e)=>{
+  if(e.key!=='Escape'||!document.getElementById('clOv')) return;
+  const w=document.getElementById('waLdOv'); if(w){ if(window.waLdFechar) waLdFechar(); return; }
+  clFechar(); });
+function clRepintar(){ const t=(TK.tarefas||[]).find(x=>x.id===CL.id), ov=document.getElementById('clOv');
+  if(!t||!ov) return; const nt=ov.querySelector('#clNotaTxt'), rasc=nt?nt.value:'';
+  ov.innerHTML=crmLdHtml(t); const n2=ov.querySelector('#clNotaTxt'); if(n2) n2.value=rasc; clNotas(t.id); }
+function clTopo(t){
+  const atual=tkStatus1(t.status_id), cor=atual?atual.cor:'#7c3aed';
+  const lst=(TK.listas||[]).find(x=>x.id===t.lista_id)||{};
+  const n=rspWaNum(t), ig=clInsta(clVal(t,'insta')), cargo=clVal(t,'cargo');
+  const lugar=[clVal(t,'cidade'),clVal(t,'estado')].filter(Boolean).join(', ');
+  const quando=clVal(t,'data')||String(t.criado_em||'').slice(0,10);
+  return `<header class="cl-h">
+      <div class="cl-av" style="--c:${esc(cor)}">${esc(clIni(t.titulo))}</div>
+      <div class="cl-q">
+        <div class="cl-tag">Lead · ${esc(lst.nome||'CRM')}</div>
+        <input class="cl-nome" value="${esc(t.titulo||'')}" placeholder="Nome do lead" onchange="clNome(this.value)" aria-label="Nome do lead">
+        <div class="cl-sub">${[cargo,lugar,quando?'entrou em '+clDia(quando):''].filter(Boolean).map(esc).join(' · ')}</div>
+      </div>
+      <div class="cl-acoes">
+        ${n?`<button type="button" class="cl-wa" onclick="rspWaAbrir('${t.id}')" title="Abrir a conversa aqui no sistema">${RSP_WA_SVG} Conversar</button>`:''}
+        ${ig?`<a class="btn secondary small" href="https://instagram.com/${esc(ig)}" target="_blank" rel="noopener">Instagram</a>`:''}
+        <button type="button" class="btn secondary small" onclick="clArquivar()" title="Tirar o lead da lista (fica em Arquivados)">Arquivar</button>
+        <button type="button" class="x cl-x" onclick="clFechar()" aria-label="Fechar">&times;</button>
+      </div>
+    </header>`;
+}
+function clTopoRepintar(){ const t=(TK.tarefas||[]).find(x=>x.id===CL.id), h=document.querySelector('#clOv .cl-h');
+  if(t&&h) h.outerHTML=clTopo(t); }
+/* editor de um campo: select vira select, o resto é texto; grava ao sair do campo */
+function clEditor(t,c,k,ph){
+  if(!c) return '';
+  const v0=(t.valores||{})[c.id], v=v0==null?'':String(v0);
+  if(c.tipo==='select') return `<select class="cl-in" onchange="clCampoSalvar('${c.id}',this)"><option value="">-</option>${(c.opcoes||[]).map(o=>`<option${o===v?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  const mostra=k==='whats'?clFone(v):k==='insta'?(clInsta(v)?'@'+clInsta(v):v):String(campoTexto(c,v0)||'');
+  return `<input class="cl-in" value="${esc(mostra)}" placeholder="${esc(ph||'-')}" onchange="clCampoSalvar('${c.id}',this,'${k||''}')">`;
+}
+function crmLdHtml(t){
+  const sts=tkStatusDe(t.lista_id);
+  const h=clHistorico(t), quando=clVal(t,'data')||String(t.criado_em||'').slice(0,10);
+  /* funil: etapas em ordem; a última de "fechado" (perdido) fica separada, à direita */
+  const perd=sts.filter(s=>s.grupo==='fechado'), passo=sts.filter(s=>s.grupo!=='fechado');
+  const iAt=passo.findIndex(s=>s.id===t.status_id);
+  const etapa=(s,i)=>`<button type="button" class="cl-et${s.id===t.status_id?' on':''}${iAt>=0&&i<iAt?' foi':''}" style="--c:${esc(s.cor||'#64748b')}" onclick="clEtapa('${s.id}')" title="Mover para ${esc(s.nome)}">${esc(String(s.nome).replace(/^\d+\.\s*/,''))}</button>`;
+  const ed=(k,ph)=>clEditor(t,clCampo(t,k),k,ph);
+  const ro=(rot,k)=>{ const v=k==='data'?clDia(quando):clVal(t,k); return `<div class="cl-kv"><span>${rot}</span><b${v?'':' class="vz"'}>${esc(v||'não veio')}</b></div>`; };
+  const usados=new Set(Object.keys(CL_RE).map(k=>(clCampo(t,k)||{}).id).concat([(clCampo(t,'data')||{}).id]));
+  const outros=tkCamposDe(t.lista_id).filter(c=>!usados.has(c.id));
+  const msg=clVal(t,'msg');
+  const resp=t.responsavel_id||'';
+  return `<div class="cl" role="dialog" aria-label="Lead ${esc(t.titulo||'')}">
+    ${clTopo(t)}
+    <nav class="cl-funil" aria-label="Etapa do funil">
+      <div class="cl-passos">${passo.map(etapa).join('')}</div>
+      ${perd.map(s=>`<button type="button" class="cl-et cl-perd${s.id===t.status_id?' on':''}" style="--c:${esc(s.cor||'#64748b')}" onclick="clEtapa('${s.id}')">${esc(String(s.nome).replace(/^\d+\.\s*/,''))}</button>`).join('')}
+    </nav>
+    <div class="cl-corpo">
+      <div class="cl-col">
+        <section class="cl-box"><h4>Contato</h4>
+          <div class="cl-kv"><span>WhatsApp</span>${ed('whats','sem número')}</div>
+          <div class="cl-kv"><span>Instagram</span>${ed('insta','@perfil')}</div>
+          <div class="cl-kv"><span>Cargo</span>${ed('cargo','-')}</div>
+          <div class="cl-kv"><span>Cidade</span>${ed('cidade','-')}</div>
+          <div class="cl-kv"><span>Estado</span>${ed('estado','-')}</div>
+        </section>
+        <section class="cl-box"><h4>De onde veio</h4>
+          <div class="cl-kv"><span>Formulário</span><b>${esc([h.form||'Yay Forms',clVal(t,'form')].filter(Boolean).join(' · '))}</b></div>
+          ${ro('Preencheu em','data')}${ro('Campanha','campanha')}${ro('Conjunto','conjunto')}${ro('Anúncio','anuncio')}
+          ${msg?`<div class="cl-kv"><span>Mensagem automática</span><b><span class="cl-msg" data-v="${esc(msg)}">${esc(msg)}</span></b></div>`:''}
+          <p class="cl-dica">Campanha, conjunto e anúncio chegam sozinhos pelas UTMs do anúncio.</p>
+        </section>
+        ${outros.length?`<section class="cl-box"><h4>Outras informações</h4>${outros.map(c=>`<div class="cl-kv"><span>${esc(c.nome)}</span>${clEditor(t,c,'','-')}</div>`).join('')}</section>`:''}
+      </div>
+      <div class="cl-col">
+        <section class="cl-box"><h4>Vendedor responsável</h4>
+          <select class="cl-in cl-resp" onchange="clResp(this.value)"><option value="">Ninguém ainda</option>${equipeDe(t.lista_id,resp||null).map(u=>`<option value="${u.id}"${u.id===resp?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>
+        </section>
+        <section class="cl-box cl-notas"><h4>Anotações</h4>
+          <div class="cl-novo"><textarea id="clNotaTxt" rows="2" placeholder="Como foi o contato, o que ficou combinado, próximo passo…" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)){event.preventDefault();clNotar();}"></textarea>
+            <button type="button" class="btn small" onclick="clNotar()">Salvar anotação</button></div>
+          <div id="clNotas"><div class="hint">carregando…</div></div>
+          <div class="cl-hist">
+            ${h.de.map(d=>`<div class="cl-ev"><i></i>Preencheu o formulário de novo em ${esc(d)}</div>`).join('')}
+            ${h.obs?`<div class="cl-ev"><i></i>${esc(h.obs)}</div>`:''}
+            <div class="cl-ev"><i></i>Entrou pelo formulário${h.form?' "'+esc(h.form)+'"':''}${quando?' em '+esc(clDia(quando)):''}</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>`;
+}
+async function clNotas(tid){
+  const box=document.getElementById('clNotas'); if(!box) return;
+  const {data,error}=await sb.from('tarefa_comentarios').select('*').eq('tarefa_id',tid).order('criado_em',{ascending:false});
+  if(CL.id!==tid) return;
+  if(error){ box.innerHTML='<div class="hint">Não consegui carregar: '+esc(error.message)+'</div>'; return; }
+  const ms=data||[];
+  box.innerHTML=ms.length?ms.map(m=>`<div class="cl-nota">
+      <div class="cl-notah">${avatar(m.autor,tkNomeUser(m.autor),'sm')}<b>${esc(tkNomeUser(m.autor)||'alguém')}</b><span>${esc(tkmQuando(m.criado_em))}</span>
+        ${(currentUser&&m.autor===currentUser.id)?`<button type="button" class="cl-apaga" title="Apagar" onclick="clNotaApagar('${m.id}')">&times;</button>`:''}</div>
+      <div class="cl-notat">${esc(m.texto)}</div></div>`).join('')
+    :'<p class="hint">Nenhuma anotação ainda. Registre aqui cada contato com o lead.</p>';
+}
+window.clNotar=async ()=>{
+  const el=document.getElementById('clNotaTxt'), txt=el?String(el.value||'').trim():''; if(!txt||!CL.id) return;
+  el.disabled=true;
+  const {error}=await sb.from('tarefa_comentarios').insert({tarefa_id:CL.id,autor:(currentUser||{}).id,texto:txt});
+  el.disabled=false;
+  if(error){ toast('Erro: '+error.message); return; }
+  el.value=''; clNotas(CL.id);
+};
+window.clNotaApagar=async (mid)=>{
+  if(!confirm('Apagar esta anotação?')) return;
+  const {error}=await sb.from('tarefa_comentarios').delete().eq('id',mid);
+  if(error){ toast('Erro: '+error.message); return; }
+  clNotas(CL.id);
+};
+window.clEtapa=async (sid)=>{ const t=(TK.tarefas||[]).find(x=>x.id===CL.id); if(!t||t.status_id===sid) return;
+  await tkSetStatus(t.id,sid); clRepintar(); };
+window.clNome=async (v)=>{ const s=String(v||'').trim(); if(!s||!CL.id) return; await tkPatch(CL.id,{titulo:s},''); clRepintar(); };
+window.clResp=async (uid)=>{ if(!CL.id) return;
+  await tkPatch(CL.id,{responsavel_id:uid||null,responsaveis:uid?[uid]:[]},uid?'Lead com '+(tkNomeUser(uid)||'o vendedor')+'.':'Lead sem vendedor.'); };
+/* WhatsApp e Instagram são gravados no mesmo formato que o formulário grava */
+window.clCampoSalvar=async (cid,el,k)=>{
+  const t=(TK.tarefas||[]).find(x=>x.id===CL.id); if(!t||!el) return;
+  let s=String(el.value==null?'':el.value).trim();
+  if(k==='whats'&&s){ let d=s.replace(/\D/g,''); if(d.length===10||d.length===11) d='55'+d; s=d?'https://wa.me/'+d:''; }
+  if(k==='insta'&&s){ const u=clInsta(s); s=u?'@'+u:s; }
+  const valores=Object.assign({},t.valores||{}); if(s) valores[cid]=s; else delete valores[cid];
+  if(!(await tkPatch(t.id,{valores},''))) return;
+  if(k==='whats') el.value=clFone(s); else if(k==='insta'&&clInsta(s)) el.value='@'+clInsta(s);
+  clTopoRepintar();
+};
+window.clArquivar=async ()=>{ const id=CL.id; if(!id) return;
+  if(!confirm('Arquivar este lead? Ele sai da lista e fica em Arquivados.')) return;
+  clFechar(); await tkArquivar(id); };
 window.tkAbrir=(id,prazoPre,grupoPre)=>{
+  /* lead de CRM de formulário abre o cartão de lead, não o painel de tarefa */
+  if(id&&typeof crmLdAbrir==='function'&&crmLdAbrir(id)) return;
   const t=id?TK.tarefas.find(x=>x.id===id):null;
   window.TK_ABERTA=t?String(t.id):'';   /* F5 reabre a mesma tarefa */
   TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok),g:String((x&&x.g)||'')})):[];
