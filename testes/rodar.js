@@ -754,10 +754,11 @@ grupo('Cada lista lembra da própria visão');
   const g=rodar(bloco("const VIS_KEY=",'window.tkVisao=')+bloco('window.tkVisao=(v)=>{','window.tkEscopo='),{
     localStorage:{getItem:k=>loja[k]||null,setItem:(k,v)=>{loja[k]=v;}},
     LC_ID:'LC', TK:{listaSel:'',visao:'lista',lcVista:''},
-    tkStatusDe:id=>({L4:[1,2,3,4],LF:[1,2,3,4]}[id]||[]), crmForm:id=>id==='LF', $:()=>null, tkDesenhar:()=>{}},['visaoDe','visaoPadrao']);
+    tkStatusDe:id=>({L4:[1,2,3,4],LF:[1,2,3,4],LS:[1,2,3,4]}[id]||[]), crmForm:id=>id==='LF'||id==='LS', crmSoLista:id=>id==='LS', $:()=>null, tkDesenhar:()=>{}},['visaoDe','visaoPadrao']);
   ok('lista comum abre em lista', g.visaoDe('L1')==='lista');
   ok('lista com 4+ status abre em board', g.visaoDe('L4')==='board');
   ok('lista de leads de formulário abre em Respostas, mesmo com 4+ status (Bernardo 08/10)', g.visaoDe('LF')==='tabela');
+  ok('CRM Sofás abre em Lista (só Lista ali, Bernardo 08/10)', g.visaoDe('LS')==='lista');
   g.TK.listaSel='L1'; g.tkVisao('board');
   ok('L1 guardou board', g.visaoDe('L1')==='board');
   ok('L2 não foi junto', g.visaoDe('L2')==='lista');
@@ -1589,6 +1590,26 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
     await gv.waDoLead('5511999990001','Ana Souza',{tarefa:'a'});
     ok('vendedor: com o card abre, e sem seletor de número', chamadas.length>antes&&!/<select/.test(els.waLdPor.innerHTML)&&/Kennedy/.test(els.waLdPor.innerHTML));
   })());
+}
+grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernardo 08/10)');
+{
+  const CJ=fs.readFileSync(path.join(__dirname,'..','crm.js'),'utf8');
+  const i=CJ.indexOf("CRM.ccBase='crm_calls'"), j=CJ.indexOf('window.ccCarregarBase');
+  const pint=[];
+  const g=rodar('const CRM={cc:{mes:"",sdr:"x",status:"",de:"",ate:""},d:{calls:[{id:"a"}]}};\n'+CJ.slice(i,j),
+    {crmPintar:()=>pint.push('comercial')},['ccCalls','ccPoe','ccPintar','ccUsar','CRM']);
+  ok('Comercial continua lendo a crm_calls', g.CRM.ccBase==='crm_calls'&&g.ccCalls().length===1);
+  g.ccUsar('sofas_calls',()=>pint.push('sofas')); g.ccPoe([{id:'s1'},{id:'s2'}]);
+  ok('Sofás tem as calls dele, separadas', g.ccCalls().length===2&&g.CRM.d.calls.length===1);
+  ok('cada base guarda os próprios filtros', g.CRM.cc.sdr===''&&(g.CRM.ccEstado.crm_calls||{}).sdr==='x');
+  g.ccPintar(); ok('lá dentro, redesenha a lista (não a tela do Comercial)', pint.pop()==='sofas');
+  g.ccUsar('crm_calls'); ok('voltando ao Comercial, tudo como estava', g.CRM.cc.sdr==='x'&&g.ccCalls().length===1);
+  ok('lançar, editar e excluir gravam na base que está aberta', /sb\.from\(CRM\.ccBase\)\.insert/.test(CJ)&&/sb\.from\(CRM\.ccBase\)\.update/.test(CJ)&&/sb\.from\(CRM\.ccBase\)\.delete/.test(CJ));
+  ok('a tela do Comercial sempre volta pra base da agência', /window\.crmRender=function\(c,viewPedida\)\{\n\s*ccUsar\('crm_calls'\)/.test(CJ));
+  ok('CRM Sofás aponta pra sofas_calls', /const CRM_PAINEL=\{'2e85f701-0616-4b74-9732-6ebfeba016b8':'sofas_calls'\}/.test(HTML));
+  ok('aba Painel ao lado de Respostas, Lista e Quadro', /\['board',PCX_I\.quadro\+'Quadro'\],\.\.\.\(pnl\?\[\['painel'/.test(HTML)&&/TK\.visao==='painel'\?crmPainelView\(\)/.test(HTML));
+  ok('CRM Sofás só em Lista: sem Respostas e sem Quadro, Painel ao lado', /const CRM_SO_LISTA=\{'2e85f701-0616-4b74-9732-6ebfeba016b8':1\}/.test(HTML)&&/:soLst\?\[\['lista',PCX_I\.lista\+'Lista'\],\.\.\.\(pnl\?/.test(HTML)&&/if\(soLst&&TK\.visao!=='lista'&&TK\.visao!=='painel'\) TK\.visao='lista';/.test(HTML));
+  ok('crm.js com cache novo', HTML.indexOf('crm.js?v=28')>0);
 }
 grupo('Seletor de emoji da conversa é conteúdo da mensagem, não ícone (Bernardo 08/10)');
 {
