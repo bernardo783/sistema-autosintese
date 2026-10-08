@@ -2705,6 +2705,17 @@ grupo('Agenda do CRM: calls de 1 h, 30 min de folga, sugestões e os ganchos (Be
   ok('lista do Pipeline sem "marcar horário", No-show e subgrupos A acontecer/No-show', HTML.indexOf('caChipLinha(t):')<0&&HTML.indexOf('rspNsBtn')<0&&HTML.indexOf('rspReuniao(')<0&&HTML.indexOf('no-show</small>')<0);
 }
 
+/* ---------------- Anexos nas anotações do lead ---------------- */
+grupo('Cartão do lead: anexar arquivo nas anotações (Bernardo 08/10)');
+{
+  ok('botão Anexar arquivo, arrastar e colar no compositor', /class="cl-clip"[^\n]*onchange="clAnxEscolhe\(this\)"/.test(HTML)&&HTML.indexOf('ondrop="clAnxSolta(event)"')>0&&HTML.indexOf('onpaste="clAnxCola(event)"')>0);
+  const cod=bloco('async function clNotas(tid){','window.clNotaApagar=async (mid)=>{');
+  ok('linha do tempo junta anotações e anexos do lead', /from\('tarefa_comentarios'\)/.test(cod)&&/from\('tarefa_anexos'\)/.test(cod));
+  ok('anexo sobe igual ao da tarefa (bucket anexos, envio em partes)', /axSubir\(chave,f,pinta\)/.test(cod)&&/'t\/'\+tid\+'\/'/.test(cod));
+  ok('logo do cliente não aparece como anexo do lead', cod.indexOf('logo-')>0);
+  ok('PDF e imagem abrem na prévia, o resto baixa', /tkmAnxPrever/.test(cod)&&/tkmAnxAbrir/.test(cod));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
