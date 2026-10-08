@@ -2135,6 +2135,21 @@ grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (B
   ok('lista de formulário abre em Respostas por padrão', HTML.indexOf("crmForm(id)?'tabela':")>0&&HTML.indexOf("TK.visao==='tabela'?tkViewRespostas():")>0);
 }
 
+/* ---------------- CRM de formulário com o visual do Controle de Clientes ---------------- */
+grupo('Respostas: mesmo visual do Controle de Clientes, colunas separadas (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const C=[{id:'w',lista_id:'L',nome:'WhatsApp',tipo:'link'},{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'},{id:'e',lista_id:'L',nome:'Estado',tipo:'texto'}];
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:[{id:'a',lista_id:'L',titulo:'Ana',valores:{w:'https://wa.me/5511999990001',d:'2026-10-07',e:'SP'}}],campos:C,colsOff:{}},
+    tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,
+    tkSelo:()=>'<select></select>',tpSvg:()=>'',setTimeout:()=>0},['tkViewRespostas']);
+  const h=g.tkViewRespostas();
+  ok('usa a tabela do Controle de Clientes (linha entre todas as colunas)', /<table class="tk-tab lc-tab" id="rspTab"/.test(h));
+  ok('Nome e Status nas duas primeiras colunas, presas como no Controle de Clientes', h.indexOf('>Nome</span></th>')<h.indexOf('>Status</th>')&&h.indexOf('>Status</th>')<h.indexOf('Preencheu em'));
+  ok('valor curto (estado, data) fica no meio da coluna', /<td class="tk-cen">SP<\/td>/.test(h));
+  ok('fixa as colunas depois de desenhar, como o Controle de Clientes', /lcFixarColunas\(\$\('#content'\)\)/.test(cod));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
