@@ -2524,7 +2524,8 @@ grupo('Equipe do CRM Sofás: resumo, status no avatar e conectar pelo QR ali mes
   ok('disparo em destaque com o estado e o resumo em 3 números', /class="eq-disp"[^>]*--c:var\(--warn\)/.test(h)&&/Conectados<\/small><b>1 <em>de 3/.test(h)&&/Leads em 30 dias<\/small><b>1</.test(h));
   ok('pontinho de status no avatar (conectado, desconectado, sem número)', /eq-dot ok/.test(h)&&/eq-dot bad/.test(h)&&/eq-dot warn/.test(h));
   ok('desconectado: Reconectar pelo QR, com a hora em que caiu', /onclick="eqConectar\('kennedy'\)"[^>]*>[\s\S]{0,400}Reconectar \(QR\)/.test(h)&&/desconectado<span class="eq-stx">caiu /.test(h));
-  ok('sem número: Conectar WhatsApp ali mesmo (master)', /onclick="eqNovoNumero\('jose'\)"/.test(h)&&/sem número/.test(h));
+  ok('sem número: Conectar WhatsApp ali mesmo (master), sem o texto "sem número / nunca conectou"', /onclick="eqNovoNumero\('jose'\)"/.test(h)&&!/sem número|nunca conectou/.test(h));
+  ok('o switch do rodízio fica sem o rótulo "No rodízio"', h.indexOf('No rodízio')<0&&/class="eq-sw/.test(h));
   ok('quem saiu do rodízio fica separado embaixo', h.indexOf('Fora do rodízio')>0&&h.indexOf('Fora do rodízio')<h.indexOf("eqNovoNumero('jose')"));
   ok('pausado: o próximo da vez não depende de estar conectado (igual à edge lead)', /Próximo da vez<\/small><b>Bernardo</.test(h)&&/class="eq-row vez"/.test(h));
   g.currentUser.role='gestor'; g.eqDesenhar();
