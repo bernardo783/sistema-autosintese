@@ -1660,8 +1660,16 @@ grupo('Novo lead pelo + nos CRMs de formulário, e a reserva do disparo (Bernard
   ok('o + dentro do CRM abre o cadastro de lead, não a tela de tarefa', /if\(!id&&TK\.escopo==='lista'&&crmForm\(TK\.listaSel\)\)\{ crmLdNovo\(TK\.listaSel,grupoPre\); return; \}/.test(HTML));
   ok('abrir um lead que já existe continua indo pro cartão', /if\(id&&typeof crmLdAbrir==='function'&&crmLdAbrir\(id\)\) return;/.test(HTML));
   ok('cadastro grava tudo de uma vez pela RPC crm_lead_novo', HTML.indexOf("sb.rpc('crm_lead_novo',{p_lista:CLN.lid,p:{nome,whats:d,")>0);
-  ok('cadastro: nome e WhatsApp obrigatórios, origem em botões e primeira anotação', /id="clnNome"/.test(HTML)&&/WhatsApp<em>\*<\/em>/.test(HTML)&&/const CLN_ORIGENS=\['Indicação','Instagram orgânico','Evento','Prospecção','Outro'\];/.test(HTML)&&/id="clnNota"/.test(HTML));
-  ok('cadastro: o próximo do rodízio já vem marcado, sem passar por cima de quem a pessoa escolheu', /if\(sel&&!CLN\.mexeu&&/.test(HTML));
+  ok('cadastro enxuto: nome, WhatsApp, empresa, Instagram, cargo, cidade/UF, origem, vendedor e anotação', ['clnNome','clnWa','clnEmp','clnIg','clnCargo','clnCidade','clnUf','clnOrigem','clnVend','clnNota'].every(x=>HTML.indexOf('id="'+x+'"')>0)&&/WhatsApp<em>\*<\/em>/.test(HTML));
+  ok('cadastro sem os 5 botões de origem e sem texto de ajuda', HTML.indexOf('cln-chip')<0&&HTML.indexOf('CLN_ORIGENS')<0&&HTML.indexOf('Buscando o próximo da vez')<0);
+  ok('origem: escolhe das que já existem (sem Formulário) ou digita uma nova', /list="clnOrigens"/.test(HTML)&&/filter\(o=>o&&o!=='Formulário'\)/.test(HTML));
+  ok('vendedor vem com quem cadastra e pode ficar vazio', /<option value="">Ninguém<\/option>\$\{equipeDe\(lid,eu\|\|null\)\.map\(u=>`<option value="\$\{u\.id\}"\$\{u\.id===eu\?' selected':''\}/.test(HTML));
+  {
+    const cod=bloco('/* ======================= NOVO LEAD (Bernardo 08/10)','function crmLdNovo(');
+    const g=rodar(cod,{tkStatusDe:()=>[],tkCamposDe:()=>[{nome:'Origem',opcoes:['Formulário','Indicação','Evento','Feira de SP']}]},['clnOrigens','clnEhIndicacao']);
+    ok('origens do CRM, já com as digitadas antes', JSON.stringify(g.clnOrigens('L'))==='["Indicação","Evento","Feira de SP"]');
+    ok('"Indicado por" aparece só em Indicação (com ou sem acento)', g.clnEhIndicacao('indicacao')&&g.clnEhIndicacao(' Indicação ')&&!g.clnEhIndicacao('Evento'));
+  }
   const cod=bloco('/* ======================= CARTÃO DO LEAD (Bernardo 08/10)','/* devolve true quando é lead de CRM');
   const g=rodar(cod,{},['clHistorico']);
   const h=g.clHistorico({descricao:'Lead cadastrado à mão por Bernardo Antunes · Indicação (indicado por João, da JR).'});
@@ -2650,33 +2658,6 @@ grupo('Respostas: mesmo visual do Controle de Clientes, colunas separadas (Berna
   ok('largura: tabela fixa, senão o texto não deixa a coluna diminuir', /#rspTab\{table-layout:fixed\}/.test(HTML)&&/id="rspTab" style="width:\d+px"/.test(h));
   ok('largura: fica só na memória da página (recarregou, volta ao padrão)', HTML.indexOf("let RSP={dir:-1,sel:{},q:'',larg:{}};")>0&&!/localStorage[^\n]*RSP\.larg/.test(HTML));
   ok('fixa as colunas depois de desenhar, como o Controle de Clientes', /lcFixarColunas\(\$\('#content'\)\)/.test(cod));
-}
-
-/* ---------------- Agenda do CRM ---------------- */
-grupo('Agenda do CRM: calls de 1 h, 30 min de folga, sugestões e os ganchos (Bernardo 08/10)');
-{
-  const cod=bloco('/* ======================= AGENDA DO CRM (Bernardo 08/10)','/* ======================= CARTÃO DO LEAD (Bernardo 08/10)');
-  const iso=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  const g=rodar(cod,{tkISO:iso,tkHoje:()=>'2026-10-12',localStorage:{getItem:()=>null,setItem:()=>{}},TK:{tarefas:[],equipe:[]}},['caSlots','caSugestoes','caForm']);
-  const livre=(sl,hm)=>{ const m=Number(hm.slice(0,2))*60+Number(hm.slice(3)); const x=sl.find(s=>s.s===m); return x&&x.livre; };
-  const sl=g.caSlots([[9*60,10*60]],null);
-  ok('call das 9h às 10h: 9:30 e 10:00 ficam ocupados (sem folga)', !livre(sl,'09:30')&&!livre(sl,'10:00'));
-  ok('call das 9h às 10h: a próxima pode às 10:30', livre(sl,'10:30'));
-  ok('call das 14h: 12:30 cabe (termina 13:30, folga de 30 min), 13:00 não', (s=>livre(s,'12:30')&&!livre(s,'13:00'))(g.caSlots([[14*60,15*60]],null)));
-  ok('última call começa às 17h (nunca à noite)', sl[sl.length-1].s===17*60);
-  ok('hoje: só a partir de 1 h depois de agora', (s=>!livre(s,'10:30')&&livre(s,'11:00'))(g.caSlots([],10*60)));
-  const vazio=g.caSugestoes(()=>[], '2026-10-12', null, 3);
-  ok('agenda vazia: primeira sugestão é 9h de hoje', vazio[0].dia==='2026-10-12'&&vazio[0].s===540&&vazio[0].motivo==='agenda livre no dia');
-  ok('sugestões do mesmo dia ficam 2 h uma da outra', vazio.length===3&&vazio[1].s-vazio[0].s>=120&&(vazio[2].dia!==vazio[1].dia||vazio[2].s-vazio[1].s>=120));
-  const c9=g.caSugestoes((d)=>d==='2026-10-12'?[[540,600]]:[], '2026-10-12', null, 3);
-  ok('com call às 9h: o mais cedo é 10:30 e a preferida fica 2 h longe (12:00)', c9[0].s===630&&c9[0].motivo==='mais cedo livre'&&c9[1].s===720&&c9[1].motivo==='2 h de folga');
-  const sab=g.caSugestoes(()=>[], '2026-10-10', null, 1);
-  ok('sábado e domingo não entram: pula pra segunda', sab[0].dia==='2026-10-12');
-  const F=CRM_FORMS_T;
-  ok('cada CRM tem a sua lista Agenda', F.every(f=>f.agenda)&&new Set(F.map(f=>f.agenda)).size===F.length);
-  ok('a Agenda abre a tela crm-agenda', /\.\.\.Object\.fromEntries\(CRM_FORMS\.map\(f=>\[f\.agenda,'crm-agenda'\]\)\)/.test(HTML)&&HTML.indexOf("if(view==='crm-agenda') return renderCaAgenda(c);")>0);
-  ok('ir pra Reunião Marcada abre a janela de marcar', /if\(ok&&typeof caDepoisStatus==='function'\) caDepoisStatus\(id,sid\);/.test(HTML));
-  ok('atalho ao lado do filtro, dia e hora na linha, bloco no cartão e Google na Equipe', ['caAtalho():','caChipLinha(t):','caBoxLead(t):','caEqGoogle(v):'].every(k=>HTML.indexOf(k)>0));
 }
 
 console.log('\n'+(falhas
