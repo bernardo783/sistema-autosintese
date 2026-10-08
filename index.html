@@ -16538,7 +16538,8 @@ function eqDesenhar(c){
     const pos=v.ativo?ativos.indexOf(v)+1:0, leads=Number((cfg.placar||{})[v.apelido])||0;
     const foto=i&&i.foto?`<span class="eq-av"><img src="${esc(i.foto)}" alt=""></span>`:(v.perfil_id?avatar(v.perfil_id,nome,'eq-av'):`<span class="eq-av">${esc(inicial(nome))}</span>`);
     const dot=!i||i.erro?'warn':(i.conectado?'ok':'bad');
-    const st=!i?`<div class="eq-st warn">sem número<span class="eq-stx">${master?'nunca conectou':'um master conecta'}</span></div>`
+    /* sem número: sem texto de status, o pontinho amarelo e o Conectar WhatsApp já dizem (Bernardo 08/10) */
+    const st=!i?'<div class="eq-st"></div>'
       :i.erro?`<div class="eq-st warn" title="${esc(i.erro)}">erro<span class="eq-stx">${esc(String(i.erro).slice(0,34))}</span></div>`
       :i.conectado?'<div class="eq-st"></div>'
       :`<div class="eq-st bad">desconectado${i.ultimaQueda?`<span class="eq-stx">caiu ${esc(eqQuando(i.ultimaQueda))}</span>`:''}</div>`;
@@ -16558,7 +16559,7 @@ function eqDesenhar(c){
       <div class="eq-g"><div class="eq-nm">${esc(nome)}${v.apelido===vez?'<span class="eq-vez">próximo da vez</span>':''}</div>
         <small>${i&&i.dono?esc(eqFone(i.dono))+' · ':''}${pode?selPerfil:perfil} · ${leads} lead${leads===1?'':'s'} em 30 dias</small></div>
       ${st}
-      <div class="eq-acts">${acao}<span class="eq-rl">No rodízio ${sw(!!v.ativo,`eqAtivo('${v.apelido}',${!v.ativo})`,v.ativo?'Tirar do rodízio':'Pôr no rodízio')}</span></div>
+      <div class="eq-acts">${acao}<span class="eq-rl">${sw(!!v.ativo,`eqAtivo('${v.apelido}',${!v.ativo})`,v.ativo?'Tirar do rodízio':'Pôr no rodízio')}</span></div>
     </div>`; };
   const dentro=V.filter(v=>v.ativo), fora=V.filter(v=>!v.ativo);
   const vezV=V.find(v=>v.apelido===vez);
