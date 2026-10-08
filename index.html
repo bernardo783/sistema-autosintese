@@ -3195,15 +3195,19 @@
   .eq-st.ok{color:var(--ok)} .eq-st.bad{color:var(--danger)} .eq-st.warn{color:var(--warn)}
   .eq-st .eq-stx{display:block;color:var(--fraco);font-weight:400;font-size:11.5px;margin-top:1px}
   .eq-acts{display:flex;align-items:center;gap:14px;flex:none;margin-left:0}
-  .eq-acts .btn{width:172px;justify-content:center;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .eq-acts .btn{width:172px;height:34px;box-sizing:border-box;justify-content:center;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
   .eq-acts .btn svg{width:14px;height:14px}
   .eq-acts .eq-nb{width:172px;text-align:center;font-size:12px;color:var(--fraco)}
-  .eq-okb{width:172px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid color-mix(in srgb,var(--ok) 50%,transparent);
+  .eq-okb{width:172px;height:34px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid color-mix(in srgb,var(--ok) 50%,transparent);
     background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;white-space:nowrap}
   .eq-okb svg{width:14px;height:14px}
-  .eq-tst{background:none;border:0;padding:0;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
-  .eq-tst:hover{color:var(--txt)}
-  .eq-rl{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  /* testar: botão secundário com ícone, numa vaga fixa (a vazia segura o alinhamento) (Bernardo 08/10) */
+  .eq-tst{width:92px;height:34px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;
+    border:1px solid var(--line);background:transparent;color:var(--txt);border-radius:8px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+  .eq-tst svg{width:14px;height:14px;color:var(--brand2)}
+  .eq-tst:hover{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 14%,transparent)}
+  .eq-tst.vazio{border:0;background:none;cursor:default;pointer-events:none}
+  .eq-rod{flex:none;display:flex;align-items:center}
   .eq-caiu{color:var(--fraco);font-size:12px}
   .eq-sw{width:36px;height:20px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);position:relative;cursor:pointer;flex:none;padding:0}
   .eq-sw span{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:left .15s,background .15s}
@@ -3214,8 +3218,8 @@
   @media (max-width:720px){
     .eq-disp{flex-wrap:wrap} .eq-disp .tx{flex:1 1 calc(100% - 60px)} .eq-disp .lado{width:100%;justify-content:flex-end}
     .eq-res{gap:8px} .eq-res>div{padding:10px} .eq-res b{font-size:15px} .eq-lst{padding:4px 12px 12px}
-    .eq-row{flex-wrap:wrap;gap:10px 12px} .eq-g{flex:1 1 calc(100% - 100px)}
-    .eq-st{width:auto;flex:1 1 auto;margin-left:94px} .eq-acts{width:100%;margin-left:94px;flex-wrap:wrap;gap:10px} .eq-acts .btn,.eq-acts .eq-nb{width:auto} }
+    .eq-row{flex-wrap:wrap;gap:10px 12px} .eq-g{flex:1 1 calc(100% - 150px)}
+    .eq-st{width:auto;flex:1 1 auto;margin-left:86px} .eq-st:empty{display:none} .eq-acts{width:100%;margin-left:86px;flex-wrap:wrap;gap:10px} .eq-acts .btn,.eq-acts .eq-nb,.eq-okb{width:auto} .eq-tst.vazio{display:none} }
   /* numero do lead escrito na lista, com copiar e abrir no WhatsApp (Bernardo 08/10) */
   .rsp-fone{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;vertical-align:middle}
   .rsp-num{font-variant-numeric:tabular-nums;margin-right:3px}
@@ -16510,6 +16514,7 @@ async function renderEquipe(c){
   eqDesenhar(c);
 }
 window.eqRecarregar=async()=>{ EQ.carregou=false; const c=$('#content'); if(currentView==='crm-equipe'&&c) await renderEquipe(c); };
+const EQ_IC_ENV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>';
 const PC_IC_OK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>';
 function eqDesenhar(c){
   c=c||$('#content'); if(!c||currentView!=='crm-equipe') return;
@@ -16547,19 +16552,25 @@ function eqDesenhar(c){
                         :'<span class="eq-nb" title="Gerar número usa o token admin do servidor">só master gera o número</span>')
       :i.erro?'<span class="eq-nb">veja em Comercial › Instâncias</span>'
       /* conectado vira o proprio botao, com o testar pequeno do lado (Bernardo 08/10, opcao C) */
-      :i.conectado?`<span class="eq-okb" title="WhatsApp conectado">${PC_IC_OK}Conectado</span><button type="button" class="eq-tst" onclick="instTestar('${esc(i.name)}')" title="Mandar uma mensagem de teste">testar</button>`
+      :i.conectado?`<span class="eq-okb" title="WhatsApp conectado">${PC_IC_OK}Conectado</span>`
       :`<button class="btn small" onclick="eqConectar('${esc(i.name)}')">${QR} Reconectar (QR)</button>`;
+    /* testar fica num espaço fixo depois do botão; quem não está conectado ganha o espaço vazio,
+       senão o Conectado e o Conectar WhatsApp não alinham (Bernardo 08/10) */
+    const tst=i&&i.conectado&&!i.erro?`<button type="button" class="eq-tst" onclick="instTestar('${esc(i.name)}')" title="Mandar uma mensagem de teste pelo WhatsApp de ${esc(nome)}">${EQ_IC_ENV}<span>Testar</span></button>`
+      :'<span class="eq-tst vazio" aria-hidden="true"></span>';
     const perfil=v.perfil_id?`perfil: ${esc(tkNomeUser(v.perfil_id)||'?')}`:'<span style="color:var(--warn)">sem perfil ligado</span>';
     const selPerfil=pode?`<select class="eq-sel" onchange="eqPerfil('${v.apelido}',this.value)" title="Quem vira responsável do card quando o lead cai pra este número">
         <option value="">${v.perfil_id?'Sem perfil':'Ligar a um perfil…'}</option>
         ${perfis.map(u=>`<option value="${u.id}"${u.id===v.perfil_id?' selected':''}>Perfil: ${esc(u.nome)}</option>`).join('')}</select>`:'';
+    /* o liga/desliga do rodízio abre a linha, antes da posição e da foto (Bernardo 08/10) */
     return `<div class="eq-row${v.apelido===vez?' vez':''}${v.ativo?'':' fora'}">
-      <div class="eq-ord">${v.ativo&&pode?`<button type="button" title="Subir na fila" onclick="eqMover('${v.apelido}',-1)"${pos===1?' disabled':''}>▲</button>`:''}<b>${v.ativo?pos:'·'}</b>${v.ativo&&pode?`<button type="button" title="Descer na fila" onclick="eqMover('${v.apelido}',1)"${pos===n?' disabled':''}>▼</button>`:''}</div>
+      <div class="eq-rod">${sw(!!v.ativo,`eqAtivo('${v.apelido}',${!v.ativo})`,v.ativo?'Tirar do rodízio':'Pôr no rodízio')}</div>
+      <div class="eq-ord">${v.ativo&&pode?`<button type="button" title="Subir na fila" onclick="eqMover('${v.apelido}',-1)"${pos===1?' disabled':''}>▲</button>`:''}${v.ativo?`<b>${pos}</b>`:''}${v.ativo&&pode?`<button type="button" title="Descer na fila" onclick="eqMover('${v.apelido}',1)"${pos===n?' disabled':''}>▼</button>`:''}</div>
       <span class="eq-avw">${foto}<i class="eq-dot ${dot}"></i></span>
       <div class="eq-g"><div class="eq-nm">${esc(nome)}${v.apelido===vez?'<span class="eq-vez">próximo da vez</span>':''}</div>
         <small>${i&&i.dono?esc(eqFone(i.dono))+' · ':''}${pode?selPerfil:perfil} · ${leads} lead${leads===1?'':'s'} em 30 dias</small></div>
       ${st}
-      <div class="eq-acts">${acao}<span class="eq-rl">${sw(!!v.ativo,`eqAtivo('${v.apelido}',${!v.ativo})`,v.ativo?'Tirar do rodízio':'Pôr no rodízio')}</span></div>
+      <div class="eq-acts">${acao}${tst}</div>
     </div>`; };
   const dentro=V.filter(v=>v.ativo), fora=V.filter(v=>!v.ativo);
   const vezV=V.find(v=>v.apelido===vez);
