@@ -9267,7 +9267,7 @@ function tkFiltradas(){
      Onde o filtro nao aparece, ele nao vale. */
   const F=(ehLC(TK.listaSel)&&TK.escopo==='lista')?{}:(TK.filtro||{});
   if(F.resps&&F.resps.length) arr=arr.filter(t=>F.resps.includes(t.responsavel_id)||(F.resps.includes('(sem)')&&!t.responsavel_id));
-  if(F.prios&&F.prios.length) arr=arr.filter(t=>F.prios.includes(t.prioridade||'med'));
+  if(F.prios&&F.prios.length&&!tkFSemPrio()) arr=arr.filter(t=>F.prios.includes(t.prioridade||'med'));
   if(F.de||F.ate) arr=arr.filter(t=>t.prazo&&(!F.de||t.prazo>=F.de)&&(!F.ate||t.prazo<=F.ate));
   else if(F.prazo) arr=arr.filter(t=>tkPrazoBate(t,F.prazo));
   if(q) arr=arr.filter(t=>((t.titulo||'')+' '+(t.descricao||'')+' '+tkNomeFicha(t.ficha_id)+' '+tkNomeUser(t.responsavel_id)).toLowerCase().indexOf(q)>=0);
@@ -11897,7 +11897,11 @@ function tkPrazoBate(t,k){ const hj=tkHoje();
   if(k==='semana'){ const d=new Date(hj+'T12:00:00'); const dow=(d.getDay()+6)%7; return t.prazo>=tkDiaMais(hj,-dow)&&t.prazo<=tkDiaMais(hj,6-dow); }
   if(k==='mes') return t.prazo.slice(0,7)===hj.slice(0,7);
   return true; }
-const tkFiltroN=()=>{ const F=TK.filtro||{}; return ((F.prazo||F.de||F.ate)?1:0)+((F.prios&&F.prios.length)?1:0); };
+/* lead de formulário não tem prioridade (Bernardo 08/10: "essa bandeira de prioridade não faz sentido
+   nenhum ali"): no CRM Sofás e nos próximos CRMs de formulário o filtro não mostra Prioridade, e a
+   prioridade guardada de outra lista não vale nem conta no número do funil. */
+const tkFSemPrio=()=>TK.escopo==='lista'&&typeof crmForm==='function'&&crmForm(TK.listaSel);
+const tkFiltroN=()=>{ const F=TK.filtro||{}; return ((F.prazo||F.de||F.ate)?1:0)+((F.prios&&F.prios.length&&!tkFSemPrio())?1:0); };
 function tkBtnFiltro(){ const n=tkFiltroN();
   return `<button class="btn ghost small${n?' fon':''}" onclick="tkPopFiltro(event)">${svgIco('funil',12)} Filtro${n?`<span class="fbad">${n}</span>`:''}</button>`; }
 function tkBtnResp(){ const rs=(TK.filtro||{}).resps||[];
@@ -11966,9 +11970,9 @@ function tkPopFiltroHTML(){ const F=TK.filtro;
      <div class="tkc-lado">${at('hoje','Hoje')}${at('ontem','Ontem')}${at('amanha','Amanhã')}${at('atraso','Atrasadas')}${at('ult7','Últimos 7 dias')}${at('prox7','Próximos 7 dias')}${at('semana','Esta semana')}${at('mes','Este mês')}${at('semprazo','Sem prazo')}</div>
      ${tkCalHTML(F)}
    </div>
-   <div class="tkp-sec" style="margin-top:14px">Prioridade</div>
+   ${tkFSemPrio()?'':`<div class="tkp-sec" style="margin-top:14px">Prioridade</div>
    <div class="tkp-chips">${['urgente','alta','med','baixa'].map(k=>{ const on=F.prios.includes(k), cor=PRIO_COR[k]||'#8b95a5';
-     return `<button class="tkp-chip tkp-prio${on?' on':''}" style="--c:${cor}" onclick="tkFPrio('${k}')" title="${esc(TK_PRIO[k])}">${prioFlag(cor,on)}${TK_PRIO[k]}</button>`; }).join('')}</div>
+     return `<button class="tkp-chip tkp-prio${on?' on':''}" style="--c:${cor}" onclick="tkFPrio('${k}')" title="${esc(TK_PRIO[k])}">${prioFlag(cor,on)}${TK_PRIO[k]}</button>`; }).join('')}</div>`}
    ${tkFiltroN()?`<button class="tkp-limpar" onclick="tkFLimpar()">Limpar filtros</button>`:''}`;
 }
 window.tkFResp=(id)=>{ const r=TK.filtro.resps, i=r.indexOf(id); if(i>=0) r.splice(i,1); else r.push(id); tkFAplicar(); };
