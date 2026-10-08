@@ -2982,8 +2982,11 @@
   #rspTab .rsp-cv svg{width:11px;height:11px}
   #rspTab .rsp-cv.ab{transform:rotate(90deg)}
   #rspTab .tk-faixa:hover .rsp-cv{color:var(--txt);background:var(--panel2)}
-  #rspTab .rsp-ch > th{background:var(--bg);color:var(--fraco);font-size:11px;border-bottom:1px solid var(--line);padding-top:7px;padding-bottom:7px;box-shadow:none}
-  #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch) > td{background:var(--bg);border-bottom:1px solid var(--line);box-shadow:none}
+  /* divisória horizontal entre as linhas bem visível (Bernardo 08/10: "coloca as linhas de separação
+     na horizontal"): a var(--line) quase sumia no fundo escuro. Tom do texto a 16% acompanha os 4 temas. */
+  #rspTab{--rsp-div:color-mix(in srgb,var(--txt) 16%,transparent)}
+  #rspTab .rsp-ch > th{background:var(--bg);color:var(--fraco);font-size:11px;border-bottom:1px solid var(--rsp-div);padding-top:7px;padding-bottom:7px;box-shadow:none}
+  #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch) > td{background:var(--bg);border-bottom:1px solid var(--rsp-div);box-shadow:none}
   #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch):hover > td{background:var(--cardh)}
   #rspTab.rolou .rsp-g > tr:not(.tk-faixa) > :nth-child(2){box-shadow:8px 0 14px -6px rgba(0,0,0,.55)}
   /* o status de cada linha num selo leve (tinta da cor + borda fina): a cor cheia fica só na pílula
