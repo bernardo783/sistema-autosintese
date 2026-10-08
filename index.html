@@ -2870,6 +2870,138 @@
   .tk-tab tbody tr:not(.tk-faixa):hover > td{background:var(--hov1)}
   .tk-tab .tk-faixa > td{height:auto;border-bottom:none}
   .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
+  /* ---------- AGENDA DO CRM (Bernardo 08/10): chip na linha, janela de marcar, tela Agenda ---------- */
+  .ca-chip{display:inline-flex;align-items:center;gap:5px;margin-left:8px;border:0;border-radius:999px;padding:3px 9px;font:inherit;font-size:11.5px;font-weight:700;
+    cursor:pointer;white-space:nowrap;color:var(--brand2);background:color-mix(in srgb,var(--brand2) 16%,transparent);font-variant-numeric:tabular-nums}
+  .ca-chip svg{width:12px;height:12px}
+  .ca-chip.hoje{color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}
+  .ca-chip.sem{color:var(--warn);background:color-mix(in srgb,var(--warn) 15%,transparent)}
+  .ca-chip:hover{filter:brightness(1.15)}
+  .overlay.ca-ov{z-index:2500}
+  .modal.ca-m{max-width:680px;display:flex;flex-direction:column}
+  .ca-mh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 6px}
+  .ca-mt{flex:1;min-width:0;position:relative}
+  .ca-mt small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco);font-weight:700}
+  .ca-mt b{display:block;font-size:18px;font-weight:800;margin-top:2px}
+  .ca-mt span{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+  .ca-mt .cl-in{width:100%;margin-top:6px}
+  .ca-leads{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+  .ca-leads button{display:flex;align-items:baseline;gap:8px;text-align:left;background:transparent;border:0;border-radius:8px;padding:7px 9px;color:var(--txt);font:inherit;cursor:pointer}
+  .ca-leads button:hover{background:var(--hov2)}
+  .ca-leads small{color:var(--muted);font-size:12px}
+  .ca-cb{display:inline-flex;align-items:center;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 8px 3px 3px;cursor:pointer;margin-top:4px}
+  .ca-cb:hover{border-color:var(--brand)}
+  .ca-cb .av{width:28px;height:28px;font-size:11px}
+  .ca-pes{display:inline-grid;place-items:center;color:var(--muted)}
+  .ca-pes svg{width:15px;height:15px}
+  .ca-cmi{display:flex;align-items:center;gap:8px}
+  .ca-cmi i{margin-left:auto;color:var(--ok);display:inline-grid}
+  .ca-cmi i svg{width:13px;height:13px}
+  .ca-cmi.on{background:var(--hov2)}
+  .ca-mb{padding:4px 22px 6px;overflow:auto}
+  .ca-k{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin:14px 0 7px}
+  .ca-sugs{display:flex;gap:6px;flex-wrap:wrap}
+  .ca-sg{display:flex;flex-direction:column;align-items:flex-start;gap:1px;background:color-mix(in srgb,var(--brand) 12%,transparent);border:1px solid color-mix(in srgb,var(--brand2) 40%,transparent);
+    border-radius:10px;padding:7px 12px;color:var(--txt);font:inherit;cursor:pointer;font-variant-numeric:tabular-nums}
+  .ca-sg b{font-size:13px;font-weight:700}
+  .ca-sg small{font-size:11px;color:var(--muted)}
+  .ca-sg.on{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff}
+  .ca-sg.on small{color:rgba(255,255,255,.85)}
+  .ca-dois{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;margin-top:4px}
+  .ca-calh{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px}
+  .ca-calh b{font-size:13px;font-weight:700;text-transform:capitalize}
+  .ca-calh .tp-ib[disabled]{opacity:.3;cursor:default}
+  .ca-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+  .ca-cal i{font-style:normal;font-size:10.5px;color:var(--fraco);font-weight:700;padding:3px 0}
+  .ca-cal button{background:transparent;border:0;border-radius:8px;padding:7px 0;color:var(--txt);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;font-variant-numeric:tabular-nums}
+  .ca-cal button:hover{background:var(--hov2)}
+  .ca-cal button.fds{color:var(--muted)}
+  .ca-cal button.hj{box-shadow:inset 0 0 0 1px var(--brand2)}
+  .ca-cal button.on{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+  .ca-cal button[disabled]{opacity:.3;cursor:default;background:transparent}
+  .ca-sl{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  .ca-sl button{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 0;color:var(--muted);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
+  .ca-sl button:hover{border-color:var(--brand);color:var(--txt)}
+  .ca-sl button.on{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff}
+  .ca-sl button.oc{opacity:.32;text-decoration:line-through;cursor:not-allowed}
+  .ca-out{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted)}
+  .ca-out input{background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--txt);font:inherit;padding:5px 8px;color-scheme:dark}
+  :root[data-tema="claro"] .ca-out input,:root[data-tema="branco"] .ca-out input{color-scheme:light}
+  .ca-dica{font-size:12px;color:var(--muted);margin:8px 0 0}
+  .ca-ta{width:100%;resize:vertical;min-height:64px;font:inherit}
+  .ca-tg{display:flex;align-items:flex-start;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-top:8px;cursor:pointer}
+  .ca-tg input{margin-top:3px;accent-color:var(--brand)}
+  .ca-tg b{display:block;font-size:13.5px}
+  .ca-tg small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+  .ca-tg.off{cursor:default}
+  .ca-tg.off b{color:var(--muted)}
+  .ca-mf{display:flex;gap:8px;justify-content:flex-end;padding:14px 22px 18px;border-top:1px solid var(--line);margin-top:14px}
+  .ca-box.on{border-color:color-mix(in srgb,var(--brand2) 55%,var(--line))}
+  .ca-pes2{display:inline-flex;align-items:center;gap:7px}
+  .ca-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .ca-acts .btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+  .ca-acts .btn svg{width:14px;height:14px}
+  .ca-sit{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+  .ca-sitb{background:none;border:0;padding:0;cursor:pointer}
+  /* tela */
+  .ca-pfs{display:flex;gap:4px;margin-right:6px}
+  .ca-pf{background:none;border:0;padding:2px;border-radius:50%;cursor:pointer;opacity:.55;box-shadow:0 0 0 2px transparent}
+  .ca-pf:hover{opacity:1}
+  .ca-pf.on{opacity:1;box-shadow:0 0 0 2px var(--brand2)}
+  .ca-pf .av{width:26px;height:26px;font-size:10.5px}
+  .ca-hj{margin:0 2px}
+  .ca-hj.on{border-color:var(--brand2);color:var(--txt)}
+  .ca-semh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:color-mix(in srgb,var(--warn) 8%,var(--panel));border:1px dashed color-mix(in srgb,var(--warn) 45%,var(--line));
+    border-radius:12px;padding:10px 12px;margin-bottom:14px}
+  .ca-semt{font-weight:700;font-size:13px;margin-right:4px}
+  .ca-semt small{font-weight:500;color:var(--muted);margin-left:4px}
+  .ca-semi{display:inline-flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 5px;color:var(--txt);font:inherit;font-size:12.5px;cursor:pointer}
+  .ca-semi span{color:var(--warn);font-weight:700;font-size:11.5px}
+  .ca-semi:hover{border-color:var(--warn)}
+  .ca-sem{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px 14px}
+  .ca-semc{display:flex;align-items:baseline;gap:12px;margin:0 0 10px}
+  .ca-mes{font-size:15px;font-weight:800}
+  .ca-grade{display:grid;grid-template-columns:52px repeat(var(--n),minmax(0,1fr));column-gap:6px;row-gap:8px}
+  .ca-dh{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+  .ca-dh small{display:block;font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .ca-dh b{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+  .ca-dh span{display:block;font-size:11.5px;color:var(--muted)}
+  .ca-dh.hj{border-color:var(--brand2);background:color-mix(in srgb,var(--brand) 14%,var(--panel2))}
+  .ca-hs{position:relative}
+  .ca-hs span{position:absolute;right:4px;transform:translateY(-50%);font-size:11px;color:var(--fraco);font-variant-numeric:tabular-nums}
+  .ca-hs span:first-child{transform:none}
+  .ca-dcol{position:relative;border-radius:10px;background:var(--panel2);cursor:copy;overflow:hidden}
+  .ca-dcol.hj{background:color-mix(in srgb,var(--brand) 7%,var(--panel2))}
+  .ca-dcol i{position:absolute;left:0;right:0;border-top:1px solid var(--line);pointer-events:none}
+  .ca-agora{position:absolute;left:0;right:0;height:2px;background:var(--danger);pointer-events:none;z-index:2}
+  .ca-ev{position:absolute;left:3px;right:3px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:1px;border:0;border-left:3px solid var(--c);border-radius:0 7px 7px 0;
+    background:color-mix(in srgb,var(--c) 22%,var(--panel));color:var(--txt);font:inherit;padding:3px 7px;cursor:pointer;overflow:hidden;z-index:1}
+  .ca-ev:hover{background:color-mix(in srgb,var(--c) 34%,var(--panel))}
+  .ca-ev b{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .ca-ev span{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .ca-ev .av{position:absolute;right:5px;bottom:4px}
+  .ca-ev.st-realizada,.ca-ev.st-no_show{opacity:.75}
+  .ca-tab td{cursor:pointer}
+  .ca-ln{display:inline-flex;align-items:center;gap:8px}
+  .ca-num{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ca-num.hj{color:var(--ok);font-weight:700}
+  .ca-meet{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+  .ca-meet svg{width:13px;height:13px}
+  /* Equipe: Google Agenda de cada um (Bernardo 08/10: "botão pra já conectar o Google Agenda do José Carlos") */
+  .eq-gst{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:190px;height:34px;box-sizing:border-box;border-radius:10px;font-size:12px;font-weight:700;color:var(--fraco);white-space:nowrap}
+  .eq-gst svg{width:14px;height:14px}
+  .eq-gst.ok{color:var(--ok)}
+  .eq-gst.bt{background:var(--panel2);border:1px solid var(--line);color:var(--txt);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .eq-gst.bt:hover{border-color:var(--brand)}
+  .eq-gst.vazio{visibility:hidden}
+  @media (max-width:720px){
+    .ca-dois{grid-template-columns:1fr}
+    .ca-mh,.ca-mb,.ca-mf{padding-left:16px;padding-right:16px}
+    .ca-grade{grid-template-columns:40px repeat(var(--n),minmax(64px,1fr));overflow-x:auto}
+    .ca-sem{overflow-x:auto}
+    .ca-pfs{display:none}
+    .eq-gst{width:auto;padding:0 10px}
+  }
   /* ---------- CARTÃO DO LEAD (Bernardo 08/10): é CRM, não tarefa ---------- */
   .overlay.cl-ov{align-items:stretch;justify-content:flex-end;padding:0}
   .cl{width:min(980px,100vw);height:100vh;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;box-shadow:-24px 0 60px rgba(0,0,0,.35)}
@@ -5429,6 +5561,7 @@ function render(view){
     return renderPesquisa(c);
   }
   if(view==='crm-equipe'){ EQ.carregou=false; return renderEquipe(c); }
+  if(view==='crm-agenda') return renderCaAgenda(c);
   if(view==='crm-anuncios') return renderCrmAnuncios(c);
   if(view==='carteira'){
     if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito a master e gerentes.</div>'; return; }
@@ -7955,9 +8088,9 @@ const ehCom=(lid)=>!!LCOM[lid];
    pipeline, a tela Equipe, o form do Yay (rodízio) e a tabela de calls do Painel. O código é um só;
    no banco, crm_forms faz o mesmo papel pros gatilhos. CRM novo = uma linha aqui + uma em crm_forms. */
 const CRM_FORMS=[
-  {nome:'Sofás',    lista:'2e85f701-0616-4b74-9732-6ebfeba016b8', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d001', form:'6ac516b64c1c87a7280d6fc9', calls:'sofas_calls'},
-  {nome:'Motos',    lista:'b4169319-1cf1-4d7a-8520-5ffcad09e21f', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d002', form:'6a668e28d385e5003d03b895', calls:'motos_calls'},
-  {nome:'Veículos', lista:'ae902b26-00d3-4495-a7e0-9914f2754fd9', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d003', form:'6aac28b2030e048ade0c664c', calls:'veiculos_calls'}];
+  {nome:'Sofás',    lista:'2e85f701-0616-4b74-9732-6ebfeba016b8', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d001', form:'6ac516b64c1c87a7280d6fc9', calls:'sofas_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d011'},
+  {nome:'Motos',    lista:'b4169319-1cf1-4d7a-8520-5ffcad09e21f', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d002', form:'6a668e28d385e5003d03b895', calls:'motos_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d012'},
+  {nome:'Veículos', lista:'ae902b26-00d3-4495-a7e0-9914f2754fd9', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d003', form:'6aac28b2030e048ade0c664c', calls:'veiculos_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d013'}];
 /* Acessos e Processos tambem moram na arvore, em Administrativo (Gabriel 15/09).
    Mesma ideia das listas do Financeiro, mas sem o recorte de master: quem nao
    pode ver alguma coisa la dentro ja e barrado pela propria tela. */
@@ -7967,6 +8100,8 @@ const LTEL={'f1e2d3c4-0000-4a00-8b00-00000000a001':'acessos','f1e2d3c4-0000-4a00
   'f1e2d3c4-0000-4a00-8b00-00000000e003':'rh-empresa',
   [LPESQ]:'pesquisa',
   /* CRM › Equipe (Bernardo 08/10): conexão dos números e rodízio dos vendedores do Yay, uma por CRM */
+  /* CRM › Agenda (Bernardo 08/10): as calls marcadas com os leads, por semana e em lista */
+  ...Object.fromEntries(CRM_FORMS.map(f=>[f.agenda,'crm-agenda'])),
   ...Object.fromEntries(CRM_FORMS.map(f=>[f.equipe,'crm-equipe']))};
 const ehTela=(lid)=>!!LTEL[lid]||!!LCOM[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
@@ -10352,7 +10487,7 @@ function tkViewRespostas(){
   const larg=(c)=>rspLarg(c.id,Math.max(110,Number(c.largura)||150));
   const cor=(t)=>typeof tkCorLinha==='function'?tkCorLinha(t):'';
   const linha=(t)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}" draggable="true" ondragstart="rspPega(event,'${t.id}')" ondragend="rspPegaFim(event)">
-      <td><span class="rsp-nm rsp-lin"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}${rspMvBtn(t)}${stReun&&t.status_id===stReun?rspNsBtn(t):''}</span></td>
+      <td><span class="rsp-nm rsp-lin"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}${rspMvBtn(t)}${typeof caChipLinha==='function'?caChipLinha(t):''}${stReun&&t.status_id===stReun?rspNsBtn(t):''}</span></td>
       <td class="tk-cen">${rspRelogio(t,cD)}</td>
       ${outros.map(c=>`<td${cen(c)?' class="tk-cen"':''}>${rspCel(c,(t.valores||{})[c.id],t)}</td>`).join('')}
     </tr>`;
@@ -11628,6 +11763,7 @@ const ESP_DESC={
   'reembolsos':'Pedidos da equipe, do envio ao pagamento.',
   'pesquisa':'NPS, satisfação e pesquisa de saída de quem deu churn.',
   'crm-equipe':'Quem está conectado e quem recebe os leads do formulário, na vez.',
+  'crm-agenda':'As calls marcadas com os leads, por semana e em lista.',
   'painel':'Shows, no-shows, conversão e ticket do mês.',
   'calls':'Toda reunião registrada, com resultado e valor.',
   'pipeline':'Oportunidade por etapa, do lead ao ganho.',
@@ -12792,6 +12928,7 @@ function tpDireita(soBoard){
     ${busca?`<input class="search tp-busca" id="tk_busca" placeholder="Buscar tarefa..." value="${esc(TK.busca)}" oninput="tkBusca(this.value)" onblur="if(!this.value){TK.tpBusca=false;tkDesenhar($('#content'));}">`
       :tpIb('lupa','Buscar',"TK.tpBusca=true;TK.focoBusca=true;tkDesenhar($('#content'))")}
     ${tpIb('funil','Filtrar','tkPopFiltro(event)',nF>0,nF||'')}
+    ${TK.escopo==='lista'&&crmForm(TK.listaSel)&&typeof caAtalho==='function'?caAtalho():''}
     ${tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}
     ${crmForm(TK.listaSel)&&TK.escopo==='lista'?tpIb('tabela','Respostas',"tkArqVista(false);tkVisao('tabela')",TK.visao==='tabela'&&!TK.arqVista):''}
     ${TK.escopo==='lista'&&crmPainelPode(TK.listaSel)?tpIb('painel','Painel',"tkArqVista(false);tkVisao('painel')",TK.visao==='painel'&&!TK.arqVista):''}
@@ -13789,6 +13926,8 @@ window.tkSetStatus=async (id,sid)=>{
   /* aviso agora nasce no banco (trg_ntf_tarefas): qualquer caminho conta, sem duplicar */
   if(ok) await lcSincronizarFicha(id,sid);
   if(ok&&sid===LC_CHURN) chPerguntarChurn(id);
+  /* lead do CRM foi pra Reunião Marcada: abre a janela de marcar a call (Bernardo 08/10) */
+  if(ok&&typeof caDepoisStatus==='function') caDepoisStatus(id,sid);
   /* vídeo aprovado: quem abre a demanda em Campanhas (gestor da ficha) e avisa o grupo é o
      banco (trg_espelhar_video). Aqui só recarrega pra ela aparecer. */
   if(ok&&String(sid)===ED_APROVADO){ try{ await tkCarregar(); spDesenhar(); }catch(_){}
@@ -14298,6 +14437,462 @@ window.tkfPintarTrilha=()=>{
   const px=document.getElementById('tkfProx');
   if(px) px.innerHTML=(i>=0&&sts[i+1])?`próximo: <b>${esc(sts[i+1].nome)}</b>`:(i>=0?'<b>última etapa</b>':'sem status definido');
 };
+/* ======================= AGENDA DO CRM (Bernardo 08/10) =======================
+   "Movi o lead pra Reunião Marcada e não tem nenhuma agendinha pra ver as calls." Cada call fica em
+   crm_reunioes, presa ao card do lead; o evento com Meet vai pra agenda Google do CLOSER pela edge
+   crm-agenda (a conexão OAuth é a mesma do Modo Pessoal, agenda_google). Telas: atalho ao lado do
+   filtro no Pipeline, dia e hora na linha do lead, janela de marcar (bolinha do closer, calendário,
+   horários com folga de 30 min e sugestões), a lista Agenda de cada CRM (semana e lista), o bloco da
+   call no cartão do lead e o Conectar Google Agenda na Equipe.
+   Regras (Bernardo 08/10): call de 1 h; entre uma e outra, 30 min de folga (call às 9h, a próxima
+   só às 10:30); sugestão é o horário mais cedo, preferindo 2 h longe das outras calls; só seg a sex,
+   das 9h às 18h; nunca à noite. */
+const CA_INI=9*60, CA_FIM=18*60, CA_DUR=60, CA_FOLGA=30, CA_PASSO=30, CA_PREF=120;
+const CA={rs:[],ok:false,carregando:null,visao:'semana',semana:0,closer:'',gst:null,gstIds:'',gstCarregando:false};
+const CA_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+const CA_PES='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>';
+const CA_CAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>';
+const CA_G='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20.5 12.2c0-.6-.1-1.2-.2-1.7H12v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.6-3.9 2.6-6.5z"/><path d="M12 21c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H3.9v2.3A9 9 0 0 0 12 21z"/><path d="M6.9 13.7a5.4 5.4 0 0 1 0-3.4V8H3.9a9 9 0 0 0 0 8z"/><path d="M12 6.4c1.3 0 2.5.5 3.5 1.4l2.6-2.6A9 9 0 0 0 3.9 8l3 2.3C7.6 8 9.6 6.4 12 6.4z"/></svg>';
+const CA_SIT={marcada:['Marcada','var(--brand2)'],realizada:['Aconteceu','var(--ok)'],no_show:['Não veio','var(--danger)']};
+const CA_SEM=['dom','seg','ter','qua','qui','sex','sáb'];
+const caForm=(lid)=>CRM_FORMS.find(f=>f.lista===lid||f.agenda===lid||f.equipe===lid)||null;
+const caStRe=(lid)=>tkStatusDe(lid).find(s=>/reuni/i.test(s.nome))||null;
+const caStProp=(lid)=>tkStatusDe(lid).find(s=>/proposta/i.test(s.nome))||null;
+const caMin=(iso)=>{ const d=new Date(iso); return d.getHours()*60+d.getMinutes(); };
+const caHH=(m)=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const caDiaDe=(iso)=>tkISO(new Date(iso));
+const caHora=(iso)=>caHH(caMin(iso));
+const caIso=(dia,min)=>dia+'T'+caHH(min)+':00-03:00';
+const caSomaDia=(dia,n)=>{ const d=new Date(dia+'T12:00:00'); d.setDate(d.getDate()+n); return tkISO(d); };
+const caDow=(dia)=>new Date(dia+'T12:00:00').getDay();
+const caDiaRot=(dia)=>{ const h=tkHoje(); if(dia===h) return 'hoje'; if(dia===caSomaDia(h,1)) return 'amanhã';
+  return CA_SEM[caDow(dia)]+' '+dia.slice(8,10)+'/'+dia.slice(5,7); };
+const caQuando=(iso)=>caDiaRot(caDiaDe(iso))+' · '+caHora(iso);
+const caAgoraMin=()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); };
+/* ---------- horários livres e sugestões (puro: o teste roda isto sem tela) ----------
+   ocup = [[inicioMin, fimMin], ...] do dia. A call nova [s, s+60] bate se ficar a menos de 30 min
+   de qualquer compromisso. dist = quanto ela fica longe do compromisso mais perto (Infinity = dia livre). */
+function caSlots(ocup,agoraMin){
+  const out=[];
+  for(let s=CA_INI;s+CA_DUR<=CA_FIM;s+=CA_PASSO){
+    const e=s+CA_DUR;
+    if(agoraMin!=null&&s<agoraMin+60){ out.push({s,livre:false,passou:true,dist:0}); continue; }
+    let livre=true, dist=Infinity;
+    (ocup||[]).forEach(([a,b])=>{ if(s<b+CA_FOLGA&&e+CA_FOLGA>a) livre=false;
+      const d=a>=e?a-e:(s>=b?s-b:0); if(d<dist) dist=d; });
+    out.push({s,livre,dist});
+  }
+  return out;
+}
+/* ocupDe(dia) devolve o ocup do dia. Primeiro o mais cedo com 2 h de folga (ou dia livre); se ele
+   não for o primeiro livre de todos, o primeiro livre entra antes como "mais cedo". Sugestões do
+   mesmo dia ficam a pelo menos 2 h uma da outra. Só dia útil, até 14 dias pra frente. */
+function caSugestoes(ocupDe,hoje,agoraMin,n){
+  n=n||3; const pref=[], todos=[];
+  for(let k=0;k<14&&pref.length<n;k++){
+    const dia=caSomaDia(hoje,k), dw=caDow(dia); if(dw===0||dw===6) continue;
+    caSlots(ocupDe(dia),k===0?agoraMin:null).forEach(x=>{ if(!x.livre) return;
+      const it={dia,s:x.s,dist:x.dist}; todos.push(it);
+      if(x.dist>=CA_PREF&&!pref.some(p=>p.dia===dia&&Math.abs(p.s-x.s)<CA_PREF)) pref.push(it); });
+  }
+  let out=pref.slice(0,n);
+  const cedo=todos[0];
+  if(cedo&&!out.some(p=>p.dia===cedo.dia&&p.s===cedo.s)) out=[cedo].concat(out).slice(0,n);
+  return out.map(p=>Object.assign({},p,{motivo:p.dist===Infinity?'agenda livre no dia':p.dist>=CA_PREF?'2 h de folga':'mais cedo livre'}));
+}
+/* ---------- dados ---------- */
+function caCarregar(force){
+  if(CA.carregando) return CA.carregando;
+  if(CA.ok&&!force) return Promise.resolve(true);
+  const de=new Date(Date.now()-60*86400000).toISOString();
+  CA.carregando=sb.from('crm_reunioes').select('*').neq('status','cancelada').gte('inicio',de).order('inicio')
+    .then(({data,error})=>{ CA.carregando=null; if(error){ console.warn('crm_reunioes',error.message); return false; }
+      CA.rs=data||[]; CA.ok=true; caRepintar(); return true; });
+  return CA.carregando;
+}
+function caRepintar(){
+  try{
+    if(currentView==='crm-agenda') caPintar();
+    else if(currentView==='lista'&&crmForm(TK.listaSel)) tkDesenhar($('#content'));
+    if(document.getElementById('clOv')&&CL.id) clRepintar();
+  }catch(_){}
+}
+const caGuarda=(r)=>{ if(!r) return; const i=CA.rs.findIndex(x=>x.id===r.id);
+  if(r.status==='cancelada'){ if(i>=0) CA.rs.splice(i,1); return; }
+  if(i>=0) CA.rs[i]=r; else CA.rs.push(r); CA.rs.sort((a,b)=>String(a.inicio).localeCompare(String(b.inicio))); };
+const caDoLead=(tid)=>CA.rs.filter(r=>r.tarefa_id===tid);
+/* a call de hoje que já passou continua sendo "a call" até alguém marcar se aconteceu */
+const caProxima=(tid)=>{ const h=tkHoje(); return caDoLead(tid).find(r=>r.status==='marcada'&&caDiaDe(r.inicio)>=h)||null; };
+const caUltima=(tid)=>caDoLead(tid).filter(r=>new Date(r.inicio).getTime()<Date.now()).pop()||null;
+async function caFn(acao,corpo){
+  const tk=(SESSION&&SESSION.access_token)||'';
+  const r=await fetch(SUPA_URL+'/functions/v1/crm-agenda',{method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk,'apikey':SUPA_KEY},
+    body:JSON.stringify(Object.assign({acao},corpo||{}))});
+  let j={}; try{ j=await r.json(); }catch(_){}
+  if(!r.ok) throw new Error(j.detalhe||j.erro||('HTTP '+r.status));
+  return j;
+}
+const caNome1=(uid)=>String(tkNomeUser(uid)||'').split(/\s+/)[0]||'o closer';
+const caClosers=()=>crmResp(TK.equipe||[]);
+/* lead em Reunião Marcada sem call pra frente: é o "marcar horário" */
+const caSemHora=(lid)=>{ const st=caStRe(lid); if(!st) return [];
+  return (TK.tarefas||[]).filter(t=>t.lista_id===lid&&!t.arquivada_em&&t.status_id===st.id&&!caProxima(t.id)); };
+/* ---------- Pipeline: atalho e chip na linha ---------- */
+function caAtalho(){
+  const f=caForm(TK.listaSel); if(!f||!f.agenda) return '';
+  if(!CA.ok) caCarregar();
+  const h=tkHoje(), n=CA.rs.filter(r=>r.lista_id===f.lista&&r.status==='marcada'&&caDiaDe(r.inicio)===h).length;
+  return `<button type="button" class="tp-ib" title="Agenda do CRM${n?' · '+n+' call'+(n===1?'':'s')+' hoje':''}" aria-label="Agenda do CRM" onclick="caIrAgenda()">${CA_CAL}${n?`<span class="tp-bd">${n}</span>`:''}</button>`;
+}
+window.caIrAgenda=()=>{ const f=caForm(TK.listaSel); if(f&&f.agenda) spSelLista(f.agenda); };
+function caChipLinha(t){
+  if(!CA.ok) return '';
+  const p=caProxima(t.id), st=caStRe(t.lista_id);
+  /* no-show marcado no card (rspNoShow, valores._reuniao) manda: o chip vira o remarcar */
+  if(st&&t.status_id===st.id&&String((t.valores||{})._reuniao||'')==='no_show')
+    return `<button type="button" class="ca-chip sem" title="Não veio: marcar outro horário" onclick="event.stopPropagation();caMarcar('${t.id}'${p?`,{reuniao:'${p.id}'}`:''})">${CA_CAL}remarcar</button>`;
+  if(p){ const hoje=caDiaDe(p.inicio)===tkHoje();
+    return `<button type="button" class="ca-chip${hoje?' hoje':''}" title="Call com ${esc(tkNomeUser(p.closer_id)||'o closer')}: abrir o lead" onclick="event.stopPropagation();tkAbrir('${t.id}')">${CA_CAL}${esc(caQuando(p.inicio))}</button>`; }
+  if(st&&t.status_id===st.id) return `<button type="button" class="ca-chip sem" title="Marcar o dia e a hora da call" onclick="event.stopPropagation();caMarcar('${t.id}')">${CA_CAL}marcar horário</button>`;
+  return '';
+}
+/* moveu pra Reunião Marcada (qualquer caminho passa pelo tkSetStatus): abre a janela de marcar */
+function caDepoisStatus(id,sid){
+  const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t||!crmForm(t.lista_id)) return;
+  const st=caStRe(t.lista_id); if(!st||st.id!==sid||document.getElementById('caOv')||document.body.dataset.caSemJanela) return;
+  caCarregar().then(()=>{ if(!caProxima(id)) caMarcar(id,{deStatus:true}); });
+}
+/* ---------- janela de marcar / remarcar ---------- */
+let CM=null;
+window.caMarcar=async (tid,op)=>{
+  op=op||{};
+  const r0=op.reuniao?CA.rs.find(x=>x.id===op.reuniao):null;
+  const t=tid?(TK.tarefas||[]).find(x=>x.id===tid):null;
+  const f=caForm(t?t.lista_id:TK.listaSel); if(!f){ toast('Abra pelo CRM.'); return; }
+  const cl=caClosers(), ids=cl.map(u=>String(u.id));
+  const pick=[r0&&r0.closer_id,t&&t.responsavel_id,currentUser&&currentUser.id].find(x=>x&&ids.includes(String(x)))||(cl[0]||{}).id||'';
+  const hoje=tkHoje();
+  CM={tid:t?t.id:'',lista:f.lista,closer:pick,reuniao:r0?r0.id:'',deStatus:!!op.deStatus,dia:op.dia||(r0?caDiaDe(r0.inicio):''),
+    s:op.hora!=null?op.hora:(r0?caMin(r0.inicio):null),mes:(op.dia||(r0?caDiaDe(r0.inicio):hoje)).slice(0,7),ocup:{},google:true,wa:false,q:'',salvando:false};
+  let ov=document.getElementById('caOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='caOv'; ov.className='overlay ca-ov';
+    ov.onclick=(e)=>{ if(e.target===ov) caFechar(); }; document.body.appendChild(ov); }
+  caMPintar(); caOcup(CM.closer);
+  if(!CA.gst) caGst(ids).then(()=>caMPintar());
+};
+window.caFechar=()=>{ const o=document.getElementById('caOv'); if(o) o.remove(); CM=null; };
+async function caOcup(uid){
+  if(!CM||!uid||CM.ocup[uid]) return;
+  CM.ocup[uid]={carregando:true,blocos:[],conectado:null};
+  const hoje=tkHoje();
+  try{ const j=await caFn('ocupacao',{closer_id:uid,de:hoje,ate:caSomaDia(hoje,45)});
+    CM&&(CM.ocup[uid]={carregando:false,blocos:j.blocos||[],conectado:!!j.conectado,erro:!!j.erro_google}); }
+  catch(e){ CM&&(CM.ocup[uid]={carregando:false,blocos:[],conectado:null,erro:true}); }
+  if(CM){ caAutoDia(); caMPintar(); }
+}
+/* ocupado do closer num dia: Google + calls marcadas no sistema (a call que está sendo remarcada não conta) */
+function caOcupDia(uid,dia){
+  const o=(CM&&CM.ocup[uid])||{blocos:[]}, r0=CM&&CM.reuniao?CA.rs.find(x=>x.id===CM.reuniao):null;
+  const fora=r0&&r0.gcal_event_id;
+  const g=(o.blocos||[]).filter(b=>b.gcal_id!==fora&&caDiaDe(b.inicio)===dia).map(b=>[caMin(b.inicio),caDiaDe(b.fim)===dia?caMin(b.fim):24*60]);
+  const gids=new Set((o.blocos||[]).map(b=>b.gcal_id));
+  const s=CA.rs.filter(r=>r.closer_id===uid&&r.status==='marcada'&&r.id!==(CM&&CM.reuniao)&&caDiaDe(r.inicio)===dia&&!(r.gcal_event_id&&gids.has(r.gcal_event_id)))
+    .map(r=>[caMin(r.inicio),caMin(r.fim)]);
+  return g.concat(s);
+}
+const caSug=()=>CM&&CM.closer?caSugestoes(d=>caOcupDia(CM.closer,d),tkHoje(),caAgoraMin(),3):[];
+/* sem dia escolhido, já deixa marcada a primeira sugestão */
+function caAutoDia(){ if(!CM||CM.dia) return; const s=caSug()[0]; if(s){ CM.dia=s.dia; CM.s=s.s; CM.mes=s.dia.slice(0,7); } }
+function caMCal(){
+  const [y,m]=CM.mes.split('-').map(Number), ini=new Date(y,m-1,1), hoje=tkHoje();
+  const pula=(ini.getDay()+6)%7, ndias=new Date(y,m,0).getDate();
+  const MES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  let cel=''; for(let i=0;i<pula;i++) cel+='<span></span>';
+  for(let d=1;d<=ndias;d++){ const dia=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'), dw=caDow(dia);
+    const passou=dia<hoje, fds=dw===0||dw===6;
+    cel+=`<button type="button" class="${dia===CM.dia?'on':''}${dia===hoje?' hj':''}${fds?' fds':''}"${passou?' disabled':''} onclick="caMDia('${dia}')">${d}</button>`; }
+  const mesAnt=CM.mes>hoje.slice(0,7);
+  return `<div class="ca-calh"><button type="button" class="tp-ib sm" onclick="caMMes(-1)"${mesAnt?'':' disabled'} aria-label="Mês anterior">‹</button><b>${MES[m-1]} ${y}</b><button type="button" class="tp-ib sm" onclick="caMMes(1)" aria-label="Próximo mês">›</button></div>
+    <div class="ca-cal"><i>S</i><i>T</i><i>Q</i><i>Q</i><i>S</i><i>S</i><i>D</i>${cel}</div>`;
+}
+function caMPintar(){
+  const ov=document.getElementById('caOv'); if(!ov||!CM) return;
+  const t=CM.tid?(TK.tarefas||[]).find(x=>x.id===CM.tid):null;
+  const o=CM.ocup[CM.closer]||{carregando:true}, nm=caNome1(CM.closer);
+  const g=CA.gst?CA.gst[CM.closer]:undefined, temG=o.conectado===true||!!g;
+  const lugar=t?[clVal(t,'cidade'),clVal(t,'estado')].filter(Boolean).join(', '):'', ig=t?clInsta(clVal(t,'insta')):'';
+  const cabLead=t?`<div class="ca-mt"><small>${CM.reuniao?'Remarcar call':'Marcar call'}</small><b>${esc(t.titulo||'Lead')}</b><span>${esc([lugar,ig?'@'+ig:''].filter(Boolean).join(' · '))}</span></div>`
+    :`<div class="ca-mt"><small>Marcar call</small><input class="cl-in" id="caLeadQ" placeholder="Buscar o lead pelo nome…" value="${esc(CM.q)}" oninput="CM.q=this.value;caMLeads()" autocomplete="off"><div id="caLeads" class="ca-leads"></div></div>`;
+  const sl=CM.dia?caSlots(caOcupDia(CM.closer,CM.dia),CM.dia===tkHoje()?caAgoraMin():null):[];
+  const sug=o.carregando?[]:caSug();
+  const quando=CM.dia&&CM.s!=null?caDiaRot(CM.dia)+', '+caHH(CM.s):'';
+  ov.innerHTML=`<div class="modal ca-m" role="dialog" aria-label="Marcar call">
+    <div class="ca-mh">${cabLead}
+      <button type="button" class="ca-cb" onclick="caMCloser(event)" title="Closer: ${esc(tkNomeUser(CM.closer)||'escolher')}">${CM.closer?avatar(CM.closer,null,''):''}<span class="ca-pes">${CA_PES}</span></button>
+      <button type="button" class="x cl-x" onclick="caFechar()" aria-label="Fechar">&times;</button></div>
+    <div class="ca-mb">
+      <div class="ca-k">Sugestões pra ${esc(nm)}</div>
+      <div class="ca-sugs">${o.carregando?'<span class="hint" style="margin:0">lendo a agenda…</span>'
+        :sug.length?sug.map(x=>`<button type="button" class="ca-sg${x.dia===CM.dia&&x.s===CM.s?' on':''}" onclick="caMEscolhe('${x.dia}',${x.s})"><b>${esc(caDiaRot(x.dia))} · ${caHH(x.s)}</b><small>${esc(x.motivo)}</small></button>`).join('')
+        :'<span class="hint" style="margin:0">Sem horário livre nos próximos 14 dias úteis.</span>'}</div>
+      <div class="ca-dois">
+        <div>${caMCal()}</div>
+        <div><div class="ca-k">${CM.dia?esc(caDiaRot(CM.dia))+' · 1 h':'Escolha o dia'}</div>
+          ${CM.dia?`<div class="ca-sl">${sl.map(x=>`<button type="button" class="${x.s===CM.s?'on':''}${x.livre?'':' oc'}"${x.livre?'':' disabled'} title="${x.livre?'':(x.passou?'Já passou':'Ocupado ou sem os 30 min de folga')}" onclick="caMEscolhe('${CM.dia}',${x.s})">${caHH(x.s)}</button>`).join('')}</div>
+          <div class="ca-out"><span>Outro horário</span><input type="time" step="900" value="${CM.s!=null&&!sl.some(x=>x.s===CM.s)?caHH(CM.s):''}" onchange="caMHora(this.value)"></div>
+          <p class="ca-dica">${o.erro?'Não consegui ler o Google de '+esc(nm)+'; aparecem só as calls do sistema.':temG?'Riscado: ocupado no Google de '+esc(nm)+' ou sem os 30 min de folga.':'Riscado: calls já marcadas no sistema ou sem os 30 min de folga.'}</p>`:''}
+        </div>
+      </div>
+      ${CM.reuniao?'':`<div class="ca-k">Passagem de bastão pro closer</div>
+      <textarea id="caBastao" class="cl-in ca-ta" rows="3" placeholder="Quem é, o que já foi conversado, o que ele quer, objeções… vira anotação no cartão do lead."></textarea>`}
+      <label class="ca-tg${temG?'':' off'}"><input type="checkbox" ${CM.google&&temG?'checked':''}${temG?'':' disabled'} onchange="CM.google=this.checked"><span><b>Criar no Google Agenda de ${esc(nm)} com Meet</b>
+        <small>${temG?'Evento com o link do Meet, o WhatsApp, o Instagram e a cidade do lead.':esc(nm)+' ainda não conectou o Google. A call fica só no sistema; dá pra conectar na Equipe.'}</small></span></label>
+      ${CM.reuniao?'':`<label class="ca-tg"><input type="checkbox" ${CM.wa?'checked':''} onchange="CM.wa=this.checked"><span><b>Mandar confirmação pro lead no WhatsApp</b><small>Abre a conversa com a mensagem pronta (dia, hora e link do Meet); você confere e envia.</small></span></label>`}
+    </div>
+    <div class="ca-mf">
+      <button type="button" class="btn secondary small" onclick="caFechar()">${CM.deStatus?'Mover sem marcar':'Cancelar'}</button>
+      <button type="button" class="btn small" onclick="caMSalvar()"${CM.salvando?' disabled':''}>${CM.salvando?'Marcando…':(CM.reuniao?'Remarcar':'Marcar call')+(quando?' · '+esc(quando):'')+' →'}</button>
+    </div></div>`;
+  if(!t) caMLeads();
+}
+window.caMLeads=()=>{
+  const box=document.getElementById('caLeads'); if(!box||!CM) return;
+  const q=String(CM.q||'').trim().toLowerCase();
+  const arr=(TK.tarefas||[]).filter(t=>t.lista_id===CM.lista&&!t.arquivada_em&&(!q||String(t.titulo||'').toLowerCase().includes(q)))
+    .sort((a,b)=>String(b.atualizado_em||'').localeCompare(String(a.atualizado_em||''))).slice(0,6);
+  box.innerHTML=arr.map(t=>{ const s=tkStatus1(t.status_id);
+    return `<button type="button" onclick="caMLead('${t.id}')"><b>${esc(t.titulo||'(sem nome)')}</b><small>${esc([s?clEtNome(s.nome):'',clVal(t,'cidade')].filter(Boolean).join(' · '))}</small></button>`; }).join('')
+    ||'<span class="hint" style="margin:4px 0">Nenhum lead com esse nome.</span>';
+};
+window.caMLead=(id)=>{ if(!CM) return; CM.tid=id; const t=(TK.tarefas||[]).find(x=>x.id===id);
+  const ids=caClosers().map(u=>String(u.id)); if(t&&t.responsavel_id&&ids.includes(String(t.responsavel_id))&&!CM.dia){ CM.closer=t.responsavel_id; caOcup(CM.closer); }
+  caMPintar(); };
+window.caMDia=(dia)=>{ if(!CM) return; CM.dia=dia; CM.s=null; caMPintar(); };
+window.caMMes=(n)=>{ if(!CM) return; const [y,m]=CM.mes.split('-').map(Number), d=new Date(y,m-1+n,1); CM.mes=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); caMPintar(); };
+window.caMEscolhe=(dia,s)=>{ if(!CM) return; CM.dia=dia; CM.s=Number(s); CM.mes=dia.slice(0,7); caMPintar(); };
+window.caMHora=(v)=>{ if(!CM||!/^\d{2}:\d{2}$/.test(v||'')) return; CM.s=Number(v.slice(0,2))*60+Number(v.slice(3,5)); caMPintar(); };
+window.caMCloser=(ev)=>{
+  ev.stopPropagation(); const v=document.getElementById('caClPop'); if(v){ v.remove(); return; }
+  const el=document.createElement('div'); el.id='caClPop'; el.className='tkpop'; el.style.width='230px'; el.style.padding='6px'; el.style.zIndex=3100;
+  el.innerHTML=caClosers().map(u=>`<button type="button" class="rc-mi ca-cmi${u.id===CM.closer?' on':''}" onclick="document.getElementById('caClPop').remove();caMCl('${u.id}')">${avatar(u.id,u.nome,'sm')}<span>${esc(u.nome)}</span>${CA.gst&&CA.gst[u.id]?`<i title="Google conectado">${CA_G}</i>`:''}</button>`).join('');
+  document.body.appendChild(el); popPor(el,ev.currentTarget.getBoundingClientRect());
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.caMCl=(uid)=>{ if(!CM) return; CM.closer=uid; CM.google=true; caOcup(uid); caMPintar(); };
+window.caMSalvar=async ()=>{
+  if(!CM||CM.salvando) return;
+  if(!CM.tid){ toast('Escolha o lead.'); return; }
+  if(!CM.closer){ toast('Escolha o closer na bolinha.'); return; }
+  if(!CM.dia||CM.s==null){ toast('Escolha o dia e o horário.'); return; }
+  const oc=caOcupDia(CM.closer,CM.dia), bate=oc.some(([a,b])=>CM.s<b+CA_FOLGA&&CM.s+CA_DUR+CA_FOLGA>a);
+  if(bate&&!(await confirmar('Horário apertado','Esse horário bate com outro compromisso de '+caNome1(CM.closer)+' ou fica sem os 30 min de folga. Marcar mesmo assim?',{sim:'Marcar assim'}))) return;
+  const ta=document.getElementById('caBastao'), bastao=ta?String(ta.value||'').trim():'';
+  const t=(TK.tarefas||[]).find(x=>x.id===CM.tid), inicio=caIso(CM.dia,CM.s), m=Object.assign({},CM);
+  CM.salvando=true; caMPintar(); const ta2=document.getElementById('caBastao'); if(ta2) ta2.value=bastao;
+  let j;
+  try{ j=m.reuniao?await caFn('remarcar',{id:m.reuniao,inicio,closer_id:m.closer})
+        :await caFn('marcar',{tarefa_id:m.tid,closer_id:m.closer,inicio,duracao_min:CA_DUR,obs:bastao||null,google:m.google}); }
+  catch(e){ if(CM){ CM.salvando=false; caMPintar(); } toast('Não marcou: '+e.message); return; }
+  caGuarda(j.reuniao); caFechar();
+  const nm=caNome1(m.closer), q=caQuando(inicio);
+  if(bastao) await sb.from('tarefa_comentarios').insert({tarefa_id:m.tid,autor:(currentUser||{}).id,
+    texto:'Passagem de bastão pro '+(tkNomeUser(m.closer)||'closer')+' (call '+q+'):\n'+bastao});
+  /* marcou pela Agenda ou pelo cartão: o lead vai pra Reunião Marcada (sem reabrir esta janela) */
+  const st=t&&caStRe(t.lista_id);
+  if(t&&String((t.valores||{})._reuniao||'')==='no_show'){ const val=Object.assign({},t.valores||{}); delete val._reuniao; await tkPatch(t.id,{valores:val},''); }
+  if(st&&t.status_id!==st.id){ document.body.dataset.caSemJanela='1'; try{ await tkSetStatus(t.id,st.id); }finally{ delete document.body.dataset.caSemJanela; } }
+  /* a call do Painel (sofas_calls e irmãs) nasce no dia em que o lead entrou em Reunião Marcada;
+     aqui ela passa a ter o dia de verdade da call */
+  const fm=caForm(m.lista); if(fm&&fm.calls) try{ await sb.from(fm.calls).update({data:m.dia}).eq('tarefa_id',m.tid).in('status_call',['agendado','remarcar','no_show']); }catch(_){}
+  const gmsg=j.google==='ok'||(m.reuniao&&!j.aviso&&j.reuniao&&j.reuniao.gcal_event_id)?' · Meet na agenda de '+nm
+    :j.google==='closer_sem_google'?' · '+nm+' não tem Google conectado, ficou só no sistema'
+    :(j.google==='erro'||j.aviso)?' · o Google não aceitou, ficou só no sistema':'';
+  toast((m.reuniao?'Call remarcada: ':'Call marcada: ')+q+' com '+nm+gmsg+'.');
+  if(m.wa&&t) caWaConfirma(t,j.reuniao);
+  caRepintar();
+};
+function caWaConfirma(t,r){
+  const n=rspWaNum(t); if(!n||!r){ toast('Esse lead não tem WhatsApp.'); return; }
+  const d=caDiaDe(r.inicio), dd=d.slice(8,10)+'/'+d.slice(5,7);
+  const ext=['domingo','segunda','terça','quarta','quinta','sexta','sábado'][caDow(d)], rot=caDiaRot(d);
+  const msg='Oi! Tudo certo? Nossa conversa ficou marcada para '+(rot==='hoje'||rot==='amanhã'?rot:ext)+', '+dd+', às '+caHora(r.inicio)+'.'+(r.meet_url?' Link da chamada: '+r.meet_url:'')+' Até lá!';
+  if(typeof rspWaDentro==='function'&&rspWaDentro(t)){ rspWaAbrir(t.id);
+    let k=0; const iv=setInterval(()=>{ const el=document.getElementById('waLdTexto'); if(el){ el.value=msg; try{ el.dispatchEvent(new Event('input')); }catch(_){} el.focus(); clearInterval(iv); } else if(++k>20) clearInterval(iv); },150); }
+  else window.open('https://wa.me/'+n+'?text='+encodeURIComponent(msg),'_blank','noopener');
+}
+/* ---------- situação, cancelar e menu da call ---------- */
+window.caSit=async (id,st)=>{
+  const r=CA.rs.find(x=>x.id===id); if(!r) return;
+  const {data,error}=await sb.from('crm_reunioes').update({status:st}).eq('id',id).select('*').single();
+  if(error){ toast('Erro: '+error.message); return; }
+  caGuarda(data); caRepintar();
+  const t=(TK.tarefas||[]).find(x=>x.id===r.tarefa_id), sp=t&&caStProp(t.lista_id);
+  /* Não veio vira o No-show do card (e o banco leva pro Painel, crm_lead_sync); voltar tira */
+  const ns=String(((t&&t.valores)||{})._reuniao||'')==='no_show';
+  if(t&&(st==='no_show')!==ns){ const val=Object.assign({},t.valores||{}); if(st==='no_show') val._reuniao='no_show'; else delete val._reuniao; await tkPatch(t.id,{valores:val},''); }
+  if(st==='realizada'&&sp&&t.status_id!==sp.id&&await confirmar('Call aconteceu','Mover '+(t.titulo||'o lead')+' pra '+clEtNome(sp.nome)+'?',{sim:'Mover'})) await tkSetStatus(t.id,sp.id);
+  else if(st==='no_show') toast('Marcado como não veio. Dá pra remarcar no ⋯ da call.');
+};
+window.caCancelar=async (id)=>{
+  const r=CA.rs.find(x=>x.id===id); if(!r) return;
+  if(!(await confirmar('Cancelar call','Cancela a call de '+caQuando(r.inicio)+(r.gcal_event_id?' e apaga o evento do Google de '+caNome1(r.gcal_dono):'')+'.',{sim:'Cancelar call',perigo:true}))) return;
+  try{ const j=await caFn('cancelar',{id}); caGuarda(j.reuniao||Object.assign({},r,{status:'cancelada'})); toast('Call cancelada.'+(j.aviso?' O evento do Google não saiu, apague lá.':'')); }
+  catch(e){ toast('Não cancelou: '+e.message); return; }
+  caRepintar();
+};
+window.caMenu=(ev,id)=>{
+  ev.stopPropagation(); const v=document.getElementById('caPop'); if(v){ v.remove(); return; }
+  const r=CA.rs.find(x=>x.id===id); if(!r) return;
+  const it=(rot,acao,cl)=>`<button type="button" class="rc-mi${cl?' '+cl:''}" onclick="document.getElementById('caPop').remove();${acao}">${rot}</button>`;
+  const el=document.createElement('div'); el.id='caPop'; el.className='tkpop'; el.style.width='220px'; el.style.zIndex=3100;
+  el.innerHTML=[it('Abrir o lead',`tkAbrir('${r.tarefa_id}')`),
+    r.meet_url?it('Entrar no Meet',`window.open('${esc(r.meet_url)}','_blank','noopener')`):'',
+    '<div class="rc-sep"></div>',
+    r.status!=='realizada'?it('Aconteceu',`caSit('${id}','realizada')`):'',
+    r.status!=='no_show'?it('Não veio',`caSit('${id}','no_show')`):'',
+    r.status!=='marcada'?it('Voltar pra marcada',`caSit('${id}','marcada')`):'',
+    it('Remarcar…',`caMarcar('${r.tarefa_id}',{reuniao:'${id}'})`),
+    '<div class="rc-sep"></div>',it('Cancelar call',`caCancelar('${id}')`,'perigo')].join('');
+  document.body.appendChild(el); popPor(el,ev.currentTarget.getBoundingClientRect());
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+const caSitPill=(r)=>{ const s=CA_SIT[r.status]||CA_SIT.marcada; return `<span class="ca-sit" style="--c:${s[1]}">${s[0]}</span>`; };
+/* ---------- cartão do lead: bloco da call ---------- */
+function caBoxLead(t){
+  if(!CA.ok){ caCarregar(); return `<section class="cl-box ca-box"><h4>Call</h4><div class="hint" style="margin:0">carregando…</div></section>`; }
+  const p=caProxima(t.id), u=caUltima(t.id);
+  if(p) return `<section class="cl-box ca-box on"><h4>Call marcada</h4>
+      <div class="cl-kv"><span>Quando</span><b>${esc(caQuando(p.inicio))} até ${esc(caHora(p.fim))}</b></div>
+      <div class="cl-kv"><span>Closer</span><b class="ca-pes2">${avatar(p.closer_id,null,'sm')}${esc(tkNomeUser(p.closer_id)||'-')}</b></div>
+      ${p.criado_por?`<div class="cl-kv"><span>Marcada por</span><b>${esc(tkNomeUser(p.criado_por)||'-')}</b></div>`:''}
+      <div class="ca-acts">${p.meet_url?`<a class="btn small" href="${esc(p.meet_url)}" target="_blank" rel="noopener">${CA_CAM} Entrar no Meet</a>`:''}
+        <button type="button" class="btn secondary small" onclick="caMarcar('${t.id}',{reuniao:'${p.id}'})">Remarcar</button>
+        <button type="button" class="tp-ib" onclick="caMenu(event,'${p.id}')" aria-label="Mais opções da call">${tpSvg('pts')}</button></div>
+    </section>`;
+  return `<section class="cl-box ca-box"><h4>Call</h4>
+      ${u?`<div class="cl-kv"><span>Última</span><b>${esc(caQuando(u.inicio))} · ${caSitPill(u)}</b></div>`:'<p class="ca-dica" style="margin:0 0 10px">Nenhuma call marcada com este lead.</p>'}
+      <div class="ca-acts"><button type="button" class="btn small" onclick="caMarcar('${t.id}')">${CA_CAL} Marcar call</button>
+        ${u?`<button type="button" class="tp-ib" onclick="caMenu(event,'${u.id}')" aria-label="Mais opções da última call">${tpSvg('pts')}</button>`:''}</div>
+    </section>`;
+}
+/* ---------- tela Agenda ---------- */
+function renderCaAgenda(c){ currentView='crm-agenda'; caPintar(c); caCarregar(true); }
+function caPintar(c){
+  c=c||$('#content'); if(!c||currentView!=='crm-agenda') return;
+  const f=caForm(TK.listaSel); if(!f){ c.innerHTML='<div class="empty">Agenda sem CRM.</div>'; return; }
+  const cl=caClosers();
+  if(CA.closer&&!cl.some(u=>u.id===CA.closer)) CA.closer='';
+  const rs=CA.rs.filter(r=>r.lista_id===f.lista&&(!CA.closer||r.closer_id===CA.closer));
+  const sem=caSemHora(f.lista).filter(t=>!CA.closer||t.responsavel_id===CA.closer);
+  const abas=`<div class="tp-abas"><button class="${CA.visao==='semana'?'on':''}" onclick="caVisao('semana')">Semana</button><button class="${CA.visao==='lista'?'on':''}" onclick="caVisao('lista')">Lista</button></div>`;
+  const pes=cl.map(u=>`<button type="button" class="ca-pf${CA.closer===u.id?' on':''}" title="${esc(CA.closer===u.id?'Ver de todos':'Só as calls de '+u.nome)}" onclick="caFiltro('${u.id}')">${avatar(u.id,u.nome,'')}</button>`).join('');
+  const nav=CA.visao==='semana'?`<button type="button" class="tp-ib" onclick="caSemana(-1)" aria-label="Semana anterior">‹</button><button type="button" class="btn ghost small ca-hj${CA.semana?'':' on'}" onclick="caSemana(0)">Esta semana</button><button type="button" class="tp-ib" onclick="caSemana(1)" aria-label="Próxima semana">›</button>`:'';
+  const cab=`<div class="page-head tp-head"><div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>Agenda</h2>${abas}
+    <div class="tp-dir"><div class="ca-pfs">${pes}</div>${nav}<button type="button" class="tp-mais" title="Marcar call" aria-label="Marcar call" onclick="caMarcar(null)">${tpSvg('mais')}</button></div></div></div></div>`;
+  const semH=sem.length?`<div class="ca-semh"><span class="ca-semt">Sem horário <small>${sem.length} lead${sem.length===1?'':'s'} em Reunião Marcada sem dia</small></span>
+    ${sem.map(t=>`<button type="button" class="ca-semi" onclick="caMarcar('${t.id}')">${t.responsavel_id?avatar(t.responsavel_id,null,'sm'):''}<b>${esc(t.titulo||'Lead')}</b><span>marcar horário</span></button>`).join('')}</div>`:'';
+  const corpo=!CA.ok?'<div class="empty">Carregando a agenda…</div>':(CA.visao==='lista'?caLista(rs):caSemanaHtml(rs));
+  c.innerHTML=cab+semH+corpo;
+}
+window.caVisao=(v)=>{ CA.visao=v; try{ localStorage.setItem('ca_visao',v); }catch(_){} caPintar(); };
+try{ const v=localStorage.getItem('ca_visao'); if(v==='lista'||v==='semana') CA.visao=v; }catch(_){}
+window.caFiltro=(uid)=>{ CA.closer=CA.closer===uid?'':uid; caPintar(); };
+window.caSemana=(n)=>{ CA.semana=n?CA.semana+n:0; caPintar(); };
+function caSemanaHtml(rs){
+  const hoje=tkHoje(), seg=caSomaDia(hoje,-((caDow(hoje)+6)%7)+CA.semana*7);
+  let dias=[0,1,2,3,4,5,6].map(k=>caSomaDia(seg,k));
+  const temFds=rs.some(r=>{ const d=caDiaDe(r.inicio); return (d===dias[5]||d===dias[6]); });
+  if(!temFds) dias=dias.slice(0,5);
+  const naSem=rs.filter(r=>dias.includes(caDiaDe(r.inicio)));
+  let h0=8, h1=19; naSem.forEach(r=>{ h0=Math.min(h0,Math.floor(caMin(r.inicio)/60)); h1=Math.max(h1,Math.ceil(caMin(r.fim)/60)); });
+  const PX=46, alt=(h1-h0)*PX;
+  const horas=[]; for(let h=h0;h<h1;h++) horas.push(h);
+  const agora=caAgoraMin();
+  const col=(dia)=>{ const evs=naSem.filter(r=>caDiaDe(r.inicio)===dia);
+    const n=evs.length, nm=n+' call'+(n===1?'':'s');
+    return `<div class="ca-dcol${dia===hoje?' hj':''}" data-dia="${dia}" style="height:${alt}px" onclick="caSlotClick(event,'${dia}',${h0},${PX})" title="Clique num horário vazio pra marcar">
+      ${horas.map(h=>`<i style="top:${(h-h0)*PX}px"></i>`).join('')}
+      ${dia===hoje&&agora>=h0*60&&agora<=h1*60?`<b class="ca-agora" style="top:${(agora-h0*60)/60*PX}px"></b>`:''}
+      ${evs.map(r=>{ const t=(TK.tarefas||[]).find(x=>x.id===r.tarefa_id), top=(caMin(r.inicio)-h0*60)/60*PX, h=Math.max(22,(caMin(r.fim)-caMin(r.inicio))/60*PX-3);
+        const s=CA_SIT[r.status]||CA_SIT.marcada;
+        return `<button type="button" class="ca-ev st-${r.status}" style="top:${top}px;height:${h}px;--c:${s[1]}" onclick="event.stopPropagation();tkAbrir('${r.tarefa_id}')" oncontextmenu="event.preventDefault();caMenu(event,'${r.id}')" title="${esc((t&&t.titulo)||'Lead')} · ${caHora(r.inicio)}–${caHora(r.fim)} · ${esc(tkNomeUser(r.closer_id)||'')} · ${s[0]}">
+          <b>${esc((t&&t.titulo)||'Lead')}</b><span>${caHora(r.inicio)}${r.closer_id?' · '+esc(caNome1(r.closer_id)):''}</span>${r.closer_id?avatar(r.closer_id,null,'sm'):''}</button>`; }).join('')}
+    </div>`; };
+  const cabD=dias.map(d=>{ const n=naSem.filter(r=>caDiaDe(r.inicio)===d).length;
+    return `<div class="ca-dh${d===hoje?' hj':''}"><small>${CA_SEM[caDow(d)]}${d===hoje?' · hoje':''}</small><b>${d.slice(8,10)}</b><span>${n?n+' call'+(n===1?'':'s'):'nenhuma'}</span></div>`; }).join('');
+  const mes=new Date(seg+'T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
+  return `<div class="ca-sem">
+    <div class="ca-semc"><span class="ca-mes">${esc(mes)}</span><span class="hint" style="margin:0">${naSem.length?naSem.length+' call'+(naSem.length===1?'':'s')+' na semana':'Nenhuma call nesta semana'}</span></div>
+    <div class="ca-grade" style="--n:${dias.length}">
+      <div></div>${cabD}
+      <div class="ca-hs" style="height:${alt}px">${horas.map(h=>`<span style="top:${(h-h0)*PX}px">${String(h).padStart(2,'0')}:00</span>`).join('')}</div>
+      ${dias.map(col).join('')}
+    </div></div>`;
+}
+window.caSlotClick=(ev,dia,h0,px)=>{
+  if(dia<tkHoje()) return;
+  const r=ev.currentTarget.getBoundingClientRect(), y=ev.clientY-r.top, min=h0*60+Math.floor(y/px*2)*30;
+  caMarcar(null,{dia,hora:min});
+};
+function caLista(rs){
+  const ag=Date.now();
+  const prox=rs.filter(r=>new Date(r.fim).getTime()>=ag), ant=rs.filter(r=>new Date(r.fim).getTime()<ag).reverse();
+  const linha=(r)=>{ const t=(TK.tarefas||[]).find(x=>x.id===r.tarefa_id);
+    const lugar=t?[clVal(t,'cidade'),clVal(t,'estado')].filter(Boolean).join(', '):'', hj=caDiaDe(r.inicio)===tkHoje();
+    return `<tr onclick="tkAbrir('${r.tarefa_id}')">
+      <td><span class="ca-ln"><b>${esc((t&&t.titulo)||'Lead')}</b>${t&&rspWaNum(t)?`<button type="button" class="tk-wa" title="Abrir a conversa" onclick="event.stopPropagation();rspWaAbrir('${t.id}')">${RSP_WA_SVG}</button>`:''}</span></td>
+      <td class="tk-cen ca-num${hj?' hj':''}">${esc(caQuando(r.inicio))}</td>
+      <td class="tk-cen">${r.closer_id?`<span title="${esc(tkNomeUser(r.closer_id)||'')}">${avatar(r.closer_id,null,'')}</span>`:'-'}</td>
+      <td class="tk-cen"><button type="button" class="ca-sitb" onclick="event.stopPropagation();caMenu(event,'${r.id}')">${caSitPill(r)}</button></td>
+      <td>${esc(lugar||'-')}</td>
+      <td class="tk-cen">${r.meet_url&&r.status==='marcada'?`<a class="btn small ca-meet" href="${esc(r.meet_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${CA_CAM} Meet</a>`:''}</td>
+      <td class="tk-cen"><button type="button" class="tp-ib" onclick="event.stopPropagation();caMenu(event,'${r.id}')" aria-label="Mais opções">${tpSvg('pts')}</button></td>
+    </tr>`; };
+  const grupo=(rot,arr,vazio)=>`<tbody><tr class="tk-faixa"><td colspan="7"><span class="rsp-gt"><span class="tk-selo" style="background-color:var(--panel2);color:var(--txt)">${rot}</span><span class="tk-n">${arr.length}</span></span></td></tr>
+    ${arr.length?`<tr class="rsp-ch"><th>Lead</th><th>Quando</th><th>Closer</th><th>Situação</th><th>Cidade</th><th></th><th></th></tr>`+arr.map(linha).join(''):`<tr><td colspan="7" class="hint" style="padding:12px 14px">${vazio}</td></tr>`}</tbody>`;
+  return `<div class="tablewrap"><table class="tk-tab lc-tab ca-tab">
+    <colgroup><col style="width:28%"><col style="width:15%"><col style="width:8%"><col style="width:12%"><col style="width:17%"><col style="width:12%"><col style="width:8%"></colgroup>
+    ${grupo('Próximas',prox,'Nenhuma call pra frente. Marque pelo + ou pelo lead em Reunião Marcada.')}${grupo('Anteriores',ant,'Nada nos últimos 60 dias.')}
+  </table></div>`;
+}
+/* ---------- Equipe: Google Agenda de cada vendedor ---------- */
+async function caGst(ids){
+  ids=(ids||[]).filter(Boolean); const k=ids.slice().sort().join(',');
+  if(CA.gstCarregando||(CA.gst&&CA.gstIds===k)) return;
+  CA.gstCarregando=true;
+  try{ const j=await caFn('google_status',{ids}); CA.gst=Object.fromEntries((j.conectados||[]).map(x=>[x.id,x.email||'conectado'])); CA.gstIds=k; }
+  catch(_){ CA.gst=CA.gst||{}; }
+  CA.gstCarregando=false;
+}
+function caEqGoogle(v){
+  if(!v.perfil_id) return '';
+  const ids=((EQ.cfg&&EQ.cfg.vendedores)||[]).map(x=>x.perfil_id).filter(Boolean), k=ids.slice().sort().join(',');
+  if(!CA.gst||CA.gstIds!==k){ if(!CA.gstCarregando) caGst(ids).then(()=>{ if(currentView==='crm-equipe') eqDesenhar(); }); return '<span class="eq-gst vazio" aria-hidden="true"></span>'; }
+  const em=CA.gst[v.perfil_id];
+  if(em) return `<span class="eq-gst ok" title="Google Agenda conectado${em&&em!=='conectado'?' ('+esc(em)+')':''}">${CA_G}Agenda conectada</span>`;
+  const master=!!(currentUser&&currentUser.role==='master'), eu=currentUser&&currentUser.id===v.perfil_id;
+  return (master||eu)?`<button type="button" class="eq-gst bt" onclick="caGLink('${v.perfil_id}','${esc(v.apelido)}')" title="Gera o link pra ${esc(eu?'você':eqNomeAp(v.apelido))} entrar com o Google e autorizar a agenda">${CA_G}Conectar Google Agenda</button>`
+    :'<span class="eq-gst">sem Google Agenda</span>';
+}
+window.caGLink=async (pid,ap)=>{
+  if(currentUser&&pid===currentUser.id&&typeof mpGConectar==='function'){ await mpGConectar(); caGVoltou(); return; }
+  let j; try{ j=await caFn('link_google',{perfil_id:pid}); }
+  catch(e){ toast(String(e.message).includes('so_master')?'Só master gera o link pra outra pessoa.':String(e.message).includes('sem_credencial')?'Falta a credencial do Google no servidor.':'Não gerou o link: '+e.message); return; }
+  const nome=String(j.nome||'').split(/\s+/)[0]||'a pessoa';
+  const inst=(EQ.inst||[]).find(i=>String(i.name||'').toLowerCase()===String(ap||'').toLowerCase()), fone=inst&&inst.dono?String(inst.dono).replace(/\D/g,''):'';
+  const msg='Oi, '+nome+'! Pra suas calls do CRM caírem direto na sua agenda com o link do Meet, abre este link, entra com o seu Google e autoriza: '+j.url;
+  const o=document.createElement('div'); o.className='overlay'; o.id='caGOv';
+  o.innerHTML=`<div class="modal"><div class="mhead"><h3>Conectar o Google Agenda de ${esc(nome)}</h3><button class="x" onclick="document.getElementById('caGOv').remove()" aria-label="Fechar">&times;</button></div>
+    <div class="mbody"><p class="hint" style="margin:0 0 12px">${esc(nome)} abre este link no celular ou no computador dele, entra com o Google dele e autoriza. O link vale 3 dias.</p>
+      <input class="cl-in" readonly value="${esc(j.url)}" onclick="this.select()" style="width:100%;font-size:12px"></div>
+    <div class="mfoot"><button class="btn secondary small" onclick="navigator.clipboard.writeText(${esc(JSON.stringify(j.url))}).then(()=>toast('Link copiado.'))">Copiar link</button>
+      <a class="btn small" href="https://wa.me/${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${RSP_WA_SVG} Mandar no WhatsApp</a>
+      <button class="btn secondary small" onclick="document.getElementById('caGOv').remove();caGVoltou()">Já conectou</button></div></div>`;
+  o.onclick=(e)=>{ if(e.target===o) o.remove(); };
+  document.body.appendChild(o);
+};
+window.caGVoltou=async ()=>{ CA.gstIds=''; const ids=((EQ.cfg&&EQ.cfg.vendedores)||[]).map(x=>x.perfil_id).filter(Boolean); await caGst(ids); if(currentView==='crm-equipe') eqDesenhar(); };
 /* ======================= CARTÃO DO LEAD (Bernardo 08/10) =======================
    "Quando eu abro o cartão do cliente, as informações são completamente diferentes: não é
    uma tarefa, é um sistema à parte, é um CRM, é o cartão de um lead." Lista de formulário
@@ -14431,6 +15026,7 @@ function crmLdHtml(t){
         ${outros.length?`<section class="cl-box"><h4>Outras informações</h4>${outros.map(c=>`<div class="cl-kv"><span>${esc(c.nome)}</span>${clEditor(t,c,'','-')}</div>`).join('')}</section>`:''}
       </div>
       <div class="cl-col">
+        ${typeof caBoxLead==='function'?caBoxLead(t):''}
         <section class="cl-box"><h4>Vendedor responsável</h4>
           <select class="cl-in cl-resp" onchange="clResp(this.value)"><option value="">Ninguém ainda</option>${equipeDe(t.lista_id,resp||null).map(u=>`<option value="${u.id}"${u.id===resp?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>
         </section>
@@ -17259,7 +17855,7 @@ function eqDesenhar(c){
       <div class="eq-g"><div class="eq-nm">${esc(nome)}${v.apelido===vez?'<span class="eq-vez">próximo da vez</span>':''}</div>
         <small>${i&&i.dono?esc(eqFone(i.dono))+' · ':''}${pode?selPerfil:perfil} · ${leads} lead${leads===1?'':'s'} em 30 dias</small></div>
       ${st}
-      <div class="eq-acts">${acao}${tst}</div>
+      <div class="eq-acts">${typeof caEqGoogle==='function'?caEqGoogle(v):''}${acao}${tst}</div>
     </div>`; };
   const dentro=V.filter(v=>v.ativo), fora=V.filter(v=>!v.ativo);
   const vezV=V.find(v=>v.apelido===vez);
