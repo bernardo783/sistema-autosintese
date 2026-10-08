@@ -3126,27 +3126,67 @@
   .rsp-ig-in{width:100%;min-width:150px;height:28px;padding:0 8px;font-size:12.5px}
   button.tk-wa{border:0;padding:0;cursor:pointer;font:inherit}
   /* CRM Sofás › Equipe (Bernardo 08/10) */
-  .eq-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
-  .eq-row.fora{opacity:.62}
-  .eq-ord{display:flex;flex-direction:column;align-items:center;justify-content:center;width:30px;flex:none;font-size:12px;min-height:40px}
-  .eq-ord .iconbtn{font-size:9px;padding:0;height:14px;line-height:1}
-  .eq-ord .iconbtn:disabled{opacity:.25;cursor:default}
-  .eq-av,.av.eq-av{width:40px;height:40px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;
-    background:var(--panel2);color:var(--txt);font-weight:700;font-size:15px}
+  /* EQUIPE v2 (Bernardo 08/10: "melhora o design dessa tela"): disparo em destaque, resumo em 3 números,
+     status no avatar e a ação certa por pessoa (testar, reconectar pelo QR ou gerar o número ali mesmo) */
+  .eq-disp{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:14px;background:var(--panel)}
+  .eq-disp .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
+  .eq-disp .ic svg{width:22px;height:22px}
+  .eq-disp .tx{flex:1;min-width:0}
+  .eq-disp h4{margin:0;font-size:15px}
+  .eq-disp p{margin:3px 0 0;color:var(--muted);font-size:12.5px;line-height:1.45}
+  .eq-disp .est{font-size:12.5px;font-weight:700;color:var(--c);white-space:nowrap}
+  .eq-disp .lado{display:flex;align-items:center;gap:10px;flex:none}
+  .eq-res{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+  .eq-res>div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+  .eq-res small{display:block;color:var(--fraco);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .eq-res b{display:block;font-size:18px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .eq-res b em{font-style:normal;color:var(--fraco);font-weight:600;font-size:14px}
+  .eq-lst{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 18px 12px}
+  .eq-lh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0 8px}
+  .eq-lh h4{margin:0;font-size:14px}
+  .eq-lh p{margin:2px 0 0;color:var(--muted);font-size:12px}
+  .eq-sub{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fraco);padding:14px 0 6px;border-top:1px solid var(--line)}
+  .eq-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid var(--line)}
+  .eq-sub+.eq-row{border-top:0}
+  .eq-row.fora{opacity:.72}
+  .eq-ord{width:26px;flex:none;display:flex;flex-direction:column;align-items:center;gap:1px}
+  .eq-ord b{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--panel2);color:var(--muted)}
+  .eq-row.vez .eq-ord b{background:var(--brand);color:#fff}
+  .eq-ord button{background:none;border:0;color:var(--fraco);font-size:9px;line-height:1;cursor:pointer;padding:1px 5px;opacity:0;transition:opacity .12s}
+  .eq-row:hover .eq-ord button,.eq-ord button:focus-visible{opacity:1}
+  .eq-ord button:hover{color:var(--txt)}
+  .eq-ord button:disabled{visibility:hidden}
+  .eq-avw{position:relative;flex:none}
+  .eq-av,.av.eq-av{width:42px;height:42px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:var(--panel2);color:var(--txt);font-weight:700}
   .eq-av img{width:100%;height:100%;object-fit:cover}
+  .eq-dot{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;border:2px solid var(--panel);background:var(--fraco)}
+  .eq-dot.ok{background:var(--ok)} .eq-dot.bad{background:var(--danger)} .eq-dot.warn{background:var(--warn)}
   .eq-g{flex:1;min-width:0}
-  .eq-g small{display:block;color:var(--fraco);font-size:12px;margin-top:3px}
-  .eq-st{display:flex;align-items:center;gap:6px;flex:none}
+  .eq-nm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;font-size:14px}
+  .eq-vez{font-size:11px;font-weight:700;color:var(--brand2);background:color-mix(in srgb,var(--brand) 18%,transparent);border-radius:999px;padding:2px 8px}
+  .eq-g small{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--fraco);font-size:12px;margin-top:3px}
+  .eq-sel{border:0;background:none;color:var(--muted);font:inherit;font-size:12px;padding:0;cursor:pointer;max-width:180px}
+  .eq-sel:hover{color:var(--txt)}
+  .eq-st{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;flex:none;width:130px}
+  .eq-st.ok{color:var(--ok)} .eq-st.bad{color:var(--danger)} .eq-st.warn{color:var(--warn)}
+  .eq-st .eq-stx{display:block;color:var(--fraco);font-weight:400;font-size:11.5px;margin-top:1px}
+  .eq-acts{display:flex;align-items:center;gap:14px;flex:none;margin-left:0}
+  .eq-acts .btn{width:172px;justify-content:center;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .eq-acts .btn svg{width:14px;height:14px}
+  .eq-acts .eq-nb{width:172px;text-align:center;font-size:12px;color:var(--fraco)}
+  .eq-rl{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
   .eq-caiu{color:var(--fraco);font-size:12px}
-  .eq-acts{display:flex;align-items:center;gap:10px;margin-left:12px;flex:none}
-  .eq-rl{font-size:12px;color:var(--muted)}
-  .eq-sel{font-size:12px;padding:1px 6px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);max-width:170px}
   .eq-sw{width:36px;height:20px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);position:relative;cursor:pointer;flex:none;padding:0}
   .eq-sw span{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:left .15s,background .15s}
   .eq-sw.on{background:var(--brand);border-color:var(--brand)}
   .eq-sw.on span{left:18px;background:#fff}
   .eq-sw:disabled{cursor:not-allowed;opacity:.6}
-  @media (max-width:720px){ .eq-row{flex-wrap:wrap} .eq-st{margin-left:42px} .eq-acts{margin-left:42px;width:100%} }
+  .eq-hint{margin:12px 0 0;color:var(--fraco);font-size:12px;line-height:1.5}
+  @media (max-width:720px){
+    .eq-disp{flex-wrap:wrap} .eq-disp .tx{flex:1 1 calc(100% - 60px)} .eq-disp .lado{width:100%;justify-content:flex-end}
+    .eq-res{gap:8px} .eq-res>div{padding:10px} .eq-res b{font-size:15px} .eq-lst{padding:4px 12px 12px}
+    .eq-row{flex-wrap:wrap;gap:10px 12px} .eq-g{flex:1 1 calc(100% - 100px)}
+    .eq-st{width:auto;flex:1 1 auto;margin-left:94px} .eq-acts{width:100%;margin-left:94px;flex-wrap:wrap;gap:10px} .eq-acts .btn,.eq-acts .eq-nb{width:auto} }
   /* numero do lead escrito na lista, com copiar e abrir no WhatsApp (Bernardo 08/10) */
   .rsp-fone{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;vertical-align:middle}
   .rsp-num{font-variant-numeric:tabular-nums;margin-right:3px}
@@ -16390,55 +16430,72 @@ function eqDesenhar(c){
   c=c||$('#content'); if(!c||currentView!=='crm-equipe') return;
   const cab=`<div class="page-head tp-head"><div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>Equipe</h2></div></div></div>`;
   if(EQ.erro||!EQ.cfg){ c.innerHTML=cab+`<div class="empty">${esc(EQ.erro||'O rodízio deste formulário ainda não foi configurado.')}</div>`; return; }
+  /* Equipe v2 (Bernardo 08/10: "melhora o design dessa tela e coloca a opção pra quem tá desconectado
+     poder conectar a credencial ali mesmo, gerar qr code"): disparo em destaque, resumo em 3 números,
+     status no pontinho do avatar e a ação certa por pessoa: Testar, Reconectar pelo QR ou, pra quem
+     ainda não tem número, Conectar WhatsApp (gera a instância e abre o QR; só master, usa o token admin) */
   const cfg=EQ.cfg, pode=!!cfg.pode_editar, V=cfg.vendedores||[];
+  const master=!!(currentUser&&currentUser.role==='master');
   const instDe=(ap)=>EQ.inst.find(i=>String(i.name||'').toLowerCase()===ap)||null;
+  const nomeDe=(v)=>v.perfil_id?(tkNomeUser(v.perfil_id)||eqNomeAp(v.apelido)):eqNomeAp(v.apelido);
   const ativos=V.filter(v=>v.ativo), n=ativos.length;
-  /* próximo da vez de verdade: a partir do ponteiro, o primeiro ativo que está conectado */
+  /* próximo da vez de verdade: a partir do ponteiro, o primeiro ativo conectado (pausado não manda
+     mensagem, então aí a conexão não conta, igual à edge lead) */
   let vez='';
-  for(let k=0;k<n;k++){ const v=ativos[((cfg.vez||0)+k)%n]; const i=instDe(v.apelido); if(i&&i.conectado){ vez=v.apelido; break; } }
+  for(let k=0;k<n;k++){ const v=ativos[((cfg.vez||0)+k)%n]; const i=instDe(v.apelido); if(cfg.pausado||(i&&i.conectado)){ vez=v.apelido; break; } }
   const nOn=V.filter(v=>{ const i=instDe(v.apelido); return i&&i.conectado; }).length;
+  const somaLeads=Object.values(cfg.placar||{}).reduce((a,b)=>a+(Number(b)||0),0);
   const sw=(on,acao,titulo)=>`<button type="button" class="eq-sw${on?' on':''}" ${pode?`onclick="${acao}"`:'disabled'} title="${esc(pode?titulo:'Só master e gestor do CRM mudam')}" aria-pressed="${on}"><span></span></button>`;
   const perfis=(TK.equipe||[]).filter(u=>u.aprovado!==false&&!/rob[oô]/i.test(u.nome||''));
-  const linha=(v,idx)=>{
-    const i=instDe(v.apelido), nome=v.perfil_id?(tkNomeUser(v.perfil_id)||eqNomeAp(v.apelido)):eqNomeAp(v.apelido);
+  const QR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 17v4"/></svg>';
+  const linha=(v)=>{
+    const i=instDe(v.apelido), nome=nomeDe(v);
     const pos=v.ativo?ativos.indexOf(v)+1:0, leads=Number((cfg.placar||{})[v.apelido])||0;
     const foto=i&&i.foto?`<span class="eq-av"><img src="${esc(i.foto)}" alt=""></span>`:(v.perfil_id?avatar(v.perfil_id,nome,'eq-av'):`<span class="eq-av">${esc(inicial(nome))}</span>`);
-    const st=!i?'<span class="crm-badge warn" title="Um master cadastra o número em Usuários › WhatsApp">sem número cadastrado</span>'
-      :i.erro?`<span class="crm-badge warn" title="${esc(i.erro)}">erro</span>`
-      :i.conectado?'<span class="crm-badge ok">conectado</span>'
-      :`<span class="crm-badge bad">desconectado</span>${i.ultimaQueda?`<small class="eq-caiu">caiu ${esc(eqQuando(i.ultimaQueda))}</small>`:''}`;
-    const perfil=v.perfil_id?`perfil: ${esc(tkNomeUser(v.perfil_id)||'?')}`
-      :'<span style="color:var(--warn)">sem perfil ligado</span>';
+    const dot=!i||i.erro?'warn':(i.conectado?'ok':'bad');
+    const st=!i?`<div class="eq-st warn">sem número<span class="eq-stx">${master?'nunca conectou':'um master conecta'}</span></div>`
+      :i.erro?`<div class="eq-st warn" title="${esc(i.erro)}">erro<span class="eq-stx">${esc(String(i.erro).slice(0,34))}</span></div>`
+      :i.conectado?'<div class="eq-st ok">conectado</div>'
+      :`<div class="eq-st bad">desconectado${i.ultimaQueda?`<span class="eq-stx">caiu ${esc(eqQuando(i.ultimaQueda))}</span>`:''}</div>`;
+    const acao=!i?(master?`<button class="btn small" onclick="eqNovoNumero('${v.apelido}')" title="Cria o número de ${esc(nome)} e abre o QR code">${QR} Conectar WhatsApp</button>`
+                        :'<span class="eq-nb" title="Gerar número usa o token admin do servidor">só master gera o número</span>')
+      :i.erro?'<span class="eq-nb">veja em Comercial › Instâncias</span>'
+      :i.conectado?`<button class="btn secondary small" onclick="instTestar('${esc(i.name)}')">Testar</button>`
+      :`<button class="btn small" onclick="eqConectar('${esc(i.name)}')">${QR} Reconectar (QR)</button>`;
+    const perfil=v.perfil_id?`perfil: ${esc(tkNomeUser(v.perfil_id)||'?')}`:'<span style="color:var(--warn)">sem perfil ligado</span>';
     const selPerfil=pode?`<select class="eq-sel" onchange="eqPerfil('${v.apelido}',this.value)" title="Quem vira responsável do card quando o lead cai pra este número">
         <option value="">${v.perfil_id?'Sem perfil':'Ligar a um perfil…'}</option>
-        ${perfis.map(u=>`<option value="${u.id}"${u.id===v.perfil_id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`:'';
-    return `<div class="eq-row${v.ativo?'':' fora'}">
-      <div class="eq-ord">${v.ativo&&pode?`<button class="iconbtn" title="Subir na fila" onclick="eqMover('${v.apelido}',-1)"${pos===1?' disabled':''}>▲</button>`:''}
-        <b>${v.ativo?pos+'º':'·'}</b>
-        ${v.ativo&&pode?`<button class="iconbtn" title="Descer na fila" onclick="eqMover('${v.apelido}',1)"${pos===n?' disabled':''}>▼</button>`:''}</div>
-      ${foto}
-      <div class="eq-g"><b>${esc(nome)}</b>${v.apelido===vez?' <span class="crm-badge pago">próximo da vez</span>':''}
+        ${perfis.map(u=>`<option value="${u.id}"${u.id===v.perfil_id?' selected':''}>Perfil: ${esc(u.nome)}</option>`).join('')}</select>`:'';
+    return `<div class="eq-row${v.apelido===vez?' vez':''}${v.ativo?'':' fora'}">
+      <div class="eq-ord">${v.ativo&&pode?`<button type="button" title="Subir na fila" onclick="eqMover('${v.apelido}',-1)"${pos===1?' disabled':''}>▲</button>`:''}<b>${v.ativo?pos:'·'}</b>${v.ativo&&pode?`<button type="button" title="Descer na fila" onclick="eqMover('${v.apelido}',1)"${pos===n?' disabled':''}>▼</button>`:''}</div>
+      <span class="eq-avw">${foto}<i class="eq-dot ${dot}"></i></span>
+      <div class="eq-g"><div class="eq-nm">${esc(nome)}${v.apelido===vez?'<span class="eq-vez">próximo da vez</span>':''}</div>
         <small>${i&&i.dono?esc(eqFone(i.dono))+' · ':''}${pode?selPerfil:perfil} · ${leads} lead${leads===1?'':'s'} em 30 dias</small></div>
-      <div class="eq-st">${st}</div>
-      <div class="eq-acts">
-        ${i&&!i.erro?(i.conectado?`<button class="btn secondary small" onclick="instTestar('${esc(i.name)}')">Testar</button>`
-          :`<button class="btn small" onclick="eqConectar('${esc(i.name)}')">Conectar (QR)</button>`):''}
-        <span class="eq-rl">No rodízio</span>${sw(!!v.ativo,`eqAtivo('${v.apelido}',${!v.ativo})`,v.ativo?'Tirar do rodízio':'Pôr no rodízio')}</div>
+      ${st}
+      <div class="eq-acts">${acao}<span class="eq-rl">No rodízio ${sw(!!v.ativo,`eqAtivo('${v.apelido}',${!v.ativo})`,v.ativo?'Tirar do rodízio':'Pôr no rodízio')}</span></div>
     </div>`; };
+  const dentro=V.filter(v=>v.ativo), fora=V.filter(v=>!v.ativo);
+  const vezV=V.find(v=>v.apelido===vez);
   const quem=cfg.atualizado_por?tkNomeUser(cfg.atualizado_por):'';
   c.innerHTML=cab+`
-  <div class="crm-ic wide">
-    <div class="hd"><div class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg></div>
-      <div><h4>Disparo automático dos formulários (Yay)</h4><div class="sub">Lead que cair do Yay vai pro vendedor da vez: a primeira mensagem sai do WhatsApp dele e o card já nasce com ele de responsável.${cfg.pausado?' Pausado: o lead vai pro vendedor da vez do mesmo jeito (conectado ou não), só sem a mensagem.':''}</div></div>
-      <div class="acts"><span class="crm-badge ${cfg.pausado?'warn':'ok'}" style="font-size:12px">${cfg.pausado?'Pausado':'Ligado'}</span>${sw(!cfg.pausado,`eqPausa(${!cfg.pausado})`,cfg.pausado?'Ligar o disparo automático':'Pausar o disparo automático')}</div></div>
+  <div class="eq-disp" style="--c:${cfg.pausado?'var(--warn)':'var(--ok)'}">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg></div>
+    <div class="tx"><h4>Disparo automático do formulário</h4>
+      <p>Lead novo vai pro vendedor da vez e a 1ª mensagem sai do WhatsApp dele; o card já nasce com ele de responsável.${cfg.pausado?' <b>Pausado:</b> o lead ainda vai pro vendedor da vez, só sem a mensagem.':''}</p></div>
+    <div class="lado"><span class="est">${cfg.pausado?'Pausado':'Ligado'}</span>${sw(!cfg.pausado,`eqPausa(${!cfg.pausado})`,cfg.pausado?'Ligar o disparo automático':'Pausar o disparo automático')}</div>
   </div>
-  <div class="crm-ic wide" style="margin-top:12px">
-    <div class="hd"><div class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></div>
-      <div><h4>Vendedores · ${nOn} de ${V.length} conectado${nOn===1?'':'s'}</h4><div class="sub">Rodízio um de cada vez, na ordem abaixo. Quem estiver desconectado é pulado e o lead vai pro próximo.</div></div>
-      <div class="acts"><button class="btn secondary small" onclick="eqRecarregar()" title="Recarregar o status dos números">↻</button></div></div>
+  <div class="eq-res">
+    <div><small>Conectados</small><b>${nOn} <em>de ${V.length}</em></b></div>
+    <div><small>Próximo da vez</small><b>${vezV?esc(String(nomeDe(vezV)).split(/\s+/)[0]):'<em>ninguém conectado</em>'}</b></div>
+    <div><small>Leads em 30 dias</small><b>${somaLeads}</b></div>
+  </div>
+  <div class="eq-lst">
+    <div class="eq-lh"><div><h4>Vendedores no rodízio</h4><p>Um de cada vez, nesta ordem. Desconectado é pulado e o lead vai pro próximo.</p></div>
+      <button class="btn secondary small" onclick="eqRecarregar()" title="Recarregar o status dos números">↻</button></div>
     ${EQ.erroInst?`<div class="crm-hint" style="color:var(--danger);margin:0 0 8px">Não consegui ler os números: ${esc(EQ.erroInst)}</div>`:''}
-    ${V.map(linha).join('')}
-    <div class="crm-hint">Se ninguém do rodízio estiver conectado, o card entra sem responsável e a coluna Mensagem automática mostra <b>Sem vendedor conectado</b>. ${pode?'':'Só master e gestor do CRM mudam o rodízio. '}${quem?`Última mudança: ${esc(quem)}, ${esc(eqQuando(cfg.atualizado_em))}.`:''}</div>
+    ${dentro.map(linha).join('')||'<div class="crm-vazio">Ninguém no rodízio.</div>'}
+    ${fora.length?'<div class="eq-sub">Fora do rodízio</div>'+fora.map(linha).join(''):''}
+    <p class="eq-hint">Se ninguém do rodízio estiver conectado, o card entra sem responsável e a coluna Mensagem automática mostra <b>Sem vendedor conectado</b>. ${pode?'':'Só master e gestor do CRM mudam o rodízio. '}${quem?`Última mudança: ${esc(quem)}, ${esc(eqQuando(cfg.atualizado_em))}.`:''}</p>
   </div>`;
 }
 /* grava a config inteira (pausa + fila) e redesenha com o que o banco devolveu */
@@ -16465,6 +16522,13 @@ window.eqPerfil=(ap,uid)=>{ const V=eqCopia(), v=V.find(x=>x.apelido===ap); if(!
 window.eqConectar=(name)=>{ if(typeof instConectar!=='function'){ toast('Abra Comercial › Instâncias pra conectar.'); return; }
   instConectar(name);
   const t=setInterval(()=>{ if(!document.getElementById('instQrOv')){ clearInterval(t); if(currentView==='crm-equipe') eqRecarregar(); } },1500); };
+/* quem ainda não tem número (Bernardo 08/10: "conectar a credencial ali mesmo, gerar qr code"): abre o
+   "Gerar número novo" do comercial/instancias.js com o apelido dele; ele cria a instância e já abre o QR.
+   Quando o formulário e o QR fecham, relê o status. */
+window.eqNovoNumero=(ap)=>{ if(typeof instCadastrar!=='function'){ toast('Módulo de WhatsApp ainda carregando.'); return; }
+  const v=((EQ.cfg||{}).vendedores||[]).find(x=>x.apelido===ap)||{};
+  instCadastrar(ap,v.perfil_id?(tkNomeUser(v.perfil_id)||eqNomeAp(ap)):eqNomeAp(ap),{modo:'gerar'});
+  const t=setInterval(()=>{ if(!document.getElementById('instQrOv')&&!document.getElementById('inst_ap')){ clearInterval(t); if(currentView==='crm-equipe') eqRecarregar(); } },1500); };
 async function renderPesquisa(c){
   c.innerHTML='<div class="empty">carregando…</div>';
   const {data,error}=await sb.from('pesquisa_satisfacao').select('*').order('criado_em',{ascending:false}).limit(3000);
