@@ -27,9 +27,12 @@ function bloco(de,ate){
 /* `const x=...` dentro do contexto fica no escopo léxico e não vira propriedade
    global — só `function f(){}` e `window.x=` viram. Por isso os nomes a testar
    são exportados na mão no fim do trecho. */
+/* CRMs de formulário (Bernardo 08/10): a tabela CRM_FORMS mora perto do LTEL e os trechos de
+   Respostas, Painel e Equipe leem dela; vai pronta em todo contexto, como no app. */
+const CRM_FORMS_T=(()=>{ const m=HTML.match(/const CRM_FORMS=(\[[\s\S]*?\]);/); return m?vm.runInNewContext(m[1]):[]; })();
 function rodar(codigo,ctx,exporta){
   const g=Object.assign({console,Date,Math,JSON,String,Number,Array,Object,Boolean,
-    parseFloat,parseInt,isNaN,Promise,setTimeout,clearInterval,setInterval:()=>0},ctx||{});
+    parseFloat,parseInt,isNaN,Promise,setTimeout,clearInterval,setInterval:()=>0,CRM_FORMS:CRM_FORMS_T},ctx||{});
   g.window=g;
   vm.createContext(g);
   const fim=(exporta&&exporta.length)?('\n;try{Object.assign(window,{'+exporta.join(',')+'})}catch(e){}'):'';
@@ -1611,11 +1614,34 @@ grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernar
   g.ccUsar('crm_calls'); ok('voltando ao Comercial, tudo como estava', g.CRM.cc.sdr==='x'&&g.ccCalls().length===1);
   ok('lançar, editar e excluir gravam na base que está aberta', /sb\.from\(CRM\.ccBase\)\.insert/.test(CJ)&&/sb\.from\(CRM\.ccBase\)\.update/.test(CJ)&&/sb\.from\(CRM\.ccBase\)\.delete/.test(CJ));
   ok('a tela do Comercial sempre volta pra base da agência', /window\.crmRender=function\(c,viewPedida\)\{\n\s*ccUsar\('crm_calls'\)/.test(CJ));
-  ok('CRM Sofás aponta pra sofas_calls', /const CRM_PAINEL=\{'2e85f701-0616-4b74-9732-6ebfeba016b8':'sofas_calls'\}/.test(HTML));
+  ok('CRM Sofás aponta pra sofas_calls', /const CRM_PAINEL=Object\.fromEntries\(CRM_FORMS\.map\(f=>\[f\.lista,f\.calls\]\)\);/.test(HTML)
+     &&CRM_FORMS_T.some(f=>f.lista==='2e85f701-0616-4b74-9732-6ebfeba016b8'&&f.calls==='sofas_calls'));
   ok('aba Painel ao lado de Respostas, Lista e Quadro', /\['board',PCX_I\.quadro\+'Quadro'\],\.\.\.\(pnl\?\[\['painel'/.test(HTML)&&/TK\.visao==='painel'\?crmPainelView\(\)/.test(HTML));
-  ok('CRM Sofás só em Respostas: sem Lista e sem Quadro, Painel ao lado', /const CRM_SO_RESP=\{'2e85f701-0616-4b74-9732-6ebfeba016b8':1\}/.test(HTML)&&/:soResp\?\[\['tabela',tpSvg\('tabela',14\)\+'Respostas'\],\.\.\.\(pnl\?/.test(HTML)&&/if\(soResp&&TK\.visao!=='tabela'&&TK\.visao!=='painel'\) TK\.visao='tabela';/.test(HTML));
+  ok('CRM Sofás só em Respostas: sem Lista e sem Quadro, Painel ao lado', /const CRM_SO_RESP=Object\.fromEntries\(CRM_FORMS\.map\(f=>\[f\.lista,1\]\)\);/.test(HTML)&&/:soResp\?\[\['tabela',tpSvg\('tabela',14\)\+'Respostas'\],\.\.\.\(pnl\?/.test(HTML)&&/if\(soResp&&TK\.visao!=='tabela'&&TK\.visao!=='painel'\) TK\.visao='tabela';/.test(HTML));
   ok('no topo do CRM Sofás some o ícone da Lista e o do Quadro', /\$\{soBoard\|\|\(TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\)\?'':tpIb\('lista'/.test(HTML)&&/\$\{TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\?'':tpIb\('quadro'/.test(HTML));
   ok('crm.js com cache novo', HTML.indexOf('crm.js?v=28')>0);
+}
+grupo('CRM Motos e CRM Veículos: o mesmo código do CRM Sofás, cada um com a sua base (Bernardo 08/10)');
+{
+  const F=CRM_FORMS_T, por=(n)=>F.find(f=>f.nome===n)||{};
+  ok('três CRMs na tabela: Sofás, Motos e Veículos', F.length===3&&['Sofás','Motos','Veículos'].every(n=>por(n).lista));
+  ok('cada um com lista, Equipe, form do Yay e calls próprios', ['lista','equipe','form','calls'].every(k=>new Set(F.map(f=>f[k])).size===3));
+  ok('Sofás segue com os ids de antes', por('Sofás').lista==='2e85f701-0616-4b74-9732-6ebfeba016b8'&&por('Sofás').equipe==='f1e2d3c4-0000-4a00-8b00-00000000d001'&&por('Sofás').form==='6ac516b64c1c87a7280d6fc9');
+  ok('Motos e Veículos apontam pros forms do Yay de moto e de loja de veículos', por('Motos').form==='6a668e28d385e5003d03b895'&&por('Veículos').form==='6aac28b2030e048ade0c664c');
+  ok('toda Equipe abre a mesma tela', /\.\.\.Object\.fromEntries\(CRM_FORMS\.map\(f=>\[f\.equipe,'crm-equipe'\]\)\)\};/.test(HTML));
+  /* a Equipe lê e grava o rodízio do CRM que está aberto */
+  const pedidos=[];
+  const cod=bloco('/* ======================= CRM SOFÁS › EQUIPE (Bernardo 08/10)','async function renderPesquisa(c){');
+  const g=rodar(cod,{TK:{listaSel:por('Motos').equipe},SESSION:{access_token:'x'},SUPA_URL:'',
+    fetch:async()=>({json:async()=>({ok:true,instancias:[]})}),
+    sb:{rpc:async(n,a)=>{ pedidos.push([n,a]); return {data:{form_id:a.p_form,vendedores:[],pausado:false}}; }}},['eqForm','eqCarregar']);
+  ok('Equipe de Motos usa o form de motos', g.eqForm()==='6a668e28d385e5003d03b895');
+  g.TK.listaSel=por('Veículos').equipe; ok('Equipe de Veículos usa o form de veículos', g.eqForm()==='6aac28b2030e048ade0c664c');
+  g.TK.listaSel=por('Sofás').equipe; ok('Equipe de Sofás continua no form de sofás', g.eqForm()==='6ac516b64c1c87a7280d6fc9');
+  g.TK.listaSel=por('Motos').equipe;
+  PROMESSAS.push(g.eqCarregar().then(()=>ok('carrega o rodízio do CRM aberto', pedidos.length===1&&pedidos[0][0]==='crm_rodizio_ver'&&pedidos[0][1].p_form==='6a668e28d385e5003d03b895')));
+  ok('salvar grava no form que está na tela (não num fixo)', HTML.indexOf("sb.rpc('crm_rodizio_salvar',{p_form:EQ.cfg.form_id,")>0&&HTML.indexOf('EQ_FORM')<0);
+  ok('trocar de CRM no meio da carga não pinta a Equipe errada', /if\(form!==eqForm\(\)\) return;/.test(HTML)&&/currentView!=='crm-equipe'\|\|form!==eqForm\(\)\) return;/.test(HTML));
 }
 grupo('Equipe do CRM: card Disparo automático Yay Forms e botão Conectado (Bernardo 08/10)');
 {
