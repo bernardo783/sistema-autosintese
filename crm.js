@@ -869,6 +869,31 @@ function ccAnos(){
   return [...s].sort().reverse();
 }
 
+/* CASH COLLECT (Bernardo 08/10): "VGV e MRR importam, mas o principal é o Cash Collect". O dinheiro
+   que ENTROU no mês (Recebimentos) dos clientes que este CRM fechou. Comercial (crm_calls): cliente
+   ligado a um ganho do painel (crm_calls.ficha_id). CRMs de formulário: cliente cujo fechamento
+   aponta pra um lead da lista (fechamento.leadLista, gravado desde 08/10). Sinal conta no mês em que
+   entrou; o restante, no mês do acerto. Só quem enxerga o Recebimentos (master) vê o card. */
+function ccCashMes(){
+  const D=(typeof DB!=='undefined'&&DB)||{}, recs=D.recebimentos||[];
+  if(!recs.length) return null;
+  const mes=ccMes(), ids={}, m7=(d)=>String(d||'').slice(0,7);
+  if(CRM.ccBase==='crm_calls'){
+    const fichas={}; (CRM.d.calls||[]).forEach(c=>{ if(c.status_lead==='ganho'&&c.ficha_id) fichas[c.ficha_id]=1; });
+    (D.projetos||[]).forEach(p=>{ if(fichas[p.id]&&p.clienteId) ids[p.clienteId]=1; });
+  }else{
+    const f=(typeof CRM_FORMS!=='undefined'?CRM_FORMS:[]).find(x=>x.calls===CRM.ccBase); if(!f) return null;
+    (D.clientes||[]).forEach(c=>{ if(((c||{}).fechamento||{}).leadLista===f.lista) ids[c.id]=1; });
+  }
+  let v=0; const quem={};
+  recs.forEach(r=>{ if(!ids[r.clienteId]) return;
+    const sinal=Number(r.sinal)||0, sMes=sinal>0&&m7(r.sinalEm)===mes;
+    let x=0;
+    if(r.recebido&&m7(r.recebidoEm)===mes) x=(Number(r.valor)||0)-(sinal>0&&!sMes?sinal:0);
+    else if(sMes) x=sinal;
+    if(x>0){ v+=x; quem[r.clienteId]=1; } });
+  return {v,clientes:Object.keys(quem).length,total:Object.keys(ids).length};
+}
 function ccPainelHTML(){
   const cs=ccDoMes();
   const agendadas=cs.length;
@@ -911,6 +936,14 @@ function ccPainelHTML(){
         <button class="btn secondary small" onclick="ccPular(1)" title="Próximo mês">›</button>
       </div>
     </div>
+
+    ${(()=>{ const k=ccCashMes(); if(!k) return '';
+      return `<div class="pc-sec">Cash Collect</div>
+    <div class="pc-banner">
+      <div class="pc-k">Cash Collect</div>
+      <div class="pc-big" style="color:var(--ok)">${esc(brl(k.v))}</div>
+      <div class="pc-s">${k.total?`recebido no mês de ${k.clientes} de ${k.total} cliente${k.total===1?'':'s'} que este CRM fechou`:'nenhum cliente ligado a este CRM ainda: escolha o lead de origem no fechamento'}${tcv||mrr?` · TCV ${esc(brl(tcv))} · MRR ${esc(brl(mrr))} no mês`:''}</div>
+    </div>`; })()}
 
     <div class="pc-sec">Volume</div>
     <div class="pc-grid">
