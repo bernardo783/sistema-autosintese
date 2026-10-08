@@ -1502,6 +1502,59 @@ grupo('Tráfego: busca do Meta em andamento não vira laço infinito (Bernardo 0
   ok('vínculo conta x cliente só pelo cliente: sem a janela em massa (Bernardo 05/10)', HTML.indexOf('abrirVinculos')<0&&HTML.indexOf('mtVinculosQuandoPronto')<0);
   ok('aba Contas da ficha usa o seletor do próprio cliente', HTML.indexOf("rwEscolherConta('${f.id}',()=>cliIrPara('${f.id}','contas'))")>0);
 }
+grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const C=[{id:'w',lista_id:'L',nome:'WhatsApp',tipo:'link'},{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const abriu=[];
+  const ctx=(u,comPainel)=>Object.assign({TK:{listaSel:'L',tarefas:[{id:'a',lista_id:'L',titulo:'Ana Souza',valores:{w:'https://wa.me/11999990001',d:'2026-10-07'}}],campos:C,colsOff:{}},
+    tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,
+    tkSelo:()=>'<select></select>',tpSvg:()=>'',setTimeout:()=>0,toast:()=>{},currentUser:u},comPainel?{waDoLead:(f,n)=>abriu.push([f,n])}:{});
+  const g=rodar(cod,ctx({role:'master'},true),['tkViewRespostas','rspWaBtn','rspWaAbrir','rspCel']);
+  const t=g.TK.tarefas[0], b=g.rspWaBtn(t);
+  ok('master: o botão chama o painel interno, não o wa.me', /<button type="button" class="tk-wa"/.test(b)&&/rspWaAbrir\('a'\)/.test(b)&&b.indexOf('wa.me')<0);
+  g.rspWaAbrir('a');
+  ok('abre o painel com o número com 55 e o nome do lead', abriu.length===1&&abriu[0][0]==='5511999990001'&&abriu[0][1]==='Ana Souza');
+  const h=g.tkViewRespostas();
+  ok('Respostas: botão do WhatsApp logo depois do nome', /Ana Souza<\/button><button type="button" class="tk-wa"/.test(h));
+  ok('Respostas: o número na coluna WhatsApp também abre o painel', /class="rsp-lk" href="https:\/\/wa\.me\/11999990001"[^>]*return rspWaAbrir\('a'\)/.test(h));
+  const g2=rodar(cod,ctx({role:'colaborador',papel_crm:'sdr'},true),['rspWaBtn']);
+  ok('quem não vê conversas (só master/gestor) continua indo pro wa.me', /<a class="tk-wa" href="https:\/\/wa\.me\/5511999990001"/.test(g2.rspWaBtn(g2.TK.tarefas[0])));
+  const g3=rodar(cod,ctx({role:'master'},false),['rspWaBtn']);
+  ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
+  ok('a Lista usa o mesmo botão', /rspWaBtn\(t\):''/.test(HTML));
+  ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
+  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=4')>0);
+
+  /* painel: lead que nunca recebeu mensagem pode receber a primeira dali */
+  const CJ=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
+  const els={}, el=(id)=>els[id]||(els[id]={id,innerHTML:'',textContent:'',value:'',href:'',scrollTop:0,scrollHeight:0,style:{},
+    classList:{toggle(c,on){ this[c]=!!on; }},remove(){ delete els[id]; },addEventListener(){}});
+  const chamadas=[], ls={}; let achou=false;
+  const gc=rodar(CJ,{document:{querySelector:(s)=>s.startsWith('#')?el(s.slice(1)):null,querySelectorAll:()=>[],getElementById:()=>null,
+      createElement:()=>({style:{},addEventListener(){}}),head:{appendChild(){}},body:{appendChild(){}}},
+    localStorage:{getItem:(k)=>ls[k]||null,setItem:(k,v)=>{ ls[k]=String(v); }},
+    currentUser:{role:'master'},SESSION:{access_token:'x'},toast:()=>{},
+    fetch:async (u,o)=>{ const acao=u.split('/').pop(), b=o&&o.body?JSON.parse(o.body):{}; chamadas.push([acao,b]);
+      const d=acao==='conversa'?(achou?{ok:true,achou:true,por:'bernardo',perfil:'Bernardo',chatid:'5511999990001@s.whatsapp.net',mensagens:[{id:'1',deNos:true,texto:'Oi',quando:'2026-10-08T12:00:00Z'}]}
+        :{ok:true,achou:false,chatid:'5511999990001@s.whatsapp.net',tentou:['kennedy','luana','bernardo']}):{ok:true,id:'m1'};
+      if(acao==='responder') achou=true;
+      return {json:async ()=>d,status:200}; }},[]);
+  ls.waLdDe='bernardo';
+  PROMESSAS.push((async ()=>{
+    await gc.waDoLead('5511999990001','Ana Souza');
+    ok('painel: sem conversa, explica e não trava', /Ainda não tem conversa/.test(els.waLdMsgs.innerHTML));
+    ok('painel: dá pra escolher de qual número do time sai a primeira mensagem', /<select id="waLdDe"/.test(els.waLdResp.innerHTML)&&/value="kennedy"/.test(els.waLdResp.innerHTML)&&/value="bernardo" selected/.test(els.waLdResp.innerHTML));
+    ok('painel: caixa de texto pra escrever', /<textarea id="waLdTexto"/.test(els.waLdResp.innerHTML));
+    gc.waLdDe('luana'); ok('lembra o último número escolhido', ls.waLdDe==='luana');
+    gc.waLdDe('bernardo');
+    el('waLdTexto').value='Olá Ana, vi seu cadastro';
+    await gc.waLdEnviar();
+    const r=chamadas.find(c=>c[0]==='responder');
+    ok('envia pelo número escolhido, pro número do lead', !!r&&r[1].name==='bernardo'&&r[1].chatid==='5511999990001@s.whatsapp.net'&&r[1].texto==='Olá Ana, vi seu cadastro');
+    ok('depois de enviar vira conversa normal (sem o seletor)', !/waLdDe/.test(els.waLdResp.innerHTML)&&/textarea/.test(els.waLdResp.innerHTML)&&/Bernardo/.test(els.waLdPor.textContent));
+  })());
+}
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
