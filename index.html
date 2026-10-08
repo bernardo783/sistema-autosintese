@@ -2199,6 +2199,8 @@
   .tkc-at{background:none;border:0;color:var(--txt);text-align:left;font:inherit;font-size:12.5px;font-weight:600;padding:6px 8px;border-radius:7px;cursor:pointer;white-space:nowrap}
   .tkc-at:hover{background:var(--hov2)}
   .tkc-at.on{background:color-mix(in srgb,var(--brand) 22%,transparent);color:var(--brand2)}
+  .tkc-pers{display:block;margin-top:6px;padding:6px 8px;border-top:1px solid var(--line);font-size:12px;font-weight:600;color:var(--fraco)}
+  .tkc-pers.on{color:var(--brand2)}
   .tkc{flex:1;min-width:0}
   .tkc-mes{display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:6px}
   .tkc-mes b{font-weight:700}
@@ -9330,7 +9332,7 @@ function tkFiltradas(){
   const F=(ehLC(TK.listaSel)&&TK.escopo==='lista')?{}:(TK.filtro||{});
   if(F.resps&&F.resps.length) arr=arr.filter(t=>F.resps.includes(t.responsavel_id)||(F.resps.includes('(sem)')&&!t.responsavel_id));
   if(F.prios&&F.prios.length&&!tkFSemPrio()) arr=arr.filter(t=>F.prios.includes(t.prioridade||'med'));
-  if(tkFSemPrio()){ /* lead não tem prazo: filtro de data guardado não vale aqui */ }
+  if(tkFSemPrio()){ if(tkFLeadAtivo(F)) arr=arr.filter(t=>tkFLeadBate(t,F)); }   /* lead: pela data de entrada, não pelo prazo */
   else if(F.de||F.ate) arr=arr.filter(t=>t.prazo&&(!F.de||t.prazo>=F.de)&&(!F.ate||t.prazo<=F.ate));
   else if(F.prazo) arr=arr.filter(t=>tkPrazoBate(t,F.prazo));
   if(q) arr=arr.filter(t=>((t.titulo||'')+' '+(t.descricao||'')+' '+tkNomeFicha(t.ficha_id)+' '+tkNomeUser(t.responsavel_id)).toLowerCase().indexOf(q)>=0);
@@ -10095,7 +10097,7 @@ const rspIgBtn=(t)=>{ const c=tkCamposDe(t.lista_id).find(k=>/insta/i.test(k.nom
 function rspLinhas(){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA);
   const dt=(t)=>String((cD&&(t.valores||{})[cD.id])||String(t.criado_em||'').slice(0,10));
-  return TK.tarefas.filter(t=>t.lista_id===TK.listaSel&&!arquivada(t)&&!t.pai_id)
+  return TK.tarefas.filter(t=>t.lista_id===TK.listaSel&&!arquivada(t)&&!t.pai_id&&(typeof tkFLeadBate!=='function'||tkFLeadBate(t,TK.filtro||{})))   /* filtro de data de entrada (Bernardo 08/10) */
     .sort((a,b)=>{ const x=dt(a), y=dt(b); return (x<y?-1:x>y?1:String(a.criado_em||'').localeCompare(String(b.criado_em||'')))*RSP.dir; });
 }
 /* largura das colunas (Bernardo 08/10: "minimizar o tamanho das colunas igual é no ClickUp,
@@ -11999,7 +12001,23 @@ function tkPrazoBate(t,k){ const hj=tkHoje();
    nenhum ali"): no CRM Sofás e nos próximos CRMs de formulário o filtro não mostra Prioridade, e a
    prioridade guardada de outra lista não vale nem conta no número do funil. */
 const tkFSemPrio=()=>TK.escopo==='lista'&&typeof crmForm==='function'&&crmForm(TK.listaSel);
-const tkFiltroN=()=>{ const F=TK.filtro||{}; return ((F.prazo||F.de||F.ate)&&!tkFSemPrio()?1:0)+((F.prios&&F.prios.length&&!tkFSemPrio())?1:0); };
+/* filtro de data do CRM (Bernardo 08/10: "o filtro de data tem que ser hoje, ontem, últimos 7 dias,
+   últimos 30 dias, personalizado, nada de prazo ou futuro"; depois "cade a poha do filtro" e "últimos 15
+   dias" também). Lead não
+   tem prazo: vale a coluna "Preencheu em" (o dia em que a pessoa preencheu), não o criado_em do card.
+   O TK.filtro é o mesmo pra todas as listas: atalho de tarefa (Amanhã, Sem prazo...) não vale aqui. */
+const TK_LEAD_AT=['hoje','ontem','ult7','ult15','ult30'];
+const tkFLeadAtivo=(F)=>!!(F&&(F.de||F.ate||TK_LEAD_AT.includes(F.prazo)));
+const tkFDataLead=(t)=>{ const c=tkCamposDe(t.lista_id).find(k=>k.nome===RSP_DATA);
+  return String((c&&(t.valores||{})[c.id])||t.criado_em||'').slice(0,10); };
+function tkFLeadBate(t,F){ if(!tkFLeadAtivo(F)) return true;
+  const d=tkFDataLead(t), hj=tkHoje(); if(!d) return false;
+  if(F.de||F.ate) return (!F.de||d>=F.de)&&(!F.ate||d<=F.ate);
+  if(F.prazo==='hoje') return d===hj;
+  if(F.prazo==='ontem') return d===tkDiaMais(hj,-1);
+  const dias={ult7:7,ult15:15,ult30:30}[F.prazo]||30;   /* "últimos N dias" conta hoje */
+  return d>=tkDiaMais(hj,1-dias)&&d<=hj; }
+const tkFiltroN=()=>{ const F=TK.filtro||{}; return ((tkFSemPrio()?tkFLeadAtivo(F):(F.prazo||F.de||F.ate))?1:0)+((F.prios&&F.prios.length&&!tkFSemPrio())?1:0); };
 function tkBtnFiltro(){ const n=tkFiltroN();
   return `<button class="btn ghost small${n?' fon':''}" onclick="tkPopFiltro(event)">${svgIco('funil',12)} Filtro${n?`<span class="fbad">${n}</span>`:''}</button>`; }
 function tkBtnResp(){ const rs=(TK.filtro||{}).resps||[];
@@ -12063,7 +12081,11 @@ window.tkCalDia=(iso)=>{ const F=TK.filtro; F.prazo='';
 function tkPopFiltroHTML(){ const F=TK.filtro;
   const at=(k,r)=>`<button type="button" class="tkc-at${(F.prazo===k&&!F.de&&!F.ate)?' on':''}" onclick="tkFPrazo('${k}')">${r}</button>`;
   return `<div class="tkp-h"><strong>Filtros</strong><button class="tkp-x" onclick="tkPopFechar()">&#10005;</button></div>
-   ${tkFSemPrio()?`<p class="hint" style="margin:6px 2px 4px">Lead não tem prazo, então aqui não tem filtro de data.</p>`:`<div class="tkp-sec">Data de vencimento</div>
+   ${tkFSemPrio()?`<div class="tkp-sec">Data de entrada</div>
+   <div class="tkc-ab">
+     <div class="tkc-lado">${at('hoje','Hoje')}${at('ontem','Ontem')}${at('ult7','Últimos 7 dias')}${at('ult15','Últimos 15 dias')}${at('ult30','Últimos 30 dias')}<span class="tkc-pers${(F.de||F.ate)?' on':''}">Personalizado →</span></div>
+     ${tkCalHTML(F)}
+   </div>`:`<div class="tkp-sec">Data de vencimento</div>
    <div class="tkc-ab">
      <div class="tkc-lado">${at('hoje','Hoje')}${at('ontem','Ontem')}${at('amanha','Amanhã')}${at('atraso','Atrasadas')}${at('ult7','Últimos 7 dias')}${at('prox7','Próximos 7 dias')}${at('semana','Esta semana')}${at('mes','Este mês')}${at('semprazo','Sem prazo')}</div>
      ${tkCalHTML(F)}
