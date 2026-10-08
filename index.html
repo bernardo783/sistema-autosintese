@@ -2931,6 +2931,12 @@
   .rsp-nm button:not(.tk-wa):hover{color:var(--brand2);text-decoration:underline}
   .rsp-nm .tk-wa{margin-left:-4px;flex:none}
   #rspTab{table-layout:fixed}
+  /* etapas como na Lista do ClickUp (Bernardo 08/10): faixa com a pílula e, embaixo, o cabeçalho
+     das colunas de novo. A faixa acompanha a rolagem pro lado, pra pílula não sumir. */
+  #rspTab .rsp-g:not(:first-of-type) > .tk-faixa > td{padding-top:26px!important}
+  #rspTab .tk-faixa > td{overflow:visible}
+  #rspTab .rsp-gt{position:sticky;left:4px;display:inline-flex;align-items:center}
+  #rspTab .rsp-ch > th{background:var(--panel2)}
   /* Painel do CRM de formulario (Bernardo 08/10): o mesmo do Comercial, dentro da lista */
   .crm-pn{margin-top:4px}
   .crm-pn-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:10px}
@@ -9989,13 +9995,20 @@ window.rspArrasta=(e,k)=>{
   const x0=e.clientX, w0=th.getBoundingClientRect().width, t0=tb.getBoundingClientRect().width, min=RSP_MIN[k]||60;
   document.body.classList.add('rsp-arr');
   const mexe=(ev)=>{ const w=Math.max(min,Math.round(w0+ev.clientX-x0));
-    th.style.width=w+'px'; tb.style.width=Math.round(t0+w-w0)+'px'; RSP.larg[k]=w;
+    const col=tb.querySelector('col[data-k="'+k+'"]'); (col||th).style.width=w+'px'; tb.style.width=Math.round(t0+w-w0)+'px'; RSP.larg[k]=w;
     if(k==='nome') lcFixarColunas($('#content')); };
   const solta=()=>{ document.removeEventListener('pointermove',mexe); document.removeEventListener('pointerup',solta);
     document.removeEventListener('pointercancel',solta); document.body.classList.remove('rsp-arr'); };
   document.addEventListener('pointermove',mexe); document.addEventListener('pointerup',solta); document.addEventListener('pointercancel',solta);
 };
 window.rspLargPadrao=(k)=>{ delete RSP.larg[k]; tkDesenhar($('#content')); };
+function rspGrupos(arr){
+  const sts=(typeof tkStatusDe==='function'?tkStatusDe(TK.listaSel):[]).slice().sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+  const gs=sts.map(s=>({k:String(s.id),rot:String(s.nome||'').replace(/^\d+\.\s*/,''),cor:s.cor||'#64748b',its:arr.filter(t=>t.status_id===s.id)}));
+  const sem=arr.filter(t=>!sts.some(s=>s.id===t.status_id));
+  if(sem.length) gs.push({k:'sem',rot:'Sem etapa',cor:'#64748b',its:sem});
+  return gs;
+}
 function tkViewRespostas(){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA), outros=cps.filter(c=>c!==cD);
   const arr=rspLinhas();
@@ -10018,6 +10031,24 @@ function tkViewRespostas(){
     </tr>`;
   const wN=rspLarg('nome',300), wS=rspLarg('status',180), wD=rspLarg('data',170);
   const largMin=wN+wS+wD+outros.reduce((a,c)=>a+larg(c),0);
+  /* separado por etapa, como a Lista do ClickUp agrupada por status (Bernardo 08/10: "coloca o
+     formato de lista assim… novo lead, em conversa etc., essa separação"): cada etapa é uma faixa
+     com a pílula colorida e a contagem, e embaixo dela o cabeçalho das colunas. Clicar na faixa
+     recolhe. Etapa vazia fica só com a faixa; lead sem etapa vai num grupo no fim. */
+  const grupos=rspGrupos(arr), ncols=3+outros.length, fechadas=TK.fechadas||{};
+  const corTx=(c)=>typeof corTexto==='function'?corTexto(c):'#fff';
+  const cab=(g)=>`<tr class="rsp-ch">
+        <th><span class="rsp-nm"><input type="checkbox" ${g.its.length&&g.its.every(t=>RSP.sel[t.id])?'checked':''} onchange="rspTodos(this.checked,'${esc(g.k)}')" title="Marcar todos desta etapa">Nome</span>${rspGrip('nome')}</th>
+        <th>Status${rspGrip('status')}</th>
+        <th class="rsp-or" onclick="RSP.dir=-RSP.dir;tkDesenhar($('#content'))" title="Ordenar pela data">${esc(cD?cD.nome:'Data')} ${RSP.dir<0?'↓':'↑'}${rspGrip('data')}</th>
+        ${outros.map(c=>`<th title="${esc(c.nome)}">${esc(c.nome)}${rspGrip(c.id)}</th>`).join('')}
+      </tr>`;
+  const bloco=(g)=>{ const fech=!!fechadas['gr'+g.k], nV=g.its.filter(passa).length;
+    return `<tbody class="rsp-g" data-g="${esc(g.k)}"><tr class="tk-faixa${g.its.length?'':' vazio'}" onclick="tkToggle('g','r${esc(g.k)}')"><td colspan="${ncols}"><span class="rsp-gt">
+        <span class="tk-cv${(fech||!g.its.length)?'':' ab'}">&#9656;</span>
+        <span class="tk-selo" style="background-color:${esc(g.cor)};color:${esc(corTx(g.cor))}">${esc(g.rot)}</span>
+        <span class="tk-n rsp-gn">${q?nV:g.its.length}</span></span></td></tr>
+      ${(fech||!g.its.length)?'':cab(g)+g.its.map(linha).join('')}</tbody>`; };
   return `<div class="rsp-bar">
       <input class="search rsp-q" id="rspQ" placeholder="Pesquisar nas respostas…" value="${esc(RSP.q||'')}" oninput="rspBusca(this.value)" autocomplete="off">
       <div class="rsp-dir">
@@ -10029,25 +10060,27 @@ function tkViewRespostas(){
       </div>
     </div>
     <div class="tablewrap rolavel"><table class="tk-tab lc-tab" id="rspTab" style="width:${largMin}px">
-      <thead><tr>
-        <th style="width:${wN}px"><span class="rsp-nm"><input type="checkbox" ${arr.length&&nSel===arr.length?'checked':''} onchange="rspTodos(this.checked)" title="Marcar todos">Nome</span>${rspGrip('nome')}</th>
-        <th style="width:${wS}px">Status${rspGrip('status')}</th>
-        <th class="rsp-or" style="width:${wD}px" onclick="RSP.dir=-RSP.dir;tkDesenhar($('#content'))" title="Ordenar pela data">${esc(cD?cD.nome:'Data')} ${RSP.dir<0?'↓':'↑'}${rspGrip('data')}</th>
-        ${outros.map(c=>`<th style="width:${larg(c)}px" title="${esc(c.nome)}">${esc(c.nome)}${rspGrip(c.id)}</th>`).join('')}
-      </tr></thead>
-      <tbody>${arr.map(linha).join('')}</tbody>
+      <colgroup><col data-k="nome" style="width:${wN}px"><col data-k="status" style="width:${wS}px"><col data-k="data" style="width:${wD}px">${outros.map(c=>`<col data-k="${esc(c.id)}" style="width:${larg(c)}px">`).join('')}</colgroup>
+      ${grupos.map(bloco).join('')}
     </table>${arr.length?'':'<div class="empty">Nenhuma resposta ainda.</div>'}
     <div class="empty" id="rspVazio"${(q&&arr.length&&!nVis)?'':' style="display:none"'}>Nenhuma resposta com esse texto.</div></div>
     ${(setTimeout(()=>{ try{ lcFixarColunas($('#content')); }catch(_){} },0),'')}`;
 }
 window.rspBusca=(v)=>{
   RSP.q=String(v||''); const q=RSP.q.trim().toLowerCase(); let n=0;
-  document.querySelectorAll('#rspTab tbody tr').forEach(tr=>{ const ok=!q||tr.dataset.b.indexOf(q)>=0; tr.style.display=ok?'':'none'; if(ok) n++; });
+  document.querySelectorAll('#rspTab tbody tr[data-b]').forEach(tr=>{ const ok=!q||tr.dataset.b.indexOf(q)>=0; tr.style.display=ok?'':'none'; if(ok) n++; });
+  document.querySelectorAll('#rspTab tbody.rsp-g').forEach(g=>{ const c=g.querySelector('.rsp-gn'); if(!c) return;
+    const rs=g.querySelectorAll('tr[data-b]'); c.textContent=q?[...rs].filter(r=>r.style.display!=='none').length:rs.length; });
   const e=document.getElementById('rspN'); if(e) e.textContent=n+' resposta'+(n===1?'':'s');
   const z=document.getElementById('rspVazio'); if(z) z.style.display=(q&&!n)?'':'none';
 };
 window.rspMarca=(id,on)=>{ if(on) RSP.sel[id]=1; else delete RSP.sel[id]; tkDesenhar($('#content')); };
-window.rspTodos=(on)=>{ RSP.sel={}; if(on) rspLinhas().forEach(t=>{ RSP.sel[t.id]=1; }); tkDesenhar($('#content')); };
+window.rspTodos=(on,g)=>{
+  if(!g){ RSP.sel={}; if(on) rspLinhas().forEach(t=>{ RSP.sel[t.id]=1; }); tkDesenhar($('#content')); return; }
+  const gr=rspGrupos(rspLinhas()).find(x=>x.k===g);
+  (gr?gr.its:[]).forEach(t=>{ if(on) RSP.sel[t.id]=1; else delete RSP.sel[t.id]; });
+  tkDesenhar($('#content'));
+};
 /* planilha das respostas: abre no Excel/Sheets brasileiro (ponto e virgula, BOM) */
 window.rspBaixar=(soSel)=>{
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA), outros=cps.filter(c=>c!==cD);
