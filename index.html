@@ -2930,7 +2930,14 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
   .rsp-nm button:not(.tk-wa):hover{color:var(--brand2);text-decoration:underline}
   .rsp-nm .tk-wa{margin-left:-4px;flex:none}
-  #rspTab td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
+  #rspTab{table-layout:fixed}
+  #rspTab td,#rspTab th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* borda arrastavel do titulo (Bernardo 08/10) */
+  .rsp-grip{position:absolute;top:0;right:0;width:8px;height:100%;cursor:col-resize;z-index:5;touch-action:none}
+  .rsp-grip::after{content:'';position:absolute;top:25%;bottom:25%;right:3px;width:2px;border-radius:2px;background:transparent;transition:background .12s}
+  #rspTab th:hover .rsp-grip::after{background:var(--line)}
+  .rsp-grip:hover::after,body.rsp-arr .rsp-grip::after{background:var(--brand)!important}
+  body.rsp-arr,body.rsp-arr *{cursor:col-resize!important;user-select:none}
   .rsp-or{cursor:pointer}
   .rsp-hr{color:var(--muted);margin-left:4px}
   .rsp-lk{color:var(--txt);text-decoration:none}
@@ -9834,7 +9841,7 @@ const tkSelo=(t)=>{
    Lista e Quadro continuam no seletor. */
 const RSP_DATA='Preencheu em';
 const crmForm=(lid)=>!!lid&&(TK.campos||[]).some(k=>k.lista_id===lid&&k.nome===RSP_DATA);
-let RSP={dir:-1,sel:{},q:''};
+let RSP={dir:-1,sel:{},q:'',larg:{}};
 const rspData=(v)=>{ const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if(!m) return '';
   /* curta, 08/10/26 (Bernardo 08/10): o "8 de out de 2026" do Yay ocupava a coluna toda */
   return m[3]+'/'+m[2]+'/'+m[1].slice(2)+(m[4]?` <span class="rsp-hr">${m[4]}:${m[5]}</span>`:''); };
@@ -9929,6 +9936,27 @@ function rspLinhas(){
   return TK.tarefas.filter(t=>t.lista_id===TK.listaSel&&!arquivada(t)&&!t.pai_id)
     .sort((a,b)=>{ const x=dt(a), y=dt(b); return (x<y?-1:x>y?1:String(a.criado_em||'').localeCompare(String(b.criado_em||'')))*RSP.dir; });
 }
+/* largura das colunas (Bernardo 08/10: "minimizar o tamanho das colunas igual é no ClickUp,
+   posso diminuir nome por exemplo, mas quando der F11 tudo vai ficar padrão de novo"):
+   arrasta a borda do título; dois cliques volta ao padrão. Fica só na memória da página,
+   recarregou volta tudo ao tamanho padrão. A tabela é table-layout:fixed, senão o texto
+   comprido não deixa a coluna ficar menor que ele. */
+const RSP_MIN={nome:120,status:90};
+const rspLarg=(k,pad)=>Math.round((RSP.larg||{})[k]||pad);
+const rspGrip=(k)=>`<span class="rsp-grip" onpointerdown="rspArrasta(event,'${esc(k)}')" onclick="event.stopPropagation()" ondblclick="event.stopPropagation();rspLargPadrao('${esc(k)}')" title="Arraste para mudar a largura (dois cliques volta ao padrão)"></span>`;
+window.rspArrasta=(e,k)=>{
+  const th=e.target.closest('th'), tb=document.getElementById('rspTab'); if(!th||!tb) return;
+  e.preventDefault(); e.stopPropagation();
+  const x0=e.clientX, w0=th.getBoundingClientRect().width, t0=tb.getBoundingClientRect().width, min=RSP_MIN[k]||60;
+  document.body.classList.add('rsp-arr');
+  const mexe=(ev)=>{ const w=Math.max(min,Math.round(w0+ev.clientX-x0));
+    th.style.width=w+'px'; tb.style.width=Math.round(t0+w-w0)+'px'; RSP.larg[k]=w;
+    if(k==='nome') lcFixarColunas($('#content')); };
+  const solta=()=>{ document.removeEventListener('pointermove',mexe); document.removeEventListener('pointerup',solta);
+    document.removeEventListener('pointercancel',solta); document.body.classList.remove('rsp-arr'); };
+  document.addEventListener('pointermove',mexe); document.addEventListener('pointerup',solta); document.addEventListener('pointercancel',solta);
+};
+window.rspLargPadrao=(k)=>{ delete RSP.larg[k]; tkDesenhar($('#content')); };
 function tkViewRespostas(){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA), outros=cps.filter(c=>c!==cD);
   const arr=rspLinhas();
@@ -9941,7 +9969,7 @@ function tkViewRespostas(){
      Clientes, tudo bem separado"): mesma tabela .tk-tab.lc-tab, linha entre todas as colunas,
      Nome e Status presos na esquerda, títulos centralizados; valor curto fica no meio */
   const cen=(c)=>c.tipo==='data'||c.tipo==='select'||/^estado$/i.test(c.nome);
-  const larg=(c)=>Math.max(110,Number(c.largura)||150);
+  const larg=(c)=>rspLarg(c.id,Math.max(110,Number(c.largura)||150));
   const cor=(t)=>typeof tkCorLinha==='function'?tkCorLinha(t):'';
   const linha=(t)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}">
       <td><span class="rsp-nm"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}</span></td>
@@ -9949,7 +9977,8 @@ function tkViewRespostas(){
       <td class="tk-cen">${cD?rspCel(cD,(t.valores||{})[cD.id]):''}</td>
       ${outros.map(c=>`<td${cen(c)?' class="tk-cen"':''}>${rspCel(c,(t.valores||{})[c.id],t)}</td>`).join('')}
     </tr>`;
-  const largMin=300+180+170+outros.reduce((a,c)=>a+larg(c),0);
+  const wN=rspLarg('nome',300), wS=rspLarg('status',180), wD=rspLarg('data',170);
+  const largMin=wN+wS+wD+outros.reduce((a,c)=>a+larg(c),0);
   return `<div class="rsp-bar">
       <input class="search rsp-q" id="rspQ" placeholder="Pesquisar nas respostas…" value="${esc(RSP.q||'')}" oninput="rspBusca(this.value)" autocomplete="off">
       <div class="rsp-dir">
@@ -9960,12 +9989,12 @@ function tkViewRespostas(){
           <button class="btn secondary small" onclick="rspBaixar(false)">${tpSvg('baixar',14)} Download</button>`}
       </div>
     </div>
-    <div class="tablewrap rolavel"><table class="tk-tab lc-tab" id="rspTab" style="min-width:${largMin}px">
+    <div class="tablewrap rolavel"><table class="tk-tab lc-tab" id="rspTab" style="width:${largMin}px">
       <thead><tr>
-        <th style="width:300px;min-width:300px"><span class="rsp-nm"><input type="checkbox" ${arr.length&&nSel===arr.length?'checked':''} onchange="rspTodos(this.checked)" title="Marcar todos">Nome</span></th>
-        <th style="width:180px;min-width:180px">Status</th>
-        <th class="rsp-or" style="width:170px;min-width:170px" onclick="RSP.dir=-RSP.dir;tkDesenhar($('#content'))" title="Ordenar pela data">${esc(cD?cD.nome:'Data')} ${RSP.dir<0?'↓':'↑'}</th>
-        ${outros.map(c=>`<th style="width:${larg(c)}px;min-width:${larg(c)}px">${esc(c.nome)}</th>`).join('')}
+        <th style="width:${wN}px"><span class="rsp-nm"><input type="checkbox" ${arr.length&&nSel===arr.length?'checked':''} onchange="rspTodos(this.checked)" title="Marcar todos">Nome</span>${rspGrip('nome')}</th>
+        <th style="width:${wS}px">Status${rspGrip('status')}</th>
+        <th class="rsp-or" style="width:${wD}px" onclick="RSP.dir=-RSP.dir;tkDesenhar($('#content'))" title="Ordenar pela data">${esc(cD?cD.nome:'Data')} ${RSP.dir<0?'↓':'↑'}${rspGrip('data')}</th>
+        ${outros.map(c=>`<th style="width:${larg(c)}px" title="${esc(c.nome)}">${esc(c.nome)}${rspGrip(c.id)}</th>`).join('')}
       </tr></thead>
       <tbody>${arr.map(linha).join('')}</tbody>
     </table>${arr.length?'':'<div class="empty">Nenhuma resposta ainda.</div>'}
