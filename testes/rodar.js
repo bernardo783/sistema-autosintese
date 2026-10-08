@@ -2660,6 +2660,33 @@ grupo('Respostas: mesmo visual do Controle de Clientes, colunas separadas (Berna
   ok('fixa as colunas depois de desenhar, como o Controle de Clientes', /lcFixarColunas\(\$\('#content'\)\)/.test(cod));
 }
 
+/* ---------------- Agenda do CRM ---------------- */
+grupo('Agenda do CRM: calls de 1 h, 30 min de folga, sugestões e os ganchos (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= AGENDA DO CRM (Bernardo 08/10)','/* ======================= CARTÃO DO LEAD (Bernardo 08/10)');
+  const iso=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const g=rodar(cod,{tkISO:iso,tkHoje:()=>'2026-10-12',localStorage:{getItem:()=>null,setItem:()=>{}},TK:{tarefas:[],equipe:[]}},['caSlots','caSugestoes','caForm']);
+  const livre=(sl,hm)=>{ const m=Number(hm.slice(0,2))*60+Number(hm.slice(3)); const x=sl.find(s=>s.s===m); return x&&x.livre; };
+  const sl=g.caSlots([[9*60,10*60]],null);
+  ok('call das 9h às 10h: 9:30 e 10:00 ficam ocupados (sem folga)', !livre(sl,'09:30')&&!livre(sl,'10:00'));
+  ok('call das 9h às 10h: a próxima pode às 10:30', livre(sl,'10:30'));
+  ok('call das 14h: 12:30 cabe (termina 13:30, folga de 30 min), 13:00 não', (s=>livre(s,'12:30')&&!livre(s,'13:00'))(g.caSlots([[14*60,15*60]],null)));
+  ok('última call começa às 17h (nunca à noite)', sl[sl.length-1].s===17*60);
+  ok('hoje: só a partir de 1 h depois de agora', (s=>!livre(s,'10:30')&&livre(s,'11:00'))(g.caSlots([],10*60)));
+  const vazio=g.caSugestoes(()=>[], '2026-10-12', null, 3);
+  ok('agenda vazia: primeira sugestão é 9h de hoje', vazio[0].dia==='2026-10-12'&&vazio[0].s===540&&vazio[0].motivo==='agenda livre no dia');
+  ok('sugestões do mesmo dia ficam 2 h uma da outra', vazio.length===3&&vazio[1].s-vazio[0].s>=120&&(vazio[2].dia!==vazio[1].dia||vazio[2].s-vazio[1].s>=120));
+  const c9=g.caSugestoes((d)=>d==='2026-10-12'?[[540,600]]:[], '2026-10-12', null, 3);
+  ok('com call às 9h: o mais cedo é 10:30 e a preferida fica 2 h longe (12:00)', c9[0].s===630&&c9[0].motivo==='mais cedo livre'&&c9[1].s===720&&c9[1].motivo==='2 h de folga');
+  const sab=g.caSugestoes(()=>[], '2026-10-10', null, 1);
+  ok('sábado e domingo não entram: pula pra segunda', sab[0].dia==='2026-10-12');
+  const F=CRM_FORMS_T;
+  ok('cada CRM tem a sua lista Agenda', F.every(f=>f.agenda)&&new Set(F.map(f=>f.agenda)).size===F.length);
+  ok('a Agenda abre a tela crm-agenda', /\.\.\.Object\.fromEntries\(CRM_FORMS\.map\(f=>\[f\.agenda,'crm-agenda'\]\)\)/.test(HTML)&&HTML.indexOf("if(view==='crm-agenda') return renderCaAgenda(c);")>0);
+  ok('ir pra Reunião Marcada abre a janela de marcar', /if\(ok&&typeof caDepoisStatus==='function'\) caDepoisStatus\(id,sid\);/.test(HTML));
+  ok('atalho ao lado do filtro, dia e hora na linha, bloco no cartão e Google na Equipe', ['caAtalho():','caChipLinha(t):','caBoxLead(t):','caEqGoogle(v):'].every(k=>HTML.indexOf(k)>0));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
