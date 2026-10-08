@@ -2188,6 +2188,32 @@
   .tkp-chip{background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-size:12px;font-weight:600;border-radius:8px;padding:5px 10px}
   .tkp-chip:hover{border-color:var(--brand2)}
   .tkp-chip.on{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff}
+  /* prioridade no filtro e bandeira na cor dela, como no cadastro da tarefa (Bernardo 08/10) */
+  .tkp-chip.tkp-prio{display:inline-flex;align-items:center;gap:6px}
+  .tkp-chip.tkp-prio svg{flex:none}
+  .tkp-chip.tkp-prio:hover{border-color:color-mix(in srgb,var(--c) 60%,var(--line))}
+  /* filtro de data: atalhos à esquerda e calendário do mês (Bernardo 08/10, opção A, como no ClickUp) */
+  .tkpop.tkp-larga{width:min(480px,calc(100vw - 16px))}
+  .tkc-ab{display:flex;gap:12px}
+  .tkc-lado{display:flex;flex-direction:column;gap:2px;min-width:132px;padding-right:10px;border-right:1px solid var(--line)}
+  .tkc-at{background:none;border:0;color:var(--txt);text-align:left;font:inherit;font-size:12.5px;font-weight:600;padding:6px 8px;border-radius:7px;cursor:pointer;white-space:nowrap}
+  .tkc-at:hover{background:var(--hov2)}
+  .tkc-at.on{background:color-mix(in srgb,var(--brand) 22%,transparent);color:var(--brand2)}
+  .tkc{flex:1;min-width:0}
+  .tkc-mes{display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .tkc-mes b{font-weight:700}
+  .tkc-mes button{background:none;border:0;color:var(--muted);font-size:18px;line-height:1;width:28px;height:28px;border-radius:7px;cursor:pointer}
+  .tkc-mes button:hover{background:var(--hov2);color:var(--txt)}
+  .tkc-sem,.tkc-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+  .tkc-sem span{color:var(--fraco);font-size:11px;font-weight:700;padding:2px 0}
+  .tkc-d{background:none;border:0;color:var(--txt);font:inherit;font-size:12px;padding:6px 0;border-radius:6px;cursor:pointer}
+  .tkc-d:hover{background:var(--hov3)}
+  .tkc-d.hoje{box-shadow:inset 0 0 0 1px var(--brand2)}
+  .tkc-d.den{background:color-mix(in srgb,var(--brand) 22%,transparent)}
+  .tkc-d.ponta{background:var(--brand);color:#fff}
+  .tkc-fx{margin-top:8px;color:var(--muted);font-size:12px;text-align:center}
+  @media (max-width:720px){ .tkc-ab{flex-direction:column} .tkc-lado{flex-direction:row;flex-wrap:wrap;min-width:0;padding:0 0 8px;border-right:0;border-bottom:1px solid var(--line)} }
+  .tkp-chip.tkp-prio.on{background:color-mix(in srgb,var(--c) 16%,transparent);border-color:color-mix(in srgb,var(--c) 55%,transparent);color:var(--c)}
   .tkp-datas{display:flex;align-items:center;gap:8px}
   .tkp-datas .search{flex:1;min-width:0}
   .tkp-datas span{color:var(--muted);font-size:12px}
@@ -9392,7 +9418,7 @@ window.tkQaPrio=(ev,id)=>{ ev.stopPropagation();
   const t=TK.tarefas.find(x=>x.id===id)||{};
   el.innerHTML=`<div class="tkp-sec">Prioridade</div>`+
     ['urgente','alta','med','baixa'].map(k=>`<label class="tkp-row pop-prio" onclick="tkQaSetPrio('${id}','${k}')">
-      <span style="width:9px;height:9px;border-radius:3px;background:${PRIO_COR[k]};flex:none"></span>
+      ${prioFlag(PRIO_COR[k],(t.prioridade||'med')===k)}
       <span class="tkp-nm" style="color:${PRIO_COR[k]}">${TK_PRIO[k]}</span>${(t.prioridade||'med')===k?'<span class="tkp-n">•</span>':''}</label>`).join('');
   document.body.appendChild(el); popPor(el,r);
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
@@ -11859,7 +11885,7 @@ function tkBtnResp(){ const rs=(TK.filtro||{}).resps||[];
   const avs=rs.filter(x=>x!=='(sem)').slice(0,3).map(u=>avatar(u,null,'sm')).join('');
   return `<button class="btn ghost small${rs.length?' fon':''}" onclick="tkPopResp(event)">${svgIco('usuario',12)} Responsável${rs.length?`<span class="avstack">${avs}</span><span class="fbad">${rs.length}</span>`:''}</button>`; }
 let TKPOP=null, TKQR='';
-window.tkPopFechar=()=>{ const el=document.getElementById('tkPop'); if(el) el.remove(); TKPOP=null; document.removeEventListener('mousedown',tkPopFora,true); };
+window.tkPopFechar=()=>{ const el=document.getElementById('tkPop'); if(el) el.remove(); TKPOP=null; TKCAL.ym=''; TKCAL.meio=false; document.removeEventListener('mousedown',tkPopFora,true); };
 function tkPopFora(e){ const el=document.getElementById('tkPop'); if(el&&!el.contains(e.target)) tkPopFechar(); }
 function tkPopAbrir(tipo,ev){ ev.stopPropagation();
   if(TKPOP&&TKPOP.tipo===tipo){ tkPopFechar(); return; }
@@ -11874,6 +11900,7 @@ function tkPopAbrir(tipo,ev){ ev.stopPropagation();
 window.tkPopFiltro=(ev)=>tkPopAbrir('filtro',ev);
 window.tkPopResp=(ev)=>tkPopAbrir('resp',ev);
 function tkPopPintar(){ const el=document.getElementById('tkPop'); if(!el||!TKPOP) return;
+  el.classList.toggle('tkp-larga',TKPOP.tipo==='filtro');   /* o calendário precisa de mais largura */
   el.innerHTML=TKPOP.tipo==='resp'?tkPopRespHTML():TKPOP.tipo==='lcfiltro'?lcPopFiltroHTML():tkPopFiltroHTML(); }
 function tkFiltradasSemResp(){ const s=TK.filtro.resps; TK.filtro.resps=[]; let r; try{ r=tkFiltradas(); }finally{ TK.filtro.resps=s; } return r; }
 function tkPopRespHTML(){ const F=TK.filtro;
@@ -11890,28 +11917,45 @@ function tkPopRespHTML(){ const F=TK.filtro;
    ${pessoas.map(u=>linha(u.id,u.nome||'?',avatar(u.id,u.nome,'sm'))).join('')}
    ${F.resps.length?`<button class="tkp-limpar" onclick="TK.filtro.resps=[];tkFAplicar()">Limpar responsáveis</button>`:''}`;
 }
+/* calendário do filtro (Bernardo 08/10, opção A: "atalhos + calendário" como no ClickUp). 1º clique
+   marca o dia (já filtra aquele dia), 2º fecha o período; clicar antes do 1º inverte. O dd/mm/aaaa saiu. */
+let TKCAL={ym:'',meio:false};
+const tkDmy=(iso)=>String(iso||'').slice(8,10)+'/'+String(iso||'').slice(5,7)+'/'+String(iso||'').slice(2,4);
+function tkCalHTML(F){
+  const hj=tkHoje(); if(!TKCAL.ym) TKCAL.ym=(F.de||hj).slice(0,7);
+  const [a,m]=TKCAL.ym.split('-').map(Number), ini=new Date(a,m-1,1).getDay(), n=new Date(a,m,0).getDate();
+  let cel=''; for(let i=0;i<ini;i++) cel+='<span></span>';
+  for(let d=1;d<=n;d++){ const iso=TKCAL.ym+'-'+String(d).padStart(2,'0');
+    const den=!!(F.de&&F.ate&&iso>=F.de&&iso<=F.ate), ponta=iso===F.de||iso===F.ate;
+    cel+=`<button type="button" class="tkc-d${den?' den':''}${ponta?' ponta':''}${iso===hj?' hoje':''}" onclick="tkCalDia('${iso}')">${d}</button>`; }
+  const fx=!F.de?'Clique no 1º e no último dia':(F.ate&&F.ate!==F.de?tkDmy(F.de)+' → '+tkDmy(F.ate):tkDmy(F.de)+(TKCAL.meio?' → escolha o último dia':''));
+  return `<div class="tkc"><div class="tkc-mes"><button type="button" onclick="tkCalMes(-1)" aria-label="Mês anterior">‹</button><b>${TK_MESES[m-1]} ${a}</b><button type="button" onclick="tkCalMes(1)" aria-label="Próximo mês">›</button></div>
+    <div class="tkc-sem">${['D','S','T','Q','Q','S','S'].map(x=>`<span>${x}</span>`).join('')}</div>
+    <div class="tkc-grade">${cel}</div><div class="tkc-fx">${fx}</div></div>`;
+}
+window.tkCalMes=(n)=>{ const [a,m]=TKCAL.ym.split('-').map(Number), d=new Date(a,m-1+n,1);
+  TKCAL.ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); tkPopPintar(); };
+window.tkCalDia=(iso)=>{ const F=TK.filtro; F.prazo='';
+  if(TKCAL.meio&&F.de){ if(iso<F.de){ F.ate=F.de; F.de=iso; } else F.ate=iso; TKCAL.meio=false; }
+  else { F.de=iso; F.ate=iso; TKCAL.meio=true; }
+  tkFAplicar(); };
 function tkPopFiltroHTML(){ const F=TK.filtro;
-  const chip=(k,r)=>`<button class="tkp-chip${(F.prazo===k&&!F.de&&!F.ate)?' on':''}" onclick="tkFPrazo('${k}')">${r}</button>`;
+  const at=(k,r)=>`<button type="button" class="tkc-at${(F.prazo===k&&!F.de&&!F.ate)?' on':''}" onclick="tkFPrazo('${k}')">${r}</button>`;
   return `<div class="tkp-h"><strong>Filtros</strong><button class="tkp-x" onclick="tkPopFechar()">&#10005;</button></div>
    <div class="tkp-sec">Data de vencimento</div>
-   <div class="tkp-chips">
-     ${chip('hoje','Hoje')}${chip('ontem','Ontem')}${chip('amanha','Amanhã')}${chip('atraso','Atrasadas')}
-     ${chip('ult7','Últimos 7 dias')}${chip('prox7','Próximos 7 dias')}${chip('semana','Esta semana')}${chip('mes','Este mês')}${chip('semprazo','Sem prazo')}
+   <div class="tkc-ab">
+     <div class="tkc-lado">${at('hoje','Hoje')}${at('ontem','Ontem')}${at('amanha','Amanhã')}${at('atraso','Atrasadas')}${at('ult7','Últimos 7 dias')}${at('prox7','Próximos 7 dias')}${at('semana','Esta semana')}${at('mes','Este mês')}${at('semprazo','Sem prazo')}</div>
+     ${tkCalHTML(F)}
    </div>
-   <div class="tkp-sec" style="margin-top:12px">Período exato</div>
-   <div class="tkp-datas">
-     <input type="date" class="search" value="${F.de||''}" onchange="TK.filtro.de=this.value;TK.filtro.prazo='';tkFAplicar()">
-     <span>até</span>
-     <input type="date" class="search" value="${F.ate||''}" onchange="TK.filtro.ate=this.value;TK.filtro.prazo='';tkFAplicar()">
-   </div>
-   <div class="tkp-sec" style="margin-top:12px">Prioridade</div>
-   <div class="tkp-chips">${['urgente','alta','med','baixa'].map(k=>`<button class="tkp-chip${F.prios.includes(k)?' on':''}" onclick="tkFPrio('${k}')">${TK_PRIO[k]}</button>`).join('')}</div>
+   <div class="tkp-sec" style="margin-top:14px">Prioridade</div>
+   <div class="tkp-chips">${['urgente','alta','med','baixa'].map(k=>{ const on=F.prios.includes(k), cor=PRIO_COR[k]||'#8b95a5';
+     return `<button class="tkp-chip tkp-prio${on?' on':''}" style="--c:${cor}" onclick="tkFPrio('${k}')" title="${esc(TK_PRIO[k])}">${prioFlag(cor,on)}${TK_PRIO[k]}</button>`; }).join('')}</div>
    ${tkFiltroN()?`<button class="tkp-limpar" onclick="tkFLimpar()">Limpar filtros</button>`:''}`;
 }
 window.tkFResp=(id)=>{ const r=TK.filtro.resps, i=r.indexOf(id); if(i>=0) r.splice(i,1); else r.push(id); tkFAplicar(); };
-window.tkFPrazo=(k)=>{ const F=TK.filtro; F.de=''; F.ate=''; F.prazo=(F.prazo===k?'':k); tkFAplicar(); };
+window.tkFPrazo=(k)=>{ const F=TK.filtro; F.de=''; F.ate=''; TKCAL.meio=false; F.prazo=(F.prazo===k?'':k); tkFAplicar(); };
 window.tkFPrio=(k)=>{ const p=TK.filtro.prios, i=p.indexOf(k); if(i>=0) p.splice(i,1); else p.push(k); tkFAplicar(); };
-window.tkFLimpar=()=>{ TK.filtro.prazo=''; TK.filtro.de=''; TK.filtro.ate=''; TK.filtro.prios=[]; tkFAplicar(); };
+window.tkFLimpar=()=>{ TKCAL.meio=false; TK.filtro.prazo=''; TK.filtro.de=''; TK.filtro.ate=''; TK.filtro.prios=[]; tkFAplicar(); };
 function tkFAplicar(){ try{ localStorage.setItem('tk_filtro',JSON.stringify(TK.filtro)); }catch(_){}
   tkDesenhar($('#content')); tkPopPintar(); }
 /* Redesenhar a mesma lista (salvou uma célula, chegou dado novo) não pode jogar a pessoa de
