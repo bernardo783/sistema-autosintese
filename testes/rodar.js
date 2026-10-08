@@ -1540,7 +1540,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
   ok('a Lista usa o mesmo botão', /rspWaBtn\(t\)(\+rspIgBtn\(t\))?:''/.test(HTML));
   ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
-  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=6')>0);
+  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=7')>0);
 
   /* painel novo (Bernardo 08/10): faixa do número, enviar, agendar, transferir */
   const CJ=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
@@ -1553,7 +1553,8 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   const ctxP=(u)=>({document:{querySelector:(s)=>s.startsWith('#')?el(s.slice(1)):null,querySelectorAll:()=>[],getElementById:()=>null,
       createElement:()=>({style:{},addEventListener(){}}),head:{appendChild(){}},body:{appendChild(x){ ov=x; }}},
     localStorage:{getItem:(k)=>ls[k]||null,setItem:(k,v)=>{ ls[k]=String(v); }},
-    currentUser:u,SESSION:{access_token:'x'},toast:(m)=>avisos.push(m),TK:{tarefas:[{id:'a',lista_id:'L',status_id:null,responsaveis:['u1']}]},
+    currentUser:u,SESSION:{access_token:'x'},toast:(m)=>avisos.push(m),TK:{tarefas:[{id:'a',lista_id:'L',status_id:'s1',responsaveis:['u1']}]},
+    tkStatusDe:()=>[{id:'s1',nome:'1. NOVO LEAD',cor:'#7c3aed'},{id:'s2',nome:'2. SEM RESPOSTA',cor:'#fb923c'}],
     fetch:async (url,o)=>{ const acao=url.split('/').pop(), b=o&&o.body?JSON.parse(o.body):{}; chamadas.push([acao,b]);
       const d=acao==='lead'?resp:acao==='agendar'?{ok:true,agendada:{id:'ag1',instancia:b.name,tipo:'texto',texto:b.texto,enviar_em:b.quando,status:'pendente',criado_por:'u1'}}:{ok:true,id:'m1'};
       return {json:async ()=>d,status:200}; }});
@@ -1567,7 +1568,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
     ok('painel: faixa "Enviando pelo WhatsApp de" com o número que vai sair', /Enviando pelo WhatsApp de <b>Bernardo<\/b>/.test(els.waLdPor.innerHTML));
     ok('painel: master pode trocar o número no seletor da faixa', /<select/.test(els.waLdPor.innerHTML)&&/value="kennedy"/.test(els.waLdPor.innerHTML)&&/value="bernardo" selected/.test(els.waLdPor.innerHTML));
     ok('painel: caixa com +, emoji, relógio e microfone', !!ov&&/Anexar foto, vídeo ou documento/.test(ov.innerHTML)&&/title="Emoji"/.test(ov.innerHTML)&&/Agendar mensagem/.test(ov.innerHTML)&&/id="waLdMic"/.test(ov.innerHTML)&&/<textarea id="waLdTexto"/.test(ov.innerHTML));
-    ok('painel: sem card, sem botão de transferir', els.waLdTr.style.display==='none');
+    ok('painel: sem card, sem botão roxo de etapa', els.waLdEt.style.display==='none');
     gc.waLdDe('luana'); ok('lembra o último número escolhido', ls.waLdDe==='luana');
     gc.waLdDe('bernardo');
     el('waLdTexto').value='Olá Ana, vi seu cadastro';
@@ -1583,7 +1584,13 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
     resp=LEAD({por:'bernardo',responsaveis:['u1'],mensagens:[{id:'1',deNos:true,texto:'Oi',quando:'2026-10-08T12:00:00Z',por:'kennedy'},{id:'2',deNos:true,texto:'Tudo bem?',quando:'2026-10-08T13:00:00Z',por:'bernardo'}]});
     await gc.waDoLead('5511999990001','Ana Souza',{tarefa:'a'});
     ok('com o card: manda o id do card pro servidor', chamadas.filter(c=>c[0]==='lead').pop()[1].tarefa==='a');
-    ok('com o card: botão roxo de transferir aparece', els.waLdTr.style.display==='');
+    /* botão roxo agora muda a etapa; vendedor foi pro topo (Bernardo 08/10) */
+    ok('com o card: botão roxo aparece e é de mudar etapa', els.waLdEt.style.display===''&&/id="waLdEt" title="Mudar de etapa"[^>]*onclick="waLdPop\(\\'cl\\'/.test(CJ));
+    gc.waLdPop('cl');
+    ok('botão roxo: lista as etapas sem o número e marca a atual', /Mover para/.test(els.waLdPop.innerHTML)&&/SEM RESPOSTA/.test(els.waLdPop.innerHTML)&&!/2\. SEM/.test(els.waLdPop.innerHTML)&&/NOVO LEAD<small>atual/.test(els.waLdPop.innerHTML));
+    gc.waLdPop('cl');
+    ok('topo: vendedor do lead numa pílula que abre o transferir', /class="wald-cl wald-vd" title="Transferir para outro vendedor" onclick="waLdPop\('tr',event\)"/.test(els.waLdHead.innerHTML)&&/Bernardo Antunes/.test(els.waLdHead.innerHTML));
+    ok('topo: sem o "Classificar" (a etapa é o botão roxo)', !/Classificar/.test(els.waLdHead.innerHTML));
     gc.waLdPop('tr');
     ok('transferir: lista os vendedores e marca o atual', /Kennedy Lima/.test(els.waLdPop.innerHTML)&&/atual/.test(els.waLdPop.innerHTML));
     ok('no CRM Sofás, transferir só pros 4 do responsável (crmResp)', /crmForm\(tt\.lista_id\)&&typeof crmResp==='function'\) LD\.vendedores=crmResp\(LD\.vendedores\)/.test(CJ));
@@ -1759,7 +1766,7 @@ grupo('Respostas separada por etapa, estilo ClickUp (Bernardo 08/10)');
     {id:'z',lista_id:'L',titulo:'Zeca',status_id:null,valores:{d:'2026-10-04'}}];
   const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{}},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
     tkStatusDe:()=>ST,esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,tkSelo:()=>'<select></select>',
-    tpSvg:()=>'',setTimeout:()=>0,currentUser:{role:'master'},corTexto:()=>'#fff'},['tkViewRespostas','rspGrupos']);
+    tpSvg:()=>'',setTimeout:()=>0,currentUser:{role:'master'},corTexto:()=>'#fff'},['tkViewRespostas','rspGrupos','RSP']);
   /* só a tabela: o funil do topo (opção 4) também escreve o nome das etapas */
   const h0=g.tkViewRespostas(), h=h0.slice(h0.indexOf('id="rspTab"'));
   const pos=(x)=>h.indexOf(x);
@@ -1778,6 +1785,46 @@ grupo('Respostas separada por etapa, estilo ClickUp (Bernardo 08/10)');
   ok('"marcar todos" marca só a etapa', /onchange="rspTodos\(this\.checked,'s1'\)"/.test(h)&&/window\.rspTodos=\(on,g\)=>/.test(HTML));
   ok('busca conta só linhas de lead e atualiza a contagem de cada etapa', HTML.indexOf("#rspTab tbody tr[data-b]")>0&&HTML.indexOf("#rspTab tbody.rsp-g")>0);
   ok('arrastar a borda muda a <col>', HTML.indexOf(`const col=tb.querySelector('col[data-k="'+k+'"]')`)>0);
+  /* mudar de etapa sem abrir o card (Bernardo 08/10) */
+  ok('setinha roxa na linha do lead, depois do nome', /Ana<\/button><button type="button" class="rsp-mv" title="Mudar de etapa"[^>]*rspMover\(event,'a'\)/.test(h));
+  ok('linha arrasta', /draggable="true" ondragstart="rspPega\(event,'a'\)"/.test(h));
+  ok('faixa da etapa recebe o lead arrastado; "Sem etapa" não', /onclick="tkToggle\('g','rs1'\)" ondragover="rspSobre/.test(h)&&/rspSoltaEtapa\(event,this,'s1'\)/.test(h)&&!/rspSoltaEtapa\(event,this,'sem'\)/.test(h0));
+  ok('funil do topo também recebe', /class="rsp-fe[^"]*" data-g="s2"[^>]*rspSoltaEtapa\(event,this,'s2'\)/.test(h0));
+  g.RSP.sel={a:1,c:1};
+  ok('selecionados ganham "Mover para…"', /onclick="rspMover\(event,''\)">Mover para…</.test(g.tkViewRespostas()));
+  g.RSP.sel={};
+}
+grupo('Respostas: mover lead de etapa sem abrir o card (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const ST=[{id:'s2',nome:'2. SEM RESPOSTA',cor:'#fb923c',ordem:2,grupo:'ativo'},{id:'s1',nome:'1. NOVO LEAD',cor:'#7c3aed',ordem:1,grupo:'nao_iniciado'},
+    {id:'s6',nome:'6. GANHOU',cor:'#3ec46d',ordem:6,grupo:'feito'}];
+  const T=[{id:'a',lista_id:'L',titulo:'Ana',status_id:'s1',valores:{}},{id:'b',lista_id:'L',titulo:'Beto',status_id:'s1',valores:{}},{id:'c',lista_id:'L',titulo:'Caio',status_id:'s2',valores:{}}];
+  const menus=[], um=[], upd=[], toasts=[];
+  const sb={from:()=>({update:(p)=>({in:async (c,ids)=>{ upd.push([p,ids]); return {error:null}; }})})};
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:[],colsOff:{},fechadas:{}},tkCamposDe:()=>[],tkStatusDe:()=>ST,tkStatus1:(id)=>ST.find(s=>s.id===id)||null,
+    TK_G2ST:{nao_iniciado:'todo',ativo:'doing',feito:'feito'},cnPrecisa:()=>false,esc:(s)=>String(s==null?'':s),toast:(m)=>toasts.push(m),
+    ctxAbrir:(ev,it)=>menus.push(it),tkSetStatus:async (id,sid)=>{ um.push([id,sid]); },tkDesenhar:()=>{},spDesenhar:()=>{},$:()=>null,sb,
+    tkPegar:(ev,id)=>{ g.TK.arrastando=id; },tkAlvo:()=>{ const x=g.TK.arrastando; g.TK.arrastando=null; return x; },document:{querySelectorAll:()=>[]}},['RSP']);
+  g.rspMover({},'a');
+  const m=menus[0]||[];
+  ok('setinha: menu com as etapas na ordem do funil, sem o número', m[0]&&m[0].cab==='Mover para'&&m[1].t==='NOVO LEAD · atual'&&m[2].t==='SEM RESPOSTA'&&m[3].t==='GANHOU');
+  PROMESSAS.push((async ()=>{
+    await m[2].f();
+    ok('escolher a etapa grava pelo caminho de sempre (tkSetStatus)', um.length===1&&um[0][0]==='a'&&um[0][1]==='s2');
+    await g.rspMoverPara(['c'],'s2');
+    ok('soltar na etapa em que ele já está não grava nada', um.length===1&&!upd.length);
+    g.RSP.sel={a:1,b:1};
+    g.rspMover({},'');
+    ok('em lote: o título diz quantos', menus[1][0].cab==='Mover 2 leads para');
+    await menus[1][2].f();
+    ok('em lote: uma gravação só, com etapa e status', upd.length===1&&upd[0][1].join()==='a,b'&&upd[0][0].status_id==='s2'&&upd[0][0].status==='doing');
+    ok('em lote: atualiza a tela, limpa a seleção e avisa', g.TK.tarefas[0].status_id==='s2'&&!Object.keys(g.RSP.sel).length&&toasts.some(t=>t==='2 leads foram para SEM RESPOSTA.'));
+    const ev={preventDefault(){},stopPropagation(){},currentTarget:{classList:{add(){},remove(){}}},dataTransfer:{}};
+    g.rspPega(ev,'c');
+    await g.rspSoltaEtapa(ev,{classList:{remove(){}}},'s1');
+    ok('arrastar e soltar numa etapa move o lead', um.length===2&&um[1][0]==='c'&&um[1][1]==='s1');
+  })());
 }
 grupo('Respostas: etapa do funil filtra e relógio do lead no funil (Bernardo 08/10)');
 {

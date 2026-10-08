@@ -2958,6 +2958,18 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
   .rsp-nm button:not(.tk-wa):hover{color:var(--brand2);text-decoration:underline}
   .rsp-nm .tk-wa{margin-left:-4px;flex:none}
+  /* setinha roxa: muda o lead de etapa sem abrir o card (Bernardo 08/10: "aquele atalho roxo com a
+     setinha deveria estar lá no pipeline… nome do lead, dá o espaço ali, aquele símbolo roxinho").
+     Mesmo botão roxo da conversa do lead; fica encostado na direita da coluna Nome. */
+  .rsp-nm.rsp-lin{display:flex;width:100%}
+  #rspTab .rsp-mv{margin-left:auto;flex:none;width:26px;height:26px;padding:0;border-radius:50%;display:inline-grid;place-items:center;cursor:pointer;
+    background:color-mix(in srgb,var(--brand) 22%,var(--panel));border:1px solid var(--brand);color:var(--brand2);text-decoration:none}
+  #rspTab .rsp-mv:hover{background:var(--brand);color:#fff;text-decoration:none}
+  #rspTab .rsp-mv svg{width:14px;height:14px}
+  /* arrastar o lead e soltar numa etapa (faixa do funil no topo ou faixa da etapa na lista) */
+  #rspTab tr.arrastando{opacity:.45}
+  .rsp-fe.rsp-alvo{outline:2px dashed var(--txt);outline-offset:2px;filter:brightness(1.15)}
+  #rspTab .tk-faixa.rsp-alvo .tk-selo{outline:2px dashed var(--txt);outline-offset:3px}
   #rspTab{table-layout:fixed}
   /* etapas (Bernardo 08/10, a opção 4 que ele escolheu entre quatro prévias): funil no topo com a
      contagem de cada etapa, e embaixo as etapas como na Lista do ClickUp, sem caixa. A faixa é seta +
@@ -10185,8 +10197,8 @@ function tkViewRespostas(){
   const cen=(c)=>c.tipo==='data'||c.tipo==='select'||/^estado$/i.test(c.nome);
   const larg=(c)=>rspLarg(c.id,Math.max(110,Number(c.largura)||150));
   const cor=(t)=>typeof tkCorLinha==='function'?tkCorLinha(t):'';
-  const linha=(t)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}">
-      <td><span class="rsp-nm"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}</span></td>
+  const linha=(t)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}" draggable="true" ondragstart="rspPega(event,'${t.id}')" ondragend="rspPegaFim(event)">
+      <td><span class="rsp-nm rsp-lin"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}${rspMvBtn(t)}</span></td>
       <td class="tk-cen">${rspRelogio(t,cD)}</td>
       ${outros.map(c=>`<td${cen(c)?' class="tk-cen"':''}>${rspCel(c,(t.valores||{})[c.id],t)}</td>`).join('')}
     </tr>`;
@@ -10209,7 +10221,7 @@ function tkViewRespostas(){
         ${outros.map(c=>`<th title="${esc(c.nome)}">${esc(c.nome)}${rspGrip(c.id)}</th>`).join('')}
       </tr>`;
   const bloco=(g)=>{ const fech=!!fechadas['gr'+g.k], nV=g.its.filter(passa).length;
-    return `<tbody class="rsp-g" data-g="${esc(g.k)}"><tr class="tk-faixa${g.its.length?'':' vazio'}" onclick="tkToggle('g','r${esc(g.k)}')"><td colspan="${ncols}"><span class="rsp-gt">
+    return `<tbody class="rsp-g" data-g="${esc(g.k)}"><tr class="tk-faixa${g.its.length?'':' vazio'}" onclick="tkToggle('g','r${esc(g.k)}')"${rspAlvo(g.k)}><td colspan="${ncols}"><span class="rsp-gt">
         <span class="rsp-cv${(fech||!g.its.length)?'':' ab'}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 4.5l9 7.5-9 7.5z"/></svg></span>
         <span class="tk-selo" style="background-color:${esc(g.cor)};color:${esc(corTx(g.cor))}">${esc(g.rot)}</span>
         <span class="tk-n rsp-gn">${q?nV:g.its.length}</span></span></td></tr>
@@ -10218,6 +10230,7 @@ function tkViewRespostas(){
       <input class="search rsp-q" id="rspQ" placeholder="Pesquisar nas respostas…" value="${esc(RSP.q||'')}" oninput="rspBusca(this.value)" autocomplete="off">
       <div class="rsp-dir">
         ${nSel?`<span class="rsp-nsel">${nSel} selecionado${nSel===1?'':'s'}</span>
+          <button class="btn secondary small" onclick="rspMover(event,'')">Mover para…</button>
           <button class="btn secondary small" onclick="rspBaixar(true)">Baixar selecionados</button>
           <button class="btn secondary small" onclick="rspArquivar()">Arquivar</button>`
           :`<span class="rsp-n" id="rspN">${nTela} resposta${nTela===1?'':'s'}</span>
@@ -10226,9 +10239,9 @@ function tkViewRespostas(){
     </div>
     <div class="rsp-funil${RSP.etapa?' filtrado':''}" role="navigation" aria-label="Etapas do funil">${grupos.map(g=>{ const n=q?g.its.filter(passa).length:g.its.length;
       const st=typeof tkStatus1==='function'?tkStatus1(g.k):null, jm=(st&&st.grupo==='feito')?rspJornada(g.its,cD):'';
-      return `<button type="button" class="rsp-fe${g.its.length?'':' zero'}${RSP.etapa===g.k?' on':''}" data-g="${esc(g.k)}" style="--c:${esc(g.cor)};color:${esc(corTx(g.cor))}" onclick="rspIrEtapa('${esc(g.k)}')" title="${RSP.etapa===g.k?'Voltar a ver todas as etapas':'Ver só '+esc(g.rot)}"><span class="rsp-fen">${esc(g.rot)}</span><b>${n}</b>${jm?`<small class="rsp-jm" title="Jornada média de compra: da entrada até fechar">jornada média ${esc(jm)}</small>`:''}</button>`; }).join('')}</div>
+      return `<button type="button" class="rsp-fe${g.its.length?'':' zero'}${RSP.etapa===g.k?' on':''}" data-g="${esc(g.k)}" style="--c:${esc(g.cor)};color:${esc(corTx(g.cor))}" onclick="rspIrEtapa('${esc(g.k)}')"${rspAlvo(g.k)} title="${RSP.etapa===g.k?'Voltar a ver todas as etapas':'Ver só '+esc(g.rot)}"><span class="rsp-fen">${esc(g.rot)}</span><b>${n}</b>${jm?`<small class="rsp-jm" title="Jornada média de compra: da entrada até fechar">jornada média ${esc(jm)}</small>`:''}</button>`; }).join('')}</div>
     ${gSel?`<button type="button" class="rsp-tudo" onclick="rspIrEtapa('')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Ver todas as etapas</button>`:''}
-    <div class="tablewrap rolavel"><table class="tk-tab lc-tab" id="rspTab" style="width:${largMin}px">
+    <div class="tablewrap rolavel" ondragover="rspRola(event)"><table class="tk-tab lc-tab" id="rspTab" style="width:${largMin}px">
       <colgroup><col data-k="nome" style="width:${wN}px"><col data-k="data" style="width:${wD}px">${outros.map(c=>`<col data-k="${esc(c.id)}" style="width:${larg(c)}px">`).join('')}</colgroup>
       ${gVer.map(bloco).join('')}
     </table>${arr.length?'':'<div class="empty">Nenhuma resposta ainda.</div>'}
@@ -10292,6 +10305,53 @@ window.rspArquivar=async()=>{
   RSP.sel={}; tkDesenhar($('#content')); spDesenhar();
   toast(ids.length+' lead'+(ids.length===1?'':'s')+' arquivado'+(ids.length===1?'':'s')+'.');
 };
+/* MUDAR DE ETAPA SEM ABRIR O CARD (Bernardo 08/10: "para eu mudar o lead de etapa, tirar ele de
+   novo lead e jogar ele para sem resposta, em conversa, é muito complexo"). Três jeitos, todos
+   pelo mesmo rspMoverPara: a setinha roxa da linha, o "Mover para…" dos selecionados e arrastar
+   a linha até uma etapa (funil do topo ou faixa da etapa). */
+const RSP_MV_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg>';
+const rspMvBtn=(t)=>`<button type="button" class="rsp-mv" title="Mudar de etapa" aria-label="Mudar de etapa" onclick="event.stopPropagation();rspMover(event,'${t.id}')">${RSP_MV_SVG}</button>`;
+const rspEtapas=()=>(typeof tkStatusDe==='function'?tkStatusDe(TK.listaSel):[]).slice().sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+const rspEtNome=(s)=>String((s&&s.nome)||'').replace(/^\d+\.\s*/,'');
+window.rspMover=(ev,id)=>{
+  const ids=id?[id]:Object.keys(RSP.sel||{}); if(!ids.length) return;
+  const sts=rspEtapas(); if(!sts.length){ toast('Essa lista não tem etapas.'); return; }
+  const t=id?TK.tarefas.find(x=>x.id===id):null;
+  ctxAbrir(ev,[{cab:ids.length>1?'Mover '+ids.length+' leads para':'Mover para'},
+    ...sts.map(s=>({ic:`<i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${esc(s.cor||'#64748b')}"></i>`,
+      t:rspEtNome(s)+((t&&t.status_id===s.id)?' · atual':''), f:()=>rspMoverPara(ids,s.id,!id)}))]);
+};
+window.rspMoverPara=async (ids,sid,lote)=>{
+  const s=typeof tkStatus1==='function'?tkStatus1(sid):null; if(!s) return;
+  ids=ids.filter(id=>{ const t=TK.tarefas.find(x=>x.id===id); return t&&String(t.status_id)!==String(sid); });
+  if(!ids.length){ if(lote){ RSP.sel={}; tkDesenhar($('#content')); } return; }
+  const st=TK_G2ST[s.grupo]||'todo';
+  /* um lead, ou etapa que pede relatório de conclusão: o caminho de sempre, um por um */
+  if(ids.length===1||(st==='feito'&&ids.some(id=>cnPrecisa(TK.tarefas.find(x=>x.id===id))))){
+    for(const id of ids) await tkSetStatus(id,sid);
+    if(lote){ RSP.sel={}; tkDesenhar($('#content')); } return; }
+  const patch={status_id:sid,status:st,concluida_em:st==='feito'?new Date().toISOString():null};
+  const {error}=await sb.from('tarefas').update(patch).in('id',ids);
+  if(error){ toast('Erro: '+error.message); return; }
+  ids.forEach(id=>{ const t=TK.tarefas.find(x=>x.id===id); if(t) Object.assign(t,patch); });
+  RSP.sel={}; tkDesenhar($('#content')); spDesenhar();
+  toast(ids.length+' leads foram para '+rspEtNome(s)+'.');
+};
+/* arrastar: a linha vai pra etapa em que for solta; "Sem etapa" não recebe */
+const rspAlvo=(k)=>k==='sem'?'':` ondragover="rspSobre(event,this)" ondragleave="this.classList.remove('rsp-alvo')" ondrop="rspSoltaEtapa(event,this,'${esc(k)}')"`;
+window.rspPega=(ev,id)=>{ tkPegar(ev,id); try{ ev.dataTransfer.effectAllowed='move'; }catch(_){} ev.currentTarget.classList.add('arrastando'); };
+window.rspPegaFim=(ev)=>{ ev.currentTarget.classList.remove('arrastando'); TK.arrastando=null;
+  document.querySelectorAll('.rsp-alvo').forEach(x=>x.classList.remove('rsp-alvo')); };
+window.rspSobre=(ev,el)=>{ if(!TK.arrastando) return; ev.preventDefault(); el.classList.add('rsp-alvo'); };
+window.rspSoltaEtapa=async (ev,el,k)=>{
+  if(!TK.arrastando) return;
+  ev.preventDefault(); ev.stopPropagation(); el.classList.remove('rsp-alvo');
+  const id=tkAlvo(ev); if(id) await rspMoverPara([id],k);
+};
+/* perto da borda de cima/baixo a página rola, pra alcançar o funil do topo com o lead na mão */
+window.rspRola=(ev)=>{ if(!TK.arrastando) return;
+  const y=ev.clientY, d=y<90?-20:y>innerHeight-90?20:0; if(!d) return;
+  const c=$('#content'); if(c&&c.scrollHeight>c.clientHeight) c.scrollTop+=d; window.scrollBy(0,d); };
 /* ======================= PAINEL DO CRM (Bernardo 08/10) =======================
    "Sabe aquela sessão de painel que tem em Comercial? traz aquela mesma estrutura com a base
    duplicada pro CRM de Sofás": o Painel do Comercial (crm.js: volume, resultado, ticket
@@ -25089,6 +25149,6 @@ initLoginScreen();
 </script>
 <script src="crm.js?v=28" defer></script>
 <script src="comercial/instancias.js?v=5" defer></script>
-<script src="comercial/conversas.js?v=6" defer></script>
+<script src="comercial/conversas.js?v=7" defer></script>
 </body>
 </html>

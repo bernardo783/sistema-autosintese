@@ -250,7 +250,7 @@
   .wald-h small{color:var(--fraco);font-size:12px}
   .wald-h .x{background:none;border:0;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
   .wald .cv-msgs{flex:1}
-  /* painel do lead (Bernardo 08/10): topo com Classificar, faixa do numero, caixa com +, emoji, relogio e microfone */
+  /* painel do lead (Bernardo 08/10): topo com o vendedor, faixa do numero, caixa com +, emoji, relogio e microfone */
   .wald{position:relative;height:100dvh;max-height:100vh}
   .wald-h{align-items:flex-start}
   .wald-av{width:42px;height:42px;border-radius:50%;background:var(--panel2);color:var(--muted);display:grid;place-items:center;font-weight:700;flex:none}
@@ -295,8 +295,13 @@
   .wald-pop.mais{left:12px;bottom:68px;width:200px}
   .wald-pop.em{left:12px;bottom:68px}
   .wald-pop.ag{right:12px;bottom:68px;width:240px}
-  .wald-pop.tr{right:16px;bottom:204px;width:260px}
-  .wald-pop.cl{left:66px;top:92px;width:220px;max-height:50vh;overflow:auto}
+  /* botão roxo muda a etapa; vendedor virou pílula no topo (Bernardo 08/10) */
+  .wald-pop.cl{right:16px;bottom:204px;width:240px;max-height:50vh;overflow:auto}
+  .wald-pop.tr{left:66px;top:92px;width:260px}
+  .wald-vd{padding-left:3px}
+  .wald-vd .wald-av.sm{width:20px;height:20px;font-size:10.5px}
+  span.wald-vd{cursor:default}
+  span.wald-vd:hover{border-color:var(--line)}
   .wald-pop b{display:block;padding:4px 6px 6px}
   .wald-pop label{display:flex;flex-direction:column;gap:3px;color:var(--fraco);font-size:11.5px;margin:4px 6px}
   .wald-pop input{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px}
@@ -379,8 +384,8 @@
      Chamada pela ficha do pipeline e pelo CRM de formulario. "Preciso dessa interface aqui
      quando abrir a conversa do whatsapp" (Bernardo 08/10): historico de todos os numeros do
      time, sai pelo numero do responsavel do card, com anexo (+), emoji, audio, agendamento
-     (relogio), Classificar (status do card) e o botao roxo que transfere o lead pra outro
-     vendedor. Master/gestor veem tudo; o vendedor ve os leads em que e responsavel e envia
+     (relogio), o vendedor no topo (transferir) e o botao roxo que muda o lead de etapa
+     (trocados em 08/10). Master/gestor veem tudo; o vendedor ve os leads em que e responsavel e envia
      so pelo proprio numero (a funcao wa-uazapi confere as duas coisas). */
   const LD={fone:'',nome:'',tarefa:'',chatid:'',por:'',perfil:'',fonePor:'',conectado:true,msgs:[],agendadas:[],vendedores:[],
             resp:[],nums:[],admin:false,eu:'',carregando:false,erro:'',enviando:false,arq:null,pop:'',rec:null,porFixo:false,iv:null};
@@ -439,7 +444,7 @@
     const ov=document.createElement('div'); ov.id='waLdOv';
     ov.style.cssText='position:fixed;inset:0;z-index:10600;background:rgba(0,0,0,.72);display:flex;align-items:stretch;justify-content:flex-end';
     ov.innerHTML='<div class="wald" id="waLd"><div class="wald-h" id="waLdHead"></div><div class="cv-msgs" id="waLdMsgs"></div>'+
-      '<button class="wald-tr" id="waLdTr" title="Transferir para outro vendedor" onclick="waLdPop(\'tr\',event)">'+IC.troca+'</button>'+
+      '<button class="wald-tr" id="waLdEt" title="Mudar de etapa" aria-label="Mudar de etapa" onclick="waLdPop(\'cl\',event)">'+IC.troca+'</button>'+
       '<div class="wald-pe" id="waLdPe"><div class="wald-por" id="waLdPor"></div><div class="wald-arq" id="waLdArq"></div>'+
       '<div class="wald-cx"><div class="wald-in" id="waLdIn">'+
         '<button class="wald-ib" title="Anexar foto, vídeo ou documento" onclick="waLdPop(\'mais\',event)">'+IC.mais+'</button>'+
@@ -456,9 +461,14 @@
   window.waLdFechar=()=>{ if(LD.rec) waLdRecCancelar(); clearInterval(LD.iv); LD.pop=''; const o=$('#waLdOv'); if(o) o.remove(); };
   function ldHead(){
     const t=LD.tarefa?tarefaDe(LD.tarefa):null;
+    /* topo mostra o vendedor do lead; quem pode transferir clica e escolhe outro (Bernardo 08/10:
+       "aquele ícone roxo deveria ser para transferir o lead de coluna… transferir o vendedor
+       teria que ser no outro lugar"). A etapa mudou pro botão roxo. */
     let cls='';
-    if(t&&typeof tkStatusDe==='function'){ const st=typeof tkStatus1==='function'?tkStatus1(t.status_id):null;
-      cls=`<button class="wald-cl" onclick="waLdPop('cl',event)"${st?` style="--c:${esc(st.cor)}"`:''}>${st?'<i></i>'+esc(st.nome):'Classificar'} ▾</button>`; }
+    const v=LD.vendedores.find(x=>LD.resp.includes(x.id));
+    if(t&&(v||ldPodeTr())){ const dentro=`<span class="wald-av sm">${esc(inicial(v?v.nome:'?'))}</span>${esc(v?v.nome:'Sem vendedor')}`;
+      cls=ldPodeTr()?`<button class="wald-cl wald-vd" title="Transferir para outro vendedor" onclick="waLdPop('tr',event)">${dentro} ▾</button>`
+        :`<span class="wald-cl wald-vd" title="Vendedor do lead">${dentro}</span>`; }
     const n=String(LD.fone).replace(/\D/g,'');
     return `<span class="wald-av">${esc(inicial(LD.nome||'?'))}</span>
       <div class="q"><div class="wald-nm" id="waLdNm"><b>${esc(LD.nome||fmtFone(LD.fone))}</b>${t?`<button class="wald-ib sm" title="Editar nome" onclick="waLdNome()">${IC.lapis}</button>`:''}</div>
@@ -527,7 +537,8 @@
         return `<button class="wald-mi" ${at?'disabled':''} onclick="waLdTransferir('${esc(v.id)}')"><span class="wald-av sm">${esc(inicial(v.nome))}</span>${esc(v.nome)}${at?'<small>atual</small>':''}</button>`; }).join('')+
       '<small class="wald-dica">O lead passa a ser de quem você escolher, e as próximas mensagens saem pelo WhatsApp dessa pessoa.</small>';
     else if(LD.pop==='cl'){ const t=tarefaDe(LD.tarefa), sts=t&&typeof tkStatusDe==='function'?tkStatusDe(t.lista_id):[];
-      p.innerHTML=sts.map(s=>`<button class="wald-mi${t.status_id===s.id?' on':''}" onclick="waLdStatus('${esc(s.id)}')"><i class="wald-dot" style="background:${esc(s.cor)}"></i>${esc(s.nome)}</button>`).join('')||'<small class="wald-dica">Essa lista não tem status.</small>'; }
+      p.innerHTML=sts.length?'<b>Mover para</b>'+sts.map(s=>`<button class="wald-mi${t.status_id===s.id?' on':''}" onclick="waLdStatus('${esc(s.id)}')"><i class="wald-dot" style="background:${esc(s.cor)}"></i>${esc(String(s.nome||'').replace(/^\d+\.\s*/,''))}${t.status_id===s.id?'<small>atual</small>':''}</button>`).join('')
+        :'<small class="wald-dica">Essa lista não tem etapas.</small>'; }
   }
   function ldMic(){
     const b=$('#waLdMic'), inp=$('#waLdIn'), rb=$('#waLdRec'), t=$('#waLdTexto'); if(!b) return;
@@ -547,10 +558,11 @@
     $('#waLdPor').innerHTML=ldPor();
     $('#waLdArq').innerHTML=ldArq();
     $('#waLdPe').style.display=(LD.carregando||LD.erro||!LD.chatid)?'none':'';
-    const tr=$('#waLdTr'), podeTr=!!(LD.tarefa&&LD.vendedores.length>1&&(LD.admin||LD.resp.includes(LD.eu)));
-    tr.style.display=podeTr?'':'none';
+    const t=LD.tarefa?tarefaDe(LD.tarefa):null;
+    $('#waLdEt').style.display=(t&&typeof tkStatusDe==='function'&&tkStatusDe(t.lista_id).length)?'':'none';
     ldPop(); ldMic();
   }
+  function ldPodeTr(){ return !!(LD.tarefa&&LD.vendedores.length>1&&(LD.admin||LD.resp.includes(LD.eu))); }
   window.waLdPop=(k,e)=>{ if(e) e.stopPropagation(); LD.pop=LD.pop===k?'':k; ldPop(); };
   window.waLdDe=(n)=>{ if(!LD.nums.includes(n)) return; LD.por=n; LD.porFixo=true; LD.perfil=''; LD.fonePor=''; LD.conectado=true; lembraDe(n); waLdPinta(); };
   window.waLdCresce=(t)=>{ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,140)+'px'; ldMic(); };
