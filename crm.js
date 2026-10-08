@@ -51,6 +51,26 @@ const ccNome=(tab,v)=>{ const r=(tab||[]).find(x=>x[0]===String(v||'')); return 
 const ccCor=(tab,v)=>{ const r=(tab||[]).find(x=>x[0]===String(v||'')); return r&&r[2]?r[2]:''; };
 CRM.cc={mes:'',sdr:'',status:'',de:'',ate:''};
 CRM.d.calls=[];
+/* base do Painel (Bernardo 08/10: "traz aquela mesma estrutura com a base duplicada pro CRM
+   de Sofás"): o mesmo Painel e o mesmo lançamento servem a mais de uma tabela. crm_calls e o
+   Comercial da agencia; sofas_calls e o CRM Sofás, com as calls dele, separadas. Cada base
+   guarda os proprios filtros e o mes. Quem desenha fora do Comercial passa o proprio pintar. */
+CRM.ccBase='crm_calls'; CRM.ccDados={}; CRM.ccEstado={}; CRM.ccPintarFora=null;
+const ccCalls=()=>CRM.ccBase==='crm_calls'?(CRM.d.calls||[]):(CRM.ccDados[CRM.ccBase]||[]);
+const ccPoe=(arr)=>{ if(CRM.ccBase==='crm_calls') CRM.d.calls=arr; else CRM.ccDados[CRM.ccBase]=arr; };
+const ccPintar=()=>{ if(CRM.ccBase!=='crm_calls'&&CRM.ccPintarFora) CRM.ccPintarFora(); else crmPintar(); };
+window.ccUsar=(base,pintar)=>{
+  if(base===CRM.ccBase){ if(pintar) CRM.ccPintarFora=pintar; return; }
+  CRM.ccEstado[CRM.ccBase]=CRM.cc;
+  CRM.cc=CRM.ccEstado[base]||{mes:'',sdr:'',status:'',de:'',ate:''};
+  CRM.ccBase=base; CRM.ccPintarFora=pintar||null;
+};
+/* carrega a base de fora do Comercial; devolve false se a tabela nao respondeu */
+window.ccCarregarBase=async (base)=>{
+  const r=await sb.from(base).select('*').order('data',{ascending:false}).limit(5000);
+  if(r.error) return false;
+  CRM.ccDados[base]=r.data||[]; return true;
+};
 
 /* ---------- permissões ---------- */
 const crmPode=()=>!!(currentUser&&(currentUser.role==='master'||currentUser.papel_crm));
@@ -221,6 +241,7 @@ const CRM_EXT={fechamento:'renderFechamento',contratos:'renderContratos',leads:'
 /* ---------- render principal ---------- */
 window.crmAba=(a)=>{ CRM.aba=a; crmPintar(); };
 window.crmRender=function(c,viewPedida){
+  ccUsar('crm_calls');
   if(!crmPode()){ c.innerHTML='<div class="empty">Acesso restrito ao time comercial. Peça ao administrador para liberar seu papel no CRM.</div>'; return; }
   const v=String(viewPedida||''); const mOpp=v.match(/^funil\/opp\/([0-9a-f-]{36})/);
   if(mOpp){ CRM.sel=mOpp[1]; }
@@ -828,22 +849,22 @@ const CC_MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','a
 function ccMesNome(){ const [y,m]=ccMes().split('-').map(Number);
   const n=CC_MESES[m-1]||''; return n.charAt(0).toUpperCase()+n.slice(1)+' '+y; }
 window.ccPular=(n)=>{ const [y,m]=ccMes().split('-').map(Number); const d=new Date(y,m-1+n,1);
-  CRM.cc.mes=crmIsoLocal(d).slice(0,7); crmPintar(); };
+  CRM.cc.mes=crmIsoLocal(d).slice(0,7); ccPintar(); };
 window.ccIrMes=(qual,v)=>{ const [y,m]=ccMes().split('-').map(Number);
-  CRM.cc.mes=(qual==='m'? y+'-'+String(+v).padStart(2,'0') : v+'-'+String(m).padStart(2,'0')); crmPintar(); };
-const ccDoMes=()=>(CRM.d.calls||[]).filter(c=>String(c.data||'').slice(0,7)===ccMes());
+  CRM.cc.mes=(qual==='m'? y+'-'+String(+v).padStart(2,'0') : v+'-'+String(m).padStart(2,'0')); ccPintar(); };
+const ccDoMes=()=>ccCalls().filter(c=>String(c.data||'').slice(0,7)===ccMes());
 const ccNum=(v)=>Number(v||0);
 /* quem aparece nos seletores: quem ja foi lançado + a equipe com papel no CRM.
    A planilha tem gente sem login aqui, entao o nome e texto, nao id. */
 function ccPessoas(){
   const s=new Set();
-  (CRM.d.calls||[]).forEach(c=>{ if(c.sdr) s.add(c.sdr); if(c.closer) s.add(c.closer); });
+  ccCalls().forEach(c=>{ if(c.sdr) s.add(c.sdr); if(c.closer) s.add(c.closer); });
   crmSdrs().concat(crmClosers()).forEach(p=>s.add(p.nome.split(' ')[0]));
   return [...s].filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR'));
 }
 /* anos que aparecem no seletor: os que tem call + o corrente */
 function ccAnos(){
-  const s=new Set((CRM.d.calls||[]).map(c=>String(c.data||'').slice(0,4)).filter(Boolean));
+  const s=new Set(ccCalls().map(c=>String(c.data||'').slice(0,4)).filter(Boolean));
   s.add(String(new Date().getFullYear())); s.add(ccMes().slice(0,4));
   return [...s].sort().reverse();
 }
@@ -929,11 +950,11 @@ function ccPainelHTML(){
 }
 
 /* ---------- CALLS (lançamento) ---------- */
-window.ccFiltro=(k,v)=>{ CRM.cc[k]=v; crmPintar(); };
-window.ccLimpar=()=>{ CRM.cc={mes:CRM.cc.mes,sdr:'',status:'',de:'',ate:''}; crmPintar(); };
+window.ccFiltro=(k,v)=>{ CRM.cc[k]=v; ccPintar(); };
+window.ccLimpar=()=>{ CRM.cc={mes:CRM.cc.mes,sdr:'',status:'',de:'',ate:''}; ccPintar(); };
 function ccFiltradas(){
   const f=CRM.cc;
-  return (CRM.d.calls||[]).filter(c=>{
+  return ccCalls().filter(c=>{
     if(f.sdr&&c.sdr!==f.sdr) return false;
     if(f.status&&c.status_lead!==f.status) return false;
     const d=String(c.data||'');
@@ -943,7 +964,7 @@ function ccFiltradas(){
   });
 }
 function ccCallsHTML(){
-  const todas=CRM.d.calls||[], vis=ccFiltradas();
+  const todas=ccCalls(), vis=ccFiltradas();
   const ativos=['sdr','status','de','ate'].filter(k=>CRM.cc[k]).length;
   /* so o status do lead vira pilula; o da call e texto, como no painel original */
   const pil=(v)=>{ const n=ccNome(CC_LEAD,v); return n?`<span class="pc-pill ${ccCor(CC_LEAD,v)}">${esc(n)}</span>`:'<span class="pc-vazio">-</span>'; };
@@ -992,7 +1013,7 @@ window.ccTog=(el)=>{
 
 /* ---------- modal de lançamento ---------- */
 window.crmCallModal=(id)=>{
-  const c=(CRM.d.calls||[]).find(x=>String(x.id)===String(id))||{};
+  const c=ccCalls().find(x=>String(x.id)===String(id))||{};
   const novo=!c.id;
   const opt=(tab,v)=>tab.map(o=>`<option value="${esc(o[0])}"${String(v||'')===o[0]?' selected':''}>${esc(o[1])}</option>`).join('');
   const pessoas=ccPessoas();
@@ -1056,25 +1077,26 @@ window.crmCallModal=(id)=>{
     };
     if(!row.data){ toast('Informe a data da call.'); return false; }
     if(novo) row.criado_por=(currentUser||{}).id||null;
-    const r=novo ? await sb.from('crm_calls').insert(row).select().single()
-                 : await sb.from('crm_calls').update(row).eq('id',c.id).select().single();
+    const r=novo ? await sb.from(CRM.ccBase).insert(row).select().single()
+                 : await sb.from(CRM.ccBase).update(row).eq('id',c.id).select().single();
     if(r.error){ toast('Erro: '+r.error.message); return false; }
-    if(novo) CRM.d.calls.unshift(r.data);
-    else { const i=CRM.d.calls.findIndex(x=>String(x.id)===String(c.id)); if(i>=0) CRM.d.calls[i]=r.data; }
-    CRM.d.calls.sort((a,b)=>String(b.data).localeCompare(String(a.data)));
-    toast(novo?'Call lançada.':'Call atualizada.'); crmPintar(); return true;
+    const lista=ccCalls().slice();
+    if(novo) lista.unshift(r.data);
+    else { const i=lista.findIndex(x=>String(x.id)===String(c.id)); if(i>=0) lista[i]=r.data; }
+    lista.sort((a,b)=>String(b.data).localeCompare(String(a.data))); ccPoe(lista);
+    toast(novo?'Call lançada.':'Call atualizada.'); ccPintar(); return true;
   });
 };
 window.ccExcluir=async (id)=>{
-  const c=(CRM.d.calls||[]).find(x=>String(x.id)===String(id))||{};
+  const c=ccCalls().find(x=>String(x.id)===String(id))||{};
   const ok=await confirmar('Excluir esta call?',
     `${c.lead?c.lead+' · ':''}${c.empresa||''}${c.data?' · '+fmtDate(String(c.data).slice(0,10)):''}. Ela sai do Painel e das contas do mês. Não dá para desfazer.`,
     {sim:'Sim, excluir',nao:'Não'});
   if(!ok) return;
-  const {error}=await sb.from('crm_calls').delete().eq('id',id);
+  const {error}=await sb.from(CRM.ccBase).delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
-  CRM.d.calls=CRM.d.calls.filter(x=>String(x.id)!==String(id));
-  toast('Call excluída.'); crmPintar();
+  ccPoe(ccCalls().filter(x=>String(x.id)!==String(id)));
+  toast('Call excluída.'); ccPintar();
 };
 
 /* boot: se a tela do funil já estava aberta quando este arquivo carregou, redesenha */
