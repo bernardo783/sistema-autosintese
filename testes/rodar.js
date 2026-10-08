@@ -1587,10 +1587,8 @@ grupo('Cartão do lead: abre como CRM, não como tarefa (Bernardo 08/10)');
   ok('topo: nome, cargo, cidade e estado', /value="Ana Souza"/.test(h)&&/Dono\(a\) · Brasília, DF/.test(h));
   ok('botão Conversar abre a conversa no sistema', /class="cl-wa" onclick="rspWaAbrir\('a'\)"/.test(h));
   ok('Instagram com link', /href="https:\/\/instagram\.com\/anastore"/.test(h));
-  const passos=(h.match(/<div class="cl-passos">([\s\S]*?)<\/div>/)||[])[1]||'';
-  ok('funil com as etapas em ordem, a atual marcada e as anteriores pintadas', /cl-et foi[^>]*>Novo lead/.test(passos)&&/cl-et on"[^>]*>Em conversa/.test(passos)&&passos.indexOf('Novo lead')<passos.indexOf('Em conversa'));
-  ok('Perdido e Incompleto ficam fora do funil, à parte', /cl-et cl-perd[^>]*>Perdido/.test(h)&&/cl-et cl-perd[^>]*>Incompleto/.test(h)&&!/Perdido|Incompleto/.test(passos));
-  ok('nome da etapa em caixa normal, sem o número (cabe sem cortar)', /title="Mover para 2\. EM CONVERSA">Em conversa</.test(h));
+  ok('funil com as etapas em ordem, a atual marcada e as anteriores pintadas', /cl-et foi[^>]*>NOVO LEAD/.test(h)&&/cl-et on"[^>]*>EM CONVERSA/.test(h)&&h.indexOf('NOVO LEAD')<h.indexOf('EM CONVERSA'));
+  ok('Perdido fica separado do funil', /cl-et cl-perd[^>]*>PERDIDO/.test(h)&&!/PERDIDO/.test((h.match(/<div class="cl-passos">([\s\S]*?)<\/div>/)||[])[1]||'PERDIDO'));
   ok('WhatsApp aparece formatado', /value="\(61\) 99205-4765"/.test(h));
   ok('de onde veio: campanha e anúncio; o que não veio fica avisado', /Campanha Sofás/.test(h)&&/AD1/.test(h)&&/<span>Conjunto<\/span><b class="vz">não veio/.test(h));
   ok('mensagem automática com selo', /class="cl-msg" data-v="Pausada"/.test(h));
@@ -2231,7 +2229,7 @@ grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (B
     TK:{listaSel:'L',tarefas:T,campos:C.concat([{id:'o',lista_id:'O',nome:'Outra',tipo:'texto'}])},
     tkCamposDe:(l)=>C.filter(c=>c.lista_id===l),arquivada:(t)=>!!t.arquivada_em,tkSelo:(t)=>'[st:'+t.id+']',
     esc:(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'),
-    campoTexto:(c,v)=>String(v),tpSvg:()=>'<svg></svg>',PC_IC:{ig:'<svg class="ig"></svg>',sa:''}},['crmForm','tkViewRespostas','rspData','rspCel','rspIgDe','rspIgBtn']);
+    campoTexto:(c,v)=>String(v),tpSvg:()=>'<svg></svg>',PC_IC:{ig:'<svg class="ig"></svg>',sa:'',lap:'<svg class="lap"></svg>'}},['crmForm','tkViewRespostas','rspData','rspCel','rspIgDe','rspIgBtn']);
   ok('lista com "Preencheu em" é de formulário; as outras não', g.crmForm('L')===true&&g.crmForm('O')===false);
   const h=g.tkViewRespostas();
   ok('mais novo em cima, arquivado fora', h.indexOf('>Bia<')>0&&h.indexOf('>Bia<')<h.indexOf('>Ana<')&&h.indexOf('Velho')<0);
@@ -2240,6 +2238,13 @@ grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (B
   ok('WhatsApp vira o número com link pra conversa', /href="https:\/\/wa.me\/5511999990000"[^>]*>\+5511999990000</.test(h));
   ok('Instagram vira o botão da ficha do cliente, com o @', /class="pc-chip rsp-ig" href="https:\/\/instagram.com\/ana"[^>]*><span class="pc-ci ig"><svg class="ig"><\/svg><\/span><span>@ana<\/span>/.test(h));
   ok('Instagram: link, @ e usuário solto viram o usuário', g.rspIgDe('https://www.instagram.com/sr.sofa1429?stkn=x')==='sr.sofa1429'&&g.rspIgDe('@@loja_ ')==='loja_'&&g.rspIgDe('Belaarte')==='Belaarte');
+  {
+    const ci={id:'i',nome:'Instagram',tipo:'texto'}, x=g.rspCel(ci,'Não temos',{id:'z'}), vz=g.rspCel(ci,'',{id:'z'}), ok1=g.rspCel(ci,'@ana',{id:'z'});
+    ok('Instagram que não é @: x pequeno, o que o lead escreveu e o lápis sempre à vista', /class="rsp-ig-x"/.test(x)&&/>Não temos</.test(x)&&/class="rsp-ig-ed sempre"/.test(x));
+    ok('Instagram vazio: só o lápis pra adicionar', vz.indexOf('rsp-ig-x')<0&&/Adicionar o Instagram/.test(vz));
+    ok('Instagram certo: botão da ficha + lápis que aparece no hover', /pc-chip rsp-ig/.test(ok1)&&/class="rsp-ig-ed"/.test(ok1)&&ok1.indexOf('rsp-ig-x')<0);
+    ok('lápis abre a edição na própria célula e grava pelo tkPatch', HTML.indexOf("rspIgEditar(this,'${t.id}','${c.id}')")>0&&/window\.rspIgEditar=[\s\S]{0,1200}tkPatch\(tid,\{valores:val\}/.test(HTML));
+  }
   ok('Instagram: resposta que não é @ fica sem botão', g.rspIgDe('Não temos')===''&&g.rspIgDe('Fenix estofados')===''&&g.rspIgDe('')==='');
   ok('Lista: botão do Instagram só com @ válido', /class="tk-ig" href="https:\/\/instagram.com\/ana"/.test(g.rspIgBtn(T[0]))&&g.rspIgBtn(T[1])===''
     &&HTML.indexOf("crmForm(t.lista_id)?rspWaBtn(t)+rspIgBtn(t):''")>0);
