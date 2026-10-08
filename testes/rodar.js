@@ -1630,6 +1630,20 @@ grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernar
   ok('CRM Sofás só em Respostas: sem Lista e sem Quadro, Painel ao lado', /const CRM_SO_RESP=Object\.fromEntries\(CRM_FORMS\.map\(f=>\[f\.lista,1\]\)\);/.test(HTML)&&/:soResp\?\[\['tabela',tpSvg\('tabela',14\)\+'Respostas'\],\.\.\.\(pnl\?/.test(HTML)&&/if\(soResp&&TK\.visao!=='tabela'&&TK\.visao!=='painel'(&&TK\.visao!=='anuncios')?\) TK\.visao='tabela';/.test(HTML));
   ok('Fechamento: lead de origem (CRMs de formulário) vai pro fechamento', /id="fc_lead"/.test(HTML)&&/leadId:leadO\.id/.test(HTML)&&/fcLeadsCarregar\(\);/.test(HTML));
   ok('CRM de formulário: Anúncios é uma lista na árvore de cada CRM', /if\(view==='crm-anuncios'\) return renderCrmAnuncios\(c\);/.test(HTML)&&/const CRM_ANUNCIOS=\{/.test(HTML)&&HTML.indexOf("['anuncios',tpSvg('megafone',14)")<0);
+  /* busca de BM e de conta por nome ou ID, sem rolar a lista (Bernardo 08/10) */
+  {
+    const corte=(x,y)=>{ const i=HTML.indexOf(x), k=HTML.indexOf(y,i); return HTML.slice(i,k); };
+    const code=[corte('const anuNorm=','\n'),corte('const ANU={','\n'),corte('const ANU_ST_CONTA=','window.anuBm=')].join('\n');
+    const esc=(s)=>String(s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const A=new Function('esc','document','window',code+';return {ANU,anuPopHTML};')(esc,{},{});
+    A.ANU.bms=[{id:'1401858496860240',nome:'Síntese - Matriz Captação',contas:1,ct:[{id:'act_555',nome:'AMC ESTOFADOS'}]},{id:'2',nome:'Moto Shop',contas:2,ct:[]}];
+    const vis=(q,k)=>{ A.ANU.popQ=q; return (A.anuPopHTML(k||'bm','L').match(/<button[^>]*class="anu-op[^"]*"(?![^>]*hidden)[^>]*>/g)||[]).length; };
+    ok('BM: a busca aparece sempre, fixa no topo da lista', /anu-pop-busca/.test(A.anuPopHTML('bm','L'))&&/\.anu-pop-top\{position:sticky/.test(HTML));
+    ok('BM: acha pelo nome sem acento, pelo ID e pelo nome ou ID da conta', vis('sintese')===1&&vis('1401858')===1&&vis('amc')===1&&vis('act_555')===1&&vis('555')===1&&vis('')===2);
+    ok('BM: sem resultado avisa', vis('zzz')===0&&/Nada com esse nome ou ID/.test(A.anuPopHTML('bm','L')));
+    A.ANU.cfg.L={bm_id:'2',bm_nome:'Moto Shop'}; A.ANU.bmContas['2']=[{id:'act_9',nome:'Conta A',status:1},{id:'act_10',nome:'Conta B',status:1}];
+    ok('contas: a mesma busca, por nome ou ID', vis('conta b','contas')===1&&vis('act_9','contas')===1&&vis('','contas')===2);
+  }
   ok('no topo do CRM Sofás some o ícone da Lista e o do Quadro', /\$\{soBoard\|\|\(TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\)\?'':tpIb\('lista'/.test(HTML)&&/\$\{TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\?'':tpIb\('quadro'/.test(HTML));
   ok('crm.js com cache novo', HTML.indexOf('crm.js?v=29')>0);
 }

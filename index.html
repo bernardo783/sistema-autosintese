@@ -3217,7 +3217,9 @@
   .anu-op .ck{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--fraco);display:grid;place-items:center;flex:none;font-size:10px;color:transparent}
   .anu-op.on .ck{background:var(--brand);border-color:var(--brand);color:#fff}
   .anu-op-msg{padding:10px;font-size:12.5px;color:var(--muted);line-height:1.45}
-  .anu-pop-busca{width:calc(100% - 12px);margin:2px 6px 6px}
+  /* busca fixa no topo da lista (Bernardo 08/10: "tem que ficar rolando pra baixo"): nome ou ID da BM e das contas */
+  .anu-pop-top{position:sticky;top:-6px;z-index:1;background:var(--panel);margin:-6px -6px 4px;padding:6px 6px 4px;border-bottom:1px solid var(--line)}
+  .anu-pop-busca{width:100%;box-sizing:border-box;margin:0}
   .anu-op[hidden]{display:none}
   .anu-vazio{margin-top:8px}
   .anu-cash{margin-bottom:12px}
@@ -10774,7 +10776,8 @@ const CRM_ANUNCIOS={'f1e2d3c4-0000-4a00-8b00-00000000d021':'2e85f701-0616-4b74-9
   'f1e2d3c4-0000-4a00-8b00-00000000d022':'b4169319-1cf1-4d7a-8520-5ffcad09e21f','f1e2d3c4-0000-4a00-8b00-00000000d023':'ae902b26-00d3-4495-a7e0-9914f2754fd9'};
 if(typeof LTEL!=='undefined') Object.assign(LTEL,Object.fromEntries(Object.keys(CRM_ANUNCIOS).map(k=>[k,'crm-anuncios'])));
 const anuLid=()=>CRM_ANUNCIOS[TK.listaSel]||TK.listaSel;
-const anuPintar=()=>{ if(typeof currentView!=='undefined'&&currentView==='crm-anuncios') renderCrmAnuncios(); else if(TK.visao==='anuncios') tkDesenhar($('#content')); };
+const anuPintar=()=>{ if(typeof currentView!=='undefined'&&currentView==='crm-anuncios') renderCrmAnuncios(); else if(TK.visao==='anuncios') tkDesenhar($('#content'));
+  if(ANU.pop) setTimeout(anuPopFoco,0); };
 function renderCrmAnuncios(c){
   c=c||$('#content'); if(!c) return;
   const cab=`<div class="page-head tp-head"><div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>Anúncios</h2></div></div></div>`;
@@ -10782,7 +10785,7 @@ function renderCrmAnuncios(c){
   if(!anuPode(anuLid())){ c.innerHTML=cab+'<div class="empty">Anúncios é do master e do time deste CRM.</div>'; return; }
   c.innerHTML=cab+anuView();
 }
-const ANU={cfg:{},cfgLido:{},bms:null,bmContas:{},dados:{},erro:{},carregando:{},per:'last_30d',st:'ativos',q:'',pop:'',ad:null,aba:'leads'};
+const ANU={cfg:{},cfgLido:{},bms:null,bmContas:{},dados:{},erro:{},carregando:{},per:'last_30d',st:'ativos',q:'',pop:'',popQ:'',ad:null,aba:'leads'};
 const ANU_PER=[['last_7d','Últimos 7 dias',7],['last_30d','Últimos 30 dias',30],['last_90d','Últimos 90 dias',90],['this_month','Este mês'],['last_month','Mês passado'],['maximum','Desde o início']];
 const ANU_STS=[['ativos','Só ativos'],['todos','Ativos e pausados'],['pausados','Só pausados']];
 const anuPode=(lid)=>crmPainelPode(lid);
@@ -10947,7 +10950,7 @@ function anuCorpo(lid){
 window.anuGradeRepintar=()=>{ const el=document.getElementById('anuCorpo'); if(el) el.innerHTML=anuCorpo(anuLid()); };
 /* ---------- BM e contas (só master troca) ---------- */
 window.anuPop=(ev,id)=>{ ev.stopPropagation(); if(!anuMaster()) return;
-  ANU.pop=ANU.pop===id?'':id; const lid=anuLid();
+  ANU.pop=ANU.pop===id?'':id; ANU.popQ=''; const lid=anuLid();
   if(ANU.pop==='bm'&&!ANU.bms) anuMeta('/bms').then(r=>{ ANU.bms=r&&r.ok?r.bms:{erro:(r&&r.erro)||'falhou'}; anuRepintar(); });
   const bm=(ANU.cfg[lid]||{}).bm_id;
   if(ANU.pop==='contas'&&bm&&!ANU.bmContas[bm]) anuMeta('/bm-contas/'+encodeURIComponent(bm)).then(r=>{ ANU.bmContas[bm]=r&&r.ok?r.contas:{erro:(r&&r.erro)||'falhou'}; anuRepintar(); });
@@ -10958,16 +10961,26 @@ function anuPopHTML(id,lid){
   const cfg=ANU.cfg[lid]||{};
   const erro=(e)=>`<div class="anu-op-msg">A Meta respondeu: ${esc(e)}<br>O acesso do sistema à BM precisa da permissão de gerenciar negócios.</div>`;
   if(id==='bm'){ const L=ANU.bms;
-    return `<div class="anu-pop" onclick="event.stopPropagation()"><div class="anu-ph">Business Manager</div>${!L?'<div class="anu-op-msg">Buscando as BMs…</div>':L.erro?erro(L.erro)
-      :L.length?(L.length>8?`<input class="search anu-pop-busca" placeholder="Buscar BM…" oninput="anuPopFiltrar(this)" onclick="event.stopPropagation()">`:'')+L.map(b=>`<button type="button" class="anu-op${cfg.bm_id===b.id?' on':''}" data-n="${esc(anuNorm(b.nome))}" onclick="anuBm('${esc(b.id)}')"><span class="rd"></span><span class="gr">${esc(b.nome)}<small>${b.contas?b.contas+' conta'+(b.contas===1?'':'s')+' de anúncio':esc(b.id)}</small></span></button>`).join('')
+    return `<div class="anu-pop" onclick="event.stopPropagation()"><div class="anu-pop-top"><div class="anu-ph">Business Manager</div>${L&&!L.erro&&L.length?anuPopBusca('BM ou conta: nome ou ID'):''}</div>${!L?'<div class="anu-op-msg">Buscando as BMs…</div>':L.erro?erro(L.erro)
+      :L.length?L.map(b=>`<button type="button" class="anu-op${cfg.bm_id===b.id?' on':''}" data-n="${esc(anuNorm([b.nome,b.id,...(b.ct||[]).flatMap(c=>[c.nome,c.id])].join(' ')))}"${anuPopEsconde([b.nome,b.id,...(b.ct||[]).flatMap(c=>[c.nome,c.id])])} onclick="anuBm('${esc(b.id)}')"><span class="rd"></span><span class="gr">${esc(b.nome)}<small>${b.contas?b.contas+' conta'+(b.contas===1?'':'s')+' de anúncio':esc(b.id)}</small></span></button>`).join('')+ANU_POP_NADA
       :'<div class="anu-op-msg">O sistema não enxerga nenhuma BM.</div>'}</div>`; }
   const L=cfg.bm_id?ANU.bmContas[cfg.bm_id]:[], sel=(cfg.contas||[]).map(c=>c.id);
-  return `<div class="anu-pop" onclick="event.stopPropagation()"><div class="anu-ph">Contas de anúncio${cfg.bm_nome?' · '+esc(cfg.bm_nome):''}</div>${!cfg.bm_id?'<div class="anu-op-msg">Escolha a BM primeiro.</div>':!L?'<div class="anu-op-msg">Buscando as contas…</div>':L.erro?erro(L.erro)
-    :L.length?L.map(c=>`<button type="button" class="anu-op${sel.includes(c.id)?' on':''}" onclick="anuConta('${esc(c.id)}')"><span class="ck">✓</span><span class="gr">${esc(c.nome)}<small>${esc(c.id)} · ${ANU_ST_CONTA[c.status]||'status '+c.status}</small></span></button>`).join('')
+  return `<div class="anu-pop" onclick="event.stopPropagation()"><div class="anu-pop-top"><div class="anu-ph">Contas de anúncio${cfg.bm_nome?' · '+esc(cfg.bm_nome):''}</div>${cfg.bm_id&&L&&!L.erro&&L.length?anuPopBusca('Nome ou ID da conta'):''}</div>${!cfg.bm_id?'<div class="anu-op-msg">Escolha a BM primeiro.</div>':!L?'<div class="anu-op-msg">Buscando as contas…</div>':L.erro?erro(L.erro)
+    :L.length?L.map(c=>`<button type="button" class="anu-op${sel.includes(c.id)?' on':''}" data-n="${esc(anuNorm(c.nome+' '+c.id))}"${anuPopEsconde([c.nome,c.id])} onclick="anuConta('${esc(c.id)}')"><span class="ck">✓</span><span class="gr">${esc(c.nome)}<small>${esc(c.id)} · ${ANU_ST_CONTA[c.status]||'status '+c.status}</small></span></button>`).join('')+ANU_POP_NADA
     :'<div class="anu-op-msg">Essa BM não tem contas de anúncio.</div>'}</div>`;
 }
 /* 58 BMs pelo token de sistema (08/10): a busca só esconde o que não bate, sem redesenhar o popover */
-window.anuPopFiltrar=(inp)=>{ const q=anuNorm(inp.value); inp.parentNode.querySelectorAll('.anu-op').forEach(o=>{ o.hidden=!!q&&!String(o.dataset.n||'').includes(q); }); };
+/* o texto da busca mora em ANU.popQ: a lista que chega depois (BMs, contas) já vem filtrada e o cursor volta pra caixa */
+const ANU_POP_NADA='<div class="anu-op-msg anu-pop-nada" hidden>Nada com esse nome ou ID.</div>';
+const anuPopBusca=(ph)=>`<input class="search anu-pop-busca" placeholder="${ph}" value="${esc(ANU.popQ||'')}" oninput="anuPopFiltrar(this)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Escape'){ANU.pop='';anuPintar();}">`;
+/* ID digitado com ou sem "act_" casa do mesmo jeito (o texto já contém o id inteiro) */
+const anuPopEsconde=(campos)=>{ const q=anuNorm(ANU.popQ||'').replace(/^act_/,''); return q&&!anuNorm(campos.join(' ')).includes(q)?' hidden':''; };
+window.anuPopFiltrar=(inp)=>{ ANU.popQ=inp.value; const q=anuNorm(inp.value).replace(/^act_/,''), pop=inp.closest('.anu-pop'); let n=0;
+  pop.querySelectorAll('.anu-op').forEach(o=>{ o.hidden=!!q&&!String(o.dataset.n||'').includes(q); if(!o.hidden) n++; });
+  const nada=pop.querySelector('.anu-pop-nada'); if(nada) nada.hidden=n>0; };
+const anuPopFoco=()=>{ if(!ANU.pop) return; const i=document.querySelector('.anu-pop .anu-pop-busca'); if(!i||document.activeElement===i) return;
+  i.focus(); const n=i.value.length; try{ i.setSelectionRange(n,n); }catch(_){}
+  const nada=i.closest('.anu-pop').querySelector('.anu-pop-nada'); if(nada) nada.hidden=!!i.closest('.anu-pop').querySelector('.anu-op:not([hidden])')||!ANU.popQ; };
 window.anuBm=(id)=>{ const lid=anuLid(), b=(ANU.bms||[]).find(x=>x.id===id); if(!b) return;
   const cfg=ANU.cfg[lid]||{}; ANU.pop='';
   if(cfg.bm_id===id){ anuPintar(); return; }
