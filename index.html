@@ -9870,10 +9870,11 @@ const tkSelo=(t)=>{
    Lista e Quadro continuam no seletor. */
 const RSP_DATA='Preencheu em';
 const crmForm=(lid)=>!!lid&&(TK.campos||[]).some(k=>k.lista_id===lid&&k.nome===RSP_DATA);
-/* CRM Sofás só em Lista (Bernardo 08/10: "só no crm de sofá deixa só o formato de lista"):
-   sem Respostas e sem Quadro; o Painel (calls e métricas) continua ao lado */
-const CRM_SO_LISTA={'2e85f701-0616-4b74-9732-6ebfeba016b8':1};
-const crmSoLista=(lid)=>!!lid&&!!CRM_SO_LISTA[lid];
+/* CRM Sofás só em Respostas (Bernardo 08/10, com print da planilha: "deixa essa única opção de
+   visualização"): a planilha é a única visão, agrupada por etapa estilo ClickUp; sem Lista e sem
+   Quadro. O Painel (calls e métricas) continua ao lado. Antes (mesmo dia) era só a Lista. */
+const CRM_SO_RESP={'2e85f701-0616-4b74-9732-6ebfeba016b8':1};
+const crmSoResp=(lid)=>!!lid&&!!CRM_SO_RESP[lid];
 /* responsável no CRM de formulário (Bernardo 08/10: "no sistema de sofás, a aba responsáveis só pode
    ter José Carlos, Bernardo, Luana e Kennedy"). A Luana ainda não tem login: entra sozinha, pelo
    primeiro nome, quando for criada em Usuários. */
@@ -11903,11 +11904,11 @@ function tkDesenharTela(c){
   if(!form&&TK.visao==='tabela') TK.visao='lista';
   const pnl=TK.escopo==='lista'&&crmPainelPode(TK.listaSel);
   if(!pnl&&TK.visao==='painel') TK.visao='lista';
-  const soLst=TK.escopo==='lista'&&crmSoLista(TK.listaSel);
-  if(soLst&&TK.visao!=='lista'&&TK.visao!=='painel') TK.visao='lista';
+  const soResp=form&&crmSoResp(TK.listaSel);
+  if(soResp&&TK.visao!=='tabela'&&TK.visao!=='painel') TK.visao='tabela';
   const visoes=soBoard?[['board',PCX_I.quadro+'Quadro']]
     :cli?[['lista',PCX_I.lista+'Lista']]
-    :soLst?[['lista',PCX_I.lista+'Lista'],...(pnl?[['painel',tpSvg('painel',14)+'Painel']]:[])]
+    :soResp?[['tabela',tpSvg('tabela',14)+'Respostas'],...(pnl?[['painel',tpSvg('painel',14)+'Painel']]:[])]
     :[...(form?[['tabela',tpSvg('tabela',14)+'Respostas']]:[]),['lista',PCX_I.lista+'Lista'],['board',PCX_I.quadro+'Quadro'],...(pnl?[['painel',tpSvg('painel',14)+'Painel']]:[])];
   const nArq=TK.escopo==='lista'?tkArquivadasDa(TK.listaSel).length:0;
   const ordBtn=(TK.escopo==='lista'&&TK.visao==='lista')
@@ -12002,10 +12003,10 @@ function tpDireita(soBoard){
       :tpIb('lupa','Buscar',"TK.tpBusca=true;TK.focoBusca=true;tkDesenhar($('#content'))")}
     ${tpIb('funil','Filtrar','tkPopFiltro(event)',nF>0,nF||'')}
     ${tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}
-    ${crmForm(TK.listaSel)&&TK.escopo==='lista'&&!crmSoLista(TK.listaSel)?tpIb('tabela','Respostas',"tkArqVista(false);tkVisao('tabela')",TK.visao==='tabela'&&!TK.arqVista):''}
+    ${crmForm(TK.listaSel)&&TK.escopo==='lista'?tpIb('tabela','Respostas',"tkArqVista(false);tkVisao('tabela')",TK.visao==='tabela'&&!TK.arqVista):''}
     ${TK.escopo==='lista'&&crmPainelPode(TK.listaSel)?tpIb('painel','Painel',"tkArqVista(false);tkVisao('painel')",TK.visao==='painel'&&!TK.arqVista):''}
-    ${soBoard?'':tpIb('lista','Lista',"tkArqVista(false);tkVisao('lista')",TK.visao==='lista'&&!TK.arqVista)}
-    ${TK.escopo==='lista'&&crmSoLista(TK.listaSel)?'':tpIb('quadro','Quadro',"tkArqVista(false);tkVisao('board')",TK.visao==='board'&&!TK.arqVista)}
+    ${soBoard||(TK.escopo==='lista'&&crmSoResp(TK.listaSel))?'':tpIb('lista','Lista',"tkArqVista(false);tkVisao('lista')",TK.visao==='lista'&&!TK.arqVista)}
+    ${TK.escopo==='lista'&&crmSoResp(TK.listaSel)?'':tpIb('quadro','Quadro',"tkArqVista(false);tkVisao('board')",TK.visao==='board'&&!TK.arqVista)}
     ${tpIb('pts','Mais opções','tpMais(event)',!!TK.arqVista)}
     <button type="button" class="tp-mais" title="Nova tarefa" aria-label="Nova tarefa" onclick="tkAbrir()" ${TK.listaSel||TK.escopo!=='lista'?'':'disabled'}>${tpSvg('mais')}</button>
   </div>`;
@@ -12549,7 +12550,7 @@ window.tkSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; tkDesenhar($('#cont
    iguais pareciam configuradas diferente. */
 const VIS_KEY='tk_visao_lista';
 let VIS={}; try{ VIS=JSON.parse(localStorage.getItem(VIS_KEY)||'{}')||{}; }catch(_){ VIS={}; }
-const visaoPadrao=(id)=>id===LC_ID?'lista':crmSoLista(id)?'lista':(crmForm(id)?'tabela':(tkStatusDe(id).length>=4?'board':'lista'));
+const visaoPadrao=(id)=>id===LC_ID?'lista':crmSoResp(id)?'tabela':(crmForm(id)?'tabela':(tkStatusDe(id).length>=4?'board':'lista'));
 /* Controle de Clientes passa a abrir em Lista (visão B, Gabriel 23/09): uma vez só, desfaz o Board guardado */
 try{ if(!localStorage.getItem('lc_funil_v1')){ const _v=JSON.parse(localStorage.getItem('tk_visao_lista')||'{}')||{};
   delete _v['a0009b64-6847-4477-be46-3dade84d5409']; localStorage.setItem('tk_visao_lista',JSON.stringify(_v)); localStorage.setItem('lc_funil_v1','1'); } }catch(_){}
