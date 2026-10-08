@@ -3030,6 +3030,108 @@
   /* Painel do CRM de formulario (Bernardo 08/10): o mesmo do Comercial, dentro da lista */
   .crm-pn{margin-top:4px}
   .crm-pn-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:10px}
+  /* ---------- Anúncios do CRM (Bernardo 08/10): mesma família do Painel (.pc-*) ---------- */
+  .anu-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 16px}
+  .anu-chip-w{position:relative}
+  .anu-chip{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:7px 11px;font-size:13px;font-weight:600;max-width:280px}
+  .anu-chip:hover,.anu-chip.on{border-color:var(--brand)}
+  .anu-chip small{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .anu-chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .anu-chip i{font-style:normal;color:var(--muted)}
+  .anu-chip b{font-size:10px;color:var(--muted);font-weight:600}
+  .anu-sel{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 12px;font:inherit;font-size:13px;font-weight:600}
+  .anu-busca{min-width:180px;flex:1;max-width:260px}
+  .anu-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:290px;max-width:min(380px,calc(100vw - 32px));max-height:360px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px}
+  .anu-ph{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:8px 10px 6px}
+  .anu-op{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:var(--txt);padding:8px 10px;border-radius:8px;font-size:13px;font-weight:600}
+  .anu-op:hover{background:var(--hov2)}
+  .anu-op .gr{display:flex;flex-direction:column;min-width:0}
+  .anu-op small{font-size:11.5px;color:var(--muted);font-weight:400}
+  .anu-op .rd{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--fraco);flex:none}
+  .anu-op.on .rd{border:5px solid var(--brand)}
+  .anu-op .ck{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--fraco);display:grid;place-items:center;flex:none;font-size:10px;color:transparent}
+  .anu-op.on .ck{background:var(--brand);border-color:var(--brand);color:#fff}
+  .anu-op-msg{padding:10px;font-size:12.5px;color:var(--muted);line-height:1.45}
+  .anu-vazio{margin-top:8px}
+  .anu-cash{margin-bottom:12px}
+  .anu-cash .pc-big{color:var(--ok)}
+  .anu-kpis{margin-bottom:4px}
+  .anu-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .anu-ad{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:border-color .15s,transform .15s}
+  .anu-ad:hover,.anu-ad:focus-visible{border-color:var(--brand);transform:translateY(-1px);outline:none}
+  .anu-th{height:160px;position:relative;background:var(--panel2);display:grid;place-items:center;overflow:hidden}
+  .anu-th img{width:100%;height:100%;object-fit:cover;display:block}
+  .anu-th span{padding:0 18px;text-align:center;font-weight:800;color:var(--muted)}
+  .anu-th em,.anu-cr em{position:absolute;top:10px;right:10px;font-style:normal;font-size:11px;font-weight:600;background:rgba(0,0,0,.6);color:#fff;padding:3px 8px;border-radius:999px}
+  .anu-ad.parado .anu-th img{filter:grayscale(.75) brightness(.8)}
+  .anu-b{padding:12px 14px 14px}
+  .anu-top{display:flex;align-items:center;gap:8px}
+  .anu-top b{flex:1;min-width:0;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .anu-st{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .anu-st.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent)}
+  .anu-st.warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 15%,transparent)}
+  .anu-st.danger{color:var(--danger);background:color-mix(in srgb,var(--danger) 15%,transparent)}
+  .anu-st.info{color:var(--info);background:color-mix(in srgb,var(--info) 15%,transparent)}
+  .anu-st.muted{color:var(--muted);background:var(--hov3)}
+  .anu-camp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .anu-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .anu-nums div{min-width:0;font-variant-numeric:tabular-nums}
+  .anu-nums b{display:block;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .anu-nums b.ok{color:var(--ok)}
+  .anu-nums span{font-size:11px;color:var(--muted)}
+  .overlay.anu-ov{padding:20px}
+  .modal.anu-m{max-width:1020px;width:100%;height:min(680px,92vh);padding:0;display:grid;grid-template-columns:340px 1fr;overflow:hidden}
+  .anu-cr{background:var(--bg);position:relative;display:grid;place-items:center;min-height:0}
+  .anu-cr img{width:100%;height:100%;object-fit:contain}
+  .anu-cr span{color:var(--muted);font-weight:800;padding:20px;text-align:center}
+  .anu-md{display:flex;flex-direction:column;min-width:0;min-height:0}
+  .anu-mh{padding:18px 20px 0;position:relative}
+  .anu-mh h3{font-size:21px;font-weight:800;margin:8px 0 2px;padding-right:40px}
+  .anu-x{position:absolute;top:14px;right:14px}
+  .anu-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-top:12px;overflow-x:auto}
+  .anu-tabs button{position:relative;background:none;border:0;padding:10px 12px;font-size:13.5px;font-weight:600;color:var(--fraco);white-space:nowrap}
+  .anu-tabs button.on{color:var(--txt)}
+  .anu-tabs button.on:after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;background:var(--brand);border-radius:2px}
+  .anu-cnt{display:inline-block;background:var(--brand);color:#fff;font-size:11px;border-radius:999px;padding:0 7px;margin-left:6px;font-weight:700}
+  .anu-mb{flex:1;overflow:auto;padding:16px 20px 20px}
+  .anu-mb .pc-banner{padding:20px 16px 22px}
+  .anu-mb .pc-big{font-size:36px}
+  .anu-mb .pc-v{font-size:24px}
+  .anu-mb .pc-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .anu-lbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:6px 0 8px}
+  .anu-p{color:var(--muted);line-height:1.55;margin:0 0 10px;font-size:13.5px;max-width:65ch;white-space:pre-wrap}
+  .anu-ld{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--panel2);cursor:pointer}
+  .anu-ld:hover{background:var(--cardh)}
+  .anu-ldi{flex:1;min-width:0}
+  .anu-ldi b{font-weight:700}
+  .anu-ldi .hint{margin:1px 0 0;font-size:12px}
+  .anu-vend{color:var(--brand2);font-size:12px;font-weight:600}
+  .anu-etapa{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .anu-wa{display:flex;align-items:center;gap:6px;flex:none;height:32px;padding:0 10px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}
+  .anu-wa svg{width:15px;height:15px}
+  .anu-leg{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:12px;color:var(--muted)}
+  .anu-leg span{display:flex;align-items:center;gap:6px}
+  .anu-leg i{width:12px;height:8px;border-radius:2px;background:var(--line);display:inline-block}
+  .anu-leg i.pg{background:var(--ok)}
+  .anu-leg i.cac{width:2px;height:12px;background:var(--danger)}
+  .anu-cli{border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:12px 14px;margin-bottom:10px}
+  .anu-ct{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .anu-ct b{font-weight:700}
+  .anu-ct .hint{margin:0;flex:1;min-width:180px}
+  .anu-rx{font-weight:800;color:var(--ok);font-variant-numeric:tabular-nums}
+  .anu-rx.baixo{color:var(--warn)}
+  .anu-tr{position:relative;margin:12px 0 6px}
+  .anu-ms{display:flex;gap:3px}
+  .anu-ms span{flex:1;height:12px;border-radius:3px;background:var(--line)}
+  .anu-ms span.pg{background:var(--ok)}
+  .anu-cac{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--danger)}
+  .anu-cb{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .anu-cb b{color:var(--txt)}
+  @media (max-width:720px){
+    .modal.anu-m{grid-template-columns:1fr;height:92vh}
+    .anu-cr{display:none}
+    .anu-busca{max-width:none}
+  }
   #rspTab td,#rspTab th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* borda arrastavel do titulo (Bernardo 08/10) */
   .rsp-grip{position:absolute;top:0;right:0;width:8px;height:100%;cursor:col-resize;z-index:5;touch-action:none}
@@ -10379,6 +10481,270 @@ function crmPainelView(){
       ${ccPainelHTML()}${ccCallsHTML()}
     </div>`;
 }
+/* ======================= ANÚNCIOS DO CRM (Bernardo 08/10) =======================
+   "No meu outro CRM existia essa aba Anúncios: campanhas ativas e pausadas e, clicando no anúncio,
+   todos os leads que vieram dele. Quero selecionar a BM e, dentro da BM, as contas de anúncio.
+   O principal é o Cash Collect; VGV e MRR importam, mas vêm depois."
+   - BM e contas: crm_anuncios_config (uma linha por CRM). Todo mundo lê, só master troca.
+   - Gasto, status e criativo: edge meta (bms, bm-contas, anuncios?preset=).
+   - Leads: os cards desta lista, casados pelo campo Anúncio. O Yay grava o NOME do anúncio, não o
+     id; quando duas peças têm o mesmo nome, Campanha e Conjunto desempatam.
+   - Venda: lead na etapa do grupo "feito" (6. GANHOU).
+   - Cash Collect, VGV e MRR: cliente do Controle de Clientes cujo fechamento aponta pro lead
+     (fechamento.leadId). Cash = o que já entrou no Recebimentos desde o fechamento, mesmo fora do
+     período escolhido: senão um cliente de julho sumiria do retorno ao olhar outubro. */
+const ANU={cfg:{},cfgLido:{},bms:null,bmContas:{},dados:{},erro:{},carregando:{},per:'last_30d',st:'ativos',q:'',pop:'',ad:null,aba:'leads'};
+const ANU_PER=[['last_7d','Últimos 7 dias',7],['last_30d','Últimos 30 dias',30],['last_90d','Últimos 90 dias',90],['this_month','Este mês'],['last_month','Mês passado'],['maximum','Desde o início']];
+const ANU_STS=[['ativos','Só ativos'],['todos','Ativos e pausados'],['pausados','Só pausados']];
+const anuPode=(lid)=>crmPainelPode(lid);
+const anuMaster=()=>!!(typeof currentUser!=='undefined'&&currentUser&&currentUser.role==='master');
+const anuNorm=(s)=>String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+const anuMeta=(p)=>fetch(META_URL+p+(p.includes('?')?'&':'?')+'v='+Date.now(),{headers:{authorization:'Bearer '+SESSION.access_token}}).then(r=>r.json());
+const anuR0=(v)=>'R$ '+Math.round(Number(v)||0).toLocaleString('pt-BR');
+const anuX=(v)=>(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'×';
+const anuRepintar=()=>{ if(TK.visao==='anuncios') tkDesenhar($('#content')); if(ANU.ad) anuModalPintar(); };
+/* status da Meta → como a tela fala */
+const anuStatus=(a)=>{ const s=String(a.effective_status||'');
+  if(s==='ACTIVE') return ['Ativo','ok',true];
+  if(s==='IN_PROCESS'||s==='PENDING_REVIEW'||s==='PREAPPROVED') return ['Em análise','info',true];
+  if(s==='WITH_ISSUES') return ['Com problema','warn',true];
+  if(s==='DISAPPROVED') return ['Reprovado','danger',false];
+  if(s==='ARCHIVED'||s==='DELETED') return ['Arquivado','muted',false];
+  return ['Pausado','warn',false]; };
+const anuTipo=(a)=>{ const c=a.creative||{}; return c.video_id||c.object_type==='VIDEO'?'Vídeo':c.object_type==='PHOTO'?'Imagem':'Anúncio'; };
+const anuGasto=(a)=>Number((((a.insights||{}).data||[])[0]||{}).spend)||0;
+const anuIns=(a)=>(((a.insights||{}).data||[])[0])||{};
+/* período em datas, pra filtrar os leads pela mesma janela do gasto (Meta: last_Nd termina ontem) */
+function anuJanela(){
+  const p=ANU_PER.find(x=>x[0]===ANU.per)||ANU_PER[1], hoje=tkHoje();
+  const d=(iso,n)=>{ const x=new Date(iso+'T12:00:00'); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
+  if(p[2]) return [d(hoje,-p[2]),hoje];
+  if(p[0]==='this_month') return [hoje.slice(0,8)+'01',hoje];
+  if(p[0]==='last_month'){ const x=new Date(hoje.slice(0,8)+'01T12:00:00'); x.setMonth(x.getMonth()-1);
+    const ini=x.toISOString().slice(0,10); return [ini,d(hoje.slice(0,8)+'01',-1)]; }
+  return ['0000-00-00','9999-99-99'];
+}
+async function anuCfgLer(lid){
+  if(ANU.cfgLido[lid]) return; ANU.cfgLido[lid]=true;
+  const {data,error}=await sb.from('crm_anuncios_config').select('*').eq('lista_id',lid).maybeSingle();
+  if(error){ ANU.erro[lid]='Não consegui ler a BM deste CRM: '+error.message; }
+  ANU.cfg[lid]=data||{lista_id:lid,bm_id:null,bm_nome:null,contas:[]};
+  anuRepintar();
+}
+async function anuCfgSalvar(lid,mud){
+  const novo=Object.assign({},ANU.cfg[lid]||{lista_id:lid,contas:[]},mud,{lista_id:lid,atualizado_em:new Date().toISOString(),atualizado_por:currentUser.id});
+  const {error}=await sb.from('crm_anuncios_config').upsert(novo);
+  if(error){ toast('Não salvei: '+error.message); return; }
+  ANU.cfg[lid]=novo; ANU.dados={}; anuRepintar();
+}
+const anuChave=(lid)=>{ const c=ANU.cfg[lid]||{}; return lid+'|'+ANU.per+'|'+(c.contas||[]).map(x=>x.id).join(','); };
+async function anuCarregar(lid,forcar){
+  const k=anuChave(lid); if(forcar){ delete ANU.dados[k]; }
+  if(ANU.dados[k]||ANU.carregando[k]) return; ANU.carregando[k]=true;
+  const contas=(ANU.cfg[lid]||{}).contas||[], erros=[];
+  const res=await Promise.all(contas.map(c=>anuMeta(`/anuncios/${encodeURIComponent(c.id)}?preset=${ANU.per}`).catch(e=>({ok:false,erro:String(e)}))));
+  const ads=[]; res.forEach((r,i)=>{ if(!r||!r.ok){ erros.push(contas[i].nome+': '+((r&&r.erro)||'falhou')); return; }
+    (r.anuncios||[]).forEach(a=>ads.push(Object.assign(a,{conta:contas[i]}))); });
+  ANU.carregando[k]=false; ANU.dados[k]={ads,erros}; anuRepintar();
+}
+/* junta Meta + leads + clientes: uma linha por anúncio, com tudo que a tela mostra */
+function anuMontar(lid){
+  const k=anuChave(lid), d=ANU.dados[k]||{ads:[]}, [ini,fim]=anuJanela();
+  const cps=tkCamposDe(lid), cA=cps.find(c=>anuNorm(c.nome)==='anuncio'), cC=cps.find(c=>anuNorm(c.nome)==='campanha'),
+    cJ=cps.find(c=>anuNorm(c.nome)==='conjunto'), cD=cps.find(c=>c.nome===RSP_DATA);
+  const val=(t,c)=>c?String((t.valores||{})[c.id]==null?'':(t.valores||{})[c.id]).trim():'';
+  const dia=(t)=>(val(t,cD)||String(t.criado_em||'')).slice(0,10);
+  const leads=(TK.tarefas||[]).filter(t=>t.lista_id===lid&&!arquivada(t)&&!t.pai_id&&!t.rascunho);
+  const porNome={}; d.ads.forEach(a=>{ const n=anuNorm(a.name); (porNome[n]=porNome[n]||[]).push(a); });
+  const linhas=new Map(); d.ads.forEach(a=>linhas.set(a.id,{a,leads:[]}));
+  let semAnuncio=0;
+  leads.forEach(t=>{ const dt=dia(t); if(dt<ini||dt>fim) return;
+    const nome=val(t,cA); if(!nome){ semAnuncio++; return; }
+    let cand=porNome[anuNorm(nome)]||[];
+    if(cand.length>1){ const c2=cand.filter(a=>anuNorm((a.campaign||{}).name)===anuNorm(val(t,cC))); if(c2.length) cand=c2; }
+    if(cand.length>1){ const c3=cand.filter(a=>anuNorm((a.adset||{}).name)===anuNorm(val(t,cJ))); if(c3.length) cand=c3; }
+    /* nome que não está nas contas escolhidas (anúncio apagado ou de outra conta): vira um cartão só dele */
+    const id=cand.length?cand[0].id:'fora:'+anuNorm(nome);
+    if(!linhas.has(id)) linhas.set(id,{a:{id,name:nome,fora:true,campaign:{name:val(t,cC)},adset:{name:val(t,cJ)}},leads:[]});
+    linhas.get(id).leads.push(t); });
+  const recPorCli={}; (DB.recebimentos||[]).forEach(r=>{ (recPorCli[r.clienteId]=recPorCli[r.clienteId]||[]).push(r); });
+  const cliPorLead={}; (DB.clientes||[]).forEach(c=>{ const lidC=((c||{}).fechamento||{}).leadId; if(lidC) cliPorLead[lidC]=c; });
+  const out=[]; linhas.forEach(L=>{ const a=L.a, gasto=a.fora?0:anuGasto(a);
+    const vendas=L.leads.filter(t=>{ const s=tkStatus1(t.status_id); return s&&s.grupo==='feito'; });
+    const clientes=L.leads.map(t=>cliPorLead[t.id]).filter(Boolean).map(c=>anuCliente(c,recPorCli[c.id]||[]));
+    const ativo=a.fora?false:anuStatus(a)[2];
+    if(!a.fora&&!ativo&&!gasto&&!L.leads.length) return;   /* peça velha, parada e sem nada no período: não polui */
+    out.push({a,leads:L.leads,vendas:vendas.length,clientes,gasto,ativo,
+      cash:clientes.reduce((s,c)=>s+c.cash,0),vgv:clientes.reduce((s,c)=>s+c.vgv,0),mrr:clientes.reduce((s,c)=>s+c.mrr,0)}); });
+  out.sort((x,y)=>(y.cash-x.cash)||(y.leads.length-x.leads.length)||(y.gasto-x.gasto));
+  return {linhas:out,semAnuncio,erros:d.erros||[]};
+}
+/* dinheiro de um cliente: o que já entrou, o valor do contrato e a mensalidade de hoje */
+const ANU_MESES={mensal:1,trimestral:3,semestral:6,anual:12};
+function anuCliente(c,recs){
+  const f=c.fechamento||{};
+  const cash=recs.reduce((s,r)=>s+(r.recebido?(Number(r.valor)||0):(Number(r.sinal)||0)),0);
+  const pagas=recs.filter(r=>r.recebido).length;
+  let meses=ANU_MESES[anuNorm(f.tipoContrato)]||1;
+  if(c.inicio&&f.fimContrato){ const [a0,m0]=String(c.inicio).split('-').map(Number), [a1,m1]=String(f.fimContrato).split('-').map(Number);
+    const n=(a1-a0)*12+(m1-m0)+1; if(n>0&&n<61) meses=n; }
+  const mens=Number(c.valor)||0, churn=!!(c.churnComp&&c.churnComp<=tkHoje().slice(0,7));
+  const vgv=c.semMensalidade?(Number(c.valorProjeto)||0):mens*meses+(Number(c.valorProjeto)||0);
+  return {c,nome:c.nome,tipo:f.tipoContrato||'',mens,meses,pagas,cash,vgv,mrr:churn||c.arquivadoEm?0:mens,churn,inicio:c.inicio||''};
+}
+function anuTotais(ls){
+  const t=ls.reduce((o,l)=>{ o.gasto+=l.gasto; o.leads+=l.leads.length; o.vendas+=l.vendas; o.cash+=l.cash; o.vgv+=l.vgv; o.mrr+=l.mrr; o.cli+=l.clientes.length; return o; },{gasto:0,leads:0,vendas:0,cash:0,vgv:0,mrr:0,cli:0});
+  t.cac=t.vendas?t.gasto/t.vendas:0; t.cpl=t.leads?t.gasto/t.leads:0; t.ret=t.gasto?t.cash/t.gasto:0; return t;
+}
+const anuCard=(rot,val,sub,cor)=>`<div class="pc-card"><div class="pc-k">${esc(rot)}</div><div class="pc-v"${cor?` style="color:var(--${cor})"`:''}>${val}</div>${sub?`<div class="pc-s">${sub}</div>`:''}</div>`;
+function anuKpis(t,master){
+  return `<div class="pc-banner anu-cash"><div class="pc-k">Cash Collect</div>
+      <div class="pc-big">${master?esc(brl(t.cash)):'—'}</div>
+      <div class="pc-s">${!master?'só o master vê o dinheiro dos clientes':t.cli?`recebido de ${t.cli} cliente${t.cli===1?'':'s'} desde o fechamento${t.gasto?' · '+anuX(t.ret)+' o investido':''}`:'nenhum cliente fechado por estes anúncios ainda'}</div></div>
+    <div class="pc-grid anu-kpis">
+      ${anuCard('Investido',anuR0(t.gasto),t.leads+' lead'+(t.leads===1?'':'s')+(t.leads?' · '+anuR0(t.cpl)+' por lead':''))}
+      ${anuCard('CAC',t.vendas?anuR0(t.cac):'-',t.vendas+' venda'+(t.vendas===1?'':'s')+(t.leads?' de '+t.leads+' leads':''))}
+      ${anuCard('VGV',master?anuR0(t.vgv):'—','valor dos contratos')}
+      ${anuCard('MRR',master?anuR0(t.mrr):'—','mensalidades ativas','info2')}
+    </div>`;
+}
+function anuView(){
+  const lid=TK.listaSel, master=anuMaster();
+  if(!ANU.cfgLido[lid]){ anuCfgLer(lid); return '<div class="empty">Carregando os anúncios…</div>'; }
+  const cfg=ANU.cfg[lid]||{}, contas=cfg.contas||[];
+  const per=ANU_PER.find(x=>x[0]===ANU.per)||ANU_PER[1];
+  const chip=(id,rot,val,vazio)=>`<div class="anu-chip-w"><button type="button" class="anu-chip${ANU.pop===id?' on':''}" onclick="anuPop(event,'${id}')"${!master?' title="Só o master troca"':''}><small>${rot}</small><span>${val?esc(val):`<i>${vazio}</i>`}</span>${master?'<b>▾</b>':''}</button>${ANU.pop===id?anuPopHTML(id,lid):''}</div>`;
+  const bar=`<div class="anu-bar">
+      ${chip('bm','BM',cfg.bm_nome,'escolher')}
+      ${chip('contas','Contas',contas.length?(contas.length===1?contas[0].nome:contas.length+' contas'):'','nenhuma')}
+      <select class="anu-sel" onchange="ANU.per=this.value;tkDesenhar($('#content'))" aria-label="Período">${ANU_PER.map(p=>`<option value="${p[0]}"${p[0]===ANU.per?' selected':''}>${p[1]}</option>`).join('')}</select>
+      <select class="anu-sel" onchange="ANU.st=this.value;tkDesenhar($('#content'))" aria-label="Quais anúncios mostrar">${ANU_STS.map(p=>`<option value="${p[0]}"${p[0]===ANU.st?' selected':''}>${p[1]}</option>`).join('')}</select>
+      <input class="search anu-busca" placeholder="Buscar anúncio…" value="${esc(ANU.q)}" oninput="ANU.q=this.value;anuGradeRepintar()">
+      <button type="button" class="iconbtn" title="Atualizar da Meta" onclick="anuCarregar('${lid}',true);tkDesenhar($('#content'))">↻</button>
+    </div>`;
+  if(!cfg.bm_id||!contas.length) return `<div class="anu">${bar}<div class="empty anu-vazio">${master
+      ?(cfg.bm_id?'Escolha as contas de anúncio desta BM que rodam os anúncios deste CRM.':'Escolha a BM e, dentro dela, as contas de anúncio que rodam os anúncios deste CRM.')
+      :'Um master ainda não escolheu a BM e as contas de anúncio deste CRM.'}</div></div>`;
+  const k=anuChave(lid);
+  if(!ANU.dados[k]){ anuCarregar(lid); return `<div class="anu">${bar}<div class="empty">Buscando os anúncios na Meta (${esc(per[1].toLowerCase())})…</div></div>`; }
+  return `<div class="anu">${bar}<div id="anuCorpo">${anuCorpo(lid)}</div></div>`;
+}
+function anuFiltrar(ls){
+  const q=anuNorm(ANU.q);
+  return ls.filter(l=>(ANU.st==='todos'||(ANU.st==='ativos'?l.ativo:!l.ativo))
+    &&(!q||anuNorm(l.a.name+' '+((l.a.campaign||{}).name||'')+' '+((l.a.adset||{}).name||'')).includes(q)));
+}
+function anuCorpo(lid){
+  const master=anuMaster(), m=anuMontar(lid), ls=anuFiltrar(m.linhas), t=anuTotais(ls);
+  ANU.ultimo={lid,linhas:m.linhas};
+  const card=(l)=>{ const a=l.a, [st,cor]=a.fora?['Fora das contas','muted']:anuStatus(a), c=a.creative||{}, img=c.thumbnail_url||c.image_url||'';
+    return `<div class="anu-ad${l.ativo?'':' parado'}" tabindex="0" onclick="anuAbrir('${esc(a.id)}')" onkeydown="if(event.key==='Enter')anuAbrir('${esc(a.id)}')">
+      <div class="anu-th">${img?`<img src="${esc(img)}" alt="" loading="lazy">`:`<span>${esc(String(a.name||'').slice(0,40))}</span>`}${a.fora?'':`<em>${anuTipo(a)}</em>`}</div>
+      <div class="anu-b">
+        <div class="anu-top"><b title="${esc(a.name)}">${esc(a.name)}</b><span class="anu-st ${cor}">${st}</span></div>
+        <div class="hint anu-camp">${esc((a.campaign||{}).name||'')}${(a.adset||{}).name?' · '+esc(a.adset.name):''}</div>
+        <div class="anu-nums">
+          <div><b>${l.leads.length}</b><span>lead${l.leads.length===1?'':'s'}</span></div>
+          <div><b>${a.fora?'-':anuR0(l.gasto)}</b><span>investido</span></div>
+          <div><b>${l.vendas}</b><span>venda${l.vendas===1?'':'s'}</span></div>
+          <div><b class="ok">${master?anuR0(l.cash):'—'}</b><span>cash collect</span></div>
+        </div>
+      </div></div>`; };
+  return `${m.erros.length?`<div class="f1-aviso">↻ A Meta não respondeu para ${esc(m.erros.join(' · '))}</div>`:''}
+    ${anuKpis(t,master)}
+    <div class="pc-sec">${ls.length} anúncio${ls.length===1?'':'s'}${m.semAnuncio?` · ${m.semAnuncio} lead${m.semAnuncio===1?'':'s'} sem anúncio no período`:''}</div>
+    <div class="anu-grade">${ls.map(card).join('')||'<div class="empty">Nenhum anúncio nesse filtro.</div>'}</div>`;
+}
+window.anuGradeRepintar=()=>{ const el=document.getElementById('anuCorpo'); if(el) el.innerHTML=anuCorpo(TK.listaSel); };
+/* ---------- BM e contas (só master troca) ---------- */
+window.anuPop=(ev,id)=>{ ev.stopPropagation(); if(!anuMaster()) return;
+  ANU.pop=ANU.pop===id?'':id; const lid=TK.listaSel;
+  if(ANU.pop==='bm'&&!ANU.bms) anuMeta('/bms').then(r=>{ ANU.bms=r&&r.ok?r.bms:{erro:(r&&r.erro)||'falhou'}; anuRepintar(); });
+  const bm=(ANU.cfg[lid]||{}).bm_id;
+  if(ANU.pop==='contas'&&bm&&!ANU.bmContas[bm]) anuMeta('/bm-contas/'+encodeURIComponent(bm)).then(r=>{ ANU.bmContas[bm]=r&&r.ok?r.contas:{erro:(r&&r.erro)||'falhou'}; anuRepintar(); });
+  tkDesenhar($('#content')); };
+if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('click',(e)=>{ if(ANU.pop&&!e.target.closest('.anu-pop')){ ANU.pop=''; if(TK.visao==='anuncios') tkDesenhar($('#content')); } });
+const ANU_ST_CONTA={1:'ativa',2:'desativada',3:'com pendência',7:'em análise',9:'em carência',101:'fechada'};
+function anuPopHTML(id,lid){
+  const cfg=ANU.cfg[lid]||{};
+  const erro=(e)=>`<div class="anu-op-msg">A Meta respondeu: ${esc(e)}<br>O acesso do sistema à BM precisa da permissão de gerenciar negócios.</div>`;
+  if(id==='bm'){ const L=ANU.bms;
+    return `<div class="anu-pop" onclick="event.stopPropagation()"><div class="anu-ph">Business Manager</div>${!L?'<div class="anu-op-msg">Buscando as BMs…</div>':L.erro?erro(L.erro)
+      :L.length?L.map(b=>`<button type="button" class="anu-op${cfg.bm_id===b.id?' on':''}" onclick="anuBm('${esc(b.id)}')"><span class="rd"></span><span class="gr">${esc(b.nome)}<small>${esc(b.id)}</small></span></button>`).join('')
+      :'<div class="anu-op-msg">O sistema não enxerga nenhuma BM.</div>'}</div>`; }
+  const L=cfg.bm_id?ANU.bmContas[cfg.bm_id]:[], sel=(cfg.contas||[]).map(c=>c.id);
+  return `<div class="anu-pop" onclick="event.stopPropagation()"><div class="anu-ph">Contas de anúncio${cfg.bm_nome?' · '+esc(cfg.bm_nome):''}</div>${!cfg.bm_id?'<div class="anu-op-msg">Escolha a BM primeiro.</div>':!L?'<div class="anu-op-msg">Buscando as contas…</div>':L.erro?erro(L.erro)
+    :L.length?L.map(c=>`<button type="button" class="anu-op${sel.includes(c.id)?' on':''}" onclick="anuConta('${esc(c.id)}')"><span class="ck">✓</span><span class="gr">${esc(c.nome)}<small>${esc(c.id)} · ${ANU_ST_CONTA[c.status]||'status '+c.status}</small></span></button>`).join('')
+    :'<div class="anu-op-msg">Essa BM não tem contas de anúncio.</div>'}</div>`;
+}
+window.anuBm=(id)=>{ const lid=TK.listaSel, b=(ANU.bms||[]).find(x=>x.id===id); if(!b) return;
+  const cfg=ANU.cfg[lid]||{}; ANU.pop='';
+  if(cfg.bm_id===id){ tkDesenhar($('#content')); return; }
+  anuCfgSalvar(lid,{bm_id:b.id,bm_nome:b.nome,contas:[]}); };
+window.anuConta=(id)=>{ const lid=TK.listaSel, cfg=ANU.cfg[lid]||{}, L=ANU.bmContas[cfg.bm_id]||[], c=(L.find?L.find(x=>x.id===id):null); if(!c) return;
+  const atual=cfg.contas||[], tem=atual.some(x=>x.id===id);
+  anuCfgSalvar(lid,{contas:tem?atual.filter(x=>x.id!==id):atual.concat([{id:c.id,nome:c.nome}])}); };
+/* ---------- janela do anúncio: Detalhes, Leads, Números, Retorno dos clientes ---------- */
+window.anuAbrir=(id)=>{ ANU.ad=id; ANU.aba='leads';
+  let ov=document.getElementById('anuOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='anuOv'; ov.className='overlay anu-ov';
+    ov.onclick=(e)=>{ if(e.target===ov) anuFechar(); }; document.body.appendChild(ov); }
+  anuModalPintar(); };
+window.anuFechar=()=>{ const o=document.getElementById('anuOv'); if(o) o.remove(); ANU.ad=null; };
+window.anuAba=(k)=>{ ANU.aba=k; anuModalPintar(); };
+function anuModalPintar(){
+  const ov=document.getElementById('anuOv'); if(!ov||!ANU.ultimo) return;
+  const l=ANU.ultimo.linhas.find(x=>x.a.id===ANU.ad); if(!l){ anuFechar(); return; }
+  const a=l.a, master=anuMaster(), c=a.creative||{}, img=c.image_url||c.thumbnail_url||'', [st,cor]=a.fora?['Fora das contas','muted']:anuStatus(a);
+  const abasA=[['det','Detalhes'],['leads','Leads',l.leads.length],['num','Números'],['ret','Retorno dos clientes']];
+  ov.innerHTML=`<div class="modal anu-m" role="dialog" aria-label="${esc(a.name)}">
+    <div class="anu-cr">${img?`<img src="${esc(img)}" alt="">`:`<span>${esc(a.name)}</span>`}${a.fora?'':`<em>${anuTipo(a)}</em>`}</div>
+    <div class="anu-md">
+      <div class="anu-mh"><span class="anu-st ${cor}">${st}</span><h3>${esc(a.name)}</h3>
+        <div class="hint">${esc((a.campaign||{}).name||'')}${(a.adset||{}).name?' · '+esc(a.adset.name):''}${a.conta?' · '+esc(a.conta.nome):''}</div>
+        <button type="button" class="iconbtn anu-x" onclick="anuFechar()" aria-label="Fechar">✕</button>
+        <div class="anu-tabs">${abasA.map(b=>`<button type="button" class="${ANU.aba===b[0]?'on':''}" onclick="anuAba('${b[0]}')">${b[1]}${b[2]!=null?`<span class="anu-cnt">${b[2]}</span>`:''}</button>`).join('')}</div>
+      </div>
+      <div class="anu-mb">${ANU.aba==='det'?anuDet(l):ANU.aba==='leads'?anuLeads(l):ANU.aba==='num'?anuNum(l,master):anuRet(l,master)}</div>
+    </div></div>`;
+}
+function anuDet(l){
+  const a=l.a, c=a.creative||{};
+  if(a.fora) return `<div class="empty">Esse anúncio não está nas contas escolhidas para este CRM (pode ter sido apagado ou rodar em outra conta). Os leads dele continuam na aba Leads.</div>`;
+  return `${c.title?`<div class="anu-lbl">Título</div><p class="anu-p">${esc(c.title)}</p>`:''}
+    <div class="anu-lbl">Texto do anúncio</div>${c.body?String(c.body).split(/\n+/).map(p=>`<p class="anu-p">${esc(p)}</p>`).join(''):'<p class="anu-p hint">A Meta não devolveu o texto desse anúncio.</p>'}
+    <div class="anu-lbl">Onde roda</div><p class="anu-p">${esc(a.conta?a.conta.nome:'')}${a.created_time?' · criado em '+fmtDate(String(a.created_time).slice(0,10)):''}</p>`;
+}
+function anuLeads(l){
+  if(!l.leads.length) return '<div class="empty">Nenhum lead desse anúncio no período.</div>';
+  const cD=tkCamposDe(TK.listaSel).find(c=>c.nome===RSP_DATA);
+  return l.leads.slice().sort((x,y)=>String((y.valores||{})[cD&&cD.id]||y.criado_em).localeCompare(String((x.valores||{})[cD&&cD.id]||x.criado_em))).map(t=>{
+    const s=tkStatus1(t.status_id), cor=s?s.cor:'#64748b', r=(t.responsaveis||[])[0]||t.responsavel_id, wa=rspWaNum(t);
+    return `<div class="anu-ld" onclick="tkAbrir('${t.id}')" title="Abrir o cartão do lead">
+      ${avatarDoNome(t.titulo||'?')}
+      <div class="anu-ldi"><b>${esc(t.titulo||'Sem nome')}</b><div class="hint">Chegou ${rspData((t.valores||{})[cD&&cD.id]||t.criado_em)}</div>${r?`<div class="anu-vend">${esc(tkNomeUser(r)||'')}</div>`:'<div class="hint">sem vendedor</div>'}</div>
+      <span class="anu-etapa" style="background-color:${esc(cor)};color:${esc(corTexto(cor))}">${esc(s?s.nome:'Sem status')}</span>
+      ${wa?`<button type="button" class="anu-wa" onclick="event.stopPropagation();rspWaAbrir('${t.id}')" title="Abrir a conversa">${RSP_WA_SVG}Conversa</button>`:''}
+    </div>`; }).join('');
+}
+function anuNum(l,master){
+  const t=anuTotais([l]), ins=anuIns(l.a), n=(v)=>(Number(v)||0).toLocaleString('pt-BR');
+  return anuKpis(t,master)+(l.a.fora?'':`<div class="pc-sec">Na Meta, no período</div><div class="pc-grid anu-kpis">
+    ${anuCard('Impressões',n(ins.impressions),'alcance '+n(ins.reach))}
+    ${anuCard('Cliques',n(ins.clicks),'CTR '+(Number(ins.ctr)||0).toLocaleString('pt-BR',{maximumFractionDigits:2})+'%')}
+    ${anuCard('Custo por clique',ins.cpc?esc(brl(ins.cpc)):'-','CPM '+(ins.cpm?esc(brl(ins.cpm)):'-'))}
+  </div>`);
+}
+function anuRet(l,master){
+  if(!master) return '<div class="empty">Só o master vê o dinheiro dos clientes.</div>';
+  if(!l.clientes.length) return `<div class="empty">Esse anúncio ainda não fechou nenhum cliente. Quando o fechamento de um lead dele for feito, o retorno aparece aqui, mês a mês.</div>`;
+  const cac=l.vendas?l.gasto/l.vendas:0;
+  return `<div class="anu-leg"><span>Cada quadradinho é uma mensalidade do contrato.</span><span><i class="pg"></i>paga</span><span><i></i>a receber</span>${cac?'<span><i class="cac"></i>CAC: o que custou trazer o cliente</span>':''}</div>`+
+    l.clientes.map(k=>{ const r=cac?k.cash/cac:0, pos=cac&&k.vgv?Math.min(cac/k.vgv,1)*100:0, mesPb=cac&&k.mens?Math.ceil(cac/k.mens):0;
+      return `<div class="anu-cli"><div class="anu-ct"><b>${esc(k.nome)}</b><span class="hint">${esc(k.tipo||'Contrato')} · ${k.mens?anuR0(k.mens)+'/mês':'projeto'}${k.inicio?' · desde '+fmtComp(k.inicio):''}${k.churn?' · saiu':''}</span>${cac?`<span class="anu-rx${r<1?' baixo':''}">${anuX(r)} o CAC</span>`:''}</div>
+        <div class="anu-tr"><div class="anu-ms">${Array.from({length:Math.max(k.meses,1)},(_,i)=>`<span class="${i<k.pagas?'pg':''}"></span>`).join('')}</div>${pos?`<i class="anu-cac" style="left:calc(${pos}% - 1px)" title="CAC ${anuR0(cac)}"></i>`:''}</div>
+        <div class="anu-cb"><span><b>${esc(brl(k.cash))}</b> recebidos · ${k.pagas} de ${k.meses} mensalidade${k.meses===1?'':'s'}</span><span>${mesPb?(k.pagas>=mesPb?`se pagou na ${mesPb}ª mensalidade`:`se paga na ${mesPb}ª mensalidade`)+' · ':''}VGV ${anuR0(k.vgv)}</span></div></div>`; }).join('');
+}
 function tkViewLista(){
   const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
   let cps=TK.escopo!=='lista'?[]:tkCamposDe(TK.listaSel);
@@ -12219,19 +12585,19 @@ function tkDesenharTela(c){
   const form=crmForm(TK.listaSel)&&TK.escopo==='lista';
   if(!form&&TK.visao==='tabela') TK.visao='lista';
   const pnl=TK.escopo==='lista'&&crmPainelPode(TK.listaSel);
-  if(!pnl&&TK.visao==='painel') TK.visao='lista';
+  if(!pnl&&(TK.visao==='painel'||TK.visao==='anuncios')) TK.visao='lista';
   const soResp=form&&crmSoResp(TK.listaSel);
-  if(soResp&&TK.visao!=='tabela'&&TK.visao!=='painel') TK.visao='tabela';
+  if(soResp&&TK.visao!=='tabela'&&TK.visao!=='painel'&&TK.visao!=='anuncios') TK.visao='tabela';
   const visoes=soBoard?[['board',PCX_I.quadro+'Quadro']]
     :cli?[['lista',PCX_I.lista+'Lista']]
-    :soResp?[['tabela',tpSvg('tabela',14)+'Respostas'],...(pnl?[['painel',tpSvg('painel',14)+'Painel']]:[])]
-    :[...(form?[['tabela',tpSvg('tabela',14)+'Respostas']]:[]),['lista',PCX_I.lista+'Lista'],['board',PCX_I.quadro+'Quadro'],...(pnl?[['painel',tpSvg('painel',14)+'Painel']]:[])];
+    :soResp?[['tabela',tpSvg('tabela',14)+'Respostas'],...(pnl?[['painel',tpSvg('painel',14)+'Painel'],['anuncios',tpSvg('megafone',14)+'Anúncios']]:[])]
+    :[...(form?[['tabela',tpSvg('tabela',14)+'Respostas']]:[]),['lista',PCX_I.lista+'Lista'],['board',PCX_I.quadro+'Quadro'],...(pnl?[['painel',tpSvg('painel',14)+'Painel'],['anuncios',tpSvg('megafone',14)+'Anúncios']]:[])];
   const nArq=TK.escopo==='lista'?tkArquivadasDa(TK.listaSel).length:0;
   const ordBtn=(TK.escopo==='lista'&&TK.visao==='lista')
     ? `<button class="btn ghost small${TK.ord?'':' on'}" onclick="tkOrdemManual()" title="${TK.ord?'Voltar a poder arrastar as linhas':'Você já pode arrastar as linhas'}">⠿ Ordem manual</button>` : '';
   const abas=`<div class="tk-seg">${visoes.map(v=>`<button class="${TK.visao===v[0]&&!TK.arqVista&&!(cli&&TK.lcVista==='gerentes')?'on':''}" onclick="tkArqVista(false);TK.lcVista='';tkVisao('${v[0]}')">${v[1]}</button>`).join('')}${cli?`<button class="${TK.lcVista==='gerentes'?'on':''}" onclick="lcAbaGer()">${PCX_I.chefe}Gerentes</button>`:''}
     ${(TK.escopo==='lista'&&TK.arqVista)?`<button class="on" onclick="tkArqVista(false)" title="Sair dos arquivados">Arquivados${nArq?' ('+nArq+')':''} &times;</button>`:''}</div>`;
-  const corpo=(cli&&TK.lcVista==='gerentes')?lcVistaGerentes():(TK.visao==='painel'?crmPainelView():TK.visao==='tabela'?tkViewRespostas():(TK.visao==='lista'?tkViewLista():tkViewBoard()));
+  const corpo=(cli&&TK.lcVista==='gerentes')?lcVistaGerentes():(TK.visao==='painel'?crmPainelView():TK.visao==='anuncios'?anuView():TK.visao==='tabela'?tkViewRespostas():(TK.visao==='lista'?tkViewLista():tkViewBoard()));
   const dica=TK.visao==='board'?'arraste os cartões entre as colunas':'clique no nome para abrir, no cabeçalho para ordenar';
   const titulo=TK.escopo==='minhas'?'Minhas tarefas':TK.escopo==='todas'?'Todas as tarefas':(lista?esc(spNome(lista)):'Listas');
   if(!cli){ c.innerHTML=`
@@ -12295,6 +12661,7 @@ function tkDesenharTela(c){
    lista, Colunas (com + Nova coluna dentro), Ordem manual, Arquivados e Ver todas moram no ⋯.
    Tipo de tarefa não: escolhe ou cria dentro do próprio card (Gabriel 23/09). */
 const TP_SVG={
+  megafone:'<path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 8.5a5 5 0 0 1 0 7"/><path d="M19 5.5a9 9 0 0 1 0 13"/>',
   lupa:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   funil:'<path d="M22 3H2l8 9.5V21l4-2v-6.5z"/>',
   pessoa:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>',
@@ -12321,6 +12688,7 @@ function tpDireita(soBoard){
     ${tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}
     ${crmForm(TK.listaSel)&&TK.escopo==='lista'?tpIb('tabela','Respostas',"tkArqVista(false);tkVisao('tabela')",TK.visao==='tabela'&&!TK.arqVista):''}
     ${TK.escopo==='lista'&&crmPainelPode(TK.listaSel)?tpIb('painel','Painel',"tkArqVista(false);tkVisao('painel')",TK.visao==='painel'&&!TK.arqVista):''}
+    ${TK.escopo==='lista'&&anuPode(TK.listaSel)?tpIb('megafone','Anúncios',"tkArqVista(false);tkVisao('anuncios')",TK.visao==='anuncios'&&!TK.arqVista):''}
     ${soBoard||(TK.escopo==='lista'&&crmSoResp(TK.listaSel))?'':tpIb('lista','Lista',"tkArqVista(false);tkVisao('lista')",TK.visao==='lista'&&!TK.arqVista)}
     ${TK.escopo==='lista'&&crmSoResp(TK.listaSel)?'':tpIb('quadro','Quadro',"tkArqVista(false);tkVisao('board')",TK.visao==='board'&&!TK.arqVista)}
     ${tpIb('pts','Mais opções','tpMais(event)',!!TK.arqVista)}
