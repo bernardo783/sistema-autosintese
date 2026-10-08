@@ -3109,6 +3109,7 @@
   .anu-etapa{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
   .anu-wa{display:flex;align-items:center;gap:6px;flex:none;height:32px;padding:0 10px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}
   .anu-wa svg{width:15px;height:15px}
+  .anu-cli-tag{font-size:11.5px;font-weight:700;color:var(--ok);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
   .anu-leg{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:12px;color:var(--muted)}
   .anu-leg span{display:flex;align-items:center;gap:6px}
   .anu-leg i{width:12px;height:8px;border-radius:2px;background:var(--line);display:inline-block}
@@ -10718,12 +10719,14 @@ function anuDet(l){
 function anuLeads(l){
   if(!l.leads.length) return '<div class="empty">Nenhum lead desse anúncio no período.</div>';
   const cD=tkCamposDe(TK.listaSel).find(c=>c.nome===RSP_DATA);
+  const cliDe={}; (DB.clientes||[]).forEach(c=>{ const k=((c||{}).fechamento||{}).leadId; if(k) cliDe[k]=c; });
   return l.leads.slice().sort((x,y)=>String((y.valores||{})[cD&&cD.id]||y.criado_em).localeCompare(String((x.valores||{})[cD&&cD.id]||x.criado_em))).map(t=>{
-    const s=tkStatus1(t.status_id), cor=s?s.cor:'#64748b', r=(t.responsaveis||[])[0]||t.responsavel_id, wa=rspWaNum(t);
+    const s=tkStatus1(t.status_id), cor=s?s.cor:'#64748b', r=(t.responsaveis||[])[0]||t.responsavel_id, wa=rspWaNum(t), cli=cliDe[t.id];
     return `<div class="anu-ld" onclick="tkAbrir('${t.id}')" title="Abrir o cartão do lead">
       ${avatarDoNome(t.titulo||'?')}
       <div class="anu-ldi"><b>${esc(t.titulo||'Sem nome')}</b><div class="hint">Chegou ${rspData((t.valores||{})[cD&&cD.id]||t.criado_em)}</div>${r?`<div class="anu-vend">${esc(tkNomeUser(r)||'')}</div>`:'<div class="hint">sem vendedor</div>'}</div>
       <span class="anu-etapa" style="background-color:${esc(cor)};color:${esc(corTexto(cor))}">${esc(s?s.nome:'Sem status')}</span>
+      ${cli?`<span class="anu-cli-tag" title="Virou cliente">${esc(cli.nome)}</span>`:(s&&s.grupo==='feito'&&typeof podeFechamento==='function'&&podeFechamento())?`<button type="button" class="btn small secondary" onclick="event.stopPropagation();fcComLead('${t.id}')" title="Abrir o fechamento com este lead">Fazer fechamento</button>`:''}
       ${wa?`<button type="button" class="anu-wa" onclick="event.stopPropagation();rspWaAbrir('${t.id}')" title="Abrir a conversa">${RSP_WA_SVG}Conversa</button>`:''}
     </div>`; }).join('');
 }
@@ -18750,7 +18753,9 @@ function renderFechamento(c){
       <div class="row2">
         <div class="field"><label data-dica="De onde veio esse lead. Inbound: chegou sozinho (anúncio, indicação do site, redes). Outbound: prospecção ativa nossa. Indicação: veio por alguém.">Origem do lead *</label>
           <select id="fc_origem"><option value="">Selecione</option>${FC_ORIGENS.map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join('')}</select></div>
-        <div class="field"></div>
+        <div class="field"><label data-dica="Se o cliente veio de um lead dos CRMs de formulário (Sofás, Motos, Veículos), escolha aqui. É essa ligação que mostra, na aba Anúncios, quanto o cliente já pagou contra o que o anúncio custou.">Lead de origem</label>
+          <select id="fc_lead" onchange="fcLeadMudou()"><option value="">Procurando os leads ganhos...</option></select>
+          <div class="hint" id="fc_leadinfo" style="margin:7px 0 0"></div></div>
       </div>
       <div class="row2">
         <div class="field"><label>Squad responsável *</label>
@@ -18781,6 +18786,7 @@ function renderFechamento(c){
   if(form){ form.addEventListener('input',fcProgresso); form.addEventListener('change',fcProgresso); }
   fcProgresso();
   fcGanhosCarregar();
+  fcLeadsCarregar();
   /* em segundo plano: nao segura a tela, e a faixa aparece sozinha se houver formulario */
   fcFaixaForms();
   fcCarregarForms().then(fcFaixaForms).catch(()=>{});
@@ -18834,6 +18840,35 @@ function fcAsaasLinha(a){
   if(a.subscriptionId) p.push(`Assinatura mensal ativa: 1º vencimento em <strong>${fmtDate(String(a.proximoVencimento||'').slice(0,10))}</strong>${a.cobrancas?` · <strong>${a.cobrancas}</strong> mensalidade${a.cobrancas===1?'':'s'} e encerra`:' · renova até o churn'}.`);
   return `<div class="fc-asaas bom"><strong>✓ Asaas (${amb})</strong><br>${p.join('<br>')}</div>`;
 }
+/* LEAD DE ORIGEM (Bernardo 08/10): "eu invisto em anúncio e às vezes o CAC é alto; fecho um contrato
+   de 1.500 e depois de 3 meses consigo ver que aquele cliente me retornou 4.500". O fechamento guarda de
+   qual lead dos CRMs de formulário o cliente veio (fechamento.leadId + o anúncio dele): é isso que a
+   aba Anúncios usa pra somar Cash Collect, VGV e MRR de cada anúncio. Lista só lead em etapa de
+   ganho e que ainda não virou cliente. */
+let FC_LEADS=[], FC_LEAD_PRE='';
+async function fcLeadsCarregar(){
+  if(!$('#fc_lead')) return;
+  const {data,error}=await sb.from('tarefas').select('id,titulo,lista_id,valores,status_id,criado_em')
+    .in('lista_id',CRM_FORMS.map(f=>f.lista)).is('arquivada_em',null).order('criado_em',{ascending:false}).limit(1000);
+  const usados={}; (DB.clientes||[]).forEach(c=>{ const l=((c||{}).fechamento||{}).leadId; if(l) usados[l]=1; });
+  const ganho=(t)=>{ const st=tkStatus1(t.status_id); return !!(st&&st.grupo==='feito'); };
+  const campo=(t,n)=>{ const c=tkCamposDe(t.lista_id).find(k=>anuNorm(k.nome)===n); return c?String((t.valores||{})[c.id]==null?'':(t.valores||{})[c.id]).trim():''; };
+  FC_LEADS=(error?[]:(data||[])).filter(t=>!usados[t.id]&&(ganho(t)||t.id===FC_LEAD_PRE)).map(t=>({id:t.id,lista:t.lista_id,nome:t.titulo||'Sem nome',
+    crm:(CRM_FORMS.find(f=>f.lista===t.lista_id)||{}).nome||'',anuncio:campo(t,'anuncio'),campanha:campo(t,'campanha'),conjunto:campo(t,'conjunto')}));
+  const sel=$('#fc_lead'); if(!sel) return;
+  sel.innerHTML=`<option value="">${FC_LEADS.length?'Não veio de um lead dos CRMs':'Nenhum lead ganho sem cliente nos CRMs'}</option>`+
+    FC_LEADS.map(l=>`<option value="${esc(l.id)}">${esc(l.nome)} · CRM ${esc(l.crm)} · ${l.anuncio?esc(l.anuncio):'sem anúncio'}</option>`).join('');
+  if(FC_LEAD_PRE&&FC_LEADS.some(l=>l.id===FC_LEAD_PRE)){ sel.value=FC_LEAD_PRE; fcLeadMudou(); }
+  FC_LEAD_PRE='';
+}
+window.fcLeadMudou=()=>{
+  const l=FC_LEADS.find(x=>x.id===(($('#fc_lead')||{}).value||'')), o=$('#fc_origem'), h=$('#fc_leadinfo');
+  if(l&&o&&!o.value) o.value='inbound';
+  if(h) h.textContent=!l?'':l.anuncio?'Anúncio: '+l.anuncio+(l.campanha?' · '+l.campanha:''):'Esse lead não tem anúncio marcado.';
+  if(window.fcProgresso) fcProgresso();
+};
+/* da aba Anúncios: abre o fechamento com o lead já escolhido */
+window.fcComLead=(id)=>{ FC_LEAD_PRE=id; if(window.anuFechar) anuFechar(); render('fechamento'); };
 /* GANHO DO PAINEL COMERCIAL (Gabriel 30/09): o closer liga o ganho ao cliente na passagem
    de bastao; e essa ligacao que da os 5% da primeira mensalidade ao SDR. */
 let FC_GANHOS=[];
@@ -18864,6 +18899,8 @@ window.fechEnviar=async ()=>{
     sdr:V('fc_sdr'),closer:V('fc_closer'),squad:V('fc_squad'),gestor:V('fc_gestor'),linkCall:V('fc_call'),resumo:V('fc_resumo'),
     asaas:((($('#fc_asaas')||{}).checked===false)?'nao':'sim')};
   const ganhoId=V('fc_ganho');
+  const leadO=FC_LEADS.find(x=>x.id===V('fc_lead'));
+  if(leadO) Object.assign(body,{leadId:leadO.id,leadLista:leadO.lista,anuncio:leadO.anuncio,anuncioCampanha:leadO.campanha,anuncioConjunto:leadO.conjunto});
   const dup=fcDuplicado(body.nome);
   if(dup){ fcChecaNome(); toast('Esse projeto já está cadastrado: '+dup.nome+'. Não dá pra duplicar.'); const n=$('#fc_nome'); if(n){ n.focus(); n.scrollIntoView({block:'center',behavior:'smooth'}); } return; }
   const falta=[];
