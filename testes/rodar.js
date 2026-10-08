@@ -1673,6 +1673,22 @@ grupo('Seta pro wa.me ao lado do número do lead (Bernardo 08/10)');
   const semNum=Object.assign({},lead,{valores:{}});
   ok('cartão: sem número, sem seta', g.crmLdHtml(semNum).indexOf('cl-seta')<0);
 }
+grupo('CRM Sofás: responsável só José, Bernardo, Kennedy e Luana (Bernardo 08/10)');
+{
+  const ini=HTML.indexOf('const crmForm='), fim=HTML.indexOf('\n',HTML.indexOf('const crmResp='));
+  const C=[{id:'d',lista_id:'L',nome:'Preencheu em'}];
+  const EQ=[{id:'ded3cac7-7462-4f76-9680-3af961b25344',nome:'José'},{id:'6b3b1d5d-2ee0-4529-a6c4-23d415678bff',nome:'Bernardo Antunes'},
+    {id:'d4867474-1335-444f-a1f2-ab47a1add57c',nome:'Kennedy Lima'},{id:'x1',nome:'Maria'},{id:'x2',nome:'Gabriel'},{id:'x3',nome:'Luana Souza'},
+    {id:'x4',nome:'Luanderson'},{id:'4708095e-00c0-4724-91f7-1e6478f77bf7',nome:'Claude (robô)'}];
+  const g=rodar('const RSP_DATA="Preencheu em";\n'+HTML.slice(ini,fim)+'\n'+bloco('function equipeDe(lid,extra){','\n}\n')+'\n}',
+    {TK:{campos:C,equipe:EQ,listaSel:'L'},espacoDaLista:()=>null,ESPACO_MKT:'m',EQ_MARKETING:[],LISTA_EDICAO:'e',EDITORA_PADRAO:'p'},['crmResp','equipeDe']);
+  const nomes=(a)=>a.map(u=>u.nome).join(',');
+  ok('lista do CRM: só José, Bernardo, Kennedy e Luana', nomes(g.equipeDe('L'))==='José,Bernardo Antunes,Kennedy Lima,Luana Souza');
+  ok('Luana entra pelo primeiro nome quando ganhar login; "Luanderson" não', !/Luanderson/.test(nomes(g.crmResp(EQ))));
+  ok('fora do CRM continua o time todo', g.equipeDe('OUTRA').length===EQ.length);
+  ok('filtro "Responsáveis" da lista do CRM usa os mesmos quatro', /const doCrm=TK\.escopo==='lista'&&typeof crmForm==='function'&&crmForm\(TK\.listaSel\);\s*const pessoas=\[\.\.\.\(doCrm\?crmResp\(TK\.equipe\):TK\.equipe\)\]/.test(HTML));
+  ok('menu rápido de responsável na linha do lead também', /\(typeof crmForm==='function'&&crmForm\(t\.lista_id\)\)\?crmResp\(TK\.equipe\):TK\.equipe/.test(HTML));
+}
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
