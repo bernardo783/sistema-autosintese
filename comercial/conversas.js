@@ -134,7 +134,7 @@
       const d=diaDe(m.quando);
       if(d!==dia){ dia=d; out+=`<div class="cv-dia"><span>${esc(d)}</span></div>`; }
       const anexo=m.arquivo?`<a href="${esc(m.arquivo)}" target="_blank" rel="noopener" class="cv-anexo">abrir arquivo</a>`:'';
-      out+=`<div class="cv-bal ${m.deNos?'nos':'eles'}">${m.texto?esc(m.texto):'<i>(sem texto)</i>'}${anexo}
+      out+=`<div class="cv-bal ${m.deNos?'nos':'eles'}${m.disparo?' disp':''}">${m.texto?esc(m.texto):'<i>(sem texto)</i>'}${anexo}
         <span class="cv-hr">${esc(hora(m.quando))}${m.deNos&&m.status?' · '+esc(String(m.status).toLowerCase()):''}</span></div>`;
     });
     return out;
@@ -322,6 +322,22 @@
   .wald-err{color:var(--danger);font-size:11.5px;margin-top:3px}
   .wald-lk{display:block;margin:4px 0 0 auto;background:none;border:0;color:var(--fraco);font:inherit;font-size:11.5px;cursor:pointer;text-decoration:underline}
   .wald-lk:hover{color:var(--txt)}
+  /* conversa do lead no tamanho do CRM AutoSíntese (Bernardo 08/10, com print): painel de ~metade da
+     tela e balão maior. Mensagem que saiu de disparo automático (Yay Forms, landing /ads) fica verde;
+     a do vendedor (pelo sistema ou pelo celular) fica roxa, com quem mandou em cima */
+  .wald{width:min(100vw,max(440px,56vw),1100px)}
+  .wald .cv-msgs{padding:18px 26px;gap:8px}
+  .wald .cv-bal{max-width:min(72%,560px);padding:11px 16px 8px;border-radius:16px;font-size:14.5px;line-height:1.45;border:1px solid var(--line)}
+  .wald .cv-bal.eles{background:var(--panel2);border-bottom-left-radius:16px}
+  .wald .cv-bal.nos{background:color-mix(in srgb,var(--brand) 38%,var(--panel));border-color:color-mix(in srgb,var(--brand2) 55%,transparent);border-bottom-right-radius:16px}
+  .cv-bal.nos.disp{background:color-mix(in srgb,var(--ok) 20%,var(--panel));border:1px solid color-mix(in srgb,var(--ok) 50%,transparent)}
+  .wald .cv-hr{font-size:11px;margin-top:4px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .wald .wald-img{max-width:320px;max-height:340px}
+  .wald-quem{align-self:flex-end;display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);margin:8px 2px -2px}
+  .wald-quem svg{width:13px;height:13px}
+  .wald-quem.disp{color:var(--ok)}
+  .wald .cv-bal.wald-ag{border:1px dashed var(--brand)} .wald .cv-bal.wald-ag.erro{border-color:var(--danger)}
+  @media(max-width:720px){ .wald .cv-msgs{padding:14px} .wald .cv-bal{max-width:86%;font-size:14px} }
   @media(max-width:720px){ .wald-em{grid-template-columns:repeat(7,32px)} .wald-tr{bottom:156px} }
   @media(max-width:860px){ .cv-grid{grid-template-columns:1fr;height:auto}
     .cv-lista{max-height:300px} .cv-conv{min-height:420px} }`;
@@ -380,7 +396,8 @@
     relogio:sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),mic:sv('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',20),
     enviar:sv('<path d="M5 12h14M13 6l6 6-6 6"/>',20),troca:sv('<path d="M7 7h12l-3-3M17 17H5l3 3"/>',20),lapis:sv('<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16z"/>',13),
     foto:sv('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',16),doc:sv('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>',16),
-    fora:sv('<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',16)};
+    fora:sv('<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',16),
+    pessoa:sv('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',13),raio:sv('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',13)};
   const tarefaDe=(id)=>{ try{ return (TK.tarefas||[]).find(x=>x.id===id)||null; }catch(_){ return null; } };
   const urlOk=(u)=>/^https?:\/\//i.test(String(u||''));
   const dataHora=(iso)=>{ const d=new Date(iso); if(isNaN(d)) return '';
@@ -460,12 +477,17 @@
     if(LD.carregando) return '<div class="cv-nada">Procurando a conversa…</div>';
     if(LD.erro) return '<div class="cv-nada">'+esc(LD.erro)+'</div>';
     let out='', dia='';
-    const varios=new Set(LD.msgs.filter(m=>m.deNos&&m.por).map(m=>m.por)).size>1;
+    let quem='';
     if(!LD.msgs.length&&!LD.agendadas.length) out+='<div class="cv-nada">Ainda não tem conversa com '+esc(fmtFone(LD.fone))+' em nenhum número do time.<br>Escreva a primeira mensagem aqui embaixo.</div>';
     LD.msgs.forEach(m=>{
       const d=diaDe(m.quando);
-      if(d!==dia){ dia=d; out+=`<div class="cv-dia"><span>${esc(d)}</span></div>`; }
-      out+=`<div class="cv-bal ${m.deNos?'nos':'eles'}">${ldMidia(m)}<span class="cv-hr">${(varios&&m.deNos)?'via '+esc(nomeNum(m.por))+' · ':''}${esc(hora(m.quando))}${m.deNos&&m.status?' · '+esc(stTxt(m.status)):''}</span></div>`;
+      if(d!==dia){ dia=d; quem=''; out+=`<div class="cv-dia"><span>${esc(d)}</span></div>`; }
+      /* quem mandou aparece em cima do primeiro balão de cada sequência nossa */
+      const q=m.deNos?(m.disparo?'disp:':'nos:')+(m.por||''):'';
+      if(q&&q!==quem) out+=m.disparo?`<div class="wald-quem disp">${IC.raio}Disparo automático${m.por?' · '+esc(nomeNum(m.por)):''}</div>`
+        :`<div class="wald-quem">${IC.pessoa}${esc(nomeNum(m.por)||'Vendedor')}</div>`;
+      quem=q;
+      out+=`<div class="cv-bal ${m.deNos?'nos':'eles'}${m.disparo?' disp':''}">${ldMidia(m)}<span class="cv-hr">${esc(hora(m.quando))}${m.deNos&&m.status?' · '+esc(stTxt(m.status)):''}</span></div>`;
     });
     LD.agendadas.forEach(a=>{
       const err=a.status==='erro', arq=a.tipo&&a.tipo!=='texto'?'<span class="wald-anx">'+IC.doc+esc(a.nome_arquivo||ROT_TIPO[a.tipo]||'Arquivo')+'</span>':'';

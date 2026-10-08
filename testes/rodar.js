@@ -1584,7 +1584,9 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
     gc.waLdPop('tr');
     ok('transferir: lista os vendedores e marca o atual', /Kennedy Lima/.test(els.waLdPop.innerHTML)&&/atual/.test(els.waLdPop.innerHTML));
     ok('no CRM Sofás, transferir só pros 4 do responsável (crmResp)', /crmForm\(tt\.lista_id\)&&typeof crmResp==='function'\) LD\.vendedores=crmResp\(LD\.vendedores\)/.test(CJ));
-    ok('histórico de dois números mostra por qual saiu cada mensagem', /via Kennedy/.test(els.waLdMsgs.innerHTML)&&/via Bernardo/.test(els.waLdMsgs.innerHTML));
+    /* quem mandou vai em cima da sequência de balões, como no CRM AutoSíntese (Bernardo 08/10) */
+    ok('histórico de dois números mostra por qual saiu cada mensagem', /class="wald-quem">[^]*?Kennedy</.test(els.waLdMsgs.innerHTML)&&/class="wald-quem">[^]*?Bernardo</.test(els.waLdMsgs.innerHTML));
+    ok('disparo automático sai em balão verde; o do vendedor continua roxo', /\.cv-bal\.nos\.disp\{background:color-mix\(in srgb,var\(--ok\)/.test(CJ)&&/m\.disparo\?' disp':''/.test(CJ)&&/\.wald \.cv-bal\.nos\{background:color-mix\(in srgb,var\(--brand\)/.test(CJ));
     const gv=rodar(CJ,ctxP({role:'membro',papel_crm:'sdr'}),[]);
     const antes=chamadas.length;
     await gv.waDoLead('5511999990001','Ana Souza');
