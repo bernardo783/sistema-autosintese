@@ -1741,10 +1741,43 @@ grupo('Respostas separada por etapa, estilo ClickUp (Bernardo 08/10)');
   g.TK.fechadas={grs1:true};
   const h2=g.tkViewRespostas();
   ok('etapa recolhida esconde os leads e o cabeçalho', h2.indexOf('>Ana<')<0&&h2.indexOf('>Beto<')>0&&(h2.match(/<tr class="rsp-ch">/g)||[]).length===2);
-  ok('larguras das colunas numa <colgroup>, iguais em todas as etapas', /<colgroup><col data-k="nome" style="width:300px"><col data-k="status"/.test(h));
+  ok('larguras das colunas numa <colgroup>, iguais em todas as etapas', /<colgroup><col data-k="nome" style="width:300px"><col data-k="data"/.test(h));
   ok('"marcar todos" marca só a etapa', /onchange="rspTodos\(this\.checked,'s1'\)"/.test(h)&&/window\.rspTodos=\(on,g\)=>/.test(HTML));
   ok('busca conta só linhas de lead e atualiza a contagem de cada etapa', HTML.indexOf("#rspTab tbody tr[data-b]")>0&&HTML.indexOf("#rspTab tbody.rsp-g")>0);
   ok('arrastar a borda muda a <col>', HTML.indexOf(`const col=tb.querySelector('col[data-k="'+k+'"]')`)>0);
+}
+grupo('Respostas: etapa do funil filtra e relógio do lead no funil (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const C=[{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const ST=[{id:'s1',nome:'1. NOVO LEAD',cor:'#7c3aed',ordem:1,grupo:'nao_iniciado'},{id:'s3',nome:'3. EM CONVERSA',cor:'#a855f7',ordem:3,grupo:'ativo'},
+    {id:'s6',nome:'6. GANHOU',cor:'#3ec46d',ordem:6,grupo:'feito'}];
+  const agora=Date.now(), H=3600000;
+  const T=[{id:'a',lista_id:'L',titulo:'Ana',status_id:'s1',criado_em:new Date(agora-2*H).toISOString(),valores:{}},
+    {id:'b',lista_id:'L',titulo:'Beto',status_id:'s3',criado_em:new Date(agora-30*H).toISOString(),valores:{}},
+    {id:'c',lista_id:'L',titulo:'Caio',status_id:'s6',criado_em:new Date(agora-5*24*H).toISOString(),concluida_em:new Date(agora-1*24*H).toISOString(),valores:{}},
+    {id:'e',lista_id:'L',titulo:'Edu',status_id:'s6',criado_em:new Date(agora-3*24*H).toISOString(),concluida_em:new Date(agora-1*24*H).toISOString(),valores:{}}];
+  const toasts=[];
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{}},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
+    tkStatusDe:()=>ST,tkStatus1:(id)=>ST.find(s=>s.id===id)||null,esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,
+    tkSelo:()=>'[st]',tpSvg:()=>'',setTimeout:()=>0,setInterval:()=>0,currentUser:{role:'master'},corTexto:()=>'#fff',
+    tkDesenhar:()=>{},$:()=>null,toast:(m)=>toasts.push(m)},['tkViewRespostas','rspDur','rspIrEtapa','RSP']);
+  ok('relógio em horas no 1º dia e em dias depois', g.rspDur(40*60000)==='40 min'&&g.rspDur(8*H)==='8 h'&&g.rspDur(23*H)==='23 h'&&g.rspDur(24*H)==='1 dia'&&g.rspDur(30*24*H)==='30 dias');
+  const h=g.tkViewRespostas();
+  ok('lead com menos de 6 h fica vermelho', /class="rsp-rel quente"[^>]*>[\s\S]*?<span>2 h<\/span>/.test(h));
+  ok('depois das 6 h fica neutro, contando dias', /class="rsp-rel"[^>]*>[\s\S]*?<span>1 dia<\/span>/.test(h));
+  ok('quem fechou para o relógio na hora de fechar', /class="rsp-rel fim"[^>]*>[\s\S]*?<span>4 dias<\/span>/.test(h));
+  ok('GANHOU mostra a jornada média de compra', /GANHOU<\/span><b>2<\/b><small class="rsp-jm"[^>]*>jornada média 3 dias</.test(h));
+  ok('sem filtro: todas as etapas na tabela e sem o "Ver todas"', h.indexOf('>Beto<')>0&&h.indexOf('>Ana<')>0&&h.indexOf('rsp-tudo')<0);
+  g.rspIrEtapa('s3'); const h2=g.tkViewRespostas();
+  ok('clicou em EM CONVERSA: só ela aparece', h2.indexOf('>Beto<')>0&&h2.indexOf('>Ana<')<0&&h2.indexOf('>Caio<')<0);
+  ok('etapa escolhida marcada no funil e "Ver todas as etapas" aparece', /rsp-funil filtrado/.test(h2)&&/rsp-fe on" data-g="s3"/.test(h2)&&h2.indexOf('Ver todas as etapas')>0);
+  g.rspIrEtapa('s3');
+  ok('clicar de novo na mesma etapa volta a mostrar tudo', g.RSP.etapa==='');
+  g.rspIrEtapa('s1'); g.rspIrEtapa('');
+  ok('"Ver todas" volta a mostrar tudo', g.RSP.etapa==='');
+  g.TK.tarefas=T.filter(x=>x.status_id!=='s1'); g.rspIrEtapa('s1');
+  ok('etapa vazia não filtra: avisa', g.RSP.etapa===''&&/Nenhum lead em novo lead/.test(toasts.join('|')));
 }
 grupo('Respostas: funil no topo + etapas sem caixa, a opção 4 (Bernardo 08/10)');
 {
@@ -1762,9 +1795,9 @@ grupo('Respostas: funil no topo + etapas sem caixa, a opção 4 (Bernardo 08/10)
   ok('funil no topo, antes da tabela', h.indexOf('rsp-funil')>0&&h.indexOf('rsp-funil')<h.indexOf('id="rspTab"'));
   ok('uma etapa por botão, na ordem do funil, com a contagem', bt.length===3&&/>NOVO LEAD<\/span><b>2</.test(bt[0])&&/>SEM RESPOSTA<\/span><b>1</.test(bt[1])&&/>GANHOU<\/span><b>0</.test(bt[2]));
   ok('cada etapa na própria cor; etapa vazia fica cinza', /--c:#7c3aed/.test(bt[0])&&/rsp-fe zero/.test(bt[2])&&!/zero/.test(bt[0]));
-  ok('clicar leva até a etapa', /onclick="rspIrEtapa\('s1'\)"/.test(bt[0])&&/window\.rspIrEtapa=\(k\)=>/.test(HTML)&&/scrollIntoView\(\{behavior:'smooth',block:'start'\}\)/.test(HTML));
-  ok('etapa recolhida abre antes de rolar até ela', /if\(TK\.fechadas&&TK\.fechadas\['gr'\+k\]\)\{ TK\.fechadas\['gr'\+k\]=false; tkDesenhar/.test(HTML));
-  ok('etapas sem caixa: fundo da página, sem linha vertical', HTML.indexOf('.tablewrap:has(> #rspTab){background:transparent;border:0;border-radius:0;box-shadow:none}')>0&&HTML.indexOf('#rspTab th+th,#rspTab td+td{border-left:0}')>0);
+  ok('clicar na etapa mostra só ela (Bernardo 08/10)', /onclick="rspIrEtapa\('s1'\)"/.test(bt[0])&&/window\.rspIrEtapa=\(k\)=>/.test(HTML)&&HTML.indexOf("RSP.etapa=k||'';")>0);
+  ok('etapa recolhida abre ao ser escolhida', HTML.indexOf("if(k&&TK.fechadas&&TK.fechadas['gr'+k]) TK.fechadas['gr'+k]=false;")>0);
+  ok('etapas sem caixa, com a linha vertical entre as colunas (Bernardo 08/10)', HTML.indexOf('.tablewrap:has(> #rspTab){background:transparent;border:0;border-radius:0;box-shadow:none}')>0&&HTML.indexOf('#rspTab .rsp-g > tr:not(.tk-faixa) > *+*{border-left:1px solid var(--line)}')>0);
   ok('saiu o cartão com cantos redondos por etapa', HTML.indexOf('border-top-left-radius:12px}')<0||!/#rspTab \.rsp-ch > th:first-child\{border-left/.test(HTML));
   ok('busca atualiza o número do funil junto', HTML.indexOf(`const f=document.querySelector('.rsp-fe[data-g="'+g.dataset.g+'"] b'); if(f) f.textContent=c.textContent;`)>0);
 }
@@ -2429,7 +2462,7 @@ grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (B
   ok('Instagram: resposta que não é @ fica sem botão', g.rspIgDe('Não temos')===''&&g.rspIgDe('Fenix estofados')===''&&g.rspIgDe('')==='');
   ok('Lista: botão do Instagram só com @ válido', /class="tk-ig" href="https:\/\/instagram.com\/ana"/.test(g.rspIgBtn(T[0]))&&g.rspIgBtn(T[1])===''
     &&HTML.indexOf("crmForm(t.lista_id)?rspWaBtn(t)+rspIgBtn(t):''")>0);
-  ok('status continua editável na linha', h.indexOf('[st:a]')>0);
+  ok('sem a coluna Status na linha: a etapa já separa (Bernardo 08/10)', h.indexOf('[st:a]')<0);
   ok('lista de formulário abre em Respostas por padrão', HTML.indexOf("crmForm(id)?'tabela':")>0&&HTML.indexOf("TK.visao==='tabela'?tkViewRespostas():")>0);
 }
 
@@ -2504,7 +2537,7 @@ grupo('Respostas: mesmo visual do Controle de Clientes, colunas separadas (Berna
     tkSelo:()=>'<select></select>',tpSvg:()=>'',setTimeout:()=>0},['tkViewRespostas']);
   const h=g.tkViewRespostas();
   ok('usa a tabela do Controle de Clientes (linha entre todas as colunas)', /<table class="tk-tab lc-tab" id="rspTab"/.test(h));
-  ok('Nome e Status nas duas primeiras colunas, presas como no Controle de Clientes', h.indexOf('>Nome</span>')<h.indexOf('>Status<')&&h.indexOf('>Status<')<h.indexOf('Preencheu em'));
+  ok('Nome e o relógio "No funil" nas duas primeiras colunas, sem Status', h.indexOf('>Nome</span>')<h.indexOf('No funil')&&h.indexOf('>Status<')<0);
   ok('valor curto (estado, data) fica no meio da coluna', /<td class="tk-cen">SP<\/td>/.test(h));
   ok('largura: cada título tem a borda de arrastar (como no ClickUp)', (h.match(/class="rsp-grip"/g)||[]).length>=4&&/rspArrasta\(event,'nome'\)/.test(h));
   ok('largura: tabela fixa, senão o texto não deixa a coluna diminuir', /#rspTab\{table-layout:fixed\}/.test(HTML)&&/id="rspTab" style="width:\d+px"/.test(h));
