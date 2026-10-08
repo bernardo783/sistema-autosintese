@@ -2426,6 +2426,14 @@ grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (B
   ok('lista de formulário abre em Respostas por padrão', HTML.indexOf("crmForm(id)?'tabela':")>0&&HTML.indexOf("TK.visao==='tabela'?tkViewRespostas():")>0);
 }
 
+/* ---------------- filtro sem Prioridade no CRM de formulário (Bernardo 08/10) ---------------- */
+grupo('Lead de formulário não tem filtro de prioridade (Bernardo 08/10)');
+{
+  ok('a seção Prioridade some no CRM de formulário', HTML.indexOf("${tkFSemPrio()?'':`<div class=\"tkp-sec\" style=\"margin-top:14px\">Prioridade</div>")>0);
+  ok('prioridade guardada não filtra o lead', HTML.indexOf("if(F.prios&&F.prios.length&&!tkFSemPrio()) arr=arr.filter(")>0);
+  ok('nem conta no número do funil', HTML.indexOf("((F.prios&&F.prios.length&&!tkFSemPrio())?1:0)")>0);
+  ok('vale só pra lista de formulário', HTML.indexOf("const tkFSemPrio=()=>TK.escopo==='lista'&&typeof crmForm==='function'&&crmForm(TK.listaSel);")>0);
+}
 /* ---------------- prioridade como bandeira (Bernardo 08/10) ---------------- */
 grupo('Prioridade como bandeira no filtro e no menu rápido (Bernardo 08/10)');
 {
