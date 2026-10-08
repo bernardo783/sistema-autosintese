@@ -406,6 +406,9 @@
       const d=await api('lead',{fone:LD.fone,tarefa:LD.tarefa||undefined});
       LD.msgs=d.mensagens||[]; LD.chatid=d.chatid||''; LD.agendadas=d.agendadas||[]; LD.vendedores=d.vendedores||[];
       LD.resp=d.responsaveis||[]; LD.nums=d.nums||[]; LD.admin=!!d.admin; LD.eu=d.eu||''; LD.erro='';
+      /* CRM de formulario (Sofás): só José, Bernardo, Kennedy e Luana recebem lead (Bernardo 08/10), a mesma regra do responsável */
+      const tt=LD.tarefa?tarefaDe(LD.tarefa):null;
+      if(tt&&typeof crmForm==='function'&&crmForm(tt.lista_id)&&typeof crmResp==='function') LD.vendedores=crmResp(LD.vendedores);
       /* o master pode ter escolhido outro numero no seletor: vale enquanto o painel estiver aberto */
       if(!LD.porFixo||!LD.nums.includes(LD.por)){ LD.porFixo=false; LD.por=d.por||''; }
       if(!LD.por&&LD.nums.length){ const ult=lembraDe(); LD.por=LD.nums.includes(ult)?ult:LD.nums[0]; }
