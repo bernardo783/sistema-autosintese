@@ -2327,8 +2327,11 @@ grupo('Respostas: mesmo visual do Controle de Clientes, colunas separadas (Berna
     tkSelo:()=>'<select></select>',tpSvg:()=>'',setTimeout:()=>0},['tkViewRespostas']);
   const h=g.tkViewRespostas();
   ok('usa a tabela do Controle de Clientes (linha entre todas as colunas)', /<table class="tk-tab lc-tab" id="rspTab"/.test(h));
-  ok('Nome e Status nas duas primeiras colunas, presas como no Controle de Clientes', h.indexOf('>Nome</span></th>')<h.indexOf('>Status</th>')&&h.indexOf('>Status</th>')<h.indexOf('Preencheu em'));
+  ok('Nome e Status nas duas primeiras colunas, presas como no Controle de Clientes', h.indexOf('>Nome</span>')<h.indexOf('>Status<')&&h.indexOf('>Status<')<h.indexOf('Preencheu em'));
   ok('valor curto (estado, data) fica no meio da coluna', /<td class="tk-cen">SP<\/td>/.test(h));
+  ok('largura: cada título tem a borda de arrastar (como no ClickUp)', (h.match(/class="rsp-grip"/g)||[]).length>=4&&/rspArrasta\(event,'nome'\)/.test(h));
+  ok('largura: tabela fixa, senão o texto não deixa a coluna diminuir', /#rspTab\{table-layout:fixed\}/.test(HTML)&&/id="rspTab" style="width:\d+px"/.test(h));
+  ok('largura: fica só na memória da página (recarregou, volta ao padrão)', HTML.indexOf("let RSP={dir:-1,sel:{},q:'',larg:{}};")>0&&!/localStorage[^\n]*RSP\.larg/.test(HTML));
   ok('fixa as colunas depois de desenhar, como o Controle de Clientes', /lcFixarColunas\(\$\('#content'\)\)/.test(cod));
 }
 
