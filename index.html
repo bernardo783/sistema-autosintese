@@ -3198,6 +3198,11 @@
   .eq-acts .btn{width:172px;justify-content:center;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
   .eq-acts .btn svg{width:14px;height:14px}
   .eq-acts .eq-nb{width:172px;text-align:center;font-size:12px;color:var(--fraco)}
+  .eq-okb{width:172px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid color-mix(in srgb,var(--ok) 50%,transparent);
+    background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;white-space:nowrap}
+  .eq-okb svg{width:14px;height:14px}
+  .eq-tst{background:none;border:0;padding:0;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
+  .eq-tst:hover{color:var(--txt)}
   .eq-rl{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
   .eq-caiu{color:var(--fraco);font-size:12px}
   .eq-sw{width:36px;height:20px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);position:relative;cursor:pointer;flex:none;padding:0}
@@ -16505,6 +16510,7 @@ async function renderEquipe(c){
   eqDesenhar(c);
 }
 window.eqRecarregar=async()=>{ EQ.carregou=false; const c=$('#content'); if(currentView==='crm-equipe'&&c) await renderEquipe(c); };
+const PC_IC_OK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>';
 function eqDesenhar(c){
   c=c||$('#content'); if(!c||currentView!=='crm-equipe') return;
   const cab=`<div class="page-head tp-head"><div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>Equipe</h2></div></div></div>`;
@@ -16534,12 +16540,13 @@ function eqDesenhar(c){
     const dot=!i||i.erro?'warn':(i.conectado?'ok':'bad');
     const st=!i?`<div class="eq-st warn">sem número<span class="eq-stx">${master?'nunca conectou':'um master conecta'}</span></div>`
       :i.erro?`<div class="eq-st warn" title="${esc(i.erro)}">erro<span class="eq-stx">${esc(String(i.erro).slice(0,34))}</span></div>`
-      :i.conectado?'<div class="eq-st ok">conectado</div>'
+      :i.conectado?'<div class="eq-st"></div>'
       :`<div class="eq-st bad">desconectado${i.ultimaQueda?`<span class="eq-stx">caiu ${esc(eqQuando(i.ultimaQueda))}</span>`:''}</div>`;
     const acao=!i?(master?`<button class="btn small" onclick="eqNovoNumero('${v.apelido}')" title="Cria o número de ${esc(nome)} e abre o QR code">${QR} Conectar WhatsApp</button>`
                         :'<span class="eq-nb" title="Gerar número usa o token admin do servidor">só master gera o número</span>')
       :i.erro?'<span class="eq-nb">veja em Comercial › Instâncias</span>'
-      :i.conectado?`<button class="btn secondary small" onclick="instTestar('${esc(i.name)}')">Testar</button>`
+      /* conectado vira o proprio botao, com o testar pequeno do lado (Bernardo 08/10, opcao C) */
+      :i.conectado?`<span class="eq-okb" title="WhatsApp conectado">${PC_IC_OK}Conectado</span><button type="button" class="eq-tst" onclick="instTestar('${esc(i.name)}')" title="Mandar uma mensagem de teste">testar</button>`
       :`<button class="btn small" onclick="eqConectar('${esc(i.name)}')">${QR} Reconectar (QR)</button>`;
     const perfil=v.perfil_id?`perfil: ${esc(tkNomeUser(v.perfil_id)||'?')}`:'<span style="color:var(--warn)">sem perfil ligado</span>';
     const selPerfil=pode?`<select class="eq-sel" onchange="eqPerfil('${v.apelido}',this.value)" title="Quem vira responsável do card quando o lead cai pra este número">
@@ -16559,8 +16566,7 @@ function eqDesenhar(c){
   c.innerHTML=cab+`
   <div class="eq-disp" style="--c:${cfg.pausado?'var(--warn)':'var(--ok)'}">
     <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg></div>
-    <div class="tx"><h4>Disparo automático do formulário</h4>
-      <p>Lead novo vai pro vendedor da vez e a 1ª mensagem sai do WhatsApp dele; o card já nasce com ele de responsável.${cfg.pausado?' <b>Pausado:</b> o lead ainda vai pro vendedor da vez, só sem a mensagem.':''}</p></div>
+    <div class="tx"><h4>Disparo automático Yay Forms</h4></div>
     <div class="lado"><span class="est">${cfg.pausado?'Pausado':'Ligado'}</span>${sw(!cfg.pausado,`eqPausa(${!cfg.pausado})`,cfg.pausado?'Ligar o disparo automático':'Pausar o disparo automático')}</div>
   </div>
   <div class="eq-res">
