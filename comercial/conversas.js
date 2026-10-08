@@ -257,6 +257,10 @@
   .wald-av.sm{width:26px;height:26px;font-size:12px;background:var(--brand);color:#fff}
   .wald-nm{display:flex;align-items:center;gap:6px}
   .wald-nm input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:5px 8px;font:inherit;font-weight:700;font-size:14px}
+  /* telefone com copiar (pro vendedor jogar no VoIP) e, com folga, a pílula do vendedor (Bernardo 08/10) */
+  .wald-sub{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px;margin-top:4px}
+  .wald-tel{display:inline-flex;align-items:center;gap:6px}
+  .wald-sub .wald-cl{margin-top:0}
   .wald-cl{margin-top:6px;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:11.5px;font-weight:700;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:3px 10px;cursor:pointer}
   .wald-cl i{width:8px;height:8px;border-radius:50%;background:var(--c,var(--brand))}
   .wald-cl:hover{border-color:var(--brand)}
@@ -402,6 +406,7 @@
     enviar:sv('<path d="M5 12h14M13 6l6 6-6 6"/>',20),troca:sv('<path d="M7 7h12l-3-3M17 17H5l3 3"/>',20),lapis:sv('<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16z"/>',13),
     foto:sv('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',16),doc:sv('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>',16),
     fora:sv('<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',16),
+    copia:sv('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',12),
     pessoa:sv('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',13),raio:sv('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',13)};
   const tarefaDe=(id)=>{ try{ return (TK.tarefas||[]).find(x=>x.id===id)||null; }catch(_){ return null; } };
   const urlOk=(u)=>/^https?:\/\//i.test(String(u||''));
@@ -472,7 +477,7 @@
     const n=String(LD.fone).replace(/\D/g,'');
     return `<span class="wald-av">${esc(inicial(LD.nome||'?'))}</span>
       <div class="q"><div class="wald-nm" id="waLdNm"><b>${esc(LD.nome||fmtFone(LD.fone))}</b>${t?`<button class="wald-ib sm" title="Editar nome" onclick="waLdNome()">${IC.lapis}</button>`:''}</div>
-        <small>${esc(fmtFone(LD.fone))}</small>${cls}</div>
+        <div class="wald-sub"><span class="wald-tel"><small>${esc(fmtFone(LD.fone))}</small>${n?`<button class="wald-ib sm" title="Copiar o telefone (pra ligar no VoIP)" aria-label="Copiar o telefone" onclick="waLdCopiaFone()">${IC.copia}</button>`:''}</span>${cls}</div></div>
       <a class="wald-ib bd" title="Abrir no WhatsApp" href="https://wa.me/${esc(n)}" target="_blank" rel="noopener">${IC.fora}</a>
       <button class="x" onclick="waLdFechar()" aria-label="Fechar">&times;</button>`;
   }
@@ -512,6 +517,8 @@
     if(!LD.por) return 'Você não tem um número de WhatsApp cadastrado para enviar (tela Usuários › WhatsApp).';
     const perf=LD.perfil&&LD.perfil.toLowerCase()!==LD.por?' ('+esc(LD.perfil)+')':'';
     const sel=(LD.admin&&LD.nums.length>1)?`<select title="Trocar o número" onchange="waLdDe(this.value)">${LD.nums.map(n=>`<option value="${esc(n)}"${n===LD.por?' selected':''}>${esc(nomeNum(n))}</option>`).join('')}</select>`:'';
+    /* o vendedor vê que a mensagem sai pelo número dele; só o master troca o número (Bernardo 08/10) */
+    if(!LD.admin) return `<span>Enviando pelo seu WhatsApp (<b>${esc(nomeNum(LD.por))}</b>)${LD.fonePor?' • '+esc(fmtFone(LD.fonePor)):''}${LD.conectado?'':' <em class="wald-off">desconectado</em>'}</span>`;
     return `<span>Enviando pelo WhatsApp de <b>${esc(nomeNum(LD.por))}</b>${perf}${LD.fonePor?' • '+esc(fmtFone(LD.fonePor)):''}${LD.conectado?'':' <em class="wald-off">desconectado</em>'}</span>${sel}`;
   }
   function ldArq(){
@@ -666,6 +673,13 @@
     if(i.dataset.x||!v||v===LD.nome){ waLdPinta(); return; }
     if(typeof tkPatch==='function'&&await tkPatch(LD.tarefa,{titulo:v},'Nome atualizado')) LD.nome=v;
     waLdPinta();
+  };
+  /* só os dígitos com DDD (11943652881): é o que o discador do VoIP aceita colado */
+  window.waLdCopiaFone=async ()=>{
+    let d=String(LD.fone||'').replace(/\D/g,''); if(d.length>=12&&d.startsWith('55')) d=d.slice(2);
+    if(!d) return;
+    try{ await navigator.clipboard.writeText(d); toast('Telefone copiado: '+fmtFone(LD.fone)); }
+    catch(_){ toast('Telefone: '+d); }
   };
   window.waLdTransferir=async (id)=>{
     const v=LD.vendedores.find(x=>x.id===id); if(!v||!LD.tarefa) return;

@@ -1604,6 +1604,9 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
     resp=LEAD({admin:false,nums:['kennedy'],por:'kennedy'});
     await gv.waDoLead('5511999990001','Ana Souza',{tarefa:'a'});
     ok('vendedor: com o card abre, e sem seletor de número', chamadas.length>antes&&!/<select/.test(els.waLdPor.innerHTML)&&/Kennedy/.test(els.waLdPor.innerHTML));
+    ok('vendedor: a faixa diz que sai pelo WhatsApp dele', /Enviando pelo seu WhatsApp/.test(els.waLdPor.innerHTML));
+    /* copiar o telefone no topo da conversa, pro VoIP (Bernardo 08/10) */
+    ok('topo da conversa tem o copiar telefone, com folga até a pílula', /onclick="waLdCopiaFone\(\)"/.test(els.waLdHead.innerHTML)&&/\.wald-sub\{display:flex;[^}]*gap:6px 16px/.test(CJ));
   })());
 }
 grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernardo 08/10)');
