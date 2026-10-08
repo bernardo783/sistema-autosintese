@@ -1782,6 +1782,51 @@ grupo('Respostas: etapa vazia só no funil, selo leve na linha (Bernardo 08/10)'
   ok('clicar numa etapa vazia do funil avisa', HTML.indexOf("toast('Nenhum lead em '+")>0);
   ok('status da linha num selo leve, a cor cheia fica na pílula do grupo', /#rspTab \.tk-stsel\{background-color:color-mix\(in srgb,var\(--c\) 15%,transparent\)!important/.test(HTML));
 }
+grupo('CRM Sofás: abre em Hoje e avisa lead anterior sem atendimento (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const C=[{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const ST=[{id:'s1',nome:'1. NOVO LEAD',cor:'#7c3aed',ordem:1},{id:'s2',nome:'2. SEM RESPOSTA',cor:'#f97316',ordem:2},{id:'s3',nome:'3. EM CONVERSA',cor:'#2f7cf6',ordem:3}];
+  const T=[{id:'a',lista_id:'L',titulo:'Ana',status_id:'s1',responsavel_id:'u1',valores:{d:'2026-10-08'}},
+    {id:'b',lista_id:'L',titulo:'Beto',status_id:'s2',responsavel_id:'u1',valores:{d:'2026-10-06'}},
+    {id:'c',lista_id:'L',titulo:'Caio',status_id:'s3',responsavel_id:'u2',valores:{d:'2026-10-05'}},
+    {id:'e',lista_id:'L',titulo:'Edu',status_id:'s1',responsavel_id:'u2',valores:{d:'2026-10-07'}}];
+  const timers=[];
+  const dm=(b,n)=>{ const d=new Date(b+'T12:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{},filtro:{resps:[]}},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
+    tkStatusDe:()=>ST,tkStatus1:(id)=>ST.find(s=>s.id===id)||null,tkHoje:()=>'2026-10-08',tkDiaMais:dm,
+    esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,tkSelo:()=>'',tpSvg:()=>'',
+    setTimeout:(f)=>{ timers.push(f); return 0; },currentUser:{role:'master'},corTexto:()=>'#fff',
+    document:{querySelector:()=>null,getElementById:()=>null}},['tkViewRespostas','rspLinhas','rspNoPeriodo','rspPendente','RSP']);
+  g.RSP.per='';
+  const h=g.tkViewRespostas();
+  ok('abrir a lista volta o período pra Hoje', g.RSP.per==='hoje');
+  ok('abrir a lista agenda o aviso de pendentes', timers.some(f=>/rspAvisoPendentes/.test(String(f))));
+  g.document.querySelector=()=>({});   /* daqui pra frente a lista já está na tela: redesenhar não reabre */
+  const tab=h.slice(h.indexOf('id="rspTab"'));
+  ok('em Hoje só aparece quem preencheu hoje', tab.indexOf('>Ana<')>0&&tab.indexOf('>Beto<')<0&&tab.indexOf('>Edu<')<0);
+  ok('pendente = dia anterior em NOVO LEAD ou SEM RESPOSTA', g.rspPendente(T[1])&&g.rspPendente(T[3])&&!g.rspPendente(T[0])&&!g.rspPendente(T[2]));
+  const per=(h.match(/<div class="rsp-per"[^>]*>([\s\S]*?)<\/div>/)||[])[1]||'';
+  ok('opções exatamente: Hoje, Ontem, Últimos 7 dias, Últimos 30 dias, Personalizado', (per.match(/<button[^>]*>([^<]*)<\/button>/g)||[]).map(b=>b.replace(/<[^>]+>/g,'')).join('|')==='Hoje|Ontem|Últimos 7 dias|Últimos 30 dias|Personalizado');
+  ok('Hoje vem marcado; nada de prazo, futuro, "Todos" ou "Pendentes" nos botões', /class="on" onclick="rspPeriodo\('hoje'\)"/.test(per)&&!/Amanhã|Próximos|Atrasad|prazo|Todos|Pendentes/.test(per));
+  g.RSP.per='ontem'; ok('Ontem', g.rspLinhas().map(t=>t.id).join()==='e');
+  g.RSP.per='ult7'; ok('7 dias pega de 02/10 até hoje', g.rspLinhas().length===4);
+  g.RSP.per='ult30'; ok('30 dias', g.rspLinhas().length===4);
+  g.RSP.per='custom'; g.RSP.de='2026-10-06'; g.RSP.ate='2026-10-07'; ok('Personalizado (de/até)', g.rspLinhas().map(t=>t.id).sort().join()==='b,e');
+  ok('Personalizado mostra os campos de/até', /<span class="rsp-cus"><input type="date" value="2026-10-06"/.test(g.tkViewRespostas()));
+  g.RSP.per='pend'; ok('Pendentes mostra só os não atendidos de antes de hoje', g.rspLinhas().map(t=>t.id).sort().join()==='b,e');
+  g.RSP.per=''; g.TK.filtro.resps=['u2']; ok('filtro de Responsáveis vale na planilha', g.rspLinhas().map(t=>t.id).sort().join()==='c,e');
+  g.TK.filtro.resps=[];
+  g.TK.tarefas=[T[1]]; g.RSP.per='hoje';
+  ok('sem lead hoje, a mensagem diz isso', /Nenhum lead chegou hoje ainda\./.test(g.tkViewRespostas()));
+  ok('clicar de novo na opção marcada limpa (mostra todos)', HTML.indexOf("RSP.per=(RSP.per===k&&k!=='pend')?'':k;")>0);
+  g.TK.tarefas=T; g.RSP.per='pend';
+  ok('vendo os pendentes (pelo aviso), uma faixa explica e volta pra hoje', /class="rsp-pbar"><span>Mostrando 2 leads de antes de hoje que ninguém atendeu ainda\.<\/span><button[^>]*onclick="rspPeriodo\('hoje'\)">Voltar para hoje/.test(g.tkViewRespostas()));
+  ok('aviso: título, contagem por etapa e botão pra ver os pendentes', HTML.indexOf("sem atendimento fora de hoje</div>")>0&&HTML.indexOf("rspAvisoFechar();rspPeriodo('pend')")>0&&HTML.indexOf("nSR?nSR+' sem resposta'")>0);
+  ok('aviso só na planilha de lead aberta', HTML.indexOf("if(TK.escopo!=='lista'||!crmForm(TK.listaSel)||TK.visao!=='tabela') return;")>0);
+  ok('Filtros: lead não tem "Data de vencimento" (zerava a lista)', /\$\{tkFSemPrio\(\)\?`<p class="hint"[^`]*`:`<div class="tkp-sec">Data de vencimento<\/div>/.test(HTML));
+  ok('data de vencimento guardada não filtra a lista de lead nem conta no selo', HTML.indexOf("if(tkFSemPrio()){ /* lead não tem prazo")>0&&HTML.indexOf("((F.prazo||F.de||F.ate)&&!tkFSemPrio()?1:0)")>0);
+}
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
