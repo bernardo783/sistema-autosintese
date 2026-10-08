@@ -1631,7 +1631,7 @@ grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernar
   ok('Fechamento: lead de origem (CRMs de formulário) vai pro fechamento', /id="fc_lead"/.test(HTML)&&/leadId:leadO\.id/.test(HTML)&&/fcLeadsCarregar\(\);/.test(HTML));
   ok('CRM de formulário: aba Anúncios ao lado do Painel', /\['anuncios',tpSvg\('megafone',14\)\+'Anúncios'\]/.test(HTML)&&/TK\.visao==='anuncios'\?anuView\(\)/.test(HTML));
   ok('no topo do CRM Sofás some o ícone da Lista e o do Quadro', /\$\{soBoard\|\|\(TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\)\?'':tpIb\('lista'/.test(HTML)&&/\$\{TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\?'':tpIb\('quadro'/.test(HTML));
-  ok('crm.js com cache novo', HTML.indexOf('crm.js?v=28')>0);
+  ok('crm.js com cache novo', HTML.indexOf('crm.js?v=29')>0);
 }
 grupo('CRM Motos e CRM Veículos: o mesmo código do CRM Sofás, cada um com a sua base (Bernardo 08/10)');
 {
