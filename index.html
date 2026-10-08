@@ -2941,6 +2941,21 @@
   #rspTab .rsp-cv.ab{transform:rotate(90deg)}
   #rspTab .tk-faixa:hover .rsp-cv{color:var(--txt);background:var(--panel2)}
   #rspTab .rsp-ch > th{background:var(--panel2)}
+  /* Respostas por etapa, mais ar entre as etapas (Bernardo 08/10: "não ficou muito legal o espaçamento
+     entre eles"): cada etapa vira um bloco solto, com borda e cantos redondos próprios, e a faixa da
+     etapa fica no fundo da página, como os grupos da Lista do ClickUp. A caixa única em volta sai. */
+  .tablewrap:has(> #rspTab){background:transparent;border:0;border-radius:0}
+  #rspTab{border-collapse:separate;border-spacing:0}
+  #rspTab .tk-faixa > td{background:var(--bg);border:0!important;box-shadow:none!important;padding:26px 2px 10px!important}
+  #rspTab .rsp-g:first-of-type > .tk-faixa > td{padding-top:2px!important}
+  #rspTab .tk-faixa.vazio > td{padding-top:14px!important;padding-bottom:4px!important}
+  #rspTab .rsp-ch > th{border-top:1px solid var(--line)}
+  #rspTab .rsp-ch > th:first-child{border-left:1px solid var(--line);border-top-left-radius:12px}
+  #rspTab .rsp-ch > th:last-child{border-right:1px solid var(--line);border-top-right-radius:12px}
+  #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch) > td:first-child{border-left:1px solid var(--line)}
+  #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch) > td:last-child{border-right:1px solid var(--line)}
+  #rspTab .rsp-g > tr:last-child:not(.tk-faixa) > td:first-child{border-bottom-left-radius:12px}
+  #rspTab .rsp-g > tr:last-child:not(.tk-faixa) > td:last-child{border-bottom-right-radius:12px}
   /* Painel do CRM de formulario (Bernardo 08/10): o mesmo do Comercial, dentro da lista */
   .crm-pn{margin-top:4px}
   .crm-pn-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:10px}
