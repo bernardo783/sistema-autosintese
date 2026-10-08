@@ -7805,6 +7805,14 @@ const LCOM={'f1e2d3c4-0000-4a00-8b00-00000000c001':'painel','f1e2d3c4-0000-4a00-
   'f1e2d3c4-0000-4a00-8b00-00000000c005':'fechamento','f1e2d3c4-0000-4a00-8b00-00000000c006':'contratos',
   'f1e2d3c4-0000-4a00-8b00-00000000c007':'leads'};
 const ehCom=(lid)=>!!LCOM[lid];
+/* CRMs de formulário (Bernardo 08/10: "CRM Sofás pro meu Yay de moto e pro de loja de carro, tudo o
+   mesmo sistema, só muda o nicho e a base"). Cada linha é um CRM com espaço próprio: a lista do
+   pipeline, a tela Equipe, o form do Yay (rodízio) e a tabela de calls do Painel. O código é um só;
+   no banco, crm_forms faz o mesmo papel pros gatilhos. CRM novo = uma linha aqui + uma em crm_forms. */
+const CRM_FORMS=[
+  {nome:'Sofás',    lista:'2e85f701-0616-4b74-9732-6ebfeba016b8', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d001', form:'6ac516b64c1c87a7280d6fc9', calls:'sofas_calls'},
+  {nome:'Motos',    lista:'b4169319-1cf1-4d7a-8520-5ffcad09e21f', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d002', form:'6a668e28d385e5003d03b895', calls:'motos_calls'},
+  {nome:'Veículos', lista:'ae902b26-00d3-4495-a7e0-9914f2754fd9', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d003', form:'6aac28b2030e048ade0c664c', calls:'veiculos_calls'}];
 /* Acessos e Processos tambem moram na arvore, em Administrativo (Gabriel 15/09).
    Mesma ideia das listas do Financeiro, mas sem o recorte de master: quem nao
    pode ver alguma coisa la dentro ja e barrado pela propria tela. */
@@ -7813,8 +7821,8 @@ const LTEL={'f1e2d3c4-0000-4a00-8b00-00000000a001':'acessos','f1e2d3c4-0000-4a00
   'f1e2d3c4-0000-4a00-8b00-00000000e002':'rh-socios','f1e2d3c4-0000-4a00-8b00-00000000e001':'rh-colab',
   'f1e2d3c4-0000-4a00-8b00-00000000e003':'rh-empresa',
   [LPESQ]:'pesquisa',
-  /* CRM Sofás › Equipe (Bernardo 08/10): conexão dos números e rodízio dos vendedores do Yay */
-  'f1e2d3c4-0000-4a00-8b00-00000000d001':'crm-equipe'};
+  /* CRM › Equipe (Bernardo 08/10): conexão dos números e rodízio dos vendedores do Yay, uma por CRM */
+  ...Object.fromEntries(CRM_FORMS.map(f=>[f.equipe,'crm-equipe']))};
 const ehTela=(lid)=>!!LTEL[lid]||!!LCOM[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
@@ -10007,7 +10015,7 @@ const crmForm=(lid)=>!!lid&&(TK.campos||[]).some(k=>k.lista_id===lid&&k.nome===R
 /* CRM Sofás só em Respostas (Bernardo 08/10, com print da planilha: "deixa essa única opção de
    visualização"): a planilha é a única visão, agrupada por etapa estilo ClickUp; sem Lista e sem
    Quadro. O Painel (calls e métricas) continua ao lado. Antes (mesmo dia) era só a Lista. */
-const CRM_SO_RESP={'2e85f701-0616-4b74-9732-6ebfeba016b8':1};
+const CRM_SO_RESP=Object.fromEntries(CRM_FORMS.map(f=>[f.lista,1]));
 const crmSoResp=(lid)=>!!lid&&!!CRM_SO_RESP[lid];
 /* responsável no CRM de formulário (Bernardo 08/10: "no sistema de sofás, a aba responsáveis só pode
    ter José Carlos, Bernardo, Luana e Kennedy"). A Luana ainda não tem login: entra sozinha, pelo
@@ -10290,9 +10298,9 @@ window.rspArquivar=async()=>{
    médio, agendamentos por SDR, motivos de perda e as calls registradas) desenhado dentro da
    lista, lendo uma tabela SÓ desse CRM (sofas_calls, mesmas colunas da crm_calls). As calls
    da agência não aparecem aqui, e venda daqui não vira cliente da agência (o vínculo com a
-   ficha só lê a crm_calls). Outro CRM que quiser o próprio painel: tabela nova + uma linha
-   no CRM_PAINEL. Quem vê: master e quem tem papel no CRM, a mesma regra da tabela. */
-const CRM_PAINEL={'2e85f701-0616-4b74-9732-6ebfeba016b8':'sofas_calls'};
+   ficha só lê a crm_calls). Outro CRM que quiser o próprio painel: tabela nova + a coluna calls
+   no CRM_FORMS. Quem vê: master e quem tem papel no CRM, a mesma regra da tabela. */
+const CRM_PAINEL=Object.fromEntries(CRM_FORMS.map(f=>[f.lista,f.calls]));
 const crmPainelPode=(lid)=>{ const u=(typeof currentUser!=='undefined')?currentUser:null;
   return !!CRM_PAINEL[lid]&&!!u&&(u.role==='master'||!!u.papel_crm); };
 const CPN={carregando:{},erro:{}};
@@ -16488,7 +16496,8 @@ window.psApagar=async (id)=>{
    O rodízio mora em crm_rodizio (RPCs crm_rodizio_ver/salvar) e a edge 'lead' lê de lá: um de
    cada vez na ordem da tela, pulando quem está desconectado; a mensagem sai do número do vendedor
    da vez e o card nasce com ele de responsável. Só master e gestor do CRM mudam; o resto vê. */
-const EQ_FORM='6ac516b64c1c87a7280d6fc9';   /* Yay: LOJA DE SOFAS */
+/* cada CRM tem a sua Equipe (Motos e Veículos, 08/10): o form do rodízio sai da tela aberta */
+const eqForm=()=>(CRM_FORMS.find(f=>f.equipe===TK.listaSel)||CRM_FORMS[0]).form;
 let EQ={cfg:null,inst:[],erro:'',erroInst:'',carregou:false,salvando:false};
 const eqNomeAp=(ap)=>ap?ap.charAt(0).toUpperCase()+ap.slice(1):'';
 const eqFone=(jid)=>{ const d=String(jid||'').replace(/@.*$/,'').replace(/\D/g,''); if(!d) return '';
@@ -16498,19 +16507,23 @@ const eqQuando=(iso)=>{ const d=new Date(iso||''); if(isNaN(d)) return '';
   const h=new Date(), mesmo=d.toDateString()===h.toDateString();
   return (mesmo?'hoje':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}))+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
 async function eqCarregar(){
+  const form=eqForm();
   const [r,w]=await Promise.all([
-    sb.rpc('crm_rodizio_ver',{p_form:EQ_FORM}),
+    sb.rpc('crm_rodizio_ver',{p_form:form}),
     (async()=>{ if(!SESSION||!SESSION.access_token) throw new Error('Sessão expirada: entre de novo.');
       const x=await fetch(SUPA_URL+'/functions/v1/wa-uazapi/listar',{headers:{authorization:'Bearer '+SESSION.access_token}});
       const d=await x.json().catch(()=>({ok:false,erro:'resposta inválida'})); if(!d.ok) throw new Error(d.erro||('erro '+x.status)); return d; })()
       .catch(e=>({erro:e.message||'falha'}))]);
+  /* trocou de CRM no meio da carga: a outra Equipe já pediu a dela */
+  if(form!==eqForm()) return;
   EQ.erro=r.error?(/sem acesso/i.test(r.error.message||'')?'Sem acesso: a Equipe é do time comercial.':(r.error.message||'falha')):'';
   EQ.cfg=r.error?null:r.data;
   EQ.inst=(w&&w.instancias)||[]; EQ.erroInst=(w&&w.erro)||'';
   EQ.carregou=true;
 }
 async function renderEquipe(c){
-  if(!EQ.carregou){ c.innerHTML='<div class="empty">Carregando a equipe…</div>'; await eqCarregar(); if(currentView!=='crm-equipe') return; }
+  const form=eqForm();
+  if(!EQ.carregou){ c.innerHTML='<div class="empty">Carregando a equipe…</div>'; await eqCarregar(); if(currentView!=='crm-equipe'||form!==eqForm()) return; }
   eqDesenhar(c);
 }
 window.eqRecarregar=async()=>{ EQ.carregou=false; const c=$('#content'); if(currentView==='crm-equipe'&&c) await renderEquipe(c); };
@@ -16598,7 +16611,7 @@ function eqDesenhar(c){
 /* grava a config inteira (pausa + fila) e redesenha com o que o banco devolveu */
 async function eqSalvar(pausado,vend,msg){
   if(EQ.salvando) return; EQ.salvando=true;
-  const {data,error}=await sb.rpc('crm_rodizio_salvar',{p_form:EQ_FORM,p_pausado:pausado,p_vendedores:vend});
+  const {data,error}=await sb.rpc('crm_rodizio_salvar',{p_form:EQ.cfg.form_id,p_pausado:pausado,p_vendedores:vend});
   EQ.salvando=false;
   if(error){ toast('Não salvou: '+(error.message||'erro')); return; }
   EQ.cfg=data; if(msg) toast(msg); eqDesenhar();
