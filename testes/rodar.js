@@ -2470,6 +2470,30 @@ grupo('Filtro de data: atalhos à esquerda e calendário do mês (Bernardo 08/10
   ok('setas trocam o mês', /Novembro 2026/.test(g.tkPopFiltroHTML()));
 }
 
+/* ---------------- Equipe v2 do CRM Sofás (Bernardo 08/10) ---------------- */
+grupo('Equipe do CRM Sofás: resumo, status no avatar e conectar pelo QR ali mesmo (Bernardo 08/10)');
+{
+  const els={content:{innerHTML:''}};
+  const cfg={pode_editar:true,pausado:true,vez:0,placar:{bernardo:1},atualizado_por:'u1',atualizado_em:'2026-10-08T20:08:00Z',
+    vendedores:[{apelido:'bernardo',perfil_id:'u1',ativo:true},{apelido:'kennedy',perfil_id:'u2',ativo:true},{apelido:'jose',perfil_id:'u3',ativo:false}]};
+  const inst=[{name:'bernardo',conectado:true,dono:'5524999211100'},{name:'kennedy',conectado:false,ultimaQueda:'2026-10-08T19:40:00Z'}];
+  const ctx={__EQ:{cfg,inst,carregou:true},currentView:'crm-equipe',currentUser:{role:'master'},$:(s)=>els.content,
+    esc:(x)=>String(x==null?'':x),tkCrumb:()=>'',tkNomeUser:(id)=>({u1:'Bernardo Antunes',u2:'Kennedy Lima',u3:'José'})[id],
+    avatar:()=>'<span class="eq-av"></span>',inicial:(n)=>String(n||'?')[0],TK:{equipe:[]},toast(){},document:{getElementById:()=>null}};
+  /* o bloco declara o próprio EQ vazio: os dados do teste entram depois dele */
+  const g=rodar(bloco('/* ======================= CRM SOFÁS › EQUIPE (Bernardo 08/10)','async function renderPesquisa(c){')+'\n;EQ=__EQ;',ctx,['eqDesenhar']);
+  g.eqDesenhar(); const h=els.content.innerHTML;
+  ok('disparo em destaque com o estado e o resumo em 3 números', /class="eq-disp"[^>]*--c:var\(--warn\)/.test(h)&&/Conectados<\/small><b>1 <em>de 3/.test(h)&&/Leads em 30 dias<\/small><b>1</.test(h));
+  ok('pontinho de status no avatar (conectado, desconectado, sem número)', /eq-dot ok/.test(h)&&/eq-dot bad/.test(h)&&/eq-dot warn/.test(h));
+  ok('desconectado: Reconectar pelo QR, com a hora em que caiu', /onclick="eqConectar\('kennedy'\)"[^>]*>[\s\S]{0,400}Reconectar \(QR\)/.test(h)&&/desconectado<span class="eq-stx">caiu /.test(h));
+  ok('sem número: Conectar WhatsApp ali mesmo (master)', /onclick="eqNovoNumero\('jose'\)"/.test(h)&&/sem número/.test(h));
+  ok('quem saiu do rodízio fica separado embaixo', h.indexOf('Fora do rodízio')>0&&h.indexOf('Fora do rodízio')<h.indexOf("eqNovoNumero('jose')"));
+  ok('pausado: o próximo da vez não depende de estar conectado (igual à edge lead)', /Próximo da vez<\/small><b>Bernardo</.test(h)&&/class="eq-row vez"/.test(h));
+  g.currentUser.role='gestor'; g.eqDesenhar();
+  ok('gestor não gera número (usa o token admin): só o aviso', els.content.innerHTML.indexOf("eqNovoNumero('jose')")<0&&/só master gera o número/.test(els.content.innerHTML));
+  ok('o botão abre o "Gerar número novo" do instancias.js com o apelido', HTML.indexOf("instCadastrar(ap,v.perfil_id?")>0&&HTML.indexOf("{modo:'gerar'}")>0);
+}
+
 /* ---------------- CRM de formulário com o visual do Controle de Clientes ---------------- */
 grupo('Respostas: mesmo visual do Controle de Clientes, colunas separadas (Bernardo 08/10)');
 {
