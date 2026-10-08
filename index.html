@@ -2986,6 +2986,11 @@
   #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch) > td{background:var(--bg);border-bottom:1px solid var(--line);box-shadow:none}
   #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch):hover > td{background:var(--cardh)}
   #rspTab.rolou .rsp-g > tr:not(.tk-faixa) > :nth-child(2){box-shadow:8px 0 14px -6px rgba(0,0,0,.55)}
+  /* o status de cada linha num selo leve (tinta da cor + borda fina): a cor cheia fica só na pílula
+     da etapa, senão cada linha disputa atenção com o título do grupo (Bernardo 08/10) */
+  #rspTab .tk-stsel{background-color:color-mix(in srgb,var(--c) 15%,transparent)!important;color:color-mix(in srgb,var(--c) 62%,var(--txt))!important;
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 42%,transparent);font-weight:600}
+  #rspTab .tk-stsel option{color:var(--txt);background:var(--panel)}
   /* Painel do CRM de formulario (Bernardo 08/10): o mesmo do Comercial, dentro da lista */
   .crm-pn{margin-top:4px}
   .crm-pn-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:10px}
@@ -10112,14 +10117,15 @@ function tkViewRespostas(){
       return `<button type="button" class="rsp-fe${g.its.length?'':' zero'}" data-g="${esc(g.k)}" style="--c:${esc(g.cor)};color:${esc(corTx(g.cor))}" onclick="rspIrEtapa('${esc(g.k)}')" title="Ir para ${esc(g.rot)}"><span class="rsp-fen">${esc(g.rot)}</span><b>${n}</b></button>`; }).join('')}</div>
     <div class="tablewrap rolavel"><table class="tk-tab lc-tab" id="rspTab" style="width:${largMin}px">
       <colgroup><col data-k="nome" style="width:${wN}px"><col data-k="status" style="width:${wS}px"><col data-k="data" style="width:${wD}px">${outros.map(c=>`<col data-k="${esc(c.id)}" style="width:${larg(c)}px">`).join('')}</colgroup>
-      ${grupos.map(bloco).join('')}
+      ${grupos.filter(g=>g.its.length).map(bloco).join('')}
     </table>${arr.length?'':'<div class="empty">Nenhuma resposta ainda.</div>'}
     <div class="empty" id="rspVazio"${(q&&arr.length&&!nVis)?'':' style="display:none"'}>Nenhuma resposta com esse texto.</div></div>
     ${(setTimeout(()=>{ try{ lcFixarColunas($('#content')); }catch(_){} },0),'')}`;
 }
 window.rspIrEtapa=(k)=>{
   if(TK.fechadas&&TK.fechadas['gr'+k]){ TK.fechadas['gr'+k]=false; tkDesenhar($('#content')); }
-  const el=document.querySelector('#rspTab tbody.rsp-g[data-g="'+k+'"]'); if(!el) return;
+  const el=document.querySelector('#rspTab tbody.rsp-g[data-g="'+k+'"]');
+  if(!el){ const s=typeof tkStatus1==='function'?tkStatus1(k):null; toast('Nenhum lead em '+(s?String(s.nome).replace(/^\d+\.\s*/,'').toLowerCase():'essa etapa')+' agora.'); return; }
   el.scrollIntoView({behavior:'smooth',block:'start'});
 };
 window.rspBusca=(v)=>{
