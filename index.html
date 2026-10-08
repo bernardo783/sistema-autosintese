@@ -3062,6 +3062,28 @@
   @media (hover:none){ .rsp-ig-ed{opacity:1} }
   .rsp-ig-in{width:100%;min-width:150px;height:28px;padding:0 8px;font-size:12.5px}
   button.tk-wa{border:0;padding:0;cursor:pointer;font:inherit}
+  /* CRM Sofás › Equipe (Bernardo 08/10) */
+  .eq-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+  .eq-row.fora{opacity:.62}
+  .eq-ord{display:flex;flex-direction:column;align-items:center;justify-content:center;width:30px;flex:none;font-size:12px;min-height:40px}
+  .eq-ord .iconbtn{font-size:9px;padding:0;height:14px;line-height:1}
+  .eq-ord .iconbtn:disabled{opacity:.25;cursor:default}
+  .eq-av,.av.eq-av{width:40px;height:40px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;
+    background:var(--panel2);color:var(--txt);font-weight:700;font-size:15px}
+  .eq-av img{width:100%;height:100%;object-fit:cover}
+  .eq-g{flex:1;min-width:0}
+  .eq-g small{display:block;color:var(--fraco);font-size:12px;margin-top:3px}
+  .eq-st{display:flex;align-items:center;gap:6px;flex:none}
+  .eq-caiu{color:var(--fraco);font-size:12px}
+  .eq-acts{display:flex;align-items:center;gap:10px;margin-left:12px;flex:none}
+  .eq-rl{font-size:12px;color:var(--muted)}
+  .eq-sel{font-size:12px;padding:1px 6px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);max-width:170px}
+  .eq-sw{width:36px;height:20px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);position:relative;cursor:pointer;flex:none;padding:0}
+  .eq-sw span{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:left .15s,background .15s}
+  .eq-sw.on{background:var(--brand);border-color:var(--brand)}
+  .eq-sw.on span{left:18px;background:#fff}
+  .eq-sw:disabled{cursor:not-allowed;opacity:.6}
+  @media (max-width:720px){ .eq-row{flex-wrap:wrap} .eq-st{margin-left:42px} .eq-acts{margin-left:42px;width:100%} }
   /* numero do lead escrito na lista, com copiar e abrir no WhatsApp (Bernardo 08/10) */
   .rsp-fone{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;vertical-align:middle}
   .rsp-num{font-variant-numeric:tabular-nums;margin-right:3px}
@@ -5126,6 +5148,7 @@ function render(view){
     if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito a master e gerentes.</div>'; return; }
     return renderPesquisa(c);
   }
+  if(view==='crm-equipe'){ EQ.carregou=false; return renderEquipe(c); }
   if(view==='carteira'){
     if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito a master e gerentes.</div>'; return; }
     return renderCarteira(c);
@@ -7653,7 +7676,9 @@ const LTEL={'f1e2d3c4-0000-4a00-8b00-00000000a001':'acessos','f1e2d3c4-0000-4a00
   'f1e2d3c4-0000-4a00-8b00-00000000a003':'usuarios','f1e2d3c4-0000-4a00-8b00-00000000a004':'reembolsos',
   'f1e2d3c4-0000-4a00-8b00-00000000e002':'rh-socios','f1e2d3c4-0000-4a00-8b00-00000000e001':'rh-colab',
   'f1e2d3c4-0000-4a00-8b00-00000000e003':'rh-empresa',
-  [LPESQ]:'pesquisa'};
+  [LPESQ]:'pesquisa',
+  /* CRM Sofás › Equipe (Bernardo 08/10): conexão dos números e rodízio dos vendedores do Yay */
+  'f1e2d3c4-0000-4a00-8b00-00000000d001':'crm-equipe'};
 const ehTela=(lid)=>!!LTEL[lid]||!!LCOM[lid];
 /* Estado da arvore: espacos comecam encolhidos e o que voce abre fica aberto na proxima visita. */
 let SP_MINI=false;
@@ -10820,6 +10845,7 @@ const ESP_DESC={
   'rh-empresa':'Razão social, CNPJ e endereço da empresa.',
   'reembolsos':'Pedidos da equipe, do envio ao pagamento.',
   'pesquisa':'NPS, satisfação e pesquisa de saída de quem deu churn.',
+  'crm-equipe':'Quem está conectado e quem recebe os leads do formulário, na vez.',
   'painel':'Shows, no-shows, conversão e ticket do mês.',
   'calls':'Toda reunião registrada, com resultado e valor.',
   'pipeline':'Oportunidade por etapa, do lead ao ganho.',
@@ -16163,6 +16189,118 @@ window.psApagar=async (id)=>{
   document.querySelectorAll('.overlay').forEach(o=>o.remove());
   toast('Avaliação apagada.'); if(currentView==='pesquisa') render('pesquisa');
 };
+/* ======================= CRM SOFÁS › EQUIPE (Bernardo 08/10) =======================
+   "aonde eu vejo se as credenciais do José Carlos, Kennedy, Luana e Bernardo estão conectadas e
+   tenho a opção de configurar rotação entre os vendedores pra receber os formulários/disparos".
+   Status dos números vem da wa-uazapi (listar, ao vivo na UAZAPI; o navegador nunca vê token).
+   O rodízio mora em crm_rodizio (RPCs crm_rodizio_ver/salvar) e a edge 'lead' lê de lá: um de
+   cada vez na ordem da tela, pulando quem está desconectado; a mensagem sai do número do vendedor
+   da vez e o card nasce com ele de responsável. Só master e gestor do CRM mudam; o resto vê. */
+const EQ_FORM='6ac516b64c1c87a7280d6fc9';   /* Yay: LOJA DE SOFAS */
+let EQ={cfg:null,inst:[],erro:'',erroInst:'',carregou:false,salvando:false};
+const eqNomeAp=(ap)=>ap?ap.charAt(0).toUpperCase()+ap.slice(1):'';
+const eqFone=(jid)=>{ const d=String(jid||'').replace(/@.*$/,'').replace(/\D/g,''); if(!d) return '';
+  const n=d.startsWith('55')&&d.length>=12?d.slice(2):d;
+  return n.length===11?`(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`:n.length===10?`(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`:'+'+d; };
+const eqQuando=(iso)=>{ const d=new Date(iso||''); if(isNaN(d)) return '';
+  const h=new Date(), mesmo=d.toDateString()===h.toDateString();
+  return (mesmo?'hoje':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}))+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+async function eqCarregar(){
+  const [r,w]=await Promise.all([
+    sb.rpc('crm_rodizio_ver',{p_form:EQ_FORM}),
+    (async()=>{ if(!SESSION||!SESSION.access_token) throw new Error('Sessão expirada: entre de novo.');
+      const x=await fetch(SUPA_URL+'/functions/v1/wa-uazapi/listar',{headers:{authorization:'Bearer '+SESSION.access_token}});
+      const d=await x.json().catch(()=>({ok:false,erro:'resposta inválida'})); if(!d.ok) throw new Error(d.erro||('erro '+x.status)); return d; })()
+      .catch(e=>({erro:e.message||'falha'}))]);
+  EQ.erro=r.error?(/sem acesso/i.test(r.error.message||'')?'Sem acesso: a Equipe é do time comercial.':(r.error.message||'falha')):'';
+  EQ.cfg=r.error?null:r.data;
+  EQ.inst=(w&&w.instancias)||[]; EQ.erroInst=(w&&w.erro)||'';
+  EQ.carregou=true;
+}
+async function renderEquipe(c){
+  if(!EQ.carregou){ c.innerHTML='<div class="empty">Carregando a equipe…</div>'; await eqCarregar(); if(currentView!=='crm-equipe') return; }
+  eqDesenhar(c);
+}
+window.eqRecarregar=async()=>{ EQ.carregou=false; const c=$('#content'); if(currentView==='crm-equipe'&&c) await renderEquipe(c); };
+function eqDesenhar(c){
+  c=c||$('#content'); if(!c||currentView!=='crm-equipe') return;
+  const cab=`<div class="page-head tp-head"><div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>Equipe</h2></div></div></div>`;
+  if(EQ.erro||!EQ.cfg){ c.innerHTML=cab+`<div class="empty">${esc(EQ.erro||'O rodízio deste formulário ainda não foi configurado.')}</div>`; return; }
+  const cfg=EQ.cfg, pode=!!cfg.pode_editar, V=cfg.vendedores||[];
+  const instDe=(ap)=>EQ.inst.find(i=>String(i.name||'').toLowerCase()===ap)||null;
+  const ativos=V.filter(v=>v.ativo), n=ativos.length;
+  /* próximo da vez de verdade: a partir do ponteiro, o primeiro ativo que está conectado */
+  let vez='';
+  for(let k=0;k<n;k++){ const v=ativos[((cfg.vez||0)+k)%n]; const i=instDe(v.apelido); if(i&&i.conectado){ vez=v.apelido; break; } }
+  const nOn=V.filter(v=>{ const i=instDe(v.apelido); return i&&i.conectado; }).length;
+  const sw=(on,acao,titulo)=>`<button type="button" class="eq-sw${on?' on':''}" ${pode?`onclick="${acao}"`:'disabled'} title="${esc(pode?titulo:'Só master e gestor do CRM mudam')}" aria-pressed="${on}"><span></span></button>`;
+  const perfis=(TK.equipe||[]).filter(u=>u.aprovado!==false&&!/rob[oô]/i.test(u.nome||''));
+  const linha=(v,idx)=>{
+    const i=instDe(v.apelido), nome=v.perfil_id?(tkNomeUser(v.perfil_id)||eqNomeAp(v.apelido)):eqNomeAp(v.apelido);
+    const pos=v.ativo?ativos.indexOf(v)+1:0, leads=Number((cfg.placar||{})[v.apelido])||0;
+    const foto=i&&i.foto?`<span class="eq-av"><img src="${esc(i.foto)}" alt=""></span>`:(v.perfil_id?avatar(v.perfil_id,nome,'eq-av'):`<span class="eq-av">${esc(inicial(nome))}</span>`);
+    const st=!i?'<span class="crm-badge warn" title="Um master cadastra o número em Usuários › WhatsApp">sem número cadastrado</span>'
+      :i.erro?`<span class="crm-badge warn" title="${esc(i.erro)}">erro</span>`
+      :i.conectado?'<span class="crm-badge ok">conectado</span>'
+      :`<span class="crm-badge bad">desconectado</span>${i.ultimaQueda?`<small class="eq-caiu">caiu ${esc(eqQuando(i.ultimaQueda))}</small>`:''}`;
+    const perfil=v.perfil_id?`perfil: ${esc(tkNomeUser(v.perfil_id)||'?')}`
+      :'<span style="color:var(--warn)">sem perfil ligado</span>';
+    const selPerfil=pode?`<select class="eq-sel" onchange="eqPerfil('${v.apelido}',this.value)" title="Quem vira responsável do card quando o lead cai pra este número">
+        <option value="">${v.perfil_id?'Sem perfil':'Ligar a um perfil…'}</option>
+        ${perfis.map(u=>`<option value="${u.id}"${u.id===v.perfil_id?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`:'';
+    return `<div class="eq-row${v.ativo?'':' fora'}">
+      <div class="eq-ord">${v.ativo&&pode?`<button class="iconbtn" title="Subir na fila" onclick="eqMover('${v.apelido}',-1)"${pos===1?' disabled':''}>▲</button>`:''}
+        <b>${v.ativo?pos+'º':'·'}</b>
+        ${v.ativo&&pode?`<button class="iconbtn" title="Descer na fila" onclick="eqMover('${v.apelido}',1)"${pos===n?' disabled':''}>▼</button>`:''}</div>
+      ${foto}
+      <div class="eq-g"><b>${esc(nome)}</b>${v.apelido===vez?' <span class="crm-badge pago">próximo da vez</span>':''}
+        <small>${i&&i.dono?esc(eqFone(i.dono))+' · ':''}${pode?selPerfil:perfil} · ${leads} lead${leads===1?'':'s'} em 30 dias</small></div>
+      <div class="eq-st">${st}</div>
+      <div class="eq-acts">
+        ${i&&!i.erro?(i.conectado?`<button class="btn secondary small" onclick="instTestar('${esc(i.name)}')">Testar</button>`
+          :`<button class="btn small" onclick="eqConectar('${esc(i.name)}')">Conectar (QR)</button>`):''}
+        <span class="eq-rl">No rodízio</span>${sw(!!v.ativo,`eqAtivo('${v.apelido}',${!v.ativo})`,v.ativo?'Tirar do rodízio':'Pôr no rodízio')}</div>
+    </div>`; };
+  const quem=cfg.atualizado_por?tkNomeUser(cfg.atualizado_por):'';
+  c.innerHTML=cab+`
+  <div class="crm-ic wide">
+    <div class="hd"><div class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg></div>
+      <div><h4>Disparo automático dos formulários (Yay)</h4><div class="sub">Lead que cair do Yay vai pro vendedor da vez: a primeira mensagem sai do WhatsApp dele e o card já nasce com ele de responsável.${cfg.pausado?' Pausado: o lead vai pro vendedor da vez do mesmo jeito (conectado ou não), só sem a mensagem.':''}</div></div>
+      <div class="acts"><span class="crm-badge ${cfg.pausado?'warn':'ok'}" style="font-size:12px">${cfg.pausado?'Pausado':'Ligado'}</span>${sw(!cfg.pausado,`eqPausa(${!cfg.pausado})`,cfg.pausado?'Ligar o disparo automático':'Pausar o disparo automático')}</div></div>
+  </div>
+  <div class="crm-ic wide" style="margin-top:12px">
+    <div class="hd"><div class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></div>
+      <div><h4>Vendedores · ${nOn} de ${V.length} conectado${nOn===1?'':'s'}</h4><div class="sub">Rodízio um de cada vez, na ordem abaixo. Quem estiver desconectado é pulado e o lead vai pro próximo.</div></div>
+      <div class="acts"><button class="btn secondary small" onclick="eqRecarregar()" title="Recarregar o status dos números">↻</button></div></div>
+    ${EQ.erroInst?`<div class="crm-hint" style="color:var(--danger);margin:0 0 8px">Não consegui ler os números: ${esc(EQ.erroInst)}</div>`:''}
+    ${V.map(linha).join('')}
+    <div class="crm-hint">Se ninguém do rodízio estiver conectado, o card entra sem responsável e a coluna Mensagem automática mostra <b>Sem vendedor conectado</b>. ${pode?'':'Só master e gestor do CRM mudam o rodízio. '}${quem?`Última mudança: ${esc(quem)}, ${esc(eqQuando(cfg.atualizado_em))}.`:''}</div>
+  </div>`;
+}
+/* grava a config inteira (pausa + fila) e redesenha com o que o banco devolveu */
+async function eqSalvar(pausado,vend,msg){
+  if(EQ.salvando) return; EQ.salvando=true;
+  const {data,error}=await sb.rpc('crm_rodizio_salvar',{p_form:EQ_FORM,p_pausado:pausado,p_vendedores:vend});
+  EQ.salvando=false;
+  if(error){ toast('Não salvou: '+(error.message||'erro')); return; }
+  EQ.cfg=data; if(msg) toast(msg); eqDesenhar();
+}
+const eqCopia=()=>(EQ.cfg.vendedores||[]).map(v=>Object.assign({},v));
+window.eqPausa=(pausar)=>eqSalvar(pausar,eqCopia(),pausar?'Disparo automático pausado.':'Disparo automático ligado.');
+window.eqAtivo=(ap,on)=>{ const V=eqCopia(), v=V.find(x=>x.apelido===ap); if(!v) return;
+  /* quem entra vai pro fim da fila; quem sai fica guardado embaixo, sem posição */
+  v.ativo=on; const resto=V.filter(x=>x!==v);
+  const nova=[...resto.filter(x=>x.ativo),v,...resto.filter(x=>!x.ativo)];
+  eqSalvar(EQ.cfg.pausado,nova,eqNomeAp(ap)+(on?' entrou no rodízio.':' saiu do rodízio.')); };
+window.eqMover=(ap,d)=>{ const V=eqCopia(), at=V.filter(x=>x.ativo), fora=V.filter(x=>!x.ativo);
+  const i=at.findIndex(x=>x.apelido===ap), j=i+d; if(i<0||j<0||j>=at.length) return;
+  [at[i],at[j]]=[at[j],at[i]]; eqSalvar(EQ.cfg.pausado,at.concat(fora)); };
+window.eqPerfil=(ap,uid)=>{ const V=eqCopia(), v=V.find(x=>x.apelido===ap); if(!v) return;
+  v.perfil_id=uid||null; eqSalvar(EQ.cfg.pausado,V,uid?'Perfil ligado: '+tkNomeUser(uid)+'.':'Perfil desligado.'); };
+/* QR do comercial/instancias.js; quando o modal fecha, relê o status */
+window.eqConectar=(name)=>{ if(typeof instConectar!=='function'){ toast('Abra Comercial › Instâncias pra conectar.'); return; }
+  instConectar(name);
+  const t=setInterval(()=>{ if(!document.getElementById('instQrOv')){ clearInterval(t); if(currentView==='crm-equipe') eqRecarregar(); } },1500); };
 async function renderPesquisa(c){
   c.innerHTML='<div class="empty">carregando…</div>';
   const {data,error}=await sb.from('pesquisa_satisfacao').select('*').order('criado_em',{ascending:false}).limit(3000);
