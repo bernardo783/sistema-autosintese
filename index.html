@@ -2938,6 +2938,28 @@
   .cl-hist{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
   .cl-ev{position:relative;padding:5px 0 5px 18px;font-size:12.5px;color:var(--muted)}
   .cl-ev i{position:absolute;left:3px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--brand)}
+  /* NOVO LEAD (Bernardo 08/10): o + dos CRMs de formulário cadastra no mesmo painel do cartão */
+  .cln .cl-in{width:100%;margin-left:0;border-color:var(--line);background:var(--panel);font-weight:600}
+  .cln .cl-in:focus{border-color:var(--brand)}
+  .cln .cl-in.erro{border-color:var(--danger)}
+  .cln textarea.cl-in{resize:vertical;min-height:96px;line-height:1.45;font-weight:500}
+  .cln .cl-kv>span em{color:var(--danger);font-style:normal;margin-left:2px}
+  .cln-dup{display:flex;align-items:center;gap:10px;margin:2px 0 8px;padding:9px 12px;border-radius:10px;font-size:12.5px;
+    background:color-mix(in srgb,var(--warn) 14%,transparent);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
+  .cln-dup button{margin-left:auto;background:none;border:0;padding:0;color:var(--warn);font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+  .cln-chips{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0 10px}
+  .cln-chip{height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .cln-chip:hover{border-color:var(--brand2);color:var(--txt)}
+  .cln-chip.on{background:color-mix(in srgb,var(--brand) 22%,transparent);border-color:var(--brand);color:var(--txt)}
+  .cln-vez{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+  .cl-pe{display:flex;align-items:center;gap:12px;padding:14px 28px;border-top:1px solid var(--line);background:var(--panel)}
+  .cl-pe p{margin:0;flex:1;font-size:12.5px;color:var(--fraco)}
+  .cl-pe p b{color:var(--txt)}
+  .cl-pe .btn{flex:none;width:auto;margin:0}
+  @media(max-width:760px){
+    .cl-pe{padding:12px 16px;flex-wrap:wrap}
+    .cl-pe p{flex-basis:100%}
+  }
   @media(max-width:760px){
     .cl-h{flex-wrap:wrap;padding:16px}
     .cl-acoes{width:100%;justify-content:flex-start}
@@ -14270,7 +14292,7 @@ window.tkfPintarTrilha=()=>{
    prioridade, checklist ou subtarefa. Cada mudança grava na hora (tkPatch), igual ao painel. */
 const CL={id:''};
 const CL_RE={whats:/whats/i,insta:/insta/i,cargo:/^cargo$/i,cidade:/^cidade$/i,estado:/^estado$/i,
-  campanha:/^campanha$/i,conjunto:/^conjunto$/i,anuncio:/^an[uú]ncio$/i,msg:/mensagem autom/i,form:/^formul/i};
+  campanha:/^campanha$/i,conjunto:/^conjunto$/i,anuncio:/^an[uú]ncio$/i,msg:/mensagem autom/i,form:/^formul/i,origem:/^origem$/i};
 const clCampo=(t,k)=>tkCamposDe(t.lista_id).find(c=>k==='data'?c.nome===RSP_DATA:CL_RE[k].test(c.nome))||null;
 const clVal=(t,k)=>{ const c=clCampo(t,k), v=c?(t.valores||{})[c.id]:''; return v==null?'':String(v); };
 const clFone=(n)=>{ const d=String(n||'').replace(/\D/g,''), s=d.startsWith('55')&&d.length>=12?d.slice(2):d;
@@ -14284,9 +14306,13 @@ function clHistorico(t){
   const d=String(t.descricao||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
   const form=(d.match(/formulário "([^"]+)"/)||[])[1]||'';
   const de=[...d.matchAll(/Preencheu de novo em ([^.]+?)\./g)].map(m=>m[1].trim());
+  /* lead cadastrado pelo + (crm_lead_novo): "Lead cadastrado à mão por X · Indicação (indicado por Y)." */
+  const m=d.match(/Lead cadastrado à mão por (.+?) · ([^.(]+?)(?: \(indicado por ([^)]+)\))?\./);
+  const mao=m?{por:m[1].trim(),origem:m[2].trim(),ind:(m[3]||'').trim()}:null;
   const obs=d.replace(/Lead do formulário "[^"]*"[^.]*\./g,'').replace(/Preencheu de novo em [^.]+?\./g,'')
+    .replace(/Lead cadastrado à mão por .+? · [^.(]+?(?: \([^)]*\))?\./g,'')
     .replace(/ID da resposta no Yay:\s*\S+/g,'').replace(/\s+/g,' ').trim();
-  return {form,de,obs};
+  return {form,de,obs,mao};
 }
 /* devolve true quando é lead de CRM (o tkAbrir para por aqui) */
 function crmLdAbrir(id){
@@ -14378,12 +14404,16 @@ function crmLdHtml(t){
           <div class="cl-kv"><span>Cidade</span>${ed('cidade','-')}</div>
           <div class="cl-kv"><span>Estado</span>${ed('estado','-')}</div>
         </section>
-        <section class="cl-box"><h4>De onde veio</h4>
+        ${h.mao?`<section class="cl-box"><h4>De onde veio</h4>
+          <div class="cl-kv"><span>Origem</span>${ed('origem','-')}</div>
+          ${h.mao.ind?`<div class="cl-kv"><span>Indicado por</span><b>${esc(h.mao.ind)}</b></div>`:''}
+          <div class="cl-kv"><span>Cadastrado por</span><b>${esc(h.mao.por)}${quando?' em '+esc(clDia(quando)):''}</b></div>
+        </section>`:`<section class="cl-box"><h4>De onde veio</h4>
           <div class="cl-kv"><span>Formulário</span><b>${esc([h.form||'Yay Forms',clVal(t,'form')].filter(Boolean).join(' · '))}</b></div>
           ${ro('Preencheu em','data')}${ro('Campanha','campanha')}${ro('Conjunto','conjunto')}${ro('Anúncio','anuncio')}
           ${msg?`<div class="cl-kv"><span>Mensagem automática</span><b><span class="cl-msg" data-v="${esc(msg)}">${esc(msg)}</span></b></div>`:''}
           <p class="cl-dica">Campanha, conjunto e anúncio chegam sozinhos pelas UTMs do anúncio.</p>
-        </section>
+        </section>`}
         ${outros.length?`<section class="cl-box"><h4>Outras informações</h4>${outros.map(c=>`<div class="cl-kv"><span>${esc(c.nome)}</span>${clEditor(t,c,'','-')}</div>`).join('')}</section>`:''}
       </div>
       <div class="cl-col">
@@ -14397,7 +14427,7 @@ function crmLdHtml(t){
           <div class="cl-hist">
             ${h.de.map(d=>`<div class="cl-ev"><i></i>Preencheu o formulário de novo em ${esc(d)}</div>`).join('')}
             ${h.obs?`<div class="cl-ev"><i></i>${esc(h.obs)}</div>`:''}
-            <div class="cl-ev"><i></i>Entrou pelo formulário${h.form?' "'+esc(h.form)+'"':''}${quando?' em '+esc(clDia(quando)):''}</div>
+            <div class="cl-ev"><i></i>${h.mao?'Cadastrado à mão por '+esc(h.mao.por):'Entrou pelo formulário'+(h.form?' "'+esc(h.form)+'"':'')}${quando?' em '+esc(clDia(quando)):''}</div>
           </div>
         </section>
       </div>
@@ -14450,9 +14480,141 @@ window.clCampoSalvar=async (cid,el,k)=>{
 window.clArquivar=async ()=>{ const id=CL.id; if(!id) return;
   if(!confirm('Arquivar este lead? Ele sai da lista e fica em Arquivados.')) return;
   clFechar(); await tkArquivar(id); };
+/* ======================= NOVO LEAD (Bernardo 08/10) =======================
+   "Quando eu clico no + pra cadastrar um lead manual, de indicação ou de outro canal sem tráfego,
+   abre uma tela de tarefa. Você acha que isso é cadastro de lead?" Nos CRMs de formulário o +
+   abre este cadastro, no mesmo painel do cartão do lead: contato, de onde veio, vendedor (já vem o
+   próximo do rodízio) e a primeira anotação. Grava tudo de uma vez pela RPC crm_lead_novo, que
+   também anda a fila quando o lead fica com o próximo da vez, e abre o cartão do lead criado.
+   Não dispara mensagem automática: o primeiro contato é do vendedor. */
+const CLN_ORIGENS=['Indicação','Instagram orgânico','Evento','Prospecção','Outro'];
+const CLN={lid:'',etapa:'',origem:'Indicação',vez:'',mexeu:false,salvando:false};
+const clnEtapaPadrao=(lid)=>{ const sts=tkStatusDe(lid); return (sts.find(s=>/novo lead/i.test(s.nome))||sts[0]||{}).id||''; };
+function crmLdNovo(lid,etapaPre){
+  const pre=tkStatus1(etapaPre);
+  Object.assign(CLN,{lid,etapa:(pre&&pre.lista_id===lid)?pre.id:clnEtapaPadrao(lid),origem:'Indicação',vez:'',mexeu:false,salvando:false});
+  CL.id=''; window.TK_ABERTA='';
+  let ov=document.getElementById('clOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='clOv'; ov.className='overlay cl-ov';
+    ov.onclick=(e)=>{ if(e.target===ov) clFechar(); };
+    document.body.appendChild(ov); }
+  ov.innerHTML=clnHtml();
+  setTimeout(()=>{ const n=document.getElementById('clnNome'); if(n) n.focus(); },30);
+  clnVez(lid);
+  return true;
+}
+function clnTopo(){
+  const st=tkStatus1(CLN.etapa), lst=(TK.listas||[]).find(x=>x.id===CLN.lid)||{};
+  return `<header class="cl-h">
+      <div class="cl-q">
+        <div class="cl-tag">Novo lead · ${esc(lst.nome||'CRM')}</div>
+        <input class="cl-nome" id="clnNome" placeholder="Nome do lead" aria-label="Nome do lead">
+        <div class="cl-sub">Cadastro manual: indicação, Instagram, evento ou prospecção</div>
+      </div>
+      <div class="cl-acoes">
+        <button type="button" class="cl-st" id="clnSt" style="--c:${esc(st?st.cor:'#7c3aed')}" onclick="clnEtMenu(event)" title="Etapa em que o lead entra"><i></i>${esc(st?clEtNome(st.nome):'Sem etapa')}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        <button type="button" class="x cl-x" onclick="clFechar()" aria-label="Fechar">&times;</button>
+      </div>
+    </header>`;
+}
+function clnHtml(){
+  const lid=CLN.lid, cargo=tkCamposDe(lid).find(c=>CL_RE.cargo.test(c.nome));
+  const ops=(cargo&&cargo.tipo==='select'&&(cargo.opcoes||[]).length)?cargo.opcoes:['Dono(a)','Gerente','Marketing'];
+  return `<div class="cl cln" role="dialog" aria-label="Novo lead">
+    ${clnTopo()}
+    <div class="cl-corpo">
+      <div class="cl-col">
+        <section class="cl-box"><h4>Contato</h4>
+          <div class="cl-kv"><span>WhatsApp<em>*</em></span><input class="cl-in" id="clnWa" inputmode="tel" placeholder="(DDD) número" oninput="clnDup()"></div>
+          <div id="clnDup"></div>
+          <div class="cl-kv"><span>Instagram</span><input class="cl-in" id="clnIg" placeholder="@perfil da loja"></div>
+          <div class="cl-kv"><span>Cargo</span><select class="cl-in" id="clnCargo"><option value="">-</option>${ops.map(o=>`<option>${esc(o)}</option>`).join('')}</select></div>
+          <div class="cl-kv"><span>Cidade</span><input class="cl-in" id="clnCidade" placeholder="-"></div>
+          <div class="cl-kv"><span>Estado</span><input class="cl-in" id="clnUf" placeholder="UF" maxlength="2"></div>
+        </section>
+        <section class="cl-box"><h4>De onde veio</h4>
+          <div class="cln-chips" role="radiogroup" aria-label="Origem">${CLN_ORIGENS.map(o=>`<button type="button" class="cln-chip${o===CLN.origem?' on':''}" role="radio" aria-checked="${o===CLN.origem}" onclick="clnOrigem(this,'${esc(o)}')">${esc(o)}</button>`).join('')}</div>
+          <div class="cl-kv" id="clnIndBox"${CLN.origem==='Indicação'?'':' hidden'}><span>Indicado por</span><input class="cl-in" id="clnInd" placeholder="quem indicou"></div>
+          <p class="cl-dica">Lead do formulário continua entrando sozinho, com campanha e anúncio. Aqui é para o que chega por fora do tráfego.</p>
+        </section>
+      </div>
+      <div class="cl-col">
+        <section class="cl-box"><h4>Vendedor responsável</h4>
+          <select class="cl-in" id="clnVend" onchange="CLN.mexeu=true"><option value="">Ninguém ainda</option>${equipeDe(lid,null).map(u=>`<option value="${u.id}">${esc(u.nome)}</option>`).join('')}</select>
+          <p class="cln-vez" id="clnVez">Buscando o próximo da vez…</p>
+        </section>
+        <section class="cl-box"><h4>Primeira anotação</h4>
+          <textarea class="cl-in" id="clnNota" rows="4" placeholder="Contexto do lead, o que já foi conversado, próximo passo…"></textarea>
+          <p class="cl-dica">Vai para as Anotações do cartão, com o seu nome.</p>
+        </section>
+      </div>
+    </div>
+    <footer class="cl-pe">
+      <p>Entra sem mensagem automática: o primeiro contato é do vendedor.</p>
+      <button type="button" class="btn secondary" onclick="clFechar()">Cancelar</button>
+      <button type="button" class="btn" id="clnOk" onclick="clnSalvar()">Cadastrar lead</button>
+    </footer>
+  </div>`;
+}
+/* o próximo da vez vem marcado; se a pessoa já escolheu alguém, não mexe */
+async function clnVez(lid){
+  const f=CRM_FORMS.find(x=>x.lista===lid), el=()=>document.getElementById('clnVez');
+  let txt='Escolha quem fica com o lead.';
+  if(f){ try{
+    const {data}=await sb.rpc('crm_rodizio_ver',{p_form:f.form});
+    const at=((data&&data.vendedores)||[]).filter(v=>v.ativo&&v.perfil_id);
+    if(at.length){ const v=at[(Number(data.vez)||0)%at.length]; CLN.vez=v.perfil_id;
+      const sel=document.getElementById('clnVend');
+      if(sel&&!CLN.mexeu&&[...sel.options].some(o=>o.value===v.perfil_id)) sel.value=v.perfil_id;
+      txt=`Já vem com <b>${esc(tkNomeUser(v.perfil_id)||eqNomeAp(v.apelido))}</b>, o próximo do rodízio. Troque se a indicação for de alguém.`; }
+  }catch(_){ /* sem rodízio: escolhe na mão */ } }
+  if(CLN.lid===lid&&el()) el().innerHTML=txt;
+}
+window.clnOrigem=(btn,o)=>{ CLN.origem=o;
+  btn.parentNode.querySelectorAll('.cln-chip').forEach(b=>{ const on=b===btn; b.classList.toggle('on',on); b.setAttribute('aria-checked',String(on)); });
+  const box=document.getElementById('clnIndBox'); if(box) box.hidden=o!=='Indicação'; };
+/* mesmo número já é lead neste CRM: avisa e leva pro card (compara os 8 últimos dígitos, como o funil) */
+const clnDigitos=()=>String((document.getElementById('clnWa')||{}).value||'').replace(/\D/g,'');
+function clnRepetido(){ const d=clnDigitos(); if(d.length<10) return null;
+  return (TK.tarefas||[]).find(t=>t.lista_id===CLN.lid&&!arquivada(t)&&String(rspWaNum(t)||'').slice(-8)===d.slice(-8))||null; }
+window.clnDup=()=>{ const box=document.getElementById('clnDup'); if(!box) return; const t=clnRepetido();
+  const st=t?tkStatus1(t.status_id):null;
+  box.innerHTML=t?`<div class="cln-dup"><span>Esse número já é lead: <b>${esc(t.titulo||'')}</b>${st?' · '+esc(clEtNome(st.nome)):''}</span><button type="button" onclick="clFechar();tkAbrir('${t.id}')">Abrir o card</button></div>`:''; };
+window.clnEtMenu=(ev)=>{
+  ev.stopPropagation(); const v=document.getElementById('clEtPop'); if(v){ v.remove(); return; }
+  const sts=tkStatusDe(CLN.lid), aParte=(s)=>s.grupo==='fechado'||/incomplet/i.test(s.nome);
+  const it=(s)=>`<button type="button" class="rc-mi cl-etmi${s.id===CLN.etapa?' on':''}" onclick="document.getElementById('clEtPop').remove();clnEtapa('${s.id}')"><i style="background:${esc(s.cor||'#64748b')}"></i>${esc(clEtNome(s.nome))}${s.id===CLN.etapa?'<b>✓</b>':''}</button>`;
+  const el=document.createElement('div'); el.id='clEtPop'; el.className='tkpop'; el.style.width='230px'; el.style.padding='6px'; el.style.zIndex=3000;
+  el.innerHTML=sts.filter(s=>!aParte(s)).map(it).join('');
+  document.body.appendChild(el); popPor(el,ev.currentTarget.getBoundingClientRect());
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.clnEtapa=(sid)=>{ CLN.etapa=sid; const st=tkStatus1(sid), b=document.getElementById('clnSt');
+  if(b&&st){ b.style.setProperty('--c',st.cor||'#7c3aed'); b.innerHTML=b.innerHTML.replace(/<\/i>[^<]*/,'</i>'+esc(clEtNome(st.nome))); } };
+window.clnSalvar=async ()=>{
+  if(CLN.salvando) return;
+  const val=(id)=>String((document.getElementById(id)||{}).value||'').trim();
+  const nome=val('clnNome'), d=clnDigitos();
+  const marca=(id,ruim)=>{ const e=document.getElementById(id); if(e) e.classList.toggle('erro',ruim); };
+  marca('clnNome',!nome); const foneOk=d.length>=10&&d.length<=13; marca('clnWa',!foneOk);
+  if(!nome){ toast('Falta o nome do lead.'); return; }
+  if(!foneOk){ toast('WhatsApp com DDD, por favor.'); return; }
+  const rep=clnRepetido();
+  if(rep&&!confirm('Esse número já é lead ('+(rep.titulo||'')+'). Cadastrar mesmo assim?')) return;
+  CLN.salvando=true; const b=document.getElementById('clnOk'); if(b){ b.disabled=true; b.textContent='Cadastrando…'; }
+  const {data,error}=await sb.rpc('crm_lead_novo',{p_lista:CLN.lid,p:{nome,whats:d,insta:val('clnIg'),cargo:val('clnCargo'),
+    cidade:val('clnCidade'),estado:val('clnUf'),origem:CLN.origem,indicado:CLN.origem==='Indicação'?val('clnInd'):'',
+    vendedor:val('clnVend'),etapa:CLN.etapa,nota:val('clnNota')}});
+  CLN.salvando=false;
+  if(error||!data){ if(b){ b.disabled=false; b.textContent='Cadastrar lead'; } toast('Não cadastrou: '+((error&&error.message)||'erro')); return; }
+  TK.tarefas.push(data); tkDesenhar($('#content')); spDesenhar();
+  clFechar(); crmLdAbrir(data.id); toast('Lead cadastrado.');
+};
 window.tkAbrir=(id,prazoPre,grupoPre)=>{
   /* lead de CRM de formulário abre o cartão de lead, não o painel de tarefa */
   if(id&&typeof crmLdAbrir==='function'&&crmLdAbrir(id)) return;
+  /* e o + dentro do CRM abre o cadastro de lead (Bernardo 08/10) */
+  if(!id&&TK.escopo==='lista'&&crmForm(TK.listaSel)){ crmLdNovo(TK.listaSel,grupoPre); return; }
   const t=id?TK.tarefas.find(x=>x.id===id):null;
   window.TK_ABERTA=t?String(t.id):'';   /* F5 reabre a mesma tarefa */
   TK_CK=(t&&Array.isArray(t.checklist))?t.checklist.map(x=>({t:String((x&&x.t)||''),ok:!!(x&&x.ok),g:String((x&&x.g)||'')})):[];
@@ -17105,7 +17267,7 @@ function eqDesenhar(c){
     ${EQ.erroInst?`<div class="crm-hint" style="color:var(--danger);margin:0 0 8px">Não consegui ler os números: ${esc(EQ.erroInst)}</div>`:''}
     ${dentro.map(linha).join('')||'<div class="crm-vazio">Ninguém no rodízio.</div>'}
     ${fora.length?'<div class="eq-sub">Fora do rodízio</div>'+fora.map(linha).join(''):''}
-    <p class="eq-hint">Se ninguém do rodízio estiver conectado, o card entra sem responsável e a coluna Mensagem automática mostra <b>Sem vendedor conectado</b>. ${pode?'':'Só master e gestor do CRM mudam o rodízio. '}${quem?`Última mudança: ${esc(quem)}, ${esc(eqQuando(cfg.atualizado_em))}.`:''}</p>
+    <p class="eq-hint">${cfg.reserva?`Se ninguém do rodízio estiver conectado, a mensagem sai pelo número de <b>${esc(eqNomeAp(cfg.reserva))}</b> e o lead fica com ele (a fila não anda).`:'Se ninguém do rodízio estiver conectado, o card entra sem responsável e a coluna Mensagem automática mostra <b>Sem vendedor conectado</b>.'} ${pode?'':'Só master e gestor do CRM mudam o rodízio. '}${quem?`Última mudança: ${esc(quem)}, ${esc(eqQuando(cfg.atualizado_em))}.`:''}</p>
   </div>`;
 }
 /* grava a config inteira (pausa + fila) e redesenha com o que o banco devolveu */
