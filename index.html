@@ -2957,31 +2957,35 @@
   .rsp-nm button:not(.tk-wa):hover{color:var(--brand2);text-decoration:underline}
   .rsp-nm .tk-wa{margin-left:-4px;flex:none}
   #rspTab{table-layout:fixed}
-  /* etapas como na Lista do ClickUp (Bernardo 08/10): faixa com a pílula e, embaixo, o cabeçalho
-     das colunas de novo. A faixa acompanha a rolagem pro lado, pra pílula não sumir. */
-  #rspTab .rsp-g:not(:first-of-type) > .tk-faixa > td{padding-top:26px!important}
-  #rspTab .tk-faixa > td{overflow:visible}
-  #rspTab .rsp-gt{position:sticky;left:4px;display:inline-flex;align-items:center}
+  /* etapas (Bernardo 08/10, a opção 4 que ele escolheu entre quatro prévias): funil no topo com a
+     contagem de cada etapa, e embaixo as etapas como na Lista do ClickUp, sem caixa. A faixa é seta +
+     pílula + contagem no fundo da página; os títulos das colunas vêm em cinza, as linhas só com a
+     divisória de baixo e sem linha vertical. Quem separa uma etapa da outra é o espaço. */
+  .rsp-funil{display:flex;gap:3px;margin:2px 0 22px;overflow-x:auto}
+  .rsp-fe{flex:1 1 0;min-width:104px;border:0;cursor:pointer;text-align:left;padding:9px 13px 10px;font:inherit;
+    display:flex;flex-direction:column;gap:3px;background:var(--c);transition:filter .12s,transform .12s}
+  .rsp-fe:first-child{border-radius:10px 0 0 10px}
+  .rsp-fe:last-child{border-radius:0 10px 10px 0}
+  .rsp-fe:hover{filter:brightness(1.12)}
+  .rsp-fe:active{transform:scale(.98)}
+  .rsp-fe.zero{background:var(--panel2);color:var(--muted)!important}
+  .rsp-fen{font-size:11.5px;font-weight:600;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rsp-fe b{font-size:19px;font-weight:800;line-height:1.1}
+  .tablewrap:has(> #rspTab){background:transparent;border:0;border-radius:0;box-shadow:none}
+  #rspTab{border-collapse:separate;border-spacing:0}
+  #rspTab th+th,#rspTab td+td{border-left:0}
+  #rspTab .tk-faixa > td{background:var(--bg);border:0!important;box-shadow:none!important;padding:30px 0 8px!important;overflow:visible}
+  #rspTab .rsp-g:first-of-type > .tk-faixa > td{padding-top:2px!important}
+  #rspTab .tk-faixa.vazio > td{padding-top:16px!important;padding-bottom:2px!important}
+  #rspTab .rsp-gt{position:sticky;left:0;display:inline-flex;align-items:center}
   #rspTab .rsp-cv{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:6px;border-radius:6px;color:var(--muted);transition:transform .15s,color .12s,background .12s}
   #rspTab .rsp-cv svg{width:11px;height:11px}
   #rspTab .rsp-cv.ab{transform:rotate(90deg)}
   #rspTab .tk-faixa:hover .rsp-cv{color:var(--txt);background:var(--panel2)}
-  #rspTab .rsp-ch > th{background:var(--panel2)}
-  /* Respostas por etapa, mais ar entre as etapas (Bernardo 08/10: "não ficou muito legal o espaçamento
-     entre eles"): cada etapa vira um bloco solto, com borda e cantos redondos próprios, e a faixa da
-     etapa fica no fundo da página, como os grupos da Lista do ClickUp. A caixa única em volta sai. */
-  .tablewrap:has(> #rspTab){background:transparent;border:0;border-radius:0}
-  #rspTab{border-collapse:separate;border-spacing:0}
-  #rspTab .tk-faixa > td{background:var(--bg);border:0!important;box-shadow:none!important;padding:26px 2px 10px!important}
-  #rspTab .rsp-g:first-of-type > .tk-faixa > td{padding-top:2px!important}
-  #rspTab .tk-faixa.vazio > td{padding-top:14px!important;padding-bottom:4px!important}
-  #rspTab .rsp-ch > th{border-top:1px solid var(--line)}
-  #rspTab .rsp-ch > th:first-child{border-left:1px solid var(--line);border-top-left-radius:12px}
-  #rspTab .rsp-ch > th:last-child{border-right:1px solid var(--line);border-top-right-radius:12px}
-  #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch) > td:first-child{border-left:1px solid var(--line)}
-  #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch) > td:last-child{border-right:1px solid var(--line)}
-  #rspTab .rsp-g > tr:last-child:not(.tk-faixa) > td:first-child{border-bottom-left-radius:12px}
-  #rspTab .rsp-g > tr:last-child:not(.tk-faixa) > td:last-child{border-bottom-right-radius:12px}
+  #rspTab .rsp-ch > th{background:var(--bg);color:var(--fraco);font-size:11px;border-bottom:1px solid var(--line);padding-top:7px;padding-bottom:7px;box-shadow:none}
+  #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch) > td{background:var(--bg);border-bottom:1px solid var(--line);box-shadow:none}
+  #rspTab .rsp-g > tr:not(.tk-faixa):not(.rsp-ch):hover > td{background:var(--cardh)}
+  #rspTab.rolou .rsp-g > tr:not(.tk-faixa) > :nth-child(2){box-shadow:8px 0 14px -6px rgba(0,0,0,.55)}
   /* Painel do CRM de formulario (Bernardo 08/10): o mesmo do Comercial, dentro da lista */
   .crm-pn{margin-top:4px}
   .crm-pn-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:10px}
@@ -10104,6 +10108,8 @@ function tkViewRespostas(){
           <button class="btn secondary small" onclick="rspBaixar(false)">${tpSvg('baixar',14)} Download</button>`}
       </div>
     </div>
+    <div class="rsp-funil" role="navigation" aria-label="Etapas do funil">${grupos.map(g=>{ const n=q?g.its.filter(passa).length:g.its.length;
+      return `<button type="button" class="rsp-fe${g.its.length?'':' zero'}" data-g="${esc(g.k)}" style="--c:${esc(g.cor)};color:${esc(corTx(g.cor))}" onclick="rspIrEtapa('${esc(g.k)}')" title="Ir para ${esc(g.rot)}"><span class="rsp-fen">${esc(g.rot)}</span><b>${n}</b></button>`; }).join('')}</div>
     <div class="tablewrap rolavel"><table class="tk-tab lc-tab" id="rspTab" style="width:${largMin}px">
       <colgroup><col data-k="nome" style="width:${wN}px"><col data-k="status" style="width:${wS}px"><col data-k="data" style="width:${wD}px">${outros.map(c=>`<col data-k="${esc(c.id)}" style="width:${larg(c)}px">`).join('')}</colgroup>
       ${grupos.map(bloco).join('')}
@@ -10111,11 +10117,18 @@ function tkViewRespostas(){
     <div class="empty" id="rspVazio"${(q&&arr.length&&!nVis)?'':' style="display:none"'}>Nenhuma resposta com esse texto.</div></div>
     ${(setTimeout(()=>{ try{ lcFixarColunas($('#content')); }catch(_){} },0),'')}`;
 }
+window.rspIrEtapa=(k)=>{
+  if(TK.fechadas&&TK.fechadas['gr'+k]){ TK.fechadas['gr'+k]=false; tkDesenhar($('#content')); }
+  const el=document.querySelector('#rspTab tbody.rsp-g[data-g="'+k+'"]'); if(!el) return;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+};
 window.rspBusca=(v)=>{
   RSP.q=String(v||''); const q=RSP.q.trim().toLowerCase(); let n=0;
   document.querySelectorAll('#rspTab tbody tr[data-b]').forEach(tr=>{ const ok=!q||tr.dataset.b.indexOf(q)>=0; tr.style.display=ok?'':'none'; if(ok) n++; });
   document.querySelectorAll('#rspTab tbody.rsp-g').forEach(g=>{ const c=g.querySelector('.rsp-gn'); if(!c) return;
-    const rs=g.querySelectorAll('tr[data-b]'); c.textContent=q?[...rs].filter(r=>r.style.display!=='none').length:rs.length; });
+    const rs=g.querySelectorAll('tr[data-b]'); if(!rs.length) return;   /* etapa recolhida: sem linhas na tela, fica a contagem que veio */
+    c.textContent=q?[...rs].filter(r=>r.style.display!=='none').length:rs.length;
+    const f=document.querySelector('.rsp-fe[data-g="'+g.dataset.g+'"] b'); if(f) f.textContent=c.textContent; });
   const e=document.getElementById('rspN'); if(e) e.textContent=n+' resposta'+(n===1?'':'s');
   const z=document.getElementById('rspVazio'); if(z) z.style.display=(q&&!n)?'':'none';
 };
