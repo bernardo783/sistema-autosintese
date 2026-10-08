@@ -3048,6 +3048,15 @@
   @media (hover:none){ .rsp-ig-ed{opacity:1} }
   .rsp-ig-in{width:100%;min-width:150px;height:28px;padding:0 8px;font-size:12.5px}
   button.tk-wa{border:0;padding:0;cursor:pointer;font:inherit}
+  /* numero do lead escrito na lista, com copiar e abrir no WhatsApp (Bernardo 08/10) */
+  .rsp-fone{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;vertical-align:middle}
+  .rsp-num{font-variant-numeric:tabular-nums;margin-right:3px}
+  .rsp-fb{display:inline-grid;place-items:center;width:22px;height:22px;border:0;padding:0;border-radius:999px;flex:none;
+    background:transparent;color:var(--muted);cursor:pointer;text-decoration:none;transition:background .15s,color .15s}
+  .rsp-fb:hover{background:var(--panel2);color:var(--txt)}
+  .rsp-fb.wa{color:#25d366}
+  .rsp-fb.wa:hover{background:#25d366;color:#fff}
+  .rsp-fb svg{width:13px;height:13px}
   .mt-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:5px;vertical-align:middle}
   .mt-live.buscando{background:var(--warn);animation:mtpulse 1s ease-in-out infinite}
   @keyframes mtpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(.7)}}
@@ -9765,6 +9774,10 @@ const tkCelula=(t,c)=>{
     return `<span class="tk-trava" title="${dica}">${esc(iso.slice(8,10)+'/'+iso.slice(5,7))}</span>`;
   }
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
+  /* WhatsApp do lead nas listas de formulario: numero legivel + copiar + abrir no WhatsApp, em
+     vez do link cru "https://wa.me/55…" no campo (Bernardo 08/10). Editar o numero e no cartao do lead. */
+  if(/whats/i.test(c.nome||'')&&crmForm(t.lista_id)){ const cel=rspFoneCel((t.valores||{})[c.id]);
+    return cel||'<span class="hint" style="margin:0">-</span>'; }
   const v=valCampo(c,(t.valores||{})[c.id]);
   const vazio=(v==null||v==='')?' vazio':'';
   if(!podeMexerCampo(c,t)){
@@ -9853,19 +9866,18 @@ window.rspIgEditar=(btn,tid,cid)=>{
 function rspCel(c,v,t){
   if(/insta/i.test(c.nome)) return rspIgCel(c,v,t);
   if(v==null||v==='') return '';
-  if(/whats/i.test(c.nome)){ const n=String(v).replace(/\D/g,''); if(!n) return esc(v);
-    const dentro=t&&rspWaDentro();
-    return `<a class="rsp-lk" href="https://wa.me/${n}" target="_blank" rel="noopener" onclick="event.stopPropagation()${dentro?`;return rspWaAbrir('${t.id}')`:''}"${dentro?' title="Abrir a conversa aqui no sistema"':''}>+${n}</a>`; }
+  if(/whats/i.test(c.nome)) return rspFoneCel(v);
   if(c.tipo==='data') return rspData(v);
   return esc(campoTexto(c,v));
 }
 /* numero do WhatsApp do lead pra abrir a conversa (Bernardo 08/10): sem DDI (10 ou 11
    digitos) ganha o 55 do Brasil, senao o wa.me nao acha o contato */
+const rspFoneNum=(v)=>{ let n=String(v==null?'':v).replace(/\D/g,'');
+  if(n.length===10||n.length===11) n='55'+n;
+  return n.length>=12?n:''; };
 function rspWaNum(t){
   const c=tkCamposDe(t.lista_id).find(k=>/whats/i.test(k.nome)); if(!c) return '';
-  let n=String((t.valores||{})[c.id]||'').replace(/\D/g,'');
-  if(n.length===10||n.length===11) n='55'+n;
-  return n.length>=12?n:'';
+  return rspFoneNum((t.valores||{})[c.id]);
 }
 /* conversa DENTRO do sistema (Bernardo 08/10: "o botão de WhatsApp pra abrir a conversa
    dentro do sistema"): usa o mesmo painel da ficha do pipeline (comercial/conversas.js),
@@ -9884,6 +9896,17 @@ const rspWaBtn=(t)=>{ const n=rspWaNum(t); if(!n) return '';
   return rspWaDentro()
     ? `<button type="button" class="tk-wa" title="Abrir a conversa aqui no sistema (+${n})" onclick="event.stopPropagation();rspWaAbrir('${t.id}')">${RSP_WA_SVG}</button>`
     : `<a class="tk-wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp (+${n})" onclick="event.stopPropagation()">${RSP_WA_SVG}</a>`; };
+/* numero do lead sempre escrito na lista (Bernardo 08/10: "um não anula o outro"): o botao
+   verde do nome continua abrindo a conversa; na coluna WhatsApp fica o numero legivel, um
+   botao pra copiar e outro que leva direto pro WhatsApp (wa.me), pro SDR escolher como falar */
+const RSP_CP_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>';
+/* (11) 98765-4321; numero de fora do Brasil fica +DDI... (mesma regra do clFone do cartao) */
+const rspFoneFmt=(n)=>{ const s=n.startsWith('55')?n.slice(2):'';
+  return s.length===11?`(${s.slice(0,2)}) ${s.slice(2,7)}-${s.slice(7)}`:s.length===10?`(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`:'+'+n; };
+const rspFoneCel=(v)=>{ const n=rspFoneNum(v); if(!n) return esc(v==null?'':String(v));
+  const f=rspFoneFmt(n);
+  return `<span class="rsp-fone"><span class="rsp-num" title="+${n}">${esc(f)}</span><button type="button" class="rsp-fb" title="Copiar o número" onclick="event.stopPropagation();rspCopiarFone('${esc(f)}')">${RSP_CP_SVG}</button><a class="rsp-fb wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir no WhatsApp" onclick="event.stopPropagation()">${RSP_WA_SVG}</a></span>`; };
+window.rspCopiarFone=async(f)=>{ try{ await navigator.clipboard.writeText(f); toast('Número copiado: '+f); }catch(_){ toast('Número: '+f); } };
 const rspIgBtn=(t)=>{ const c=tkCamposDe(t.lista_id).find(k=>/insta/i.test(k.nome)), u=c?rspIgDe((t.valores||{})[c.id]):''; if(!u) return '';
   return `<a class="tk-ig" href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener" title="Abrir o Instagram (@${esc(u)})" onclick="event.stopPropagation()">${PC_IC.ig}</a>`; };
 function rspLinhas(){
