@@ -5429,6 +5429,7 @@ function render(view){
     return renderPesquisa(c);
   }
   if(view==='crm-equipe'){ EQ.carregou=false; return renderEquipe(c); }
+  if(view==='crm-anuncios') return renderCrmAnuncios(c);
   if(view==='carteira'){
     if(!souGerente()){ c.innerHTML='<div class="empty">Acesso restrito a master e gerentes.</div>'; return; }
     return renderCarteira(c);
@@ -10583,6 +10584,20 @@ function crmPainelView(){
    - Cash Collect, VGV e MRR: cliente do Controle de Clientes cujo fechamento aponta pro lead
      (fechamento.leadId). Cash = o que já entrou no Recebimentos desde o fechamento, mesmo fora do
      período escolhido: senão um cliente de julho sumiria do retorno ao olhar outubro. */
+/* Anúncios virou LISTA na árvore de cada CRM (Bernardo 08/10: "vai ser uma lista dentro de cada CRM.
+   Só isso."). Cada lista aponta pro pipeline cujos leads ela lê; a aba dentro do Pipeline saiu. */
+const CRM_ANUNCIOS={'f1e2d3c4-0000-4a00-8b00-00000000d021':'2e85f701-0616-4b74-9732-6ebfeba016b8',
+  'f1e2d3c4-0000-4a00-8b00-00000000d022':'b4169319-1cf1-4d7a-8520-5ffcad09e21f','f1e2d3c4-0000-4a00-8b00-00000000d023':'ae902b26-00d3-4495-a7e0-9914f2754fd9'};
+if(typeof LTEL!=='undefined') Object.assign(LTEL,Object.fromEntries(Object.keys(CRM_ANUNCIOS).map(k=>[k,'crm-anuncios'])));
+const anuLid=()=>CRM_ANUNCIOS[TK.listaSel]||TK.listaSel;
+const anuPintar=()=>{ if(typeof currentView!=='undefined'&&currentView==='crm-anuncios') renderCrmAnuncios(); else if(TK.visao==='anuncios') tkDesenhar($('#content')); };
+function renderCrmAnuncios(c){
+  c=c||$('#content'); if(!c) return;
+  const cab=`<div class="page-head tp-head"><div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>Anúncios</h2></div></div></div>`;
+  if(!CRM_ANUNCIOS[TK.listaSel]){ c.innerHTML=cab+'<div class="empty">Esta lista não está ligada a nenhum CRM.</div>'; return; }
+  if(!anuPode(anuLid())){ c.innerHTML=cab+'<div class="empty">Anúncios é do master e do time deste CRM.</div>'; return; }
+  c.innerHTML=cab+anuView();
+}
 const ANU={cfg:{},cfgLido:{},bms:null,bmContas:{},dados:{},erro:{},carregando:{},per:'last_30d',st:'ativos',q:'',pop:'',ad:null,aba:'leads'};
 const ANU_PER=[['last_7d','Últimos 7 dias',7],['last_30d','Últimos 30 dias',30],['last_90d','Últimos 90 dias',90],['this_month','Este mês'],['last_month','Mês passado'],['maximum','Desde o início']];
 const ANU_STS=[['ativos','Só ativos'],['todos','Ativos e pausados'],['pausados','Só pausados']];
@@ -10592,7 +10607,7 @@ const anuNorm=(s)=>String(s==null?'':s).toLowerCase().normalize('NFD').replace(/
 const anuMeta=(p)=>fetch(META_URL+p+(p.includes('?')?'&':'?')+'v='+Date.now(),{headers:{authorization:'Bearer '+SESSION.access_token}}).then(r=>r.json());
 const anuR0=(v)=>'R$ '+Math.round(Number(v)||0).toLocaleString('pt-BR');
 const anuX=(v)=>(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'×';
-const anuRepintar=()=>{ if(TK.visao==='anuncios') tkDesenhar($('#content')); if(ANU.ad) anuModalPintar(); };
+const anuRepintar=()=>{ anuPintar(); if(ANU.ad) anuModalPintar(); };
 /* status da Meta → como a tela fala */
 const anuStatus=(a)=>{ const s=String(a.effective_status||'');
   if(s==='ACTIVE') return ['Ativo','ok',true];
@@ -10699,7 +10714,7 @@ function anuKpis(t,master){
     </div>`;
 }
 function anuView(){
-  const lid=TK.listaSel, master=anuMaster();
+  const lid=anuLid(), master=anuMaster();
   if(!ANU.cfgLido[lid]){ anuCfgLer(lid); return '<div class="empty">Carregando os anúncios…</div>'; }
   const cfg=ANU.cfg[lid]||{}, contas=cfg.contas||[];
   const per=ANU_PER.find(x=>x[0]===ANU.per)||ANU_PER[1];
@@ -10707,10 +10722,10 @@ function anuView(){
   const bar=`<div class="anu-bar">
       ${chip('bm','BM',cfg.bm_nome,'escolher')}
       ${chip('contas','Contas',contas.length?(contas.length===1?contas[0].nome:contas.length+' contas'):'','nenhuma')}
-      <select class="anu-sel" onchange="ANU.per=this.value;tkDesenhar($('#content'))" aria-label="Período">${ANU_PER.map(p=>`<option value="${p[0]}"${p[0]===ANU.per?' selected':''}>${p[1]}</option>`).join('')}</select>
-      <select class="anu-sel" onchange="ANU.st=this.value;tkDesenhar($('#content'))" aria-label="Quais anúncios mostrar">${ANU_STS.map(p=>`<option value="${p[0]}"${p[0]===ANU.st?' selected':''}>${p[1]}</option>`).join('')}</select>
+      <select class="anu-sel" onchange="ANU.per=this.value;anuPintar()" aria-label="Período">${ANU_PER.map(p=>`<option value="${p[0]}"${p[0]===ANU.per?' selected':''}>${p[1]}</option>`).join('')}</select>
+      <select class="anu-sel" onchange="ANU.st=this.value;anuPintar()" aria-label="Quais anúncios mostrar">${ANU_STS.map(p=>`<option value="${p[0]}"${p[0]===ANU.st?' selected':''}>${p[1]}</option>`).join('')}</select>
       <input class="search anu-busca" placeholder="Buscar anúncio…" value="${esc(ANU.q)}" oninput="ANU.q=this.value;anuGradeRepintar()">
-      <button type="button" class="iconbtn" title="Atualizar da Meta" onclick="anuCarregar('${lid}',true);tkDesenhar($('#content'))">↻</button>
+      <button type="button" class="iconbtn" title="Atualizar da Meta" onclick="anuCarregar('${lid}',true);anuPintar()">↻</button>
     </div>`;
   if(!cfg.bm_id||!contas.length) return `<div class="anu">${bar}<div class="empty anu-vazio">${master
       ?(cfg.bm_id?'Escolha as contas de anúncio desta BM que rodam os anúncios deste CRM.':'Escolha a BM e, dentro dela, as contas de anúncio que rodam os anúncios deste CRM.')
@@ -10745,15 +10760,15 @@ function anuCorpo(lid){
     <div class="pc-sec">${ls.length} anúncio${ls.length===1?'':'s'}${m.semAnuncio?` · ${m.semAnuncio} lead${m.semAnuncio===1?'':'s'} sem anúncio no período`:''}</div>
     <div class="anu-grade">${ls.map(card).join('')||'<div class="empty">Nenhum anúncio nesse filtro.</div>'}</div>`;
 }
-window.anuGradeRepintar=()=>{ const el=document.getElementById('anuCorpo'); if(el) el.innerHTML=anuCorpo(TK.listaSel); };
+window.anuGradeRepintar=()=>{ const el=document.getElementById('anuCorpo'); if(el) el.innerHTML=anuCorpo(anuLid()); };
 /* ---------- BM e contas (só master troca) ---------- */
 window.anuPop=(ev,id)=>{ ev.stopPropagation(); if(!anuMaster()) return;
-  ANU.pop=ANU.pop===id?'':id; const lid=TK.listaSel;
+  ANU.pop=ANU.pop===id?'':id; const lid=anuLid();
   if(ANU.pop==='bm'&&!ANU.bms) anuMeta('/bms').then(r=>{ ANU.bms=r&&r.ok?r.bms:{erro:(r&&r.erro)||'falhou'}; anuRepintar(); });
   const bm=(ANU.cfg[lid]||{}).bm_id;
   if(ANU.pop==='contas'&&bm&&!ANU.bmContas[bm]) anuMeta('/bm-contas/'+encodeURIComponent(bm)).then(r=>{ ANU.bmContas[bm]=r&&r.ok?r.contas:{erro:(r&&r.erro)||'falhou'}; anuRepintar(); });
-  tkDesenhar($('#content')); };
-if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('click',(e)=>{ if(ANU.pop&&!e.target.closest('.anu-pop')){ ANU.pop=''; if(TK.visao==='anuncios') tkDesenhar($('#content')); } });
+  anuPintar(); };
+if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('click',(e)=>{ if(ANU.pop&&!e.target.closest('.anu-pop')){ ANU.pop=''; anuPintar(); } });
 const ANU_ST_CONTA={1:'ativa',2:'desativada',3:'com pendência',7:'em análise',9:'em carência',101:'fechada'};
 function anuPopHTML(id,lid){
   const cfg=ANU.cfg[lid]||{};
@@ -10767,11 +10782,11 @@ function anuPopHTML(id,lid){
     :L.length?L.map(c=>`<button type="button" class="anu-op${sel.includes(c.id)?' on':''}" onclick="anuConta('${esc(c.id)}')"><span class="ck">✓</span><span class="gr">${esc(c.nome)}<small>${esc(c.id)} · ${ANU_ST_CONTA[c.status]||'status '+c.status}</small></span></button>`).join('')
     :'<div class="anu-op-msg">Essa BM não tem contas de anúncio.</div>'}</div>`;
 }
-window.anuBm=(id)=>{ const lid=TK.listaSel, b=(ANU.bms||[]).find(x=>x.id===id); if(!b) return;
+window.anuBm=(id)=>{ const lid=anuLid(), b=(ANU.bms||[]).find(x=>x.id===id); if(!b) return;
   const cfg=ANU.cfg[lid]||{}; ANU.pop='';
-  if(cfg.bm_id===id){ tkDesenhar($('#content')); return; }
+  if(cfg.bm_id===id){ anuPintar(); return; }
   anuCfgSalvar(lid,{bm_id:b.id,bm_nome:b.nome,contas:[]}); };
-window.anuConta=(id)=>{ const lid=TK.listaSel, cfg=ANU.cfg[lid]||{}, L=ANU.bmContas[cfg.bm_id]||[], c=(L.find?L.find(x=>x.id===id):null); if(!c) return;
+window.anuConta=(id)=>{ const lid=anuLid(), cfg=ANU.cfg[lid]||{}, L=ANU.bmContas[cfg.bm_id]||[], c=(L.find?L.find(x=>x.id===id):null); if(!c) return;
   const atual=cfg.contas||[], tem=atual.some(x=>x.id===id);
   anuCfgSalvar(lid,{contas:tem?atual.filter(x=>x.id!==id):atual.concat([{id:c.id,nome:c.nome}])}); };
 /* ---------- janela do anúncio: Detalhes, Leads, Números, Retorno dos clientes ---------- */
@@ -10807,7 +10822,7 @@ function anuDet(l){
 }
 function anuLeads(l){
   if(!l.leads.length) return '<div class="empty">Nenhum lead desse anúncio no período.</div>';
-  const cD=tkCamposDe(TK.listaSel).find(c=>c.nome===RSP_DATA);
+  const cD=tkCamposDe(anuLid()).find(c=>c.nome===RSP_DATA);
   const cliDe={}; (DB.clientes||[]).forEach(c=>{ const k=((c||{}).fechamento||{}).leadId; if(k) cliDe[k]=c; });
   return l.leads.slice().sort((x,y)=>String((y.valores||{})[cD&&cD.id]||y.criado_em).localeCompare(String((x.valores||{})[cD&&cD.id]||x.criado_em))).map(t=>{
     const s=tkStatus1(t.status_id), cor=s?s.cor:'#64748b', r=(t.responsaveis||[])[0]||t.responsavel_id, wa=rspWaNum(t), cli=cliDe[t.id];
@@ -12682,8 +12697,8 @@ function tkDesenharTela(c){
   if(soResp&&TK.visao!=='tabela'&&TK.visao!=='painel'&&TK.visao!=='anuncios') TK.visao='tabela';
   const visoes=soBoard?[['board',PCX_I.quadro+'Quadro']]
     :cli?[['lista',PCX_I.lista+'Lista']]
-    :soResp?[['tabela',tpSvg('tabela',14)+'Respostas'],...(pnl?[['painel',tpSvg('painel',14)+'Painel'],['anuncios',tpSvg('megafone',14)+'Anúncios']]:[])]
-    :[...(form?[['tabela',tpSvg('tabela',14)+'Respostas']]:[]),['lista',PCX_I.lista+'Lista'],['board',PCX_I.quadro+'Quadro'],...(pnl?[['painel',tpSvg('painel',14)+'Painel'],['anuncios',tpSvg('megafone',14)+'Anúncios']]:[])];
+    :soResp?[['tabela',tpSvg('tabela',14)+'Respostas'],...(pnl?[['painel',tpSvg('painel',14)+'Painel']]:[])]
+    :[...(form?[['tabela',tpSvg('tabela',14)+'Respostas']]:[]),['lista',PCX_I.lista+'Lista'],['board',PCX_I.quadro+'Quadro'],...(pnl?[['painel',tpSvg('painel',14)+'Painel']]:[])];
   const nArq=TK.escopo==='lista'?tkArquivadasDa(TK.listaSel).length:0;
   const ordBtn=(TK.escopo==='lista'&&TK.visao==='lista')
     ? `<button class="btn ghost small${TK.ord?'':' on'}" onclick="tkOrdemManual()" title="${TK.ord?'Voltar a poder arrastar as linhas':'Você já pode arrastar as linhas'}">⠿ Ordem manual</button>` : '';
@@ -12780,7 +12795,6 @@ function tpDireita(soBoard){
     ${tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}
     ${crmForm(TK.listaSel)&&TK.escopo==='lista'?tpIb('tabela','Respostas',"tkArqVista(false);tkVisao('tabela')",TK.visao==='tabela'&&!TK.arqVista):''}
     ${TK.escopo==='lista'&&crmPainelPode(TK.listaSel)?tpIb('painel','Painel',"tkArqVista(false);tkVisao('painel')",TK.visao==='painel'&&!TK.arqVista):''}
-    ${TK.escopo==='lista'&&anuPode(TK.listaSel)?tpIb('megafone','Anúncios',"tkArqVista(false);tkVisao('anuncios')",TK.visao==='anuncios'&&!TK.arqVista):''}
     ${soBoard||(TK.escopo==='lista'&&crmSoResp(TK.listaSel))?'':tpIb('lista','Lista',"tkArqVista(false);tkVisao('lista')",TK.visao==='lista'&&!TK.arqVista)}
     ${TK.escopo==='lista'&&crmSoResp(TK.listaSel)?'':tpIb('quadro','Quadro',"tkArqVista(false);tkVisao('board')",TK.visao==='board'&&!TK.arqVista)}
     ${tpIb('pts','Mais opções','tpMais(event)',!!TK.arqVista)}
