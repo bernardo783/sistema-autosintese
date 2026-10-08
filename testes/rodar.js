@@ -2700,7 +2700,9 @@ grupo('Agenda do CRM: calls de 1 h, 30 min de folga, sugestões e os ganchos (Be
   ok('cada CRM tem a sua lista Agenda', F.every(f=>f.agenda)&&new Set(F.map(f=>f.agenda)).size===F.length);
   ok('a Agenda abre a tela crm-agenda', /\.\.\.Object\.fromEntries\(CRM_FORMS\.map\(f=>\[f\.agenda,'crm-agenda'\]\)\)/.test(HTML)&&HTML.indexOf("if(view==='crm-agenda') return renderCaAgenda(c);")>0);
   ok('ir pra Reunião Marcada abre a janela de marcar', /if\(ok&&typeof caDepoisStatus==='function'\) caDepoisStatus\(id,sid\);/.test(HTML));
-  ok('atalho ao lado do filtro, dia e hora na linha, bloco no cartão e Google na Equipe', ['caAtalho():','caChipLinha(t):','caBoxLead(t):','caEqGoogle(v):'].every(k=>HTML.indexOf(k)>0));
+  ok('atalho ao lado do filtro, bloco no cartão e Google na Equipe', ['caAtalho():','caBoxLead(t):','caEqGoogle(v):'].every(k=>HTML.indexOf(k)>0));
+  /* reunião/no-show só na Agenda, não na lista do Pipeline (Bernardo 08/10) */
+  ok('lista do Pipeline sem "marcar horário", No-show e subgrupos A acontecer/No-show', HTML.indexOf('caChipLinha(t):')<0&&HTML.indexOf('rspNsBtn')<0&&HTML.indexOf('rspReuniao(')<0&&HTML.indexOf('no-show</small>')<0);
 }
 
 console.log('\n'+(falhas
