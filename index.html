@@ -12763,7 +12763,9 @@ try{ if(!localStorage.getItem('lc_funil_v1')){ const _v=JSON.parse(localStorage.
 /* Respostas (Bernardo 08/10): uma vez so, a lista de leads de formulario volta pro padrao novo */
 try{ if(!localStorage.getItem('rsp_v1')){ const _v=JSON.parse(localStorage.getItem('tk_visao_lista')||'{}')||{};
   delete _v['2e85f701-0616-4b74-9732-6ebfeba016b8']; localStorage.setItem('tk_visao_lista',JSON.stringify(_v)); VIS=_v; localStorage.setItem('rsp_v1','1'); } }catch(_){}
-const visaoDe=(id)=>(id&&VIS[id])?VIS[id]:visaoPadrao(id);
+/* CRM Sofás sempre abre na Respostas, em Hoje (Bernardo 08/10: "sempre abra com o filtro de hoje");
+   o Painel só por clique: a última aba usada não fica guardada pra próxima vez */
+const visaoDe=(id)=>(id&&crmSoResp(id))?'tabela':(id&&VIS[id])?VIS[id]:visaoPadrao(id);
 window.tkVisao=(v)=>{
   TK.visao=v; TK.lcVista='';
   if(TK.listaSel){ VIS[TK.listaSel]=v; try{ localStorage.setItem(VIS_KEY,JSON.stringify(VIS)); }catch(_){} }
