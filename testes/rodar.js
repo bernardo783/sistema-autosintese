@@ -1540,7 +1540,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
   ok('a Lista usa o mesmo botão', /rspWaBtn\(t\)(\+rspIgBtn\(t\))?:''/.test(HTML));
   ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
-  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=7')>0);
+  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=8')>0);
 
   /* painel novo (Bernardo 08/10): faixa do número, enviar, agendar, transferir */
   const CJ=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
@@ -1587,7 +1587,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
     /* botão roxo agora muda a etapa; vendedor foi pro topo (Bernardo 08/10) */
     ok('com o card: botão roxo aparece e é de mudar etapa', els.waLdEt.style.display===''&&/id="waLdEt" title="Mudar de etapa"[^>]*onclick="waLdPop\(\\'cl\\'/.test(CJ));
     gc.waLdPop('cl');
-    ok('botão roxo: lista as etapas sem o número e marca a atual', /Mover para/.test(els.waLdPop.innerHTML)&&/SEM RESPOSTA/.test(els.waLdPop.innerHTML)&&!/2\. SEM/.test(els.waLdPop.innerHTML)&&/NOVO LEAD<small>atual/.test(els.waLdPop.innerHTML));
+    ok('botão roxo: lista as etapas sem o número e marca a atual', /Mover para/.test(els.waLdPop.innerHTML)&&/SEM RESPOSTA/.test(els.waLdPop.innerHTML)&&!/2\. SEM/.test(els.waLdPop.innerHTML)&&/class="wald-mi on" style="--c:#7c3aed"[^>]*>[^]*?NOVO LEAD</.test(els.waLdPop.innerHTML)&&!/atual/.test(els.waLdPop.innerHTML));
     gc.waLdPop('cl');
     ok('topo: vendedor do lead numa pílula que abre o transferir', /class="wald-cl wald-vd" title="Transferir para outro vendedor" onclick="waLdPop\('tr',event\)"/.test(els.waLdHead.innerHTML)&&/Bernardo Antunes/.test(els.waLdHead.innerHTML));
     ok('topo: sem o "Classificar" (a etapa é o botão roxo)', !/Classificar/.test(els.waLdHead.innerHTML));
@@ -1839,7 +1839,9 @@ grupo('Respostas: mover lead de etapa sem abrir o card (Bernardo 08/10)');
     tkPegar:(ev,id)=>{ g.TK.arrastando=id; },tkAlvo:()=>{ const x=g.TK.arrastando; g.TK.arrastando=null; return x; },document:{querySelectorAll:()=>[]}},['RSP']);
   g.rspMover({},'a');
   const m=menus[0]||[];
-  ok('setinha: menu com as etapas na ordem do funil, sem o número', m[0]&&m[0].cab==='Mover para'&&m[1].t==='NOVO LEAD · atual'&&m[2].t==='SEM RESPOSTA'&&m[3].t==='GANHOU');
+  /* a atual fica no lugar dela no funil, marcada pela cor, sem o texto "atual" (Bernardo 08/10) */
+  ok('setinha: menu com as etapas na ordem do funil, sem o número', m[0]&&m[0].cab==='Mover para'&&m[1].t==='NOVO LEAD'&&m[2].t==='SEM RESPOSTA'&&m[3].t==='GANHOU');
+  ok('setinha: etapa atual marcada pela cor dela, não por texto', m[1].on===true&&m[1].cor==='#7c3aed'&&!m[2].on&&/\.ctxm button\.on\{background:color-mix\(in srgb,var\(--c/.test(HTML));
   PROMESSAS.push((async ()=>{
     await m[2].f();
     ok('escolher a etapa grava pelo caminho de sempre (tkSetStatus)', um.length===1&&um[0][0]==='a'&&um[0][1]==='s2');
