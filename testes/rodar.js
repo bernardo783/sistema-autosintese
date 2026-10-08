@@ -1535,7 +1535,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
   ok('a Lista usa o mesmo botão', /rspWaBtn\(t\)(\+rspIgBtn\(t\))?:''/.test(HTML));
   ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
-  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=5')>0);
+  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=6')>0);
 
   /* painel novo (Bernardo 08/10): faixa do número, enviar, agendar, transferir */
   const CJ=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
@@ -1581,6 +1581,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
     ok('com o card: botão roxo de transferir aparece', els.waLdTr.style.display==='');
     gc.waLdPop('tr');
     ok('transferir: lista os vendedores e marca o atual', /Kennedy Lima/.test(els.waLdPop.innerHTML)&&/atual/.test(els.waLdPop.innerHTML));
+    ok('no CRM Sofás, transferir só pros 4 do responsável (crmResp)', /crmForm\(tt\.lista_id\)&&typeof crmResp==='function'\) LD\.vendedores=crmResp\(LD\.vendedores\)/.test(CJ));
     ok('histórico de dois números mostra por qual saiu cada mensagem', /via Kennedy/.test(els.waLdMsgs.innerHTML)&&/via Bernardo/.test(els.waLdMsgs.innerHTML));
     const gv=rodar(CJ,ctxP({role:'membro',papel_crm:'sdr'}),[]);
     const antes=chamadas.length;
