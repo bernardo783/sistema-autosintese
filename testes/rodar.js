@@ -1618,7 +1618,7 @@ grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernar
 grupo('Equipe do CRM: card Disparo automático Yay Forms e botão Conectado (Bernardo 08/10)');
 {
   ok('título novo, sem a descrição embaixo', HTML.indexOf('<h4>Disparo automático Yay Forms</h4></div>')>0&&HTML.indexOf('Disparo automático do formulário')<0);
-  ok('conectado vira o botão verde com o testar pequeno ao lado', /class="eq-okb" title="WhatsApp conectado">\$\{PC_IC_OK\}Conectado<\/span><button type="button" class="eq-tst" onclick="instTestar\(/.test(HTML));
+  ok('conectado vira o botão verde e o Testar vem logo depois, com ícone', /class="eq-okb" title="WhatsApp conectado">\$\{PC_IC_OK\}Conectado<\/span>/.test(HTML)&&/class="eq-tst" onclick="instTestar\([^"]*"[^>]*>\$\{EQ_IC_ENV\}<span>Testar<\/span>/.test(HTML));
 }
 grupo('Seletor de emoji da conversa é conteúdo da mensagem, não ícone (Bernardo 08/10)');
 {
@@ -2526,6 +2526,9 @@ grupo('Equipe do CRM Sofás: resumo, status no avatar e conectar pelo QR ali mes
   ok('desconectado: Reconectar pelo QR, com a hora em que caiu', /onclick="eqConectar\('kennedy'\)"[^>]*>[\s\S]{0,400}Reconectar \(QR\)/.test(h)&&/desconectado<span class="eq-stx">caiu /.test(h));
   ok('sem número: Conectar WhatsApp ali mesmo (master), sem o texto "sem número / nunca conectou"', /onclick="eqNovoNumero\('jose'\)"/.test(h)&&!/sem número|nunca conectou/.test(h));
   ok('o switch do rodízio fica sem o rótulo "No rodízio"', h.indexOf('No rodízio')<0&&/class="eq-sw/.test(h));
+  ok('o switch do rodízio abre a linha, antes da posição e da foto', /<div class="eq-row[^"]*">\s*<div class="eq-rod"><button type="button" class="eq-sw/.test(h)&&h.indexOf('eq-rod')<h.indexOf('eq-avw'));
+  ok('quem não está conectado ganha a vaga vazia do Testar (o botão principal alinha)', (h.match(/class="eq-tst vazio"/g)||[]).length===2&&(h.match(/class="eq-tst" onclick/g)||[]).length===1);
+  ok('fora do rodízio não mostra mais o pontinho no lugar da posição', h.indexOf('<b>·</b>')<0);
   ok('quem saiu do rodízio fica separado embaixo', h.indexOf('Fora do rodízio')>0&&h.indexOf('Fora do rodízio')<h.indexOf("eqNovoNumero('jose')"));
   ok('pausado: o próximo da vez não depende de estar conectado (igual à edge lead)', /Próximo da vez<\/small><b>Bernardo</.test(h)&&/class="eq-row vez"/.test(h));
   g.currentUser.role='gestor'; g.eqDesenhar();
