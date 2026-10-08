@@ -2880,6 +2880,12 @@
   .cl-in{width:calc(100% + 9px);background:transparent;border:1px solid transparent;border-radius:8px;color:var(--txt);font:inherit;font-size:13.5px;font-weight:600;padding:6px 8px;margin-left:-9px}
   .cl-in:hover{border-color:var(--line)}
   .cl-in:focus{outline:none;border-color:var(--brand);background:var(--panel)}
+  .cl-fone{display:flex;align-items:center;gap:6px;min-width:0}
+  .cl-fone .cl-in{flex:1;min-width:0;width:auto}
+  .cl-seta{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;text-decoration:none;
+    color:#25d366;background:color-mix(in srgb,#25d366 14%,transparent);transition:background .15s,color .15s}
+  .cl-seta:hover{background:#25d366;color:#fff}
+  .cl-seta svg{width:15px;height:15px}
   .cl-in::placeholder{color:var(--fraco);font-weight:400}
   select.cl-in{cursor:pointer}
   .cl-resp{width:100%;margin-left:0;border-color:var(--line);background:var(--panel)}
@@ -9904,12 +9910,15 @@ const rspWaBtn=(t)=>{ const n=rspWaNum(t); if(!n) return '';
    verde do nome continua abrindo a conversa; na coluna WhatsApp fica o numero legivel, um
    botao pra copiar e outro que leva direto pro WhatsApp (wa.me), pro SDR escolher como falar */
 const RSP_CP_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>';
+/* seta pro wa.me ao lado do número (Bernardo 08/10: "uma seta do lado do número que direciona
+   pro lead no wa.me"). O ícone do WhatsApp fica só no botão do nome, que abre a conversa no sistema. */
+const RSP_SETA_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>';
 /* (11) 98765-4321; numero de fora do Brasil fica +DDI... (mesma regra do clFone do cartao) */
 const rspFoneFmt=(n)=>{ const s=n.startsWith('55')?n.slice(2):'';
   return s.length===11?`(${s.slice(0,2)}) ${s.slice(2,7)}-${s.slice(7)}`:s.length===10?`(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`:'+'+n; };
 const rspFoneCel=(v)=>{ const n=rspFoneNum(v); if(!n) return esc(v==null?'':String(v));
   const f=rspFoneFmt(n);
-  return `<span class="rsp-fone"><span class="rsp-num" title="+${n}">${esc(f)}</span><button type="button" class="rsp-fb" title="Copiar o número" onclick="event.stopPropagation();rspCopiarFone('${esc(f)}')">${RSP_CP_SVG}</button><a class="rsp-fb wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir no WhatsApp" onclick="event.stopPropagation()">${RSP_WA_SVG}</a></span>`; };
+  return `<span class="rsp-fone"><span class="rsp-num" title="+${n}">${esc(f)}</span><button type="button" class="rsp-fb" title="Copiar o número" onclick="event.stopPropagation();rspCopiarFone('${esc(f)}')">${RSP_CP_SVG}</button><a class="rsp-fb wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir no WhatsApp (wa.me/${n})" onclick="event.stopPropagation()">${RSP_SETA_SVG}</a></span>`; };
 window.rspCopiarFone=async(f)=>{ try{ await navigator.clipboard.writeText(f); toast('Número copiado: '+f); }catch(_){ toast('Número: '+f); } };
 const rspIgBtn=(t)=>{ const c=tkCamposDe(t.lista_id).find(k=>/insta/i.test(k.nome)), u=c?rspIgDe((t.valores||{})[c.id]):''; if(!u) return '';
   return `<a class="tk-ig" href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener" title="Abrir o Instagram (@${esc(u)})" onclick="event.stopPropagation()">${PC_IC.ig}</a>`; };
@@ -13470,6 +13479,7 @@ function clEditor(t,c,k,ph){
   const mostra=k==='whats'?clFone(v):k==='insta'?(clInsta(v)?'@'+clInsta(v):v):String(campoTexto(c,v0)||'');
   return `<input class="cl-in" value="${esc(mostra)}" placeholder="${esc(ph||'-')}" onchange="clCampoSalvar('${c.id}',this,'${k||''}')">`;
 }
+const clSeta=(t)=>{ const n=rspWaNum(t); return n?`<a class="cl-seta" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir no WhatsApp (wa.me/${n})">${RSP_SETA_SVG}</a>`:''; };
 function crmLdHtml(t){
   const sts=tkStatusDe(t.lista_id);
   const h=clHistorico(t), quando=clVal(t,'data')||String(t.criado_em||'').slice(0,10);
@@ -13493,7 +13503,7 @@ function crmLdHtml(t){
     <div class="cl-corpo">
       <div class="cl-col">
         <section class="cl-box"><h4>Contato</h4>
-          <div class="cl-kv"><span>WhatsApp</span>${ed('whats','sem número')}</div>
+          <div class="cl-kv"><span>WhatsApp</span><div class="cl-fone">${ed('whats','sem número')}${clSeta(t)}</div></div>
           <div class="cl-kv"><span>Instagram</span>${ed('insta','@perfil')}</div>
           <div class="cl-kv"><span>Cargo</span>${ed('cargo','-')}</div>
           <div class="cl-kv"><span>Cidade</span>${ed('cidade','-')}</div>
@@ -13565,6 +13575,7 @@ window.clCampoSalvar=async (cid,el,k)=>{
   const valores=Object.assign({},t.valores||{}); if(s) valores[cid]=s; else delete valores[cid];
   if(!(await tkPatch(t.id,{valores},''))) return;
   if(k==='whats') el.value=clFone(s); else if(k==='insta'&&clInsta(s)) el.value='@'+clInsta(s);
+  if(k==='whats'&&el.closest){ const box=el.closest('.cl-fone'), a=box&&box.querySelector('.cl-seta'); if(a) a.remove(); if(box) box.insertAdjacentHTML('beforeend',clSeta(t)); }
   clTopoRepintar();
 };
 window.clArquivar=async ()=>{ const id=CL.id; if(!id) return;
