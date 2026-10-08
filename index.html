@@ -7589,6 +7589,7 @@ const EDITORA_PADRAO='fd1c84c0-b605-46b7-a83d-fe6cc5abb3b2'; /* Maria Eduarda */
 /* Equipe que aparece para escolher responsável, conforme a lista/espaço.
    `extra` mantém na lista quem já está atribuído, para ninguém sumir de tarefa antiga. */
 function equipeDe(lid,extra){
+  if(typeof crmForm==='function'&&crmForm(lid||TK.listaSel)) return crmResp(TK.equipe);
   const base=TK.equipe||[];
   const e=espacoDaLista(lid||TK.listaSel);
   let arr=base;
@@ -9353,7 +9354,7 @@ window.tkQaResp=(ev,id)=>{ ev.stopPropagation();
   const t=TK.tarefas.find(x=>x.id===id)||{};
   el.innerHTML=`<div class="tkp-sec">Responsável</div>${popBusca()}
     <label class="tkp-row" data-fixo="1" onclick="tkQaSetResp('${id}','')"><span class="av sm" style="background:var(--panel2);color:var(--muted)">–</span><span class="tkp-nm">Sem responsável</span>${!t.responsavel_id?'<span class="tkp-n">•</span>':''}</label>
-    ${[...TK.equipe].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
+    ${[...((typeof crmForm==='function'&&crmForm(t.lista_id))?crmResp(TK.equipe):TK.equipe)].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''))).map(u=>`
       <label class="tkp-row" onclick="tkQaSetResp('${id}','${u.id}')">${avatar(u.id,u.nome,'sm')}<span class="tkp-nm">${esc(u.nome||'?')}</span>${t.responsavel_id===u.id?'<span class="tkp-n">•</span>':''}</label>`).join('')}`;
   document.body.appendChild(el); popPor(el,r);
   const bR=el.querySelector('.tkp-b'); if(bR) bR.focus();
@@ -9841,6 +9842,11 @@ const tkSelo=(t)=>{
    Lista e Quadro continuam no seletor. */
 const RSP_DATA='Preencheu em';
 const crmForm=(lid)=>!!lid&&(TK.campos||[]).some(k=>k.lista_id===lid&&k.nome===RSP_DATA);
+/* responsável no CRM de formulário (Bernardo 08/10: "no sistema de sofás, a aba responsáveis só pode
+   ter José Carlos, Bernardo, Luana e Kennedy"). A Luana ainda não tem login: entra sozinha, pelo
+   primeiro nome, quando for criada em Usuários. */
+const CRM_RESP_IDS=['ded3cac7-7462-4f76-9680-3af961b25344','6b3b1d5d-2ee0-4529-a6c4-23d415678bff','d4867474-1335-444f-a1f2-ab47a1add57c'];
+const crmResp=(arr)=>(arr||[]).filter(u=>CRM_RESP_IDS.includes(String(u.id))||/^luana(\s|$)/i.test(String(u.nome||'').trim()));
 let RSP={dir:-1,sel:{},q:'',larg:{}};
 const rspData=(v)=>{ const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if(!m) return '';
   /* curta, 08/10/26 (Bernardo 08/10): o "8 de out de 2026" do Yay ocupava a coluna toda */
@@ -11760,7 +11766,8 @@ function tkFiltradasSemResp(){ const s=TK.filtro.resps; TK.filtro.resps=[]; let 
 function tkPopRespHTML(){ const F=TK.filtro;
   const cont={}; tkFiltradasSemResp().forEach(t=>{ const k=t.responsavel_id||'(sem)'; cont[k]=(cont[k]||0)+1; });
   const q=TKQR.toLowerCase();
-  const pessoas=[...TK.equipe].sort((a,b)=>((cont[b.id]||0)-(cont[a.id]||0))||String(a.nome||'').localeCompare(String(b.nome||'')));
+  const doCrm=TK.escopo==='lista'&&typeof crmForm==='function'&&crmForm(TK.listaSel);
+  const pessoas=[...(doCrm?crmResp(TK.equipe):TK.equipe)].sort((a,b)=>((cont[b.id]||0)-(cont[a.id]||0))||String(a.nome||'').localeCompare(String(b.nome||'')));
   const linha=(id,nome,av)=>{ if(q&&nome.toLowerCase().indexOf(q)<0) return '';
     return `<label class="tkp-row"><span>${av}</span><span class="tkp-nm">${esc(nome)}</span><span class="tkp-n">${cont[id]||0}</span><input type="checkbox" ${F.resps.includes(id)?'checked':''} onchange="tkFResp('${id}')"></label>`; };
   return `<div class="tkp-h"><strong>Responsáveis</strong><button class="tkp-x" onclick="tkPopFechar()">&#10005;</button></div>
