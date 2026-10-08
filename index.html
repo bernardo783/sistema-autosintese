@@ -2936,7 +2936,10 @@
   #rspTab .rsp-g:not(:first-of-type) > .tk-faixa > td{padding-top:26px!important}
   #rspTab .tk-faixa > td{overflow:visible}
   #rspTab .rsp-gt{position:sticky;left:4px;display:inline-flex;align-items:center}
-  #rspTab .rsp-gt .tk-cv{font-size:14px;opacity:.9;width:16px;margin-right:8px;text-align:center}
+  #rspTab .rsp-cv{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:6px;border-radius:6px;color:var(--muted);transition:transform .15s,color .12s,background .12s}
+  #rspTab .rsp-cv svg{width:11px;height:11px}
+  #rspTab .rsp-cv.ab{transform:rotate(90deg)}
+  #rspTab .tk-faixa:hover .rsp-cv{color:var(--txt);background:var(--panel2)}
   #rspTab .rsp-ch > th{background:var(--panel2)}
   /* Painel do CRM de formulario (Bernardo 08/10): o mesmo do Comercial, dentro da lista */
   .crm-pn{margin-top:4px}
@@ -10046,7 +10049,7 @@ function tkViewRespostas(){
       </tr>`;
   const bloco=(g)=>{ const fech=!!fechadas['gr'+g.k], nV=g.its.filter(passa).length;
     return `<tbody class="rsp-g" data-g="${esc(g.k)}"><tr class="tk-faixa${g.its.length?'':' vazio'}" onclick="tkToggle('g','r${esc(g.k)}')"><td colspan="${ncols}"><span class="rsp-gt">
-        <span class="tk-cv${(fech||!g.its.length)?'':' ab'}">&#9656;</span>
+        <span class="rsp-cv${(fech||!g.its.length)?'':' ab'}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 4.5l9 7.5-9 7.5z"/></svg></span>
         <span class="tk-selo" style="background-color:${esc(g.cor)};color:${esc(corTx(g.cor))}">${esc(g.rot)}</span>
         <span class="tk-n rsp-gn">${q?nV:g.its.length}</span></span></td></tr>
       ${(fech||!g.its.length)?'':cab(g)+g.its.map(linha).join('')}</tbody>`; };
