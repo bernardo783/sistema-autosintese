@@ -71,8 +71,9 @@
   .btn.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
   .btn.pri{background:var(--brand);color:#fff;box-shadow:0 0 0 0 #7b68ee66,0 6px 20px #7b68ee44}
   .btn.pri:hover{filter:brightness(1.08)}
-  .nota{position:fixed;left:16px;top:16px;max-width:300px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--muted);line-height:1.5;z-index:2}
+  .nota{position:fixed;left:16px;bottom:16px;max-width:300px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--muted);line-height:1.5;z-index:2}
   .nota b{color:var(--txt)}
+  @media (max-width:1300px){ .nota{display:none} }
   @media (max-width:720px){
     .cl-corpo{grid-template-columns:1fr;padding:16px}
     .cl-h{padding:18px 16px 14px}
@@ -109,7 +110,7 @@
     <div class="cl-col">
       <section class="cl-box"><h4>Contato</h4>
         <div class="cl-kv"><span>WhatsApp<em>*</em></span><input class="cl-in" value="(17) 99812-4410" inputmode="tel"></div>
-        <div class="dup">⚠️ Esse número já é lead: <b>Carlos H. Motos</b> · Em conversa<a href="#">Abrir o card</a></div>
+        <div class="dup"><span>⚠️ Esse número já é lead: <b>Carlos H. Motos</b> · Em conversa</span><a href="#">Abrir o card</a></div>
         <div class="cl-kv"><span>Instagram</span><input class="cl-in" placeholder="@perfil da loja" value="@chmotos.rp"></div>
         <div class="cl-kv"><span>Cargo</span><select class="cl-in"><option>Dono(a)</option><option>Gerente</option><option>Marketing</option></select></div>
         <div class="cl-kv"><span>Cidade</span><input class="cl-in" placeholder="-" value="Ribeirão Preto"></div>
@@ -133,7 +134,7 @@
       <section class="cl-box"><h4>Vendedor responsável</h4>
         <div class="vend">
           <select class="cl-in"><option>Kennedy Lima (próximo da vez)</option><option>Luana</option><option>Bernardo Antunes</option><option>José</option><option>Ninguém ainda</option></select>
-          <div class="rod">Já vem com quem é <b>o próximo do rodízio</b>; troque se a indicação for de alguém.</div>
+          <div class="rod"><span>Já vem com quem é <b>o próximo do rodízio</b>; troque se a indicação for de alguém.</span></div>
         </div>
       </section>
       <section class="cl-box"><h4>Primeira anotação</h4>
