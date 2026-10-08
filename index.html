@@ -2961,6 +2961,23 @@
      contagem de cada etapa, e embaixo as etapas como na Lista do ClickUp, sem caixa. A faixa é seta +
      pílula + contagem no fundo da página; os títulos das colunas vêm em cinza, as linhas só com a
      divisória de baixo e sem linha vertical. Quem separa uma etapa da outra é o espaço. */
+  .rsp-esq{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1;min-width:0}
+  .rsp-per{display:inline-flex;gap:2px;padding:3px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;flex:none}
+  .rsp-per button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .rsp-per button:hover{color:var(--txt)}
+  .rsp-per button.on{background:var(--brand);color:#fff}
+  .rsp-cus{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12.5px}
+  .rsp-cus input{height:30px;padding:0 8px;border-radius:8px;font-size:12.5px;width:auto}
+  .rsp-pbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border-radius:10px;
+    background:color-mix(in srgb,var(--warn) 12%,transparent);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);color:var(--txt);font-size:13px}
+  .rsp-av{max-width:470px}
+  .rsp-avl{list-style:none;margin:14px 0 0;padding:0;max-height:270px;overflow:auto;border-top:1px solid var(--line)}
+  .rsp-avl li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:13px}
+  .rsp-avl li button{background:none;border:0;padding:0;color:var(--txt);font:inherit;font-weight:600;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rsp-avl li button:hover{color:var(--brand2);text-decoration:underline}
+  .rsp-avl li span{color:var(--muted);font-size:12px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+  .rsp-avl li span i{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .rsp-avl .mais{color:var(--fraco);justify-content:flex-start}
   .rsp-funil{display:flex;gap:3px;margin:2px 0 22px;overflow-x:auto}
   .rsp-fe{flex:1 1 0;min-width:104px;border:0;cursor:pointer;text-align:left;padding:9px 13px 10px;font:inherit;
     display:flex;flex-direction:column;gap:3px;background:var(--c);transition:filter .12s,transform .12s}
@@ -9268,7 +9285,8 @@ function tkFiltradas(){
   const F=(ehLC(TK.listaSel)&&TK.escopo==='lista')?{}:(TK.filtro||{});
   if(F.resps&&F.resps.length) arr=arr.filter(t=>F.resps.includes(t.responsavel_id)||(F.resps.includes('(sem)')&&!t.responsavel_id));
   if(F.prios&&F.prios.length&&!tkFSemPrio()) arr=arr.filter(t=>F.prios.includes(t.prioridade||'med'));
-  if(F.de||F.ate) arr=arr.filter(t=>t.prazo&&(!F.de||t.prazo>=F.de)&&(!F.ate||t.prazo<=F.ate));
+  if(tkFSemPrio()){ /* lead não tem prazo: o período da planilha é pela data em que preencheu */ }
+  else if(F.de||F.ate) arr=arr.filter(t=>t.prazo&&(!F.de||t.prazo>=F.de)&&(!F.ate||t.prazo<=F.ate));
   else if(F.prazo) arr=arr.filter(t=>tkPrazoBate(t,F.prazo));
   if(q) arr=arr.filter(t=>((t.titulo||'')+' '+(t.descricao||'')+' '+tkNomeFicha(t.ficha_id)+' '+tkNomeUser(t.responsavel_id)).toLowerCase().indexOf(q)>=0);
   return arr;
@@ -9941,6 +9959,31 @@ const crmSoResp=(lid)=>!!lid&&!!CRM_SO_RESP[lid];
 const CRM_RESP_IDS=['ded3cac7-7462-4f76-9680-3af961b25344','6b3b1d5d-2ee0-4529-a6c4-23d415678bff','d4867474-1335-444f-a1f2-ab47a1add57c'];
 const crmResp=(arr)=>(arr||[]).filter(u=>CRM_RESP_IDS.includes(String(u.id))||/^luana(\s|$)/i.test(String(u.nome||'').trim()));
 let RSP={dir:-1,sel:{},q:'',larg:{}};
+RSP.per='hoje'; RSP.de=''; RSP.ate='';
+/* período (Bernardo 08/10: "o sistema deve por natureza sempre abrir o leads lojas de sofás com o
+   filtro de hoje, e sempre aparecer um popup avisando se tem lead fora do filtro que não foi
+   atendido e está sem resposta"). Vale a data em que o lead preencheu o formulário. Toda vez que
+   a lista abre, volta pra Hoje. Opções, palavra dele: "hoje, ontem, últimos 7 dias, últimos 30
+   dias, personalizado, nenhuma de prazo ou futuro". Clicar de novo na marcada limpa (mostra todos).
+   "Pendentes" (leads de dias anteriores ainda em NOVO LEAD ou SEM RESPOSTA, que ninguém atendeu)
+   não é botão: entra pelo aviso que aparece ao abrir. */
+const RSP_PER=[['hoje','Hoje'],['ontem','Ontem'],['ult7','Últimos 7 dias'],['ult30','Últimos 30 dias'],['custom','Personalizado']];
+const rspDia=(t)=>{ const cD=tkCamposDe(t.lista_id).find(c=>c.nome===RSP_DATA);
+  return String((cD&&(t.valores||{})[cD.id])||String(t.criado_em||'')).slice(0,10); };
+const rspHoje=()=>typeof tkHoje==='function'?tkHoje():'';
+const rspPendente=(t)=>{ const hj=rspHoje(), s=typeof tkStatus1==='function'?tkStatus1(t.status_id):null;
+  return !!hj&&rspDia(t)<hj&&/novo lead|sem resposta/i.test(String((s&&s.nome)||'')); };
+function rspNoPeriodo(t,p){
+  const hj=rspHoje(); if(!p||!hj) return true;
+  if(p==='pend') return rspPendente(t);
+  const d=rspDia(t);
+  if(p==='hoje') return d===hj;
+  if(p==='ontem') return d===tkDiaMais(hj,-1);
+  if(p==='ult7') return d>=tkDiaMais(hj,-6)&&d<=hj;
+  if(p==='ult30') return d>=tkDiaMais(hj,-29)&&d<=hj;
+  if(p==='custom') return (!RSP.de||d>=RSP.de)&&(!RSP.ate||d<=RSP.ate);
+  return true;
+}
 const rspData=(v)=>{ const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if(!m) return '';
   /* curta, 08/10/26 (Bernardo 08/10): o "8 de out de 2026" do Yay ocupava a coluna toda */
   return m[3]+'/'+m[2]+'/'+m[1].slice(2)+(m[4]?` <span class="rsp-hr">${m[4]}:${m[5]}</span>`:''); };
@@ -10032,7 +10075,9 @@ const rspIgBtn=(t)=>{ const c=tkCamposDe(t.lista_id).find(k=>/insta/i.test(k.nom
 function rspLinhas(){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA);
   const dt=(t)=>String((cD&&(t.valores||{})[cD.id])||String(t.criado_em||'').slice(0,10));
-  return TK.tarefas.filter(t=>t.lista_id===TK.listaSel&&!arquivada(t)&&!t.pai_id)
+  const rs=((TK.filtro||{}).resps)||[];
+  return TK.tarefas.filter(t=>t.lista_id===TK.listaSel&&!arquivada(t)&&!t.pai_id&&rspNoPeriodo(t,RSP.per)
+      &&(!rs.length||rs.includes(t.responsavel_id)||(rs.includes('(sem)')&&!t.responsavel_id)))
     .sort((a,b)=>{ const x=dt(a), y=dt(b); return (x<y?-1:x>y?1:String(a.criado_em||'').localeCompare(String(b.criado_em||'')))*RSP.dir; });
 }
 /* largura das colunas (Bernardo 08/10: "minimizar o tamanho das colunas igual é no ClickUp,
@@ -10064,6 +10109,9 @@ function rspGrupos(arr){
   return gs;
 }
 function tkViewRespostas(){
+  /* lista acabou de abrir (a barra dela ainda não está na tela): Hoje + aviso de pendentes */
+  if(typeof document!=='undefined'&&document.querySelector&&!document.querySelector('#content .rsp-bar[data-l="'+TK.listaSel+'"]')){
+    RSP.per='hoje'; RSP.sel={}; setTimeout(()=>{ try{ rspAvisoPendentes(); }catch(_){} },350); }
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA), outros=cps.filter(c=>c!==cD);
   const arr=rspLinhas();
   RSP.sel=Object.fromEntries(Object.entries(RSP.sel||{}).filter(([id])=>arr.some(t=>t.id===id)));
@@ -10103,8 +10151,14 @@ function tkViewRespostas(){
         <span class="tk-selo" style="background-color:${esc(g.cor)};color:${esc(corTx(g.cor))}">${esc(g.rot)}</span>
         <span class="tk-n rsp-gn">${q?nV:g.its.length}</span></span></td></tr>
       ${(fech||!g.its.length)?'':cab(g)+g.its.map(linha).join('')}</tbody>`; };
-  return `<div class="rsp-bar">
+  const nPend=TK.tarefas.filter(t=>t.lista_id===TK.listaSel&&!arquivada(t)&&!t.pai_id&&rspPendente(t)).length;
+  const perVazio={hoje:'Nenhum lead chegou hoje ainda.',ontem:'Nenhum lead chegou ontem.',ult7:'Nenhum lead nos últimos 7 dias.',ult30:'Nenhum lead nos últimos 30 dias.',custom:'Nenhum lead nesse período.',pend:'Nenhum lead pendente.'}[RSP.per]||'Nenhuma resposta ainda.';
+  return `<div class="rsp-bar" data-l="${esc(TK.listaSel)}">
+      <div class="rsp-esq">
       <input class="search rsp-q" id="rspQ" placeholder="Pesquisar nas respostas…" value="${esc(RSP.q||'')}" oninput="rspBusca(this.value)" autocomplete="off">
+      <div class="rsp-per" role="group" aria-label="Período em que o lead preencheu">${RSP_PER.map(([k,r])=>`<button type="button" class="${RSP.per===k?'on':''}" onclick="rspPeriodo('${k}')" title="${RSP.per===k?'Clique de novo para ver todos':''}">${r}</button>`).join('')}</div>
+      ${RSP.per==='custom'?`<span class="rsp-cus"><input type="date" value="${esc(RSP.de)}" onchange="rspDeAte('de',this.value)" aria-label="De"><span>até</span><input type="date" value="${esc(RSP.ate)}" onchange="rspDeAte('ate',this.value)" aria-label="Até"></span>`:''}
+      </div>
       <div class="rsp-dir">
         ${nSel?`<span class="rsp-nsel">${nSel} selecionado${nSel===1?'':'s'}</span>
           <button class="btn secondary small" onclick="rspBaixar(true)">Baixar selecionados</button>
@@ -10113,15 +10167,48 @@ function tkViewRespostas(){
           <button class="btn secondary small" onclick="rspBaixar(false)">${tpSvg('baixar',14)} Download</button>`}
       </div>
     </div>
+    ${RSP.per==='pend'?`<div class="rsp-pbar"><span>Mostrando ${nPend} lead${nPend===1?'':'s'} de antes de hoje que ninguém atendeu ainda.</span><button type="button" class="btn secondary small" onclick="rspPeriodo('hoje')">Voltar para hoje</button></div>`:''}
     <div class="rsp-funil" role="navigation" aria-label="Etapas do funil">${grupos.map(g=>{ const n=q?g.its.filter(passa).length:g.its.length;
       return `<button type="button" class="rsp-fe${g.its.length?'':' zero'}" data-g="${esc(g.k)}" style="--c:${esc(g.cor)};color:${esc(corTx(g.cor))}" onclick="rspIrEtapa('${esc(g.k)}')" title="Ir para ${esc(g.rot)}"><span class="rsp-fen">${esc(g.rot)}</span><b>${n}</b></button>`; }).join('')}</div>
     <div class="tablewrap rolavel"><table class="tk-tab lc-tab" id="rspTab" style="width:${largMin}px">
       <colgroup><col data-k="nome" style="width:${wN}px"><col data-k="status" style="width:${wS}px"><col data-k="data" style="width:${wD}px">${outros.map(c=>`<col data-k="${esc(c.id)}" style="width:${larg(c)}px">`).join('')}</colgroup>
       ${grupos.filter(g=>g.its.length).map(bloco).join('')}
-    </table>${arr.length?'':'<div class="empty">Nenhuma resposta ainda.</div>'}
+    </table>${arr.length?'':`<div class="empty">${esc(perVazio)}</div>`}
     <div class="empty" id="rspVazio"${(q&&arr.length&&!nVis)?'':' style="display:none"'}>Nenhuma resposta com esse texto.</div></div>
     ${(setTimeout(()=>{ try{ lcFixarColunas($('#content')); }catch(_){} },0),'')}`;
 }
+window.rspPeriodo=(k)=>{ RSP.per=(RSP.per===k&&k!=='pend')?'':k; RSP.sel={}; tkDesenhar($('#content')); };
+window.rspDeAte=(q,v)=>{ RSP[q]=String(v||''); RSP.per='custom'; RSP.sel={}; tkDesenhar($('#content')); };
+/* aviso ao abrir: lead de dia anterior que ninguém atendeu fica fora do filtro de Hoje */
+window.rspAvisoPendentes=()=>{
+  if(document.getElementById('rspAviso')) return;
+  if(TK.escopo!=='lista'||!crmForm(TK.listaSel)||TK.visao!=='tabela') return;
+  const pend=TK.tarefas.filter(t=>t.lista_id===TK.listaSel&&!arquivada(t)&&!t.pai_id&&rspPendente(t)&&!rspNoPeriodo(t,RSP.per))
+    .sort((a,b)=>rspDia(a)<rspDia(b)?-1:1);
+  if(!pend.length) return;
+  const nm=(t)=>{ const s=tkStatus1(t.status_id); return s?String(s.nome).replace(/^\d+\.\s*/,''):''; };
+  const nSR=pend.filter(t=>/sem resposta/i.test(nm(t))).length, nNL=pend.length-nSR;
+  const dia=(t)=>{ const d=rspDia(t); return d.slice(8,10)+'/'+d.slice(5,7); };
+  const o=document.createElement('div'); o.className='overlay'; o.id='rspAviso';
+  o.innerHTML=`<div class="modal cf-m rsp-av" role="alertdialog" aria-labelledby="rspAvT">
+      <button class="x cf-fechar" onclick="rspAvisoFechar()" title="Fechar" aria-label="Fechar">&times;</button>
+      <div class="mbody">
+        <div class="cf-t" id="rspAvT">${pend.length} lead${pend.length===1?'':'s'} sem atendimento fora de hoje</div>
+        <p class="cf-x">Chegaram antes de hoje e ninguém conversou com ${pend.length===1?'ele':'eles'} ainda: ${[nSR?nSR+' sem resposta':'',nNL?nNL+' em novo lead':''].filter(Boolean).join(' e ')}.</p>
+        <ul class="rsp-avl">${pend.slice(0,8).map(t=>{ const s=tkStatus1(t.status_id);
+          return `<li><button type="button" onclick="rspAvisoFechar();tkAbrir('${t.id}')">${esc(t.titulo||'(sem nome)')}</button><span><i style="background:${esc((s&&s.cor)||'#64748b')}"></i>${esc(nm(t))} · ${esc(dia(t))}</span></li>`; }).join('')}
+          ${pend.length>8?`<li class="mais">e mais ${pend.length-8}</li>`:''}</ul>
+      </div>
+      <div class="mfoot"><button class="btn secondary small" onclick="rspAvisoFechar()">Agora não</button>
+        <button class="btn small" onclick="rspAvisoFechar();rspPeriodo('pend')">Ver ${pend.length===1?'o pendente':'os '+pend.length+' pendentes'}</button></div>
+    </div>`;
+  o.onclick=(e)=>{ if(e.target===o) rspAvisoFechar(); };
+  const sai=(e)=>{ if(e.key==='Escape') rspAvisoFechar(); };
+  o.__sai=sai; document.addEventListener('keydown',sai);
+  document.body.appendChild(o);
+};
+window.rspAvisoFechar=()=>{ const o=document.getElementById('rspAviso'); if(!o) return;
+  if(o.__sai) document.removeEventListener('keydown',o.__sai); o.remove(); };
 window.rspIrEtapa=(k)=>{
   if(TK.fechadas&&TK.fechadas['gr'+k]){ TK.fechadas['gr'+k]=false; tkDesenhar($('#content')); }
   const el=document.querySelector('#rspTab tbody.rsp-g[data-g="'+k+'"]');
@@ -11901,7 +11988,7 @@ function tkPrazoBate(t,k){ const hj=tkHoje();
    nenhum ali"): no CRM Sofás e nos próximos CRMs de formulário o filtro não mostra Prioridade, e a
    prioridade guardada de outra lista não vale nem conta no número do funil. */
 const tkFSemPrio=()=>TK.escopo==='lista'&&typeof crmForm==='function'&&crmForm(TK.listaSel);
-const tkFiltroN=()=>{ const F=TK.filtro||{}; return ((F.prazo||F.de||F.ate)?1:0)+((F.prios&&F.prios.length&&!tkFSemPrio())?1:0); };
+const tkFiltroN=()=>{ const F=TK.filtro||{}; return ((F.prazo||F.de||F.ate)&&!tkFSemPrio()?1:0)+((F.prios&&F.prios.length&&!tkFSemPrio())?1:0); };
 function tkBtnFiltro(){ const n=tkFiltroN();
   return `<button class="btn ghost small${n?' fon':''}" onclick="tkPopFiltro(event)">${svgIco('funil',12)} Filtro${n?`<span class="fbad">${n}</span>`:''}</button>`; }
 function tkBtnResp(){ const rs=(TK.filtro||{}).resps||[];
@@ -11965,11 +12052,11 @@ window.tkCalDia=(iso)=>{ const F=TK.filtro; F.prazo='';
 function tkPopFiltroHTML(){ const F=TK.filtro;
   const at=(k,r)=>`<button type="button" class="tkc-at${(F.prazo===k&&!F.de&&!F.ate)?' on':''}" onclick="tkFPrazo('${k}')">${r}</button>`;
   return `<div class="tkp-h"><strong>Filtros</strong><button class="tkp-x" onclick="tkPopFechar()">&#10005;</button></div>
-   <div class="tkp-sec">Data de vencimento</div>
+   ${tkFSemPrio()?`<p class="hint" style="margin:6px 2px 4px">Na planilha de leads o período fica nos botões Hoje, Ontem, 7 dias e Todos, ao lado da pesquisa.</p>`:`<div class="tkp-sec">Data de vencimento</div>
    <div class="tkc-ab">
      <div class="tkc-lado">${at('hoje','Hoje')}${at('ontem','Ontem')}${at('amanha','Amanhã')}${at('atraso','Atrasadas')}${at('ult7','Últimos 7 dias')}${at('prox7','Próximos 7 dias')}${at('semana','Esta semana')}${at('mes','Este mês')}${at('semprazo','Sem prazo')}</div>
      ${tkCalHTML(F)}
-   </div>
+   </div>`}
    ${tkFSemPrio()?'':`<div class="tkp-sec" style="margin-top:14px">Prioridade</div>
    <div class="tkp-chips">${['urgente','alta','med','baixa'].map(k=>{ const on=F.prios.includes(k), cor=PRIO_COR[k]||'#8b95a5';
      return `<button class="tkp-chip tkp-prio${on?' on':''}" style="--c:${cor}" onclick="tkFPrio('${k}')" title="${esc(TK_PRIO[k])}">${prioFlag(cor,on)}${TK_PRIO[k]}</button>`; }).join('')}</div>`}
