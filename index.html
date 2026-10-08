@@ -2861,13 +2861,13 @@
   .cl-x{background:none;border:0;color:var(--muted);font-size:26px;cursor:pointer;line-height:1;padding:0 4px}
   .cl-funil{display:flex;gap:10px;align-items:center;padding:0 28px 18px;border-bottom:1px solid var(--line)}
   .cl-passos{display:flex;flex:1;min-width:0;gap:3px}
-  .cl-et{flex:1;min-width:0;border:0;background:var(--panel2);color:var(--muted);font:inherit;font-size:12px;font-weight:700;padding:10px 14px 10px 18px;cursor:pointer;
+  .cl-et{flex:1;min-width:0;border:0;background:var(--panel2);color:var(--muted);font:inherit;font-size:12.5px;font-weight:700;padding:10px 12px 10px 18px;cursor:pointer;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%);transition:background .15s,color .15s}
   .cl-passos .cl-et:first-child{clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%);border-radius:8px 0 0 8px;padding-left:14px}
   .cl-et.foi{background:color-mix(in srgb,var(--c) 24%,var(--panel2));color:var(--txt)}
   .cl-et.on{background:var(--c);color:#fff}
   .cl-et:not(.on):hover{background:color-mix(in srgb,var(--c) 38%,var(--panel2));color:var(--txt)}
-  .cl-et.cl-perd{flex:none;clip-path:none;border-radius:8px;padding:10px 14px}
+  .cl-et.cl-perd{flex:none;clip-path:none;border-radius:8px;padding:10px 13px}
   .cl-corpo{flex:1;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;padding:20px 28px 28px;align-content:start}
   .cl-col{display:flex;flex-direction:column;gap:18px;min-width:0}
   .cl-box{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
@@ -13341,6 +13341,7 @@ const clFone=(n)=>{ const d=String(n||'').replace(/\D/g,''), s=d.startsWith('55'
 const clInsta=(v)=>{ const u=String(v||'').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/^@/,'').replace(/[/?].*$/,'');
   return /^[\w.]{2,30}$/.test(u)?u:''; };
 const clIni=(n)=>String(n||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase()||'?';
+const clEtNome=(n)=>{ const s=String(n||'').replace(/^\d+\.\s*/,'').toLowerCase(); return s.charAt(0).toUpperCase()+s.slice(1); };
 const clDia=(iso)=>{ const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1].slice(2)}`:''; };
 /* o que veio escrito pelo robô na descrição vira histórico; o resto (anotação antiga) aparece como observação */
 function clHistorico(t){
@@ -13407,10 +13408,11 @@ function clEditor(t,c,k,ph){
 function crmLdHtml(t){
   const sts=tkStatusDe(t.lista_id);
   const h=clHistorico(t), quando=clVal(t,'data')||String(t.criado_em||'').slice(0,10);
-  /* funil: etapas em ordem; a última de "fechado" (perdido) fica separada, à direita */
-  const perd=sts.filter(s=>s.grupo==='fechado'), passo=sts.filter(s=>s.grupo!=='fechado');
+  /* funil: etapas em ordem. Perdido (grupo "fechado") e Incompleto não são etapa: ficam à parte, à direita */
+  const aParte=(s)=>s.grupo==='fechado'||/incomplet/i.test(s.nome);
+  const perd=sts.filter(aParte).sort((a,b)=>(a.grupo==='fechado')-(b.grupo==='fechado')), passo=sts.filter(s=>!aParte(s));
   const iAt=passo.findIndex(s=>s.id===t.status_id);
-  const etapa=(s,i)=>`<button type="button" class="cl-et${s.id===t.status_id?' on':''}${iAt>=0&&i<iAt?' foi':''}" style="--c:${esc(s.cor||'#64748b')}" onclick="clEtapa('${s.id}')" title="Mover para ${esc(s.nome)}">${esc(String(s.nome).replace(/^\d+\.\s*/,''))}</button>`;
+  const etapa=(s,i)=>`<button type="button" class="cl-et${s.id===t.status_id?' on':''}${iAt>=0&&i<iAt?' foi':''}" style="--c:${esc(s.cor||'#64748b')}" onclick="clEtapa('${s.id}')" title="Mover para ${esc(s.nome)}">${esc(clEtNome(s.nome))}</button>`;
   const ed=(k,ph)=>clEditor(t,clCampo(t,k),k,ph);
   const ro=(rot,k)=>{ const v=k==='data'?clDia(quando):clVal(t,k); return `<div class="cl-kv"><span>${rot}</span><b${v?'':' class="vz"'}>${esc(v||'não veio')}</b></div>`; };
   const usados=new Set(Object.keys(CL_RE).map(k=>(clCampo(t,k)||{}).id).concat([(clCampo(t,'data')||{}).id]));
@@ -13421,7 +13423,7 @@ function crmLdHtml(t){
     ${clTopo(t)}
     <nav class="cl-funil" aria-label="Etapa do funil">
       <div class="cl-passos">${passo.map(etapa).join('')}</div>
-      ${perd.map(s=>`<button type="button" class="cl-et cl-perd${s.id===t.status_id?' on':''}" style="--c:${esc(s.cor||'#64748b')}" onclick="clEtapa('${s.id}')">${esc(String(s.nome).replace(/^\d+\.\s*/,''))}</button>`).join('')}
+      ${perd.map(s=>`<button type="button" class="cl-et cl-perd${s.id===t.status_id?' on':''}" style="--c:${esc(s.cor||'#64748b')}" onclick="clEtapa('${s.id}')" title="${esc(s.nome)}">${esc(clEtNome(s.nome))}</button>`).join('')}
     </nav>
     <div class="cl-corpo">
       <div class="cl-col">
