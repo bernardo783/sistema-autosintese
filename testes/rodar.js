@@ -1614,13 +1614,13 @@ grupo('Cartão do lead: abre como CRM, não como tarefa (Bernardo 08/10)');
     tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),tkStatusDe:(l)=>l==='L'?ST:[],tkStatus1:(id)=>ST.find(s=>s.id===id)||null,
     esc,campoTexto:(c,v)=>v==null?'':String(v),arquivada:()=>false,tkSelo:()=>'',tpSvg:()=>'',toast:()=>{},
     equipeDe:()=>[{id:'u1',nome:'Kennedy'},{id:'u2',nome:'Luana'}],avatar:()=>'',tkNomeUser:()=>'Bernardo',tkmQuando:()=>'hoje',
-    currentUser:{id:'u0',role:'master'},waDoLead:()=>{},setTimeout:()=>0,
+    currentUser:{id:'u0',role:'master'},waDoLead:()=>{},setTimeout:()=>0,PC_IC:{ig:'<svg class="ig"></svg>'},
     sb:{from:()=>({select:()=>({eq:()=>({order:async ()=>({data:[],error:null})})})})},
     tkPatch:async (id,p)=>{ patches.push(p); Object.assign(lead,p); return true; },
     tkSetStatus:async (id,sid)=>{ status.push(sid); lead.status_id=sid; },
     document:{getElementById:(id)=>els[id]||null,querySelector:()=>null,addEventListener:()=>{},
       createElement:()=>({set id(v){ els[v]=this; },className:'',innerHTML:'',querySelector:()=>null}),body:{appendChild:()=>{}}}},
-    ['crmLdAbrir','crmLdHtml','clHistorico','clCampoSalvar','clEtapa','clFone']);
+    ['crmLdAbrir','crmLdHtml','clHistorico','clCampoSalvar','clEtapa','clFone','clEtMenuHtml']);
   ok('lead de lista de formulário abre o cartão de lead', g.crmLdAbrir('a')===true&&!!els.clOv);
   ok('tarefa comum continua no painel de tarefa', g.crmLdAbrir('b')===false);
   const h=els.clOv.innerHTML;
@@ -1628,10 +1628,13 @@ grupo('Cartão do lead: abre como CRM, não como tarefa (Bernardo 08/10)');
   ok('topo: nome, cargo, cidade e estado', /value="Ana Souza"/.test(h)&&/Dono\(a\) · Brasília, DF/.test(h));
   ok('botão Conversar abre a conversa no sistema', /class="cl-wa" onclick="rspWaAbrir\('a'\)"/.test(h));
   ok('Instagram com link', /href="https:\/\/instagram\.com\/anastore"/.test(h));
-  const passos=(h.match(/<div class="cl-passos">([\s\S]*?)<\/div>/)||[])[1]||'';
-  ok('funil com as etapas em ordem, a atual marcada e as anteriores pintadas', /cl-et foi[^>]*>Novo lead/.test(passos)&&/cl-et on"[^>]*>Em conversa/.test(passos)&&passos.indexOf('Novo lead')<passos.indexOf('Em conversa'));
-  ok('Perdido e Incompleto ficam fora do funil, à parte', /cl-et cl-perd[^>]*>Perdido/.test(h)&&/cl-et cl-perd[^>]*>Incompleto/.test(h)&&!/Perdido|Incompleto/.test(passos));
-  ok('nome da etapa em caixa normal, sem o número (cabe sem cortar)', /title="Mover para 2\. EM CONVERSA">Em conversa</.test(h));
+  ok('sem foto do lead no topo: só o nome', h.indexOf('cl-av')<0);
+  ok('Instagram é o ícone do Instagram, com link', /class="cl-ig" href="https:\/\/instagram\.com\/anastore"/.test(h));
+  ok('etapa num botão só, com a etapa atual (sem a faixa do funil)', /class="cl-st"[^>]*><i><\/i>Em conversa</.test(h)&&h.indexOf('cl-passos')<0);
+  { const mh=g.clEtMenuHtml(lead), sep=mh.indexOf('rc-sep');
+    ok('menu da etapa: funil em ordem, a atual com ✓', mh.indexOf('>Novo lead<')<mh.indexOf('>Em conversa<')&&/>Em conversa<b>✓<\/b>/.test(mh));
+    ok('menu da etapa: Incompleto e Perdido separados embaixo', sep>0&&mh.indexOf('>Incompleto<')>sep&&mh.indexOf('>Perdido<')>sep&&mh.indexOf('>Em conversa<')<sep);
+    ok('nome da etapa em caixa normal, sem o número', /title="Mover para 2\. EM CONVERSA"><i[^>]*><\/i>Em conversa</.test(mh)); }
   ok('WhatsApp aparece formatado', /value="\(61\) 99205-4765"/.test(h));
   ok('de onde veio: campanha e anúncio; o que não veio fica avisado', /Campanha Sofás/.test(h)&&/AD1/.test(h)&&/<span>Conjunto<\/span><b class="vz">não veio/.test(h));
   ok('mensagem automática com selo', /class="cl-msg" data-v="Pausada"/.test(h));
