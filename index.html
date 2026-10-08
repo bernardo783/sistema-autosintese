@@ -2842,38 +2842,25 @@
   .tk-tab tbody tr:not(.tk-faixa):hover > td{background:var(--hov1)}
   .tk-tab .tk-faixa > td{height:auto;border-bottom:none}
   .tk-chkline{display:flex;align-items:center;gap:9px;padding:7px 2px;font-size:13px;cursor:pointer}
-  /* ---------- RESPOSTAS: planilha estilo Yay Forms (Bernardo 08/10) ---------- */
-  .rsp-wrap{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:6px}
-  .rsp-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  /* ---------- RESPOSTAS: leads de formulário (Bernardo 08/10) ----------
+     a tabela é a do Controle de Clientes (.tk-tab.lc-tab); aqui só a barra de cima e o nome */
+  .rsp-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 12px}
   .rsp-q{max-width:360px;flex:1;min-width:200px;border-radius:999px;padding-left:16px}
   .rsp-dir{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .rsp-n,.rsp-nsel{color:var(--muted);font-size:13px}
   .rsp-nsel{color:var(--txt);font-weight:700}
   .rsp-dir .btn{display:inline-flex;align-items:center;gap:6px;border-radius:999px}
-  .rsp-tab{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:12px}
-  .rsp-tab table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
-  .rsp-tab th,.rsp-tab td{padding:0 14px;height:46px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;
-    font-size:13.5px;max-width:340px;overflow:hidden;text-overflow:ellipsis;background:var(--panel)}
-  .rsp-tab th{height:42px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);position:sticky;top:0;z-index:1}
-  .rsp-tab tbody tr:last-child td{border-bottom:0}
-  .rsp-tab tbody tr:hover td{background:var(--hov1)}
-  .rsp-th{display:inline-flex;align-items:center;gap:8px}
-  .rsp-ic{width:20px;height:20px;border-radius:5px;display:inline-grid;place-items:center;flex:none;
-    background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
-  .rsp-ic svg{width:12px;height:12px}
-  .rsp-ck{width:44px;min-width:44px;padding:0 0 0 16px!important;position:sticky;left:0;z-index:2}
-  .rsp-ck input{width:16px;height:16px;accent-color:var(--brand);cursor:pointer}
-  .rsp-dt{position:sticky;left:44px;z-index:2;min-width:190px;border-right:1px solid var(--line)}
-  .rsp-tab thead .rsp-ck,.rsp-tab thead .rsp-dt{z-index:3}
-  .rsp-or{cursor:pointer}
-  .rsp-or b{font-size:13px;color:var(--txt)}
-  .rsp-hr{color:var(--muted);margin-left:4px}
-  .rsp-nm button{background:none;border:0;padding:0;color:var(--txt);font:inherit;font-weight:600;cursor:pointer;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+  .rsp-nm{display:inline-flex;align-items:center;gap:10px;max-width:100%;min-width:0}
+  .rsp-nm input{width:16px;height:16px;accent-color:var(--brand);cursor:pointer;flex:none;margin:0}
+  .rsp-nm button{background:none;border:0;padding:0;color:var(--txt);font:inherit;font-weight:600;cursor:pointer;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
   .rsp-nm button:hover{color:var(--brand2);text-decoration:underline}
-  .rsp-st{min-width:170px}
+  #rspTab td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
+  .rsp-or{cursor:pointer}
+  .rsp-hr{color:var(--muted);margin-left:4px}
   .rsp-lk{color:var(--txt);text-decoration:none}
   .rsp-lk:hover{color:var(--brand2);text-decoration:underline}
-  @media (max-width:720px){ .rsp-wrap{padding:10px;border-radius:12px} .rsp-q{max-width:none} .rsp-dt{min-width:150px} }
+  @media (max-width:720px){ .rsp-q{max-width:none} }
   /* melhoria interna, logo abaixo do cliente (Bernardo 06/10) */
   .tk-chkline.tkf-int{padding:6px 0 0;font-size:12.5px;color:var(--muted)}
   .tk-chkline.tkf-int input{accent-color:var(--brand)}
@@ -9738,17 +9725,6 @@ let RSP={dir:-1,sel:{},q:''};
 const RSP_MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const rspData=(v)=>{ const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if(!m) return '';
   return Number(m[3])+' de '+RSP_MES[Number(m[2])-1]+' de '+m[1]+(m[4]?` <span class="rsp-hr">${m[4]}:${m[5]}</span>`:''); };
-/* icone de cada pergunta, no lugar dos quadradinhos coloridos do Yay */
-const RSP_IC={whats:['#25d366','<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>'],
-  insta:['#f59e0b','<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/>'],
-  texto:['#f59e0b','<path d="M4 7V5h16v2M9 19h6M12 5v14"/>'],
-  select:['#3b82f6','<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/>'],
-  data:['#8b95a5','<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'],
-  nome:['#a855f7','<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'],
-  status:['#7b68ee','<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>']};
-const rspIcK=(c)=>/whats/i.test(c.nome)?'whats':/insta/i.test(c.nome)?'insta':c.tipo==='data'?'data':c.tipo==='select'?'select':'texto';
-const rspIc=(k)=>{ const [cor,d]=RSP_IC[k]||RSP_IC.texto;
-  return `<span class="rsp-ic" style="--c:${cor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg></span>`; };
 /* valor da celula: WhatsApp vira o numero (link pra conversa), Instagram vira @ com link */
 function rspCel(c,v){
   if(v==null||v==='') return '';
@@ -9773,16 +9749,20 @@ function tkViewRespostas(){
   const busca=(t)=>esc([t.titulo,...outros.map(c=>{ const v=(t.valores||{})[c.id]; return v==null?'':String(campoTexto(c,v)); })].join(' ').toLowerCase());
   const q=String(RSP.q||'').trim().toLowerCase();
   const passa=(t)=>!q||busca(t).indexOf(esc(q))>=0, nVis=arr.filter(passa).length;
-  const linha=(t)=>`<tr data-b="${busca(t)}"${passa(t)?'':' style="display:none"'}>
-      <td class="rsp-ck"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)"></td>
-      <td class="rsp-dt">${cD?rspCel(cD,(t.valores||{})[cD.id]):''}</td>
-      <td class="rsp-nm"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button></td>
-      <td class="rsp-st">${tkSelo(t)}</td>
-      ${outros.map(c=>`<td>${rspCel(c,(t.valores||{})[c.id])}</td>`).join('')}
+  /* visual do Controle de Clientes (Bernardo 08/10: "a separação/visual igual o Controle de
+     Clientes, tudo bem separado"): mesma tabela .tk-tab.lc-tab, linha entre todas as colunas,
+     Nome e Status presos na esquerda, títulos centralizados; valor curto fica no meio */
+  const cen=(c)=>c.tipo==='data'||c.tipo==='select'||/^estado$/i.test(c.nome);
+  const larg=(c)=>Math.max(110,Number(c.largura)||150);
+  const cor=(t)=>typeof tkCorLinha==='function'?tkCorLinha(t):'';
+  const linha=(t)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}">
+      <td><span class="rsp-nm"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button></span></td>
+      <td class="tk-cen">${tkSelo(t)}</td>
+      <td class="tk-cen">${cD?rspCel(cD,(t.valores||{})[cD.id]):''}</td>
+      ${outros.map(c=>`<td${cen(c)?' class="tk-cen"':''}>${rspCel(c,(t.valores||{})[c.id])}</td>`).join('')}
     </tr>`;
-  const th=(k,rot)=>`<th><span class="rsp-th">${rspIc(k)}${esc(rot)}</span></th>`;
-  return `<div class="rsp-wrap">
-    <div class="rsp-bar">
+  const largMin=300+180+170+outros.reduce((a,c)=>a+larg(c),0);
+  return `<div class="rsp-bar">
       <input class="search rsp-q" id="rspQ" placeholder="Pesquisar nas respostas…" value="${esc(RSP.q||'')}" oninput="rspBusca(this.value)" autocomplete="off">
       <div class="rsp-dir">
         ${nSel?`<span class="rsp-nsel">${nSel} selecionado${nSel===1?'':'s'}</span>
@@ -9792,21 +9772,21 @@ function tkViewRespostas(){
           <button class="btn secondary small" onclick="rspBaixar(false)">${tpSvg('baixar',14)} Download</button>`}
       </div>
     </div>
-    <div class="rsp-tab"><table>
+    <div class="tablewrap rolavel"><table class="tk-tab lc-tab" id="rspTab" style="min-width:${largMin}px">
       <thead><tr>
-        <th class="rsp-ck"><input type="checkbox" ${arr.length&&nSel===arr.length?'checked':''} onchange="rspTodos(this.checked)" title="Marcar todos"></th>
-        <th class="rsp-dt rsp-or" onclick="RSP.dir=-RSP.dir;tkDesenhar($('#content'))" title="Ordenar pela data"><span class="rsp-th">${rspIc('data')}${esc(cD?cD.nome:'Data')} <b>${RSP.dir<0?'↓':'↑'}</b></span></th>
-        ${th('nome','Nome')}${th('status','Status')}
-        ${outros.map(c=>th(rspIcK(c),c.nome)).join('')}
+        <th style="width:300px;min-width:300px"><span class="rsp-nm"><input type="checkbox" ${arr.length&&nSel===arr.length?'checked':''} onchange="rspTodos(this.checked)" title="Marcar todos">Nome</span></th>
+        <th style="width:180px;min-width:180px">Status</th>
+        <th class="rsp-or" style="width:170px;min-width:170px" onclick="RSP.dir=-RSP.dir;tkDesenhar($('#content'))" title="Ordenar pela data">${esc(cD?cD.nome:'Data')} ${RSP.dir<0?'↓':'↑'}</th>
+        ${outros.map(c=>`<th style="width:${larg(c)}px;min-width:${larg(c)}px">${esc(c.nome)}</th>`).join('')}
       </tr></thead>
       <tbody>${arr.map(linha).join('')}</tbody>
     </table>${arr.length?'':'<div class="empty">Nenhuma resposta ainda.</div>'}
     <div class="empty" id="rspVazio"${(q&&arr.length&&!nVis)?'':' style="display:none"'}>Nenhuma resposta com esse texto.</div></div>
-  </div>`;
+    ${(setTimeout(()=>{ try{ lcFixarColunas($('#content')); }catch(_){} },0),'')}`;
 }
 window.rspBusca=(v)=>{
   RSP.q=String(v||''); const q=RSP.q.trim().toLowerCase(); let n=0;
-  document.querySelectorAll('.rsp-tab tbody tr').forEach(tr=>{ const ok=!q||tr.dataset.b.indexOf(q)>=0; tr.style.display=ok?'':'none'; if(ok) n++; });
+  document.querySelectorAll('#rspTab tbody tr').forEach(tr=>{ const ok=!q||tr.dataset.b.indexOf(q)>=0; tr.style.display=ok?'':'none'; if(ok) n++; });
   const e=document.getElementById('rspN'); if(e) e.textContent=n+' resposta'+(n===1?'':'s');
   const z=document.getElementById('rspVazio'); if(z) z.style.display=(q&&!n)?'':'none';
 };
