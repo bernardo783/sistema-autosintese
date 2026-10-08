@@ -2931,6 +2931,9 @@
   .rsp-nm button:not(.tk-wa):hover{color:var(--brand2);text-decoration:underline}
   .rsp-nm .tk-wa{margin-left:-4px;flex:none}
   #rspTab{table-layout:fixed}
+  /* Painel do CRM de formulario (Bernardo 08/10): o mesmo do Comercial, dentro da lista */
+  .crm-pn{margin-top:4px}
+  .crm-pn-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:10px}
   #rspTab td,#rspTab th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* borda arrastavel do titulo (Bernardo 08/10) */
   .rsp-grip{position:absolute;top:0;right:0;width:8px;height:100%;cursor:col-resize;z-index:5;touch-action:none}
@@ -9867,6 +9870,10 @@ const tkSelo=(t)=>{
    Lista e Quadro continuam no seletor. */
 const RSP_DATA='Preencheu em';
 const crmForm=(lid)=>!!lid&&(TK.campos||[]).some(k=>k.lista_id===lid&&k.nome===RSP_DATA);
+/* CRM Sofás só em Lista (Bernardo 08/10: "só no crm de sofá deixa só o formato de lista"):
+   sem Respostas e sem Quadro; o Painel (calls e métricas) continua ao lado */
+const CRM_SO_LISTA={'2e85f701-0616-4b74-9732-6ebfeba016b8':1};
+const crmSoLista=(lid)=>!!lid&&!!CRM_SO_LISTA[lid];
 /* responsável no CRM de formulário (Bernardo 08/10: "no sistema de sofás, a aba responsáveis só pode
    ter José Carlos, Bernardo, Luana e Kennedy"). A Luana ainda não tem login: entra sozinha, pelo
    primeiro nome, quando for criada em Usuários. */
@@ -10070,6 +10077,33 @@ window.rspArquivar=async()=>{
   RSP.sel={}; tkDesenhar($('#content')); spDesenhar();
   toast(ids.length+' lead'+(ids.length===1?'':'s')+' arquivado'+(ids.length===1?'':'s')+'.');
 };
+/* ======================= PAINEL DO CRM (Bernardo 08/10) =======================
+   "Sabe aquela sessão de painel que tem em Comercial? traz aquela mesma estrutura com a base
+   duplicada pro CRM de Sofás": o Painel do Comercial (crm.js: volume, resultado, ticket
+   médio, agendamentos por SDR, motivos de perda e as calls registradas) desenhado dentro da
+   lista, lendo uma tabela SÓ desse CRM (sofas_calls, mesmas colunas da crm_calls). As calls
+   da agência não aparecem aqui, e venda daqui não vira cliente da agência (o vínculo com a
+   ficha só lê a crm_calls). Outro CRM que quiser o próprio painel: tabela nova + uma linha
+   no CRM_PAINEL. Quem vê: master e quem tem papel no CRM, a mesma regra da tabela. */
+const CRM_PAINEL={'2e85f701-0616-4b74-9732-6ebfeba016b8':'sofas_calls'};
+const crmPainelPode=(lid)=>{ const u=(typeof currentUser!=='undefined')?currentUser:null;
+  return !!CRM_PAINEL[lid]&&!!u&&(u.role==='master'||!!u.papel_crm); };
+const CPN={carregando:{},erro:{}};
+function crmPainelView(){
+  const base=CRM_PAINEL[TK.listaSel];
+  if(typeof ccPainelHTML!=='function'||typeof ccUsar!=='function'||typeof CRM==='undefined') return '<div class="empty">Carregando o painel…</div>';
+  const pinta=()=>{ if(TK.visao==='painel'&&CRM_PAINEL[TK.listaSel]===base) tkDesenhar($('#content')); };
+  ccUsar(base,pinta);
+  if(!(base in CRM.ccDados)){
+    if(!CPN.carregando[base]){ CPN.carregando[base]=true;
+      ccCarregarBase(base).then(ok=>{ CPN.carregando[base]=false; if(!ok){ CPN.erro[base]=true; CRM.ccDados[base]=[]; } pinta(); }); }
+    return '<div class="empty">Carregando o painel…</div>';
+  }
+  return `<div class="crm-pn">
+      <div class="crm-pn-bar">${CPN.erro[base]?'<span class="hint" style="margin:0">Não consegui ler as calls deste CRM.</span>':''}<button class="btn small" onclick="crmCallModal()">+ Nova call</button></div>
+      ${ccPainelHTML()}${ccCallsHTML()}
+    </div>`;
+}
 function tkViewLista(){
   const lc=ehLC(TK.listaSel)&&TK.escopo==='lista';
   let cps=TK.escopo!=='lista'?[]:tkCamposDe(TK.listaSel);
@@ -11867,15 +11901,20 @@ function tkDesenharTela(c){
   /* abas de visão no padrão único (Gabriel 23/09): ícone SVG + texto, sublinhadas */
   const form=crmForm(TK.listaSel)&&TK.escopo==='lista';
   if(!form&&TK.visao==='tabela') TK.visao='lista';
+  const pnl=TK.escopo==='lista'&&crmPainelPode(TK.listaSel);
+  if(!pnl&&TK.visao==='painel') TK.visao='lista';
+  const soLst=TK.escopo==='lista'&&crmSoLista(TK.listaSel);
+  if(soLst&&TK.visao!=='lista'&&TK.visao!=='painel') TK.visao='lista';
   const visoes=soBoard?[['board',PCX_I.quadro+'Quadro']]
     :cli?[['lista',PCX_I.lista+'Lista']]
-    :[...(form?[['tabela',tpSvg('tabela',14)+'Respostas']]:[]),['lista',PCX_I.lista+'Lista'],['board',PCX_I.quadro+'Quadro']];
+    :soLst?[['lista',PCX_I.lista+'Lista'],...(pnl?[['painel',tpSvg('painel',14)+'Painel']]:[])]
+    :[...(form?[['tabela',tpSvg('tabela',14)+'Respostas']]:[]),['lista',PCX_I.lista+'Lista'],['board',PCX_I.quadro+'Quadro'],...(pnl?[['painel',tpSvg('painel',14)+'Painel']]:[])];
   const nArq=TK.escopo==='lista'?tkArquivadasDa(TK.listaSel).length:0;
   const ordBtn=(TK.escopo==='lista'&&TK.visao==='lista')
     ? `<button class="btn ghost small${TK.ord?'':' on'}" onclick="tkOrdemManual()" title="${TK.ord?'Voltar a poder arrastar as linhas':'Você já pode arrastar as linhas'}">⠿ Ordem manual</button>` : '';
   const abas=`<div class="tk-seg">${visoes.map(v=>`<button class="${TK.visao===v[0]&&!TK.arqVista&&!(cli&&TK.lcVista==='gerentes')?'on':''}" onclick="tkArqVista(false);TK.lcVista='';tkVisao('${v[0]}')">${v[1]}</button>`).join('')}${cli?`<button class="${TK.lcVista==='gerentes'?'on':''}" onclick="lcAbaGer()">${PCX_I.chefe}Gerentes</button>`:''}
     ${(TK.escopo==='lista'&&TK.arqVista)?`<button class="on" onclick="tkArqVista(false)" title="Sair dos arquivados">Arquivados${nArq?' ('+nArq+')':''} &times;</button>`:''}</div>`;
-  const corpo=(cli&&TK.lcVista==='gerentes')?lcVistaGerentes():(TK.visao==='tabela'?tkViewRespostas():(TK.visao==='lista'?tkViewLista():tkViewBoard()));
+  const corpo=(cli&&TK.lcVista==='gerentes')?lcVistaGerentes():(TK.visao==='painel'?crmPainelView():TK.visao==='tabela'?tkViewRespostas():(TK.visao==='lista'?tkViewLista():tkViewBoard()));
   const dica=TK.visao==='board'?'arraste os cartões entre as colunas':'clique no nome para abrir, no cabeçalho para ordenar';
   const titulo=TK.escopo==='minhas'?'Minhas tarefas':TK.escopo==='todas'?'Todas as tarefas':(lista?esc(spNome(lista)):'Listas');
   if(!cli){ c.innerHTML=`
@@ -11945,6 +11984,7 @@ const TP_SVG={
   lista:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
   quadro:'<rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/>',
   tabela:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16"/>',
+  painel:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   baixar:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
   pts:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   mais:'<path d="M12 5v14M5 12h14"/>',
@@ -11962,9 +12002,10 @@ function tpDireita(soBoard){
       :tpIb('lupa','Buscar',"TK.tpBusca=true;TK.focoBusca=true;tkDesenhar($('#content'))")}
     ${tpIb('funil','Filtrar','tkPopFiltro(event)',nF>0,nF||'')}
     ${tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}
-    ${crmForm(TK.listaSel)&&TK.escopo==='lista'?tpIb('tabela','Respostas',"tkArqVista(false);tkVisao('tabela')",TK.visao==='tabela'&&!TK.arqVista):''}
+    ${crmForm(TK.listaSel)&&TK.escopo==='lista'&&!crmSoLista(TK.listaSel)?tpIb('tabela','Respostas',"tkArqVista(false);tkVisao('tabela')",TK.visao==='tabela'&&!TK.arqVista):''}
+    ${TK.escopo==='lista'&&crmPainelPode(TK.listaSel)?tpIb('painel','Painel',"tkArqVista(false);tkVisao('painel')",TK.visao==='painel'&&!TK.arqVista):''}
     ${soBoard?'':tpIb('lista','Lista',"tkArqVista(false);tkVisao('lista')",TK.visao==='lista'&&!TK.arqVista)}
-    ${tpIb('quadro','Quadro',"tkArqVista(false);tkVisao('board')",TK.visao==='board'&&!TK.arqVista)}
+    ${TK.escopo==='lista'&&crmSoLista(TK.listaSel)?'':tpIb('quadro','Quadro',"tkArqVista(false);tkVisao('board')",TK.visao==='board'&&!TK.arqVista)}
     ${tpIb('pts','Mais opções','tpMais(event)',!!TK.arqVista)}
     <button type="button" class="tp-mais" title="Nova tarefa" aria-label="Nova tarefa" onclick="tkAbrir()" ${TK.listaSel||TK.escopo!=='lista'?'':'disabled'}>${tpSvg('mais')}</button>
   </div>`;
@@ -12508,7 +12549,7 @@ window.tkSelLista=(id)=>{ TK.listaSel=id; TK.escopo='lista'; tkDesenhar($('#cont
    iguais pareciam configuradas diferente. */
 const VIS_KEY='tk_visao_lista';
 let VIS={}; try{ VIS=JSON.parse(localStorage.getItem(VIS_KEY)||'{}')||{}; }catch(_){ VIS={}; }
-const visaoPadrao=(id)=>id===LC_ID?'lista':(crmForm(id)?'tabela':(tkStatusDe(id).length>=4?'board':'lista'));
+const visaoPadrao=(id)=>id===LC_ID?'lista':crmSoLista(id)?'lista':(crmForm(id)?'tabela':(tkStatusDe(id).length>=4?'board':'lista'));
 /* Controle de Clientes passa a abrir em Lista (visão B, Gabriel 23/09): uma vez só, desfaz o Board guardado */
 try{ if(!localStorage.getItem('lc_funil_v1')){ const _v=JSON.parse(localStorage.getItem('tk_visao_lista')||'{}')||{};
   delete _v['a0009b64-6847-4477-be46-3dade84d5409']; localStorage.setItem('tk_visao_lista',JSON.stringify(_v)); localStorage.setItem('lc_funil_v1','1'); } }catch(_){}
@@ -24749,7 +24790,7 @@ initLoginScreen();
   setInterval(checa,5*60*1000);
 })();
 </script>
-<script src="crm.js?v=27" defer></script>
+<script src="crm.js?v=28" defer></script>
 <script src="comercial/instancias.js?v=5" defer></script>
 <script src="comercial/conversas.js?v=5" defer></script>
 </body>
