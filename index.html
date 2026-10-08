@@ -2961,6 +2961,13 @@
     background:color-mix(in srgb,#25d366 16%,transparent);color:#25d366;text-decoration:none;transition:background .15s,color .15s}
   .tk-wa:hover{background:#25d366;color:#fff}
   .tk-wa svg{width:14px;height:14px}
+  /* Instagram do lead: o mesmo icone e o mesmo botao da ficha do cliente (Contato > Instagram) (Bernardo 08/10) */
+  .tk-ig{display:inline-grid;place-items:center;width:24px;height:24px;margin-left:6px;border-radius:999px;vertical-align:middle;color:#fff;
+    background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285aeb 90%);text-decoration:none;transition:filter .15s,transform .15s}
+  .tk-ig:hover{filter:brightness(1.12);transform:translateY(-1px)}
+  .tk-ig svg{width:13px;height:13px}
+  .lc-tab .pc-chip.rsp-ig{height:26px;padding:0 10px 0 4px;font-size:12.5px;max-width:100%}
+  .lc-tab .pc-chip.rsp-ig .pc-ci{width:19px;height:19px}
   button.tk-wa{border:0;padding:0;cursor:pointer;font:inherit}
   .mt-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:5px;vertical-align:middle}
   .mt-live.buscando{background:var(--warn);animation:mtpulse 1s ease-in-out infinite}
@@ -9732,14 +9739,18 @@ let RSP={dir:-1,sel:{},q:''};
 const rspData=(v)=>{ const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if(!m) return '';
   /* curta, 08/10/26 (Bernardo 08/10): o "8 de out de 2026" do Yay ocupava a coluna toda */
   return m[3]+'/'+m[2]+'/'+m[1].slice(2)+(m[4]?` <span class="rsp-hr">${m[4]}:${m[5]}</span>`:''); };
-/* valor da celula: WhatsApp vira o numero (link pra conversa), Instagram vira @ com link */
+/* @ do Instagram do lead (Bernardo 08/10): link, "@loja" ou "loja" viram o usuario; resposta
+   que nao parece um @ ("Não temos", "Fenix estofados") fica como texto, sem botao */
+const rspIgDe=(v)=>{ const u=String(v==null?'':v).trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/^@+/,'').replace(/[/?#].*$/,'');
+  return /^[\w.]{2,30}$/.test(u)?u:''; };
+/* valor da celula: WhatsApp vira o numero (link pra conversa), Instagram vira o botao da ficha do cliente */
 function rspCel(c,v,t){
   if(v==null||v==='') return '';
   if(/whats/i.test(c.nome)){ const n=String(v).replace(/\D/g,''); if(!n) return esc(v);
     const dentro=t&&rspWaDentro();
     return `<a class="rsp-lk" href="https://wa.me/${n}" target="_blank" rel="noopener" onclick="event.stopPropagation()${dentro?`;return rspWaAbrir('${t.id}')`:''}"${dentro?' title="Abrir a conversa aqui no sistema"':''}>+${n}</a>`; }
-  if(/insta/i.test(c.nome)){ const u=String(v).trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/^@/,'').replace(/\/.*$/,'');
-    return /^[\w.]{2,30}$/.test(u)?`<a class="rsp-lk" href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">@${esc(u)}</a>`:esc(v); }
+  if(/insta/i.test(c.nome)){ const u=rspIgDe(v);
+    return u?`<a class="pc-chip rsp-ig" href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener" title="Abrir o Instagram" onclick="event.stopPropagation()"><span class="pc-ci ig">${PC_IC.ig}</span><span>@${esc(u)}</span>${PC_IC.sa}</a>`:esc(v); }
   if(c.tipo==='data') return rspData(v);
   return esc(campoTexto(c,v));
 }
@@ -9768,6 +9779,8 @@ const rspWaBtn=(t)=>{ const n=rspWaNum(t); if(!n) return '';
   return rspWaDentro()
     ? `<button type="button" class="tk-wa" title="Abrir a conversa aqui no sistema (+${n})" onclick="event.stopPropagation();rspWaAbrir('${t.id}')">${RSP_WA_SVG}</button>`
     : `<a class="tk-wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp (+${n})" onclick="event.stopPropagation()">${RSP_WA_SVG}</a>`; };
+const rspIgBtn=(t)=>{ const c=tkCamposDe(t.lista_id).find(k=>/insta/i.test(k.nome)), u=c?rspIgDe((t.valores||{})[c.id]):''; if(!u) return '';
+  return `<a class="tk-ig" href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener" title="Abrir o Instagram (@${esc(u)})" onclick="event.stopPropagation()">${PC_IC.ig}</a>`; };
 function rspLinhas(){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA);
   const dt=(t)=>String((cD&&(t.valores||{})[cD.id])||String(t.criado_em||'').slice(0,10));
@@ -9883,7 +9896,7 @@ function tkViewLista(){
   const cab=lc
     ? `<tr>${th('titulo','Cliente')}<th style="width:180px">Status</th>${colsCps}</tr>`
     : `<tr><th style="width:32px"></th>${th('titulo','Nome')}<th style="width:170px">Status</th>${colsCps}${th('prioridade','Prioridade')}${th('prazo','Prazo')}${th('responsavel','Responsável')}<th style="width:38px"></th></tr>`;
-  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}${ehLC(t.lista_id)?lcLogoCel(t.ficha_id):''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${t.rascunho?rascSelo(t):''}${esc(t.titulo)}</span>${crmForm(t.lista_id)?rspWaBtn(t):''}${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id)+lcSeloGrupo(t.ficha_id)+lcSeloParceria(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
+  const nome=(t)=>`${(t.tipo_id&&!ehLC(t.lista_id))?tipoChip(t.tipo_id,'sm')+' ':''}${ehLC(t.lista_id)?lcLogoCel(t.ficha_id):''}<span class="tk-titcel${(t.status==='feito'&&!ehLC(t.lista_id))?' feito':''}" onclick="${(ehLC(t.lista_id)&&t.ficha_id)?`abrirCliente('${t.ficha_id}')`:`tkAbrir('${t.id}')`}">${t.rascunho?rascSelo(t):''}${esc(t.titulo)}</span>${crmForm(t.lista_id)?rspWaBtn(t)+rspIgBtn(t):''}${ehLC(t.lista_id)?lcSeloTipo(t.ficha_id)+lcSeloGrupo(t.ficha_id)+lcSeloParceria(t.ficha_id):''}${recIco(t)}${(t.ficha_id&&!ehLC(t.lista_id))?`<span class="tag st" style="font-size:10px;margin-left:6px">${esc(tkNomeFicha(t.ficha_id))}</span>`:''}${ckResumo(t)?`<span class="tag st" style="font-size:10px;margin-left:6px">${ckResumo(t)}</span>`:''}${TK.escopo!=='lista'?`<div class="hint" style="margin:2px 0 0">${esc(tkCaminho(t.lista_id))}</div>`:''}`;
   const linha=(t)=>{
     const atr=t.prazo&&t.prazo<hoje&&t.status!=='feito';
     if(lc) return `<tr style="--bar:${esc(tkCorLinha(t))}" draggable="true" ondragstart="tkPegar(event,'${t.id}')" ondragover="dndSobreLinha(event)" ondragleave="dndSaiLinha(event)" ondrop="dndSoltarLinha(event,'${t.id}')" ondragend="dndFimLinha()"><td>${nome(t)}</td><td>${tkSelo(t)}</td>${cps.map((c,i)=>`<td class="${clsCp(c,i)}">${tkCelula(t,c)}</td>`).join('')}</tr>`;
