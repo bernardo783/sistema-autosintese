@@ -759,6 +759,8 @@ grupo('Cada lista lembra da própria visão');
   ok('lista com 4+ status abre em board', g.visaoDe('L4')==='board');
   ok('lista de leads de formulário abre em Respostas, mesmo com 4+ status (Bernardo 08/10)', g.visaoDe('LF')==='tabela');
   ok('CRM Sofás abre em Respostas (só Respostas ali, Bernardo 08/10)', g.visaoDe('LS')==='tabela');
+  g.TK.listaSel='LS'; g.tkVisao('painel');
+  ok('CRM Sofás volta pra Respostas mesmo se a última aba foi o Painel', g.visaoDe('LS')==='tabela');
   g.TK.listaSel='L1'; g.tkVisao('board');
   ok('L1 guardou board', g.visaoDe('L1')==='board');
   ok('L2 não foi junto', g.visaoDe('L2')==='lista');
