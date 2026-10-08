@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prévia · Retorno e mensagem agendada</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#141416;--panel:#1b1b1e;--panel2:#232327;--line:#2e2e34;--txt:#fff;--muted:#c8c8d2;--brand:#7b68ee;--brand2:#a78bfa;
+    --danger:#ef5b6b;--ok:#3fcf8e;--warn:#e6b13f;--fraco:#8a8a96;--wa:#25d366}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;font-size:14px}
+  svg{width:15px;height:15px;flex:none}
+  .topo{max-width:1180px;margin:0 auto;padding:22px 20px 6px;color:var(--muted);font-size:13px;line-height:1.5}
+  .topo b{color:var(--txt)}
+  .palco{max-width:1180px;margin:0 auto;padding:12px 20px 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
+  .rot{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco);font-weight:700;margin:0 0 8px}
+
+  /* cartão do lead (igual ao do sistema) */
+  .cl{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .cl-h{display:flex;align-items:center;gap:14px;padding:20px 24px 16px;border-bottom:1px solid var(--line)}
+  .cl-q{flex:1;min-width:0}
+  .cl-tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco);font-weight:700}
+  .cl-nome{font-size:22px;font-weight:800;margin:2px 0}
+  .cl-sub{color:var(--muted);font-size:13px}
+  .cl-st{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:999px;border:1px solid #2f7cf680;background:#2f7cf629;font-weight:700;font-size:13px}
+  .cl-st i{width:8px;height:8px;border-radius:50%;background:#2f7cf6}
+  .cl-wa{display:inline-flex;align-items:center;gap:7px;background:var(--wa);color:#06301a;border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:700;font-size:13px}
+  .cl-corpo{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:16px;padding:18px 24px 24px}
+  .box{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+  .box h4{margin:0 0 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco);display:flex;align-items:center;justify-content:space-between}
+  .kv{display:grid;grid-template-columns:100px 1fr;gap:10px;min-height:34px;align-items:center;border-top:1px solid var(--line);font-size:13px}
+  .box h4+.kv{border-top:0}
+  .kv span{color:var(--muted)} .kv b{font-weight:600}
+  .col{display:flex;flex-direction:column;gap:16px}
+
+  /* NOVO: próximos passos */
+  .pp-acoes{display:flex;gap:8px}
+  .pp-b{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--txt);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
+  .pp-b:hover{border-color:var(--brand2)}
+  .pp-b.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 18%,transparent)}
+  .pp-it{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+  .pp-ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:none}
+  .pp-ic.msg{background:color-mix(in srgb,var(--wa) 16%,transparent);color:var(--wa)}
+  .pp-ic.ret{background:color-mix(in srgb,var(--brand) 18%,transparent);color:var(--brand2)}
+  .pp-tx{flex:1;min-width:0}
+  .pp-q{font-size:12px;color:var(--muted)} .pp-q b{color:var(--txt)}
+  .pp-t{font-size:13.5px;margin-top:2px;line-height:1.4}
+  .pp-x{background:none;border:0;color:var(--fraco);font:inherit;font-size:12px;cursor:pointer;padding:4px 0}
+  .pp-x:hover{color:var(--txt)}
+  .ck{width:18px;height:18px;border-radius:5px;border:2px solid var(--brand2);margin-top:5px;flex:none}
+
+  .comp{margin:4px 0 10px;padding:12px;border:1px solid var(--brand);border-radius:12px;background:var(--panel)}
+  .comp input,.comp textarea,.comp select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--txt);font:inherit;font-size:13.5px;padding:8px 10px}
+  .comp textarea{min-height:60px;resize:vertical;line-height:1.4}
+  .quando{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+  .q{height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font:inherit;font-size:12.5px;font-weight:600}
+  .q.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 22%,transparent);color:var(--txt)}
+  .comp-pe{display:flex;align-items:center;gap:8px}
+  .comp-pe select{width:auto;flex:1}
+  .btn{height:34px;padding:0 14px;border-radius:9px;border:0;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:13px}
+
+  .nota{padding:10px 0;border-top:1px solid var(--line);font-size:13px}
+  .nota small{color:var(--fraco)}
+
+  /* Minhas tarefas */
+  .mt{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+  .mt h3{margin:0 0 2px;font-size:16px}
+  .mt p{margin:0 0 10px;color:var(--fraco);font-size:12px}
+  .mt-it{display:flex;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+  .mt-t{font-size:13.5px;font-weight:600;line-height:1.35}
+  .mt-s{font-size:12px;color:var(--muted);margin-top:3px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--brand) 20%,transparent);color:var(--brand2);margin-right:6px}
+  .hoje{color:var(--warn);font-weight:700}
+  .sino{margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:12.5px;color:var(--muted);line-height:1.45}
+  .sino b{color:var(--txt)}
+  @media(max-width:980px){ .palco{grid-template-columns:1fr} .cl-corpo{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="topo"><b>Prévia</b>: o cartão do lead ganha um bloco <b>Próximos passos</b>, com duas ações: <b>Agendar mensagem</b> (sai sozinha no WhatsApp no horário) e <b>Agendar retorno</b> (vira tarefa do vendedor, com dia e hora, e aparece em Minhas tarefas). Os botões desta página não gravam nada.</div>
+
+<div class="palco">
+  <div>
+    <div class="rot">Cartão do lead</div>
+    <div class="cl">
+      <header class="cl-h">
+        <div class="cl-q">
+          <div class="cl-tag">Lead · Pipeline Moto</div>
+          <div class="cl-nome">Régis Almeida</div>
+          <div class="cl-sub">Dono(a) · Rio Preto, SP · entrou em 08/10/26</div>
+        </div>
+        <span class="cl-st"><i></i>Em conversa</span>
+        <button class="cl-wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>Conversar</button>
+      </header>
+      <div class="cl-corpo">
+        <div class="col">
+          <section class="box"><h4>Contato</h4>
+            <div class="kv"><span>WhatsApp</span><b>(17) 99812-4410</b></div>
+            <div class="kv"><span>Empresa</span><b>RA Motos</b></div>
+            <div class="kv"><span>Instagram</span><b>@ramotos.rp</b></div>
+            <div class="kv"><span>Cargo</span><b>Dono(a)</b></div>
+          </section>
+          <section class="box"><h4>De onde veio</h4>
+            <div class="kv"><span>Formulário</span><b>Dono(a) de loja de Motos</b></div>
+            <div class="kv"><span>Campanha</span><b>[MOTOS] [YAY] Out</b></div>
+          </section>
+          <section class="box"><h4>Vendedor responsável</h4>
+            <div class="kv"><span></span><b>Kennedy Lima</b></div>
+          </section>
+        </div>
+
+        <div class="col">
+          <section class="box">
+            <h4>Próximos passos
+              <span class="pp-acoes">
+                <button class="pp-b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Agendar mensagem</button>
+                <button class="pp-b on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Agendar retorno</button>
+              </span>
+            </h4>
+
+            <!-- compositor aberto: Agendar retorno -->
+            <div class="comp">
+              <input value="Chamar o Régis de novo: ele pediu pra falar amanhã" aria-label="O que fazer">
+              <div class="quando">
+                <button class="q">Hoje 17h</button><button class="q on">Amanhã 9h</button><button class="q">Em 2 dias</button><button class="q">Segunda 9h</button><button class="q">Escolher dia e hora…</button>
+              </div>
+              <div class="comp-pe">
+                <select aria-label="Quem"><option>Para: Kennedy Lima (vendedor do lead)</option><option>Para: mim</option></select>
+                <button class="btn">Agendar</button>
+              </div>
+            </div>
+
+            <div class="pp-it">
+              <span class="pp-ic msg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+              <div class="pp-tx">
+                <div class="pp-q">Mensagem · <b>amanhã, 09:00</b> · pelo WhatsApp do Kennedy</div>
+                <div class="pp-t">“Bom dia, Régis! Conforme combinamos ontem, consegue falar agora às 10h?”</div>
+              </div>
+              <button class="pp-x">cancelar</button>
+            </div>
+            <div class="pp-it">
+              <span class="ck"></span>
+              <div class="pp-tx">
+                <div class="pp-q">Retorno · <b>amanhã, 10:00</b> · Kennedy</div>
+                <div class="pp-t">Chamar o Régis de novo: ele pediu pra falar amanhã</div>
+              </div>
+              <button class="pp-x">editar</button>
+            </div>
+          </section>
+
+          <section class="box"><h4>Anotações</h4>
+            <div class="nota"><small>Kennedy · hoje 16:20</small><br>Falou que está viajando, pediu pra chamar amanhã de manhã.</div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="rot">E aparece pra ele em Minhas tarefas</div>
+    <div class="mt">
+      <h3>Minhas tarefas</h3>
+      <p>Kennedy Lima · tudo que está com você</p>
+      <div class="mt-it"><span class="ck"></span><div>
+        <div class="mt-t">Chamar o Régis de novo: ele pediu pra falar amanhã</div>
+        <div class="mt-s"><span class="tag">Comercial</span><span class="hoje">amanhã 10:00</span> · lead Régis Almeida, CRM Motos</div>
+      </div></div>
+      <div class="mt-it"><span class="ck"></span><div>
+        <div class="mt-t">Mandar proposta pra Loja Moto Center</div>
+        <div class="mt-s"><span class="tag">Comercial</span>sexta 14:00 · lead Moto Center, CRM Motos</div>
+      </div></div>
+      <div class="sino"><b>No horário</b>, o sino do sistema avisa: “Lembrete: você se comprometeu a chamar o Régis de novo. Ele pediu pra falar amanhã.” Clicar abre o cartão do lead. Concluir a tarefa marca o retorno como feito no cartão.</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
