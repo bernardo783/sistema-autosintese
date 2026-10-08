@@ -1711,6 +1711,37 @@ grupo('CRM Sofás: responsável só José, Bernardo, Kennedy e Luana (Bernardo 0
   ok('filtro "Responsáveis" da lista do CRM usa os mesmos quatro', /const doCrm=TK\.escopo==='lista'&&typeof crmForm==='function'&&crmForm\(TK\.listaSel\);\s*const pessoas=\[\.\.\.\(doCrm\?crmResp\(TK\.equipe\):TK\.equipe\)\]/.test(HTML));
   ok('menu rápido de responsável na linha do lead também', /\(typeof crmForm==='function'&&crmForm\(t\.lista_id\)\)\?crmResp\(TK\.equipe\):TK\.equipe/.test(HTML));
 }
+grupo('Respostas separada por etapa, estilo ClickUp (Bernardo 08/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const C=[{id:'w',lista_id:'L',nome:'WhatsApp',tipo:'link'},{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'},{id:'e',lista_id:'L',nome:'Estado',tipo:'texto'}];
+  const ST=[{id:'s3',nome:'3. EM CONVERSA',cor:'#2f7cf6',ordem:3},{id:'s1',nome:'1. NOVO LEAD',cor:'#7c3aed',ordem:1},
+    {id:'s2',nome:'2. SEM RESPOSTA',cor:'#fb923c',ordem:2},{id:'s6',nome:'6. GANHOU',cor:'#3ec46d',ordem:6}];
+  const T=[{id:'a',lista_id:'L',titulo:'Ana',status_id:'s1',valores:{d:'2026-10-07',e:'SP'}},
+    {id:'b',lista_id:'L',titulo:'Beto',status_id:'s3',valores:{d:'2026-10-06',e:'RJ'}},
+    {id:'c',lista_id:'L',titulo:'Caio',status_id:'s1',valores:{d:'2026-10-05',e:'DF'}},
+    {id:'z',lista_id:'L',titulo:'Zeca',status_id:null,valores:{d:'2026-10-04'}}];
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{}},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
+    tkStatusDe:()=>ST,esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,tkSelo:()=>'<select></select>',
+    tpSvg:()=>'',setTimeout:()=>0,currentUser:{role:'master'},corTexto:()=>'#fff'},['tkViewRespostas','rspGrupos']);
+  const h=g.tkViewRespostas();
+  const pos=(x)=>h.indexOf(x);
+  ok('uma faixa por etapa, na ordem do funil (não na ordem que veio do banco)', pos('>NOVO LEAD<')>0&&pos('>NOVO LEAD<')<pos('>SEM RESPOSTA<')&&pos('>SEM RESPOSTA<')<pos('>EM CONVERSA<')&&pos('>EM CONVERSA<')<pos('>GANHOU<'));
+  ok('pílula com a cor da etapa e sem o número na frente', /class="tk-selo" style="background-color:#7c3aed;[^"]*">NOVO LEAD<\/span>/.test(h)&&h.indexOf('1. NOVO LEAD')<0);
+  ok('contagem em cada faixa', /NOVO LEAD<\/span>\s*<span class="tk-n rsp-gn">2</.test(h)&&/EM CONVERSA<\/span>\s*<span class="tk-n rsp-gn">1</.test(h));
+  ok('cada etapa com lead tem o próprio cabeçalho de colunas', (h.match(/<tr class="rsp-ch">/g)||[]).length===3);
+  ok('etapa vazia fica só com a faixa, sem cabeçalho', /tk-faixa vazio[\s\S]*?>SEM RESPOSTA<[\s\S]*?<\/tbody>/.test(h)&&!/>SEM RESPOSTA<[\s\S]*?<\/tr>\s*<tr class="rsp-ch">[\s\S]*?<\/tbody><tbody[^>]*data-g="s3"/.test(h));
+  ok('lead sem etapa vai num grupo no fim', pos('>Sem etapa<')>pos('>GANHOU<')&&pos('>Zeca<')>pos('>Sem etapa<'));
+  ok('leads ficam dentro da própria etapa', pos('>Ana<')>pos('>NOVO LEAD<')&&pos('>Ana<')<pos('>SEM RESPOSTA<')&&pos('>Beto<')>pos('>EM CONVERSA<'));
+  ok('clicar na faixa recolhe a etapa', /onclick="tkToggle\('g','rs1'\)"/.test(h));
+  g.TK.fechadas={grs1:true};
+  const h2=g.tkViewRespostas();
+  ok('etapa recolhida esconde os leads e o cabeçalho', h2.indexOf('>Ana<')<0&&h2.indexOf('>Beto<')>0&&(h2.match(/<tr class="rsp-ch">/g)||[]).length===2);
+  ok('larguras das colunas numa <colgroup>, iguais em todas as etapas', /<colgroup><col data-k="nome" style="width:300px"><col data-k="status"/.test(h));
+  ok('"marcar todos" marca só a etapa', /onchange="rspTodos\(this\.checked,'s1'\)"/.test(h)&&/window\.rspTodos=\(on,g\)=>/.test(HTML));
+  ok('busca conta só linhas de lead e atualiza a contagem de cada etapa', HTML.indexOf("#rspTab tbody tr[data-b]")>0&&HTML.indexOf("#rspTab tbody.rsp-g")>0);
+  ok('arrastar a borda muda a <col>', HTML.indexOf(`const col=tb.querySelector('col[data-k="'+k+'"]')`)>0);
+}
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
