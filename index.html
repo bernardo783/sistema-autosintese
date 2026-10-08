@@ -3070,6 +3070,29 @@
   .cl-apaga{margin-left:auto;background:none;border:0;color:var(--fraco);cursor:pointer;font-size:17px;line-height:1}
   .cl-apaga:hover{color:var(--danger)}
   .cl-notat{margin-top:5px;font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}
+  /* anexos nas anotações (Bernardo 08/10) */
+  .cl-novo{border-radius:12px;transition:box-shadow .12s}
+  .cl-novo.on{box-shadow:0 0 0 2px var(--brand2)}
+  .cl-novob{display:flex;align-items:center;gap:10px}
+  .cl-novob .btn{margin-left:auto}
+  .cl-clip{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;border-radius:8px;padding:6px 8px;margin-left:-8px}
+  .cl-clip:hover{background:var(--hov2);color:var(--txt)}
+  .cl-up{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cl-pend{display:flex;flex-wrap:wrap;gap:6px}
+  .cl-pend:empty{display:none}
+  .cl-pf{display:inline-flex;align-items:center;gap:6px;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 10px;font-size:12.5px}
+  .cl-pf svg{flex:none;color:var(--brand2)}
+  .cl-pf b{font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cl-pf small{color:var(--muted);font-variant-numeric:tabular-nums}
+  .cl-pf button{background:none;border:0;color:var(--fraco);font-size:16px;line-height:1;cursor:pointer;padding:0 3px}
+  .cl-pf button:hover{color:var(--danger)}
+  .cl-ax{display:flex;align-items:center;gap:10px;margin-top:7px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .cl-ax .tn{flex:none;width:38px;height:38px;border-radius:8px;border:0;background:var(--panel2);color:var(--brand2);display:grid;place-items:center;overflow:hidden;cursor:pointer;padding:0}
+  .cl-ax .tn img{width:100%;height:100%;object-fit:cover}
+  .cl-ax .nm{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;background:none;border:0;padding:0;color:var(--txt);font:inherit;text-align:left;cursor:pointer}
+  .cl-ax .nm b{font-size:13.5px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cl-ax .nm:hover b{text-decoration:underline}
+  .cl-ax .nm small{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
   .cl-hist{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
   .cl-ev{position:relative;padding:5px 0 5px 18px;font-size:12.5px;color:var(--muted)}
   .cl-ev i{position:absolute;left:3px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--brand)}
@@ -15072,8 +15095,11 @@ function crmLdHtml(t){
           <select class="cl-in cl-resp" onchange="clResp(this.value)"><option value="">Ninguém ainda</option>${equipeDe(t.lista_id,resp||null).map(u=>`<option value="${u.id}"${u.id===resp?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>
         </section>
         <section class="cl-box cl-notas"><h4>Anotações</h4>
-          <div class="cl-novo"><textarea id="clNotaTxt" rows="2" placeholder="Como foi o contato, o que ficou combinado, próximo passo…" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)){event.preventDefault();clNotar();}"></textarea>
-            <button type="button" class="btn small" onclick="clNotar()">Salvar anotação</button></div>
+          <div class="cl-novo" id="clNovo" ondragover="clAnxSobre(event)" ondragleave="clAnxSai(event)" ondrop="clAnxSolta(event)"><textarea id="clNotaTxt" onpaste="clAnxCola(event)" rows="2" placeholder="Como foi o contato, o que ficou combinado, próximo passo…" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)){event.preventDefault();clNotar();}"></textarea>
+            <div id="clPend" class="cl-pend"></div>
+            <div class="cl-novob"><label class="cl-clip" title="Anexar arquivo (proposta, contrato, print…). Também dá pra arrastar ou colar aqui.">${typeof svgIco==='function'?svgIco('anexo',15):''}Anexar arquivo<input type="file" multiple hidden onchange="clAnxEscolhe(this)"></label>
+              <span class="cl-up" id="clUp"></span>
+              <button type="button" class="btn small" id="clSalvar" onclick="clNotar()">Salvar anotação</button></div></div>
           <div id="clNotas"><div class="hint">carregando…</div></div>
           <div class="cl-hist">
             ${h.de.map(d=>`<div class="cl-ev"><i></i>Preencheu o formulário de novo em ${esc(d)}</div>`).join('')}
@@ -15085,25 +15111,95 @@ function crmLdHtml(t){
     </div>
   </div>`;
 }
+/* ANEXOS NAS ANOTAÇÕES (Bernardo 08/10: "na aba de anotações, dentro do card do lead, consigo anexar
+   arquivos, como uma proposta"). O arquivo sobe igual ao anexo da tarefa (bucket 'anexos', axSubir com
+   envio em partes, ponteiro em tarefa_anexos) e aparece na mesma linha do tempo das anotações, por data.
+   Escolher, arrastar ou colar só põe na fila (CL.pend); o Salvar grava a anotação e sobe a fila junto. */
+CL.pend=[]; CL.pendDe='';
 async function clNotas(tid){
   const box=document.getElementById('clNotas'); if(!box) return;
-  const {data,error}=await sb.from('tarefa_comentarios').select('*').eq('tarefa_id',tid).order('criado_em',{ascending:false});
+  if(CL.pendDe!==tid){ CL.pend=[]; CL.pendDe=tid; }
+  clAnxPend();
+  const [rc,ra]=await Promise.all([
+    sb.from('tarefa_comentarios').select('*').eq('tarefa_id',tid).order('criado_em',{ascending:false}),
+    sb.from('tarefa_anexos').select('*').eq('tarefa_id',tid).order('criado_em',{ascending:false})]);
   if(CL.id!==tid) return;
-  if(error){ box.innerHTML='<div class="hint">Não consegui carregar: '+esc(error.message)+'</div>'; return; }
-  const ms=data||[];
-  box.innerHTML=ms.length?ms.map(m=>`<div class="cl-nota">
-      <div class="cl-notah">${avatar(m.autor,tkNomeUser(m.autor),'sm')}<b>${esc(tkNomeUser(m.autor)||'alguém')}</b><span>${esc(tkmQuando(m.criado_em))}</span>
-        ${(currentUser&&m.autor===currentUser.id)?`<button type="button" class="cl-apaga" title="Apagar" onclick="clNotaApagar('${m.id}')">&times;</button>`:''}</div>
-      <div class="cl-notat">${esc(m.texto)}</div></div>`).join('')
-    :'<p class="hint">Nenhuma anotação ainda. Registre aqui cada contato com o lead.</p>';
+  if(rc.error){ box.innerHTML='<div class="hint">Não consegui carregar: '+esc(rc.error.message)+'</div>'; return; }
+  const anx=(ra.data||[]).filter(x=>!/^t\/[^/]+\/logo-/.test(String(x.caminho||'')));
+  window.__anx={}; anx.forEach(x=>{ window.__anx[x.id]=x; }); window.__anxOrdem=anx.map(x=>x.id);
+  const its=(rc.data||[]).map(m=>({k:'n',em:m.criado_em,m})).concat(anx.map(x=>({k:'a',em:x.criado_em,x})))
+    .sort((a,b)=>String(b.em).localeCompare(String(a.em)));
+  const meu=(uid)=>currentUser&&(uid===currentUser.id||currentUser.role==='master');
+  const cab=(uid,em,del)=>`<div class="cl-notah">${avatar(uid,tkNomeUser(uid),'sm')}<b>${esc(tkNomeUser(uid)||'alguém')}</b><span>${esc(tkmQuando(em))}</span>${del}</div>`;
+  box.innerHTML=its.length?its.map(it=>{
+    if(it.k==='n'){ const m=it.m;
+      return `<div class="cl-nota">${cab(m.autor,m.criado_em,(currentUser&&m.autor===currentUser.id)?`<button type="button" class="cl-apaga" title="Apagar" onclick="clNotaApagar('${m.id}')">&times;</button>`:'')}
+        <div class="cl-notat">${esc(m.texto)}</div></div>`; }
+    const x=it.x, pv=axPreviavel(x), ab=pv?`tkmAnxPrever('${x.id}')`:`tkmAnxAbrir('${x.id}')`;
+    return `<div class="cl-nota">${cab(x.autor,x.criado_em,meu(x.autor)?`<button type="button" class="cl-apaga" title="Remover o anexo" onclick="clAnxApagar('${x.id}')">&times;</button>`:'')}
+      <div class="cl-ax"><button type="button" class="tn" data-anx="${x.id}" onclick="${ab}" title="${pv?'Ver sem baixar':'Abrir'}">${axIcone(x)}</button>
+        <button type="button" class="nm" onclick="${ab}" title="${esc(x.nome)}"><b>${esc(x.nome)}</b><small>${x.tipo==='link'?esc(String(x.url||'').replace(/^https?:\/\//,'').split('/')[0]):axFmtB(x.bytes)}${pv?' · ver sem baixar':''}</small></button>
+        <button type="button" class="iconbtn dl" title="${x.tipo==='link'?'Abrir o link':'Baixar'}" aria-label="${x.tipo==='link'?'Abrir o link':'Baixar'}" onclick="tkmAnxAbrir('${x.id}')">${x.tipo==='link'?'&#8599;':'&#8595;'}</button></div></div>`; }).join('')
+    :'<p class="hint">Nenhuma anotação ainda. Registre aqui cada contato com o lead e anexe a proposta.</p>';
+  /* miniatura de imagem: bucket privado, URL assinada */
+  anx.filter(x=>x.tipo==='arquivo'&&String(x.mime||'').startsWith('image/')&&x.caminho).forEach(async x=>{
+    try{ const {data:u}=await sb.storage.from('anexos').createSignedUrl(x.caminho,600);
+      const el=box.querySelector(`.tn[data-anx="${x.id}"]`); if(u&&u.signedUrl&&el) el.innerHTML=`<img src="${esc(u.signedUrl)}" alt="">`; }catch(_){} });
 }
+function clAnxPend(){
+  const el=document.getElementById('clPend'), bt=document.getElementById('clSalvar'), n=CL.pend.length;
+  if(el) el.innerHTML=CL.pend.map((f,i)=>`<span class="cl-pf">${axIcone({tipo:'arquivo',mime:f.type})}<b title="${esc(f.name)}">${esc(f.name)}</b><small>${axFmtB(f.size)}</small><button type="button" onclick="clAnxTira(${i})" aria-label="Tirar ${esc(f.name)}" title="Tirar">&times;</button></span>`).join('');
+  if(bt&&!CL.salvando) bt.textContent=n?'Salvar e anexar'+(n>1?' ('+n+')':''):'Salvar anotação';
+}
+function clAnxFila(fs){
+  fs=[...(fs||[])].filter(Boolean); if(!fs.length) return;
+  fs.forEach(f=>{ if(f.size>AX_MAX) toast('"'+f.name+'" passa de '+AX_MAX_TXT+': suba no Drive e cole o link na anotação.'); else CL.pend.push(f); });
+  clAnxPend();
+}
+window.clAnxEscolhe=(inp)=>{ clAnxFila(inp.files); inp.value=''; };
+window.clAnxTira=(i)=>{ CL.pend.splice(i,1); clAnxPend(); };
+window.clAnxSobre=(ev)=>{ if(![...((ev.dataTransfer||{}).types||[])].includes('Files')) return; ev.preventDefault(); ev.currentTarget.classList.add('on'); };
+window.clAnxSai=(ev)=>{ if(!ev.currentTarget.contains(ev.relatedTarget)) ev.currentTarget.classList.remove('on'); };
+window.clAnxSolta=(ev)=>{ const fs=[...((ev.dataTransfer&&ev.dataTransfer.files)||[])]; if(!fs.length) return;
+  ev.preventDefault(); ev.currentTarget.classList.remove('on'); clAnxFila(fs); };
+/* print colado (Cmd+V) entra na fila como imagem */
+window.clAnxCola=(ev)=>{ const fs=[...((ev.clipboardData&&ev.clipboardData.files)||[])]; if(!fs.length) return;
+  ev.preventDefault(); clAnxFila(fs.map(f=>f.name&&f.name!=='image.png'?f:new File([f],'print-'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')+'.png',{type:f.type||'image/png'}))); };
 window.clNotar=async ()=>{
-  const el=document.getElementById('clNotaTxt'), txt=el?String(el.value||'').trim():''; if(!txt||!CL.id) return;
-  el.disabled=true;
-  const {error}=await sb.from('tarefa_comentarios').insert({tarefa_id:CL.id,autor:(currentUser||{}).id,texto:txt});
-  el.disabled=false;
+  const el=document.getElementById('clNotaTxt'), txt=el?String(el.value||'').trim():'', tid=CL.id;
+  if((!txt&&!CL.pend.length)||!tid||CL.salvando) return;
+  CL.salvando=true; const bt=document.getElementById('clSalvar'); if(bt){ bt.disabled=true; bt.textContent='Salvando…'; }
+  if(el) el.disabled=true;
+  try{
+    if(txt){ const {error}=await sb.from('tarefa_comentarios').insert({tarefa_id:tid,autor:(currentUser||{}).id,texto:txt});
+      if(error){ toast('Erro: '+error.message); return; }
+      const e2=document.getElementById('clNotaTxt'); if(e2) e2.value=''; }
+    const fila=CL.pend.slice(), up=document.getElementById('clUp'); let ok=0;
+    for(const f of fila){
+      const chave='t/'+tid+'/'+uid()+'_'+String(f.name).replace(/[^\w.\-]+/g,'_').slice(-80);
+      const pinta=(a,b)=>{ const u=document.getElementById('clUp'); if(u) u.textContent=axProgTxt(f.name,a,b); };
+      pinta(0,f.size);
+      const r=await axSubir(chave,f,pinta);
+      if(r.error){ toast('Não subiu "'+f.name+'": '+r.error.message); continue; }
+      const {error}=await sb.from('tarefa_anexos').insert({tarefa_id:tid,tipo:'arquivo',nome:f.name,caminho:chave,mime:f.type||null,bytes:f.size,autor:(currentUser||{}).id||null});
+      if(error){ toast('Subiu mas não registrou "'+f.name+'": '+error.message); try{ await sb.storage.from('anexos').remove([chave]); }catch(_){} continue; }
+      ok++; const k=CL.pend.indexOf(f); if(k>=0) CL.pend.splice(k,1);
+    }
+    if(fila.length&&ok) toast(ok===1?'Anexado: '+fila.find(f=>!CL.pend.includes(f)).name:ok+' arquivos anexados.');
+  }finally{
+    CL.salvando=false; const e3=document.getElementById('clNotaTxt'); if(e3) e3.disabled=false;
+    const b2=document.getElementById('clSalvar'); if(b2) b2.disabled=false;
+    const u=document.getElementById('clUp'); if(u) u.textContent='';
+    if(CL.id===tid) clNotas(tid);
+  }
+};
+window.clAnxApagar=async (id)=>{
+  const x=(window.__anx||{})[id]; if(!x) return;
+  if(!(await confirmar('Remover anexo','Remove "'+x.nome+'" do lead.',{sim:'Remover',perigo:true}))) return;
+  const {error}=await sb.from('tarefa_anexos').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
-  el.value=''; clNotas(CL.id);
+  if(x.tipo==='arquivo'&&x.caminho){ try{ await sb.storage.from('anexos').remove([x.caminho]); }catch(_){} }
+  clNotas(CL.id);
 };
 window.clNotaApagar=async (mid)=>{
   if(!confirm('Apagar esta anotação?')) return;
