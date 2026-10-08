@@ -252,6 +252,9 @@
   .wald .cv-msgs{flex:1}
   .wald-r{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
   .wald-r:empty{display:none}
+  .wald-r.novo{flex-wrap:wrap}
+  .wald-de{width:100%;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fraco)}
+  .wald-de select{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px}
   .wald-r textarea{flex:1;resize:none;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;font:inherit;font-size:13px;line-height:1.4;max-height:140px}
   @media(max-width:860px){ .cv-grid{grid-template-columns:1fr;height:auto}
     .cv-lista{max-height:300px} .cv-conv{min-height:420px} }`;
@@ -292,19 +295,27 @@
   /* ---------- Conversa de UM lead, chamada pela ficha do pipeline (Gabriel 18/09) ----------
      A aba geral saiu do Comercial, mas dentro do lead a conversa faz falta: e onde
      esta o que a pessoa escreveu. A funcao /conversa acha sozinha em qual numero do
-     time (Kennedy ou Luana) esse contato falou. */
-  const LD={fone:'',nome:'',chatid:'',por:'',perfil:'',msgs:[],carregando:false,erro:'',enviando:false};
+     time esse contato falou. */
+  const LD={fone:'',nome:'',chatid:'',por:'',perfil:'',msgs:[],carregando:false,erro:'',enviando:false,novo:false,nums:[]};
+  /* sem conversa ainda (Bernardo 08/10, CRM de formulario): o lead do Yay muitas vezes
+     nunca recebeu mensagem. Em vez de parar em "nenhuma conversa", o painel deixa escolher
+     de qual numero do time sai a primeira mensagem; o ultimo escolhido fica lembrado. */
+  const nomeNum=(n)=>String(n||'').replace(/^./,(c)=>c.toUpperCase());
+  const lembraDe=(n)=>{ try{ if(n) localStorage.setItem('waLdDe',n); else return localStorage.getItem('waLdDe')||''; }catch(_){ return ''; } };
   window.waDoLead=async (fone,nome)=>{
     if(!podeVer()){ toast('As conversas do WhatsApp são visíveis só para master e gestor.'); return; }
-    LD.fone=String(fone||''); LD.nome=nome||''; LD.msgs=[]; LD.erro=''; LD.carregando=true; LD.chatid='';
+    LD.fone=String(fone||''); LD.nome=nome||''; LD.msgs=[]; LD.erro=''; LD.carregando=true; LD.chatid=''; LD.por=''; LD.perfil=''; LD.novo=false; LD.nums=[];
     estilo(); waLdModal(); waLdPinta();
     try{ const d=await api('conversa',{fone:LD.fone});
-      if(!d.achou){ LD.erro='Nenhuma conversa com este número ainda, nem no WhatsApp do Kennedy, nem no da Luana.'; }
+      if(!d.achou){ LD.nums=(d.tentou||[]).filter(Boolean);
+        if(!LD.nums.length) LD.erro='Nenhum número do time está cadastrado no sistema (tela Usuários › WhatsApp).';
+        else { const ult=lembraDe(); LD.novo=true; LD.chatid=d.chatid||''; LD.por=LD.nums.includes(ult)?ult:LD.nums[0]; } }
       else { LD.msgs=d.mensagens||[]; LD.por=d.por||''; LD.perfil=d.perfil||d.por||''; LD.chatid=d.chatid||''; }
     }catch(e){ LD.erro=e.message||'falha'; }
     LD.carregando=false; waLdPinta();
   };
   function waLdModal(){
+    waLdFechar();
     const ov=document.createElement('div'); ov.id='waLdOv';
     ov.style.cssText='position:fixed;inset:0;z-index:10600;background:rgba(0,0,0,.72);display:flex;align-items:stretch;justify-content:flex-end';
     ov.innerHTML='<div class="wald"><div class="wald-h"><div class="q"><b id="waLdNome"></b><small id="waLdPor"></small></div>'+
@@ -319,10 +330,11 @@
     const c=$('#waLdMsgs'); if(!c) return;
     const n=$('#waLdNome'), p=$('#waLdPor'), z=$('#waLdZap');
     if(n) n.textContent=LD.nome||fmtFone(LD.fone);
-    if(p) p.textContent=LD.por?('conversa no WhatsApp de '+LD.perfil):(LD.carregando?'procurando…':'');
+    if(p) p.textContent=LD.novo?'ainda sem conversa':(LD.por?('conversa no WhatsApp de '+LD.perfil):(LD.carregando?'procurando…':''));
     if(z) z.href='https://wa.me/'+String(LD.fone).replace(/\D/g,'');
     if(LD.carregando){ c.innerHTML='<div class="cv-nada">Procurando a conversa…</div>'; }
     else if(LD.erro){ c.innerHTML='<div class="cv-nada">'+esc(LD.erro)+'</div>'; }
+    else if(LD.novo&&!LD.msgs.length){ c.innerHTML='<div class="cv-nada">Ainda não tem conversa com '+esc(fmtFone(LD.fone))+' em nenhum número do time.<br>Escreva a primeira mensagem aqui embaixo.</div>'; }
     else {
       const guarda=CV.msgs, g2=CV.sel;
       CV.msgs=LD.msgs; CV.sel={chatid:LD.chatid};
@@ -331,9 +343,12 @@
       c.scrollTop=c.scrollHeight;
     }
     const r=$('#waLdResp');
-    if(r) r.innerHTML=LD.chatid?('<textarea id="waLdTexto" rows="1" placeholder="Responder…" oninput="waLdCresce(this)" onkeydown="waLdTecla(event)"></textarea>'+
+    if(r) r.classList.toggle('novo',LD.novo);
+    if(r) r.innerHTML=LD.chatid?((LD.novo?'<label class="wald-de">Enviar pelo WhatsApp de <select id="waLdDe" onchange="waLdDe(this.value)">'+
+      LD.nums.map((n)=>'<option value="'+esc(n)+'"'+(n===LD.por?' selected':'')+'>'+esc(nomeNum(n))+'</option>').join('')+'</select></label>':'')+'<textarea id="waLdTexto" rows="1" placeholder="Responder…" oninput="waLdCresce(this)" onkeydown="waLdTecla(event)"></textarea>'+
       '<button class="btn small" onclick="waLdEnviar()"'+(LD.enviando?' disabled':'')+'>'+(LD.enviando?'Enviando…':'Enviar')+'</button>'):'';
   }
+  window.waLdDe=(n)=>{ if(LD.nums.includes(n)){ LD.por=n; lembraDe(n); } };
   window.waLdCresce=(t)=>{ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,140)+'px'; };
   window.waLdTecla=(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); waLdEnviar(); } };
   window.waLdEnviar=async ()=>{
@@ -343,8 +358,11 @@
     LD.msgs.push({id:'tmp'+Date.now(),deNos:true,texto,quando:new Date().toISOString(),status:'enviando'});
     waLdPinta();
     try{ await api('responder',{name:LD.por,chatid:LD.chatid,texto});
-      const d=await api('conversa',{fone:LD.fone}); if(d.achou) LD.msgs=d.mensagens||LD.msgs;
-    }catch(e){ toast('Não enviou: '+e.message); LD.msgs.pop(); t.value=texto; }
+      if(LD.novo){ LD.novo=false; LD.perfil=nomeNum(LD.por); }
+      LD.msgs[LD.msgs.length-1].status='enviada';
+      try{ const d=await api('conversa',{fone:LD.fone});
+        if(d.achou){ LD.msgs=d.mensagens||LD.msgs; LD.por=d.por||LD.por; LD.perfil=d.perfil||LD.perfil; LD.chatid=d.chatid||LD.chatid; } }catch(_){}
+    }catch(e){ toast('Não enviou: '+e.message); LD.msgs.pop(); LD.enviando=false; waLdPinta(); const t2=$('#waLdTexto'); if(t2) t2.value=texto; return; }
     LD.enviando=false; waLdPinta();
   };
 })();
