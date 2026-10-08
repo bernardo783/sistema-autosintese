@@ -9881,19 +9881,23 @@ function rspWaNum(t){
 }
 /* conversa DENTRO do sistema (Bernardo 08/10: "o botão de WhatsApp pra abrir a conversa
    dentro do sistema"): usa o mesmo painel da ficha do pipeline (comercial/conversas.js),
-   que acha em qual número do time o lead falou e deixa responder dali. Esse painel é só
-   master/gestor; quem não pode ver continua indo pro wa.me. */
-const rspWaDentro=()=>{ const u=(typeof currentUser!=='undefined')?currentUser:null;
-  return typeof waDoLead==='function'&&!!u&&(u.role==='master'||['admin','gestor'].includes(u.papel_crm)); };
+   que acha em qual número do time o lead falou e deixa responder dali. Master/gestor veem
+   todos; o vendedor (papel no CRM) vê os leads em que é responsável e envia pelo próprio
+   número (Bernardo 08/10). Quem não pode ver continua indo pro wa.me. */
+const rspWaDentro=(t)=>{ const u=(typeof currentUser!=='undefined')?currentUser:null;
+  if(typeof waDoLead!=='function'||!u) return false;
+  if(u.role==='master'||['admin','gestor'].includes(u.papel_crm)) return true;
+  return !!(u.papel_crm&&t&&(t.responsaveis||[]).map(String).includes(String(u.id))); };
 function rspWaAbrir(id){
   const t=(TK.tarefas||[]).find(x=>x.id===id), n=t?rspWaNum(t):'';
   if(!n){ toast('Esse lead não tem WhatsApp.'); return false; }
-  if(!rspWaDentro()){ window.open('https://wa.me/'+n,'_blank','noopener'); return false; }
-  waDoLead(n,t.titulo||''); return false;
+  if(!rspWaDentro(t)){ window.open('https://wa.me/'+n,'_blank','noopener'); return false; }
+  /* com o id do card o painel mostra Classificar e transferir (Bernardo 08/10) */
+  waDoLead(n,t.titulo||'',{tarefa:t.id}); return false;
 }
 const RSP_WA_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.5-.6-2.7-1.2-4.4-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 1.9 1.1.9 2 1.2 2.3 1.4.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg>';
 const rspWaBtn=(t)=>{ const n=rspWaNum(t); if(!n) return '';
-  return rspWaDentro()
+  return rspWaDentro(t)
     ? `<button type="button" class="tk-wa" title="Abrir a conversa aqui no sistema (+${n})" onclick="event.stopPropagation();rspWaAbrir('${t.id}')">${RSP_WA_SVG}</button>`
     : `<a class="tk-wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp (+${n})" onclick="event.stopPropagation()">${RSP_WA_SVG}</a>`; };
 /* numero do lead sempre escrito na lista (Bernardo 08/10: "um não anula o outro"): o botao
@@ -24555,6 +24559,6 @@ initLoginScreen();
 </script>
 <script src="crm.js?v=27" defer></script>
 <script src="comercial/instancias.js?v=5" defer></script>
-<script src="comercial/conversas.js?v=4" defer></script>
+<script src="comercial/conversas.js?v=5" defer></script>
 </body>
 </html>
