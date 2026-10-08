@@ -1509,51 +1509,86 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   const abriu=[];
   const ctx=(u,comPainel)=>Object.assign({TK:{listaSel:'L',tarefas:[{id:'a',lista_id:'L',titulo:'Ana Souza',valores:{w:'https://wa.me/11999990001',d:'2026-10-07'}}],campos:C,colsOff:{}},
     tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,
-    tkSelo:()=>'<select></select>',tpSvg:()=>'',setTimeout:()=>0,toast:()=>{},currentUser:u},comPainel?{waDoLead:(f,n)=>abriu.push([f,n])}:{});
+    tkSelo:()=>'<select></select>',tpSvg:()=>'',setTimeout:()=>0,toast:()=>{},currentUser:u},comPainel?{waDoLead:(f,n,o)=>abriu.push([f,n,o])}:{});
   const g=rodar(cod,ctx({role:'master'},true),['tkViewRespostas','rspWaBtn','rspWaAbrir','rspCel']);
   const t=g.TK.tarefas[0], b=g.rspWaBtn(t);
   ok('master: o botão chama o painel interno, não o wa.me', /<button type="button" class="tk-wa"/.test(b)&&/rspWaAbrir\('a'\)/.test(b)&&b.indexOf('wa.me')<0);
   g.rspWaAbrir('a');
   ok('abre o painel com o número com 55 e o nome do lead', abriu.length===1&&abriu[0][0]==='5511999990001'&&abriu[0][1]==='Ana Souza');
+  ok('manda o id do card pro painel (Classificar e transferir)', abriu.length===1&&!!abriu[0][2]&&abriu[0][2].tarefa==='a');
   const h=g.tkViewRespostas();
   ok('Respostas: botão do WhatsApp logo depois do nome', /Ana Souza<\/button><button type="button" class="tk-wa"/.test(h));
   ok('Respostas: o número na coluna WhatsApp também abre o painel', /class="rsp-lk" href="https:\/\/wa\.me\/11999990001"[^>]*return rspWaAbrir\('a'\)/.test(h));
   const g2=rodar(cod,ctx({role:'colaborador',papel_crm:'sdr'},true),['rspWaBtn']);
   ok('quem não vê conversas (só master/gestor) continua indo pro wa.me', /<a class="tk-wa" href="https:\/\/wa\.me\/5511999990001"/.test(g2.rspWaBtn(g2.TK.tarefas[0])));
+  const g4=rodar(cod,ctx({id:'u9',role:'colaborador',papel_crm:'sdr'},true),['rspWaBtn']);
+  g4.TK.tarefas[0].responsaveis=['u9'];
+  ok('vendedor responsável pelo lead abre a conversa dentro do sistema', /<button type="button" class="tk-wa"/.test(g4.rspWaBtn(g4.TK.tarefas[0])));
   const g3=rodar(cod,ctx({role:'master'},false),['rspWaBtn']);
   ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
   ok('a Lista usa o mesmo botão', /rspWaBtn\(t\)(\+rspIgBtn\(t\))?:''/.test(HTML));
   ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
-  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=4')>0);
+  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=5')>0);
 
-  /* painel: lead que nunca recebeu mensagem pode receber a primeira dali */
+  /* painel novo (Bernardo 08/10): faixa do número, enviar, agendar, transferir */
   const CJ=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
-  const els={}, el=(id)=>els[id]||(els[id]={id,innerHTML:'',textContent:'',value:'',href:'',scrollTop:0,scrollHeight:0,style:{},
-    classList:{toggle(c,on){ this[c]=!!on; }},remove(){ delete els[id]; },addEventListener(){}});
-  const chamadas=[], ls={}; let achou=false;
-  const gc=rodar(CJ,{document:{querySelector:(s)=>s.startsWith('#')?el(s.slice(1)):null,querySelectorAll:()=>[],getElementById:()=>null,
-      createElement:()=>({style:{},addEventListener(){}}),head:{appendChild(){}},body:{appendChild(){}}},
+  const els={}, el=(id)=>els[id]||(els[id]={id,innerHTML:'',textContent:'',value:'',href:'',className:'',scrollTop:0,scrollHeight:0,clientHeight:0,style:{},
+    classList:{toggle(c,on){ this[c]=!!on; }},remove(){ delete els[id]; },addEventListener(){},focus(){},select(){}});
+  const chamadas=[], ls={}, avisos=[]; let ov=null, resp=null;
+  const VEND=[{id:'u1',nome:'Bernardo Antunes',numero:'bernardo'},{id:'u2',nome:'Kennedy Lima',numero:'kennedy'}];
+  const LEAD=(x)=>Object.assign({ok:true,chatid:'5511999990001@s.whatsapp.net',mensagens:[],por:'',perfil:'',fonePor:'',conectado:true,
+    nums:['bernardo','kennedy','luana'],vendedores:VEND,responsaveis:[],eu:'u1',admin:true,agendadas:[]},x||{});
+  const ctxP=(u)=>({document:{querySelector:(s)=>s.startsWith('#')?el(s.slice(1)):null,querySelectorAll:()=>[],getElementById:()=>null,
+      createElement:()=>({style:{},addEventListener(){}}),head:{appendChild(){}},body:{appendChild(x){ ov=x; }}},
     localStorage:{getItem:(k)=>ls[k]||null,setItem:(k,v)=>{ ls[k]=String(v); }},
-    currentUser:{role:'master'},SESSION:{access_token:'x'},toast:()=>{},
-    fetch:async (u,o)=>{ const acao=u.split('/').pop(), b=o&&o.body?JSON.parse(o.body):{}; chamadas.push([acao,b]);
-      const d=acao==='conversa'?(achou?{ok:true,achou:true,por:'bernardo',perfil:'Bernardo',chatid:'5511999990001@s.whatsapp.net',mensagens:[{id:'1',deNos:true,texto:'Oi',quando:'2026-10-08T12:00:00Z'}]}
-        :{ok:true,achou:false,chatid:'5511999990001@s.whatsapp.net',tentou:['kennedy','luana','bernardo']}):{ok:true,id:'m1'};
-      if(acao==='responder') achou=true;
-      return {json:async ()=>d,status:200}; }},[]);
+    currentUser:u,SESSION:{access_token:'x'},toast:(m)=>avisos.push(m),TK:{tarefas:[{id:'a',lista_id:'L',status_id:null,responsaveis:['u1']}]},
+    fetch:async (url,o)=>{ const acao=url.split('/').pop(), b=o&&o.body?JSON.parse(o.body):{}; chamadas.push([acao,b]);
+      const d=acao==='lead'?resp:acao==='agendar'?{ok:true,agendada:{id:'ag1',instancia:b.name,tipo:'texto',texto:b.texto,enviar_em:b.quando,status:'pendente',criado_por:'u1'}}:{ok:true,id:'m1'};
+      return {json:async ()=>d,status:200}; }});
+  const gc=rodar(CJ,ctxP({role:'master'}),[]);
   ls.waLdDe='bernardo';
   PROMESSAS.push((async ()=>{
+    resp=LEAD();
     await gc.waDoLead('5511999990001','Ana Souza');
     ok('painel: sem conversa, explica e não trava', /Ainda não tem conversa/.test(els.waLdMsgs.innerHTML));
-    ok('painel: dá pra escolher de qual número do time sai a primeira mensagem', /<select id="waLdDe"/.test(els.waLdResp.innerHTML)&&/value="kennedy"/.test(els.waLdResp.innerHTML)&&/value="bernardo" selected/.test(els.waLdResp.innerHTML));
-    ok('painel: caixa de texto pra escrever', /<textarea id="waLdTexto"/.test(els.waLdResp.innerHTML));
+    ok('painel: pede a conversa do lead em todos os números (ação lead)', chamadas.some(c=>c[0]==='lead'&&c[1].fone==='5511999990001'));
+    ok('painel: faixa "Enviando pelo WhatsApp de" com o número que vai sair', /Enviando pelo WhatsApp de <b>Bernardo<\/b>/.test(els.waLdPor.innerHTML));
+    ok('painel: master pode trocar o número no seletor da faixa', /<select/.test(els.waLdPor.innerHTML)&&/value="kennedy"/.test(els.waLdPor.innerHTML)&&/value="bernardo" selected/.test(els.waLdPor.innerHTML));
+    ok('painel: caixa com +, emoji, relógio e microfone', !!ov&&/Anexar foto, vídeo ou documento/.test(ov.innerHTML)&&/title="Emoji"/.test(ov.innerHTML)&&/Agendar mensagem/.test(ov.innerHTML)&&/id="waLdMic"/.test(ov.innerHTML)&&/<textarea id="waLdTexto"/.test(ov.innerHTML));
+    ok('painel: sem card, sem botão de transferir', els.waLdTr.style.display==='none');
     gc.waLdDe('luana'); ok('lembra o último número escolhido', ls.waLdDe==='luana');
     gc.waLdDe('bernardo');
     el('waLdTexto').value='Olá Ana, vi seu cadastro';
     await gc.waLdEnviar();
     const r=chamadas.find(c=>c[0]==='responder');
     ok('envia pelo número escolhido, pro número do lead', !!r&&r[1].name==='bernardo'&&r[1].chatid==='5511999990001@s.whatsapp.net'&&r[1].texto==='Olá Ana, vi seu cadastro');
-    ok('depois de enviar vira conversa normal (sem o seletor)', !/waLdDe/.test(els.waLdResp.innerHTML)&&/textarea/.test(els.waLdResp.innerHTML)&&/Bernardo/.test(els.waLdPor.textContent));
+    el('waLdTexto').value='Bom dia! Conseguiu ver o catálogo?'; el('waLdAgD').value='2099-01-02'; el('waLdAgH').value='09:00';
+    await gc.waLdAgendar();
+    const ag=chamadas.find(c=>c[0]==='agendar');
+    ok('agendar: manda texto, número e o horário escolhido', !!ag&&ag[1].name==='bernardo'&&ag[1].texto==='Bom dia! Conseguiu ver o catálogo?'&&ag[1].quando===new Date('2099-01-02T09:00').toISOString());
+    ok('agendar: a mensagem agendada aparece na conversa, com cancelar', /Agendada para/.test(els.waLdMsgs.innerHTML)&&/waLdCancelar\('ag1'\)/.test(els.waLdMsgs.innerHTML));
+    ok('agendar: horário no passado não vai', (el('waLdTexto').value='x',el('waLdAgD').value='2000-01-01',await gc.waLdAgendar(),chamadas.filter(c=>c[0]==='agendar').length===1));
+    resp=LEAD({por:'bernardo',responsaveis:['u1'],mensagens:[{id:'1',deNos:true,texto:'Oi',quando:'2026-10-08T12:00:00Z',por:'kennedy'},{id:'2',deNos:true,texto:'Tudo bem?',quando:'2026-10-08T13:00:00Z',por:'bernardo'}]});
+    await gc.waDoLead('5511999990001','Ana Souza',{tarefa:'a'});
+    ok('com o card: manda o id do card pro servidor', chamadas.filter(c=>c[0]==='lead').pop()[1].tarefa==='a');
+    ok('com o card: botão roxo de transferir aparece', els.waLdTr.style.display==='');
+    gc.waLdPop('tr');
+    ok('transferir: lista os vendedores e marca o atual', /Kennedy Lima/.test(els.waLdPop.innerHTML)&&/atual/.test(els.waLdPop.innerHTML));
+    ok('histórico de dois números mostra por qual saiu cada mensagem', /via Kennedy/.test(els.waLdMsgs.innerHTML)&&/via Bernardo/.test(els.waLdMsgs.innerHTML));
+    const gv=rodar(CJ,ctxP({role:'membro',papel_crm:'sdr'}),[]);
+    const antes=chamadas.length;
+    await gv.waDoLead('5511999990001','Ana Souza');
+    ok('vendedor: sem o card não abre', chamadas.length===antes&&avisos.some(a=>/vendedor do lead/.test(a)));
+    resp=LEAD({admin:false,nums:['kennedy'],por:'kennedy'});
+    await gv.waDoLead('5511999990001','Ana Souza',{tarefa:'a'});
+    ok('vendedor: com o card abre, e sem seletor de número', chamadas.length>antes&&!/<select/.test(els.waLdPor.innerHTML)&&/Kennedy/.test(els.waLdPor.innerHTML));
   })());
+}
+grupo('Seletor de emoji da conversa é conteúdo da mensagem, não ícone (Bernardo 08/10)');
+{
+  const CJ=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
+  const m=CJ.match(/const EMOJIS='([^']*)'/);
+  ok('lista de emoji escrita por código (o arquivo continua sem emoji solto)', !!m&&/^(\\u\{[0-9A-F]+\}|\s)+$/.test(m[1]));
 }
 grupo('Cartão do lead: abre como CRM, não como tarefa (Bernardo 08/10)');
 {
