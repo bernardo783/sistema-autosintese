@@ -1510,7 +1510,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   const ctx=(u,comPainel)=>Object.assign({TK:{listaSel:'L',tarefas:[{id:'a',lista_id:'L',titulo:'Ana Souza',valores:{w:'https://wa.me/11999990001',d:'2026-10-07'}}],campos:C,colsOff:{}},
     tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,
     tkSelo:()=>'<select></select>',tpSvg:()=>'',setTimeout:()=>0,toast:()=>{},currentUser:u},comPainel?{waDoLead:(f,n,o)=>abriu.push([f,n,o])}:{});
-  const g=rodar(cod,ctx({role:'master'},true),['tkViewRespostas','rspWaBtn','rspWaAbrir','rspCel']);
+  const g=rodar(cod,ctx({role:'master'},true),['tkViewRespostas','rspWaBtn','rspWaAbrir','rspCel','rspFoneCel']);
   const t=g.TK.tarefas[0], b=g.rspWaBtn(t);
   ok('master: o botão chama o painel interno, não o wa.me', /<button type="button" class="tk-wa"/.test(b)&&/rspWaAbrir\('a'\)/.test(b)&&b.indexOf('wa.me')<0);
   g.rspWaAbrir('a');
@@ -1518,7 +1518,13 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   ok('manda o id do card pro painel (Classificar e transferir)', abriu.length===1&&!!abriu[0][2]&&abriu[0][2].tarefa==='a');
   const h=g.tkViewRespostas();
   ok('Respostas: botão do WhatsApp logo depois do nome', /Ana Souza<\/button><button type="button" class="tk-wa"/.test(h));
-  ok('Respostas: o número na coluna WhatsApp também abre o painel', /class="rsp-lk" href="https:\/\/wa\.me\/11999990001"[^>]*return rspWaAbrir\('a'\)/.test(h));
+  /* o numero continua escrito na coluna, com copiar e abrir no WhatsApp (Bernardo 08/10: "um não anula o outro") */
+  ok('Respostas: coluna WhatsApp mostra o número legível', /<span class="rsp-num"[^>]*>\(11\) 99999-0001<\/span>/.test(h));
+  ok('Respostas: botão de copiar o número', /rspCopiarFone\('\(11\) 99999-0001'\)/.test(h));
+  ok('Respostas: botão que leva pro WhatsApp com o 55', /class="rsp-fb wa" href="https:\/\/wa\.me\/5511999990001"/.test(h));
+  ok('número de fora do Brasil fica com o DDI', g.rspFoneCel('https://wa.me/351912345678').indexOf('>+351912345678<')>0);
+  ok('texto que não é telefone fica como veio, sem botão', g.rspFoneCel('não tenho')==='não tenho');
+  ok('a Lista mostra a mesma célula no lugar do link cru', /crmForm\(t\.lista_id\)\)\{ const cel=rspFoneCel\(/.test(HTML));
   const g2=rodar(cod,ctx({role:'colaborador',papel_crm:'sdr'},true),['rspWaBtn']);
   ok('quem não vê conversas (só master/gestor) continua indo pro wa.me', /<a class="tk-wa" href="https:\/\/wa\.me\/5511999990001"/.test(g2.rspWaBtn(g2.TK.tarefas[0])));
   const g4=rodar(cod,ctx({id:'u9',role:'colaborador',papel_crm:'sdr'},true),['rspWaBtn']);
@@ -2272,7 +2278,7 @@ grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (B
   ok('mais novo em cima, arquivado fora', h.indexOf('>Bia<')>0&&h.indexOf('>Bia<')<h.indexOf('>Ana<')&&h.indexOf('Velho')<0);
   ok('contagem de respostas', /2 respostas/.test(h));
   ok('data curta dd/mm/aa', g.rspData('2026-10-05')==='05/10/26');
-  ok('WhatsApp vira o número com link pra conversa', /href="https:\/\/wa.me\/5511999990000"[^>]*>\+5511999990000</.test(h));
+  ok('WhatsApp vira o número escrito, com copiar e link pra conversa', /class="rsp-num"[^>]*>\(11\) 99999-0000</.test(h)&&/href="https:\/\/wa.me\/5511999990000"/.test(h));
   ok('Instagram vira o botão da ficha do cliente, com o @', /class="pc-chip rsp-ig" href="https:\/\/instagram.com\/ana"[^>]*><span class="pc-ci ig"><svg class="ig"><\/svg><\/span><span>@ana<\/span>/.test(h));
   ok('Instagram: link, @ e usuário solto viram o usuário', g.rspIgDe('https://www.instagram.com/sr.sofa1429?stkn=x')==='sr.sofa1429'&&g.rspIgDe('@@loja_ ')==='loja_'&&g.rspIgDe('Belaarte')==='Belaarte');
   {
