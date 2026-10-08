@@ -1629,7 +1629,7 @@ grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernar
   ok('aba Painel ao lado de Respostas, Lista e Quadro', /\['board',PCX_I\.quadro\+'Quadro'\],\.\.\.\(pnl\?\[\['painel'/.test(HTML)&&/TK\.visao==='painel'\?crmPainelView\(\)/.test(HTML));
   ok('CRM Sofás só em Respostas: sem Lista e sem Quadro, Painel ao lado', /const CRM_SO_RESP=Object\.fromEntries\(CRM_FORMS\.map\(f=>\[f\.lista,1\]\)\);/.test(HTML)&&/:soResp\?\[\['tabela',tpSvg\('tabela',14\)\+'Respostas'\],\.\.\.\(pnl\?/.test(HTML)&&/if\(soResp&&TK\.visao!=='tabela'&&TK\.visao!=='painel'(&&TK\.visao!=='anuncios')?\) TK\.visao='tabela';/.test(HTML));
   ok('Fechamento: lead de origem (CRMs de formulário) vai pro fechamento', /id="fc_lead"/.test(HTML)&&/leadId:leadO\.id/.test(HTML)&&/fcLeadsCarregar\(\);/.test(HTML));
-  ok('CRM de formulário: aba Anúncios ao lado do Painel', /\['anuncios',tpSvg\('megafone',14\)\+'Anúncios'\]/.test(HTML)&&/TK\.visao==='anuncios'\?anuView\(\)/.test(HTML));
+  ok('CRM de formulário: Anúncios é uma lista na árvore de cada CRM', /if\(view==='crm-anuncios'\) return renderCrmAnuncios\(c\);/.test(HTML)&&/const CRM_ANUNCIOS=\{/.test(HTML)&&HTML.indexOf("['anuncios',tpSvg('megafone',14)")<0);
   ok('no topo do CRM Sofás some o ícone da Lista e o do Quadro', /\$\{soBoard\|\|\(TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\)\?'':tpIb\('lista'/.test(HTML)&&/\$\{TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\?'':tpIb\('quadro'/.test(HTML));
   ok('crm.js com cache novo', HTML.indexOf('crm.js?v=29')>0);
 }
