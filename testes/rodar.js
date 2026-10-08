@@ -2387,6 +2387,35 @@ grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (B
   ok('lista de formulário abre em Respostas por padrão', HTML.indexOf("crmForm(id)?'tabela':")>0&&HTML.indexOf("TK.visao==='tabela'?tkViewRespostas():")>0);
 }
 
+/* ---------------- prioridade como bandeira (Bernardo 08/10) ---------------- */
+grupo('Prioridade como bandeira no filtro e no menu rápido (Bernardo 08/10)');
+{
+  ok('filtro: cada prioridade é uma bandeira na cor dela', HTML.indexOf('class="tkp-chip tkp-prio${on?\' on\':\'\'}" style="--c:${cor}"')>0&&/tkp-prio[\s\S]{0,200}\$\{prioFlag\(cor,on\)\}/.test(HTML));
+  ok('menu rápido da prioridade usa a bandeira, não o quadradinho', HTML.indexOf("${prioFlag(PRIO_COR[k],(t.prioridade||'med')===k)}")>0&&HTML.indexOf('border-radius:3px;background:${PRIO_COR[k]}')<0);
+}
+
+/* ---------------- filtro de data: atalhos + calendário (Bernardo 08/10) ---------------- */
+grupo('Filtro de data: atalhos à esquerda e calendário do mês (Bernardo 08/10)');
+{
+  const F={prazo:'',de:'',ate:'',prios:[],resps:[]};
+  const g=rodar(bloco('function tkDiaMais(','/* Redesenhar a mesma lista'),{TK:{filtro:F},tkHoje:()=>'2026-10-08',
+    esc:(x)=>String(x==null?'':x),PRIO_COR:{urgente:'#e',alta:'#a',med:'#m',baixa:'#b'},TK_PRIO:{urgente:'Urgente',alta:'Alta',med:'Normal',baixa:'Baixa'},
+    prioFlag:()=>'<i></i>',TK_MESES:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    svgIco:()=>'',avatar:()=>'',localStorage:{setItem(){}},tkDesenhar(){},$:()=>null,
+    document:{getElementById:()=>null,addEventListener(){},removeEventListener(){}}},['tkPopFiltroHTML','tkPrazoBate']);
+  let h=g.tkPopFiltroHTML();
+  ok('atalhos na coluna da esquerda e o calendário do mês de hoje', /class="tkc-lado"/.test(h)&&/Outubro 2026/.test(h)&&h.indexOf('type="date"')<0&&/class="tkc-d hoje"[^>]*>8</.test(h));
+  g.tkCalDia('2026-10-15');
+  ok('1º clique marca o dia e já filtra só ele', F.de==='2026-10-15'&&F.ate==='2026-10-15'&&F.prazo==='');
+  g.tkCalDia('2026-10-09');
+  h=g.tkPopFiltroHTML();
+  ok('2º clique fecha o período (antes do 1º, inverte)', F.de==='2026-10-09'&&F.ate==='2026-10-15'&&/09\/10\/26 → 15\/10\/26/.test(h)&&(h.match(/tkc-d den ponta/g)||[]).length===2);
+  g.tkFPrazo('prox7'); h=g.tkPopFiltroHTML();
+  ok('atalho limpa o período e fica marcado', F.de===''&&F.ate===''&&F.prazo==='prox7'&&/class="tkc-at on"[^>]*>Próximos 7 dias</.test(h));
+  g.tkCalMes(1);
+  ok('setas trocam o mês', /Novembro 2026/.test(g.tkPopFiltroHTML()));
+}
+
 /* ---------------- CRM de formulário com o visual do Controle de Clientes ---------------- */
 grupo('Respostas: mesmo visual do Controle de Clientes, colunas separadas (Bernardo 08/10)');
 {
@@ -2410,4 +2439,3 @@ console.log('\n'+(falhas
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
 process.exit(falhas?1:0);
 }
-
