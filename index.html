@@ -3070,27 +3070,28 @@
   .cl-hist{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
   .cl-ev{position:relative;padding:5px 0 5px 18px;font-size:12.5px;color:var(--muted)}
   .cl-ev i{position:absolute;left:3px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--brand)}
-  /* NOVO LEAD (Bernardo 08/10): o + dos CRMs de formulário cadastra no mesmo painel do cartão */
+  /* NOVO LEAD (Bernardo 08/10): o + dos CRMs de formulário cadastra no mesmo painel do cartão.
+     Enxuto ("deixa o mais minimalista possível"): uma coluna, um bloco, sem texto de ajuda. */
+  .cl.cln{width:min(560px,100vw)}
+  .cln-corpo{flex:1;overflow:auto;padding:20px 28px 24px}
+  .cln .cl-box{padding:6px 18px 10px}
+  .cln .cl-kv{grid-template-columns:110px minmax(0,1fr)}
   .cln .cl-in{width:100%;margin-left:0;border-color:var(--line);background:var(--panel);font-weight:600}
   .cln .cl-in:focus{border-color:var(--brand)}
   .cln .cl-in.erro{border-color:var(--danger)}
-  .cln textarea.cl-in{resize:vertical;min-height:96px;line-height:1.45;font-weight:500}
+  .cln textarea.cl-in{resize:vertical;min-height:84px;line-height:1.45;font-weight:500;margin:8px 0}
+  .cln .cl-kv.alto{align-items:start}
+  .cln .cl-kv.alto>span{padding-top:16px}
   .cln .cl-kv>span em{color:var(--danger);font-style:normal;margin-left:2px}
+  .cln-uf{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:8px}
   .cln-dup{display:flex;align-items:center;gap:10px;margin:2px 0 8px;padding:9px 12px;border-radius:10px;font-size:12.5px;
     background:color-mix(in srgb,var(--warn) 14%,transparent);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
   .cln-dup button{margin-left:auto;background:none;border:0;padding:0;color:var(--warn);font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
-  .cln-chips{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0 10px}
-  .cln-chip{height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-  .cln-chip:hover{border-color:var(--brand2);color:var(--txt)}
-  .cln-chip.on{background:color-mix(in srgb,var(--brand) 22%,transparent);border-color:var(--brand);color:var(--txt)}
-  .cln-vez{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
-  .cl-pe{display:flex;align-items:center;gap:12px;padding:14px 28px;border-top:1px solid var(--line);background:var(--panel)}
-  .cl-pe p{margin:0;flex:1;font-size:12.5px;color:var(--fraco)}
-  .cl-pe p b{color:var(--txt)}
+  .cl-pe{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 28px;border-top:1px solid var(--line);background:var(--panel)}
   .cl-pe .btn{flex:none;width:auto;margin:0}
   @media(max-width:760px){
-    .cl-pe{padding:12px 16px;flex-wrap:wrap}
-    .cl-pe p{flex-basis:100%}
+    .cln-corpo{padding:16px}
+    .cl-pe{padding:12px 16px}
   }
   @media(max-width:760px){
     .cl-h{flex-wrap:wrap;padding:16px}
@@ -14901,7 +14902,7 @@ window.caGVoltou=async ()=>{ CA.gstIds=''; const ids=((EQ.cfg&&EQ.cfg.vendedores
    prioridade, checklist ou subtarefa. Cada mudança grava na hora (tkPatch), igual ao painel. */
 const CL={id:''};
 const CL_RE={whats:/whats/i,insta:/insta/i,cargo:/^cargo$/i,cidade:/^cidade$/i,estado:/^estado$/i,
-  campanha:/^campanha$/i,conjunto:/^conjunto$/i,anuncio:/^an[uú]ncio$/i,msg:/mensagem autom/i,form:/^formul/i,origem:/^origem$/i};
+  campanha:/^campanha$/i,conjunto:/^conjunto$/i,anuncio:/^an[uú]ncio$/i,msg:/mensagem autom/i,form:/^formul/i,origem:/^origem$/i,empresa:/^empresa$/i};
 const clCampo=(t,k)=>tkCamposDe(t.lista_id).find(c=>k==='data'?c.nome===RSP_DATA:CL_RE[k].test(c.nome))||null;
 const clVal=(t,k)=>{ const c=clCampo(t,k), v=c?(t.valores||{})[c.id]:''; return v==null?'':String(v); };
 const clFone=(n)=>{ const d=String(n||'').replace(/\D/g,''), s=d.startsWith('55')&&d.length>=12?d.slice(2):d;
@@ -15008,6 +15009,7 @@ function crmLdHtml(t){
       <div class="cl-col">
         <section class="cl-box"><h4>Contato</h4>
           <div class="cl-kv"><span>WhatsApp</span><div class="cl-fone">${ed('whats','sem número')}${clSeta(t)}</div></div>
+          <div class="cl-kv"><span>Empresa</span>${ed('empresa','-')}</div>
           <div class="cl-kv"><span>Instagram</span>${ed('insta','@perfil')}</div>
           <div class="cl-kv"><span>Cargo</span>${ed('cargo','-')}</div>
           <div class="cl-kv"><span>Cidade</span>${ed('cidade','-')}</div>
@@ -15092,17 +15094,21 @@ window.clArquivar=async ()=>{ const id=CL.id; if(!id) return;
   clFechar(); await tkArquivar(id); };
 /* ======================= NOVO LEAD (Bernardo 08/10) =======================
    "Quando eu clico no + pra cadastrar um lead manual, de indicação ou de outro canal sem tráfego,
-   abre uma tela de tarefa. Você acha que isso é cadastro de lead?" Nos CRMs de formulário o +
-   abre este cadastro, no mesmo painel do cartão do lead: contato, de onde veio, vendedor (já vem o
-   próximo do rodízio) e a primeira anotação. Grava tudo de uma vez pela RPC crm_lead_novo, que
-   também anda a fila quando o lead fica com o próximo da vez, e abre o cartão do lead criado.
-   Não dispara mensagem automática: o primeiro contato é do vendedor. */
-const CLN_ORIGENS=['Indicação','Instagram orgânico','Evento','Prospecção','Outro'];
-const CLN={lid:'',etapa:'',origem:'Indicação',vez:'',mexeu:false,salvando:false};
+   abre uma tela de tarefa." Nos CRMs de formulário o + abre este cadastro, no painel do cartão do
+   lead. Versão enxuta (Bernardo 08/10: "deixa o mais minimalista possível"): nome, WhatsApp,
+   empresa, Instagram, cargo, cidade/UF, origem (escolhe das que já existem ou digita uma nova, que
+   vira opção), indicado por (só em Indicação), vendedor (vem quem cadastra; pode trocar ou deixar
+   vazio) e anotação. Grava tudo de uma vez pela RPC crm_lead_novo e abre o cartão do lead criado.
+   Não dispara mensagem automática e não mexe no rodízio. */
+const CLN={lid:'',etapa:'',salvando:false};
 const clnEtapaPadrao=(lid)=>{ const sts=tkStatusDe(lid); return (sts.find(s=>/novo lead/i.test(s.nome))||sts[0]||{}).id||''; };
+const clnCampo=(lid,nome)=>tkCamposDe(lid).find(c=>c.nome===nome)||null;
+/* origens já criadas no campo Origem do CRM (Formulário é do Yay, não entra no cadastro à mão) */
+const clnOrigens=(lid)=>{ const c=clnCampo(lid,'Origem'); return ((c&&c.opcoes)||[]).filter(o=>o&&o!=='Formulário'); };
+const clnEhIndicacao=(v)=>/^indica[cç][aã]o$/i.test(String(v||'').trim());
 function crmLdNovo(lid,etapaPre){
   const pre=tkStatus1(etapaPre);
-  Object.assign(CLN,{lid,etapa:(pre&&pre.lista_id===lid)?pre.id:clnEtapaPadrao(lid),origem:'Indicação',vez:'',mexeu:false,salvando:false});
+  Object.assign(CLN,{lid,etapa:(pre&&pre.lista_id===lid)?pre.id:clnEtapaPadrao(lid),salvando:false});
   CL.id=''; window.TK_ABERTA='';
   let ov=document.getElementById('clOv');
   if(!ov){ ov=document.createElement('div'); ov.id='clOv'; ov.className='overlay cl-ov';
@@ -15110,79 +15116,40 @@ function crmLdNovo(lid,etapaPre){
     document.body.appendChild(ov); }
   ov.innerHTML=clnHtml();
   setTimeout(()=>{ const n=document.getElementById('clnNome'); if(n) n.focus(); },30);
-  clnVez(lid);
   return true;
 }
-function clnTopo(){
-  const st=tkStatus1(CLN.etapa), lst=(TK.listas||[]).find(x=>x.id===CLN.lid)||{};
-  return `<header class="cl-h">
+function clnHtml(){
+  const lid=CLN.lid, lst=(TK.listas||[]).find(x=>x.id===lid)||{}, eu=(currentUser||{}).id||'';
+  const cargo=clnCampo(lid,'Cargo'), ops=(cargo&&cargo.tipo==='select'&&(cargo.opcoes||[]).length)?cargo.opcoes:['Dono(a)','Gerente','Marketing'];
+  const kv=(rot,html,cls)=>`<div class="cl-kv${cls?' '+cls:''}"><span>${rot}</span>${html}</div>`;
+  return `<div class="cl cln" role="dialog" aria-label="Novo lead">
+    <header class="cl-h">
       <div class="cl-q">
         <div class="cl-tag">Novo lead · ${esc(lst.nome||'CRM')}</div>
         <input class="cl-nome" id="clnNome" placeholder="Nome do lead" aria-label="Nome do lead">
-        <div class="cl-sub">Cadastro manual: indicação, Instagram, evento ou prospecção</div>
       </div>
-      <div class="cl-acoes">
-        <button type="button" class="cl-st" id="clnSt" style="--c:${esc(st?st.cor:'#7c3aed')}" onclick="clnEtMenu(event)" title="Etapa em que o lead entra"><i></i>${esc(st?clEtNome(st.nome):'Sem etapa')}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-        <button type="button" class="x cl-x" onclick="clFechar()" aria-label="Fechar">&times;</button>
-      </div>
-    </header>`;
-}
-function clnHtml(){
-  const lid=CLN.lid, cargo=tkCamposDe(lid).find(c=>CL_RE.cargo.test(c.nome));
-  const ops=(cargo&&cargo.tipo==='select'&&(cargo.opcoes||[]).length)?cargo.opcoes:['Dono(a)','Gerente','Marketing'];
-  return `<div class="cl cln" role="dialog" aria-label="Novo lead">
-    ${clnTopo()}
-    <div class="cl-corpo">
-      <div class="cl-col">
-        <section class="cl-box"><h4>Contato</h4>
-          <div class="cl-kv"><span>WhatsApp<em>*</em></span><input class="cl-in" id="clnWa" inputmode="tel" placeholder="(DDD) número" oninput="clnDup()"></div>
-          <div id="clnDup"></div>
-          <div class="cl-kv"><span>Instagram</span><input class="cl-in" id="clnIg" placeholder="@perfil da loja"></div>
-          <div class="cl-kv"><span>Cargo</span><select class="cl-in" id="clnCargo"><option value="">-</option>${ops.map(o=>`<option>${esc(o)}</option>`).join('')}</select></div>
-          <div class="cl-kv"><span>Cidade</span><input class="cl-in" id="clnCidade" placeholder="-"></div>
-          <div class="cl-kv"><span>Estado</span><input class="cl-in" id="clnUf" placeholder="UF" maxlength="2"></div>
-        </section>
-        <section class="cl-box"><h4>De onde veio</h4>
-          <div class="cln-chips" role="radiogroup" aria-label="Origem">${CLN_ORIGENS.map(o=>`<button type="button" class="cln-chip${o===CLN.origem?' on':''}" role="radio" aria-checked="${o===CLN.origem}" onclick="clnOrigem(this,'${esc(o)}')">${esc(o)}</button>`).join('')}</div>
-          <div class="cl-kv" id="clnIndBox"${CLN.origem==='Indicação'?'':' hidden'}><span>Indicado por</span><input class="cl-in" id="clnInd" placeholder="quem indicou"></div>
-          <p class="cl-dica">Lead do formulário continua entrando sozinho, com campanha e anúncio. Aqui é para o que chega por fora do tráfego.</p>
-        </section>
-      </div>
-      <div class="cl-col">
-        <section class="cl-box"><h4>Vendedor responsável</h4>
-          <select class="cl-in" id="clnVend" onchange="CLN.mexeu=true"><option value="">Ninguém ainda</option>${equipeDe(lid,null).map(u=>`<option value="${u.id}">${esc(u.nome)}</option>`).join('')}</select>
-          <p class="cln-vez" id="clnVez">Buscando o próximo da vez…</p>
-        </section>
-        <section class="cl-box"><h4>Primeira anotação</h4>
-          <textarea class="cl-in" id="clnNota" rows="4" placeholder="Contexto do lead, o que já foi conversado, próximo passo…"></textarea>
-          <p class="cl-dica">Vai para as Anotações do cartão, com o seu nome.</p>
-        </section>
-      </div>
-    </div>
+      <button type="button" class="x cl-x" onclick="clFechar()" aria-label="Fechar">&times;</button>
+    </header>
+    <div class="cln-corpo"><section class="cl-box">
+      ${kv('WhatsApp<em>*</em>','<input class="cl-in" id="clnWa" inputmode="tel" placeholder="(DDD) número" oninput="clnDup()">')}
+      <div id="clnDup"></div>
+      ${kv('Empresa','<input class="cl-in" id="clnEmp" placeholder="nome da loja">')}
+      ${kv('Instagram','<input class="cl-in" id="clnIg" placeholder="@perfil da empresa">')}
+      ${kv('Cargo',`<select class="cl-in" id="clnCargo"><option value="">-</option>${ops.map(o=>`<option>${esc(o)}</option>`).join('')}</select>`)}
+      ${kv('Cidade','<div class="cln-uf"><input class="cl-in" id="clnCidade" placeholder="-"><input class="cl-in" id="clnUf" placeholder="UF" maxlength="2" aria-label="Estado"></div>')}
+      ${kv('Origem',`<input class="cl-in" id="clnOrigem" list="clnOrigens" placeholder="escolha ou digite" autocomplete="off" oninput="clnInd()"><datalist id="clnOrigens">${clnOrigens(lid).map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`)}
+      <div id="clnIndBox" hidden>${kv('Indicado por','<input class="cl-in" id="clnInd" placeholder="quem indicou">')}</div>
+      ${kv('Vendedor',`<select class="cl-in" id="clnVend"><option value="">Ninguém</option>${equipeDe(lid,eu||null).map(u=>`<option value="${u.id}"${u.id===eu?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`)}
+      ${kv('Anotação','<textarea class="cl-in" id="clnNota" rows="3" placeholder="contexto, próximo passo…"></textarea>','alto')}
+    </section></div>
     <footer class="cl-pe">
-      <p>Entra sem mensagem automática: o primeiro contato é do vendedor.</p>
       <button type="button" class="btn secondary" onclick="clFechar()">Cancelar</button>
       <button type="button" class="btn" id="clnOk" onclick="clnSalvar()">Cadastrar lead</button>
     </footer>
   </div>`;
 }
-/* o próximo da vez vem marcado; se a pessoa já escolheu alguém, não mexe */
-async function clnVez(lid){
-  const f=CRM_FORMS.find(x=>x.lista===lid), el=()=>document.getElementById('clnVez');
-  let txt='Escolha quem fica com o lead.';
-  if(f){ try{
-    const {data}=await sb.rpc('crm_rodizio_ver',{p_form:f.form});
-    const at=((data&&data.vendedores)||[]).filter(v=>v.ativo&&v.perfil_id);
-    if(at.length){ const v=at[(Number(data.vez)||0)%at.length]; CLN.vez=v.perfil_id;
-      const sel=document.getElementById('clnVend');
-      if(sel&&!CLN.mexeu&&[...sel.options].some(o=>o.value===v.perfil_id)) sel.value=v.perfil_id;
-      txt=`Já vem com <b>${esc(tkNomeUser(v.perfil_id)||eqNomeAp(v.apelido))}</b>, o próximo do rodízio. Troque se a indicação for de alguém.`; }
-  }catch(_){ /* sem rodízio: escolhe na mão */ } }
-  if(CLN.lid===lid&&el()) el().innerHTML=txt;
-}
-window.clnOrigem=(btn,o)=>{ CLN.origem=o;
-  btn.parentNode.querySelectorAll('.cln-chip').forEach(b=>{ const on=b===btn; b.classList.toggle('on',on); b.setAttribute('aria-checked',String(on)); });
-  const box=document.getElementById('clnIndBox'); if(box) box.hidden=o!=='Indicação'; };
+window.clnInd=()=>{ const box=document.getElementById('clnIndBox'), o=document.getElementById('clnOrigem');
+  if(box&&o) box.hidden=!clnEhIndicacao(o.value); };
 /* mesmo número já é lead neste CRM: avisa e leva pro card (compara os 8 últimos dígitos, como o funil) */
 const clnDigitos=()=>String((document.getElementById('clnWa')||{}).value||'').replace(/\D/g,'');
 function clnRepetido(){ const d=clnDigitos(); if(d.length<10) return null;
@@ -15190,17 +15157,6 @@ function clnRepetido(){ const d=clnDigitos(); if(d.length<10) return null;
 window.clnDup=()=>{ const box=document.getElementById('clnDup'); if(!box) return; const t=clnRepetido();
   const st=t?tkStatus1(t.status_id):null;
   box.innerHTML=t?`<div class="cln-dup"><span>Esse número já é lead: <b>${esc(t.titulo||'')}</b>${st?' · '+esc(clEtNome(st.nome)):''}</span><button type="button" onclick="clFechar();tkAbrir('${t.id}')">Abrir o card</button></div>`:''; };
-window.clnEtMenu=(ev)=>{
-  ev.stopPropagation(); const v=document.getElementById('clEtPop'); if(v){ v.remove(); return; }
-  const sts=tkStatusDe(CLN.lid), aParte=(s)=>s.grupo==='fechado'||/incomplet/i.test(s.nome);
-  const it=(s)=>`<button type="button" class="rc-mi cl-etmi${s.id===CLN.etapa?' on':''}" onclick="document.getElementById('clEtPop').remove();clnEtapa('${s.id}')"><i style="background:${esc(s.cor||'#64748b')}"></i>${esc(clEtNome(s.nome))}${s.id===CLN.etapa?'<b>✓</b>':''}</button>`;
-  const el=document.createElement('div'); el.id='clEtPop'; el.className='tkpop'; el.style.width='230px'; el.style.padding='6px'; el.style.zIndex=3000;
-  el.innerHTML=sts.filter(s=>!aParte(s)).map(it).join('');
-  document.body.appendChild(el); popPor(el,ev.currentTarget.getBoundingClientRect());
-  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
-};
-window.clnEtapa=(sid)=>{ CLN.etapa=sid; const st=tkStatus1(sid), b=document.getElementById('clnSt');
-  if(b&&st){ b.style.setProperty('--c',st.cor||'#7c3aed'); b.innerHTML=b.innerHTML.replace(/<\/i>[^<]*/,'</i>'+esc(clEtNome(st.nome))); } };
 window.clnSalvar=async ()=>{
   if(CLN.salvando) return;
   const val=(id)=>String((document.getElementById(id)||{}).value||'').trim();
@@ -15211,12 +15167,16 @@ window.clnSalvar=async ()=>{
   if(!foneOk){ toast('WhatsApp com DDD, por favor.'); return; }
   const rep=clnRepetido();
   if(rep&&!confirm('Esse número já é lead ('+(rep.titulo||'')+'). Cadastrar mesmo assim?')) return;
+  /* origem igual a uma que já existe, mas digitada diferente, usa a grafia que já existe */
+  let origem=val('clnOrigem'); const igual=clnOrigens(CLN.lid).find(o=>o.toLowerCase()===origem.toLowerCase()); if(igual) origem=igual;
   CLN.salvando=true; const b=document.getElementById('clnOk'); if(b){ b.disabled=true; b.textContent='Cadastrando…'; }
-  const {data,error}=await sb.rpc('crm_lead_novo',{p_lista:CLN.lid,p:{nome,whats:d,insta:val('clnIg'),cargo:val('clnCargo'),
-    cidade:val('clnCidade'),estado:val('clnUf'),origem:CLN.origem,indicado:CLN.origem==='Indicação'?val('clnInd'):'',
+  const {data,error}=await sb.rpc('crm_lead_novo',{p_lista:CLN.lid,p:{nome,whats:d,empresa:val('clnEmp'),insta:val('clnIg'),
+    cargo:val('clnCargo'),cidade:val('clnCidade'),estado:val('clnUf'),origem,indicado:clnEhIndicacao(origem)?val('clnInd'):'',
     vendedor:val('clnVend'),etapa:CLN.etapa,nota:val('clnNota')}});
   CLN.salvando=false;
   if(error||!data){ if(b){ b.disabled=false; b.textContent='Cadastrar lead'; } toast('Não cadastrou: '+((error&&error.message)||'erro')); return; }
+  /* a origem nova já aparece no próximo cadastro, sem recarregar */
+  const co=clnCampo(CLN.lid,'Origem'); if(co&&origem&&!(co.opcoes||[]).includes(origem)) co.opcoes=[...(co.opcoes||[]),origem];
   TK.tarefas.push(data); tkDesenhar($('#content')); spDesenhar();
   clFechar(); crmLdAbrir(data.id); toast('Lead cadastrado.');
 };
