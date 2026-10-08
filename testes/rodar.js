@@ -754,9 +754,10 @@ grupo('Cada lista lembra da própria visão');
   const g=rodar(bloco("const VIS_KEY=",'window.tkVisao=')+bloco('window.tkVisao=(v)=>{','window.tkEscopo='),{
     localStorage:{getItem:k=>loja[k]||null,setItem:(k,v)=>{loja[k]=v;}},
     LC_ID:'LC', TK:{listaSel:'',visao:'lista',lcVista:''},
-    tkStatusDe:id=>({L4:[1,2,3,4]}[id]||[]), $:()=>null, tkDesenhar:()=>{}},['visaoDe','visaoPadrao']);
+    tkStatusDe:id=>({L4:[1,2,3,4],LF:[1,2,3,4]}[id]||[]), crmForm:id=>id==='LF', $:()=>null, tkDesenhar:()=>{}},['visaoDe','visaoPadrao']);
   ok('lista comum abre em lista', g.visaoDe('L1')==='lista');
   ok('lista com 4+ status abre em board', g.visaoDe('L4')==='board');
+  ok('lista de leads de formulário abre em Respostas, mesmo com 4+ status (Bernardo 08/10)', g.visaoDe('LF')==='tabela');
   g.TK.listaSel='L1'; g.tkVisao('board');
   ok('L1 guardou board', g.visaoDe('L1')==='board');
   ok('L2 não foi junto', g.visaoDe('L2')==='lista');
@@ -2108,6 +2109,30 @@ grupo('Tarefa: "Melhoria interna" substitui o cliente obrigatório (Bernardo 06/
   ok('marcou melhoria interna: sai do rascunho sem cliente', g.tkFaltaObrig(Object.assign({interna:true},base)).length===0);
   ok('melhoria interna não dispensa data nem responsável', g.tkFaltaObrig({lista_id:'CAMP',interna:true}).join()==='data,responsável');
   ok('o checkbox aparece só onde o cliente é obrigatório e grava junto', HTML.indexOf('id="tk_interna"')>0&&HTML.indexOf("if($('#tk_interna')) v.interna=!!$('#tk_interna').checked;")>0);
+}
+
+/* ---------------- Respostas: planilha estilo Yay ---------------- */
+grupo('Lista de leads de formulário abre como a planilha de respostas do Yay (Bernardo 08/10)');
+{
+  const C=[{id:'w',lista_id:'L',nome:'WhatsApp',tipo:'link'},{id:'i',lista_id:'L',nome:'Instagram',tipo:'texto'},
+           {id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'},{id:'c',lista_id:'L',nome:'Cargo',tipo:'select'}];
+  const T=[{id:'a',lista_id:'L',titulo:'Ana',criado_em:'2026-10-08',valores:{w:'https://wa.me/5511999990000',i:'@ana',d:'2026-10-05',c:'Dono(a)'}},
+           {id:'b',lista_id:'L',titulo:'Bia',criado_em:'2026-10-08',valores:{d:'2026-10-07',c:'Gerente'}},
+           {id:'x',lista_id:'L',titulo:'Velho',criado_em:'2026-10-08',arquivada_em:'z',valores:{d:'2026-10-08'}}];
+  const g=rodar(bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){'),{
+    TK:{listaSel:'L',tarefas:T,campos:C.concat([{id:'o',lista_id:'O',nome:'Outra',tipo:'texto'}])},
+    tkCamposDe:(l)=>C.filter(c=>c.lista_id===l),arquivada:(t)=>!!t.arquivada_em,tkSelo:(t)=>'[st:'+t.id+']',
+    esc:(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'),
+    campoTexto:(c,v)=>String(v),tpSvg:()=>'<svg></svg>'},['crmForm','tkViewRespostas','rspData','rspCel']);
+  ok('lista com "Preencheu em" é de formulário; as outras não', g.crmForm('L')===true&&g.crmForm('O')===false);
+  const h=g.tkViewRespostas();
+  ok('mais novo em cima, arquivado fora', h.indexOf('>Bia<')>0&&h.indexOf('>Bia<')<h.indexOf('>Ana<')&&h.indexOf('Velho')<0);
+  ok('contagem de respostas', /2 respostas/.test(h));
+  ok('data por extenso como no Yay', g.rspData('2026-10-05')==='5 de out de 2026');
+  ok('WhatsApp vira o número com link pra conversa', /href="https:\/\/wa.me\/5511999990000"[^>]*>\+5511999990000</.test(h));
+  ok('Instagram vira @ com link', /href="https:\/\/instagram.com\/ana"[^>]*>@ana</.test(h));
+  ok('status continua editável na linha', h.indexOf('[st:a]')>0);
+  ok('lista de formulário abre em Respostas por padrão', HTML.indexOf("crmForm(id)?'tabela':")>0&&HTML.indexOf("TK.visao==='tabela'?tkViewRespostas():")>0);
 }
 
 console.log('\n'+(falhas
