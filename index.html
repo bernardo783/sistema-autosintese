@@ -3217,6 +3217,8 @@
   .anu-op .ck{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--fraco);display:grid;place-items:center;flex:none;font-size:10px;color:transparent}
   .anu-op.on .ck{background:var(--brand);border-color:var(--brand);color:#fff}
   .anu-op-msg{padding:10px;font-size:12.5px;color:var(--muted);line-height:1.45}
+  .anu-pop-busca{width:calc(100% - 12px);margin:2px 6px 6px}
+  .anu-op[hidden]{display:none}
   .anu-vazio{margin-top:8px}
   .anu-cash{margin-bottom:12px}
   .anu-cash .pc-big{color:var(--ok)}
@@ -10914,13 +10916,15 @@ function anuPopHTML(id,lid){
   const erro=(e)=>`<div class="anu-op-msg">A Meta respondeu: ${esc(e)}<br>O acesso do sistema à BM precisa da permissão de gerenciar negócios.</div>`;
   if(id==='bm'){ const L=ANU.bms;
     return `<div class="anu-pop" onclick="event.stopPropagation()"><div class="anu-ph">Business Manager</div>${!L?'<div class="anu-op-msg">Buscando as BMs…</div>':L.erro?erro(L.erro)
-      :L.length?L.map(b=>`<button type="button" class="anu-op${cfg.bm_id===b.id?' on':''}" onclick="anuBm('${esc(b.id)}')"><span class="rd"></span><span class="gr">${esc(b.nome)}<small>${esc(b.id)}</small></span></button>`).join('')
+      :L.length?(L.length>8?`<input class="search anu-pop-busca" placeholder="Buscar BM…" oninput="anuPopFiltrar(this)" onclick="event.stopPropagation()">`:'')+L.map(b=>`<button type="button" class="anu-op${cfg.bm_id===b.id?' on':''}" data-n="${esc(anuNorm(b.nome))}" onclick="anuBm('${esc(b.id)}')"><span class="rd"></span><span class="gr">${esc(b.nome)}<small>${b.contas?b.contas+' conta'+(b.contas===1?'':'s')+' de anúncio':esc(b.id)}</small></span></button>`).join('')
       :'<div class="anu-op-msg">O sistema não enxerga nenhuma BM.</div>'}</div>`; }
   const L=cfg.bm_id?ANU.bmContas[cfg.bm_id]:[], sel=(cfg.contas||[]).map(c=>c.id);
   return `<div class="anu-pop" onclick="event.stopPropagation()"><div class="anu-ph">Contas de anúncio${cfg.bm_nome?' · '+esc(cfg.bm_nome):''}</div>${!cfg.bm_id?'<div class="anu-op-msg">Escolha a BM primeiro.</div>':!L?'<div class="anu-op-msg">Buscando as contas…</div>':L.erro?erro(L.erro)
     :L.length?L.map(c=>`<button type="button" class="anu-op${sel.includes(c.id)?' on':''}" onclick="anuConta('${esc(c.id)}')"><span class="ck">✓</span><span class="gr">${esc(c.nome)}<small>${esc(c.id)} · ${ANU_ST_CONTA[c.status]||'status '+c.status}</small></span></button>`).join('')
     :'<div class="anu-op-msg">Essa BM não tem contas de anúncio.</div>'}</div>`;
 }
+/* 58 BMs pelo token de sistema (08/10): a busca só esconde o que não bate, sem redesenhar o popover */
+window.anuPopFiltrar=(inp)=>{ const q=anuNorm(inp.value); inp.parentNode.querySelectorAll('.anu-op').forEach(o=>{ o.hidden=!!q&&!String(o.dataset.n||'').includes(q); }); };
 window.anuBm=(id)=>{ const lid=anuLid(), b=(ANU.bms||[]).find(x=>x.id===id); if(!b) return;
   const cfg=ANU.cfg[lid]||{}; ANU.pop='';
   if(cfg.bm_id===id){ anuPintar(); return; }
