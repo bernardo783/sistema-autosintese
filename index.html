@@ -8096,7 +8096,7 @@ const ehCom=(lid)=>!!LCOM[lid];
 const CRM_FORMS=[
   {nome:'Sofás',    lista:'2e85f701-0616-4b74-9732-6ebfeba016b8', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d001', form:'6ac516b64c1c87a7280d6fc9', calls:'sofas_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d011'},
   {nome:'Motos',    lista:'b4169319-1cf1-4d7a-8520-5ffcad09e21f', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d002', form:'6a668e28d385e5003d03b895', calls:'motos_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d012'},
-  {nome:'Veículos', lista:'ae902b26-00d3-4495-a7e0-9914f2754fd9', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d003', form:'6aac28b2030e048ade0c664c', calls:'veiculos_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d013'}];
+  {nome:'Veículos', rot:'Carros', lista:'ae902b26-00d3-4495-a7e0-9914f2754fd9', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d003', form:'6aac28b2030e048ade0c664c', calls:'veiculos_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d013'}];
 /* Acessos e Processos tambem moram na arvore, em Administrativo (Gabriel 15/09).
    Mesma ideia das listas do Financeiro, mas sem o recorte de master: quem nao
    pode ver alguma coisa la dentro ja e barrado pela propria tela. */
@@ -10664,15 +10664,62 @@ const CPN={carregando:{},erro:{},em:{}};
 /* Painel e lista andam juntos (Bernardo 08/10): o banco move o lead quando a call muda e mexe na
    call quando o lead muda de etapa. Por isso o Painel relê as calls toda vez que aparece (mais de
    5 s desde a última leitura) e, depois de salvar ou apagar uma call, os leads deste CRM recarregam. */
-async function crmLeadsRecarregar(lid){
-  if(!lid) return;
+/* CRM AO VIVO (Bernardo 08/10: "quando eu movo o lead... eu tenho que atualizar a página para ele
+   mudar a coluna do CRM"). Quem mexe no lead nem sempre é esta aba: o robô (lead respondeu no
+   WhatsApp, 12 h sem resposta), o colega, o Painel e o formulário mexem pelo banco. Com um CRM
+   de formulário na tela, a cada 8 s (e quando a aba volta ao foco) lê só id + atualizado_em +
+   etapa dos leads; mudou alguma coisa, relê os leads e redesenha. Nunca no meio de um arrasto,
+   de um menu aberto, de um cartão/janela aberta ou de um campo sendo editado: aí fica pendente
+   pro próximo giro. A busca não conta como ocupado: volta com o cursor no lugar. */
+const CRM_VIVO={pend:false,lendo:false};
+const crmLeadsAssin=(rows)=>rows.map(t=>t.id+'|'+(t.atualizado_em||'')+'|'+(t.status_id||'')+'|'+(t.arquivada_em||'')).sort().join(',');
+const crmVivoOcupado=()=>{ const a=document.activeElement;
+  return !!(TK.arrastando||document.getElementById('ctxm')||document.querySelector('.overlay')
+    ||(a&&a.id!=='rspQ'&&a.closest&&a.closest('#content')&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))); };
+function crmVivoDesenhar(){
+  const a=document.activeElement, q=!!(a&&a.id==='rspQ'), pos=q?a.selectionStart:0;
+  CRM_VIVO.pend=false; tkDesenhar($('#content'));
+  if(q){ const n=document.getElementById('rspQ'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(_){} } }
+}
+const crmVivoNaTela=(lid)=>typeof currentView!=='undefined'&&currentView==='lista'&&TK.escopo==='lista'&&TK.listaSel===lid;
+async function crmLeadsRecarregar(lid,soSeMudou){
+  if(!lid) return false;
+  const antes=crmLeadsAssin(TK.tarefas.filter(t=>t.lista_id===lid));
+  if(soSeMudou){
+    const l=await tudoPaginado(()=>sb.from('tarefas').select('id,atualizado_em,status_id,arquivada_em').eq('lista_id',lid).order('id'));
+    if(l.error||!l.data||crmLeadsAssin(l.data)===antes) return false; }
   const r=await tudoPaginado(()=>sb.from('tarefas').select('*').eq('lista_id',lid).order('criado_em').order('id'));
-  if(r.error||!r.data) return;
+  if(r.error||!r.data) return false;
   const ids=new Set(r.data.map(x=>x.id));
   TK.tarefas=TK.tarefas.filter(t=>t.lista_id!==lid||ids.has(t.id));
   r.data.forEach(n=>{ const i=TK.tarefas.findIndex(t=>t.id===n.id); if(i>=0) TK.tarefas[i]=n; else TK.tarefas.push(n); });
-  if(TK.listaSel===lid&&TK.visao!=='painel') tkDesenhar($('#content'));
+  if(crmLeadsAssin(r.data)===antes) return false;
+  if(crmVivoNaTela(lid)&&TK.visao!=='painel'){ if(crmVivoOcupado()) CRM_VIVO.pend=true; else crmVivoDesenhar(); }
+  return true;
 }
+/* calls do Painel: relê se passou de 5 s (ou à força) e só redesenha se mudaram */
+function crmPainelLer(base,pinta,forca){
+  if(CPN.carregando[base]||(!forca&&(base in CRM.ccDados)&&Date.now()-(CPN.em[base]||0)<=5000)) return;
+  CPN.carregando[base]=true; const antes=JSON.stringify((base in CRM.ccDados)?CRM.ccDados[base]:null);
+  ccCarregarBase(base).then(ok=>{ CPN.carregando[base]=false; CPN.em[base]=Date.now();
+    if(!ok){ CPN.erro[base]=true; if(!(base in CRM.ccDados)) CRM.ccDados[base]=[]; } else CPN.erro[base]=false;
+    if(JSON.stringify(CRM.ccDados[base])!==antes){ if(crmVivoOcupado()) CRM_VIVO.pend=true; else pinta(); } });
+}
+async function crmVivoGiro(){
+  if(CRM_VIVO.lendo||document.hidden||typeof TK==='undefined'||typeof sb==='undefined'||!sb) return;
+  const lid=TK.listaSel; if(!lid||!CRM_PAINEL[lid]||!crmVivoNaTela(lid)) return;
+  CRM_VIVO.lendo=true;
+  try{
+    if(CRM_VIVO.pend&&!crmVivoOcupado()) crmVivoDesenhar();
+    await crmLeadsRecarregar(lid,true);
+    if(TK.visao==='painel'&&typeof CRM!=='undefined'&&typeof ccCarregarBase==='function')
+      crmPainelLer(CRM_PAINEL[lid],()=>{ if(TK.visao==='painel'&&crmVivoNaTela(lid)) crmVivoDesenhar(); });
+  }catch(_){}
+  CRM_VIVO.lendo=false;
+}
+try{ if(!window.__crmVivo){ window.__crmVivo=setInterval(crmVivoGiro,8000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) crmVivoGiro(); });
+  window.addEventListener('focus',()=>crmVivoGiro()); } }catch(_){}
 /* "+ Nova call" do CRM de formulário: o nome do lead sugere os leads da lista (o banco liga a call
    ao card pelo nome; nome que não está na lista vira card novo em REUNIÃO MARCADA) e, escolhido
    um lead, a Origem dele já vem marcada */
@@ -10702,11 +10749,7 @@ function crmPainelView(){
   crmCallModalLeads();
   const pinta=()=>{ if(TK.visao==='painel'&&CRM_PAINEL[TK.listaSel]===base) tkDesenhar($('#content')); };
   ccUsar(base,()=>{ pinta(); crmLeadsRecarregar(lid); });
-  if(!CPN.carregando[base]&&(!(base in CRM.ccDados)||Date.now()-(CPN.em[base]||0)>5000)){
-    CPN.carregando[base]=true;
-    ccCarregarBase(base).then(ok=>{ CPN.carregando[base]=false; CPN.em[base]=Date.now();
-      if(!ok){ CPN.erro[base]=true; if(!(base in CRM.ccDados)) CRM.ccDados[base]=[]; } else CPN.erro[base]=false; pinta(); });
-  }
+  crmPainelLer(base,pinta);
   if(!(base in CRM.ccDados)) return '<div class="empty">Carregando o painel…</div>';
   return `<div class="crm-pn">
       <div class="crm-pn-bar">${CPN.erro[base]?'<span class="hint" style="margin:0">Não consegui ler as calls deste CRM.</span>':''}<button class="btn small" onclick="crmCallModal()">+ Nova call</button></div>
@@ -19561,7 +19604,7 @@ function renderFechamento(c){
       <div class="row2">
         <div class="field"><label data-dica="De onde veio esse lead. Inbound: chegou sozinho (anúncio, indicação do site, redes). Outbound: prospecção ativa nossa. Indicação: veio por alguém.">Origem do lead *</label>
           <select id="fc_origem"><option value="">Selecione</option>${FC_ORIGENS.map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join('')}</select></div>
-        <div class="field"><label data-dica="Se o cliente veio de um lead dos CRMs de formulário (Sofás, Motos, Veículos), escolha aqui. É essa ligação que mostra, na aba Anúncios, quanto o cliente já pagou contra o que o anúncio custou.">Lead de origem</label>
+        <div class="field"><label data-dica="Se o cliente veio de um lead dos CRMs de formulário (Sofás, Motos, Carros), escolha aqui. É essa ligação que mostra, na aba Anúncios, quanto o cliente já pagou contra o que o anúncio custou.">Lead de origem</label>
           <select id="fc_lead" onchange="fcLeadMudou()"><option value="">Procurando os leads ganhos...</option></select>
           <div class="hint" id="fc_leadinfo" style="margin:7px 0 0"></div></div>
       </div>
@@ -19662,7 +19705,7 @@ async function fcLeadsCarregar(){
   const ganho=(t)=>{ const st=tkStatus1(t.status_id); return !!(st&&st.grupo==='feito'); };
   const campo=(t,n)=>{ const c=tkCamposDe(t.lista_id).find(k=>anuNorm(k.nome)===n); return c?String((t.valores||{})[c.id]==null?'':(t.valores||{})[c.id]).trim():''; };
   FC_LEADS=(error?[]:(data||[])).filter(t=>!usados[t.id]&&(ganho(t)||t.id===FC_LEAD_PRE)).map(t=>({id:t.id,lista:t.lista_id,nome:t.titulo||'Sem nome',
-    crm:(CRM_FORMS.find(f=>f.lista===t.lista_id)||{}).nome||'',anuncio:campo(t,'anuncio'),campanha:campo(t,'campanha'),conjunto:campo(t,'conjunto')}));
+    crm:(()=>{ const f=CRM_FORMS.find(f=>f.lista===t.lista_id)||{}; return f.rot||f.nome||''; })(),anuncio:campo(t,'anuncio'),campanha:campo(t,'campanha'),conjunto:campo(t,'conjunto')}));
   const sel=$('#fc_lead'); if(!sel) return;
   sel.innerHTML=`<option value="">${FC_LEADS.length?'Não veio de um lead dos CRMs':'Nenhum lead ganho sem cliente nos CRMs'}</option>`+
     FC_LEADS.map(l=>`<option value="${esc(l.id)}">${esc(l.nome)} · CRM ${esc(l.crm)} · ${l.anuncio?esc(l.anuncio):'sem anúncio'}</option>`).join('');
