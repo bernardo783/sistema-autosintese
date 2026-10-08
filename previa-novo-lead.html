@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prévia · Novo lead</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#141416; --panel:#1b1b1e; --panel2:#232327; --line:#2e2e34;
+    --txt:#ffffff; --muted:#c8c8d2; --brand:#7b68ee; --brand2:#a78bfa;
+    --danger:#ef5b6b; --ok:#3fcf8e; --warn:#e6b13f; --fraco:#8a8a96;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;min-height:100vh}
+  /* fundo: o app atrás, apagado, como no sistema */
+  .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh;filter:blur(1.5px);opacity:.45}
+  .side{background:var(--panel);border-right:1px solid var(--line);padding:18px 14px}
+  .side .lg{height:34px;width:150px;border-radius:9px;background:linear-gradient(90deg,#7b68ee55,transparent)}
+  .side .it{height:12px;border-radius:6px;background:var(--panel2);margin:16px 6px}
+  .side .it.on{background:#ec489955;width:70%}
+  .main{padding:26px}
+  .main .tt{height:26px;width:260px;border-radius:8px;background:var(--panel2);margin-bottom:22px}
+  .main .row{height:44px;border-bottom:1px solid var(--line)}
+  .veu{position:fixed;inset:0;background:rgba(0,0,0,.45)}
+
+  /* painel lateral, mesmo do cartão do lead (.cl) */
+  .cl{position:fixed;top:0;right:0;bottom:0;width:min(980px,100%);background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.45)}
+  .cl-h{display:flex;align-items:center;gap:16px;padding:22px 28px 18px;border-bottom:1px solid var(--line)}
+  .cl-q{flex:1;min-width:0}
+  .cl-tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco);font-weight:700}
+  .cl-nome{display:block;width:100%;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--txt);font:inherit;font-size:22px;font-weight:800;padding:2px 6px;margin:2px 0 2px -7px}
+  .cl-nome::placeholder{color:var(--fraco)}
+  .cl-nome:focus{outline:none;border-color:var(--brand);background:var(--panel2)}
+  .cl-sub{color:var(--muted);font-size:13px}
+  .cl-acoes{display:flex;align-items:center;gap:8px}
+  .cl-st{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 10px 0 12px;border-radius:999px;cursor:pointer;
+    border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--txt);font:inherit;font-weight:700;font-size:13px}
+  .cl-st i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+  .cl-st svg{width:14px;height:14px;opacity:.7}
+  .cl-x{background:none;border:0;color:var(--muted);font-size:26px;cursor:pointer;line-height:1;padding:0 4px}
+  .cl-corpo{flex:1;overflow:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;padding:20px 28px 28px;align-content:start}
+  .cl-col{display:flex;flex-direction:column;gap:18px;min-width:0}
+  .cl-box{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+  .cl-box h4{margin:0 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco)}
+  .cl-kv{display:grid;grid-template-columns:130px minmax(0,1fr);align-items:center;gap:10px;min-height:42px;border-top:1px solid var(--line)}
+  .cl-box h4+.cl-kv{border-top:0}
+  .cl-kv>span{color:var(--muted);font-size:13px}
+  .cl-kv>span em{color:var(--danger);font-style:normal;margin-left:2px}
+  .cl-in{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--txt);font:inherit;font-size:13.5px;font-weight:600;padding:7px 10px}
+  .cl-in::placeholder{color:var(--fraco);font-weight:400}
+  .cl-in:focus{outline:none;border-color:var(--brand)}
+  .cl-in.erro{border-color:var(--danger)}
+  .dup{display:flex;gap:10px;align-items:center;margin:4px 0 8px;padding:9px 12px;border-radius:10px;font-size:12.5px;
+    background:color-mix(in srgb,var(--warn) 14%,transparent);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);color:var(--txt)}
+  .dup b{font-weight:700}
+  .dup a{margin-left:auto;color:var(--warn);font-weight:700;text-decoration:none;white-space:nowrap}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0 10px}
+  .chip{height:32px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .chip:hover{border-color:var(--brand2);color:var(--txt)}
+  .chip.on{background:color-mix(in srgb,var(--brand) 22%,transparent);border-color:var(--brand);color:var(--txt)}
+  .cl-dica{margin:10px 0 0;font-size:12px;color:var(--fraco);line-height:1.45}
+  textarea.cl-in{resize:vertical;min-height:96px;line-height:1.45;font-weight:500}
+  .vend{display:flex;flex-direction:column;gap:8px}
+  .rod{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+  .rod b{color:var(--txt)}
+  .cl-pe{display:flex;align-items:center;gap:12px;padding:14px 28px;border-top:1px solid var(--line);background:var(--panel)}
+  .cl-pe p{margin:0;flex:1;font-size:12.5px;color:var(--fraco)}
+  .btn{height:38px;padding:0 18px;border-radius:10px;border:0;font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
+  .btn.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  .btn.pri{background:var(--brand);color:#fff;box-shadow:0 0 0 0 #7b68ee66,0 6px 20px #7b68ee44}
+  .btn.pri:hover{filter:brightness(1.08)}
+  .nota{position:fixed;left:16px;top:16px;max-width:300px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--muted);line-height:1.5;z-index:2}
+  .nota b{color:var(--txt)}
+  @media (max-width:720px){
+    .cl-corpo{grid-template-columns:1fr;padding:16px}
+    .cl-h{padding:18px 16px 14px}
+    .cl-pe{padding:12px 16px;flex-wrap:wrap}
+    .cl-pe p{flex-basis:100%}
+    .cl-kv{grid-template-columns:100px minmax(0,1fr)}
+    .nota{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="app" aria-hidden="true">
+  <div class="side"><div class="lg"></div><div class="it"></div><div class="it"></div><div class="it"></div><div class="it on"></div><div class="it"></div></div>
+  <div class="main"><div class="tt"></div><div class="row"></div><div class="row"></div><div class="row"></div><div class="row"></div><div class="row"></div></div>
+</div>
+<div class="veu"></div>
+
+<div class="nota"><b>Prévia</b>: o que abre ao clicar no <b>+</b> dentro de Pipeline Sofá, Moto ou Veículo. É o mesmo painel do cartão do lead, só que para cadastrar.</div>
+
+<div class="cl" role="dialog" aria-label="Novo lead">
+  <header class="cl-h">
+    <div class="cl-q">
+      <div class="cl-tag">Novo lead · Pipeline Moto</div>
+      <input class="cl-nome" placeholder="Nome do lead" value="Carlos Henrique" aria-label="Nome do lead">
+      <div class="cl-sub">Cadastro manual: indicação, Instagram, evento ou prospecção</div>
+    </div>
+    <div class="cl-acoes">
+      <button type="button" class="cl-st" style="--c:#7c3aed" title="Etapa em que o lead entra"><i></i>Novo lead<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+      <button type="button" class="cl-x" aria-label="Fechar">&times;</button>
+    </div>
+  </header>
+
+  <div class="cl-corpo">
+    <div class="cl-col">
+      <section class="cl-box"><h4>Contato</h4>
+        <div class="cl-kv"><span>WhatsApp<em>*</em></span><input class="cl-in" value="(17) 99812-4410" inputmode="tel"></div>
+        <div class="dup">⚠️ Esse número já é lead: <b>Carlos H. Motos</b> · Em conversa<a href="#">Abrir o card</a></div>
+        <div class="cl-kv"><span>Instagram</span><input class="cl-in" placeholder="@perfil da loja" value="@chmotos.rp"></div>
+        <div class="cl-kv"><span>Cargo</span><select class="cl-in"><option>Dono(a)</option><option>Gerente</option><option>Marketing</option></select></div>
+        <div class="cl-kv"><span>Cidade</span><input class="cl-in" placeholder="-" value="Ribeirão Preto"></div>
+        <div class="cl-kv"><span>Estado</span><input class="cl-in" placeholder="UF" value="SP"></div>
+      </section>
+
+      <section class="cl-box"><h4>De onde veio</h4>
+        <div class="chips">
+          <button class="chip on">Indicação</button>
+          <button class="chip">Instagram orgânico</button>
+          <button class="chip">Evento</button>
+          <button class="chip">Prospecção</button>
+          <button class="chip">Outro</button>
+        </div>
+        <div class="cl-kv"><span>Indicado por</span><input class="cl-in" placeholder="quem indicou" value="João, da JR Motors"></div>
+        <p class="cl-dica">Lead do formulário continua entrando sozinho, com campanha e anúncio. Aqui é para o que chega por fora do tráfego.</p>
+      </section>
+    </div>
+
+    <div class="cl-col">
+      <section class="cl-box"><h4>Vendedor responsável</h4>
+        <div class="vend">
+          <select class="cl-in"><option>Kennedy Lima (próximo da vez)</option><option>Luana</option><option>Bernardo Antunes</option><option>José</option><option>Ninguém ainda</option></select>
+          <div class="rod">Já vem com quem é <b>o próximo do rodízio</b>; troque se a indicação for de alguém.</div>
+        </div>
+      </section>
+      <section class="cl-box"><h4>Primeira anotação</h4>
+        <textarea class="cl-in" placeholder="Contexto do lead, o que já foi conversado, próximo passo…">Indicado pelo João. Tem 2 lojas e quer começar com tráfego para a de Ribeirão. Ligar amanhã de manhã.</textarea>
+        <p class="cl-dica">Vai para as Anotações do cartão, com o seu nome.</p>
+      </section>
+    </div>
+  </div>
+
+  <footer class="cl-pe">
+    <p>Entra em <b style="color:var(--txt)">Novo lead</b> sem mensagem automática: o primeiro contato é do vendedor.</p>
+    <button class="btn sec">Cancelar</button>
+    <button class="btn pri">Cadastrar lead</button>
+  </footer>
+</div>
+</body>
+</html>
