@@ -9729,9 +9729,9 @@ const tkSelo=(t)=>{
 const RSP_DATA='Preencheu em';
 const crmForm=(lid)=>!!lid&&(TK.campos||[]).some(k=>k.lista_id===lid&&k.nome===RSP_DATA);
 let RSP={dir:-1,sel:{},q:''};
-const RSP_MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const rspData=(v)=>{ const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/); if(!m) return '';
-  return Number(m[3])+' de '+RSP_MES[Number(m[2])-1]+' de '+m[1]+(m[4]?` <span class="rsp-hr">${m[4]}:${m[5]}</span>`:''); };
+  /* curta, 08/10/26 (Bernardo 08/10): o "8 de out de 2026" do Yay ocupava a coluna toda */
+  return m[3]+'/'+m[2]+'/'+m[1].slice(2)+(m[4]?` <span class="rsp-hr">${m[4]}:${m[5]}</span>`:''); };
 /* valor da celula: WhatsApp vira o numero (link pra conversa), Instagram vira @ com link */
 function rspCel(c,v,t){
   if(v==null||v==='') return '';
