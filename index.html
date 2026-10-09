@@ -3012,9 +3012,12 @@
   .cl-h{display:flex;align-items:center;gap:16px;padding:22px 28px 18px;border-bottom:1px solid var(--line)}
   .cl-q{flex:1;min-width:0}
   .cl-tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fraco);font-weight:700}
-  .cl-nome{display:block;width:100%;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--txt);font:inherit;font-size:22px;font-weight:800;padding:2px 6px;margin:2px 0 2px -7px}
-  .cl-nome:hover{border-color:var(--line)}
-  .cl-nome:focus{outline:none;border-color:var(--brand);background:var(--panel2)}
+  /* topo: nome do cliente grande e a empresa na linha de baixo; editar é no Contato (Bernardo 08/10) */
+  h2.cl-nome{margin:2px 0;color:var(--txt);font-size:22px;font-weight:800;line-height:1.25;text-transform:none;letter-spacing:0;overflow-wrap:anywhere}
+  /* no Novo lead o nome continua sendo digitado no topo */
+  input.cl-nome{display:block;width:100%;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--txt);font:inherit;font-size:22px;font-weight:800;padding:2px 6px;margin:2px 0 2px -7px}
+  input.cl-nome:hover{border-color:var(--line)}
+  input.cl-nome:focus{outline:none;border-color:var(--brand);background:var(--panel2)}
   .cl-sub{color:var(--muted);font-size:13px}
   .cl-acoes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
   .cl-wa{display:inline-flex;align-items:center;gap:7px;background:#25d366;color:#06301a;border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
@@ -15056,8 +15059,8 @@ function clTopo(t){
   return `<header class="cl-h">
       <div class="cl-q">
         <div class="cl-tag">Lead · ${esc(lst.nome||'CRM')}</div>
-        <input class="cl-nome" value="${esc(t.titulo||'')}" placeholder="Nome do lead" onchange="clNome(this.value)" aria-label="Nome do lead">
-        <div class="cl-sub">${[cargo,lugar,quando?'entrou em '+clDia(quando):''].filter(Boolean).map(esc).join(' · ')}</div>
+        <h2 class="cl-nome">${esc(t.titulo||'Sem nome')}</h2>
+        <div class="cl-sub">${[clVal(t,'empresa'),cargo,lugar,quando?'entrou em '+clDia(quando):''].filter(Boolean).map(esc).join(' · ')}</div>
       </div>
       <div class="cl-acoes">
         <button type="button" class="cl-st" style="--c:${esc(cor)}" onclick="clEtMenu(event)" title="Mudar a etapa do lead"><i></i>${esc(atual?clEtNome(atual.nome):'Sem etapa')}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
@@ -15104,13 +15107,15 @@ function crmLdHtml(t){
   const outros=tkCamposDe(t.lista_id).filter(c=>!usados.has(c.id));
   const msg=clVal(t,'msg');
   const resp=t.responsavel_id||'';
+  /* o Contato abre com o Nome editável, não só no título do topo (Bernardo 08/10: "não aparece a opção pra preencher o nome") */
   return `<div class="cl" role="dialog" aria-label="Lead ${esc(t.titulo||'')}">
     ${clTopo(t)}
     <div class="cl-corpo">
       <div class="cl-col">
         <section class="cl-box"><h4>Contato</h4>
+          <div class="cl-kv"><span>Nome</span><input class="cl-in" value="${esc(t.titulo||'')}" placeholder="Nome do cliente" onchange="clNome(this.value)" aria-label="Nome do cliente"></div>
+          <div class="cl-kv"><span>Empresa</span>${ed('empresa','Nome da loja')}</div>
           <div class="cl-kv"><span>WhatsApp</span><div class="cl-fone">${ed('whats','sem número')}${clSeta(t)}</div></div>
-          <div class="cl-kv"><span>Empresa</span>${ed('empresa','-')}</div>
           <div class="cl-kv"><span>Instagram</span>${ed('insta','@perfil')}</div>
           <div class="cl-kv"><span>Cargo</span>${ed('cargo','-')}</div>
           <div class="cl-kv"><span>Cidade</span>${ed('cidade','-')}</div>
