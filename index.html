@@ -10834,9 +10834,13 @@ async function anuCarregar(lid,forcar){
   if(ANU.dados[k]||ANU.carregando[k]) return; ANU.carregando[k]=true;
   const contas=(ANU.cfg[lid]||{}).contas||[], erros=[];
   const res=await Promise.all(contas.map(c=>anuMeta(`/anuncios/${encodeURIComponent(c.id)}?preset=${ANU.per}`).catch(e=>({ok:false,erro:String(e)}))));
-  const ads=[]; res.forEach((r,i)=>{ if(!r||!r.ok){ erros.push(contas[i].nome+': '+((r&&r.erro)||'falhou')); return; }
+  /* total = gasto da conta no período, o número do Gerenciador (anúncio pausado, arquivado e
+     apagado entram); só vale se todas as contas responderam com ele */
+  const ads=[]; let total=0, temTotal=contas.length>0;
+  res.forEach((r,i)=>{ if(!r||!r.ok){ erros.push(contas[i].nome+': '+((r&&r.erro)||'falhou')); temTotal=false; return; }
+    if(r.total) total+=Number(r.total.spend)||0; else temTotal=false;
     (r.anuncios||[]).forEach(a=>ads.push(Object.assign(a,{conta:contas[i]}))); });
-  ANU.carregando[k]=false; ANU.dados[k]={ads,erros}; anuRepintar();
+  ANU.carregando[k]=false; ANU.dados[k]={ads,erros,total:temTotal?total:null}; anuRepintar();
 }
 /* junta Meta + leads + clientes: uma linha por anúncio, com tudo que a tela mostra */
 function anuMontar(lid){
@@ -10868,7 +10872,7 @@ function anuMontar(lid){
     out.push({a,leads:L.leads,vendas:vendas.length,clientes,gasto,ativo,
       cash:clientes.reduce((s,c)=>s+c.cash,0),vgv:clientes.reduce((s,c)=>s+c.vgv,0),mrr:clientes.reduce((s,c)=>s+c.mrr,0)}); });
   out.sort((x,y)=>(y.cash-x.cash)||(y.leads.length-x.leads.length)||(y.gasto-x.gasto));
-  return {linhas:out,semAnuncio,erros:d.erros||[]};
+  return {linhas:out,semAnuncio,erros:d.erros||[],total:d.total==null?null:d.total};
 }
 /* dinheiro de um cliente: o que já entrou, o valor do contrato e a mensalidade de hoje */
 const ANU_MESES={mensal:1,trimestral:3,semestral:6,anual:12};
@@ -10926,7 +10930,13 @@ function anuFiltrar(ls){
     &&(!q||anuNorm(l.a.name+' '+((l.a.campaign||{}).name||'')+' '+((l.a.adset||{}).name||'')).includes(q)));
 }
 function anuCorpo(lid){
-  const master=anuMaster(), m=anuMontar(lid), ls=anuFiltrar(m.linhas), t=anuTotais(ls);
+  const master=anuMaster(), m=anuMontar(lid), ls=anuFiltrar(m.linhas);
+  /* os números do topo são do CRM inteiro no período (Bernardo 08/10: "fala que investi R$ 36, na
+     verdade gastei muito mais"): somavam só os anúncios do filtro (o padrão "Só ativos" deixava de
+     fora tudo que já foi pausado) e só os que a lista da Meta trazia. O filtro e a busca mexem
+     só nos cartões; o Investido é o gasto das contas no período, igual ao Gerenciador. */
+  const t=anuTotais(m.linhas);
+  if(m.total!=null&&m.total>t.gasto){ t.gasto=m.total; t.cac=t.vendas?t.gasto/t.vendas:0; t.cpl=t.leads?t.gasto/t.leads:0; t.ret=t.gasto?t.cash/t.gasto:0; }
   ANU.ultimo={lid,linhas:m.linhas};
   const card=(l)=>{ const a=l.a, [st,cor]=a.fora?['Fora das contas','muted']:anuStatus(a), c=a.creative||{}, img=c.thumbnail_url||c.image_url||'';
     return `<div class="anu-ad${l.ativo?'':' parado'}" tabindex="0" onclick="anuAbrir('${esc(a.id)}')" onkeydown="if(event.key==='Enter')anuAbrir('${esc(a.id)}')">
