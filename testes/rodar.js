@@ -1688,6 +1688,14 @@ grupo('CRM Motos e CRM Veículos: o mesmo código do CRM Sofás, cada um com a s
   ok('salvar grava no form que está na tela (não num fixo)', HTML.indexOf("sb.rpc('crm_rodizio_salvar',{p_form:EQ.cfg.form_id,")>0&&HTML.indexOf('EQ_FORM')<0);
   ok('trocar de CRM no meio da carga não pinta a Equipe errada', /if\(form!==eqForm\(\)\) return;/.test(HTML)&&/currentView!=='crm-equipe'\|\|form!==eqForm\(\)\) return;/.test(HTML));
 }
+grupo('Cartão do lead: SDR vê só a origem, sem o rastreio do anúncio (Bernardo 09/10)');
+{
+  const cod=bloco('/* rastreio do anúncio (formulário, campanha','/* devolve true quando é lead de CRM');
+  const ve=(u)=>rodar(cod,{currentUser:u},['clVeRastreio']).clVeRastreio();
+  ok('master, admin e gestor do CRM veem o rastreio', ve({role:'master'})&&ve({role:'membro',papel_crm:'admin'})&&ve({role:'membro',papel_crm:'gestor'}));
+  ok('SDR e closer não veem', !ve({role:'membro',papel_crm:'sdr'})&&!ve({role:'membro',papel_crm:'closer'})&&!ve(null));
+  ok('Origem aparece pra todo mundo; campanha, conjunto, anúncio e mensagem automática só com clVeRastreio', /<div class="cl-kv"><span>Origem<\/span>\$\{ed\('origem','-'\)\}<\/div>\n\s*\$\{clVeRastreio\(\)\?`<div class="cl-kv"><span>Formulário<\/span>/.test(HTML));
+}
 grupo('Novo lead pelo + nos CRMs de formulário, e a reserva do disparo (Bernardo 08/10)');
 {
   ok('o + dentro do CRM abre o cadastro de lead, não a tela de tarefa', /if\(!id&&TK\.escopo==='lista'&&crmForm\(TK\.listaSel\)\)\{ crmLdNovo\(TK\.listaSel,grupoPre\); return; \}/.test(HTML));
