@@ -48,6 +48,10 @@
   .esp-t.cinza{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
   .esp-t.amar{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
   .esp-t.verm{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}
+  .topo-esp{margin:6px 0 4px;display:flex;align-items:center;gap:8px;font-weight:800;font-size:12px;letter-spacing:.04em;color:var(--danger)}
+  .topo-esp i{width:8px;height:8px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 4px color-mix(in srgb,var(--danger) 25%,transparent)}
+  #tEsp{border-color:color-mix(in srgb,var(--danger) 45%,transparent)}
+  .et{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
   .ult{color:var(--muted);max-width:280px;overflow:hidden;text-overflow:ellipsis}
   .ult.lead{color:var(--txt)}
   .ult small{color:var(--fraco)}
@@ -94,35 +98,36 @@
       <button class="chip">Filtros</button>
     </div>
 
-    <div class="grupo"><span class="sel" style="background:#2f7cf629;color:#7db0ff">3. EM CONVERSA</span><span class="ct">4</span></div>
-    <table id="tConv">
-      <thead><tr><th>Lead</th><th>Esperando</th><th class="ult">Última mensagem</th><th>Vendedor</th></tr></thead>
+    <div class="topo-esp"><i></i>AGUARDANDO RESPOSTA <span class="ct" id="nTopo" style="color:var(--fraco);font-weight:600">3</span></div>
+    <table id="tEsp">
+      <thead><tr><th>Lead</th><th>Esperando</th><th class="ult">Última mensagem</th><th>Etapa</th><th>Vendedor</th></tr></thead>
       <tbody>
-        <tr class="espera" data-id="regis"><td><div class="nm">Régis Almeida<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg><span class="bd">2</span></button></div></td>
-          <td><span class="esp-t cinza">há 2 min</span></td><td class="ult lead">pode ser às 10h? <small>· Régis</small></td><td class="vend">Kennedy</td></tr>
-        <tr class="espera"><td><div class="nm">Moto Center<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg><span class="bd">1</span></button></div></td>
-          <td><span class="esp-t amar">há 38 min</span></td><td class="ult lead">qual o valor do plano? <small>· Lead</small></td><td class="vend">Luana</td></tr>
-        <tr class="espera"><td><div class="nm">JR Motos<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg><span class="bd">4</span></button></div></td>
-          <td><span class="esp-t verm">há 2 h</span></td><td class="ult lead">oi? <small>· Lead</small></td><td class="vend">Kennedy</td></tr>
-        <tr><td><div class="nm">Duas Rodas SJRP<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg></button></div></td>
-          <td></td><td class="ult">Perfeito, te mando amanhã <small>· Luana</small></td><td class="vend">Luana</td></tr>
+        <tr class="espera"><td><div class="nm">Régis Almeida<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg><span class="bd">2</span></button></div></td><td><span class="esp-t cinza">há 2 min</span></td><td class="ult lead">pode ser às 10h? <small>· Régis</small></td><td><span class="et" style="background:#38bdf829;color:#7dd3fc">Proposta enviada</span></td><td class="vend">Kennedy</td></tr>
+        <tr class="espera"><td><div class="nm">Moto Center<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg><span class="bd">1</span></button></div></td><td><span class="esp-t amar">há 38 min</span></td><td class="ult lead">qual o valor do plano? <small>· Lead</small></td><td><span class="et" style="background:#2f7cf629;color:#7db0ff">Em conversa</span></td><td class="vend">Luana</td></tr>
+        <tr class="espera"><td><div class="nm">JR Motos<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg><span class="bd">4</span></button></div></td><td><span class="esp-t verm">há 2 h</span></td><td class="ult lead">oi? <small>· Lead</small></td><td><span class="et" style="background:#f59e0b29;color:#fbbf24">Reunião marcada</span></td><td class="vend">Kennedy</td></tr>
+      </tbody>
+    </table>
+
+    <div class="grupo"><span class="sel" style="background:#2f7cf629;color:#7db0ff">3. EM CONVERSA</span><span class="ct">1</span></div>
+    <table id="tConv">
+      <thead><tr><th>Lead</th><th>Esperando</th><th class="ult">Última mensagem</th><th>Etapa</th><th>Vendedor</th></tr></thead>
+      <tbody>
+        <tr><td><div class="nm">Duas Rodas SJRP<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg></button></div></td><td></td><td class="ult">Perfeito, te mando amanhã <small>· Luana</small></td><td><span class="et" style="background:#2f7cf629;color:#7db0ff">Em conversa</span></td><td class="vend">Luana</td></tr>
       </tbody>
     </table>
 
     <div class="grupo"><span class="sel" style="background:#7c3aed29;color:#c4b5fd">1. NOVO LEAD</span><span class="ct">2</span></div>
     <table id="tNovo">
-      <thead><tr><th>Lead</th><th>Esperando</th><th class="ult">Última mensagem</th><th>Vendedor</th></tr></thead>
+      <thead><tr><th>Lead</th><th>Esperando</th><th class="ult">Última mensagem</th><th>Etapa</th><th>Vendedor</th></tr></thead>
       <tbody>
-        <tr data-id="carlos"><td><div class="nm">Carlos Henrique<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg></button></div></td>
-          <td></td><td class="ult">Olá, Carlos, tudo bem? Aqui é o Kennedy… <small>· automática</small></td><td class="vend">Kennedy</td></tr>
-        <tr><td><div class="nm">Felipe Motos<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg></button></div></td>
-          <td></td><td class="ult">Olá, Felipe, tudo bem? Aqui é a Luana… <small>· automática</small></td><td class="vend">Luana</td></tr>
+        <tr data-id="carlos"><td><div class="nm">Carlos Henrique<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg></button></div></td><td></td><td class="ult">Olá, Carlos, tudo bem? Aqui é o Kennedy… <small>· automática</small></td><td><span class="et" style="background:#7c3aed29;color:#c4b5fd">Novo lead</span></td><td class="vend">Kennedy</td></tr>
+        <tr><td><div class="nm">Felipe Motos<button class="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg></button></div></td><td></td><td class="ult">Olá, Felipe, tudo bem? Aqui é a Luana… <small>· automática</small></td><td><span class="et" style="background:#7c3aed29;color:#c4b5fd">Novo lead</span></td><td class="vend">Luana</td></tr>
       </tbody>
     </table>
   </main>
 </div>
 
-<div class="nota"><b>Prévia</b> (não grava nada). Vermelho = lead esperando resposta: bolinha com o número de mensagens no botão do WhatsApp, tempo de espera (cinza até 15 min, amarelo até 1 h, vermelho depois), linha destacada e no topo da etapa. Some sozinho quando alguém responde, pelo sistema ou pelo celular.<br>
+<div class="nota"><b>Prévia</b> (não grava nada). Quem respondeu sobe para o bloco <b>Aguardando resposta</b>, no topo da lista, seja qual for a etapa (a etapa aparece na etiqueta): bolinha com o número de mensagens, tempo de espera (cinza até 15 min, amarelo até 1 h, vermelho depois) e linha destacada. Some sozinho quando alguém responde, pelo sistema ou pelo celular.<br>
 <button onclick="simular()">Simular: Carlos respondeu</button></div>
 
 <div class="avisos" id="avisos">
@@ -149,8 +154,8 @@ function simular(){
   tr.children[1].innerHTML='<span class="esp-t cinza">agora</span>';
   const u=tr.querySelector('.ult'); u.classList.add('lead'); u.innerHTML='tenho interesse sim, me liga <small>· Carlos</small>';
   /* respondeu: sai de Novo lead e sobe pro topo de Em conversa, igual ao funil automático */
-  document.querySelector('#tConv tbody').prepend(tr);
-  n++; ['nSide','nChip'].forEach(id=>document.getElementById(id).textContent=n);
+  document.querySelector('#tEsp tbody').prepend(tr);
+  n++; ['nSide','nChip','nTopo'].forEach(id=>document.getElementById(id).textContent=n);
   document.getElementById('titulo').textContent='('+n+') AutoSíntese'; document.title='('+n+') AutoSíntese';
   document.getElementById('avisos').insertAdjacentHTML('beforeend',`<div class="av"><div class="av-h"><b>Carlos Henrique respondeu</b><span>· agora</span><button class="x" onclick="this.closest('.av').remove()">&times;</button></div><div class="av-t">“tenho interesse sim, me liga”</div><div class="av-b"><button class="pri">Responder</button><button>Abrir card</button></div></div>`);
 }
