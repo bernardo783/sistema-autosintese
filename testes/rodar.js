@@ -2735,6 +2735,16 @@ grupo('Cartão do lead: anexar arquivo nas anotações (Bernardo 08/10)');
   ok('PDF e imagem abrem na prévia, o resto baixa', /tkmAnxPrever/.test(cod)&&/tkmAnxAbrir/.test(cod));
 }
 
+/* ---------------- Recebimentos: linha do grupo igual às contas ---------------- */
+grupo('Recebimentos: linha do grupo (MEGA CENTER) igual às das contas (Bernardo 09/10)');
+{
+  const cod=bloco('const linhaGrupo=(g,m)=>{','rcGrIds={};');
+  ok('grupo tem o Cobrei das contas, marcando todas de uma vez', /class="rc-cob"/.test(cod)&&/rc-cob-l/.test(cod)&&/rcCobradoGrupo\(this\.dataset\.g,this\.checked\)/.test(cod));
+  ok('grupo tem Editar e ⋯ como as contas (pergunta qual conta)', /rcGrupoConta\(event,this\.dataset\.g,'editar'\)"[^>]*>Editar</.test(cod)&&/rcGrupoConta\(event,this\.dataset\.g,'acoes'\)"[^>]*>⋯</.test(cod));
+  ok('sai o botão Ver/Fechar contas (abre pelo nome, com a setinha)', cod.indexOf('Fechar contas')<0);
+  ok('status com o mesmo tamanho em todas as linhas', /#cBody \.stSel\{width:100%;min-width:168px\}/.test(HTML));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
