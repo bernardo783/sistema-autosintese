@@ -2755,6 +2755,21 @@ grupo('Recebimentos: linha do grupo (MEGA CENTER) igual às das contas (Bernardo
   ok('status com o mesmo tamanho em todas as linhas', /#cBody \.stSel\{width:100%;min-width:168px\}/.test(HTML));
 }
 
+/* ---------------- Folha: fixo com data ---------------- */
+grupo('Folha: fixo muda a partir de um mês, sem mexer no que já foi pago (Bernardo 09/10)');
+{
+  const m=HTML.match(/const fdFixoEm=[\s\S]*?return h\?\(Number\(h\.valor\)\|\|0\):\(Number\(p\.fixo\)\|\|0\); \};/);
+  ok('fdFixoEm existe', !!m);
+  const g=rodar((m?m[0]:'')+'\n;window.fdFixoEm=fdFixoEm;',{},[]);
+  const arthur={fixo:4116.67,fixoHist:[{ate:'2026-09',valor:3800}]};
+  ok('setembro continua R$ 3.800', g.fdFixoEm(arthur,'2026-09')===3800);
+  ok('outubro em diante é R$ 4.116,67', g.fdFixoEm(arthur,'2026-10')===4116.67&&g.fdFixoEm(arthur,'2027-01')===4116.67);
+  ok('várias mudanças: vale a faixa certa', g.fdFixoEm({fixo:5000,fixoHist:[{ate:'2026-06',valor:3000},{ate:'2026-09',valor:4000}]},'2026-05')===3000&&g.fdFixoEm({fixo:5000,fixoHist:[{ate:'2026-06',valor:3000},{ate:'2026-09',valor:4000}]},'2026-08')===4000);
+  ok('sem histórico: usa o fixo do cadastro', g.fdFixoEm({fixo:1600},'2026-09')===1600);
+  ok('a folha calcula com o fixo do mês aberto', HTML.indexOf('fixo=fdR2(fdFixoEm(p,FD.comp))')>0);
+  ok('editar o fixo guarda o valor antigo até o mês anterior', /hist\.push\(\{ate,valor:fdR2\(it\.fixo\)\}\)/.test(HTML));
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));
