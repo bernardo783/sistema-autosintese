@@ -10805,11 +10805,12 @@ const anuStatus=(a)=>{ const s=String(a.effective_status||'');
 const anuTipo=(a)=>{ const c=a.creative||{}; return c.video_id||c.object_type==='VIDEO'?'Vídeo':c.object_type==='PHOTO'?'Imagem':'Anúncio'; };
 const anuGasto=(a)=>Number((((a.insights||{}).data||[])[0]||{}).spend)||0;
 const anuIns=(a)=>(((a.insights||{}).data||[])[0])||{};
-/* período em datas, pra filtrar os leads pela mesma janela do gasto (Meta: last_Nd termina ontem) */
+/* período em datas: a MESMA janela vai pra Meta (since/until) e filtra os leads. O preset last_Nd da Meta
+   termina ontem e escondia o dia de hoje: com anúncio novo e lead de hoje, o investido dava R$ 0 (Bernardo 08/10) */
 function anuJanela(){
   const p=ANU_PER.find(x=>x[0]===ANU.per)||ANU_PER[1], hoje=tkHoje();
   const d=(iso,n)=>{ const x=new Date(iso+'T12:00:00'); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
-  if(p[2]) return [d(hoje,-p[2]),hoje];
+  if(p[2]) return [d(hoje,-(p[2]-1)),hoje];
   if(p[0]==='this_month') return [hoje.slice(0,8)+'01',hoje];
   if(p[0]==='last_month'){ const x=new Date(hoje.slice(0,8)+'01T12:00:00'); x.setMonth(x.getMonth()-1);
     const ini=x.toISOString().slice(0,10); return [ini,d(hoje.slice(0,8)+'01',-1)]; }
@@ -10833,7 +10834,8 @@ async function anuCarregar(lid,forcar){
   const k=anuChave(lid); if(forcar){ delete ANU.dados[k]; }
   if(ANU.dados[k]||ANU.carregando[k]) return; ANU.carregando[k]=true;
   const contas=(ANU.cfg[lid]||{}).contas||[], erros=[];
-  const res=await Promise.all(contas.map(c=>anuMeta(`/anuncios/${encodeURIComponent(c.id)}?preset=${ANU.per}`).catch(e=>({ok:false,erro:String(e)}))));
+  const [ini,fim]=anuJanela(), q=ANU.per==='maximum'?'preset=maximum':`since=${ini}&until=${fim}`;
+  const res=await Promise.all(contas.map(c=>anuMeta(`/anuncios/${encodeURIComponent(c.id)}?${q}`).catch(e=>({ok:false,erro:String(e)}))));
   /* total = gasto da conta no período, o número do Gerenciador (anúncio pausado, arquivado e
      apagado entram); só vale se todas as contas responderam com ele */
   const ads=[]; let total=0, temTotal=contas.length>0;
@@ -10850,10 +10852,11 @@ function anuMontar(lid){
   const val=(t,c)=>c?String((t.valores||{})[c.id]==null?'':(t.valores||{})[c.id]).trim():'';
   const dia=(t)=>(val(t,cD)||String(t.criado_em||'')).slice(0,10);
   const leads=(TK.tarefas||[]).filter(t=>t.lista_id===lid&&!arquivada(t)&&!t.pai_id&&!t.rascunho);
-  const porNome={}; d.ads.forEach(a=>{ const n=anuNorm(a.name); (porNome[n]=porNome[n]||[]).push(a); });
-  const linhas=new Map(); d.ads.forEach(a=>linhas.set(a.id,{a,leads:[]}));
-  let semAnuncio=0;
-  leads.forEach(t=>{ const dt=dia(t); if(dt<ini||dt>fim) return;
+  const ads=anuJuntar(d.ads);
+  const porNome={}; ads.forEach(a=>{ const n=anuNorm(a.name); (porNome[n]=porNome[n]||[]).push(a); });
+  const linhas=new Map(); ads.forEach(a=>linhas.set(a.id,{a,leads:[]}));
+  let semAnuncio=0; const doPeriodo=[];
+  leads.forEach(t=>{ const dt=dia(t); if(dt<ini||dt>fim) return; doPeriodo.push(t);
     const nome=val(t,cA); if(!nome){ semAnuncio++; return; }
     let cand=porNome[anuNorm(nome)]||[];
     if(cand.length>1){ const c2=cand.filter(a=>anuNorm((a.campaign||{}).name)===anuNorm(val(t,cC))); if(c2.length) cand=c2; }
@@ -10872,8 +10875,27 @@ function anuMontar(lid){
     out.push({a,leads:L.leads,vendas:vendas.length,clientes,gasto,ativo,
       cash:clientes.reduce((s,c)=>s+c.cash,0),vgv:clientes.reduce((s,c)=>s+c.vgv,0),mrr:clientes.reduce((s,c)=>s+c.mrr,0)}); });
   out.sort((x,y)=>(y.cash-x.cash)||(y.leads.length-x.leads.length)||(y.gasto-x.gasto));
-  return {linhas:out,semAnuncio,erros:d.erros||[],total:d.total==null?null:d.total};
+  return {linhas:out,semAnuncio,leads:doPeriodo,erros:d.erros||[],total:d.total==null?null:d.total};
 }
+/* O Yay grava só o NOME do anúncio. A mesma peça duplicada em outro conjunto (Aquecimento → Tracking 100%)
+   tem o mesmo nome: vira um cartão só, com o gasto somado, senão o lead caía na cópia sem gasto e o
+   custo por lead saía errado (Bernardo 08/10). */
+function anuJuntar(ads){
+  const g=new Map();
+  ads.forEach(a=>{ const k=anuNorm((a.campaign||{}).name)+'|'+anuNorm(a.name); (g.get(k)||g.set(k,[]).get(k)).push(a); });
+  return [...g.values()].map(L=>{ if(L.length===1) return L[0];
+    const vivo=L.find(a=>anuStatus(a)[2])||L[0], soma=(f)=>L.reduce((s,a)=>s+(Number(anuIns(a)[f])||0),0);
+    const sp=soma('spend'), im=soma('impressions'), cl=soma('clicks');
+    const acts={}; L.forEach(a=>(anuIns(a).actions||[]).forEach(x=>{ acts[x.action_type]=(acts[x.action_type]||0)+(Number(x.value)||0); }));
+    return Object.assign({},vivo,{adset:{name:[...new Set(L.map(a=>(a.adset||{}).name).filter(Boolean))].join(' · ')},juntos:L.length,
+      insights:{data:[{spend:sp,impressions:im,reach:soma('reach'),clicks:cl,ctr:im?cl/im*100:0,cpc:cl?sp/cl:0,cpm:im?sp/im*1000:0,
+        actions:Object.keys(acts).map(k=>({action_type:k,value:acts[k]}))}]}}); });
+}
+/* lead = deixou pelo menos o nome ou o WhatsApp; formulário completo = campo Formulário "Completo" */
+function anuContato(t){ const cps=tkCamposDe(t.lista_id), w=cps.find(c=>/whats/i.test(c.nome));
+  return !!(String(t.titulo||'').trim()||(w&&String((t.valores||{})[w.id]||'').trim())); }
+function anuCompleto(t){ const f=tkCamposDe(t.lista_id).find(c=>anuNorm(c.nome)==='formulario');
+  return !!f&&anuNorm((t.valores||{})[f.id])==='completo'; }
 /* dinheiro de um cliente: o que já entrou, o valor do contrato e a mensalidade de hoje */
 const ANU_MESES={mensal:1,trimestral:3,semestral:6,anual:12};
 function anuCliente(c,recs){
@@ -10887,9 +10909,13 @@ function anuCliente(c,recs){
   const vgv=c.semMensalidade?(Number(c.valorProjeto)||0):mens*meses+(Number(c.valorProjeto)||0);
   return {c,nome:c.nome,tipo:f.tipoContrato||'',mens,meses,pagas,cash,vgv,mrr:churn||c.arquivadoEm?0:mens,churn,inicio:c.inicio||''};
 }
-function anuTotais(ls){
-  const t=ls.reduce((o,l)=>{ o.gasto+=l.gasto; o.leads+=l.leads.length; o.vendas+=l.vendas; o.cash+=l.cash; o.vgv+=l.vgv; o.mrr+=l.mrr; o.cli+=l.clientes.length; return o; },{gasto:0,leads:0,vendas:0,cash:0,vgv:0,mrr:0,cli:0});
-  t.cac=t.vendas?t.gasto/t.vendas:0; t.cpl=t.leads?t.gasto/t.leads:0; t.ret=t.gasto?t.cash/t.gasto:0; return t;
+/* todos = todos os leads do período, inclusive os sem anúncio no CRM: o custo por lead do topo é o
+   investido dividido por quem deixou nome ou WhatsApp, viesse de onde viesse */
+function anuTotais(ls,todos){
+  const t=ls.reduce((o,l)=>{ o.gasto+=l.gasto; o.vendas+=l.vendas; o.cash+=l.cash; o.vgv+=l.vgv; o.mrr+=l.mrr; o.cli+=l.clientes.length; return o; },{gasto:0,vendas:0,cash:0,vgv:0,mrr:0,cli:0});
+  const L=(todos||ls.flatMap(l=>l.leads)).filter(anuContato);
+  t.leads=L.length; t.completos=L.filter(anuCompleto).length;
+  t.cac=t.vendas?t.gasto/t.vendas:0; t.cpl=t.leads?t.gasto/t.leads:0; t.cpf=t.completos?t.gasto/t.completos:0; t.ret=t.gasto?t.cash/t.gasto:0; return t;
 }
 const anuCard=(rot,val,sub,cor)=>`<div class="pc-card"><div class="pc-k">${esc(rot)}</div><div class="pc-v"${cor?` style="color:var(--${cor})"`:''}>${val}</div>${sub?`<div class="pc-s">${sub}</div>`:''}</div>`;
 function anuKpis(t,master){
@@ -10897,7 +10923,9 @@ function anuKpis(t,master){
       <div class="pc-big">${master?esc(brl(t.cash)):'—'}</div>
       <div class="pc-s">${!master?'só o master vê o dinheiro dos clientes':t.cli?`recebido de ${t.cli} cliente${t.cli===1?'':'s'} desde o fechamento${t.gasto?' · '+anuX(t.ret)+' o investido':''}`:'nenhum cliente fechado por estes anúncios ainda'}</div></div>
     <div class="pc-grid anu-kpis">
-      ${anuCard('Investido',anuR0(t.gasto),t.leads+' lead'+(t.leads===1?'':'s')+(t.leads?' · '+anuR0(t.cpl)+' por lead':''))}
+      ${anuCard('Investido',esc(brl(t.gasto)),t.leads+' lead'+(t.leads===1?'':'s')+' no período')}
+      ${anuCard('Custo por lead',t.leads?esc(brl(t.cpl)):'-',t.leads+' deixaram nome ou WhatsApp')}
+      ${anuCard('Custo por formulário completo',t.completos?esc(brl(t.cpf)):'-',t.completos+' de '+t.leads+' preencheram tudo')}
       ${anuCard('CAC',t.vendas?anuR0(t.cac):'-',t.vendas+' venda'+(t.vendas===1?'':'s')+(t.leads?' de '+t.leads+' leads':''))}
       ${anuCard('VGV',master?anuR0(t.vgv):'—','valor dos contratos')}
       ${anuCard('MRR',master?anuR0(t.mrr):'—','mensalidades ativas','info2')}
@@ -10935,8 +10963,8 @@ function anuCorpo(lid){
      verdade gastei muito mais"): somavam só os anúncios do filtro (o padrão "Só ativos" deixava de
      fora tudo que já foi pausado) e só os que a lista da Meta trazia. O filtro e a busca mexem
      só nos cartões; o Investido é o gasto das contas no período, igual ao Gerenciador. */
-  const t=anuTotais(m.linhas);
-  if(m.total!=null&&m.total>t.gasto){ t.gasto=m.total; t.cac=t.vendas?t.gasto/t.vendas:0; t.cpl=t.leads?t.gasto/t.leads:0; t.ret=t.gasto?t.cash/t.gasto:0; }
+  const t=anuTotais(m.linhas,m.leads);
+  if(m.total!=null&&m.total>t.gasto){ t.gasto=m.total; t.cac=t.vendas?t.gasto/t.vendas:0; t.cpl=t.leads?t.gasto/t.leads:0; t.cpf=t.completos?t.gasto/t.completos:0; t.ret=t.gasto?t.cash/t.gasto:0; }
   ANU.ultimo={lid,linhas:m.linhas};
   const card=(l)=>{ const a=l.a, [st,cor]=a.fora?['Fora das contas','muted']:anuStatus(a), c=a.creative||{}, img=c.thumbnail_url||c.image_url||'';
     return `<div class="anu-ad${l.ativo?'':' parado'}" tabindex="0" onclick="anuAbrir('${esc(a.id)}')" onkeydown="if(event.key==='Enter')anuAbrir('${esc(a.id)}')">
@@ -10946,7 +10974,7 @@ function anuCorpo(lid){
         <div class="hint anu-camp">${esc((a.campaign||{}).name||'')}${(a.adset||{}).name?' · '+esc(a.adset.name):''}</div>
         <div class="anu-nums">
           <div><b>${l.leads.length}</b><span>lead${l.leads.length===1?'':'s'}</span></div>
-          <div><b>${a.fora?'-':anuR0(l.gasto)}</b><span>investido</span></div>
+          <div><b>${a.fora?'-':anuR0(l.gasto)}</b><span>${!a.fora&&l.gasto&&l.leads.length?anuR0(l.gasto/l.leads.length)+' por lead':'investido'}</span></div>
           <div><b>${l.vendas}</b><span>venda${l.vendas===1?'':'s'}</span></div>
           <div><b class="ok">${master?anuR0(l.cash):'—'}</b><span>cash collect</span></div>
         </div>

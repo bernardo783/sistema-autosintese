@@ -1644,6 +1644,25 @@ grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernar
     A.ANU.cfg.L={bm_id:'2',bm_nome:'Moto Shop'}; A.ANU.bmContas['2']=[{id:'act_9',nome:'Conta A',status:1},{id:'act_10',nome:'Conta B',status:1}];
     ok('contas: a mesma busca, por nome ou ID', vis('conta b','contas')===1&&vis('act_9','contas')===1&&vis('','contas')===2);
   }
+  /* Investido R$ 0 com lead de hoje (Bernardo 08/10): janela até hoje, anúncio duplicado somado, custo por lead e por formulário */
+  {
+    const i=HTML.indexOf('const ANU={'), k=HTML.indexOf('function anuView(){');
+    const campos=[{id:'cA',lista_id:'L',nome:'Anúncio'},{id:'cC',lista_id:'L',nome:'Campanha'},{id:'cF',lista_id:'L',nome:'Formulário'},{id:'cW',lista_id:'L',nome:'WhatsApp'},{id:'cD',lista_id:'L',nome:'Preencheu em'}];
+    const env={esc:(x)=>String(x),tkCamposDe:()=>campos,tkHoje:()=>'2026-10-08',RSP_DATA:'Preencheu em',TK:{tarefas:[]},arquivada:()=>false,tkStatus1:()=>null,
+      DB:{recebimentos:[],clientes:[]},brl:(v)=>'R$ '+Number(v).toFixed(2).replace('.',','),document:{querySelector:()=>null}};
+    const A=new Function(...Object.keys(env),HTML.slice(i,k)+';return {ANU,anuMontar,anuTotais,anuJanela,anuKpis};')(...Object.values(env));
+    A.ANU.cfg.L={contas:[{id:'act_1'}]};
+    const ad=(id,n,st,sp)=>({id,name:n,effective_status:st,campaign:{name:'C'},adset:{name:'X'+id},insights:{data:[{spend:String(sp)}]}});
+    A.ANU.dados['L|last_30d|act_1']={ads:[ad('1','[02] Poltrona','ACTIVE',12.92),ad('5','[02] Poltrona','ADSET_PAUSED',117.16),ad('6','[01] Poltrona','ADSET_PAUSED',23.31)],erros:[]};
+    const lead=(n,an,form)=>({id:n,lista_id:'L',titulo:n,criado_em:'2026-10-08T15:00:00Z',valores:{cA:an,cC:'C',cF:form,cW:'x',cD:'2026-10-08'}});
+    env.TK.tarefas.push(lead('a','[02] Poltrona','Completo'),lead('b','[02] Poltrona','Completo'),lead('c','[01] Poltrona','Incompleto'),lead('d','','Completo'));
+    const m=A.anuMontar('L'), t=A.anuTotais(m.linhas,m.leads);
+    ok('Anúncios: "últimos 30 dias" termina hoje (lead e gasto de hoje entram)', A.anuJanela()[1]==='2026-10-08'&&A.anuJanela()[0]==='2026-09-09');
+    ok('Anúncios: a mesma peça em dois conjuntos vira um cartão com o gasto somado', m.linhas.length===2&&Math.abs(m.linhas.find(l=>l.a.name==='[02] Poltrona').gasto-130.08)<0.001);
+    ok('Anúncios: o investido do topo conta anúncio pausado (o filtro Só ativos mexe só na grade)', Math.abs(t.gasto-153.39)<0.001);
+    ok('Anúncios: custo por lead conta todo lead com nome ou WhatsApp, até sem anúncio', t.leads===4&&Math.abs(t.cpl-153.39/4)<0.001);
+    ok('Anúncios: custo por formulário completo', t.completos===3&&/Custo por formulário completo/.test(A.anuKpis(t,true)));
+  }
   ok('no topo do CRM Sofás some o ícone da Lista e o do Quadro', /\$\{soBoard\|\|\(TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\)\?'':tpIb\('lista'/.test(HTML)&&/\$\{TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\?'':tpIb\('quadro'/.test(HTML));
   ok('crm.js com cache novo', HTML.indexOf('crm.js?v=29')>0);
 }
