@@ -1801,6 +1801,8 @@ grupo('Seta pro wa.me ao lado do número do lead (Bernardo 08/10)');
   ok('cartão: seta ao lado do número, abrindo o wa.me em outra aba', /<div class="cl-fone"><input[^>]*value="\(61\) 99205-4765"[^>]*><a class="cl-seta" href="https:\/\/wa\.me\/5561992054765" target="_blank"/.test(h));
   const semNum=Object.assign({},lead,{valores:{}});
   ok('cartão: sem número, sem seta', g.crmLdHtml(semNum).indexOf('cl-seta')<0);
+  ok('cartão: o Contato abre com o Nome editável (Bernardo 08/10)', /<h4>Contato<\/h4>\s*<div class="cl-kv"><span>Nome<\/span><input class="cl-in" value="Ana"[^>]*onchange="clNome\(this\.value\)"/.test(h));
+  ok('cartão: topo mostra o nome do cliente, sem campo de editar repetido', /<h2 class="cl-nome">Ana<\/h2>/.test(h)&&h.indexOf('<input class="cl-nome"')<0);
 }
 grupo('CRM Sofás: responsável só José, Bernardo, Kennedy e Luana (Bernardo 08/10)');
 {
