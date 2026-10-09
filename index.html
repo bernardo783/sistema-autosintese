@@ -23121,10 +23121,16 @@ function fdDpsDaLinha(l,dpPadrao){
   if(l.cat==='full') return {Marketing:0.5,Tecnologia:0.5};
   return {[dpPadrao]:1};
 }
+/* FIXO COM DATA (Bernardo 09/10: Arthur foi pra R$ 4.116,67 "a partir de outubro"). O cadastro
+   guarda o fixo de agora; fixoHist guarda os valores antigos, cada um com o último mês em que
+   valeu ({ate:'2026-09',valor:3800}). Sem isso, abrir uma folha já paga recalculava com o fixo
+   novo e mostrava a diferença como "a pagar". */
+const fdFixoEm=(p,comp)=>{ const h=(p.fixoHist||[]).filter(x=>comp&&String(comp)<=String(x.ate))
+  .sort((a,b)=>String(a.ate).localeCompare(String(b.ate)))[0]; return h?(Number(h.valor)||0):(Number(p.fixo)||0); };
 function fdResumo(pessoas,linhas){
   const por={}; (linhas||[]).forEach(l=>{ if(l.papel==='fixo') return; const k=primNome(l.pessoa); (por[k]=por[k]||[]).push(l); });
   return (pessoas||[]).map(p=>{
-    const ls=por[primNome(p.nome)]||[], fixo=fdR2(p.fixo), dp=fdDpDe(p);
+    const ls=por[primNome(p.nome)]||[], fixo=fdR2(fdFixoEm(p,FD.comp)), dp=fdDpDe(p);
     const ganho=fdSoma(ls,'ganho'), cheio=fdSoma(ls,'cheio');
     /* quanto de cada departamento: fixo no da pessoa, variavel repartida linha a linha */
     const dps={}; const poe=(d,g,c)=>{ dps[d]=dps[d]||{ganho:0,cheio:0}; dps[d].ganho+=g; dps[d].cheio+=c; };
@@ -23602,6 +23608,10 @@ window.fdPessoaModal=(id)=>{
       if(!v.nome){ toast('Informe o nome.'); return false; }
       const dup=fdPessoas().find(x=>x.id!==id&&primNome(x.nome)===primNome(v.nome));
       if(dup){ toast('Já existe alguém com o primeiro nome '+v.nome.split(' ')[0]+' na folha: '+dup.nome+'. O sistema liga a pessoa aos clientes pelo primeiro nome.'); return false; }
+      /* mudou o fixo: o valor antigo fica valendo até o mês antes da folha aberta */
+      if(id&&fdR2(it.fixo)!==v.fixo){ const de=FD.comp||compNow(), [yy,mm]=de.split('-').map(Number), ant=new Date(yy,mm-2,1);
+        const ate=ant.getFullYear()+'-'+String(ant.getMonth()+1).padStart(2,'0');
+        const hist=(it.fixoHist||[]).filter(x=>String(x.ate)<ate); hist.push({ate,valor:fdR2(it.fixo)}); v.fixoHist=hist; }
       if(id) Object.assign(it,v); else DB.folhaFixos.push(Object.assign({id:uid(),tipo:'pessoa',ativo:false},v));
       FD.linhas=null; /* o fixo mudou: a conta refaz */
       await saveDB(); render(folhaView()); toast('Salvo.'); return true;
