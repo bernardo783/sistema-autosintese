@@ -2261,6 +2261,7 @@
   .rc-cp:hover{color:var(--txt);background:var(--hov2);border-color:var(--line)}
   .rc-cp.link{color:var(--ok)}
   .rc-cob{text-align:center}
+  #cBody .stSel{width:100%;min-width:168px}   /* grupo e contas com o mesmo tamanho (Bernardo 09/10) */
   .rc-cob-l{display:inline-flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
   .rc-cob-l input{width:17px;height:17px;accent-color:var(--ok);cursor:pointer}
   .rc-cob-l small{color:var(--muted);font-size:10.5px}
@@ -21679,8 +21680,11 @@ function renderRecebimentos(c){
         <option value="inadimplente"${S.igual==='inadimplente'?' selected':''}>Inadimplente</option>
         <option value="recebido"${S.igual==='recebido'?' selected':''}>Recebido</option>
       </select></td>
-      <td></td>
-      <td><div class="rowact"><button class="iconbtn" data-g="${esc(g)}" onclick="rcGrupoAbre(this.dataset.g)">${ab?'Fechar contas':'Ver contas'}</button></div></td>
+      <td class="rc-cob">${(()=>{ const el=m.filter(x=>rcCobravel(R.st(x))), rg=el.map(x=>R.byCli[x.id]);
+        if(!el.length) return '<span class="hint" style="margin:0">-</span>';
+        const todos=rg.every(r=>r&&r.cobradoEm), alguns=rg.some(r=>r&&r.cobradoEm);
+        return `<label class="rc-cob-l" title="${todos?'Todas as contas cobradas · desmarcar volta a lembrar':'Marca a cobrança das '+el.length+' contas de uma vez'}"><input type="checkbox" ${todos?'checked':''} data-g="${esc(g)}" onchange="rcCobradoGrupo(this.dataset.g,this.checked)">${alguns&&!todos?`<small>${rg.filter(r=>r&&r.cobradoEm).length} de ${el.length}</small>`:''}</label>`; })()}</td>
+      <td><div class="rowact"><button class="iconbtn" data-g="${esc(g)}" onclick="rcGrupoConta(event,this.dataset.g,'editar')" title="Escolher a conta pra editar">Editar</button><button class="iconbtn" data-g="${esc(g)}" onclick="rcGrupoConta(event,this.dataset.g,'acoes')" title="Arquivar, mover pro Controle de Churns ou excluir uma das contas">⋯</button></div></td>
     </tr>`;};
     rcGrIds={};
     $('#cBody').innerHTML=rcAgrupar(rows,rcGrupoCli).map(x=>{
@@ -22156,6 +22160,31 @@ window.rcCopiarMsg=(cid,gids)=>{
   const grupo=gids?String(gids).split(',').map(id=>(DB.clientes||[]).find(x=>x.id===id)).filter(Boolean):null;
   const m=rcMensagem(c,cliComp,RC_ASAAS.cobrancas,grupo);
   rcCopiarTxt(m.txt,m.link?'Mensagem copiada com o link do Asaas.':(RC_ASAAS.cobrancas?'Mensagem copiada. Sem link: cliente sem cobrança em aberto no Asaas.':'Mensagem copiada sem o link (ainda carregando o Asaas).'));
+};
+/* LINHA DO GRUPO IGUAL ÀS CONTAS (Bernardo 09/10: "ux igual pra megacenter"): o grupo ganha o Cobrei
+   (marca ou desmarca todas as contas que ainda cobram) e o Editar/⋯ das outras linhas, que perguntam
+   qual conta. Abrir e fechar as contas fica no nome, com a setinha. */
+const rcCobravel=(st)=>!(st==='recebido'||st==='churnpago'||st==='churn'||st==='carencia'||st==='parceria');
+window.rcCobradoGrupo=async (g,on)=>{
+  const comp=cliComp, ids=(rcGrIds||{})[g]||[];
+  const R=calcRecebimentos(comp);
+  const alvo=ids.map(id=>DB.clientes.find(c=>c.id===id)).filter(c=>c&&rcCobravel(R.st(c)));
+  const regs=alvo.map(c=>rcRegistro(c.id,comp));
+  if(regs.some(r=>!r)){ toast('Defina o dia de vencimento das contas primeiro (Editar).'); render('recebimentos'); return; }
+  regs.forEach(r=>{ r.cobradoEm=on?hojeISO():null; });
+  await saveDB();
+  await cbSincronizar();
+  if(currentView==='recebimentos') render('recebimentos');
+  toast(on?'As '+regs.length+' contas marcadas como cobradas.':'Desmarcado: as contas voltam a cobrar.');
+};
+window.rcGrupoConta=(ev,g,acao)=>{
+  ev.stopPropagation(); const v=document.getElementById('rcGcPop'); if(v){ v.remove(); return; }
+  const ids=(rcGrIds||{})[g]||[], cs=ids.map(id=>DB.clientes.find(c=>c.id===id)).filter(Boolean);
+  const el=document.createElement('div'); el.id='rcGcPop'; el.className='tkpop'; el.style.width='240px'; el.style.padding='6px'; el.style.zIndex=3000;
+  el.innerHTML=`<div class="hint" style="margin:4px 8px 6px">${acao==='editar'?'Editar qual conta?':'Mais opções de qual conta?'}</div>`+
+    cs.map(c=>`<button type="button" class="rc-mi" onclick="document.getElementById('rcGcPop').remove();${acao==='editar'?'openCliModal':'cliAcoes'}('${c.id}')">${esc(contaSufixo({nome:c.nome}))}<small>${brl(Number(c.valor)||0)}</small></button>`).join('');
+  document.body.appendChild(el); popPor(el,ev.currentTarget.getBoundingClientRect());
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
 window.rcCobrado=async (cliId,on)=>{
   const comp=cliComp, r=rcRegistro(cliId,comp);
