@@ -15028,6 +15028,11 @@ function clHistorico(t){
     .replace(/ID da resposta no Yay:\s*\S+/g,'').replace(/\s+/g,' ').trim();
   return {form,de,obs,mao};
 }
+/* rastreio do anúncio (formulário, campanha, conjunto, anúncio, mensagem automática) é da gestão:
+   o SDR vê só a Origem (Bernardo 09/10: "essas infos de trackeamento são irrelevantes pro SDR,
+   pra ele deve ter só a origem, inbound, outbound, indicação"). Master, admin e gestor do CRM veem tudo. */
+const clVeRastreio=()=>{ const u=(typeof currentUser!=='undefined'&&currentUser)||{};
+  return u.role==='master'||['admin','gestor'].includes(u.papel_crm); };
 /* devolve true quando é lead de CRM (o tkAbrir para por aqui) */
 function crmLdAbrir(id){
   const t=id?(TK.tarefas||[]).find(x=>x.id===id):null;
@@ -15126,10 +15131,11 @@ function crmLdHtml(t){
           ${h.mao.ind?`<div class="cl-kv"><span>Indicado por</span><b>${esc(h.mao.ind)}</b></div>`:''}
           <div class="cl-kv"><span>Cadastrado por</span><b>${esc(h.mao.por)}${quando?' em '+esc(clDia(quando)):''}</b></div>
         </section>`:`<section class="cl-box"><h4>De onde veio</h4>
-          <div class="cl-kv"><span>Formulário</span><b>${esc([h.form||'Yay Forms',clVal(t,'form')].filter(Boolean).join(' · '))}</b></div>
+          <div class="cl-kv"><span>Origem</span>${ed('origem','-')}</div>
+          ${clVeRastreio()?`<div class="cl-kv"><span>Formulário</span><b>${esc([h.form||'Yay Forms',clVal(t,'form')].filter(Boolean).join(' · '))}</b></div>
           ${ro('Preencheu em','data')}${ro('Campanha','campanha')}${ro('Conjunto','conjunto')}${ro('Anúncio','anuncio')}
           ${msg?`<div class="cl-kv"><span>Mensagem automática</span><b><span class="cl-msg" data-v="${esc(msg)}">${esc(msg)}</span></b></div>`:''}
-          <p class="cl-dica">Campanha, conjunto e anúncio chegam sozinhos pelas UTMs do anúncio.</p>
+          <p class="cl-dica">Campanha, conjunto e anúncio chegam sozinhos pelas UTMs do anúncio.</p>`:''}
         </section>`}
         ${outros.length?`<section class="cl-box"><h4>Outras informações</h4>${outros.map(c=>`<div class="cl-kv"><span>${esc(c.nome)}</span>${clEditor(t,c,'','-')}</div>`).join('')}</section>`:''}
       </div>
