@@ -1540,7 +1540,8 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
   ok('a Lista usa o mesmo botão', /rspWaBtn\(t\)(\+rspIgBtn\(t\))?:''/.test(HTML));
   ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
-  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=9')>0);
+  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=10')>0);
+  ok('só master e gestor passam o lead pra outro SDR (cartão e conversa)', /function ldPodeTr\(\)\{ return !!\(LD\.tarefa&&LD\.vendedores\.length>1&&LD\.admin\); \}/.test(fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8'))&&HTML.indexOf('<h4>SDR responsável</h4>')>0&&HTML.indexOf('class="cl-sdrro"')>0);
   /* número guardado pelo WhatsApp sem o 9 (Bernardo 11/10): o painel procura dos dois jeitos */
   { const CJ9=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
     const i=CJ9.indexOf('const foneOutro='), j=CJ9.indexOf('window.waFoneOutro=foneOutro;');
