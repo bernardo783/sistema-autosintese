@@ -3142,6 +3142,18 @@
   .rsp-per svg{width:14px;height:14px;flex:none}
   .rsp-per svg.cv{width:12px;height:12px;opacity:.7}
   .rsp-permi b{margin-left:auto;color:var(--brand2)}
+  /* SDR do lead (Bernardo 12/10): bolinha antes do nome e filtro do lado do período */
+  .rsp-per:has(+ .rsp-sdrb){margin-right:0}
+  .rsp-sdrb .av{margin-left:-4px}
+  .rsp-permi .rsp-sdrm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rsp-permi .rsp-sdrn{margin-left:auto;color:var(--muted);font-style:normal;font-size:12px;font-variant-numeric:tabular-nums}
+  .rsp-permi .rsp-sdrn+b{margin-left:8px}
+  .rsp-sdr{flex:none;display:inline-grid;place-items:center;border-radius:50%}
+  .rsp-sdr[role=button]{cursor:pointer}
+  .rsp-sdr[role=button]:hover .av,.rsp-sdr[role=button]:focus-visible .av{box-shadow:inset 0 0 0 1px var(--line),0 0 0 2px var(--brand2)}
+  .rsp-sdr .av{width:26px;height:26px;font-size:10.5px}
+  .av.rsp-sdr0{background:transparent;box-shadow:none;border:1px dashed var(--fraco);color:var(--fraco)}
+  .av.rsp-sdr0 svg{width:60%;height:60%}
   .rsp-n,.rsp-nsel{color:var(--muted);font-size:13px}
   .rsp-nsel{color:var(--txt);font-weight:700}
   .rsp-dir .btn{display:inline-flex;align-items:center;gap:6px;border-radius:999px}
@@ -9936,7 +9948,10 @@ document.addEventListener('mousedown',function(e){
   selMenuAbrir(s);
 },true);
 window.tkQaSetResp=(id,uid)=>{ const el=document.getElementById('tkQaMenu'); if(el) el.remove();
-  tkPatch(id,{responsavel_id:uid||null},'Responsável atualizado.'); };
+  /* lead de CRM tem um SDR só, e a conversa do WhatsApp sai pelo número de quem está em responsaveis:
+     os dois campos andam juntos, igual ao cartão do lead (Bernardo 12/10) */
+  const t=(TK.tarefas||[]).find(x=>x.id===id), crm=!!t&&typeof crmForm==='function'&&crmForm(t.lista_id);
+  tkPatch(id,crm?{responsavel_id:uid||null,responsaveis:uid?[uid]:[]}:{responsavel_id:uid||null},crm?(uid?'Lead com '+(tkNomeUser(uid)||'o SDR')+'.':'Lead sem SDR.'):'Responsável atualizado.'); };
 /* Coluna do tipo Pessoa na tabela: mostra so o avatar; o nome vira este popup. */
 window.tkQaCampoPessoa=(ev,id,campoId)=>{ ev.stopPropagation();
   const chave='cp'+id+campoId;
@@ -10454,10 +10469,11 @@ const rspFoneCel=(v)=>{ const n=rspFoneNum(v); if(!n) return esc(v==null?'':Stri
 window.rspCopiarFone=async(f)=>{ try{ await navigator.clipboard.writeText(f); toast('Número copiado: '+f); }catch(_){ toast('Número: '+f); } };
 const rspIgBtn=(t)=>{ const c=tkCamposDe(t.lista_id).find(k=>/insta/i.test(k.nome)), u=c?rspIgDe((t.valores||{})[c.id]):''; if(!u) return '';
   return `<a class="tk-ig" href="https://instagram.com/${esc(u)}" target="_blank" rel="noopener" title="Abrir o Instagram (@${esc(u)})" onclick="event.stopPropagation()">${PC_IC.ig}</a>`; };
-function rspLinhas(){
+function rspLinhas(semSdr){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA);
   const dt=(t)=>String((cD&&(t.valores||{})[cD.id])||String(t.criado_em||'').slice(0,10));
-  return TK.tarefas.filter(t=>t.lista_id===TK.listaSel&&!arquivada(t)&&!t.pai_id&&(typeof tkFLeadBate!=='function'||tkFLeadBate(t,TK.filtro||{})))   /* filtro de data de entrada (Bernardo 08/10) */
+  return TK.tarefas.filter(t=>t.lista_id===TK.listaSel&&!arquivada(t)&&!t.pai_id&&(typeof tkFLeadBate!=='function'||tkFLeadBate(t,TK.filtro||{}))   /* filtro de data de entrada (Bernardo 08/10) */
+      &&(semSdr===true||typeof rspSdrBate!=='function'||rspSdrBate(t)))   /* filtro de SDR (Bernardo 12/10) */
     .sort((a,b)=>{ const x=dt(a), y=dt(b); return (x<y?-1:x>y?1:String(a.criado_em||'').localeCompare(String(b.criado_em||'')))*RSP.dir; });
 }
 /* largura das colunas (Bernardo 08/10: "minimizar o tamanho das colunas igual é no ClickUp,
@@ -10544,6 +10560,51 @@ window.rspPerMenu=(ev)=>{
 window.rspPerEscolhe=(k)=>{ const F=TK.filtro; F.de=''; F.ate=''; if(typeof TKCAL!=='undefined') TKCAL.meio=false; F.prazo=k; tkFAplicar(); };
 /* Personalizado abre o calendário de sempre, ancorado no botão */
 window.rspPerCal=()=>{ const b=document.getElementById('rspPerBtn'); if(b) tkPopAbrir('filtro',{currentTarget:b,stopPropagation(){}}); };
+/* ======================= SDR DO LEAD (Bernardo 12/10) =======================
+   "Tem que ter uma bolinha ali com bonequinho do usuário para cada lead, onde fique muito fácil de ver
+   quem está com aqueles clientes. O filtro de SDR responsável também poderia ficar do lado ali do
+   filtro de período, não lá no canto superior direito."
+   Bolinha: a foto (ou a inicial) do responsável do card, antes do nome do lead; sem SDR fica o
+   bonequinho tracejado. Master e gestor clicam nela pra trocar. Filtro: um botão igual ao do período,
+   com o menu dos SDRs e quantos leads cada um tem. É o mesmo filtro Responsável de sempre
+   (TK.filtro.resps), só que mora aqui; o botão do topo some nas listas de CRM. Só master e gestor
+   filtram: o SDR não tem o botão, então um filtro antigo dele nunca esconde lead nenhum. */
+const RSP_SDR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+const rspSdrAdm=()=>{ const u=(typeof currentUser!=='undefined'&&currentUser)||null; return !!u&&(u.role==='master'||['admin','gestor'].includes(u.papel_crm)); };
+const rspSdrNome=(uid)=>(typeof tkNomeUser==='function'&&tkNomeUser(uid))||'SDR';
+const rspSdr=(t)=>{ const uid=t.responsavel_id||'', n=uid?rspSdrNome(uid):'';
+  const dentro=uid&&typeof avatar==='function'?avatar(uid,n,''):`<span class="av rsp-sdr0">${RSP_SDR_SVG}</span>`;
+  return rspSdrAdm()
+    ?`<span class="rsp-sdr" role="button" tabindex="0" title="${esc(uid?'SDR: '+n:'Sem SDR')} (clique pra trocar)" onclick="event.stopPropagation();tkQaResp(event,'${t.id}')">${dentro}</span>`
+    :`<span class="rsp-sdr" title="${esc(uid?'SDR: '+n:'Sem SDR')}">${dentro}</span>`; };
+const rspSdrSel=()=>rspSdrAdm()?(((TK.filtro||{}).resps)||[]):[];
+const rspSdrBate=(t)=>{ const rs=rspSdrSel(); return !rs.length||rs.includes(t.responsavel_id)||(rs.includes('(sem)')&&!t.responsavel_id); };
+function rspSdrBtn(){
+  if(!rspSdrAdm()) return '';
+  const rs=rspSdrSel(), um=rs.length===1?rs[0]:'';
+  const rot=!rs.length?'SDR':um==='(sem)'?'Sem SDR':um?String(rspSdrNome(um)).split(/\s+/)[0]:rs.length+' SDRs';
+  const ic=(um&&um!=='(sem)'&&typeof avatar==='function')?avatar(um,rspSdrNome(um),'sm'):RSP_SDR_SVG;
+  return `<button type="button" class="rsp-per rsp-sdrb${rs.length?' on':''}" id="rspSdrBtn" onclick="rspSdrMenu(event)" aria-haspopup="menu" title="Filtrar pelo SDR responsável">${ic}<span>${esc(rot)}</span><svg class="cv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>`;
+}
+const rspSdrMenuHtml=()=>{ const rs=rspSdrSel(), base=rspLinhas(true), cont={};
+  base.forEach(t=>{ const k=t.responsavel_id||'(sem)'; cont[k]=(cont[k]||0)+1; });
+  /* os SDRs do CRM e, além deles, quem mais estiver com lead nesta lista */
+  const ids=[...new Set([...(typeof crmResp==='function'?crmResp(TK.equipe||[]):[]).map(u=>String(u.id)),...Object.keys(cont).filter(k=>k!=='(sem)')])]
+    .sort((a,b)=>((cont[b]||0)-(cont[a]||0))||String(rspSdrNome(a)).localeCompare(String(rspSdrNome(b))));
+  const it=(k,r,av,n)=>{ const on=k?(rs.length===1&&rs[0]===k):!rs.length;
+    return `<button type="button" class="rc-mi rsp-permi${on?' on':''}" role="menuitemradio" aria-checked="${on}" onclick="document.getElementById('rspSdrPop').remove();rspSdrEscolhe('${k}')">${av}<span class="rsp-sdrm">${esc(r)}</span><i class="rsp-sdrn">${n}</i>${on?'<b>✓</b>':''}</button>`; };
+  const boneco=`<span class="av sm rsp-sdr0">${RSP_SDR_SVG}</span>`;
+  return it('','Todos','',base.length)+'<div class="rc-sep"></div>'
+    +ids.map(id=>it(id,rspSdrNome(id),typeof avatar==='function'?avatar(id,rspSdrNome(id),'sm'):'',cont[id]||0)).join('')
+    +'<div class="rc-sep"></div>'+it('(sem)','Sem SDR',boneco,cont['(sem)']||0); };
+window.rspSdrMenu=(ev)=>{
+  ev.stopPropagation(); const v=document.getElementById('rspSdrPop'); if(v){ v.remove(); return; }
+  const el=document.createElement('div'); el.id='rspSdrPop'; el.className='tkpop'; el.setAttribute('role','menu'); el.style.width='240px'; el.style.padding='6px'; el.style.zIndex=3000;
+  el.innerHTML=rspSdrMenuHtml();
+  document.body.appendChild(el); popPor(el,ev.currentTarget.getBoundingClientRect());
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.rspSdrEscolhe=(k)=>{ TK.filtro.resps=k?[k]:[]; tkFAplicar(); };
 /* ======================= AGUARDANDO RESPOSTA (Bernardo 08-11/10) =======================
    "Quando o cliente mandar mensagem, o card tem que ficar lá no topo com um sinal de que está pendente
    de resposta. Não quer nem saber se o cara está em proposta enviada ou em conversa: é pra aparecer
@@ -10649,7 +10710,7 @@ function tkViewRespostas(){
   const agdIts=RSP.etapa?[]:arr.filter(t=>agdDe(t.id)).sort((a,b)=>String(agdDe(b.id).ultima).localeCompare(String(agdDe(a.id).ultima)));
   const agdSet=new Set(agdIts.map(t=>t.id));
   const linha=(t,noAg)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}"${noAg===true?` data-ge="${esc(t.status_id||'sem')}"`:''} draggable="true" ondragstart="rspPega(event,'${t.id}')" ondragend="rspPegaFim(event)">
-      <td><span class="rsp-nm rsp-lin"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}${noAg===true?agdEtapa(t)+agdOk(t):rspMvBtn(t)}</span></td>
+      <td><span class="rsp-nm rsp-lin"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar">${rspSdr(t)}<button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}${noAg===true?agdEtapa(t)+agdOk(t):rspMvBtn(t)}</span></td>
       <td class="tk-cen">${noAg===true?agdChip(t):rspRelogio(t,cD)}</td>
       ${outros.map(c=>`<td${cen(c)?' class="tk-cen"':''}>${rspCel(c,(t.valores||{})[c.id],t)}</td>`).join('')}
     </tr>`;
@@ -10689,7 +10750,7 @@ function tkViewRespostas(){
       ${(fech||!g.its.length)?'':cab(g)+g.its.map(linha).join('')}</tbody>`; };
   return `<div class="rsp-bar">
       <input class="search rsp-q" id="rspQ" placeholder="Pesquisar nas respostas…" value="${esc(RSP.q||'')}" oninput="rspBusca(this.value)" autocomplete="off">
-      ${rspPeriodo()}
+      ${rspPeriodo()}${rspSdrBtn()}
       <div class="rsp-dir">
         ${nSel?`<span class="rsp-nsel">${nSel} selecionado${nSel===1?'':'s'}</span>
           <button class="btn secondary small" onclick="rspMover(event,'')">Mover para…</button>
@@ -13153,7 +13214,7 @@ function tkDesenharTela(c){
           escorregavam de lugar a cada troca de visão. -->
      <div class="toolbar tk-bar">
        <span class="tk-g">${TK.escopo==='minhas'?recAbas():''}${abas}</span>
-       <span class="tk-g">${cli?(TK.lcVista==='gerentes'?'':lcBtnPessoa()+lcBtnTipo()+lcBtnFiltro()):tkBtnFiltro()}${cli?'':tkBtnResp()}${cli?'':ordBtn}</span>
+       <span class="tk-g">${cli?(TK.lcVista==='gerentes'?'':lcBtnPessoa()+lcBtnTipo()+lcBtnFiltro()):tkBtnFiltro()}${(cli||tkFSemPrio())?'':tkBtnResp()}${cli?'':ordBtn}</span>
        <span class="tk-g tk-fim">
          ${cli?lcSeloContas():''}
          <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
