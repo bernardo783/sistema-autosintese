@@ -10569,9 +10569,10 @@ window.rspPerCal=()=>{ const b=document.getElementById('rspPerBtn'); if(b) tkPop
    filtro de período, não lá no canto superior direito."
    Bolinha: a foto (ou a inicial) do responsável do card, antes do nome do lead; sem SDR fica o
    bonequinho tracejado. Master e gestor clicam nela pra trocar. Filtro: um botão igual ao do período,
-   com o menu dos SDRs e quantos leads cada um tem. É o mesmo filtro Responsável de sempre
-   (TK.filtro.resps), só que mora aqui; o botão do topo some nas listas de CRM. Só master e gestor
-   filtram: o SDR não tem o botão, então um filtro antigo dele nunca esconde lead nenhum. */
+   com o menu dos SDRs e quantos leads cada um tem; o botão Responsável do topo some nas listas de CRM.
+   "Todos já deve vir como padrão no acesso master. No acesso do SDR ele já vem automático com o filtro
+   dele, não tem opção de trocar" (Bernardo 12/10): a escolha fica só na memória da página (RSP.sdr),
+   então todo acesso abre em Todos; o SDR não tem o botão e o banco só entrega os leads dele. */
 const RSP_SDR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
 const rspSdrAdm=()=>{ const u=(typeof currentUser!=='undefined'&&currentUser)||null; return !!u&&(u.role==='master'||['admin','gestor'].includes(u.papel_crm)); };
 const rspSdrNome=(uid)=>(typeof tkNomeUser==='function'&&tkNomeUser(uid))||'SDR';
@@ -10580,7 +10581,7 @@ const rspSdr=(t)=>{ const uid=t.responsavel_id||'', n=uid?rspSdrNome(uid):'';
   return rspSdrAdm()
     ?`<span class="rsp-sdr" role="button" tabindex="0" title="${esc(uid?'SDR: '+n:'Sem SDR')} (clique pra trocar)" onclick="event.stopPropagation();tkQaResp(event,'${t.id}')">${dentro}</span>`
     :`<span class="rsp-sdr" title="${esc(uid?'SDR: '+n:'Sem SDR')}">${dentro}</span>`; };
-const rspSdrSel=()=>rspSdrAdm()?(((TK.filtro||{}).resps)||[]):[];
+const rspSdrSel=()=>(rspSdrAdm()&&RSP.sdr)?[RSP.sdr]:[];
 const rspSdrBate=(t)=>{ const rs=rspSdrSel(); return !rs.length||rs.includes(t.responsavel_id)||(rs.includes('(sem)')&&!t.responsavel_id); };
 function rspSdrBtn(){
   if(!rspSdrAdm()) return '';
@@ -10607,7 +10608,7 @@ window.rspSdrMenu=(ev)=>{
   document.body.appendChild(el); popPor(el,ev.currentTarget.getBoundingClientRect());
   setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
 };
-window.rspSdrEscolhe=(k)=>{ TK.filtro.resps=k?[k]:[]; tkFAplicar(); };
+window.rspSdrEscolhe=(k)=>{ RSP.sdr=k||''; tkDesenhar($('#content')); };
 /* ======================= AGUARDANDO RESPOSTA (Bernardo 08-11/10) =======================
    "Quando o cliente mandar mensagem, o card tem que ficar lá no topo com um sinal de que está pendente
    de resposta. Não quer nem saber se o cara está em proposta enviada ou em conversa: é pra aparecer
