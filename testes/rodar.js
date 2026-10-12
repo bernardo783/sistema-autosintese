@@ -1696,6 +1696,57 @@ grupo('CRM Motos e CRM Veículos: o mesmo código do CRM Sofás, cada um com a s
   ok('salvar grava no form que está na tela (não num fixo)', HTML.indexOf("sb.rpc('crm_rodizio_salvar',{p_form:EQ.cfg.form_id,")>0&&HTML.indexOf('EQ_FORM')<0);
   ok('trocar de CRM no meio da carga não pinta a Equipe errada', /if\(form!==eqForm\(\)\) return;/.test(HTML)&&/currentView!=='crm-equipe'\|\|form!==eqForm\(\)\) return;/.test(HTML));
 }
+grupo('Próximos passos do lead: agendar mensagem e agendar retorno (Bernardo 12/10)');
+{
+  const cod=bloco('/* ======================= PRÓXIMOS PASSOS DO LEAD','/* ======================= NOVO LEAD (Bernardo 08/10)');
+  const RL='f1e2d3c4-0000-4a00-8b00-00000000d032', PL='b4169319-1cf1-4d7a-8520-5ffcad09e21f';
+  const T=[{id:'L1',lista_id:PL,titulo:'Régis',responsavel_id:'k',valores:{w:'5517999990002'}},{id:'L2',lista_id:PL,titulo:'Sem zap',responsavel_id:'k',valores:{}},
+    {id:'r2',lista_id:RL,titulo:'Mandar proposta',prazo:'2030-01-06',hora:'14:00',status:'todo',responsavel_id:'k',valores:{_lead:'L1'}},
+    {id:'r1',lista_id:RL,titulo:'Chamar de novo',prazo:'2030-01-05',hora:'09:00',status:'todo',responsavel_id:'k',valores:{_lead:'L1'}},
+    {id:'r3',lista_id:RL,titulo:'Já feito',prazo:'2030-01-04',hora:'09:00',status:'feito',responsavel_id:'k',valores:{_lead:'L1'}},
+    {id:'r4',lista_id:RL,titulo:'De outro lead',prazo:'2030-01-04',hora:'09:00',status:'todo',responsavel_id:'k',valores:{_lead:'L9'}}];
+  let adm=false;
+  const g=rodar(cod,{TK:{tarefas:T},arquivada:(x)=>!!x.arquivada_em,rspWaNum:(t)=>(t.valores||{}).w||'',rspWaDentro:()=>true,esc:(s)=>String(s==null?'':s),
+    equipeDe:()=>[{id:'k',nome:'Kennedy Lima'},{id:'l',nome:'Luana'}],tkNomeUser:(id)=>id==='k'?'Kennedy Lima':'',eqNomeAp:(a)=>a.charAt(0).toUpperCase()+a.slice(1),
+    horaOpcoes:(sel)=>'<option>'+sel+'</option>',currentUser:{id:'k'},agdAdm:()=>adm,toast:()=>{},document:{getElementById:()=>null,activeElement:null}},
+    ['ppAtalhos','ppRetornos','ppLeadDoRetorno','ppBox','ppQuando','ppRetIso','PP','CRM_RET']);
+  ok('cada CRM tem a sua lista de Retornos', Object.keys(g.CRM_RET).length===3&&g.CRM_RET[RL]===PL);
+  const at=(d)=>g.ppAtalhos(d).map(x=>x[0]+'='+x[2]+' '+x[3]).join(' | ');
+  ok('atalhos numa segunda de manhã: hoje 17h, amanhã, 2 dias e a segunda seguinte', at(new Date(2026,9,12,10,0))==='hoje=2026-10-12 17:00 | amanha=2026-10-13 09:00 | 2dias=2026-10-14 09:00 | seg=2026-10-19 09:00');
+  ok('depois das 16h não oferece "hoje 17h"', at(new Date(2026,9,16,18,0))==='amanha=2026-10-17 09:00 | 2dias=2026-10-18 09:00 | seg=2026-10-19 09:00');
+  ok('no sábado e no domingo a segunda já é "em 2 dias" ou "amanhã"', g.ppAtalhos(new Date(2026,9,17,10,0)).every(x=>x[0]!=='seg')&&g.ppAtalhos(new Date(2026,9,18,10,0)).every(x=>x[0]!=='seg'));
+  ok('retornos do lead: só os dele, em aberto, do mais próximo pro mais distante', g.ppRetornos(T[0]).map(x=>x.id).join(',')==='r1,r2');
+  ok('abrir um retorno leva pro lead dele (se o lead está visível)', g.ppLeadDoRetorno('r1')==='L1'&&g.ppLeadDoRetorno('r4')===''&&g.ppLeadDoRetorno('L1')==='');
+  let h=g.ppBox(T[0]);
+  ok('cartão: bloco Próximos passos com os dois botões', /<section class="cl-box pp" id="ppBox"><h4>Próximos passos/.test(h)&&/onclick="ppModo\('msg'\)"/.test(h)&&/onclick="ppModo\('ret'\)"/.test(h));
+  ok('cartão: lista os retornos em aberto com a caixinha de feito', /onclick="ppFeito\('r1'\)"/.test(h)&&h.indexOf('Chamar de novo')<h.indexOf('Mandar proposta')&&h.indexOf('Já feito')<0&&h.indexOf('De outro lead')<0);
+  g.PP.modo='ret'; h=g.ppBox(T[0]);
+  ok('agendar retorno: campo do que fazer, atalhos de quando e "Outro dia…"', /id="ppTxt"/.test(h)&&/onclick="ppQ\('amanha'\)">Amanhã 9h</.test(h)&&/onclick="ppQ\('outro'\)">Outro dia…</.test(h)&&/class="pp-q on" onclick="ppQ\('amanha'\)"/.test(h));
+  ok('SDR: o retorno vai pras tarefas dele (sem escolher outra pessoa)', h.indexOf('id="ppPara"')<0&&h.indexOf('Vai pras suas tarefas')>0);
+  adm=true; h=g.ppBox(T[0]);
+  ok('master e gestor escolhem pra quem vai, já no SDR do lead', /<option value="k" selected>Para Kennedy Lima<\/option>/.test(h));
+  g.PP.q='outro'; g.PP.dia='2030-02-01'; g.PP.hora='15:00'; h=g.ppBox(T[0]);
+  ok('outro dia: data e hora cheia (regra das tarefas)', /type="date"[^>]*id="ppDia" value="2030-02-01"/.test(h)&&/<select class="cl-in" id="ppHora"/.test(h)&&g.ppQuando().dia==='2030-02-01'&&g.ppQuando().hora==='15:00');
+  g.PP.modo='msg'; g.PP.agendadas=[{id:'m1',instancia:'kennedy',texto:'Bom dia, Régis!',enviar_em:'2030-01-05T12:00:00Z',status:'pendente'}]; g.PP.por='kennedy'; g.PP.perfil='Kennedy'; g.PP.carregando=false; g.PP.erro=''; h=g.ppBox(T[0]);
+  ok('agendar mensagem: texto, de qual número sai e hora livre', /<textarea class="cl-in" id="ppTxt"/.test(h)&&h.indexOf('Sai pelo WhatsApp de Kennedy')>0&&/<input type="time" class="cl-in" id="ppHora"/.test(h));
+  ok('mensagem agendada aparece com cancelar', h.indexOf('Bom dia, Régis!')>0&&/onclick="ppCancelar\('m1'\)">cancelar</.test(h));
+  const h2=g.ppBox(T[1]);
+  ok('lead sem WhatsApp: só o retorno', h2.indexOf("ppModo('msg')")<0&&h2.indexOf("ppModo('ret')")>0&&h2.indexOf('Nada agendado')>0);
+  ok('trocou de lead, o que estava sendo escrito não vaza pro outro', g.PP.id==='L2'&&g.PP.modo===''&&g.PP.txt==='');
+  ok('retorno concluído não pede relatório de conclusão', HTML.indexOf("if(typeof CRM_RET!=='undefined'&&CRM_RET[t.lista_id]) return false;")>0);
+  ok('abrir o retorno (Minhas tarefas ou aviso) cai no cartão do lead', HTML.indexOf("if(id&&typeof ppLeadDoRetorno==='function'){ const ld=ppLeadDoRetorno(id); if(ld&&crmLdAbrir(ld)) return; }")>0);
+  ok('o bloco entra no cartão, antes das Anotações', /\$\{typeof ppBox==='function'\?ppBox\(t\):''\}\n\s*<section class="cl-box cl-notas">/.test(HTML));
+  ok('grava pelo banco (retorno) e pelo servidor do WhatsApp (mensagem)', HTML.indexOf("sb.rpc('crm_retorno_novo',{p_lead:t.id,p:{texto:txt,dia:q.dia,hora:q.hora,para:PP.para||''}})")>0&&HTML.indexOf("ppApi('agendar',{name:PP.por,chatid:PP.chatid,quando:quando.toISOString(),tarefa:t.id,texto:txt})")>0);
+}
+grupo('Cadastro: lead do SDR fica com ele; gestor é avisado de lead esperando 30 min (Bernardo 12/10)');
+{
+  ok('SDR não escolhe outro dono no cadastro (campo travado nele)', /:`<select class="cl-in" id="clnVend" disabled title="O lead fica com quem cadastra"><option value="\$\{esc\(eu\)\}" selected>/.test(HTML));
+  ok('master e gestor continuam escolhendo, inclusive Ninguém', /\?`<select class="cl-in" id="clnVend"><option value="">Ninguém<\/option>/.test(HTML));
+  ok('alerta do gestor aos 30 min', /const AGD_GESTOR_MIN=30;/.test(HTML));
+  ok('quem já estava atrasado ao abrir o sistema é só anotado; o alerta sai no que cruza os 30 min com ele aberto', /if\(AGD\.alertou\[k\]\|\|agdMin\(a\.desde\)<AGD_GESTOR_MIN\) return; AGD\.alertou\[k\]=1; if\(era\) agdAlertar\(id,a\);/.test(HTML));
+  ok('só master e gestor recebem', /if\(agdAdm\(\)\) Object\.keys\(data\)\.forEach\(id=>\{ const a=data\[id\], k=id\+'\|'\+a\.desde;/.test(HTML));
+  ok('o alerta diz com quem o lead está e não se mistura com o aviso do vendedor', HTML.indexOf("'Está com '+esc(sdr)+' e ninguém respondeu ainda.'")>0&&HTML.indexOf(".agd-av:not(.gestor)[data-id=")>0&&HTML.indexOf(".agd-av.gestor[data-id=")>0);
+}
 grupo('Aguardando resposta: lead que escreveu sobe pro topo, com bolinha, tempo e aviso (Bernardo 11/10)');
 {
   const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
