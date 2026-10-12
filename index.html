@@ -3059,6 +3059,9 @@
   .cl-in::placeholder{color:var(--fraco);font-weight:400}
   select.cl-in{cursor:pointer}
   .cl-resp{width:100%;margin-left:0;border-color:var(--line);background:var(--panel)}
+  /* SDR vê quem é o responsável, mas não troca (Bernardo 12/10) */
+  .cl-sdrro{display:flex;align-items:center;gap:10px;min-height:38px;font-size:13.5px}
+  .cl-sdrro b{font-weight:600} .cl-sdrro b.vz{color:var(--fraco);font-weight:400;font-style:italic}
   .cl-msg{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;background:color-mix(in srgb,var(--muted) 16%,transparent)}
   .cl-msg[data-v="Enviada"]{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
   .cl-msg[data-v="Falhou"],.cl-msg[data-v="Sem WhatsApp"]{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}
@@ -15367,8 +15370,10 @@ function crmLdHtml(t){
       </div>
       <div class="cl-col">
         ${typeof caBoxLead==='function'?caBoxLead(t):''}
-        <section class="cl-box"><h4>Vendedor responsável</h4>
-          <select class="cl-in cl-resp" onchange="clResp(this.value)"><option value="">Ninguém ainda</option>${equipeDe(t.lista_id,resp||null).map(u=>`<option value="${u.id}"${u.id===resp?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>
+        <section class="cl-box"><h4>SDR responsável</h4>
+          ${(typeof rspSdrAdm!=='function'||rspSdrAdm())
+            ?`<select class="cl-in cl-resp" onchange="clResp(this.value)"><option value="">Ninguém ainda</option>${equipeDe(t.lista_id,resp||null).map(u=>`<option value="${u.id}"${u.id===resp?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`
+            :`<div class="cl-sdrro" title="Só master e gestor trocam o SDR do lead">${resp?avatar(resp,tkNomeUser(resp),'')+'<b>'+esc(tkNomeUser(resp)||'SDR')+'</b>':'<b class="vz">Ninguém ainda</b>'}</div>`}
         </section>
         <section class="cl-box cl-notas"><h4>Anotações</h4>
           <div class="cl-novo" id="clNovo" ondragover="clAnxSobre(event)" ondragleave="clAnxSai(event)" ondrop="clAnxSolta(event)"><textarea id="clNotaTxt" onpaste="clAnxCola(event)" rows="2" placeholder="Como foi o contato, o que ficou combinado, próximo passo…" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)){event.preventDefault();clNotar();}"></textarea>
@@ -26804,6 +26809,6 @@ initLoginScreen();
 </script>
 <script src="crm.js?v=29" defer></script>
 <script src="comercial/instancias.js?v=5" defer></script>
-<script src="comercial/conversas.js?v=9" defer></script>
+<script src="comercial/conversas.js?v=10" defer></script>
 </body>
 </html>
