@@ -2020,6 +2020,38 @@ grupo('Respostas: etapa vazia só no funil, selo leve na linha (Bernardo 08/10)'
   ok('clicar numa etapa vazia do funil avisa', HTML.indexOf("toast('Nenhum lead em '+")>0);
   ok('status da linha num selo leve, a cor cheia fica na pílula do grupo', /#rspTab \.tk-stsel\{background-color:color-mix\(in srgb,var\(--c\) 15%,transparent\)!important/.test(HTML));
 }
+grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const C=[{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const ST=[{id:'s1',nome:'1. NOVO LEAD',cor:'#7c3aed',ordem:1}];
+  const T=[{id:'a',lista_id:'L',titulo:'Ana',status_id:'s1',responsavel_id:'k',valores:{d:'2026-10-07'}},{id:'b',lista_id:'L',titulo:'Bia',status_id:'s1',responsavel_id:'l',valores:{d:'2026-10-06'}},
+    {id:'c',lista_id:'L',titulo:'Caio',status_id:'s1',responsavel_id:null,valores:{d:'2026-10-05'}}];
+  const F={prazo:'',de:'',ate:'',prios:[],resps:[]}, NM={k:'Kennedy Lima',l:'Luana'};
+  const ctx=(u)=>({CRM_FORMS:[{nome:'Sofás',lista:'L'}],AGD:{mapa:{},pronto:true},agdBuscar:()=>{},TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{},filtro:F,listas:[],equipe:[{id:'k',nome:NM.k},{id:'l',nome:NM.l}]},
+    tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),tkStatusDe:()=>ST,tkStatus1:(id)=>ST.find(x=>x.id===id),esc:(x)=>String(x==null?'':x),campoTexto:(c,v)=>String(v),arquivada:()=>false,tkSelo:()=>'',
+    tpSvg:()=>'',setTimeout:()=>0,currentUser:u,corTexto:()=>'#fff',tkNomeUser:(id)=>NM[id]||'',avatar:(uid,n,cls)=>`<span class="av ${cls||''}" data-u="${uid}">${(n||'?')[0]}</span>`});
+  const g=rodar(cod,ctx({id:'m',role:'master'}),['tkViewRespostas','rspSdrMenuHtml','rspSdrBtn','rspLinhas','rspSdr']);
+  let h=g.tkViewRespostas();
+  ok('cada lead tem a bolinha do SDR antes do nome', /title="SDR: Kennedy Lima \(clique pra trocar\)"[^>]*><span class="av " data-u="k">K<\/span><\/span><button type="button" onclick="tkAbrir\('a'\)"/.test(h));
+  ok('lead sem SDR mostra o bonequinho tracejado', /title="Sem SDR \(clique pra trocar\)"[^>]*><span class="av rsp-sdr0"><svg/.test(h));
+  ok('master clica na bolinha e troca o SDR ali mesmo', /class="rsp-sdr" role="button"[^>]*onclick="event\.stopPropagation\(\);tkQaResp\(event,'a'\)"/.test(h));
+  ok('o filtro de SDR fica logo depois do período, na barra dos leads', /id="rspPerBtn"[\s\S]{0,900}<\/button><button type="button" class="rsp-per rsp-sdrb" id="rspSdrBtn"/.test(h));
+  const m=g.rspSdrMenuHtml();
+  ok('menu: Todos, cada SDR com quantos leads tem, e Sem SDR', />Todos<\/span><i class="rsp-sdrn">3</.test(m)&&/>Kennedy Lima<\/span><i class="rsp-sdrn">1</.test(m)&&/>Luana<\/span><i class="rsp-sdrn">1</.test(m)&&/>Sem SDR<\/span><i class="rsp-sdrn">1</.test(m));
+  F.resps=['k']; h=g.tkViewRespostas();
+  ok('escolher um SDR mostra só os leads dele e o botão fica com o nome', g.rspLinhas().map(t=>t.id).join()==='a'&&/class="rsp-per rsp-sdrb on"[\s\S]{0,200}<span>Kennedy<\/span>/.test(g.rspSdrBtn()));
+  ok('a contagem do menu não some quando o filtro está ligado', />Luana<\/span><i class="rsp-sdrn">1</.test(g.rspSdrMenuHtml()));
+  F.resps=['(sem)']; ok('"Sem SDR" mostra só quem está sem responsável', g.rspLinhas().map(t=>t.id).join()==='c');
+  /* o SDR não tem o botão: um filtro antigo dele (do botão Responsável de outra lista) não pode esconder lead */
+  F.resps=['l'];
+  const g2=rodar(cod,ctx({id:'k',role:'colaborador',papel_crm:'sdr'}),['tkViewRespostas','rspSdrBtn','rspLinhas']);
+  const h2=g2.tkViewRespostas();
+  ok('SDR não vê o filtro, não troca pela bolinha e a lista dele não é filtrada', g2.rspSdrBtn()===''&&g2.rspLinhas().length===3&&h2.indexOf('tkQaResp(')<0&&/class="rsp-sdr" title="SDR: Kennedy Lima"/.test(h2));
+  F.resps=[];
+  ok('o Responsável do canto superior some nas listas de CRM', HTML.indexOf("${(cli||tkFSemPrio())?'':tkBtnResp()}")>0);
+  ok('trocar o SDR pela bolinha grava responsavel_id e responsaveis juntos', /tkPatch\(id,crm\?\{responsavel_id:uid\|\|null,responsaveis:uid\?\[uid\]:\[\]\}:\{responsavel_id:uid\|\|null\}/.test(HTML));
+}
 grupo('CRM Sofás: planilha voltou ao jeito do vídeo das 17h (Bernardo 08/10)');
 {
   /* 11/10: os botões de data voltaram pra barra (rspPeriodo), mas a lista continua abrindo em Todos: nada de abrir já filtrada em Hoje nem de aviso de pendentes */
