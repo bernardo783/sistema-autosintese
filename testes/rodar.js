@@ -2705,14 +2705,24 @@ grupo('Filtro de data: atalhos à esquerda e calendário do mês (Bernardo 08/10
   ok('atalho limpa o período e fica marcado', F.de===''&&F.ate===''&&F.prazo==='prox7'&&/class="tkc-at on"[^>]*>Próximos 7 dias</.test(h));
   g.tkCalMes(1);
   ok('setas trocam o mês', /Novembro 2026/.test(g.tkPopFiltroHTML()));
-  /* período à vista na barra das Respostas (Bernardo 11/10) */
-  const gp=rodar(bloco('function rspPeriodo(){','function tkViewRespostas(){'),{TK:{filtro:F},TK_LEAD_AT:['hoje','ontem','ult7','ult15','ult30'],esc:(x)=>String(x==null?'':x)},['rspPeriodo']);
-  F.prazo='ult7'; F.de=''; F.ate=''; let hp=gp.rspPeriodo();
-  ok('Respostas: Todos, Hoje, Ontem, 7, 15, 30 dias e Personalizado à vista, com o atalho marcado', ['Todos','Hoje','Ontem','7 dias','15 dias','30 dias','Personalizado'].every(r=>hp.indexOf('>'+r+'<')>0)&&/class="ftab active" onclick="tkFPrazo\('ult7'\)"/.test(hp));
-  F.prazo=''; F.de='2026-10-03'; F.ate='2026-10-09'; hp=gp.rspPeriodo();
-  ok('Respostas: período do calendário aparece escrito no botão', /class="ftab active" onclick="tkPopFiltro\(event\)"[^>]*>03\/10 a 09\/10</.test(hp));
-  F.de=''; F.ate=''; hp=gp.rspPeriodo();
-  ok('Respostas: sem filtro, "Todos" fica marcado e limpa só o período', /class="ftab active" onclick="tkFPrazo\(''\)">Todos</.test(hp));
+  /* período num botão só, com menu (Bernardo 12/10: "preciso deixar ele minimalista") */
+  const apl=[];
+  const gp=rodar(bloco('const RSP_ATALHOS=[','/* ======================= AGUARDANDO RESPOSTA'),{TK:{filtro:F},TKCAL:{meio:true},tkFAplicar:()=>apl.push(F.prazo+'|'+F.de+'|'+F.ate),esc:(x)=>String(x==null?'':x)},['rspPeriodo','rspPerMenuHtml','rspPerAtual','rspPerEscolhe']);
+  F.prazo=''; F.de=''; F.ate=''; let hp=gp.rspPeriodo();
+  ok('Respostas: um botão só no lugar dos 7 (sem filtro diz "Período" e fica apagado)', (hp.match(/<button/g)||[]).length===1&&/class="rsp-per" id="rspPerBtn" onclick="rspPerMenu\(event\)"/.test(hp)&&/<span>Período<\/span>/.test(hp)&&hp.indexOf('ftab')<0);
+  F.prazo='ult7'; hp=gp.rspPeriodo();
+  ok('Respostas: com atalho escolhido, o botão acende e mostra qual', /class="rsp-per on"/.test(hp)&&/<span>7 dias<\/span>/.test(hp));
+  let mp=gp.rspPerMenuHtml();
+  ok('menu com Todos, Hoje, Ontem, 7, 15, 30 dias e Personalizado, e o atual marcado', ['Todos','Hoje','Ontem','7 dias','15 dias','30 dias','Personalizado…'].every(x=>mp.indexOf('>'+x)>0)&&/aria-checked="true" onclick="[^"]*rspPerEscolhe\('ult7'\)">7 dias<b>/.test(mp)&&(mp.match(/aria-checked="true"/g)||[]).length===1);
+  F.prazo=''; F.de='2026-10-03'; F.ate='2026-10-09'; hp=gp.rspPeriodo(); mp=gp.rspPerMenuHtml();
+  ok('Respostas: período do calendário aparece escrito no botão e marca Personalizado', /<span>03\/10 a 09\/10<\/span>/.test(hp)&&gp.rspPerAtual()==='__p'&&/aria-checked="true" onclick="[^"]*rspPerCal\(\)">Personalizado…<b>/.test(mp));
+  gp.rspPerEscolhe('hoje');
+  ok('escolher um atalho limpa as datas do calendário e aplica', F.prazo==='hoje'&&F.de===''&&F.ate===''&&apl.pop()==='hoje||');
+  gp.rspPerEscolhe('hoje');
+  ok('escolher de novo o mesmo não desliga', F.prazo==='hoje');
+  gp.rspPerEscolhe('');
+  ok('"Todos" tira o período', F.prazo===''&&gp.rspPerAtual()===''&&/<span>Período<\/span>/.test(gp.rspPeriodo()));
+  ok('Personalizado abre o calendário de sempre, preso no botão', HTML.indexOf("window.rspPerCal=()=>{ const b=document.getElementById('rspPerBtn'); if(b) tkPopAbrir('filtro',{currentTarget:b,stopPropagation(){}}); };")>0);
 }
 
 /* ---------------- Equipe v2 do CRM Sofás (Bernardo 08/10) ---------------- */
