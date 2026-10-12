@@ -583,7 +583,9 @@
     $('#waLdEt').style.display=(t&&typeof tkStatusDe==='function'&&tkStatusDe(t.lista_id).length)?'':'none';
     ldPop(); ldMic();
   }
-  function ldPodeTr(){ return !!(LD.tarefa&&LD.vendedores.length>1&&(LD.admin||LD.resp.includes(LD.eu))); }
+  /* só master e gestor passam o lead pra outro SDR (Bernardo 12/10): com a trava do banco o SDR só enxerga
+     os leads dele, então um lead que ele passasse adiante sumiria da tela dele no meio do atendimento */
+  function ldPodeTr(){ return !!(LD.tarefa&&LD.vendedores.length>1&&LD.admin); }
   window.waLdPop=(k,e)=>{ if(e) e.stopPropagation(); LD.pop=LD.pop===k?'':k; ldPop(); };
   window.waLdDe=(n)=>{ if(!LD.nums.includes(n)) return; LD.por=n; LD.porFixo=true; LD.perfil=''; LD.fonePor=''; LD.conectado=true; lembraDe(n); waLdPinta(); };
   window.waLdCresce=(t)=>{ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,140)+'px'; ldMic(); };
