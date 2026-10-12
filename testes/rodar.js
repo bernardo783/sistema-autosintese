@@ -2021,6 +2021,35 @@ grupo('Respostas: etapa vazia só no funil, selo leve na linha (Bernardo 08/10)'
   ok('clicar numa etapa vazia do funil avisa', HTML.indexOf("toast('Nenhum lead em '+")>0);
   ok('status da linha num selo leve, a cor cheia fica na pílula do grupo', /#rspTab \.tk-stsel\{background-color:color-mix\(in srgb,var\(--c\) 15%,transparent\)!important/.test(HTML));
 }
+grupo('CRM: ganhou pede o cash collect e perdeu pede o motivo (Bernardo 12/10)');
+{
+  const C=[{id:'cc',lista_id:'L',nome:'Cash collect',tipo:'moeda'},{id:'mp',lista_id:'L',nome:'Motivo da perda',tipo:'select',opcoes:['Fora do ICP','É troll','Outro']},{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const g=rodar(bloco('/* ======================= GANHOU E PERDEU (Bernardo 12/10)','/* ======================= SDR DO LEAD (Bernardo 12/10)'),
+    {TK:{listaSel:'L',tarefas:[]},tkCamposDe:(l)=>C.filter(c=>c.lista_id===l),crmForm:(l)=>l==='L',esc:(x)=>String(x==null?'':x)},
+    ['crmDinheiro','crmFechaTipo','crmFechaAntes','crmFechaHtml','crmReais']);
+  ok('dinheiro: "1.500,50", "1500", "R$ 2.000" e "2.000" viram número', g.crmDinheiro('1.500,50')===1500.5&&g.crmDinheiro('1500')===1500&&g.crmDinheiro('R$ 2.000')===2000&&g.crmDinheiro('2.000')===2000&&g.crmDinheiro('99,9')===99.9);
+  ok('dinheiro: vazio ou texto não vira zero escondido', isNaN(g.crmDinheiro(''))&&isNaN(g.crmDinheiro('abc')));
+  const lead={id:'a',lista_id:'L',titulo:'Ana',status_id:'s1',valores:{d:'2026-10-07'}};
+  ok('só GANHOU (feito) e PERDEU (fechado) de lista de CRM pedem alguma coisa', g.crmFechaTipo(lead,{grupo:'feito'})==='ganho'&&g.crmFechaTipo(lead,{grupo:'fechado'})==='perdeu'&&g.crmFechaTipo(lead,{grupo:'ativo'})===''&&g.crmFechaTipo({lista_id:'X'},{grupo:'feito'})==='');
+  PROMESSAS.push((async()=>{
+    const r1=await g.crmFechaAntes(lead,{grupo:'feito'},{valor:3500});
+    ok('ganhou grava o cash collect no campo e deixa a nota', r1.patch.valores.cc===3500&&r1.patch.valores.d==='2026-10-07'&&/Ganhou · cash collect de R\$\s?3\.500,00/.test(r1.nota));
+    const r2=await g.crmFechaAntes(lead,{grupo:'fechado'},{motivo:'É troll',obs:'xingou'});
+    ok('perdeu grava o motivo e a observação vai pra nota', r2.patch.valores.mp==='É troll'&&r2.nota==='Perdeu · É troll · xingou');
+    const r3=await g.crmFechaAntes(Object.assign({},lead,{valores:{mp:'Outro'}}),{grupo:'ativo'});
+    ok('saiu de PERDEU pra outra etapa: o motivo antigo sai', r3.patch&&!('mp' in r3.patch.valores)&&!r3.nota);
+    const r4=await g.crmFechaAntes(lead,{grupo:'ativo'});
+    ok('etapa comum não pede nada nem mexe nos valores', JSON.stringify(r4)==='{}');
+    const r5=await g.crmFechaAntes({id:'z',lista_id:'X',valores:{}},{grupo:'feito'});
+    ok('tarefa fora do CRM segue o caminho de sempre', JSON.stringify(r5)==='{}');
+  })());
+  const hg=g.crmFechaHtml({titulo:'Ana'},'ganho'), hp=g.crmFechaHtml({titulo:'Ana'},'perdeu',C[1].opcoes);
+  ok('janela do ganhou: campo Cash collect em reais', /id="feValor" inputmode="decimal"/.test(hg)&&/Marcar como ganho/.test(hg));
+  ok('janela do perdeu: os motivos da lista como opções e observação opcional', (hp.match(/class="fe-m"/g)||[]).length===3&&/data-m="É troll"/.test(hp)&&/id="feObs"/.test(hp));
+  ok('toda mudança de etapa passa pela pergunta (tkSetStatus)', /const fx=\(typeof crmFechaAntes==='function'&&String\(antes\.status_id\|\|''\)!==String\(sid\|\|''\)\)\?await crmFechaAntes\(antes,s,pre\):\{\};\s*if\(!fx\)\{ tkDesenhar/.test(HTML));
+  ok('em lote: ganhou é um por vez, perdeu pergunta uma vez só', HTML.indexOf("toast('Ganhou é um lead por vez: cada venda tem o seu cash collect.')")>0&&HTML.indexOf("for(const id of ids) await tkSetStatus(id,sid,r);")>0);
+  ok('cartão mostra Venda/Perda e tira os dois campos de Outras informações', HTML.indexOf("${typeof crmFechaBox==='function'?crmFechaBox(t):''}")>0&&/cash:\/\^cash collect\$\/i,motivo:\/\^motivo da perda\$\/i\};/.test(HTML));
+}
 grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/10)');
 {
   const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
