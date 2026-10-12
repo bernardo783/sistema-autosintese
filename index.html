@@ -604,6 +604,19 @@
   .cn-caixa textarea:focus{outline:none;border-color:var(--brand2)}
   .cn-aviso{font-size:12px;color:var(--danger);min-height:14px;margin-top:-4px}
   .cn-pe{display:flex;justify-content:flex-end;gap:8px}
+  /* ganhou/perdeu do CRM (Bernardo 12/10): mesma caixa do "Concluir tarefa", por cima do cartão e da conversa */
+  .fe-fundo{z-index:11000}
+  .fe-din{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:0 12px}
+  .fe-din:focus-within{border-color:var(--brand2)}
+  .fe-din span{color:var(--muted);font-weight:700;font-size:15px}
+  .fe-din input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--txt);font:inherit;font-size:20px;font-weight:800;padding:10px 0;font-variant-numeric:tabular-nums}
+  .fe-dica{font-size:12px;color:var(--muted);margin-top:-4px}
+  .fe-mot{display:flex;flex-wrap:wrap;gap:8px}
+  .fe-m{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .fe-m:hover{border-color:var(--brand2)}
+  .fe-m.on{background:color-mix(in srgb,var(--brand) 22%,transparent);border-color:var(--brand);color:var(--txt)}
+  .fe-caixa textarea{min-height:64px}
+  .fe-caixa .cn-lbl small{font-weight:400;color:var(--muted)}
   .tk-rodape .btn svg{width:13px;height:13px;vertical-align:-2px;flex:none}   /* ícone do Notificar responsável (ic() não tem tamanho) */
   .cp-obr{font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;font-weight:800;margin-left:2px;
     color:#f0cb7d;background:rgba(230,177,63,.13);border:1px solid rgba(230,177,63,.3);border-radius:999px;
@@ -10563,6 +10576,102 @@ window.rspPerMenu=(ev)=>{
 window.rspPerEscolhe=(k)=>{ const F=TK.filtro; F.de=''; F.ate=''; if(typeof TKCAL!=='undefined') TKCAL.meio=false; F.prazo=k; tkFAplicar(); };
 /* Personalizado abre o calendário de sempre, ancorado no botão */
 window.rspPerCal=()=>{ const b=document.getElementById('rspPerBtn'); if(b) tkPopAbrir('filtro',{currentTarget:b,stopPropagation(){}}); };
+/* ======================= GANHOU E PERDEU (Bernardo 12/10) =======================
+   "Quando jogar pro ganhou, a gente possa colocar o valor da venda. Quando jogar pro perdeu, tem que
+   ter umas opções do motivo de perda, pra ter controle de qual funil traz lead qualificado."
+   O valor é o CASH COLLECT ("é isso que importa": o dinheiro que entrou, não o contrato). Os dois são
+   campos da lista (Cash collect, moeda; Motivo da perda, seleção), então aparecem na planilha, no
+   download e no cartão. Todo caminho que muda a etapa passa pelo tkSetStatus, que chama o
+   crmFechaAntes: sem valor ou sem motivo o lead não muda de coluna. Em lote, perdeu pergunta uma vez
+   só; ganhou é um por vez (cada venda tem o seu valor). Lista sem os campos segue como sempre. */
+const CRM_FE_RE={cash:/^cash collect$/i,motivo:/^motivo da perda$/i};
+const crmFeCampo=(lid,k)=>(typeof tkCamposDe==='function'?tkCamposDe(lid):[]).find(c=>CRM_FE_RE[k].test(String(c.nome||'')))||null;
+/* 'ganho' | 'perdeu' | '' pela natureza da etapa (grupo feito = GANHOU, fechado = PERDEU) */
+const crmFechaTipo=(t,s)=>(!t||!s||typeof crmForm!=='function'||!crmForm(t.lista_id))?'':(s.grupo==='feito'?'ganho':s.grupo==='fechado'?'perdeu':'');
+/* "1.500,50", "1500", "R$ 2.000" viram número; vazio ou lixo vira NaN */
+const crmDinheiro=(v)=>{ let x=String(v==null?'':v).replace(/[^\d.,]/g,''); if(!x) return NaN;
+  if(x.indexOf(',')>=0) x=x.replace(/\./g,'').replace(',','.');
+  else if(/^\d{1,3}(\.\d{3})+$/.test(x)) x=x.replace(/\./g,'');
+  const n=Number(x); return isFinite(n)?Math.round(n*100)/100:NaN; };
+const crmReais=(n)=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function crmFechaHtml(t,tipo,ops){
+  const cab=(tit)=>`<div class="cn-h"><strong>${tit}</strong><button class="tkp-x" type="button" data-x aria-label="Cancelar">✕</button></div>
+      <div class="cn-tit">${esc(t.titulo||'')}</div>`;
+  return tipo==='ganho'
+    ?`<div class="cn-caixa fe-caixa" role="dialog" aria-label="Marcar como ganho">${cab('Marcar como ganho')}
+      <label for="feValor" class="cn-lbl">Cash collect</label>
+      <div class="fe-din"><span>R$</span><input id="feValor" inputmode="decimal" placeholder="0,00" autocomplete="off" aria-describedby="feDica"></div>
+      <div class="fe-dica" id="feDica">O dinheiro que entrou de fato nesta venda. É esse valor que conta como venda.</div>
+      <div class="cn-aviso" id="feAviso"></div>
+      <div class="cn-pe"><button class="btn ghost small" type="button" data-x>Cancelar</button><button class="btn small" type="button" id="feOk">Marcar como ganho</button></div></div>`
+    :`<div class="cn-caixa fe-caixa" role="dialog" aria-label="Marcar como perdido">${cab('Marcar como perdido')}
+      <div class="cn-lbl" id="feMotLbl">Por que perdeu?</div>
+      <div class="fe-mot" role="radiogroup" aria-labelledby="feMotLbl">${(ops||[]).map(o=>`<button type="button" class="fe-m" role="radio" aria-checked="false" data-m="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+      <label for="feObs" class="cn-lbl">Observação <small>(opcional)</small></label>
+      <textarea id="feObs" rows="2" placeholder="Ex.: fechou com outra agência por preço."></textarea>
+      <div class="cn-aviso" id="feAviso"></div>
+      <div class="cn-pe"><button class="btn ghost small" type="button" data-x>Cancelar</button><button class="btn small" type="button" id="feOk">Marcar como perdido</button></div></div>`;
+}
+/* devolve {valor} (ganhou), {motivo,obs} (perdeu) ou null se a pessoa cancelou */
+function crmFechaPedir(t,tipo){
+  return new Promise(res=>{
+    const c=crmFeCampo(t.lista_id||TK.listaSel,tipo==='ganho'?'cash':'motivo');
+    const o=document.createElement('div'); o.className='cn-fundo fe-fundo';
+    o.innerHTML=crmFechaHtml(t,tipo,(c&&c.opcoes)||[]);
+    document.body.appendChild(o);
+    let motivo='';
+    const aviso=(m)=>{ o.querySelector('#feAviso').textContent=m; };
+    const fim=(v)=>{ o.remove(); document.removeEventListener('keydown',tecla,true); res(v); };
+    const ok=()=>{
+      if(tipo==='ganho'){ const el=o.querySelector('#feValor'), n=crmDinheiro(el.value);
+        if(!(n>0)){ aviso('Informe o cash collect em reais (maior que zero).'); el.focus(); return; } fim({valor:n}); }
+      else { if(!motivo){ aviso('Escolha o motivo da perda.'); return; }
+        fim({motivo,obs:String(o.querySelector('#feObs').value||'').trim().slice(0,500)}); } };
+    const tecla=(e)=>{ if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); fim(null); }
+      else if(e.key==='Enter'&&(tipo==='ganho'||e.metaKey||e.ctrlKey)){ e.preventDefault(); ok(); } };
+    document.addEventListener('keydown',tecla,true);
+    o.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>fim(null));
+    o.querySelectorAll('.fe-m').forEach(b=>b.onclick=()=>{ motivo=b.dataset.m; aviso('');
+      o.querySelectorAll('.fe-m').forEach(x=>{ const on=x===b; x.classList.toggle('on',on); x.setAttribute('aria-checked',on); }); });
+    o.onmousedown=(e)=>{ if(e.target===o) fim(null); };
+    o.querySelector('#feOk').onclick=ok;
+    setTimeout(()=>{ const f=o.querySelector('#feValor')||o.querySelector('.fe-m'); if(f) f.focus(); },0);
+  });
+}
+/* o que entra no patch da mudança de etapa: {} se não é ganhou/perdeu de CRM, null se cancelou.
+   pre = resposta já dada (perdeu em lote: pergunta uma vez e vale pra todos) */
+async function crmFechaAntes(t,s,pre){
+  if(!t||typeof crmForm!=='function'||!crmForm(t.lista_id)) return {};
+  const tipo=crmFechaTipo(t,s), cM=crmFeCampo(t.lista_id,'motivo'), cC=crmFeCampo(t.lista_id,'cash');
+  const valores=Object.assign({},t.valores||{});
+  /* saiu de PERDEU pra outra etapa: o motivo antigo não vale mais */
+  const limpa=!!(cM&&tipo!=='perdeu'&&valores[cM.id]!=null&&valores[cM.id]!=='');
+  if(limpa) delete valores[cM.id];
+  const c=tipo==='ganho'?cC:tipo==='perdeu'?cM:null;
+  if(!c) return limpa?{patch:{valores}}:{};
+  const r=pre||await crmFechaPedir(t,tipo); if(!r) return null;
+  valores[c.id]=tipo==='ganho'?r.valor:r.motivo;
+  return {patch:{valores},nota:tipo==='ganho'?'Ganhou · cash collect de '+crmReais(r.valor):'Perdeu · '+r.motivo+(r.obs?' · '+r.obs:'')};
+}
+/* fica registrado nas anotações do lead quem ganhou/perdeu e com que valor ou motivo */
+async function crmFechaNota(id,texto){
+  try{ await sb.from('tarefa_comentarios').insert({tarefa_id:id,autor:(currentUser||{}).id,texto});
+    if(typeof CL!=='undefined'&&CL.id===id&&typeof clNotas==='function') clNotas(id); }catch(_){}
+}
+/* no cartão: o cash collect de quem está em GANHOU e o motivo de quem está em PERDEU, editáveis */
+function crmFechaBox(t){
+  const s=typeof tkStatus1==='function'?tkStatus1(t.status_id):null, tipo=crmFechaTipo(t,s); if(!tipo) return '';
+  const c=crmFeCampo(t.lista_id,tipo==='ganho'?'cash':'motivo'); if(!c) return '';
+  const v=(t.valores||{})[c.id];
+  return tipo==='ganho'
+    ?`<section class="cl-box cl-fe"><h4>Venda</h4><div class="cl-kv"><span>Cash collect</span><input class="cl-in" inputmode="decimal" value="${esc(v==null||v===''?'':crmReais(v))}" placeholder="R$ 0,00" onchange="crmCashSalvar(this)" aria-label="Cash collect"></div></section>`
+    :`<section class="cl-box cl-fe"><h4>Perda</h4><div class="cl-kv"><span>Motivo</span>${typeof clEditor==='function'?clEditor(t,c,'','-'):''}</div></section>`;
+}
+window.crmCashSalvar=async (el)=>{ const t=(TK.tarefas||[]).find(x=>x.id===CL.id), c=t&&crmFeCampo(t.lista_id,'cash'); if(!t||!c||!el) return;
+  const n=crmDinheiro(el.value);
+  if(!(n>0)){ toast('Informe o cash collect em reais (maior que zero).'); clRepintar(); return; }
+  const valores=Object.assign({},t.valores||{}); valores[c.id]=n;
+  await tkPatch(t.id,{valores},'Cash collect: '+crmReais(n)); clRepintar(); };
 /* ======================= SDR DO LEAD (Bernardo 12/10) =======================
    "Tem que ter uma bolinha ali com bonequinho do usuário para cada lead, onde fique muito fácil de ver
    quem está com aqueles clientes. O filtro de SDR responsável também poderia ficar do lado ali do
@@ -10856,6 +10965,14 @@ window.rspMoverPara=async (ids,sid,lote)=>{
   ids=ids.filter(id=>{ const t=TK.tarefas.find(x=>x.id===id); return t&&String(t.status_id)!==String(sid); });
   if(!ids.length){ if(lote){ RSP.sel={}; tkDesenhar($('#content')); } return; }
   const st=TK_G2ST[s.grupo]||'todo';
+  /* vários de uma vez pra GANHOU ou PERDEU (Bernardo 12/10): perdeu pergunta o motivo uma vez e vale
+     pra todos; ganhou é um por vez, porque cada venda tem o seu cash collect */
+  const tpFe=typeof crmFechaTipo==='function'?crmFechaTipo(TK.tarefas.find(x=>x.id===ids[0]),s):'';
+  if(tpFe&&ids.length>1&&crmFeCampo(TK.listaSel,tpFe==='ganho'?'cash':'motivo')){
+    if(tpFe==='ganho'){ toast('Ganhou é um lead por vez: cada venda tem o seu cash collect.'); return; }
+    const r=await crmFechaPedir({titulo:ids.length+' leads selecionados',lista_id:TK.listaSel},'perdeu'); if(!r) return;
+    for(const id of ids) await tkSetStatus(id,sid,r);
+    if(lote){ RSP.sel={}; tkDesenhar($('#content')); } return; }
   /* um lead, ou etapa que pede relatório de conclusão: o caminho de sempre, um por um */
   if(ids.length===1||(st==='feito'&&ids.some(id=>cnPrecisa(TK.tarefas.find(x=>x.id===id))))){
     for(const id of ids) await tkSetStatus(id,sid);
@@ -14251,12 +14368,16 @@ window.tkTipoExcluir=async (id)=>{
   const o=document.querySelector('.overlay'); if(o) o.remove();
   toast('Tipo excluído.'); tkDesenhar($('#content')); setTimeout(tkTipos,60);
 };
-window.tkSetStatus=async (id,sid)=>{
+window.tkSetStatus=async (id,sid,pre)=>{
   const s=sid?tkStatus1(sid):null, st=s?TK_G2ST[s.grupo]:'todo';
   const antes=Object.assign({},TK.tarefas.find(x=>x.id===id)||{});
   const ex=(st==='feito'&&antes.status!=='feito')?await cnAntes(antes):{};
   if(!ex){ tkDesenhar($('#content')); return; }
-  const ok=await tkPatch(id,Object.assign({status_id:sid||null,status:st,concluida_em:st==='feito'?new Date().toISOString():null},ex), s?s.nome:'Sem status');
+  /* lead de CRM indo pra GANHOU ou PERDEU: pede o cash collect ou o motivo antes de gravar (Bernardo 12/10) */
+  const fx=(typeof crmFechaAntes==='function'&&String(antes.status_id||'')!==String(sid||''))?await crmFechaAntes(antes,s,pre):{};
+  if(!fx){ tkDesenhar($('#content')); return; }
+  const ok=await tkPatch(id,Object.assign({status_id:sid||null,status:st,concluida_em:st==='feito'?new Date().toISOString():null},ex,fx.patch||{}), s?s.nome:'Sem status');
+  if(ok&&fx.nota) crmFechaNota(id,fx.nota);
   if(ok) cnDepois(id,ex);
   /* aviso agora nasce no banco (trg_ntf_tarefas): qualquer caminho conta, sem duplicar */
   if(ok) await lcSincronizarFicha(id,sid);
@@ -15236,7 +15357,8 @@ window.caGVoltou=async ()=>{ CA.gstIds=''; const ids=((EQ.cfg&&EQ.cfg.vendedores
    prioridade, checklist ou subtarefa. Cada mudança grava na hora (tkPatch), igual ao painel. */
 const CL={id:''};
 const CL_RE={whats:/whats/i,insta:/insta/i,cargo:/^cargo$/i,cidade:/^cidade$/i,estado:/^estado$/i,
-  campanha:/^campanha$/i,conjunto:/^conjunto$/i,anuncio:/^an[uú]ncio$/i,msg:/mensagem autom/i,form:/^formul/i,origem:/^origem$/i,empresa:/^empresa$/i};
+  campanha:/^campanha$/i,conjunto:/^conjunto$/i,anuncio:/^an[uú]ncio$/i,msg:/mensagem autom/i,form:/^formul/i,origem:/^origem$/i,empresa:/^empresa$/i,
+  cash:/^cash collect$/i,motivo:/^motivo da perda$/i};   /* os dois moram no bloco Venda/Perda do cartão (crmFechaBox), não em Outras informações */
 const clCampo=(t,k)=>tkCamposDe(t.lista_id).find(c=>k==='data'?c.nome===RSP_DATA:CL_RE[k].test(c.nome))||null;
 const clVal=(t,k)=>{ const c=clCampo(t,k), v=c?(t.valores||{})[c.id]:''; return v==null?'':String(v); };
 const clFone=(n)=>{ const d=String(n||'').replace(/\D/g,''), s=d.startsWith('55')&&d.length>=12?d.slice(2):d;
@@ -15370,6 +15492,7 @@ function crmLdHtml(t){
         ${outros.length?`<section class="cl-box"><h4>Outras informações</h4>${outros.map(c=>`<div class="cl-kv"><span>${esc(c.nome)}</span>${clEditor(t,c,'','-')}</div>`).join('')}</section>`:''}
       </div>
       <div class="cl-col">
+        ${typeof crmFechaBox==='function'?crmFechaBox(t):''}
         ${typeof caBoxLead==='function'?caBoxLead(t):''}
         <section class="cl-box"><h4>SDR responsável</h4>
           ${(typeof rspSdrAdm!=='function'||rspSdrAdm())
