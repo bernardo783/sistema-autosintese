@@ -3496,6 +3496,43 @@
   .agd-avb{display:flex;gap:8px}
   .agd-avb button{height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font:inherit;font-weight:700;font-size:12.5px;cursor:pointer}
   .agd-avb button.pri{background:#25d366;border-color:#25d366;color:#06301a}
+  .agd-av.gestor{border-left-color:var(--warn)}
+  .agd-so{flex:none;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--warn)}
+  /* PRÓXIMOS PASSOS do lead (Bernardo 12/10): agendar mensagem e agendar retorno, dentro do cartão */
+  .pp h4{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .pp-acoes{display:flex;gap:6px;flex-wrap:wrap}
+  .pp-b{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--txt);
+    font:inherit;font-size:12.5px;font-weight:700;letter-spacing:0;text-transform:none;cursor:pointer}
+  .pp-b:hover{border-color:var(--brand2)}
+  .pp-b.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 18%,transparent)}
+  .pp-b svg{width:13px;height:13px;flex:none}
+  .pp-comp{margin:4px 0 10px;padding:12px;border:1px solid var(--brand);border-radius:12px;background:var(--panel)}
+  .pp-comp .cl-in{width:100%;margin-left:0;border-color:var(--line);background:var(--panel2);font-weight:500}
+  .pp-comp .cl-in:focus{border-color:var(--brand)}
+  .pp-comp textarea.cl-in{resize:vertical;min-height:64px;line-height:1.4}
+  .pp-qs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+  .pp-q{height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+  .pp-q:hover{color:var(--txt)}
+  .pp-q.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 22%,transparent);color:var(--txt)}
+  .pp-outro{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:8px;margin:0 0 10px}
+  .pp-pe{display:flex;align-items:center;gap:8px}
+  .pp-pe .cl-in{flex:1;min-width:0}
+  .pp-pe .btn{flex:none;width:auto;margin:0 0 0 auto}
+  .pp-dica{flex:1;min-width:0;font-size:12px;color:var(--fraco)}
+  .pp-it{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+  .pp h4+.pp-it{border-top:0}
+  .pp-ic{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,#25d366 16%,transparent);color:#25d366}
+  .pp-ic svg{width:14px;height:14px}
+  .pp-ck{flex:none;width:18px;height:18px;margin:4px 4px 0;padding:0;border-radius:5px;border:2px solid var(--brand2);background:none;cursor:pointer}
+  .pp-ck:hover{background:color-mix(in srgb,var(--brand) 30%,transparent)}
+  .pp-tx{flex:1;min-width:0}
+  .pp-qd{font-size:12px;color:var(--muted)}
+  .pp-qd b{color:var(--txt)}
+  .pp-qd b.atr,.pp-err{color:var(--danger)}
+  .pp-tt{margin-top:2px;font-size:13.5px;line-height:1.4;overflow-wrap:anywhere}
+  .pp-x{flex:none;background:none;border:0;padding:4px 0;color:var(--fraco);font:inherit;font-size:12px;cursor:pointer}
+  .pp-x:hover{color:var(--txt)}
+  .pp-vz{margin:2px 0 0}
   /* Instagram do lead: o mesmo icone e o mesmo botao da ficha do cliente (Contato > Instagram) (Bernardo 08/10) */
   .tk-ig{display:inline-grid;place-items:center;width:24px;height:24px;margin-left:6px;border-radius:999px;vertical-align:middle;color:#fff;
     background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285aeb 90%);text-decoration:none;transition:filter .15s,transform .15s}
@@ -8216,9 +8253,9 @@ const ehCom=(lid)=>!!LCOM[lid];
    pipeline, a tela Equipe, o form do Yay (rodízio) e a tabela de calls do Painel. O código é um só;
    no banco, crm_forms faz o mesmo papel pros gatilhos. CRM novo = uma linha aqui + uma em crm_forms. */
 const CRM_FORMS=[
-  {nome:'Sofás',    lista:'2e85f701-0616-4b74-9732-6ebfeba016b8', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d001', form:'6ac516b64c1c87a7280d6fc9', calls:'sofas_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d011'},
-  {nome:'Motos',    lista:'b4169319-1cf1-4d7a-8520-5ffcad09e21f', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d002', form:'6a668e28d385e5003d03b895', calls:'motos_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d012'},
-  {nome:'Veículos', rot:'Carros', lista:'ae902b26-00d3-4495-a7e0-9914f2754fd9', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d003', form:'6aac28b2030e048ade0c664c', calls:'veiculos_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d013'}];
+  {nome:'Sofás',    lista:'2e85f701-0616-4b74-9732-6ebfeba016b8', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d001', form:'6ac516b64c1c87a7280d6fc9', calls:'sofas_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d011', retornos:'f1e2d3c4-0000-4a00-8b00-00000000d031'},
+  {nome:'Motos',    lista:'b4169319-1cf1-4d7a-8520-5ffcad09e21f', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d002', form:'6a668e28d385e5003d03b895', calls:'motos_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d012', retornos:'f1e2d3c4-0000-4a00-8b00-00000000d032'},
+  {nome:'Veículos', rot:'Carros', lista:'ae902b26-00d3-4495-a7e0-9914f2754fd9', equipe:'f1e2d3c4-0000-4a00-8b00-00000000d003', form:'6aac28b2030e048ade0c664c', calls:'veiculos_calls', agenda:'f1e2d3c4-0000-4a00-8b00-00000000d013', retornos:'f1e2d3c4-0000-4a00-8b00-00000000d033'}];
 /* Acessos e Processos tambem moram na arvore, em Administrativo (Gabriel 15/09).
    Mesma ideia das listas do Financeiro, mas sem o recorte de master: quem nao
    pode ver alguma coisa la dentro ja e barrado pela propria tela. */
@@ -10764,7 +10801,9 @@ window.rspSdrEscolhe=(k)=>{ RSP.sdr=k||''; tkDesenhar($('#content')); };
    tem papel no CRM. Daí saem: o bloco no topo das Respostas, a bolinha no botão do WhatsApp, o número
    na árvore e no título da aba, e o aviso no canto (só pro vendedor do lead). "Não precisa responder"
    (o botão de visto da linha) grava valores._wa_visto e tira o lead dali até ele escrever de novo. */
-const AGD={mapa:{},pronto:false,buscando:false,sujo:false,tit:''};
+const AGD={mapa:{},pronto:false,buscando:false,sujo:false,tit:'',alertou:{}};
+/* gestor: lead esperando há 30 min ou mais (Bernardo 12/10) */
+const AGD_GESTOR_MIN=30;
 const agdUser=()=>(typeof currentUser!=='undefined'&&currentUser)||null;
 const agdPode=()=>{ const u=agdUser(); return !!u&&(u.role==='master'||!!u.papel_crm); };
 const agdAdm=()=>{ const u=agdUser(); return !!u&&(u.role==='master'||['admin','gestor'].includes(u.papel_crm)); };
@@ -10795,6 +10834,10 @@ async function agdBuscar(){
       AGD.mapa=data; AGD.pronto=true;
       /* aviso só de mensagem que chegou com o sistema aberto, e só pro vendedor do lead */
       if(era) Object.keys(data).forEach(id=>{ const a=data[id], b=antes[id]; if(a.meu&&(!b||b.ultima!==a.ultima)) agdAvisar(id,a); });
+      /* master e gestor: aviso quando um lead passa de 30 min sem resposta. Quem já estava atrasado ao
+         abrir o sistema só é anotado, sem aviso (senão chove alerta ao entrar) */
+      if(agdAdm()) Object.keys(data).forEach(id=>{ const a=data[id], k=id+'|'+a.desde;
+        if(AGD.alertou[k]||agdMin(a.desde)<AGD_GESTOR_MIN) return; AGD.alertou[k]=1; if(era) agdAlertar(id,a); });
       document.querySelectorAll('#agdAvisos .agd-av').forEach(e=>{ if(!data[e.dataset.id]) e.remove(); });
       if(mudou||AGD.sujo) agdPintar();
     }
@@ -10823,7 +10866,7 @@ function agdAvisar(id,a){
   const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
   let box=document.getElementById('agdAvisos');
   if(!box){ box=document.createElement('div'); box.id='agdAvisos'; document.body.appendChild(box); }
-  const velho=box.querySelector('.agd-av[data-id="'+id+'"]'); if(velho) velho.remove();
+  const velho=box.querySelector('.agd-av:not(.gestor)[data-id="'+id+'"]'); if(velho) velho.remove();
   box.insertAdjacentHTML('beforeend',`<div class="agd-av" data-id="${esc(id)}" role="status">
       <div class="agd-avh"><b>${esc(t.titulo||'Lead')} respondeu</b><span>${esc(agdHa(a.ultima))}</span><button type="button" class="agd-x" onclick="agdTiraAviso('${esc(id)}')" aria-label="Fechar">&times;</button></div>
       <div class="agd-avt">${esc(agdTexto(a))}${a.n>1?` <small>· ${a.n} mensagens</small>`:''}</div>
@@ -10831,7 +10874,21 @@ function agdAvisar(id,a){
     </div>`);
   while(box.children.length>4) box.firstElementChild.remove();
 }
-window.agdTiraAviso=(id)=>{ const e=document.querySelector('#agdAvisos .agd-av[data-id="'+id+'"]'); if(e) e.remove(); };
+window.agdTiraAviso=(id)=>{ const e=document.querySelector('#agdAvisos .agd-av:not(.gestor)[data-id="'+id+'"]'); if(e) e.remove(); };
+function agdAlertar(id,a){
+  const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
+  let box=document.getElementById('agdAvisos');
+  if(!box){ box=document.createElement('div'); box.id='agdAvisos'; document.body.appendChild(box); }
+  const velho=box.querySelector('.agd-av.gestor[data-id="'+id+'"]'); if(velho) velho.remove();
+  const sdr=t.responsavel_id?tkNomeUser(t.responsavel_id):'';
+  box.insertAdjacentHTML('beforeend',`<div class="agd-av gestor" data-id="${esc(id)}" role="status">
+      <div class="agd-avh"><span class="agd-so">Gestão</span><b>${esc(t.titulo||'Lead')} espera ${esc(agdHa(a.desde))}</b><button type="button" class="agd-x" onclick="agdTiraAlerta('${esc(id)}')" aria-label="Fechar">&times;</button></div>
+      <div class="agd-avt">${sdr?'Está com '+esc(sdr)+' e ninguém respondeu ainda.':'Está sem SDR e ninguém respondeu ainda.'}</div>
+      <div class="agd-avb"><button type="button" onclick="agdTiraAlerta('${esc(id)}');tkAbrir('${esc(id)}')">Abrir card</button><button type="button" onclick="agdTiraAlerta('${esc(id)}');rspWaAbrir('${esc(id)}')">Ver conversa</button></div>
+    </div>`);
+  while(box.children.length>4) box.firstElementChild.remove();
+}
+window.agdTiraAlerta=(id)=>{ const e=document.querySelector('#agdAvisos .agd-av.gestor[data-id="'+id+'"]'); if(e) e.remove(); };
 window.agdVisto=async (id)=>{ const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
   const valores=Object.assign({},t.valores||{},{_wa_visto:new Date().toISOString()});
   if(!(await tkPatch(id,{valores},'Tirado de Aguardando resposta.'))) return;
@@ -14128,6 +14185,8 @@ function cnPrecisa(t){
   if(!t||t.status==='feito'||ehLC(t.lista_id)) return false;
   /* CRM de formulário também: "5. FECHADO" é etapa do funil, não demanda concluída (Bernardo 08/10) */
   if(typeof crmForm==='function'&&crmForm(t.lista_id)) return false;
+  /* retorno de lead (Próximos passos) é lembrete: feito é feito, sem relatório (12/10) */
+  if(typeof CRM_RET!=='undefined'&&CRM_RET[t.lista_id]) return false;
   const e=espacoDaLista(t.lista_id); if(!e) return true;
   const w=e.workspace_id?(wsTodas()||[]).find(x=>String(x.id)===String(e.workspace_id)):null;
   return !(w&&w.tipo==='pessoal');
@@ -15636,6 +15695,7 @@ function crmLdHtml(t){
             ?`<select class="cl-in cl-resp" onchange="clResp(this.value)"><option value="">Ninguém ainda</option>${equipeDe(t.lista_id,resp||null).map(u=>`<option value="${u.id}"${u.id===resp?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`
             :`<div class="cl-sdrro" title="Só master e gestor trocam o SDR do lead">${resp?avatar(resp,tkNomeUser(resp),'')+'<b>'+esc(tkNomeUser(resp)||'SDR')+'</b>':'<b class="vz">Ninguém ainda</b>'}</div>`}
         </section>
+        ${typeof ppBox==='function'?ppBox(t):''}
         <section class="cl-box cl-notas"><h4>Anotações</h4>
           <div class="cl-novo" id="clNovo" ondragover="clAnxSobre(event)" ondragleave="clAnxSai(event)" ondrop="clAnxSolta(event)"><textarea id="clNotaTxt" onpaste="clAnxCola(event)" rows="2" placeholder="Como foi o contato, o que ficou combinado, próximo passo…" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)){event.preventDefault();clNotar();}"></textarea>
             <div id="clPend" class="cl-pend"></div>
@@ -15769,6 +15829,124 @@ window.clCampoSalvar=async (cid,el,k)=>{
 window.clArquivar=async ()=>{ const id=CL.id; if(!id) return;
   if(!confirm('Arquivar este lead? Ele sai da lista e fica em Arquivados.')) return;
   clFechar(); await tkArquivar(id); };
+/* ======================= PRÓXIMOS PASSOS DO LEAD (Bernardo 08-12/10) =======================
+   "Dentro do cartão do lead deveria dar pra programar alguma mensagem... o relógio lá. E agendar
+   tarefas, pra cair lá nas tarefas do sistema de cada um: lembrando, você se comprometeu a chamar o
+   Régis de novo porque ele falou pra entrar em contato amanhã." Dois botões no cartão:
+   - Agendar mensagem: o mesmo agendamento do painel de conversa (edge wa-uazapi /agendar; o cron manda
+     no horário), só que à vista. O número de saída e as agendadas vêm do /lead.
+   - Agendar retorno: tarefa com dia e hora (hora cheia, regra do sistema) na lista Retornos do CRM, no
+     nome do SDR do lead (RPC crm_retorno_novo). Aparece em Minhas tarefas; no horário o banco avisa no
+     sino (crm_retornos_avisar) e o aviso abre este cartão. SDR só vê os retornos dele. */
+const CRM_RET=Object.fromEntries(CRM_FORMS.filter(f=>f.retornos).map(f=>[f.retornos,f.lista]));
+const PP={id:'',modo:'',txt:'',q:'amanha',dia:'',hora:'09:00',para:'',carregando:false,erro:'',chatid:'',por:'',perfil:'',conectado:true,agendadas:[],salvando:false};
+const PP_REL_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const PP_OK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>';
+const ppIso=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+/* atalhos de quando, a partir de agora: [chave, rótulo, dia, hora cheia] */
+function ppAtalhos(agora){
+  const n=agora||new Date(), dia=(k)=>ppIso(new Date(n.getFullYear(),n.getMonth(),n.getDate()+k)), out=[];
+  if(n.getHours()<16) out.push(['hoje','Hoje 17h',dia(0),'17:00']);
+  out.push(['amanha','Amanhã 9h',dia(1),'09:00'],['2dias','Em 2 dias',dia(2),'09:00']);
+  const seg=((8-n.getDay())%7)||7;   /* próxima segunda; se cai amanhã ou depois de amanhã, os outros atalhos já cobrem */
+  if(seg>2) out.push(['seg','Segunda 9h',dia(seg),'09:00']);
+  return out;
+}
+const ppQuando=()=>{ if(PP.q==='outro') return {dia:PP.dia,hora:PP.hora}; const a=ppAtalhos().find(x=>x[0]===PP.q); return a?{dia:a[2],hora:a[3]}:{dia:'',hora:''}; };
+const ppFmt=(iso)=>{ const d=new Date(iso); if(isNaN(d)) return ''; const h=new Date(), am=new Date(h.getFullYear(),h.getMonth(),h.getDate()+1);
+  const dia=d.toDateString()===h.toDateString()?'hoje':d.toDateString()===am.toDateString()?'amanhã':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  return dia+', '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+const ppRetIso=(x)=>x&&x.prazo?(String(x.prazo).slice(0,10)+'T'+(x.hora||'09:00')+':00'):'';
+/* retornos em aberto de um lead (o vínculo é valores._lead) */
+const ppRetornos=(t)=>(TK.tarefas||[]).filter(x=>CRM_RET[x.lista_id]&&!arquivada(x)&&x.status!=='feito'&&String((x.valores||{})._lead||'')===String(t.id))
+  .sort((a,b)=>ppRetIso(a).localeCompare(ppRetIso(b)));
+/* id do lead de um retorno, se o lead ainda está visível pra quem abriu */
+const ppLeadDoRetorno=(id)=>{ const x=(TK.tarefas||[]).find(y=>y.id===id); if(!x||!CRM_RET[x.lista_id]) return '';
+  const l=String((x.valores||{})._lead||''); return (TK.tarefas||[]).some(y=>y.id===l)?l:''; };
+async function ppApi(acao,corpo){
+  if(typeof SESSION==='undefined'||!SESSION||!SESSION.access_token) throw new Error('Sessão expirada: entre de novo.');
+  const r=await fetch(SUPA_URL+'/functions/v1/wa-uazapi/'+acao,{method:'POST',headers:{authorization:'Bearer '+SESSION.access_token,'content-type':'application/json'},body:JSON.stringify(corpo||{})});
+  const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
+  if(!d.ok) throw new Error(d.erro||('erro '+r.status));
+  return d;
+}
+/* de qual número sai e o que já está agendado pra esse lead */
+async function ppCarregar(t){
+  const n=rspWaNum(t); if(!n||!rspWaDentro(t)) return;
+  PP.carregando=true; PP.erro='';
+  try{ const d=await ppApi('lead',{fone:n,tarefa:t.id}); if(PP.id!==t.id) return;
+    Object.assign(PP,{chatid:d.chatid||'',por:d.por||'',perfil:d.perfil||'',conectado:d.conectado!==false,agendadas:(d.agendadas||[]).filter(a=>a.status==='pendente'||a.status==='erro')});
+  }catch(e){ if(PP.id!==t.id) return; PP.erro=e.message||'falha'; }
+  PP.carregando=false; ppPintar();
+}
+/* troca só o bloco, sem tirar o cursor de quem está escrevendo nele */
+function ppPintar(){
+  const t=(TK.tarefas||[]).find(x=>x.id===PP.id), el=document.getElementById('ppBox'); if(!t||!el) return;
+  const a=document.activeElement, fid=(a&&el.contains(a)&&a.id)?a.id:'', pos=fid&&typeof a.selectionStart==='number'?a.selectionStart:null;
+  el.outerHTML=ppBox(t);
+  if(fid){ const n=document.getElementById(fid); if(n){ n.focus(); if(pos!=null&&n.setSelectionRange){ try{ n.setSelectionRange(pos,pos); }catch(_){} } } }
+}
+function ppBox(t){
+  if(PP.id!==t.id){ Object.assign(PP,{id:t.id,modo:'',txt:'',q:'amanha',dia:'',hora:'09:00',para:'',carregando:false,erro:'',chatid:'',por:'',perfil:'',conectado:true,agendadas:[],salvando:false}); ppCarregar(t); }
+  const podeMsg=!!rspWaNum(t)&&rspWaDentro(t), rets=ppRetornos(t), ag=PP.agendadas||[], adm=typeof agdAdm==='function'&&agdAdm();
+  const bt=(m,ic,rot,tit)=>`<button type="button" class="pp-b${PP.modo===m?' on':''}" onclick="ppModo('${m}')" title="${tit}">${ic}${rot}</button>`;
+  const chips=ppAtalhos().map(a=>`<button type="button" class="pp-q${PP.q===a[0]?' on':''}" onclick="ppQ('${a[0]}')">${a[1]}</button>`).join('')
+    +`<button type="button" class="pp-q${PP.q==='outro'?' on':''}" onclick="ppQ('outro')">Outro dia…</button>`;
+  const outro=PP.q==='outro'?`<div class="pp-outro"><input type="date" class="cl-in" id="ppDia" value="${esc(PP.dia)}" min="${ppIso(new Date())}" onchange="PP.dia=this.value" aria-label="Dia">${PP.modo==='ret'
+      ?`<select class="cl-in" id="ppHora" onchange="PP.hora=this.value" aria-label="Hora">${horaOpcoes(PP.hora,'Hora')}</select>`
+      :`<input type="time" class="cl-in" id="ppHora" value="${esc(PP.hora)}" onchange="PP.hora=this.value" aria-label="Hora">`}</div>`:'';
+  const paraSel=PP.para||t.responsavel_id||(currentUser||{}).id||'';
+  const comp=PP.modo==='ret'?`<div class="pp-comp">
+        <input class="cl-in" id="ppTxt" maxlength="200" placeholder="O que precisa ser feito? Ex.: chamar de novo, ele pediu pra falar amanhã" value="${esc(PP.txt)}" oninput="PP.txt=this.value" onkeydown="if(event.key==='Enter'){event.preventDefault();ppSalvar();}">
+        <div class="pp-qs">${chips}</div>${outro}
+        <div class="pp-pe">${adm?`<select class="cl-in" id="ppPara" onchange="PP.para=this.value" aria-label="Para quem">${equipeDe(t.lista_id,paraSel||null).map(u=>`<option value="${u.id}"${u.id===paraSel?' selected':''}>Para ${esc(u.nome)}</option>`).join('')}</select>`
+            :'<span class="pp-dica">Vai pras suas tarefas, com aviso no horário.</span>'}
+          <button type="button" class="btn small" id="ppOk" onclick="ppSalvar()">Agendar</button></div></div>`
+    :PP.modo==='msg'?`<div class="pp-comp">
+        <textarea class="cl-in" id="ppTxt" rows="3" maxlength="4000" placeholder="Mensagem que vai sair no WhatsApp no horário marcado" oninput="PP.txt=this.value">${esc(PP.txt)}</textarea>
+        <div class="pp-qs">${chips}</div>${outro}
+        <div class="pp-pe"><span class="pp-dica">${PP.carregando?'Vendo de qual número sai…':PP.erro?esc(PP.erro):!PP.por?'Nenhum número do time disponível pra esse lead.':('Sai pelo WhatsApp de '+esc(PP.perfil||eqNomeAp(PP.por))+(PP.conectado?'.':', que está desconectado agora.'))}</span>
+          <button type="button" class="btn small" id="ppOk" onclick="ppSalvar()"${(PP.carregando||!PP.por)?' disabled':''}>Agendar</button></div></div>`:'';
+  const itMsg=(a)=>`<div class="pp-it"><span class="pp-ic">${PP_REL_SVG}</span><div class="pp-tx">
+        <div class="pp-qd">Mensagem · <b>${esc(ppFmt(a.enviar_em))}</b>${a.status==='erro'?' · <span class="pp-err">não saiu</span>':''}${a.instancia?' · pelo número de '+esc(eqNomeAp(a.instancia)):''}</div>
+        <div class="pp-tt">${esc(a.texto||a.nome_arquivo||'arquivo')}</div></div><button type="button" class="pp-x" onclick="ppCancelar('${esc(a.id)}')">cancelar</button></div>`;
+  const itRet=(x)=>{ const iso=ppRetIso(x), atr=!!iso&&new Date(iso).getTime()<Date.now();
+    return `<div class="pp-it"><button type="button" class="pp-ck" title="Marcar como feito" aria-label="Marcar como feito" onclick="ppFeito('${esc(x.id)}')"></button><div class="pp-tx">
+        <div class="pp-qd">Retorno · <b${atr?' class="atr"':''}>${esc(ppFmt(iso))}</b>${x.responsavel_id?' · '+esc(String(tkNomeUser(x.responsavel_id)||'').split(/\s+/)[0]):''}</div>
+        <div class="pp-tt">${esc(x.titulo||'')}</div></div></div>`; };
+  const lista=ag.map(itMsg).join('')+rets.map(itRet).join('');
+  return `<section class="cl-box pp" id="ppBox"><h4>Próximos passos<span class="pp-acoes">${podeMsg?bt('msg',PP_REL_SVG,'Agendar mensagem','Programar uma mensagem de WhatsApp pra sair sozinha'):''}${bt('ret',PP_OK_SVG,'Agendar retorno','Criar um lembrete nas tarefas de quem cuida do lead')}</span></h4>
+      ${comp}${lista||(comp?'':'<p class="hint pp-vz">Nada agendado. Combinou de falar de novo? Agende o retorno.</p>')}</section>`;
+}
+window.ppModo=(m)=>{ PP.modo=PP.modo===m?'':m; PP.txt=''; if(m==='ret'&&!/:00$/.test(PP.hora)) PP.hora='09:00'; ppPintar();
+  const e=document.getElementById('ppTxt'); if(e) e.focus(); };
+window.ppQ=(k)=>{ PP.q=k; if(k==='outro'&&!PP.dia){ const d=new Date(); d.setDate(d.getDate()+1); PP.dia=ppIso(d); } ppPintar(); };
+window.ppSalvar=async ()=>{
+  if(PP.salvando) return; const t=(TK.tarefas||[]).find(x=>x.id===PP.id); if(!t||!PP.modo) return;
+  const txt=String(PP.txt||'').trim(), q=ppQuando();
+  if(!txt){ toast(PP.modo==='msg'?'Escreva a mensagem.':'Escreva o que precisa ser feito.'); return; }
+  if(!q.dia||!q.hora){ toast('Escolha o dia e a hora.'); return; }
+  const quando=new Date(q.dia+'T'+q.hora+':00');
+  if(isNaN(quando)||quando.getTime()<Date.now()+60000){ toast('Escolha um horário no futuro.'); return; }
+  PP.salvando=true; const b=document.getElementById('ppOk'); if(b){ b.disabled=true; b.textContent='Agendando…'; }
+  try{
+    if(PP.modo==='msg'){
+      const r=await ppApi('agendar',{name:PP.por,chatid:PP.chatid,quando:quando.toISOString(),tarefa:t.id,texto:txt});
+      PP.agendadas=[...(PP.agendadas||[]),r.agendada].sort((x,y)=>String(x.enviar_em).localeCompare(String(y.enviar_em)));
+      toast('Mensagem agendada para '+ppFmt(r.agendada.enviar_em)+'.');
+    }else{
+      const {data,error}=await sb.rpc('crm_retorno_novo',{p_lead:t.id,p:{texto:txt,dia:q.dia,hora:q.hora,para:PP.para||''}});
+      if(error||!data) throw new Error((error&&error.message)||'erro');
+      TK.tarefas.push(data); toast('Retorno agendado para '+ppFmt(ppRetIso(data))+'.'); try{ spDesenhar(); }catch(_){}
+    }
+    PP.modo=''; PP.txt='';
+  }catch(e){ toast('Não agendou: '+(e.message||'erro')); }
+  PP.salvando=false; ppPintar();
+};
+window.ppCancelar=async (id)=>{
+  try{ await ppApi('cancelar',{id}); PP.agendadas=(PP.agendadas||[]).filter(a=>a.id!==id); ppPintar(); toast('Agendamento cancelado.'); }
+  catch(e){ toast('Não cancelou: '+(e.message||'erro')); } };
+window.ppFeito=async (id)=>{ await tkConcluir(id,true); ppPintar(); };
 /* ======================= NOVO LEAD (Bernardo 08/10) =======================
    "Quando eu clico no + pra cadastrar um lead manual, de indicação ou de outro canal sem tráfego,
    abre uma tela de tarefa." Nos CRMs de formulário o + abre este cadastro, no painel do cartão do
@@ -15816,7 +15994,10 @@ function clnHtml(){
       ${kv('Cidade','<div class="cln-uf"><input class="cl-in" id="clnCidade" placeholder="-"><input class="cl-in" id="clnUf" placeholder="UF" maxlength="2" aria-label="Estado"></div>')}
       ${kv('Origem',`<input class="cl-in" id="clnOrigem" list="clnOrigens" placeholder="escolha ou digite" autocomplete="off" oninput="clnInd()"><datalist id="clnOrigens">${clnOrigens(lid).map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`)}
       <div id="clnIndBox" hidden>${kv('Indicado por','<input class="cl-in" id="clnInd" placeholder="quem indicou">')}</div>
-      ${kv('Vendedor',`<select class="cl-in" id="clnVend"><option value="">Ninguém</option>${equipeDe(lid,eu||null).map(u=>`<option value="${u.id}"${u.id===eu?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`)}
+      ${kv('SDR',(typeof agdAdm!=='function'||agdAdm())
+        ?`<select class="cl-in" id="clnVend"><option value="">Ninguém</option>${equipeDe(lid,eu||null).map(u=>`<option value="${u.id}"${u.id===eu?' selected':''}>${esc(u.nome)}</option>`).join('')}</select>`
+        /* SDR só enxerga os leads dele (12/10): o que ele cadastra fica com ele; o banco garante igual */
+        :`<select class="cl-in" id="clnVend" disabled title="O lead fica com quem cadastra"><option value="${esc(eu)}" selected>${esc((currentUser||{}).nome||'Você')}</option></select>`)}
       ${kv('Anotação','<textarea class="cl-in" id="clnNota" rows="3" placeholder="contexto, próximo passo…"></textarea>','alto')}
     </section></div>
     <footer class="cl-pe">
@@ -15860,6 +16041,8 @@ window.clnSalvar=async ()=>{
 window.tkAbrir=(id,prazoPre,grupoPre)=>{
   /* lead de CRM de formulário abre o cartão de lead, não o painel de tarefa */
   if(id&&typeof crmLdAbrir==='function'&&crmLdAbrir(id)) return;
+  /* retorno de lead: abre o cartão do lead dele, que é onde a conversa acontece (12/10) */
+  if(id&&typeof ppLeadDoRetorno==='function'){ const ld=ppLeadDoRetorno(id); if(ld&&crmLdAbrir(ld)) return; }
   /* e o + dentro do CRM abre o cadastro de lead (Bernardo 08/10) */
   if(!id&&TK.escopo==='lista'&&crmForm(TK.listaSel)){ crmLdNovo(TK.listaSel,grupoPre); return; }
   const t=id?TK.tarefas.find(x=>x.id===id):null;
