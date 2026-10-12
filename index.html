@@ -3134,8 +3134,14 @@
   .rsp-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 12px}
   .rsp-q{max-width:360px;flex:1;min-width:200px;border-radius:999px;padding-left:16px}
   .rsp-dir{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .rsp-per{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1 1 auto}
-  .rsp-per .ftab{padding:6px 12px;font-size:12.5px}
+  /* período num botão só, com menu (Bernardo 12/10: "esse filtro desse jeito não tá maneiro, preciso deixar ele minimalista") */
+  .rsp-per{flex:none;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;margin-right:auto;border-radius:999px;border:1px solid var(--line);
+    background:var(--panel);color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .rsp-per:hover{border-color:var(--brand2);color:var(--txt)}
+  .rsp-per.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 18%,transparent);color:var(--txt)}
+  .rsp-per svg{width:14px;height:14px;flex:none}
+  .rsp-per svg.cv{width:12px;height:12px;opacity:.7}
+  .rsp-permi b{margin-left:auto;color:var(--brand2)}
   .rsp-n,.rsp-nsel{color:var(--muted);font-size:13px}
   .rsp-nsel{color:var(--txt);font-weight:700}
   .rsp-dir .btn{display:inline-flex;align-items:center;gap:6px;border-radius:999px}
@@ -10515,15 +10521,29 @@ if(!window.__rspTic) window.__rspTic=setInterval(()=>{ try{
 /* período de entrada à vista, do lado da busca (Bernardo 11/10: "não tem um filtro pra ver os leads
    de hoje, de ontem, dos últimos 7 dias ou personalizado"). É o mesmo filtro do botão Filtro lá em
    cima (TK.filtro), só que sem precisar abrir nada; Personalizado abre o calendário de sempre. */
+const RSP_ATALHOS=[['','Todos'],['hoje','Hoje'],['ontem','Ontem'],['ult7','7 dias'],['ult15','15 dias'],['ult30','30 dias']];
+const RSP_CAL_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+/* o que está valendo: um dos atalhos, '__p' (datas do calendário) ou '' (todos) */
+const rspPerAtual=()=>{ const F=TK.filtro||{}; return (F.de||F.ate)?'__p':(RSP_ATALHOS.some(o=>o[0]&&o[0]===F.prazo)?F.prazo:''); };
 function rspPeriodo(){
-  const F=TK.filtro||{}, pers=!!(F.de||F.ate), dm=(iso)=>{ const m=String(iso||'').match(/^\d{4}-(\d{2})-(\d{2})/); return m?m[2]+'/'+m[1]:''; };
-  const b=(k,r)=>`<button type="button" class="ftab${(!pers&&F.prazo===k)?' active':''}" onclick="tkFPrazo('${k}')">${r}</button>`;
-  const tudo=!pers&&!['hoje','ontem','ult7','ult15','ult30'].includes(F.prazo);
-  return `<div class="rsp-per" role="group" aria-label="Período de entrada dos leads">
-      <button type="button" class="ftab${tudo?' active':''}" onclick="tkFPrazo('')">Todos</button>${b('hoje','Hoje')}${b('ontem','Ontem')}${b('ult7','7 dias')}${b('ult15','15 dias')}${b('ult30','30 dias')}
-      <button type="button" class="ftab${pers?' active':''}" onclick="tkPopFiltro(event)" title="Escolher as datas no calendário">${pers?esc([dm(F.de),dm(F.ate)].filter(Boolean).join(' a ')):'Personalizado'}</button>
-    </div>`;
+  const F=TK.filtro||{}, cur=rspPerAtual(), dm=(iso)=>{ const m=String(iso||'').match(/^\d{4}-(\d{2})-(\d{2})/); return m?m[2]+'/'+m[1]:''; };
+  const rot=cur==='__p'?[dm(F.de),dm(F.ate)].filter(Boolean).join(' a '):(cur?RSP_ATALHOS.find(o=>o[0]===cur)[1]:'Período');
+  return `<button type="button" class="rsp-per${cur?' on':''}" id="rspPerBtn" onclick="rspPerMenu(event)" aria-haspopup="menu" title="Período de entrada dos leads">${RSP_CAL_SVG}<span>${esc(rot)}</span><svg class="cv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>`;
 }
+const rspPerMenuHtml=()=>{ const cur=rspPerAtual();
+  const it=(k,r,fn)=>`<button type="button" class="rc-mi rsp-permi${cur===k?' on':''}" role="menuitemradio" aria-checked="${cur===k}" onclick="document.getElementById('rspPerPop').remove();${fn}">${r}${cur===k?'<b>✓</b>':''}</button>`;
+  return RSP_ATALHOS.map(o=>it(o[0],o[1],`rspPerEscolhe('${o[0]}')`)).join('')+'<div class="rc-sep"></div>'+it('__p','Personalizado…','rspPerCal()'); };
+window.rspPerMenu=(ev)=>{
+  ev.stopPropagation(); const v=document.getElementById('rspPerPop'); if(v){ v.remove(); return; }
+  const el=document.createElement('div'); el.id='rspPerPop'; el.className='tkpop'; el.setAttribute('role','menu'); el.style.width='190px'; el.style.padding='6px'; el.style.zIndex=3000;
+  el.innerHTML=rspPerMenuHtml();
+  document.body.appendChild(el); popPor(el,ev.currentTarget.getBoundingClientRect());
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+/* escolher o que já está marcado não desliga (o tkFPrazo dos botões antigos alternava) */
+window.rspPerEscolhe=(k)=>{ const F=TK.filtro; F.de=''; F.ate=''; if(typeof TKCAL!=='undefined') TKCAL.meio=false; F.prazo=k; tkFAplicar(); };
+/* Personalizado abre o calendário de sempre, ancorado no botão */
+window.rspPerCal=()=>{ const b=document.getElementById('rspPerBtn'); if(b) tkPopAbrir('filtro',{currentTarget:b,stopPropagation(){}}); };
 /* ======================= AGUARDANDO RESPOSTA (Bernardo 08-11/10) =======================
    "Quando o cliente mandar mensagem, o card tem que ficar lá no topo com um sinal de que está pendente
    de resposta. Não quer nem saber se o cara está em proposta enviada ou em conversa: é pra aparecer
