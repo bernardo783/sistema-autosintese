@@ -1695,6 +1695,45 @@ grupo('CRM Motos e CRM Veículos: o mesmo código do CRM Sofás, cada um com a s
   ok('salvar grava no form que está na tela (não num fixo)', HTML.indexOf("sb.rpc('crm_rodizio_salvar',{p_form:EQ.cfg.form_id,")>0&&HTML.indexOf('EQ_FORM')<0);
   ok('trocar de CRM no meio da carga não pinta a Equipe errada', /if\(form!==eqForm\(\)\) return;/.test(HTML)&&/currentView!=='crm-equipe'\|\|form!==eqForm\(\)\) return;/.test(HTML));
 }
+grupo('Aguardando resposta: lead que escreveu sobe pro topo, com bolinha, tempo e aviso (Bernardo 11/10)');
+{
+  const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
+  const C=[{id:'w',lista_id:'L',nome:'WhatsApp',tipo:'link'},{id:'d',lista_id:'L',nome:'Preencheu em',tipo:'data'}];
+  const S=[{id:'s1',lista_id:'L',nome:'1. NOVO LEAD',cor:'#7c3aed',ordem:1},{id:'s5',lista_id:'L',nome:'5. PROPOSTA ENVIADA',cor:'#38bdf8',ordem:5}];
+  const T=[{id:'a',lista_id:'L',titulo:'Ana Souza',status_id:'s1',valores:{w:'https://wa.me/5511999990001',d:'2026-10-07'}},
+           {id:'b',lista_id:'L',titulo:'Régis Almeida',status_id:'s5',valores:{w:'https://wa.me/5517999990002',d:'2026-10-08'}},
+           {id:'c',lista_id:'L',titulo:'Carlos Lima',status_id:'s1',valores:{w:'https://wa.me/5517999990003',d:'2026-10-09'}}];
+  const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{},status:S},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
+    tkStatusDe:()=>S,tkStatus1:(id)=>S.find(s=>s.id===id)||null,esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,
+    tkSelo:()=>'<select></select>',tpSvg:()=>'',setTimeout:()=>0,toast:()=>{},currentUser:{role:'master'}},
+    ['tkViewRespostas','AG','agHa','agCor','agTexto','agMeus','agNaLista','agAssina']);
+  const ha=(min)=>new Date(Date.now()-min*60000).toISOString();
+  ok('tempo de espera: agora, minutos, horas e dias', g.agHa(ha(0))==='agora'&&g.agHa(ha(4))==='há 4 min'&&g.agHa(ha(125))==='há 2 h'&&g.agHa(ha(3000))==='há 2 d');
+  ok('cor do tempo: cinza até 15 min, amarelo até 1 h, vermelho depois', g.agCor(ha(5))==='c1'&&g.agCor(ha(40))==='c2'&&g.agCor(ha(90))==='c3');
+  ok('sem texto (áudio, imagem) diz o que o lead mandou', g.agTexto({previa:'',tipo:'AudioMessage'})==='mandou um áudio'&&g.agTexto({previa:null,tipo:'ImageMessage'})==='mandou uma imagem'&&g.agTexto({previa:'oi',tipo:'Conversation'})==='oi');
+  g.AG.pronto=true;
+  const sem=g.tkViewRespostas();
+  ok('ninguém esperando: sem bloco no topo e sem bolinha', sem.indexOf('rsp-ag')<0&&sem.indexOf('ag-bd')<0);
+  g.AG.mapa={b:{l:'L',n:2,desde:ha(3),ultima:ha(2),previa:'pode ser às 10h?',tipo:'Conversation',meu:true},
+             c:{l:'L',n:1,desde:ha(50),ultima:ha(50),previa:null,tipo:'AudioMessage',meu:false}};
+  const h=g.tkViewRespostas();
+  const topo=h.slice(h.indexOf('<tbody class="rsp-g rsp-ag"'),h.indexOf('</tbody>',h.indexOf('<tbody class="rsp-g rsp-ag"')));
+  ok('bloco Aguardando resposta vem antes de todas as etapas', h.indexOf('<tbody class="rsp-g rsp-ag"')>0&&h.indexOf('<tbody class="rsp-g rsp-ag"')<h.indexOf('<tbody class="rsp-g" data-g="s1"'));
+  ok('entra quem escreveu, de qualquer etapa, e o mais recente primeiro', topo.indexOf('Régis Almeida')>0&&topo.indexOf('Carlos Lima')>topo.indexOf('Régis Almeida')&&topo.indexOf('Ana Souza')<0);
+  ok('a etapa do lead continua à vista na linha', /class="ag-et"[^>]*>PROPOSTA ENVIADA</.test(topo)&&/class="ag-et"[^>]*>NOVO LEAD</.test(topo));
+  ok('bolinha com o número de mensagens no botão do WhatsApp', /<i class="ag-bd" title="pode ser às 10h\?">2<\/i>/.test(topo)&&/<i class="ag-bd" title="mandou um áudio">1<\/i>/.test(topo));
+  ok('coluna Esperando com o tempo e a cor', /class="ag-t c1"[^>]*>há 3 min</.test(topo)&&/class="ag-t c2"[^>]*>há 50 min</.test(topo));
+  ok('botão de "não precisa responder" na linha', /class="ag-ok"[^>]*onclick="event\.stopPropagation\(\);agVisto\('b'\)"/.test(topo));
+  const s5=h.slice(h.indexOf('<tbody class="rsp-g" data-g="s5"'));
+  ok('quem subiu não aparece duas vezes: sai da etapa dele', s5.indexOf('Régis Almeida')<0&&h.split('Régis Almeida').length===2);
+  ok('quem não escreveu fica onde estava', h.slice(h.indexOf('<tbody class="rsp-g" data-g="s1"')).indexOf('Ana Souza')>0);
+  ok('contagem: master vê todos, e a árvore conta por pipeline', g.agMeus().length===2&&g.agNaLista('L')===2&&g.agNaLista('X')===0);
+  ok('só redesenha quando muda alguma coisa', g.agAssina(g.AG.mapa)===g.agAssina(JSON.parse(JSON.stringify(g.AG.mapa)))&&g.agAssina(g.AG.mapa)!==g.agAssina({b:g.AG.mapa.b}));
+  ok('aviso na tela só pro vendedor do lead, e só de mensagem nova', /if\(era\) Object\.keys\(data\)\.forEach\(id=>\{ const a=data\[id\], b=antes\[id\]; if\(a\.meu&&\(!b\|\|b\.ultima!==a\.ultima\)\) agAvisar\(id,a\); \}\);/.test(HTML));
+  ok('consulta a cada 15 s só com a aba à vista, e ao voltar pra aba', /setInterval\(\(\)=>\{ if\(document\.visibilityState==='visible'\) agBuscar\(\); else agTique\(\); \},15000\)/.test(HTML)&&/addEventListener\('visibilitychange'/.test(HTML));
+  ok('não interrompe quem está digitando na lista', /if\(a&&c\.contains\(a\)&&\/\^\(INPUT\|TEXTAREA\|SELECT\)\$\/\.test\(a\.tagName\)\)\{ AG\.sujo=true; return; \}/.test(HTML));
+  ok('número de leads aguardando na árvore e no cartão do lead', HTML.indexOf('<span class="ag-n" title="Leads aguardando resposta">${agNaLista(l.id)}</span>')>0&&HTML.indexOf("Conversar${typeof agBadge==='function'?agBadge(t):''}</button>")>0);
+}
 grupo('Cartão do lead: SDR vê só a origem, sem o rastreio do anúncio (Bernardo 09/10)');
 {
   const cod=bloco('/* rastreio do anúncio (formulário, campanha','/* devolve true quando é lead de CRM');
@@ -1962,7 +2001,8 @@ grupo('Respostas: funil no topo + etapas sem caixa, a opção 4 (Bernardo 08/10)
   ok('etapa recolhida abre ao ser escolhida', HTML.indexOf("if(k&&TK.fechadas&&TK.fechadas['gr'+k]) TK.fechadas['gr'+k]=false;")>0);
   ok('etapas sem caixa, com a linha vertical entre as colunas (Bernardo 08/10)', HTML.indexOf('.tablewrap:has(> #rspTab){background:transparent;border:0;border-radius:0;box-shadow:none}')>0&&HTML.indexOf('#rspTab .rsp-g > tr:not(.tk-faixa) > *+*{border-left:1px solid var(--line)}')>0);
   ok('saiu o cartão com cantos redondos por etapa', HTML.indexOf('border-top-left-radius:12px}')<0||!/#rspTab \.rsp-ch > th:first-child\{border-left/.test(HTML));
-  ok('busca atualiza o número do funil junto', HTML.indexOf(`const f=document.querySelector('.rsp-fe[data-g="'+g.dataset.g+'"] b'); if(f) f.textContent=c.textContent;`)>0);
+  /* quem está em Aguardando resposta fica no bloco do topo, mas continua contando na etapa dele no funil (11/10) */
+  ok('busca atualiza o número do funil junto', HTML.indexOf(`const f=document.querySelector('.rsp-fe[data-g="'+g.dataset.g+'"] b'); if(f) f.textContent=vis(rs)+vis(ag);`)>0);
 }
 grupo('Respostas: etapa vazia só no funil, selo leve na linha (Bernardo 08/10)');
 {
