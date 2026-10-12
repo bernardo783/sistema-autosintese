@@ -1706,33 +1706,33 @@ grupo('Aguardando resposta: lead que escreveu sobe pro topo, com bolinha, tempo 
   const g=rodar(cod,{TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{},status:S},tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),
     tkStatusDe:()=>S,tkStatus1:(id)=>S.find(s=>s.id===id)||null,esc:(s)=>String(s==null?'':s),campoTexto:(c,v)=>String(v),arquivada:()=>false,
     tkSelo:()=>'<select></select>',tpSvg:()=>'',setTimeout:()=>0,toast:()=>{},currentUser:{role:'master'}},
-    ['tkViewRespostas','AG','agHa','agCor','agTexto','agMeus','agNaLista','agAssina']);
+    ['tkViewRespostas','AGD','agdHa','agdCor','agdTexto','agdMeus','agdNaLista','agdAssina']);
   const ha=(min)=>new Date(Date.now()-min*60000).toISOString();
-  ok('tempo de espera: agora, minutos, horas e dias', g.agHa(ha(0))==='agora'&&g.agHa(ha(4))==='há 4 min'&&g.agHa(ha(125))==='há 2 h'&&g.agHa(ha(3000))==='há 2 d');
-  ok('cor do tempo: cinza até 15 min, amarelo até 1 h, vermelho depois', g.agCor(ha(5))==='c1'&&g.agCor(ha(40))==='c2'&&g.agCor(ha(90))==='c3');
-  ok('sem texto (áudio, imagem) diz o que o lead mandou', g.agTexto({previa:'',tipo:'AudioMessage'})==='mandou um áudio'&&g.agTexto({previa:null,tipo:'ImageMessage'})==='mandou uma imagem'&&g.agTexto({previa:'oi',tipo:'Conversation'})==='oi');
-  g.AG.pronto=true;
+  ok('tempo de espera: agora, minutos, horas e dias', g.agdHa(ha(0))==='agora'&&g.agdHa(ha(4))==='há 4 min'&&g.agdHa(ha(125))==='há 2 h'&&g.agdHa(ha(3000))==='há 2 d');
+  ok('cor do tempo: cinza até 15 min, amarelo até 1 h, vermelho depois', g.agdCor(ha(5))==='c1'&&g.agdCor(ha(40))==='c2'&&g.agdCor(ha(90))==='c3');
+  ok('sem texto (áudio, imagem) diz o que o lead mandou', g.agdTexto({previa:'',tipo:'AudioMessage'})==='mandou um áudio'&&g.agdTexto({previa:null,tipo:'ImageMessage'})==='mandou uma imagem'&&g.agdTexto({previa:'oi',tipo:'Conversation'})==='oi');
+  g.AGD.pronto=true;
   const sem=g.tkViewRespostas();
-  ok('ninguém esperando: sem bloco no topo e sem bolinha', sem.indexOf('rsp-ag')<0&&sem.indexOf('ag-bd')<0);
-  g.AG.mapa={b:{l:'L',n:2,desde:ha(3),ultima:ha(2),previa:'pode ser às 10h?',tipo:'Conversation',meu:true},
+  ok('ninguém esperando: sem bloco no topo e sem bolinha', sem.indexOf('rsp-agd')<0&&sem.indexOf('agd-bd')<0);
+  g.AGD.mapa={b:{l:'L',n:2,desde:ha(3),ultima:ha(2),previa:'pode ser às 10h?',tipo:'Conversation',meu:true},
              c:{l:'L',n:1,desde:ha(50),ultima:ha(50),previa:null,tipo:'AudioMessage',meu:false}};
   const h=g.tkViewRespostas();
-  const topo=h.slice(h.indexOf('<tbody class="rsp-g rsp-ag"'),h.indexOf('</tbody>',h.indexOf('<tbody class="rsp-g rsp-ag"')));
-  ok('bloco Aguardando resposta vem antes de todas as etapas', h.indexOf('<tbody class="rsp-g rsp-ag"')>0&&h.indexOf('<tbody class="rsp-g rsp-ag"')<h.indexOf('<tbody class="rsp-g" data-g="s1"'));
+  const topo=h.slice(h.indexOf('<tbody class="rsp-g rsp-agd"'),h.indexOf('</tbody>',h.indexOf('<tbody class="rsp-g rsp-agd"')));
+  ok('bloco Aguardando resposta vem antes de todas as etapas', h.indexOf('<tbody class="rsp-g rsp-agd"')>0&&h.indexOf('<tbody class="rsp-g rsp-agd"')<h.indexOf('<tbody class="rsp-g" data-g="s1"'));
   ok('entra quem escreveu, de qualquer etapa, e o mais recente primeiro', topo.indexOf('Régis Almeida')>0&&topo.indexOf('Carlos Lima')>topo.indexOf('Régis Almeida')&&topo.indexOf('Ana Souza')<0);
-  ok('a etapa do lead continua à vista na linha', /class="ag-et"[^>]*>PROPOSTA ENVIADA</.test(topo)&&/class="ag-et"[^>]*>NOVO LEAD</.test(topo));
-  ok('bolinha com o número de mensagens no botão do WhatsApp', /<i class="ag-bd" title="pode ser às 10h\?">2<\/i>/.test(topo)&&/<i class="ag-bd" title="mandou um áudio">1<\/i>/.test(topo));
-  ok('coluna Esperando com o tempo e a cor', /class="ag-t c1"[^>]*>há 3 min</.test(topo)&&/class="ag-t c2"[^>]*>há 50 min</.test(topo));
-  ok('botão de "não precisa responder" na linha', /class="ag-ok"[^>]*onclick="event\.stopPropagation\(\);agVisto\('b'\)"/.test(topo));
+  ok('a etapa do lead continua à vista na linha', /class="agd-et"[^>]*>PROPOSTA ENVIADA</.test(topo)&&/class="agd-et"[^>]*>NOVO LEAD</.test(topo));
+  ok('bolinha com o número de mensagens no botão do WhatsApp', /<i class="agd-bd" title="pode ser às 10h\?">2<\/i>/.test(topo)&&/<i class="agd-bd" title="mandou um áudio">1<\/i>/.test(topo));
+  ok('coluna Esperando com o tempo e a cor', /class="agd-t c1"[^>]*>há 3 min</.test(topo)&&/class="agd-t c2"[^>]*>há 50 min</.test(topo));
+  ok('botão de "não precisa responder" na linha', /class="agd-ok"[^>]*onclick="event\.stopPropagation\(\);agdVisto\('b'\)"/.test(topo));
   const s5=h.slice(h.indexOf('<tbody class="rsp-g" data-g="s5"'));
   ok('quem subiu não aparece duas vezes: sai da etapa dele', s5.indexOf('Régis Almeida')<0&&h.split('Régis Almeida').length===2);
   ok('quem não escreveu fica onde estava', h.slice(h.indexOf('<tbody class="rsp-g" data-g="s1"')).indexOf('Ana Souza')>0);
-  ok('contagem: master vê todos, e a árvore conta por pipeline', g.agMeus().length===2&&g.agNaLista('L')===2&&g.agNaLista('X')===0);
-  ok('só redesenha quando muda alguma coisa', g.agAssina(g.AG.mapa)===g.agAssina(JSON.parse(JSON.stringify(g.AG.mapa)))&&g.agAssina(g.AG.mapa)!==g.agAssina({b:g.AG.mapa.b}));
-  ok('aviso na tela só pro vendedor do lead, e só de mensagem nova', /if\(era\) Object\.keys\(data\)\.forEach\(id=>\{ const a=data\[id\], b=antes\[id\]; if\(a\.meu&&\(!b\|\|b\.ultima!==a\.ultima\)\) agAvisar\(id,a\); \}\);/.test(HTML));
-  ok('consulta a cada 15 s só com a aba à vista, e ao voltar pra aba', /setInterval\(\(\)=>\{ if\(document\.visibilityState==='visible'\) agBuscar\(\); else agTique\(\); \},15000\)/.test(HTML)&&/addEventListener\('visibilitychange'/.test(HTML));
-  ok('não interrompe quem está digitando na lista', /if\(a&&c\.contains\(a\)&&\/\^\(INPUT\|TEXTAREA\|SELECT\)\$\/\.test\(a\.tagName\)\)\{ AG\.sujo=true; return; \}/.test(HTML));
-  ok('número de leads aguardando na árvore e no cartão do lead', HTML.indexOf('<span class="ag-n" title="Leads aguardando resposta">${agNaLista(l.id)}</span>')>0&&HTML.indexOf("Conversar${typeof agBadge==='function'?agBadge(t):''}</button>")>0);
+  ok('contagem: master vê todos, e a árvore conta por pipeline', g.agdMeus().length===2&&g.agdNaLista('L')===2&&g.agdNaLista('X')===0);
+  ok('só redesenha quando muda alguma coisa', g.agdAssina(g.AGD.mapa)===g.agdAssina(JSON.parse(JSON.stringify(g.AGD.mapa)))&&g.agdAssina(g.AGD.mapa)!==g.agdAssina({b:g.AGD.mapa.b}));
+  ok('aviso na tela só pro vendedor do lead, e só de mensagem nova', /if\(era\) Object\.keys\(data\)\.forEach\(id=>\{ const a=data\[id\], b=antes\[id\]; if\(a\.meu&&\(!b\|\|b\.ultima!==a\.ultima\)\) agdAvisar\(id,a\); \}\);/.test(HTML));
+  ok('consulta a cada 15 s só com a aba à vista, e ao voltar pra aba', /setInterval\(\(\)=>\{ if\(document\.visibilityState==='visible'\) agdBuscar\(\); else agdTique\(\); \},15000\)/.test(HTML)&&/addEventListener\('visibilitychange'/.test(HTML));
+  ok('não interrompe quem está digitando na lista', /if\(a&&c\.contains\(a\)&&\/\^\(INPUT\|TEXTAREA\|SELECT\)\$\/\.test\(a\.tagName\)\)\{ AGD\.sujo=true; return; \}/.test(HTML));
+  ok('número de leads aguardando na árvore e no cartão do lead', HTML.indexOf('<span class="agd-n" title="Leads aguardando resposta">${agdNaLista(l.id)}</span>')>0&&HTML.indexOf("Conversar${typeof agdBadge==='function'?agdBadge(t):''}</button>")>0);
 }
 grupo('Cartão do lead: SDR vê só a origem, sem o rastreio do anúncio (Bernardo 09/10)');
 {
