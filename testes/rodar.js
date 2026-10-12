@@ -2032,7 +2032,7 @@ grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/1
   const ctx=(u)=>({CRM_FORMS:[{nome:'Sofás',lista:'L'}],AGD:{mapa:{},pronto:true},agdBuscar:()=>{},TK:{listaSel:'L',tarefas:T,campos:C,colsOff:{},fechadas:{},filtro:F,listas:[],equipe:[{id:'k',nome:NM.k},{id:'l',nome:NM.l}]},
     tkCamposDe:(l)=>C.filter(k=>k.lista_id===l),tkStatusDe:()=>ST,tkStatus1:(id)=>ST.find(x=>x.id===id),esc:(x)=>String(x==null?'':x),campoTexto:(c,v)=>String(v),arquivada:()=>false,tkSelo:()=>'',
     tpSvg:()=>'',setTimeout:()=>0,currentUser:u,corTexto:()=>'#fff',tkNomeUser:(id)=>NM[id]||'',avatar:(uid,n,cls)=>`<span class="av ${cls||''}" data-u="${uid}">${(n||'?')[0]}</span>`});
-  const g=rodar(cod,ctx({id:'m',role:'master'}),['tkViewRespostas','rspSdrMenuHtml','rspSdrBtn','rspLinhas','rspSdr']);
+  const g=rodar(cod,ctx({id:'m',role:'master'}),['tkViewRespostas','rspSdrMenuHtml','rspSdrBtn','rspLinhas','rspSdr','RSP']);
   let h=g.tkViewRespostas();
   ok('cada lead tem a bolinha do SDR antes do nome', /title="SDR: Kennedy Lima \(clique pra trocar\)"[^>]*><span class="av " data-u="k">K<\/span><\/span><button type="button" onclick="tkAbrir\('a'\)"/.test(h));
   ok('lead sem SDR mostra o bonequinho tracejado', /title="Sem SDR \(clique pra trocar\)"[^>]*><span class="av rsp-sdr0"><svg/.test(h));
@@ -2040,13 +2040,19 @@ grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/1
   ok('o filtro de SDR fica logo depois do período, na barra dos leads', /id="rspPerBtn"[\s\S]{0,900}<\/button><button type="button" class="rsp-per rsp-sdrb" id="rspSdrBtn"/.test(h));
   const m=g.rspSdrMenuHtml();
   ok('menu: Todos, cada SDR com quantos leads tem, e Sem SDR', />Todos<\/span><i class="rsp-sdrn">3</.test(m)&&/>Kennedy Lima<\/span><i class="rsp-sdrn">1</.test(m)&&/>Luana<\/span><i class="rsp-sdrn">1</.test(m)&&/>Sem SDR<\/span><i class="rsp-sdrn">1</.test(m));
-  F.resps=['k']; h=g.tkViewRespostas();
+  /* master abre em Todos, mesmo com um filtro Responsável antigo guardado de outra lista (Bernardo 12/10) */
+  F.resps=['k'];
+  ok('master abre em Todos: filtro Responsável antigo de outra lista não vale no CRM', g.rspLinhas().length===3&&/class="rsp-per rsp-sdrb" id="rspSdrBtn"[\s\S]{0,400}<span>SDR<\/span>/.test(g.rspSdrBtn()));
+  F.resps=[];
+  g.RSP.sdr='k'; h=g.tkViewRespostas();
   ok('escolher um SDR mostra só os leads dele e o botão fica com o nome', g.rspLinhas().map(t=>t.id).join()==='a'&&/class="rsp-per rsp-sdrb on"[\s\S]{0,200}<span>Kennedy<\/span>/.test(g.rspSdrBtn()));
   ok('a contagem do menu não some quando o filtro está ligado', />Luana<\/span><i class="rsp-sdrn">1</.test(g.rspSdrMenuHtml()));
-  F.resps=['(sem)']; ok('"Sem SDR" mostra só quem está sem responsável', g.rspLinhas().map(t=>t.id).join()==='c');
-  /* o SDR não tem o botão: um filtro antigo dele (do botão Responsável de outra lista) não pode esconder lead */
-  F.resps=['l'];
-  const g2=rodar(cod,ctx({id:'k',role:'colaborador',papel_crm:'sdr'}),['tkViewRespostas','rspSdrBtn','rspLinhas']);
+  g.RSP.sdr='(sem)'; ok('"Sem SDR" mostra só quem está sem responsável', g.rspLinhas().map(t=>t.id).join()==='c');
+  g.RSP.sdr='';
+  ok('a escolha fica só na memória da página (todo acesso abre em Todos)', HTML.indexOf("window.rspSdrEscolhe=(k)=>{ RSP.sdr=k||''; tkDesenhar($('#content')); };")>0);
+  /* o SDR não tem o botão e nada na tela filtra a lista dele (quem limita é o banco) */
+  const g2=rodar(cod,ctx({id:'k',role:'colaborador',papel_crm:'sdr'}),['tkViewRespostas','rspSdrBtn','rspLinhas','RSP']);
+  g2.RSP.sdr='l';
   const h2=g2.tkViewRespostas();
   ok('SDR não vê o filtro, não troca pela bolinha e a lista dele não é filtrada', g2.rspSdrBtn()===''&&g2.rspLinhas().length===3&&h2.indexOf('tkQaResp(')<0&&/class="rsp-sdr" title="SDR: Kennedy Lima"/.test(h2));
   F.resps=[];
