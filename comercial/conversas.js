@@ -421,7 +421,7 @@
     op=op||{}; const u=cu();
     if(!u||!(podeVer()||(u.papel_crm&&op.tarefa))){ toast('As conversas do WhatsApp são visíveis só para master, gestor e o vendedor do lead.'); return; }
     if(LD.rec) waLdRecCancelar();
-    Object.assign(LD,{fone:String(fone||''),nome:nome||'',tarefa:op.tarefa||'',chatid:'',por:'',perfil:'',fonePor:'',conectado:true,msgs:[],agendadas:[],
+    Object.assign(LD,{fone:String(fone||''),foneReal:'',nome:nome||'',tarefa:op.tarefa||'',chatid:'',por:'',perfil:'',fonePor:'',conectado:true,msgs:[],agendadas:[],
       vendedores:[],resp:[],nums:[],admin:false,eu:'',carregando:true,erro:'',enviando:false,arq:null,pop:'',porFixo:false});
     estilo(); waLdModal(); waLdPinta();
     await ldCarregar();
@@ -429,9 +429,22 @@
     LD.iv=setInterval(()=>{ if(!$('#waLdOv')){ clearInterval(LD.iv); return; }
       if(document.visibilityState==='visible'&&!LD.enviando&&!LD.rec&&!LD.pop) ldCarregar(true); },25000);
   };
+  /* O WhatsApp guarda muito número antigo SEM o nono dígito (55 62 99295-5519 fica 556292955519).
+     A conversa existia, mas procurando só com o 9 o painel dizia "ainda não tem conversa" mesmo
+     com o disparo enviado (Bernardo 11/10). Devolve o mesmo número do outro jeito. */
+  const foneOutro=(f)=>{ let d=String(f||'').replace(/\D/g,''); if(!d) return ''; if(d.length<=11) d='55'+d;
+    if(d.slice(0,2)!=='55') return '';
+    if(d.length===13&&d[4]==='9') return d.slice(0,4)+d.slice(5);
+    if(d.length===12) return d.slice(0,4)+'9'+d.slice(4);
+    return ''; };
+  window.waFoneOutro=foneOutro;
   async function ldCarregar(silencioso){
     try{
-      const d=await api('lead',{fone:LD.fone,tarefa:LD.tarefa||undefined});
+      let d=await api('lead',{fone:LD.foneReal||LD.fone,tarefa:LD.tarefa||undefined});
+      /* nada com o número como veio: tenta do outro jeito e, achando, fica nele enquanto o painel estiver aberto */
+      if(!LD.foneReal&&!(d.mensagens||[]).length){ const o=foneOutro(LD.fone);
+        if(o){ const d2=await api('lead',{fone:o,tarefa:LD.tarefa||undefined}).catch(()=>null);
+          if(d2&&(d2.mensagens||[]).length){ d=d2; LD.foneReal=o; } } }
       LD.msgs=d.mensagens||[]; LD.chatid=d.chatid||''; LD.agendadas=d.agendadas||[]; LD.vendedores=d.vendedores||[];
       LD.resp=d.responsaveis||[]; LD.nums=d.nums||[]; LD.admin=!!d.admin; LD.eu=d.eu||''; LD.erro='';
       /* CRM de formulario (Sofás): só José, Bernardo, Kennedy e Luana recebem lead (Bernardo 08/10), a mesma regra do responsável */
