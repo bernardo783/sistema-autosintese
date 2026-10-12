@@ -3582,24 +3582,43 @@
   .eq-sw.on span{left:18px;background:#fff}
   .eq-sw:disabled{cursor:not-allowed;opacity:.6}
   .eq-hint{margin:12px 0 0;color:var(--fraco);font-size:12px;line-height:1.5}
-  /* Equipe › Meta (Bernardo 12/10) */
-  .mt-box{margin-top:12px}
-  .mt-st{flex:none;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
-  .mt-st.ok{color:var(--ok)} .mt-st.warn{color:var(--warn)} .mt-st.bad{color:var(--danger)}
-  .mt-l{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
-  .mt-l>span,.mt-l>label{width:130px;flex:none;color:var(--muted);font-size:13px}
-  .mt-px{font-variant-numeric:tabular-nums;font-size:13.5px;margin-right:auto}
-  .mt-in{flex:1;min-width:180px;margin-left:0;border-color:var(--line);background:var(--panel2)}
-  .mt-h{margin:0 0 6px}
-  .mt-evs{display:grid}
-  .mt-ev{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.3fr) 96px 110px 92px;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
-  .mt-ev:first-child{border-top:0}
-  .mt-ev b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .mt-ev>span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .mt-q{font-variant-numeric:tabular-nums}
-  .mt-tok{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px 11px;font:inherit;font-size:13.5px}
-  .mt-tok:focus{outline:none;border-color:var(--brand2)}
-  @media (max-width:720px){ .mt-l>span,.mt-l>label{width:100%} .mt-ev{grid-template-columns:1fr auto;gap:2px 10px} .mt-ev i{display:none} }
+  /* Anúncios › Integrações (Bernardo 12/10): cartões no jeito da tela "Integrar" do Yay Forms */
+  .ig-abas{margin:0 0 16px}
+  .ig{display:grid;gap:12px;max-width:1040px}
+  .ig-top{color:var(--muted);font-size:13px;text-align:right}
+  .ig-card{display:flex;align-items:center;gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px}
+  .ig-logo{width:52px;height:52px;flex:none;border-radius:14px;display:grid;place-items:center;background:var(--panel2);color:var(--info)}
+  .ig-logo svg{width:30px;height:30px}
+  .ig-logo.wa{color:var(--ok)} .ig-logo.yay{color:var(--brand2);font-weight:900;font-size:22px}
+  .ig-tx{flex:1;min-width:0}
+  .ig-tx h4{margin:0;font-size:12.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ig-tx p{margin:6px 0 0;color:var(--muted);font-size:13.5px;line-height:1.5}
+  .ig-tag{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:2px 7px;background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted);white-space:nowrap}
+  .ig-tag.ok{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}
+  .ig-tag.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+  .ig-ac{flex:none}
+  .ig-evh{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--txt);margin:10px 0 0}
+  .ig-evs{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 18px}
+  .ig-ev{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.3fr) 96px 110px 92px;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
+  .ig-ev:first-child{border-top:0}
+  .ig-ev b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ig-ev>span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ig-q{font-variant-numeric:tabular-nums}
+  .ig-st{font-size:12px;font-weight:700;color:var(--muted)} .ig-st.ok{color:var(--ok)} .ig-st.warn{color:var(--warn)} .ig-st.bad{color:var(--danger)}
+  .ig-modal{width:min(620px,100%);max-height:88vh;overflow:auto;padding:22px 24px;gap:12px}
+  .ig-modal .cn-h strong{font-size:12.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+  .ig-passo{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+  .ig-passo i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--txt);color:var(--bg);font-style:normal;font-size:11.5px;letter-spacing:0;flex:none}
+  .ig-passo::after{content:'';flex:1;height:1px;background:var(--line)}
+  .ig-px{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .ig-px svg{width:28px;height:28px;color:var(--info);flex:none}
+  .ig-px div{flex:1;min-width:0;display:grid} .ig-px b{font-size:14px} .ig-px div span{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+  .ig-in{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px 11px;font:inherit;font-size:13.5px}
+  .ig-in:focus{outline:none;border-color:var(--brand2)}
+  .ig-conv{display:grid;gap:8px;background:var(--panel2);border-radius:10px;padding:12px 14px}
+  .ig-conv div{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+  .ig-conv code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:700;color:var(--txt)}
+  @media (max-width:720px){ .ig-card{flex-wrap:wrap;padding:16px} .ig-ac{width:100%} .ig-ac .btn{width:100%} .ig-ev{grid-template-columns:1fr auto;gap:2px 10px} .ig-ev i{display:none} }
   @media (max-width:720px){
     .eq-disp{flex-wrap:wrap} .eq-disp .tx{flex:1 1 calc(100% - 60px)} .eq-disp .lado{width:100%;justify-content:flex-end}
     .eq-res{gap:8px} .eq-res>div{padding:10px} .eq-res b{font-size:15px} .eq-lst{padding:4px 12px 12px}
@@ -11151,8 +11170,108 @@ function renderCrmAnuncios(c){
   const cab=`<div class="page-head tp-head"><div class="tp-tit">${tkCrumb()}<div class="tp-linha"><h2>Anúncios</h2></div></div></div>`;
   if(!CRM_ANUNCIOS[TK.listaSel]){ c.innerHTML=cab+'<div class="empty">Esta lista não está ligada a nenhum CRM.</div>'; return; }
   if(!anuPode(anuLid())){ c.innerHTML=cab+'<div class="empty">Anúncios é do master e do time deste CRM.</div>'; return; }
-  c.innerHTML=cab+anuView();
+  /* Integrações é uma aba aqui dentro (Bernardo 12/10); só master vê e configura */
+  const ig=igPode(), sec=(ig&&ANU.sec==='integ')?'integ':'ads';
+  const abas=ig?`<div class="fin-tabs ig-abas">${[['ads','Anúncios'],['integ','Integrações']].map(([k,r])=>`<button class="ftab${sec===k?' active':''}" onclick="ANU.sec='${k}';anuPintar()">${r}</button>`).join('')}</div>`:'';
+  c.innerHTML=cab+abas+(sec==='integ'?igView():anuView());
 }
+/* ======================= ANÚNCIOS › INTEGRAÇÕES (Bernardo 12/10) =======================
+   "Essa aba da integração do pixel e da API de conversão deveria ficar na aba Anúncios mesmo, numa
+   aba chamada Integrações, igual no Yay Forms. Podia ter esse mesmo design." (com o vídeo da tela
+   Integrar do Yay: um cartão por integração, com logo, nome, selo e o botão Configurar, que abre uma
+   janela em passos numerados.) A do Meta é a que se configura: o banco enfileira ReuniaoAgendada e
+   VendaFechada (crm_meta_fila) e a edge crm-meta manda pela API de Conversões. O token vai da janela
+   direto pro cofre: a função confere no Meta, guarda e nunca devolve. Yay Forms e WhatsApp aparecem
+   só pra mostrar de onde o lead vem e por onde sai. Só master vê esta aba. */
+const IG={forms:null,erro:'',lendo:false};
+const IG_META='<svg viewBox="0 0 36 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c0-6 3-11 7-11 6 0 10 16 16 16 4 0 7-3 7-8s-3-8-7-8c-6 0-10 16-16 16-4 0-7-2-7-5z"/></svg>';
+const igPode=()=>anuMaster();
+const igForm=()=>{ const f=CRM_FORMS.find(x=>x.lista===anuLid()); return f?f.form:''; };
+async function igApi(acao,corpo){
+  if(!SESSION||!SESSION.access_token) throw new Error('Sessão expirada: entre de novo.');
+  const r=await fetch(SUPA_URL+'/functions/v1/crm-meta/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+SESSION.access_token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
+  const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
+  if(!d.ok) throw new Error(d.erro||('erro '+r.status));
+  return d;
+}
+function igLer(forca){
+  if(IG.lendo||(IG.forms&&!forca)) return; IG.lendo=true;
+  igApi('status').then(d=>{ IG.forms=d.forms||[]; IG.erro=''; }).catch(e=>{ IG.erro=e.message||'falha'; if(!IG.forms) IG.forms=[]; })
+    .finally(()=>{ IG.lendo=false; if(typeof currentView!=='undefined'&&currentView==='crm-anuncios'&&ANU.sec==='integ') renderCrmAnuncios(); });
+}
+const igMeta=()=>(IG.forms||[]).find(f=>f.form_id===igForm())||null;
+/* o estado da ligação com o Meta em uma palavra */
+const igMetaSt=(f)=>(!f||!f.pixel_id)?['Sem pixel','warn']:!f.tem_token?['Falta o token','warn']:f.teste?['Em teste','warn']:['Ativo','ok'];
+const igQuando=(iso)=>{ const d=new Date(iso); return isNaN(d)?'':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+const igReais=(n)=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const IG_ST={pendente:['na fila','warn'],enviando:['enviando','warn'],enviado:['enviado','ok'],erro:['erro','bad'],cancelado:['cancelado',''],expirado:['expirou','bad']};
+const IG_EV={ReuniaoAgendada:'Reunião agendada',VendaFechada:'Venda fechada'};
+const igCard=(logo,cls,nome,tag,desc,acao)=>`<div class="ig-card"><div class="ig-logo${cls?' '+cls:''}">${logo}</div>
+    <div class="ig-tx"><h4>${nome}${tag?`<span class="ig-tag ${tag[1]}">${tag[0]}</span>`:''}</h4><p>${desc}</p></div><div class="ig-ac">${acao||''}</div></div>`;
+function igView(){
+  if(!IG.forms){ igLer(); return '<div class="empty">Carregando as integrações…</div>'; }
+  const f=igMeta(), evs=(f&&f.eventos)||[];
+  /* Yay: ativo quando chegou lead do formulário nos últimos 7 dias */
+  const lid=anuLid(), semana=Date.now()-7*86400000;
+  const chegou=(TK.tarefas||[]).some(t=>t.lista_id===lid&&new Date(t.criado_em).getTime()>semana);
+  return `<div class="ig">
+    ${IG.erro?`<div class="crm-hint" style="color:var(--danger);margin:0">Não consegui ler as integrações: ${esc(IG.erro)}</div>`:''}
+    <div class="ig-top">3 integrações neste CRM</div>
+    ${igCard(IG_META,'','Meta / Facebook Pixel · API de Conversões',igMetaSt(f),'Devolve pro Meta a reunião agendada e a venda de cada lead, com o cash collect, pra campanha otimizar por reunião e por venda, e não só por lead.',
+      f&&f.pixel_id?`<button class="btn small" onclick="igMetaAbrir()">Configurar</button>`:'')}
+    ${igCard('Y','yay','Yay Forms',chegou?['Ativo','ok']:null,'Quem preenche o formulário vira lead aqui na hora, já com o SDR da vez como responsável.','')}
+    ${igCard(typeof RSP_WA_SVG!=='undefined'?RSP_WA_SVG:'','wa','WhatsApp do time',null,'A primeira mensagem sai sozinha pelo número do SDR e a conversa abre dentro do sistema. Os números e o rodízio ficam na lista Equipe deste CRM.','')}
+    <div class="ig-evh">Últimos eventos enviados ao Meta</div>
+    ${evs.length?`<div class="ig-evs">${evs.map(e=>{ const x=IG_ST[e.status]||[e.status,''];
+      return `<div class="ig-ev"><b>${esc(e.lead||'(lead)')}</b><span>${esc(IG_EV[e.evento]||e.evento)}${e.evento==='VendaFechada'&&e.valor!=null?' · '+esc(igReais(e.valor)):''}</span>
+        <span class="ig-q">${esc(igQuando(e.enviado_em||e.ocorreu_em))}</span>
+        <span class="ig-st ${x[1]}" title="${esc(e.erro||'')}">${x[0]}${e.teste?' (teste)':''}</span>
+        ${(e.status==='erro'||e.status==='expirado')?`<button type="button" class="eq-tst" onclick="igReenviar('${esc(e.id)}')" title="${esc(e.erro||'')}">Reenviar</button>`:'<i></i>'}</div>`; }).join('')}</div>`
+      :'<div class="hint" style="margin:0">Nenhum evento ainda. O primeiro aparece quando um lead entrar em Reunião Marcada ou em Ganhou.</div>'}
+  </div>`;
+}
+/* janela do Meta, em passos como a do Yay: 1 pixel e token, 2 as conversões, 3 teste */
+function igMetaHtml(f){
+  return `<div class="cn-caixa ig-modal" role="dialog" aria-label="Integração de Meta, API de Conversões">
+      <div class="cn-h"><strong>Integração de Meta · API de Conversões</strong><button class="tkp-x" type="button" data-x aria-label="Cancelar">✕</button></div>
+      <div class="ig-passo"><i>1</i>Conecte o pixel</div>
+      <div class="ig-px">${IG_META}<div><b>${esc(f.nome||'CRM')}</b><span>${esc(f.pixel_id)}</span></div><span class="ig-tag ${f.tem_token?'ok':'warn'}">${f.tem_token?'Token guardado':'Falta o token'}</span></div>
+      <label for="igTok" class="cn-lbl">Token da API de Conversões</label>
+      <input id="igTok" type="password" class="ig-in" autocomplete="off" spellcheck="false" placeholder="${f.tem_token?'deixe vazio pra manter o token que já está guardado':'cole aqui o token gerado no Gerenciador de Eventos'}">
+      <div class="fe-dica">No Meta: Gerenciador de Eventos › este pixel › Configurações › API de Conversões › Gerar token de acesso. O token é conferido no Meta, vai pro cofre do sistema e não aparece mais em tela nenhuma.</div>
+      <div class="ig-passo"><i>2</i>Conversões personalizadas</div>
+      <div class="ig-conv"><div><code>ReuniaoAgendada</code>quando o lead entra em Reunião Marcada</div>
+        <div><code>VendaFechada</code>quando o lead entra em Ganhou, com o cash collect em reais</div></div>
+      <div class="fe-dica">Cada evento sai 10 minutos depois da mudança de etapa (se o lead voltar antes disso, não sai). No Gerenciador de Eventos, crie uma Conversão Personalizada pra cada um e use nas campanhas.</div>
+      <div class="ig-passo"><i>3</i>Teste</div>
+      <label for="igTeste" class="cn-lbl">Código de evento de teste <small>(opcional)</small></label>
+      <input id="igTeste" class="ig-in" autocomplete="off" placeholder="Ex.: TEST12345" value="${esc(f.teste||'')}">
+      <div class="fe-dica">Com o código, os eventos vão só pra aba "Eventos de teste" do Meta e não contam como conversão. <b>Não esqueça de limpar este campo pra entrar em produção.</b></div>
+      <div class="cn-aviso" id="feAviso"></div>
+      <div class="cn-pe"><button class="btn ghost small" type="button" data-x>Cancelar</button><button class="btn small" type="button" id="feOk">Salvar integração</button></div></div>`;
+}
+window.igMetaAbrir=()=>{
+  const f=igMeta(); if(!f||!f.pixel_id) return;
+  const o=document.createElement('div'); o.className='cn-fundo fe-fundo';
+  o.innerHTML=igMetaHtml(f);
+  document.body.appendChild(o);
+  const fim=()=>{ o.remove(); document.removeEventListener('keydown',tecla,true); };
+  const tecla=(e)=>{ if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); fim(); } };
+  document.addEventListener('keydown',tecla,true);
+  o.querySelectorAll('[data-x]').forEach(b=>b.onclick=fim);
+  o.onmousedown=(e)=>{ if(e.target===o) fim(); };
+  const bt=o.querySelector('#feOk'), inp=o.querySelector('#igTok'), tst=o.querySelector('#igTeste'), av=o.querySelector('#feAviso');
+  bt.onclick=async ()=>{ const tk=String(inp.value||'').trim(), cod=String(tst.value||'').trim();
+    if(!tk&&!f.tem_token){ av.textContent='Cole o token da API de Conversões.'; inp.focus(); return; }
+    bt.disabled=true; bt.textContent=tk?'Conferindo no Meta…':'Salvando…';
+    try{
+      if(tk){ await igApi('token',{form_id:f.form_id,token:tk}); inp.value=''; }
+      if(cod!==String(f.teste||'')) await igApi('teste',{form_id:f.form_id,codigo:cod});
+      fim(); toast(cod?'Integração salva em modo teste: os eventos vão só pra aba de teste do Meta.':'Integração salva: reunião e venda já voltam pro Meta por este pixel.'); igLer(true);
+    }catch(e){ av.textContent=e.message||'não deu certo'; bt.disabled=false; bt.textContent='Salvar integração'; } };
+  setTimeout(()=>(f.tem_token?tst:inp).focus(),0);
+};
+window.igReenviar=async (id)=>{ try{ await igApi('reenviar',{id}); toast('Voltou pra fila: sai no próximo minuto.'); igLer(true); }catch(e){ toast('Não reenviou: '+(e.message||'erro')); } };
 const ANU={cfg:{},cfgLido:{},bms:null,bmContas:{},dados:{},erro:{},carregando:{},per:'last_30d',st:'ativos',q:'',pop:'',popQ:'',ad:null,aba:'leads'};
 const ANU_PER=[['last_7d','Últimos 7 dias',7],['last_30d','Últimos 30 dias',30],['last_90d','Últimos 90 dias',90],['this_month','Este mês'],['last_month','Mês passado'],['maximum','Desde o início']];
 const ANU_STS=[['ativos','Só ativos'],['todos','Ativos e pausados'],['pausados','Só pausados']];
@@ -18396,89 +18515,8 @@ function eqDesenhar(c){
     ${dentro.map(linha).join('')||'<div class="crm-vazio">Ninguém no rodízio.</div>'}
     ${fora.length?'<div class="eq-sub">Fora do rodízio</div>'+fora.map(linha).join(''):''}
     <p class="eq-hint">${cfg.reserva?`Se ninguém do rodízio estiver conectado, a mensagem sai pelo número de <b>${esc(eqNomeAp(cfg.reserva))}</b> e o lead fica com ele (a fila não anda).`:'Se ninguém do rodízio estiver conectado, o card entra sem responsável e a coluna Mensagem automática mostra <b>Sem vendedor conectado</b>.'} ${pode?'':'Só master e gestor do CRM mudam o rodízio. '}${quem?`Última mudança: ${esc(quem)}, ${esc(eqQuando(cfg.atualizado_em))}.`:''}</p>
-  </div><div id="mtBox"></div>`;
-  if(typeof mtMontar==='function') mtMontar();
-}
-/* ---------- CRM › Equipe › Meta: reunião e venda viram conversão (Bernardo 12/10) ----------
-   "Queria que esse dado de venda e de reunião agendada fosse devolvido pro Meta como um evento de
-   conversão personalizado." Quem enfileira é o banco (crm_meta_fila) e quem manda é a edge crm-meta.
-   Aqui o master vê, por CRM: o pixel, se o token da API de Conversões já foi colado, o código de
-   "Eventos de teste" e os últimos eventos. O token vai da caixinha direto pro cofre: a função confere
-   no Meta, guarda e nunca devolve. Só master enxerga este bloco. */
-const MT={forms:null,erro:''};
-const mtEhMaster=()=>!!(typeof currentUser!=='undefined'&&currentUser&&currentUser.role==='master');
-async function mtApi(acao,corpo){
-  if(!SESSION||!SESSION.access_token) throw new Error('Sessão expirada: entre de novo.');
-  const r=await fetch(SUPA_URL+'/functions/v1/crm-meta/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+SESSION.access_token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
-  const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
-  if(!d.ok) throw new Error(d.erro||('erro '+r.status));
-  return d;
-}
-const mtQuando=(iso)=>{ const d=new Date(iso); return isNaN(d)?'':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
-const MT_ST={pendente:['na fila','warn'],enviando:['enviando','warn'],enviado:['enviado','ok'],erro:['erro','bad'],cancelado:['cancelado',''],expirado:['expirou','bad']};
-const MT_EV={ReuniaoAgendada:'Reunião agendada',VendaFechada:'Venda fechada'};
-const mtReais=(n)=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-function mtHtml(f){
-  if(!f) return '';
-  const st=!f.pixel_id?['Sem pixel','warn']:f.tem_token?['Ligado','ok']:['Falta o token','warn'];
-  const evs=f.eventos||[];
-  return `<div class="eq-lst mt-box">
-    <div class="eq-lh"><div><h4>Meta: reunião e venda viram conversão</h4>
-      <p>Lead em Reunião Marcada manda <b>ReuniaoAgendada</b>; em Ganhou manda <b>VendaFechada</b> com o cash collect. Sai 10 minutos depois da mudança de etapa.</p></div>
-      <span class="mt-st ${st[1]}">${st[0]}</span></div>
-    <div class="mt-l"><span>Pixel</span><b class="mt-px">${esc(f.pixel_id||'-')}</b>
-      ${f.pixel_id?`<button class="btn secondary small" onclick="mtToken()">${f.tem_token?'Trocar o token':'Colar o token'}</button>`:''}</div>
-    ${f.pixel_id?`<div class="mt-l"><label for="mtTeste">Eventos de teste</label><input class="cl-in mt-in" id="mtTeste" placeholder="código do Gerenciador de Eventos, ex.: TEST12345" value="${esc(f.teste||'')}" autocomplete="off">
-      <button class="btn secondary small" onclick="mtTesteSalvar()">Salvar</button></div>
-    <p class="eq-hint mt-h">${f.teste?'<b>Modo teste ligado:</b> os eventos vão só pra aba "Eventos de teste" do Meta e não contam como conversão. Apague o código e salve pra valer de verdade.':'Com um código aqui, os eventos vão só pra aba "Eventos de teste" do Meta, sem contar como conversão. Vazio = vale de verdade.'}</p>`:''}
-    <div class="eq-sub">Últimos eventos</div>
-    ${evs.length?`<div class="mt-evs">${evs.map(e=>{ const x=MT_ST[e.status]||[e.status,''];
-      return `<div class="mt-ev"><b>${esc(e.lead||'(lead)')}</b><span>${esc(MT_EV[e.evento]||e.evento)}${e.evento==='VendaFechada'&&e.valor!=null?' · '+esc(mtReais(e.valor)):''}</span>
-        <span class="mt-q">${esc(mtQuando(e.enviado_em||e.ocorreu_em))}</span>
-        <span class="mt-st ${x[1]}" title="${esc(e.erro||'')}">${x[0]}${e.teste?' (teste)':''}</span>
-        ${(e.status==='erro'||e.status==='expirado')?`<button type="button" class="eq-tst" onclick="mtReenviar('${esc(e.id)}')" title="${esc(e.erro||'')}">Reenviar</button>`:'<i></i>'}</div>`; }).join('')}</div>`
-      :'<div class="crm-vazio">Nenhum evento ainda. O primeiro aparece quando um lead entrar em Reunião Marcada ou em Ganhou.</div>'}
   </div>`;
 }
-async function mtMontar(recarrega){
-  if(!document.getElementById('mtBox')||!mtEhMaster()) return;
-  const form=eqForm();
-  if(!MT.forms||recarrega){ try{ MT.forms=(await mtApi('status')).forms; MT.erro=''; }catch(e){ MT.erro=e.message||'falha'; } }
-  const el=document.getElementById('mtBox'); if(!el||form!==eqForm()) return;
-  el.innerHTML=MT.erro?`<div class="crm-hint" style="color:var(--danger);margin-top:12px">Meta: ${esc(MT.erro)}</div>`:mtHtml((MT.forms||[]).find(f=>f.form_id===form));
-}
-/* caixinha do token: campo de senha, vai direto pra função e some da tela */
-window.mtToken=()=>{
-  const f=(MT.forms||[]).find(x=>x.form_id===eqForm()); if(!f||!f.pixel_id) return;
-  const o=document.createElement('div'); o.className='cn-fundo fe-fundo';
-  o.innerHTML=`<div class="cn-caixa fe-caixa" role="dialog" aria-label="Token da API de Conversões">
-      <div class="cn-h"><strong>Token da API de Conversões</strong><button class="tkp-x" type="button" data-x aria-label="Cancelar">✕</button></div>
-      <div class="cn-tit">Pixel ${esc(f.pixel_id)} · ${esc(f.nome||'')}</div>
-      <label for="mtTok" class="cn-lbl">Cole o token</label>
-      <input id="mtTok" type="password" class="mt-tok" autocomplete="off" spellcheck="false" placeholder="token gerado no Gerenciador de Eventos">
-      <div class="fe-dica">No Meta: Gerenciador de Eventos › este pixel › Configurações › API de Conversões › Gerar token de acesso. O token é conferido no Meta, guardado no cofre do sistema e não aparece mais em tela nenhuma.</div>
-      <div class="cn-aviso" id="feAviso"></div>
-      <div class="cn-pe"><button class="btn ghost small" type="button" data-x>Cancelar</button><button class="btn small" type="button" id="feOk">Conferir e guardar</button></div></div>`;
-  document.body.appendChild(o);
-  const fim=()=>{ o.remove(); document.removeEventListener('keydown',tecla,true); };
-  const tecla=(e)=>{ if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); fim(); } };
-  document.addEventListener('keydown',tecla,true);
-  o.querySelectorAll('[data-x]').forEach(b=>b.onclick=fim);
-  o.onmousedown=(e)=>{ if(e.target===o) fim(); };
-  const bt=o.querySelector('#feOk'), inp=o.querySelector('#mtTok');
-  bt.onclick=async ()=>{ const tk=String(inp.value||'').trim();
-    if(!tk){ o.querySelector('#feAviso').textContent='Cole o token.'; inp.focus(); return; }
-    bt.disabled=true; bt.textContent='Conferindo no Meta…';
-    try{ const d=await mtApi('token',{form_id:f.form_id,token:tk}); inp.value=''; fim();
-      toast('Token guardado'+(d.nome_pixel?' (pixel "'+d.nome_pixel+'")':'')+'. Os eventos já saem por este pixel.'); mtMontar(true); }
-    catch(e){ o.querySelector('#feAviso').textContent=e.message||'não deu certo'; bt.disabled=false; bt.textContent='Conferir e guardar'; } };
-  setTimeout(()=>inp.focus(),0);
-};
-window.mtTesteSalvar=async ()=>{ const el=document.getElementById('mtTeste'); if(!el) return;
-  try{ const d=await mtApi('teste',{form_id:eqForm(),codigo:String(el.value||'').trim()});
-    toast(d.teste?'Modo teste ligado: os eventos vão só pra aba de teste do Meta.':'Modo teste desligado: os eventos valem de verdade.'); mtMontar(true); }
-  catch(e){ toast('Não salvou: '+(e.message||'erro')); } };
-window.mtReenviar=async (id)=>{ try{ await mtApi('reenviar',{id}); toast('Voltou pra fila: sai no próximo minuto.'); mtMontar(true); }catch(e){ toast('Não reenviou: '+(e.message||'erro')); } };
 /* grava a config inteira (pausa + fila) e redesenha com o que o banco devolveu */
 async function eqSalvar(pausado,vend,msg){
   if(EQ.salvando) return; EQ.salvando=true;
