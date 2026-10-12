@@ -1540,7 +1540,14 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
   ok('a Lista usa o mesmo botão', /rspWaBtn\(t\)(\+rspIgBtn\(t\))?:''/.test(HTML));
   ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
-  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=8')>0);
+  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=9')>0);
+  /* número guardado pelo WhatsApp sem o 9 (Bernardo 11/10): o painel procura dos dois jeitos */
+  { const CJ9=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
+    const i=CJ9.indexOf('const foneOutro='), j=CJ9.indexOf('window.waFoneOutro=foneOutro;');
+    const g9=rodar(CJ9.slice(i,j)+'\n;window.foneOutro=foneOutro;',{},[]);
+    ok('com o 9 vira sem o 9 (e aceita link do wa.me e número sem 55)', g9.foneOutro('https://wa.me/5562992955519')==='556292955519'&&g9.foneOutro('(62) 99295-5519')==='556292955519');
+    ok('sem o 9 vira com o 9; número de fora do Brasil não inventa', g9.foneOutro('556292955519')==='5562992955519'&&g9.foneOutro('+1 415 555 0100')==='');
+    ok('o painel só tenta o outro jeito quando não veio nada e fica nele depois', /if\(!LD\.foneReal&&!\(d\.mensagens\|\|\[\]\)\.length\)/.test(CJ9)&&/api\('lead',\{fone:LD\.foneReal\|\|LD\.fone/.test(CJ9)); }
 
   /* painel novo (Bernardo 08/10): faixa do número, enviar, agendar, transferir */
   const CJ=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
@@ -1975,7 +1982,8 @@ grupo('Respostas: etapa vazia só no funil, selo leve na linha (Bernardo 08/10)'
 }
 grupo('CRM Sofás: planilha voltou ao jeito do vídeo das 17h (Bernardo 08/10)');
 {
-  ok('sem filtro de hoje, sem botões de data e sem aviso de pendentes', HTML.indexOf('rspAvisoPendentes')<0&&HTML.indexOf('RSP_PER')<0&&HTML.indexOf('class="rsp-per"')<0&&HTML.indexOf("let RSP={dir:-1,sel:{},q:'',larg:{}};")>0);
+  /* 11/10: os botões de data voltaram pra barra (rspPeriodo), mas a lista continua abrindo em Todos: nada de abrir já filtrada em Hoje nem de aviso de pendentes */
+  ok('não abre filtrado em hoje e não tem aviso de pendentes (os botões de data só filtram quando clicados)', HTML.indexOf('rspAvisoPendentes')<0&&HTML.indexOf('RSP_PER')<0&&HTML.indexOf("let RSP={dir:-1,sel:{},q:'',larg:{}};")>0);
   ok('Filtros continua sem "Data de vencimento" na lista de lead (lead não tem prazo)', /\$\{tkFSemPrio\(\)\?`<p class="hint"[^`]*`:`<div class="tkp-sec">Data de vencimento<\/div>/.test(HTML)&&HTML.indexOf("if(tkFSemPrio()){ /* lead não tem prazo")>0&&HTML.indexOf("((F.prazo||F.de||F.ate)&&!tkFSemPrio()?1:0)")>0);
 }
     await Promise.all(PROMESSAS);
@@ -2657,6 +2665,14 @@ grupo('Filtro de data: atalhos à esquerda e calendário do mês (Bernardo 08/10
   ok('atalho limpa o período e fica marcado', F.de===''&&F.ate===''&&F.prazo==='prox7'&&/class="tkc-at on"[^>]*>Próximos 7 dias</.test(h));
   g.tkCalMes(1);
   ok('setas trocam o mês', /Novembro 2026/.test(g.tkPopFiltroHTML()));
+  /* período à vista na barra das Respostas (Bernardo 11/10) */
+  const gp=rodar(bloco('function rspPeriodo(){','function tkViewRespostas(){'),{TK:{filtro:F},TK_LEAD_AT:['hoje','ontem','ult7','ult15','ult30'],esc:(x)=>String(x==null?'':x)},['rspPeriodo']);
+  F.prazo='ult7'; F.de=''; F.ate=''; let hp=gp.rspPeriodo();
+  ok('Respostas: Todos, Hoje, Ontem, 7, 15, 30 dias e Personalizado à vista, com o atalho marcado', ['Todos','Hoje','Ontem','7 dias','15 dias','30 dias','Personalizado'].every(r=>hp.indexOf('>'+r+'<')>0)&&/class="ftab active" onclick="tkFPrazo\('ult7'\)"/.test(hp));
+  F.prazo=''; F.de='2026-10-03'; F.ate='2026-10-09'; hp=gp.rspPeriodo();
+  ok('Respostas: período do calendário aparece escrito no botão', /class="ftab active" onclick="tkPopFiltro\(event\)"[^>]*>03\/10 a 09\/10</.test(hp));
+  F.de=''; F.ate=''; hp=gp.rspPeriodo();
+  ok('Respostas: sem filtro, "Todos" fica marcado e limpa só o período', /class="ftab active" onclick="tkFPrazo\(''\)">Todos</.test(hp));
 }
 
 /* ---------------- Equipe v2 do CRM Sofás (Bernardo 08/10) ---------------- */
