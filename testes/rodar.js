@@ -2050,17 +2050,24 @@ grupo('CRM: ganhou pede o cash collect e perdeu pede o motivo (Bernardo 12/10)')
   ok('em lote: ganhou é um por vez, perdeu pergunta uma vez só', HTML.indexOf("toast('Ganhou é um lead por vez: cada venda tem o seu cash collect.')")>0&&HTML.indexOf("for(const id of ids) await tkSetStatus(id,sid,r);")>0);
   ok('cartão mostra Venda/Perda e tira os dois campos de Outras informações', HTML.indexOf("${typeof crmFechaBox==='function'?crmFechaBox(t):''}")>0&&/cash:\/\^cash collect\$\/i,motivo:\/\^motivo da perda\$\/i\};/.test(HTML));
 }
-grupo('Equipe › Meta: reunião e venda viram conversão (Bernardo 12/10)');
+grupo('Anúncios › Integrações: Meta em cartão com Configurar, no jeito do Yay (Bernardo 12/10)');
 {
-  const i=HTML.indexOf('const MT={forms:null'), j=HTML.indexOf('async function mtMontar(');
-  const g=rodar(HTML.slice(i,j),{esc:(x)=>String(x==null?'':x)},['mtHtml']);
-  const semTok=g.mtHtml({form_id:'f',nome:'Motos',pixel_id:'123',tem_token:false,teste:'',eventos:[]});
-  ok('sem token: mostra o pixel, "Falta o token" e o botão de colar', /class="mt-px">123</.test(semTok)&&/Falta o token/.test(semTok)&&/onclick="mtToken\(\)">Colar o token</.test(semTok)&&/Nenhum evento ainda/.test(semTok));
-  const com=g.mtHtml({form_id:'f',nome:'Motos',pixel_id:'123',tem_token:true,teste:'TEST1',eventos:[{id:'e1',lead:'Ana',evento:'VendaFechada',valor:3500,status:'enviado',enviado_em:'2026-10-12T18:20:00Z'},{id:'e2',lead:'Bia',evento:'ReuniaoAgendada',status:'erro',erro:'token expirado',ocorreu_em:'2026-10-12T15:00:00Z'}]});
-  ok('com token: Ligado, venda com o cash collect em reais e o aviso do modo teste', />Ligado</.test(com)&&/Venda fechada · R\$\s?3\.500,00/.test(com)&&/Modo teste ligado/.test(com));
-  ok('evento com erro mostra o motivo e o Reenviar', /onclick="mtReenviar\('e2'\)" title="token expirado">Reenviar</.test(com));
-  ok('o token é campo de senha e não fica guardado na tela', /id="mtTok" type="password"/.test(HTML)&&/inp\.value='';\s*fim\(\);/.test(HTML));
-  ok('só master vê o bloco do Meta na Equipe', /if\(!document\.getElementById\('mtBox'\)\|\|!mtEhMaster\(\)\) return;/.test(HTML));
+  const i=HTML.indexOf('const IG={forms:null'), j=HTML.indexOf('window.igMetaAbrir=');
+  const mk=(forms)=>{ const g=rodar(HTML.slice(i,j)+'\n;IG.forms=__F;',{__F:forms,esc:(x)=>String(x==null?'':x),anuMaster:()=>true,anuLid:()=>'L',CRM_FORMS:[{lista:'L',form:'f'}],TK:{tarefas:[{lista_id:'L',criado_em:new Date().toISOString()}]},
+      ANU:{sec:'integ'},RSP_WA_SVG:'<svg></svg>',currentView:'crm-anuncios'},['igView','igMetaHtml','igMetaSt']); return g; };
+  let g=mk([{form_id:'f',nome:'Motos',pixel_id:'123',tem_token:false,teste:'',eventos:[]}]);
+  let h=g.igView();
+  ok('três cartões: Meta com Configurar, Yay Forms e WhatsApp', (h.match(/class="ig-card"/g)||[]).length===3&&/Meta \/ Facebook Pixel · API de Conversões<span class="ig-tag warn">Falta o token</.test(h)&&/onclick="igMetaAbrir\(\)">Configurar</.test(h)&&/Yay Forms<span class="ig-tag ok">Ativo</.test(h));
+  ok('sem evento ainda: explica quando aparece o primeiro', /Nenhum evento ainda/.test(h));
+  const m=g.igMetaHtml({form_id:'f',nome:'Motos',pixel_id:'123',tem_token:false,teste:''});
+  ok('janela em 3 passos: pixel e token, conversões personalizadas e teste', (m.match(/class="ig-passo"/g)||[]).length===3&&/<code>ReuniaoAgendada<\/code>/.test(m)&&/<code>VendaFechada<\/code>/.test(m)&&/id="igTeste"/.test(m)&&/Salvar integração/.test(m));
+  ok('o token é campo de senha e some da tela depois de salvar', /id="igTok" type="password"/.test(m)&&/await igApi\('token',\{form_id:f\.form_id,token:tk\}\); inp\.value='';/.test(HTML));
+  g=mk([{form_id:'f',nome:'Motos',pixel_id:'123',tem_token:true,teste:'TEST1',eventos:[{id:'e1',lead:'Ana',evento:'VendaFechada',valor:3500,status:'enviado',enviado_em:'2026-10-12T18:20:00Z'},{id:'e2',lead:'Bia',evento:'ReuniaoAgendada',status:'erro',erro:'token expirado',ocorreu_em:'2026-10-12T15:00:00Z'}]}]);
+  h=g.igView();
+  ok('com token e código de teste: selo "Em teste"; sem código vira "Ativo"', /<span class="ig-tag warn">Em teste</.test(h)&&g.igMetaSt({pixel_id:'1',tem_token:true,teste:''})[0]==='Ativo');
+  ok('últimos eventos: venda com o cash collect em reais e Reenviar no que deu erro', /Venda fechada · R\$\s?3\.500,00/.test(h)&&/onclick="igReenviar\('e2'\)" title="token expirado">Reenviar</.test(h));
+  ok('Integrações é uma aba dentro de Anúncios, só pra master', /const ig=igPode\(\), sec=\(ig&&ANU\.sec==='integ'\)\?'integ':'ads';/.test(HTML)&&/\[\['ads','Anúncios'\],\['integ','Integrações'\]\]/.test(HTML)&&HTML.indexOf('const igPode=()=>anuMaster();')>0);
+  ok('o bloco do Meta saiu da Equipe', HTML.indexOf('mtBox')<0&&HTML.indexOf('mtMontar')<0);
 }
 grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/10)');
 {
