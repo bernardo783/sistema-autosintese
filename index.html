@@ -3582,6 +3582,24 @@
   .eq-sw.on span{left:18px;background:#fff}
   .eq-sw:disabled{cursor:not-allowed;opacity:.6}
   .eq-hint{margin:12px 0 0;color:var(--fraco);font-size:12px;line-height:1.5}
+  /* Equipe › Meta (Bernardo 12/10) */
+  .mt-box{margin-top:12px}
+  .mt-st{flex:none;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+  .mt-st.ok{color:var(--ok)} .mt-st.warn{color:var(--warn)} .mt-st.bad{color:var(--danger)}
+  .mt-l{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .mt-l>span,.mt-l>label{width:130px;flex:none;color:var(--muted);font-size:13px}
+  .mt-px{font-variant-numeric:tabular-nums;font-size:13.5px;margin-right:auto}
+  .mt-in{flex:1;min-width:180px;margin-left:0;border-color:var(--line);background:var(--panel2)}
+  .mt-h{margin:0 0 6px}
+  .mt-evs{display:grid}
+  .mt-ev{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.3fr) 96px 110px 92px;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
+  .mt-ev:first-child{border-top:0}
+  .mt-ev b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mt-ev>span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mt-q{font-variant-numeric:tabular-nums}
+  .mt-tok{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px 11px;font:inherit;font-size:13.5px}
+  .mt-tok:focus{outline:none;border-color:var(--brand2)}
+  @media (max-width:720px){ .mt-l>span,.mt-l>label{width:100%} .mt-ev{grid-template-columns:1fr auto;gap:2px 10px} .mt-ev i{display:none} }
   @media (max-width:720px){
     .eq-disp{flex-wrap:wrap} .eq-disp .tx{flex:1 1 calc(100% - 60px)} .eq-disp .lado{width:100%;justify-content:flex-end}
     .eq-res{gap:8px} .eq-res>div{padding:10px} .eq-res b{font-size:15px} .eq-lst{padding:4px 12px 12px}
@@ -18378,8 +18396,89 @@ function eqDesenhar(c){
     ${dentro.map(linha).join('')||'<div class="crm-vazio">Ninguém no rodízio.</div>'}
     ${fora.length?'<div class="eq-sub">Fora do rodízio</div>'+fora.map(linha).join(''):''}
     <p class="eq-hint">${cfg.reserva?`Se ninguém do rodízio estiver conectado, a mensagem sai pelo número de <b>${esc(eqNomeAp(cfg.reserva))}</b> e o lead fica com ele (a fila não anda).`:'Se ninguém do rodízio estiver conectado, o card entra sem responsável e a coluna Mensagem automática mostra <b>Sem vendedor conectado</b>.'} ${pode?'':'Só master e gestor do CRM mudam o rodízio. '}${quem?`Última mudança: ${esc(quem)}, ${esc(eqQuando(cfg.atualizado_em))}.`:''}</p>
+  </div><div id="mtBox"></div>`;
+  if(typeof mtMontar==='function') mtMontar();
+}
+/* ---------- CRM › Equipe › Meta: reunião e venda viram conversão (Bernardo 12/10) ----------
+   "Queria que esse dado de venda e de reunião agendada fosse devolvido pro Meta como um evento de
+   conversão personalizado." Quem enfileira é o banco (crm_meta_fila) e quem manda é a edge crm-meta.
+   Aqui o master vê, por CRM: o pixel, se o token da API de Conversões já foi colado, o código de
+   "Eventos de teste" e os últimos eventos. O token vai da caixinha direto pro cofre: a função confere
+   no Meta, guarda e nunca devolve. Só master enxerga este bloco. */
+const MT={forms:null,erro:''};
+const mtEhMaster=()=>!!(typeof currentUser!=='undefined'&&currentUser&&currentUser.role==='master');
+async function mtApi(acao,corpo){
+  if(!SESSION||!SESSION.access_token) throw new Error('Sessão expirada: entre de novo.');
+  const r=await fetch(SUPA_URL+'/functions/v1/crm-meta/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+SESSION.access_token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
+  const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
+  if(!d.ok) throw new Error(d.erro||('erro '+r.status));
+  return d;
+}
+const mtQuando=(iso)=>{ const d=new Date(iso); return isNaN(d)?'':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+const MT_ST={pendente:['na fila','warn'],enviando:['enviando','warn'],enviado:['enviado','ok'],erro:['erro','bad'],cancelado:['cancelado',''],expirado:['expirou','bad']};
+const MT_EV={ReuniaoAgendada:'Reunião agendada',VendaFechada:'Venda fechada'};
+const mtReais=(n)=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function mtHtml(f){
+  if(!f) return '';
+  const st=!f.pixel_id?['Sem pixel','warn']:f.tem_token?['Ligado','ok']:['Falta o token','warn'];
+  const evs=f.eventos||[];
+  return `<div class="eq-lst mt-box">
+    <div class="eq-lh"><div><h4>Meta: reunião e venda viram conversão</h4>
+      <p>Lead em Reunião Marcada manda <b>ReuniaoAgendada</b>; em Ganhou manda <b>VendaFechada</b> com o cash collect. Sai 10 minutos depois da mudança de etapa.</p></div>
+      <span class="mt-st ${st[1]}">${st[0]}</span></div>
+    <div class="mt-l"><span>Pixel</span><b class="mt-px">${esc(f.pixel_id||'-')}</b>
+      ${f.pixel_id?`<button class="btn secondary small" onclick="mtToken()">${f.tem_token?'Trocar o token':'Colar o token'}</button>`:''}</div>
+    ${f.pixel_id?`<div class="mt-l"><label for="mtTeste">Eventos de teste</label><input class="cl-in mt-in" id="mtTeste" placeholder="código do Gerenciador de Eventos, ex.: TEST12345" value="${esc(f.teste||'')}" autocomplete="off">
+      <button class="btn secondary small" onclick="mtTesteSalvar()">Salvar</button></div>
+    <p class="eq-hint mt-h">${f.teste?'<b>Modo teste ligado:</b> os eventos vão só pra aba "Eventos de teste" do Meta e não contam como conversão. Apague o código e salve pra valer de verdade.':'Com um código aqui, os eventos vão só pra aba "Eventos de teste" do Meta, sem contar como conversão. Vazio = vale de verdade.'}</p>`:''}
+    <div class="eq-sub">Últimos eventos</div>
+    ${evs.length?`<div class="mt-evs">${evs.map(e=>{ const x=MT_ST[e.status]||[e.status,''];
+      return `<div class="mt-ev"><b>${esc(e.lead||'(lead)')}</b><span>${esc(MT_EV[e.evento]||e.evento)}${e.evento==='VendaFechada'&&e.valor!=null?' · '+esc(mtReais(e.valor)):''}</span>
+        <span class="mt-q">${esc(mtQuando(e.enviado_em||e.ocorreu_em))}</span>
+        <span class="mt-st ${x[1]}" title="${esc(e.erro||'')}">${x[0]}${e.teste?' (teste)':''}</span>
+        ${(e.status==='erro'||e.status==='expirado')?`<button type="button" class="eq-tst" onclick="mtReenviar('${esc(e.id)}')" title="${esc(e.erro||'')}">Reenviar</button>`:'<i></i>'}</div>`; }).join('')}</div>`
+      :'<div class="crm-vazio">Nenhum evento ainda. O primeiro aparece quando um lead entrar em Reunião Marcada ou em Ganhou.</div>'}
   </div>`;
 }
+async function mtMontar(recarrega){
+  if(!document.getElementById('mtBox')||!mtEhMaster()) return;
+  const form=eqForm();
+  if(!MT.forms||recarrega){ try{ MT.forms=(await mtApi('status')).forms; MT.erro=''; }catch(e){ MT.erro=e.message||'falha'; } }
+  const el=document.getElementById('mtBox'); if(!el||form!==eqForm()) return;
+  el.innerHTML=MT.erro?`<div class="crm-hint" style="color:var(--danger);margin-top:12px">Meta: ${esc(MT.erro)}</div>`:mtHtml((MT.forms||[]).find(f=>f.form_id===form));
+}
+/* caixinha do token: campo de senha, vai direto pra função e some da tela */
+window.mtToken=()=>{
+  const f=(MT.forms||[]).find(x=>x.form_id===eqForm()); if(!f||!f.pixel_id) return;
+  const o=document.createElement('div'); o.className='cn-fundo fe-fundo';
+  o.innerHTML=`<div class="cn-caixa fe-caixa" role="dialog" aria-label="Token da API de Conversões">
+      <div class="cn-h"><strong>Token da API de Conversões</strong><button class="tkp-x" type="button" data-x aria-label="Cancelar">✕</button></div>
+      <div class="cn-tit">Pixel ${esc(f.pixel_id)} · ${esc(f.nome||'')}</div>
+      <label for="mtTok" class="cn-lbl">Cole o token</label>
+      <input id="mtTok" type="password" class="mt-tok" autocomplete="off" spellcheck="false" placeholder="token gerado no Gerenciador de Eventos">
+      <div class="fe-dica">No Meta: Gerenciador de Eventos › este pixel › Configurações › API de Conversões › Gerar token de acesso. O token é conferido no Meta, guardado no cofre do sistema e não aparece mais em tela nenhuma.</div>
+      <div class="cn-aviso" id="feAviso"></div>
+      <div class="cn-pe"><button class="btn ghost small" type="button" data-x>Cancelar</button><button class="btn small" type="button" id="feOk">Conferir e guardar</button></div></div>`;
+  document.body.appendChild(o);
+  const fim=()=>{ o.remove(); document.removeEventListener('keydown',tecla,true); };
+  const tecla=(e)=>{ if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); fim(); } };
+  document.addEventListener('keydown',tecla,true);
+  o.querySelectorAll('[data-x]').forEach(b=>b.onclick=fim);
+  o.onmousedown=(e)=>{ if(e.target===o) fim(); };
+  const bt=o.querySelector('#feOk'), inp=o.querySelector('#mtTok');
+  bt.onclick=async ()=>{ const tk=String(inp.value||'').trim();
+    if(!tk){ o.querySelector('#feAviso').textContent='Cole o token.'; inp.focus(); return; }
+    bt.disabled=true; bt.textContent='Conferindo no Meta…';
+    try{ const d=await mtApi('token',{form_id:f.form_id,token:tk}); inp.value=''; fim();
+      toast('Token guardado'+(d.nome_pixel?' (pixel "'+d.nome_pixel+'")':'')+'. Os eventos já saem por este pixel.'); mtMontar(true); }
+    catch(e){ o.querySelector('#feAviso').textContent=e.message||'não deu certo'; bt.disabled=false; bt.textContent='Conferir e guardar'; } };
+  setTimeout(()=>inp.focus(),0);
+};
+window.mtTesteSalvar=async ()=>{ const el=document.getElementById('mtTeste'); if(!el) return;
+  try{ const d=await mtApi('teste',{form_id:eqForm(),codigo:String(el.value||'').trim()});
+    toast(d.teste?'Modo teste ligado: os eventos vão só pra aba de teste do Meta.':'Modo teste desligado: os eventos valem de verdade.'); mtMontar(true); }
+  catch(e){ toast('Não salvou: '+(e.message||'erro')); } };
+window.mtReenviar=async (id)=>{ try{ await mtApi('reenviar',{id}); toast('Voltou pra fila: sai no próximo minuto.'); mtMontar(true); }catch(e){ toast('Não reenviou: '+(e.message||'erro')); } };
 /* grava a config inteira (pausa + fila) e redesenha com o que o banco devolveu */
 async function eqSalvar(pausado,vend,msg){
   if(EQ.salvando) return; EQ.salvando=true;
