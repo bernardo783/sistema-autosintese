@@ -3435,6 +3435,33 @@
     background:color-mix(in srgb,#25d366 16%,transparent);color:#25d366;text-decoration:none;transition:background .15s,color .15s}
   .tk-wa:hover{background:#25d366;color:#fff}
   .tk-wa svg{width:14px;height:14px}
+  /* AGUARDANDO RESPOSTA (Bernardo 11/10): o lead mandou mensagem e ninguém respondeu ainda */
+  .tk-wa,.cl-wa{position:relative}
+  .agd-bd{position:absolute;top:-6px;right:-7px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--danger);color:#fff;
+    font-size:10px;font-weight:800;font-style:normal;line-height:1;display:grid;place-items:center;border:2px solid var(--panel)}
+  .agd-t{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:700}
+  .agd-t.c1{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+  .agd-t.c2{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+  .agd-t.c3{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}
+  .agd-et{flex:none;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;
+    background:color-mix(in srgb,var(--c) 18%,transparent);color:color-mix(in srgb,var(--c) 70%,var(--txt))}
+  .agd-ok{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;padding:0;border:1px solid var(--line);border-radius:999px;background:none;color:var(--fraco);cursor:pointer}
+  .agd-ok:hover{border-color:var(--ok);color:var(--ok)}
+  .agd-ok svg{width:12px;height:12px}
+  .tk-selo.agd-selo{background:var(--danger);color:#fff}
+  #rspTab tbody.rsp-g.rsp-agd>tr[data-b]:not(.tk-faixa):not(.rsp-ch)>td{background-color:color-mix(in srgb,var(--danger) 9%,var(--bg))}
+  .agd-n{flex:none;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:999px;background:var(--danger);color:#fff;font-size:10.5px;font-weight:800;display:inline-grid;place-items:center}
+  #agdAvisos{position:fixed;right:18px;bottom:18px;z-index:4000;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100vw - 36px))}
+  .agd-av{background:var(--panel);border:1px solid var(--line);border-left:4px solid #25d366;border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);animation:agdEntra .3s ease}
+  @keyframes agdEntra{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+  .agd-avh{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fraco)}
+  .agd-avh b{color:var(--txt);font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .agd-x{margin-left:auto;background:none;border:0;color:var(--fraco);font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
+  .agd-avt{margin:6px 0 10px;font-size:13.5px;line-height:1.4;overflow-wrap:anywhere}
+  .agd-avt small{color:var(--fraco)}
+  .agd-avb{display:flex;gap:8px}
+  .agd-avb button{height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font:inherit;font-weight:700;font-size:12.5px;cursor:pointer}
+  .agd-avb button.pri{background:#25d366;border-color:#25d366;color:#06301a}
   /* Instagram do lead: o mesmo icone e o mesmo botao da ficha do cliente (Contato > Instagram) (Bernardo 08/10) */
   .tk-ig{display:inline-grid;place-items:center;width:24px;height:24px;margin-left:6px;border-radius:999px;vertical-align:middle;color:#fff;
     background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285aeb 90%);text-decoration:none;transition:filter .15s,transform .15s}
@@ -10403,8 +10430,8 @@ function rspWaAbrir(id){
 const RSP_WA_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.5-.6-2.7-1.2-4.4-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 1.9 1.1.9 2 1.2 2.3 1.4.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg>';
 const rspWaBtn=(t)=>{ const n=rspWaNum(t); if(!n) return '';
   return rspWaDentro(t)
-    ? `<button type="button" class="tk-wa" title="Abrir a conversa aqui no sistema (+${n})" onclick="event.stopPropagation();rspWaAbrir('${t.id}')">${RSP_WA_SVG}</button>`
-    : `<a class="tk-wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp (+${n})" onclick="event.stopPropagation()">${RSP_WA_SVG}</a>`; };
+    ? `<button type="button" class="tk-wa" title="Abrir a conversa aqui no sistema (+${n})" onclick="event.stopPropagation();rspWaAbrir('${t.id}')">${RSP_WA_SVG}${agdBadge(t)}</button>`
+    : `<a class="tk-wa" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp (+${n})" onclick="event.stopPropagation()">${RSP_WA_SVG}${agdBadge(t)}</a>`; };
 /* numero do lead sempre escrito na lista (Bernardo 08/10: "um não anula o outro"): o botao
    verde do nome continua abrindo a conversa; na coluna WhatsApp fica o numero legivel, um
    botao pra copiar e outro que leva direto pro WhatsApp (wa.me), pro SDR escolher como falar */
@@ -10497,6 +10524,91 @@ function rspPeriodo(){
       <button type="button" class="ftab${pers?' active':''}" onclick="tkPopFiltro(event)" title="Escolher as datas no calendário">${pers?esc([dm(F.de),dm(F.ate)].filter(Boolean).join(' a ')):'Personalizado'}</button>
     </div>`;
 }
+/* ======================= AGUARDANDO RESPOSTA (Bernardo 08-11/10) =======================
+   "Quando o cliente mandar mensagem, o card tem que ficar lá no topo com um sinal de que está pendente
+   de resposta. Não quer nem saber se o cara está em proposta enviada ou em conversa: é pra aparecer
+   rápido ali." Aguardando = a última mensagem da conversa (em qualquer número do time) é do lead; some
+   sozinho quando alguém responde, pelo sistema ou pelo celular. A RPC crm_aguardando devolve
+   {card: {l: lista, n: mensagens, desde, ultima, previa, tipo, meu}} e é consultada a cada 15 s por quem
+   tem papel no CRM. Daí saem: o bloco no topo das Respostas, a bolinha no botão do WhatsApp, o número
+   na árvore e no título da aba, e o aviso no canto (só pro vendedor do lead). "Não precisa responder"
+   (o botão de visto da linha) grava valores._wa_visto e tira o lead dali até ele escrever de novo. */
+const AGD={mapa:{},pronto:false,buscando:false,sujo:false,tit:''};
+const agdUser=()=>(typeof currentUser!=='undefined'&&currentUser)||null;
+const agdPode=()=>{ const u=agdUser(); return !!u&&(u.role==='master'||!!u.papel_crm); };
+const agdAdm=()=>{ const u=agdUser(); return !!u&&(u.role==='master'||['admin','gestor'].includes(u.papel_crm)); };
+const agdDe=(id)=>AGD.mapa[id]||null;
+const agdMin=(iso)=>Math.max(0,(Date.now()-new Date(iso).getTime())/60000);
+const agdHa=(iso)=>{ const m=Math.round(agdMin(iso)); return m<1?'agora':m<60?'há '+m+' min':m<1440?'há '+Math.floor(m/60)+' h':'há '+Math.floor(m/1440)+' d'; };
+/* cinza até 15 min, amarelo até 1 h, vermelho depois */
+const agdCor=(iso)=>{ const m=agdMin(iso); return m<15?'c1':m<60?'c2':'c3'; };
+const agdTexto=(a)=>{ const p=String((a&&a.previa)||'').trim(); if(p) return p; const t=String((a&&a.tipo)||'');
+  return /audio|ptt/i.test(t)?'mandou um áudio':/image/i.test(t)?'mandou uma imagem':/video/i.test(t)?'mandou um vídeo':/document/i.test(t)?'mandou um arquivo':/sticker/i.test(t)?'mandou uma figurinha':'mandou mensagem'; };
+const agdBadge=(t)=>{ const a=agdDe(t.id); return a?`<i class="agd-bd" title="${esc(agdTexto(a))}">${a.n>9?'9+':a.n}</i>`:''; };
+const agdChip=(t)=>{ const a=agdDe(t.id); return a?`<span class="agd-t ${agdCor(a.desde)}" data-desde="${esc(a.desde)}" title="Esperando resposta desde ${esc(new Date(a.desde).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))}">${agdHa(a.desde)}</span>`:''; };
+const agdEtapa=(t)=>{ const s=typeof tkStatus1==='function'?tkStatus1(t.status_id):null;
+  return s?`<span class="agd-et" style="--c:${esc(s.cor||'#64748b')}" title="Etapa: ${esc(s.nome)}">${esc(String(s.nome||'').replace(/^\d+\.\s*/,''))}</span>`:''; };
+const AGD_OK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>';
+const agdOk=(t)=>`<button type="button" class="agd-ok" title="Não precisa responder: tira de Aguardando resposta" onclick="event.stopPropagation();agdVisto('${t.id}')">${AGD_OK_SVG}</button>`;
+/* master e gestor contam todos; o vendedor conta os dele */
+const agdMeus=()=>Object.keys(AGD.mapa).filter(id=>agdAdm()||AGD.mapa[id].meu);
+const agdNaLista=(lid)=>Object.keys(AGD.mapa).filter(id=>AGD.mapa[id].l===lid).length;
+const agdAssina=(m)=>JSON.stringify(Object.keys(m).sort().map(k=>[k,m[k].n,m[k].ultima]));
+async function agdBuscar(){
+  if(AGD.buscando||!agdPode()||typeof sb==='undefined') return;
+  AGD.buscando=true;
+  try{
+    const {data,error}=await sb.rpc('crm_aguardando');
+    if(!error&&data&&typeof data==='object'){
+      const antes=AGD.mapa, era=AGD.pronto, mudou=agdAssina(data)!==agdAssina(antes);
+      AGD.mapa=data; AGD.pronto=true;
+      /* aviso só de mensagem que chegou com o sistema aberto, e só pro vendedor do lead */
+      if(era) Object.keys(data).forEach(id=>{ const a=data[id], b=antes[id]; if(a.meu&&(!b||b.ultima!==a.ultima)) agdAvisar(id,a); });
+      document.querySelectorAll('#agdAvisos .agd-av').forEach(e=>{ if(!data[e.dataset.id]) e.remove(); });
+      if(mudou||AGD.sujo) agdPintar();
+    }
+  }catch(_){ /* sem rede: tenta de novo no próximo tique */ }
+  AGD.buscando=false; agdTique();
+}
+/* redesenha a árvore e, se o Pipeline estiver aberto, a lista; quem está digitando ali não é interrompido */
+function agdPintar(){
+  try{ spDesenhar(); }catch(_){}
+  const c=document.getElementById('content'), a=document.activeElement;
+  const naLista=typeof currentView!=='undefined'&&currentView==='lista'&&TK.escopo==='lista'&&crmForm(TK.listaSel);
+  if(!naLista||!c){ AGD.sujo=false; return; }
+  if(a&&c.contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)){ AGD.sujo=true; return; }
+  AGD.sujo=false; tkDesenhar(c);
+}
+/* título da aba com o número e os tempos de espera andando sozinhos */
+function agdTique(){
+  if(typeof document==='undefined') return;
+  try{
+    if(!AGD.tit) AGD.tit=String(document.title||'').replace(/^\(\d+\)\s*/,'');
+    const n=agdPode()?agdMeus().length:0; document.title=(n?'('+n+') ':'')+AGD.tit;
+    document.querySelectorAll('.agd-t[data-desde]').forEach(el=>{ el.textContent=agdHa(el.dataset.desde); el.className='agd-t '+agdCor(el.dataset.desde); });
+  }catch(_){ /* tela ainda sem documento pronto */ }
+}
+function agdAvisar(id,a){
+  const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
+  let box=document.getElementById('agdAvisos');
+  if(!box){ box=document.createElement('div'); box.id='agdAvisos'; document.body.appendChild(box); }
+  const velho=box.querySelector('.agd-av[data-id="'+id+'"]'); if(velho) velho.remove();
+  box.insertAdjacentHTML('beforeend',`<div class="agd-av" data-id="${esc(id)}" role="status">
+      <div class="agd-avh"><b>${esc(t.titulo||'Lead')} respondeu</b><span>${esc(agdHa(a.ultima))}</span><button type="button" class="agd-x" onclick="agdTiraAviso('${esc(id)}')" aria-label="Fechar">&times;</button></div>
+      <div class="agd-avt">${esc(agdTexto(a))}${a.n>1?` <small>· ${a.n} mensagens</small>`:''}</div>
+      <div class="agd-avb"><button type="button" class="pri" onclick="agdTiraAviso('${esc(id)}');rspWaAbrir('${esc(id)}')">Responder</button><button type="button" onclick="agdTiraAviso('${esc(id)}');tkAbrir('${esc(id)}')">Abrir card</button></div>
+    </div>`);
+  while(box.children.length>4) box.firstElementChild.remove();
+}
+window.agdTiraAviso=(id)=>{ const e=document.querySelector('#agdAvisos .agd-av[data-id="'+id+'"]'); if(e) e.remove(); };
+window.agdVisto=async (id)=>{ const t=(TK.tarefas||[]).find(x=>x.id===id); if(!t) return;
+  const valores=Object.assign({},t.valores||{},{_wa_visto:new Date().toISOString()});
+  if(!(await tkPatch(id,{valores},'Tirado de Aguardando resposta.'))) return;
+  delete AGD.mapa[id]; agdTiraAviso(id); agdTique(); agdPintar(); };
+if(typeof document!=='undefined'&&typeof document.addEventListener==='function'&&!window.__agdTic){
+  window.__agdTic=setInterval(()=>{ if(document.visibilityState==='visible') agdBuscar(); else agdTique(); },15000);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') agdBuscar(); });
+}
 function tkViewRespostas(){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA), outros=cps.filter(c=>c!==cD);
   const arr=rspLinhas();
@@ -10511,9 +10623,14 @@ function tkViewRespostas(){
   const cen=(c)=>c.tipo==='data'||c.tipo==='select'||/^estado$/i.test(c.nome);
   const larg=(c)=>rspLarg(c.id,Math.max(110,Number(c.largura)||150));
   const cor=(t)=>typeof tkCorLinha==='function'?tkCorLinha(t):'';
-  const linha=(t)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}" draggable="true" ondragstart="rspPega(event,'${t.id}')" ondragend="rspPegaFim(event)">
-      <td><span class="rsp-nm rsp-lin"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}${rspMvBtn(t)}</span></td>
-      <td class="tk-cen">${rspRelogio(t,cD)}</td>
+  /* quem está aguardando resposta sobe pro bloco do topo, seja qual for a etapa (Bernardo 11/10);
+     com uma etapa só na tela (RSP.etapa) fica tudo no lugar, só com a bolinha */
+  if(!AGD.pronto) agdBuscar();
+  const agdIts=RSP.etapa?[]:arr.filter(t=>agdDe(t.id)).sort((a,b)=>String(agdDe(b.id).ultima).localeCompare(String(agdDe(a.id).ultima)));
+  const agdSet=new Set(agdIts.map(t=>t.id));
+  const linha=(t,noAg)=>`<tr style="--bar:${esc(cor(t))}${passa(t)?'':';display:none'}" data-b="${busca(t)}"${noAg===true?` data-ge="${esc(t.status_id||'sem')}"`:''} draggable="true" ondragstart="rspPega(event,'${t.id}')" ondragend="rspPegaFim(event)">
+      <td><span class="rsp-nm rsp-lin"><input type="checkbox" ${RSP.sel[t.id]?'checked':''} onchange="rspMarca('${t.id}',this.checked)" title="Selecionar"><button type="button" onclick="tkAbrir('${t.id}')" title="Abrir o lead">${esc(t.titulo||'(sem nome)')}</button>${rspWaBtn(t)}${noAg===true?agdEtapa(t)+agdOk(t):rspMvBtn(t)}</span></td>
+      <td class="tk-cen">${noAg===true?agdChip(t):rspRelogio(t,cD)}</td>
       ${outros.map(c=>`<td${cen(c)?' class="tk-cen"':''}>${rspCel(c,(t.valores||{})[c.id],t)}</td>`).join('')}
     </tr>`;
   /* sem a coluna Status (Bernardo 08/10: "não tem por que existir, existem as separações ali") */
@@ -10534,7 +10651,17 @@ function tkViewRespostas(){
         <th class="rsp-or" onclick="RSP.dir=-RSP.dir;tkDesenhar($('#content'))" title="Há quanto tempo o lead está no funil (clique pra inverter a ordem)">No funil ${RSP.dir<0?'↓':'↑'}${rspGrip('data')}</th>
         ${outros.map(c=>`<th title="${esc(c.nome)}">${esc(c.nome)}${rspGrip(c.id)}</th>`).join('')}
       </tr>`;
-  const bloco=(g)=>{ const fech=!!fechadas['gr'+g.k], nV=g.its.filter(passa).length;
+  const cabAg=`<tr class="rsp-ch">
+        <th><span class="rsp-nm">Nome</span>${rspGrip('nome')}</th>
+        <th title="Há quanto tempo o lead espera uma resposta">Esperando${rspGrip('data')}</th>
+        ${outros.map(c=>`<th title="${esc(c.nome)}">${esc(c.nome)}${rspGrip(c.id)}</th>`).join('')}
+      </tr>`;
+  const blocoAg=()=>agdIts.length?`<tbody class="rsp-g rsp-agd" data-g="__ag"><tr class="tk-faixa"><td colspan="${ncols}"><span class="rsp-gt">
+        <span class="tk-selo agd-selo">Aguardando resposta</span>
+        <span class="tk-n rsp-gn">${q?agdIts.filter(passa).length:agdIts.length}</span></span></td></tr>
+      ${cabAg+agdIts.map(t=>linha(t,true)).join('')}</tbody>`:'';
+  const bloco=(g0)=>{ const g=Object.assign({},g0,{its:g0.its.filter(t=>!agdSet.has(t.id))});
+    const fech=!!fechadas['gr'+g.k], nV=g.its.filter(passa).length;
     return `<tbody class="rsp-g" data-g="${esc(g.k)}"><tr class="tk-faixa${g.its.length?'':' vazio'}" onclick="tkToggle('g','r${esc(g.k)}')"${rspAlvo(g.k)}><td colspan="${ncols}"><span class="rsp-gt">
         <span class="rsp-cv${(fech||!g.its.length)?'':' ab'}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 4.5l9 7.5-9 7.5z"/></svg></span>
         <span class="tk-selo" style="background-color:${esc(g.cor)};color:${esc(corTx(g.cor))}">${esc(g.rot)}</span>
@@ -10558,7 +10685,7 @@ function tkViewRespostas(){
     ${gSel?`<button type="button" class="rsp-tudo" onclick="rspIrEtapa('')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Ver todas as etapas</button>`:''}
     <div class="tablewrap rolavel" ondragover="rspRola(event)"><table class="tk-tab lc-tab" id="rspTab" style="width:${largMin}px">
       <colgroup><col data-k="nome" style="width:${wN}px"><col data-k="data" style="width:${wD}px">${outros.map(c=>`<col data-k="${esc(c.id)}" style="width:${larg(c)}px">`).join('')}</colgroup>
-      ${gVer.map(bloco).join('')}
+      ${blocoAg()+gVer.map(bloco).join('')}
     </table>${arr.length?'':'<div class="empty">Nenhuma resposta ainda.</div>'}
     <div class="empty" id="rspVazio"${(q&&arr.length&&!nVis)?'':' style="display:none"'}>Nenhuma resposta com esse texto.</div></div>
     ${(setTimeout(()=>{ try{ lcFixarColunas($('#content')); }catch(_){} },0),'')}`;
@@ -10578,8 +10705,11 @@ window.rspBusca=(v)=>{
   document.querySelectorAll('#rspTab tbody tr[data-b]').forEach(tr=>{ const ok=!q||tr.dataset.b.indexOf(q)>=0; tr.style.display=ok?'':'none'; if(ok) n++; });
   document.querySelectorAll('#rspTab tbody.rsp-g').forEach(g=>{ const c=g.querySelector('.rsp-gn'); if(!c) return;
     const rs=g.querySelectorAll('tr[data-b]'); if(!rs.length) return;   /* etapa recolhida: sem linhas na tela, fica a contagem que veio */
-    c.textContent=q?[...rs].filter(r=>r.style.display!=='none').length:rs.length;
-    const f=document.querySelector('.rsp-fe[data-g="'+g.dataset.g+'"] b'); if(f) f.textContent=c.textContent; });
+    const vis=(l)=>q?[...l].filter(r=>r.style.display!=='none').length:l.length;
+    c.textContent=vis(rs);
+    /* quem está em Aguardando resposta continua contando na etapa dele lá no funil */
+    const ag=document.querySelectorAll('#rspTab tbody.rsp-agd tr[data-ge="'+g.dataset.g+'"]');
+    const f=document.querySelector('.rsp-fe[data-g="'+g.dataset.g+'"] b'); if(f) f.textContent=vis(rs)+vis(ag); });
   const e=document.getElementById('rspN'); if(e) e.textContent=n+' resposta'+(n===1?'':'s');
   const z=document.getElementById('rspVazio'); if(z) z.style.display=(q&&!n)?'':'none';
 };
@@ -12173,7 +12303,7 @@ function spDesenhar(){
     const on=(l.id===TK.listaSel&&(currentView==='lista'||currentView==='fechamento'||ehFin(l.id)||ehTela(l.id)||currentView===LTEL[l.id]))?' on':'';
     const dnd=fav?'':` draggable="true" ondragstart="dndLista(event,'${l.id}')" ondragover="dndSobre(event)" ondragleave="dndSaiu(event)" ondrop="dndSoltarLista(event,'${l.id}')" ondragend="dndFim()"`;
     return `<div class="tk-lista${on}" role="button" tabindex="0"${dnd} onclick="spSelLista('${l.id}')" oncontextmenu="spNoMenu(event,'lista','${l.id}')" title="${esc(tkCaminho(l.id))}">
-      ${ic}<span class="tk-nome">${esc(spNome(l))}</span>${favTem(l.id)&&!fav?'<span class="tk-star">★</span>':''}${cont}
+      ${ic}<span class="tk-nome">${esc(spNome(l))}</span>${favTem(l.id)&&!fav?'<span class="tk-star">★</span>':''}${cont}${(typeof agdNaLista==='function'&&agdNaLista(l.id))?`<span class="agd-n" title="Leads aguardando resposta">${agdNaLista(l.id)}</span>`:''}
       <span class="tk-acts">
         <button title="Nova tarefa" onclick="event.stopPropagation();spSelLista('${l.id}');setTimeout(tkAbrir,50)">+</button>
       </span></div>`; };
@@ -15084,7 +15214,7 @@ function clTopo(t){
       </div>
       <div class="cl-acoes">
         <button type="button" class="cl-st" style="--c:${esc(cor)}" onclick="clEtMenu(event)" title="Mudar a etapa do lead"><i></i>${esc(atual?clEtNome(atual.nome):'Sem etapa')}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-        ${n?`<button type="button" class="cl-wa" onclick="rspWaAbrir('${t.id}')" title="Abrir a conversa aqui no sistema">${RSP_WA_SVG} Conversar</button>`:''}
+        ${n?`<button type="button" class="cl-wa" onclick="rspWaAbrir('${t.id}')" title="Abrir a conversa aqui no sistema">${RSP_WA_SVG} Conversar${typeof agdBadge==='function'?agdBadge(t):''}</button>`:''}
         ${ig?`<a class="cl-ig" href="https://instagram.com/${esc(ig)}" target="_blank" rel="noopener" title="Abrir @${esc(ig)} no Instagram" aria-label="Instagram">${PC_IC.ig}</a>`:''}
         <button type="button" class="btn secondary small" onclick="clArquivar()" title="Tirar o lead da lista (fica em Arquivados)">Arquivar</button>
         <button type="button" class="x cl-x" onclick="clFechar()" aria-label="Fechar">&times;</button>
