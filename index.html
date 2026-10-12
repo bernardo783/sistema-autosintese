@@ -3134,6 +3134,8 @@
   .rsp-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 12px}
   .rsp-q{max-width:360px;flex:1;min-width:200px;border-radius:999px;padding-left:16px}
   .rsp-dir{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rsp-per{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1 1 auto}
+  .rsp-per .ftab{padding:6px 12px;font-size:12.5px}
   .rsp-n,.rsp-nsel{color:var(--muted);font-size:13px}
   .rsp-nsel{color:var(--txt);font-weight:700}
   .rsp-dir .btn{display:inline-flex;align-items:center;gap:6px;border-radius:999px}
@@ -10483,6 +10485,18 @@ if(!window.__rspTic) window.__rspTic=setInterval(()=>{ try{
     const ms=Date.now()-Number(el.dataset.de), sp=el.querySelector('span'); if(sp) sp.textContent=rspDur(ms);
     if(ms>=RSP_QUENTE_H*3600000&&el.classList.contains('quente')){ el.classList.remove('quente'); el.title='Tempo do lead no funil'; } });
 }catch(_){} },60000);
+/* período de entrada à vista, do lado da busca (Bernardo 11/10: "não tem um filtro pra ver os leads
+   de hoje, de ontem, dos últimos 7 dias ou personalizado"). É o mesmo filtro do botão Filtro lá em
+   cima (TK.filtro), só que sem precisar abrir nada; Personalizado abre o calendário de sempre. */
+function rspPeriodo(){
+  const F=TK.filtro||{}, pers=!!(F.de||F.ate), dm=(iso)=>{ const m=String(iso||'').match(/^\d{4}-(\d{2})-(\d{2})/); return m?m[2]+'/'+m[1]:''; };
+  const b=(k,r)=>`<button type="button" class="ftab${(!pers&&F.prazo===k)?' active':''}" onclick="tkFPrazo('${k}')">${r}</button>`;
+  const tudo=!pers&&!['hoje','ontem','ult7','ult15','ult30'].includes(F.prazo);
+  return `<div class="rsp-per" role="group" aria-label="Período de entrada dos leads">
+      <button type="button" class="ftab${tudo?' active':''}" onclick="tkFPrazo('')">Todos</button>${b('hoje','Hoje')}${b('ontem','Ontem')}${b('ult7','7 dias')}${b('ult15','15 dias')}${b('ult30','30 dias')}
+      <button type="button" class="ftab${pers?' active':''}" onclick="tkPopFiltro(event)" title="Escolher as datas no calendário">${pers?esc([dm(F.de),dm(F.ate)].filter(Boolean).join(' a ')):'Personalizado'}</button>
+    </div>`;
+}
 function tkViewRespostas(){
   const cps=tkCamposDe(TK.listaSel), cD=cps.find(c=>c.nome===RSP_DATA), outros=cps.filter(c=>c!==cD);
   const arr=rspLinhas();
@@ -10528,6 +10542,7 @@ function tkViewRespostas(){
       ${(fech||!g.its.length)?'':cab(g)+g.its.map(linha).join('')}</tbody>`; };
   return `<div class="rsp-bar">
       <input class="search rsp-q" id="rspQ" placeholder="Pesquisar nas respostas…" value="${esc(RSP.q||'')}" oninput="rspBusca(this.value)" autocomplete="off">
+      ${rspPeriodo()}
       <div class="rsp-dir">
         ${nSel?`<span class="rsp-nsel">${nSel} selecionado${nSel===1?'':'s'}</span>
           <button class="btn secondary small" onclick="rspMover(event,'')">Mover para…</button>
@@ -26578,6 +26593,6 @@ initLoginScreen();
 </script>
 <script src="crm.js?v=29" defer></script>
 <script src="comercial/instancias.js?v=5" defer></script>
-<script src="comercial/conversas.js?v=8" defer></script>
+<script src="comercial/conversas.js?v=9" defer></script>
 </body>
 </html>
