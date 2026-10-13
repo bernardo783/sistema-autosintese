@@ -5053,6 +5053,12 @@ const authStore={
 const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {auth:{storage:authStore}});
 
 let cryptoKey=null, DB=null, USERS=null, VAULT_RAW=null, currentUser=null, SESSION=null;
+/* TOKEN SEMPRE FRESCO (Gabriel 13/10): o supabase-js renova o login sozinho a cada hora, mas
+   SESSION ficava com o token velho e toda edge function (WhatsApp, Meta, agenda) respondia
+   "Faça login no sistema". getSession() devolve o token atual e renova se já venceu. */
+async function sbSessao(){ try{ const {data}=await sb.auth.getSession(); if(data&&data.session) SESSION=data.session; }catch(_){} return SESSION; }
+const sbToken=async()=>{ const S=await sbSessao(); return (S&&S.access_token)||''; };
+window.sbSessao=sbSessao; window.sbToken=sbToken;
 const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
 const MAIUS=(s)=>String(s==null?'':s).toLocaleUpperCase('pt-BR');
@@ -5321,6 +5327,7 @@ async function doLogin(){
 
 /* recuperação por e-mail desativada — quem esquece a senha pede a um master para redefinir */
 sb.auth.onAuthStateChange((event,session)=>{
+  if(session) SESSION=session;   /* TOKEN_REFRESHED, SIGNED_IN, USER_UPDATED: o token novo vale na hora */
   if(event==='PASSWORD_RECOVERY'){
     SESSION=session;
     modal('Definir nova senha',`
@@ -6274,7 +6281,7 @@ window.metaCarregar=async (auto)=>{
   if(st) st.textContent=auto&&window.__mtDados?'Verificando…':'Carregando… (até ~15s)';
   try{
     const p=pEl?pEl.value:'last_7d';
-    const r=await fetch(META_URL+'/resumo?preset='+encodeURIComponent(p)+'&v='+Date.now(),{headers:{authorization:'Bearer '+SESSION.access_token}});
+    const r=await fetch(META_URL+'/resumo?preset='+encodeURIComponent(p)+'&v='+Date.now(),{headers:{authorization:'Bearer '+await sbToken()}});
     const d=await r.json();
     if(!d.ok){ if(st) st.textContent='Erro: '+(d.erro||'falha'); return; }
     window.__mtDados=d.contas||[];
@@ -6967,7 +6974,7 @@ window.openRelatorioModal=(accId)=>{
   setTimeout(()=>{ const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Gerar relatório'; },30);
 };
 async function montarRelatorio(accId,cfg){
-  const H={headers:{authorization:'Bearer '+SESSION.access_token}};
+  const H={headers:{authorization:'Bearer '+await sbToken()}};
   const qs=`?since=${cfg.de}&until=${cfg.ate}`;
   const [ri,rc,ra]=await Promise.all([
     fetch(`${META_URL}/insights/${accId}${qs}`,H).then(r=>r.json()),
@@ -11245,8 +11252,8 @@ const IG_META='<svg viewBox="0 0 36 24" fill="none" stroke="currentColor" stroke
 const igPode=()=>anuMaster();
 const igForm=()=>{ const f=CRM_FORMS.find(x=>x.lista===anuLid()); return f?f.form:''; };
 async function igApi(acao,corpo){
-  if(!SESSION||!SESSION.access_token) throw new Error('Sessão expirada: entre de novo.');
-  const r=await fetch(SUPA_URL+'/functions/v1/crm-meta/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+SESSION.access_token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
+  const tk=await sbToken(); if(!tk) throw new Error('Sessão expirada: entre de novo.');
+  const r=await fetch(SUPA_URL+'/functions/v1/crm-meta/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+tk,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
   const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
   if(!d.ok) throw new Error(d.erro||('erro '+r.status));
   return d;
@@ -11335,7 +11342,7 @@ const ANU_STS=[['ativos','Só ativos'],['todos','Ativos e pausados'],['pausados'
 const anuPode=(lid)=>crmPainelPode(lid);
 const anuMaster=()=>!!(typeof currentUser!=='undefined'&&currentUser&&currentUser.role==='master');
 const anuNorm=(s)=>String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
-const anuMeta=(p)=>fetch(META_URL+p+(p.includes('?')?'&':'?')+'v='+Date.now(),{headers:{authorization:'Bearer '+SESSION.access_token}}).then(r=>r.json());
+const anuMeta=async(p)=>fetch(META_URL+p+(p.includes('?')?'&':'?')+'v='+Date.now(),{headers:{authorization:'Bearer '+await sbToken()}}).then(r=>r.json());
 const anuR0=(v)=>'R$ '+Math.round(Number(v)||0).toLocaleString('pt-BR');
 const anuX=(v)=>(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'×';
 const anuRepintar=()=>{ anuPintar(); if(ANU.ad) anuModalPintar(); };
@@ -15207,7 +15214,7 @@ const caDoLead=(tid)=>CA.rs.filter(r=>r.tarefa_id===tid);
 const caProxima=(tid)=>{ const h=tkHoje(); return caDoLead(tid).find(r=>r.status==='marcada'&&caDiaDe(r.inicio)>=h)||null; };
 const caUltima=(tid)=>caDoLead(tid).filter(r=>new Date(r.inicio).getTime()<Date.now()).pop()||null;
 async function caFn(acao,corpo){
-  const tk=(SESSION&&SESSION.access_token)||'';
+  const tk=await sbToken();
   const r=await fetch(SUPA_URL+'/functions/v1/crm-agenda',{method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk,'apikey':SUPA_KEY},
     body:JSON.stringify(Object.assign({acao},corpo||{}))});
@@ -15894,8 +15901,8 @@ const ppRetornos=(t)=>(TK.tarefas||[]).filter(x=>CRM_RET[x.lista_id]&&!arquivada
 const ppLeadDoRetorno=(id)=>{ const x=(TK.tarefas||[]).find(y=>y.id===id); if(!x||!CRM_RET[x.lista_id]) return '';
   const l=String((x.valores||{})._lead||''); return (TK.tarefas||[]).some(y=>y.id===l)?l:''; };
 async function ppApi(acao,corpo){
-  if(typeof SESSION==='undefined'||!SESSION||!SESSION.access_token) throw new Error('Sessão expirada: entre de novo.');
-  const r=await fetch(SUPA_URL+'/functions/v1/wa-uazapi/'+acao,{method:'POST',headers:{authorization:'Bearer '+SESSION.access_token,'content-type':'application/json'},body:JSON.stringify(corpo||{})});
+  const tk=await sbToken(); if(!tk) throw new Error('Sessão expirada: entre de novo.');
+  const r=await fetch(SUPA_URL+'/functions/v1/wa-uazapi/'+acao,{method:'POST',headers:{authorization:'Bearer '+tk,'content-type':'application/json'},body:JSON.stringify(corpo||{})});
   const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
   if(!d.ok) throw new Error(d.erro||('erro '+r.status));
   return d;
@@ -17849,9 +17856,9 @@ window.fnQualificar=async (id,v)=>{
   renderFunil($('#content'));
 };
 async function fnBuscar(){
-  if(!SESSION||!SESSION.access_token) return;
+  const tk=await sbToken(); if(!tk) return;
   FN.carregando=true; FN.erro=''; fnPintarEstado();
-  const H={headers:{authorization:'Bearer '+SESSION.access_token}};
+  const H={headers:{authorization:'Bearer '+tk}};
   const jan=fnPresetJanela(FN.preset), ant=fnJanelaAnterior(jan.de,jan.ate);
   const q=(j)=>`?since=${j.de}&until=${j.ate}&v=${Date.now()}`;
   try{
@@ -18632,8 +18639,8 @@ async function eqCarregar(){
   const form=eqForm();
   const [r,w]=await Promise.all([
     sb.rpc('crm_rodizio_ver',{p_form:form}),
-    (async()=>{ if(!SESSION||!SESSION.access_token) throw new Error('Sessão expirada: entre de novo.');
-      const x=await fetch(SUPA_URL+'/functions/v1/wa-uazapi/listar',{headers:{authorization:'Bearer '+SESSION.access_token}});
+    (async()=>{ const tk=await sbToken(); if(!tk) throw new Error('Sessão expirada: entre de novo.');
+      const x=await fetch(SUPA_URL+'/functions/v1/wa-uazapi/listar',{headers:{authorization:'Bearer '+tk}});
       const d=await x.json().catch(()=>({ok:false,erro:'resposta inválida'})); if(!d.ok) throw new Error(d.erro||('erro '+x.status)); return d; })()
       .catch(e=>({erro:e.message||'falha'}))]);
   /* trocou de CRM no meio da carga: a outra Equipe já pediu a dela */
@@ -26403,7 +26410,7 @@ function mpERot(){
 }
 /* ---------- google ---------- */
 async function mpGFn(acao,corpo){
-  const t=(SESSION&&SESSION.access_token)||'';
+  const t=await sbToken();
   const r=await fetch(SUPA_URL+'/functions/v1/google-agenda',{method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+t,'apikey':SUPA_KEY},
     body:JSON.stringify(Object.assign({acao:acao},corpo||{}))});
@@ -27289,8 +27296,8 @@ initLoginScreen();
   setInterval(checa,5*60*1000);
 })();
 </script>
-<script src="crm.js?v=29" defer></script>
-<script src="comercial/instancias.js?v=5" defer></script>
-<script src="comercial/conversas.js?v=10" defer></script>
+<script src="crm.js?v=30" defer></script>
+<script src="comercial/instancias.js?v=6" defer></script>
+<script src="comercial/conversas.js?v=11" defer></script>
 </body>
 </html>

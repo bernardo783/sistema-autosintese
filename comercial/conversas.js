@@ -13,13 +13,14 @@
             ads:{},adsCarregou:false,fAd:'',resolvendo:false};
   const $=(s)=>document.querySelector(s);
   const cu=()=>{ try{ return currentUser; }catch(_){ return null; } };
-  const ses=()=>{ try{ return SESSION; }catch(_){ return null; } };
+  /* token na hora (Gabriel 13/10): SESSION guardava o token velho depois da renovação de 1h */
+  const ses=async()=>{ try{ if(window.sbSessao) return await sbSessao(); return SESSION; }catch(_){ return null; } };
   const podeVer=()=>{ const u=cu(); return !!(u&&(u.role==='master'||['admin','gestor'].includes(u.papel_crm))); };
   const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const barra=(c)=>[...c.querySelectorAll('.fin-tabs')].find(t=>t.innerHTML.includes('crmAba('))||null;
 
   async function api(acao,corpo){
-    const S=ses(); if(!S||!S.access_token) throw new Error('Sessão expirada: entre de novo.');
+    const S=await ses(); if(!S||!S.access_token) throw new Error('Sessão expirada: entre de novo.');
     const r=await fetch(URL_+'/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+S.access_token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
     const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
     if(!d.ok) throw new Error(d.erro||('erro '+r.status));
@@ -47,7 +48,7 @@
   }
   /* de onde veio cada conversa: chatid -> {campanha, conjunto, anuncio} */
   async function carregarAds(){
-    const S=ses(); if(!S||!S.access_token) return;
+    const S=await ses(); if(!S||!S.access_token) return;
     try{
       const r=await fetch(URL_AD+'/listar',{headers:{authorization:'Bearer '+S.access_token}});
       const d=await r.json().catch(()=>({}));
@@ -57,7 +58,7 @@
   }
   /* so o admin pede: uma ida a Meta por anuncio novo, o resto vem do cache */
   window.cvResolverAds=async ()=>{
-    const S=ses(); if(!S||!S.access_token||CV.resolvendo) return;
+    const S=await ses(); if(!S||!S.access_token||CV.resolvendo) return;
     CV.resolvendo=true; if(window.crmPintar) crmPintar();
     try{
       const r=await fetch(URL_AD+'/resolver',{headers:{authorization:'Bearer '+S.access_token}});

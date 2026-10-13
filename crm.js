@@ -592,8 +592,8 @@ window.crmEquipeModal=()=>{
 
 /* ---------- AGENDA ---------- */
 async function crmEdge(corpo){
-  if(!SESSION||!SESSION.access_token) throw new Error('sem login');
-  const r=await fetch(SUPA_URL+'/functions/v1/google-agenda',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+SESSION.access_token},body:JSON.stringify(corpo)});
+  const tk=await (window.sbToken?sbToken():Promise.resolve((SESSION||{}).access_token||'')); if(!tk) throw new Error('sem login');
+  const r=await fetch(SUPA_URL+'/functions/v1/google-agenda',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify(corpo)});
   const j=await r.json().catch(()=>({erro:'resposta inválida'}));
   if(!r.ok||j.erro) throw new Error(({sem_login:'Faça login de novo.',closer_desconectado:'Esse closer ainda não conectou o Google Agenda.',desconectado:'Conecte o Google Agenda primeiro.',reconectar:'A conexão com o Google expirou: reconecte.',sem_permissao_crm:'Sem permissão no CRM.',google_criar:'O Google não criou o evento: '+(j.detalhe||''),oportunidade_fechada:'Essa oportunidade já está fechada.'})[j.erro]||(j.erro+(j.detalhe?': '+j.detalhe:'')));
   return j;
@@ -732,8 +732,8 @@ const CRM_LOGOS={
 };
 CRM.intg={saude:null,logs:null,meta:null,carregando:false,erro:''};
 async function crmAdminEdge(corpo){
-  if(!SESSION||!SESSION.access_token) throw new Error('sem login');
-  const r=await fetch(SUPA_URL+'/functions/v1/wa-admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+SESSION.access_token},body:JSON.stringify(corpo)});
+  const tk=await (window.sbToken?sbToken():Promise.resolve((SESSION||{}).access_token||'')); if(!tk) throw new Error('sem login');
+  const r=await fetch(SUPA_URL+'/functions/v1/wa-admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify(corpo)});
   const j=await r.json().catch(()=>({erro:'resposta inválida'}));
   if(!r.ok||(j.erro&&!('ok' in j))) throw new Error(j.detalhe?j.erro+': '+j.detalhe:(j.erro||'erro'));
   return j;

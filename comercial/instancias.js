@@ -12,10 +12,11 @@
   const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   /* SESSION e currentUser são `let` do index.html (escopo global, mas não window.*) */
   const cu=()=>{ try{ return currentUser; }catch(_){ return null; } };
-  const ses=()=>{ try{ return SESSION; }catch(_){ return null; } };
+  /* token na hora (Gabriel 13/10): SESSION guardava o token velho depois da renovação de 1h */
+  const ses=async()=>{ try{ if(window.sbSessao) return await sbSessao(); return SESSION; }catch(_){ return null; } };
   const podeAdmin=()=>{ const u=cu(); return !!(u&&(u.role==='master'||['admin','gestor'].includes(u.papel_crm))); };
   async function api(acao,corpo){
-    const S=ses(); if(!S||!S.access_token){ throw new Error('Sessão expirada: entre de novo.'); }
+    const S=await ses(); if(!S||!S.access_token){ throw new Error('Sessão expirada: entre de novo.'); }
     const r=await fetch(URL_+'/'+acao,{method:corpo?'POST':'GET',headers:{authorization:'Bearer '+S.access_token,'content-type':'application/json'},body:corpo?JSON.stringify(corpo):undefined});
     const d=await r.json().catch(()=>({ok:false,erro:'resposta inválida'}));
     if(!d.ok){ const e=new Error(d.erro||('erro '+r.status)); e.dados=d; throw e; }

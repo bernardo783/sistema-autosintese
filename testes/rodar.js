@@ -1489,11 +1489,29 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('nenhum texto de tela com o limite escrito à mão', !/(passa de|até|at\\u00e9) 50 MB/.test(HTML));
       ok('os dois pontos de upload usam o envio em pedaços', HTML.split("const up=await axSubir(chave,f,(a,b)=>{ if(dz) dz.textContent=axProgTxt(f.name,a,b); });").length===3&&HTML.indexOf("sb.storage.from('anexos').upload(chave,f,{contentType:f.type")<0);
     }
+/* ---------------- token sempre fresco nas edge functions ---------------- */
+grupo('Login: token renovado chega nas funções (Gabriel 13/10, "Faça login no sistema")');
+{
+  const cod=bloco('async function sbSessao(){','window.sbSessao=sbSessao;');
+  let pediu=0; const novo={access_token:'NOVO'};
+  const g=rodar(cod,{SESSION:{access_token:'VELHO'},sb:{auth:{getSession:async()=>{ pediu++; return {data:{session:novo}}; }}}},['sbSessao','sbToken']);
+  PROMESSAS.push((async()=>{
+    const t=await g.sbToken();
+    ok('o token vem do supabase-js na hora, não da variável guardada', t==='NOVO'&&pediu===1);
+    ok('a variável SESSION é atualizada de passagem', g.SESSION===novo);
+  })());
+  ok('toda renovação de login atualiza SESSION', /sb\.auth\.onAuthStateChange\(\(event,session\)=>\{\n  if\(session\) SESSION=session;/.test(HTML));
+  const fontes={'index.html':HTML,'crm.js':fs.readFileSync(path.join(__dirname,'..','crm.js'),'utf8'),
+    'comercial/conversas.js':fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8'),
+    'comercial/instancias.js':fs.readFileSync(path.join(__dirname,'..','comercial','instancias.js'),'utf8')};
+  Object.entries(fontes).forEach(([n,src])=>ok('nenhuma chamada usa o token guardado direto: '+n, src.indexOf('SESSION.access_token')<0));
+  ok('Conversas e Instâncias pedem a sessão na hora', /const S=await ses\(\)/.test(fontes['comercial/conversas.js'])&&/const S=await ses\(\)/.test(fontes['comercial/instancias.js'])&&!/const S=ses\(\)/.test(fontes['comercial/conversas.js']));
+}
 /* ---------------- busca do Meta não congela; vínculo só pelo cliente ---------------- */
 grupo('Tráfego: busca do Meta em andamento não vira laço infinito (Bernardo 05/10)');
 {
   /* a ficha dispara a busca; o Tráfego pede de novo enquanto ela roda */
-  const ctx={SESSION:{access_token:'x'},$:()=>null,META_URL:'u',currentView:'outra',toast:()=>{},
+  const ctx={SESSION:{access_token:'x'},sbToken:async()=>'x',$:()=>null,META_URL:'u',currentView:'outra',toast:()=>{},
     mtSalvarCache:()=>{},aprenderLimites:async()=>{},ltGastos:async()=>{},metaDesenhar:()=>{},mtStatusTxt:()=>{},
     fetch:()=>new Promise(r=>setTimeout(()=>r({json:async()=>({ok:true,contas:[{id:'act_1'}]})}),30))};
   const g=rodar(bloco('window.metaCarregar=async','const contaMarca='),ctx,[]);
@@ -1540,7 +1558,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
   ok('a Lista usa o mesmo botão', /rspWaBtn\(t\)(\+rspIgBtn\(t\))?:''/.test(HTML));
   ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
-  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=10')>0);
+  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=11')>0);
   ok('só master e gestor passam o lead pra outro SDR (cartão e conversa)', /function ldPodeTr\(\)\{ return !!\(LD\.tarefa&&LD\.vendedores\.length>1&&LD\.admin\); \}/.test(fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8'))&&HTML.indexOf('<h4>SDR responsável</h4>')>0&&HTML.indexOf('class="cl-sdrro"')>0);
   /* número guardado pelo WhatsApp sem o 9 (Bernardo 11/10): o painel procura dos dois jeitos */
   { const CJ9=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
@@ -1672,7 +1690,7 @@ grupo('Painel do CRM Sofás: mesma estrutura do Comercial, base separada (Bernar
     ok('Anúncios: custo por formulário completo', t.completos===3&&/Custo por formulário completo/.test(A.anuKpis(t,true)));
   }
   ok('no topo do CRM Sofás some o ícone da Lista e o do Quadro', /\$\{soBoard\|\|\(TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\)\?'':tpIb\('lista'/.test(HTML)&&/\$\{TK\.escopo==='lista'&&crmSoResp\(TK\.listaSel\)\?'':tpIb\('quadro'/.test(HTML));
-  ok('crm.js com cache novo', HTML.indexOf('crm.js?v=29')>0);
+  ok('crm.js com cache novo', HTML.indexOf('crm.js?v=30')>0);
 }
 grupo('CRM Motos e CRM Veículos: o mesmo código do CRM Sofás, cada um com a sua base (Bernardo 08/10)');
 {
@@ -2649,7 +2667,7 @@ grupo('Usuários: cadastrar/gerar número de WhatsApp pelo app (Bernardo 05/10)'
   ok('seção não repete número de quem já tem usuário', el.innerHTML.indexOf('<b>kennedy</b>')<0&&el.innerHTML.indexOf('<b>ana</b>')<0);
   ok('seção tem o botão de número novo', el.innerHTML.indexOf('usWaNovo()')>0&&/4 cadastrados · 2 sem usuário/.test(el.innerHTML));
   ok('o container fica embaixo da tabela de Usuários', HTML.indexOf('</tbody></table></div>\n   <div id="usWaSec"></div>')>0);
-  ok('módulo novo com cache novo', HTML.indexOf('comercial/instancias.js?v=5')>0);
+  ok('módulo novo com cache novo', HTML.indexOf('comercial/instancias.js?v=6')>0);
   const IJ=fs.readFileSync(path.join(__dirname,'..','comercial','instancias.js'),'utf8');
   ok('instancias.js tem o formulário (gerar ou colar token)', IJ.indexOf('window.instCadastrar=')>0&&IJ.indexOf("api('criar',{name})")>0&&IJ.indexOf("api('cadastrar',{name,token:tk})")>0);
   ok('token vai em campo de senha, nunca em texto aberto', /id="inst_tk" type="password"/.test(IJ)&&/id="inst_adm" type="password"/.test(IJ));
