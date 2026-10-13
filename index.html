@@ -14667,17 +14667,47 @@ function chPerguntarChurn(id){
     const sai=($('#ch_sai').value||''), ult=($('#ch_ult').value||'');
     if(!sai){ toast('Informe a data de saída.'); return false; }
     const val=Number($('#ch_val').value||0), mot=($('#ch_mot').value||'');
-    const nv={}; nv[CH_SAIDA]=sai;
+    /* guarda o que o card já tinha (Início, gestor, social media): a folha do mês da saída
+       ainda lê esses campos, e o churn marcado em Recebimentos (chMoverParaChurns) faz igual */
+    const nv=Object.assign({},v); nv[CH_SAIDA]=sai;
     if(val) nv[CH_PERDA]=val;
     if(ult) nv[CH_ULTPG]=ult;
     if(mot) nv[CH_MOTIVO]=mot;
     if(v[LC_GEST]) nv[CH_GESTOR]=v[LC_GEST];
     const ok=await tkPatch(id,{lista_id:CH_ID,status_id:CH_FIM,status:'feito',valores:nv},'Movido para Controle de Churns');
-    /* Gabriel 30/09: todo churn pede a pesquisa de saída. O banco já criou a do cliente
-       (trg_nps_churn); aqui o gerente sai com o link na mão. */
-    if(ok&&t.ficha_id) setTimeout(()=>{ try{ psSaida(t.ficha_id); }catch(_){} },200);
+    if(ok&&t.ficha_id) setTimeout(()=>{ chDepoisDoChurn(t,sai).catch(()=>{}); },200);
     return ok;
   });
+}
+/* CHURN SAI DO FINANCEIRO (Gabriel 02/10: "se o cliente foi churn, tem que sair do financeiro e
+   controle de clientes"). CENTROCAR saiu pelo card em 30/09 e o cadastro seguiu ativo: outubro
+   continuou prevendo a cobrança e a comissão. O card indo pro Controle de Churns agora encerra o
+   cadastro (a cobrança para no mês seguinte ao da saída). Pra quem não é master o banco já fez
+   isso junto com a mudança do card (trg_churn_financeiro: o gerente não lê o cadastro); o master
+   chama a RPC, porque o gatilho deixa ele de fora pra não atropelar o salvar de Recebimentos. */
+async function chDepoisDoChurn(t,sai){
+  const fid=t.ficha_id, f=fichaDe(fid), nome=(f&&f.nome)||t.titulo||'este cliente';
+  if(f&&f.status!=='churn'){ f.status='churn'; try{ await saveDB(); }catch(_){} }
+  if(currentUser&&currentUser.role==='master'){
+    try{
+      const {data,error}=await sb.rpc('cliente_churn',{p_ficha:String(fid),p_comp:String(sai||hojeISO()).slice(0,7)});
+      if(error) throw error;
+      /* o banco gravou clientes e recebimentos: reler, senão o próximo salvar cai em conflito */
+      try{ await recarregarModulos(['clientes','recebimentos']); }catch(_){}
+      const r=data||{};
+      if(!r.ok) avisoModal('O Financeiro não foi encerrado',nome+' foi para o Controle de Churns, mas '+(r.motivo||'o cadastro não foi encontrado')+'. Confira em Recebimentos.');
+      else{
+        if(r.mudou) toast(nome+' saiu do Financeiro: sem cobrança depois de '+fmtComp(r.churnComp)+'.');
+        await lcAvisarAsaas(fid,nome);
+      }
+    }catch(e){
+      avisoModal('O Financeiro não foi encerrado',nome+' foi para o Controle de Churns, mas o cadastro do Financeiro continua ativo ('+((e&&e.message)||e)+'). Marque o churn em Recebimentos.');
+    }
+    try{ render(currentView); }catch(_){}
+  }
+  /* Gabriel 30/09: todo churn pede a pesquisa de saída. O banco já criou a do cliente
+     (trg_nps_churn); aqui o gerente sai com o link na mão. */
+  try{ psSaida(fid); }catch(_){}
 }
 
 /* ---------- CHURN AUTOMATICO (Gabriel 31/08) ----------
@@ -17208,11 +17238,11 @@ async function lcSyncArquivo(fid,arquivar){
 async function lcAvisarAsaas(fid,nome){
   const c=(DB.clientes||[]).find(x=>String(x.id)===String((fichaDe(fid)||{}).clienteId));
   const sub=c&&c.asaas&&c.asaas.subscriptionId;
-  if(!sub) return;
+  if(!sub||c.asaas.cancelado) return;
   const prox=(c.asaas.proximoVencimento||'').slice(0,10);
   const ok=await confirmar('Cancelar a cobrança no Asaas?',
     nome+' tem assinatura ativa no Asaas'+(prox?' (próxima em '+fmtDate(prox)+')':'')+
-    '. Arquivar no sistema não para o Asaas: sem cancelar, ele continua recebendo cobrança.',
+    '. A saída no sistema não para o Asaas: sem cancelar, ele continua recebendo cobrança.',
     {sim:'Cancelar no Asaas',nao:'Depois'});
   if(!ok){ avisoModal('Cobrança segue ativa','A assinatura de '+nome+' continua no Asaas. Cancele por lá ou volte aqui pelo menu do cliente.'); return; }
   try{
@@ -22106,8 +22136,8 @@ function rcSituacao(c,comp,r,hoje){
   if(c.inicio && comp<c.inicio) return null; /* cliente só conta a partir do mês de início */
   /* PARCERIA (Gabriel 30/09, JR MOTORS VR): cliente ativo que não paga mensalidade. Não é
      cobrança nem churn: fica de fora de a receber, inadimplente e das somas. */
+  if(c.churnComp && comp>c.churnComp) return 'churn'; /* churn confirmado: perdido dali em diante (vale pra parceria também) */
   if(c.parceria) return 'parceria';
-  if(c.churnComp && comp>c.churnComp) return 'churn'; /* churn confirmado: perdido dali em diante */
   if(!(c.diaVenc>=1&&c.diaVenc<=31)) return null;
   if(c.fim && comp>c.fim) return null; /* churn: depois do último mês o cliente zera */
   if(comp<'2026-07') return null; /* início do sistema: antes de jul/2026 fica zerado */
@@ -22895,6 +22925,7 @@ window.rcStatusCli=async (cliId,novo,lote)=>{
     const ps=rcParcNovas(c,r.venc); if(ps) r.parcelas=ps;
     DB.recebimentos.push(r);
   }
+  const eraChurn=r.status==='churn'||r.status==='churnpago';
   /* cobrança em parcelas (Bernardo 06/10): o status sai das parcelas. Recebido marca todas as
      que faltam; Sinal recebe a próxima; A receber / Inadimplente desfazem as recebidas. Churn e
      carência desmancham o parcelamento do mês e seguem o caminho de sempre. */
@@ -22971,7 +23002,14 @@ window.rcStatusCli=async (cliId,novo,lote)=>{
     r.status=novo; r.recebido=false; r.recebidoEm=null; r.sinal=null; r.sinalEm=null; r.restanteVenc='';
     DB.financeiro=DB.financeiro.filter(x=>x.id!=='rc_'+r.id&&x.id!=='rcs_'+r.id);
   }
-  if(novo!=='churn' && novo!=='churnpago' && c.churnComp && comp>=c.churnComp){ c.churnComp=null; c.fim=''; await chVoltarDeChurns(c); }
+  /* Tirar o churn desfaz a saída: cadastro volta a cobrar e o card volta pro Controle de Clientes.
+     Exceção (Gabriel 02/10): churn registrado pelo card deixa a cobrança do mês da saída em aberto.
+     Receber esse último mês não traz o cliente de volta, vira "saiu, pagou o mês"; trocar entre
+     a receber e inadimplente também não desfaz nada. */
+  if(novo!=='churn' && novo!=='churnpago' && c.churnComp && comp>=c.churnComp){
+    if(comp===c.churnComp && !eraChurn){ if(novo==='recebido'){ r.status='churnpago'; r.churnEm=r.churnEm||hojeISO(); novo='churnpago'; } }
+    else { c.churnComp=null; c.fim=''; await chVoltarDeChurns(c); }
+  }
   if(lote) return true; /* rcStatusGrupo muda varias contas e grava uma vez so, no fim */
   await saveDB(); rcVolta(); cbSincronizar(); toast('Status de '+c.nome+': '+(novo==='recebido'?'Recebido':novo==='sinal'?'Sinal pago':novo==='inadimplente'?'Inadimplente':novo==='churn'?'Churn: receita perdida':novo==='churnpago'?'Churn: mês pago, receita mantida':novo==='carencia'?'Carência: isento no mês':'A receber')+(moveuChurn?' · card movido para Controle de Churns':''));
 };
