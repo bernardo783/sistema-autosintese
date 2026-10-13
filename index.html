@@ -12880,7 +12880,7 @@ window.pessoalVirar=async (id)=>{
 };
 window.pessoalApagar=async (id)=>{
   const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id)); if(!t) return;
-  if(!confirm('Apagar "'+t.titulo+'"?')) return;
+  if(!confirm('Apagar "'+t.titulo+'"?'+recAvisoApagar(t))) return;
   const {error}=await sb.from('tarefas').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
   TK.tarefas=TK.tarefas.filter(x=>String(x.id)!==String(id));
@@ -13624,8 +13624,9 @@ async function tkPatch(id,patch,msg){
 }
 /* ======================= TAREFAS RECORRENTES (Gabriel 23/09) =======================
    A regra mora em tarefas.recorrencia (jsonb) na tarefa ATUAL da série. Quando ela é
-   concluída — ou chega o prazo, no modo "na data" — nasce a próxima com o prazo seguinte
-   e a regra passa pra ela; a antiga guarda recorrencia.gerou = id da nova.
+   concluída, nasce a próxima com o prazo seguinte e a regra passa pra ela; a antiga guarda
+   recorrencia.gerou = id da nova. No modo "na data" a próxima nasce no DIA DELA (Bernardo
+   13/10), mesmo com a anterior aberta; até lá a regra fica na tarefa da semana corrente.
    Trava contra duplicar: o carimbo "gerou" é gravado ANTES do insert e só se ainda estiver
    vazio (update ... where recorrencia->>gerou is null). Dois navegadores abertos nunca
    criam a mesma próxima. Não tem cron no banco: quem abre o sistema materializa, igual ao
@@ -13644,6 +13645,13 @@ const recNth=(d)=>{ const n=Math.floor((d.getDate()-1)/7), ult=d.getDate()+7>rec
   return {n:ult&&n>=3?4:n,dow:d.getDay()}; };
 /* ativa = é a tarefa da vez numa série que ainda vai gerar outra */
 const recAtiva=(t)=>!!(t&&t.recorrencia&&!t.recorrencia.gerou);
+const recNaData=(r)=>!!r&&r.gat==='agenda'&&(r.r||{}).u!=='c';
+/* série viva = ainda vai gerar outra. Arquivar a tarefa da vez encerra a série; mas no modo
+   "na data" a regra fica na tarefa já concluída até o dia da próxima, e arquivar uma concluída
+   é só limpeza: a série não pode morrer por isso. */
+const recViva=(t)=>recAtiva(t)&&(!arquivada(t)||(recNaData(t.recorrencia)&&t.status==='feito'));
+/* apagar a tarefa que carrega a regra encerra a repetição: o aviso vai junto do "tem certeza" */
+const recAvisoApagar=(t)=>recAtiva(t)?' Ela carrega a repetição ('+recRotulo(t.recorrencia)+'): apagar encerra a série.':'';
 function recNoMes(a,m,modo,anc){
   if(modo==='util1'){ let d=new Date(a,m,1); while(recFds(d)) d=recAdd(d,1); return d; }
   if(modo==='ultutil'){ let d=new Date(a,m,recUlt(a,m)); while(recFds(d)) d=recAdd(d,-1); return d; }
@@ -13762,18 +13770,27 @@ function recMover(ini,de,para){
 const recUuid=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID()
   :'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{ const r=Math.random()*16|0; return (c==='x'?r:(r&3|8)).toString(16); });
 
-let REC_RODANDO=false, REC_TIMER=null, REC_SEM_COLUNA=false;
+let REC_RODANDO=false, REC_TIMER=null, REC_SEM_COLUNA=false, REC_DIA='';
+/* aba que ficou aberta de um dia pro outro: ao voltar pra ela, confere as repetições do dia novo */
+if(typeof document!=='undefined'&&document.addEventListener) document.addEventListener('visibilitychange',()=>{
+  if(document.hidden||!REC_DIA||REC_DIA===dtISO(new Date())) return;
+  try{ recAgendar(); }catch(_){} });
 window.recAgendar=()=>{ if(REC_SEM_COLUNA) return; clearTimeout(REC_TIMER); REC_TIMER=setTimeout(recVerificar,350); };
 async function recVerificar(){
   if(REC_RODANDO){ recAgendar(); return; }
   REC_RODANDO=true; const feitas=[];
   try{
-    const hoje=dtISO(new Date());
+    const hoje=dtISO(new Date()); REC_DIA=hoje;
     /* até 12 voltas: no modo "na data", quem ficou dias sem abrir recupera as que faltaram */
     for(let volta=0;volta<12;volta++){
       const alvo=(TK.tarefas||[]).filter(t=>{ const r=t.recorrencia;
-        if(!r||r.pausada||r.gerou||arquivada(t)) return false;
-        if(r.gat==='agenda'&&(r.r||{}).u!=='c') return !!t.prazo&&t.prazo<=hoje;
+        if(!r||r.pausada||!recViva(t)) return false;
+        /* modo "na data" (Bernardo 13/10, passagem do Luan): a próxima nasce no DIA DELA, não uma
+           volta antes. Nascendo no prazo da atual, toda segunda apareciam duas (a do dia e a da
+           semana seguinte); quem concluía as duas ficava sem tarefa no dia certo. Série que
+           acabou não tem próxima: aí vale o prazo desta, só pra carimbar o fim. */
+        if(recNaData(r)){ if(!t.prazo) return false;
+          const px=recProxima(r,t); return px?px.prazo<=hoje:t.prazo<=hoje; }
         return t.status==='feito'; });
       if(!alvo.length) break;
       let fez=0;
@@ -13789,6 +13806,7 @@ async function recVerificar(){
   try{
     if(currentView==='lista'||currentView==='espaco') tkDesenhar($('#content'));
     else if(currentView==='inicio') renderInicio($('#content'));
+    else if(currentView==='pessoal') mpPintar();   /* a tarefa do dia nasce depois da tela pintada */
     spDesenhar();
   }catch(_){}
 }
@@ -13809,7 +13827,8 @@ async function recGerar(t){
     const patch=Object.assign(col,{lista_id:lid,prazo:px.prazo,iniciada_em:recMover(t.iniciada_em,t.prazo,px.prazo),
       concluida_em:null,conclusao_texto:null,concluida_por:null,checklist:ck,responsaveis:quem.ids,responsavel_id:quem.ids[0]||null,recorrencia:recNova});
     let q=sb.from('tarefas').update(patch).eq('id',t.id).is('recorrencia->>gerou',null);
-    q=(rec.gat==='agenda'&&(rec.r||{}).u!=='c')?q.eq('prazo',t.prazo):q.eq('status','feito');
+    q=recNaData(rec)?q.eq('prazo',t.prazo):q.eq('status','feito');
+    if(recNaData(rec)&&rec.base) q=q.eq('recorrencia->>base',rec.base);   /* prazo arrastado pode não mudar; a base sempre muda */
     const {data,error}=await q.select('id');
     if(error) return recErro(error);
     if(!data||!data.length) return false;
@@ -13818,7 +13837,18 @@ async function recGerar(t){
   const novoId=recUuid(), r1=Object.assign({},rec,{gerou:novoId});
   const c=await sb.from('tarefas').update({recorrencia:r1}).eq('id',t.id).is('recorrencia->>gerou',null).select('id');
   if(c.error) return recErro(c.error);
-  if(!c.data||!c.data.length) return false;          /* outro navegador já pegou */
+  if(!c.data||!c.data.length){                        /* outro navegador (ou outra carga) já pegou */
+    /* a memória pode ter ficado com a foto de antes: busca a que nasceu, senão a tarefa do dia
+       só apareceria na próxima recarga */
+    try{
+      const h=await sb.from('tarefas').select('recorrencia').eq('id',t.id).maybeSingle();
+      const gid=h&&h.data&&h.data.recorrencia&&h.data.recorrencia.gerou;
+      if(gid){ t.recorrencia=h.data.recorrencia;
+        if(gid!=='fim'&&!TK.tarefas.some(x=>String(x.id)===String(gid))){
+          const n=await sb.from('tarefas').select('*').eq('id',gid).maybeSingle();
+          if(n&&n.data){ TK.tarefas.push(n.data); return n.data; } } }
+    }catch(_){}
+    return false; }
   t.recorrencia=r1;
   const nova=Object.assign({
     id:novoId, lista_id:lid, titulo:t.titulo, descricao:leva.desc===false?null:(t.descricao||null),
@@ -13936,7 +13966,7 @@ function recPintar(){
         <option value="nunca"${RE.fim.t==='nunca'?' selected':''}>nunca</option><option value="data"${RE.fim.t==='data'?' selected':''}>na data</option><option value="vezes"${RE.fim.t==='vezes'?' selected':''}>após N vezes</option></select>
       ${RE.fim.t==='data'?`<input type="date" class="rc-sel" value="${esc(RE.fim.d)}" min="${esc(RE.prazo)}" onchange="RE.fim.d=this.value;recPintarLeve()">`:''}
       ${RE.fim.t==='vezes'?`<input type="number" class="rc-num" min="1" value="${esc(String(RE.fim.n))}" oninput="RE.fim.n=this.value;recPintarLeve()"><span class="rc-k" style="min-width:0">vezes</span>`:''}</div>
-    ${R.u!=='c'?`<div class="rc-ln"><span class="rc-k">Próxima surge</span><select class="rc-sel" onchange="RE.gat=this.value;recPintarLeve()"><option value="concluir"${RE.gat==='concluir'?' selected':''}>quando concluir esta</option><option value="agenda"${RE.gat==='agenda'?' selected':''}>no prazo, mesmo sem concluir</option></select></div>`:''}
+    ${R.u!=='c'?`<div class="rc-ln"><span class="rc-k">Próxima surge</span><select class="rc-sel" onchange="RE.gat=this.value;recPintarLeve()"><option value="concluir"${RE.gat==='concluir'?' selected':''}>quando concluir esta</option><option value="agenda"${RE.gat==='agenda'?' selected':''}>na data dela, mesmo sem concluir esta</option></select></div>`:''}
     <label class="rc-cb"><input type="checkbox" ${RE.nova?'checked':''} onchange="RE.nova=this.checked;recPintarLeve()">Criar uma tarefa nova <small>(desmarcado reabre esta)</small></label>
     <label class="rc-cb"><input type="checkbox" ${RE.fds?'checked':''} onchange="RE.fds=this.checked;recPintar()">Pular sábado e domingo</label>
     <button type="button" class="rc-mais${RE.abre==='leva'?' ab':''}" onclick="recAbre('leva')"><span class="tri">▸</span>O que a nova tarefa leva</button>
@@ -13964,7 +13994,7 @@ const recFimPadrao=()=>{ const d=dtDe(RE.prazo)||new Date(); return dtISO(new Da
 function recResumoHtml(rec,px){
   const R=rec.r, q=rec.quem;
   const quem=!q.ids.length?' Fica com quem estiver na tarefa.':(q.rev?' Revezando: '+q.ids.map(id=>primeiroNome(tkNomeUser(id))).join(' → ')+'.':' Vai para '+recLista(q.ids.map(id=>primeiroNome(tkNomeUser(id))))+'.');
-  const quando=R.u==='c'?' Conta a partir do dia em que esta for concluída.':(rec.gat==='concluir'?' Quando concluir, ':' No prazo, mesmo com esta aberta, ')+(R.u==='c'?'':(rec.nova?'nasce uma tarefa nova.':'esta mesma volta para o início.'));
+  const quando=R.u==='c'?' Conta a partir do dia em que esta for concluída.':(rec.gat==='concluir'?' Quando concluir, ':' Na data da próxima, mesmo com esta aberta, ')+(R.u==='c'?'':(rec.nova?'nasce uma tarefa nova.':'esta mesma volta para o início.'));
   const fim=recFimTxt(Object.assign({},rec,{n:1}));
   const d=rec.dest||{}, colN=(recColunas(d.lista_id).find(x=>String(x.v)===String(d.status))||{}).n;
   const onde=d.lista_id?' Nasce em '+recDestCurto(d.lista_id)+(colN?', coluna '+colN:'')+'.':'';
@@ -14015,7 +14045,7 @@ const recIco=(t)=>recAtiva(t)?`<span class="tk-recico${t.recorrencia.pausada?' p
 let REC_F='ativas', REC_Q='';
 const recAbas=()=>souGerente()?`<div class="tp-abas"><button class="${TK.escopo==='minhas'?'on':''}" onclick="recAba('minhas')">Minhas</button><button class="${TK.escopo==='recorrentes'?'on':''}" onclick="recAba('recorrentes')">Recorrentes</button></div>`:'';
 window.recAba=(a)=>{ TK.escopo=a; currentView='lista'; tkDesenhar($('#content')); };
-function recSeries(){ return (TK.tarefas||[]).filter(t=>recAtiva(t)&&!arquivada(t)); }
+function recSeries(){ return (TK.tarefas||[]).filter(recViva); }
 function recTerminando(t){ const f=t.recorrencia.fim||{};
   if(f.t==='data'&&f.d){ const lim=new Date(); lim.setDate(lim.getDate()+30); return f.d<=dtISO(lim); }
   if(f.t==='vezes') return (+f.n||1)-(+t.recorrencia.n||1)<=2;
@@ -16386,8 +16416,10 @@ async function tkmSalvar(t,lid,cps,silencioso){
           return false; }
         Object.assign(v,cnEx);
         if(!$('#tk_tit')) return false; }
-      /* repetição: prazo mudado na mão vira a nova base da série (a próxima conta dele) */
-      if(t&&recAtiva(t)&&v.prazo&&v.prazo!==t.prazo) v.recorrencia=Object.assign({},t.recorrencia,{base:v.prazo});
+      /* repetição: prazo mudado na mão vira a nova base da série (a próxima conta dele). No modo
+         "na data" não: a série segue o calendário, e adiar a de segunda pra semana seguinte
+         engolia a próxima (a passagem ficava com uma parcela sem tarefa) */
+      if(t&&recAtiva(t)&&!recNaData(t.recorrencia)&&v.prazo&&v.prazo!==t.prazo) v.recorrencia=Object.assign({},t.recorrencia,{base:v.prazo});
       let error=null, criada=null;
       if(t){ ({error}=await sb.from('tarefas').update(v).eq('id',t.id)); }
       else { const pr=(async()=>await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single())();
@@ -17761,7 +17793,7 @@ window.tkExcluir=async (id)=>{
   if(!arquivada(t)){ return tkArquivar(id); }   /* nunca apaga direto: arquiva primeiro */
   if(!(currentUser&&currentUser.role==='master')){
     toast('Só um master exclui de vez. Ela continua arquivada.'); return; }
-  if(!confirm('Excluir "'+t.titulo+'" de vez?\n\nIsso não tem volta.')) return;
+  if(!confirm('Excluir "'+t.titulo+'" de vez?\n\nIsso não tem volta.'+recAvisoApagar(t))) return;
   const {error}=await sb.from('tarefas').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
   const ov=document.querySelector('.overlay'); if(ov) ov.remove();
@@ -24449,6 +24481,7 @@ window.fpPagar=async (id)=>{
 window.fpDesfazer=async (id)=>{
   const p=DB.folha.find(x=>x.id===id); if(!p||!p.pago)return;
   p.pago=false; p.pagoEm=null;
+  delete p.tarefaPagou;   /* igual ao -1 dos outros pagamentos: senão reabrir a tarefa desfaria um pagamento feito à mão depois */
   fpSincronizar();
   await saveDB(); render(folhaView()); toast('Pagamento desfeito. A despesa continua na competência, como a pagar.');
 };
@@ -25006,6 +25039,7 @@ async function renderPessoal(c){
   try{ await mpArrastarPendentes(); }catch(_){ }
   if(currentView!=='pessoal') return;
   mpPintar();
+  try{ recAgendar(); }catch(_){}   /* tarefa recorrente do dia: nasce e a tela repinta (recVerificar) */
   /* a chave Trabalho lista tarefas da empresa: tambem confere no banco */
   if(mpTrab()) tkRevalidar(()=>currentView==='pessoal',mpPintar);
 }
@@ -25988,10 +26022,11 @@ window.mpTarVirar=async(id)=>{
   const {error}=await sb.from('tarefas').update(patch).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
   Object.assign(t,patch); mpPintar();
+  try{ recAgendar(); }catch(_){}
 };
 window.mpTarDel=async(id)=>{
   const t=(TK.tarefas||[]).find(x=>String(x.id)===String(id));
-  const ok=await confirmar('Apagar tarefa','Apaga "'+((t||{}).titulo||'')+'". Sem volta.',{sim:'Apagar',perigo:true});
+  const ok=await confirmar('Apagar tarefa','Apaga "'+((t||{}).titulo||'')+'". Sem volta.'+recAvisoApagar(t),{sim:'Apagar',perigo:true});
   if(!ok) return;
   const {error}=await sb.from('tarefas').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
@@ -26143,7 +26178,7 @@ window.mpTcSubDel=async(id)=>{ const {error}=await sb.from('tarefas').delete().e
   if(error){ toast('Erro: '+error.message); return; }
   TK.tarefas=TK.tarefas.filter(x=>String(x.id)!==String(id)); mpTcPintar(); };
 window.mpTcApagar=async()=>{ const t=mpTcT(); if(!t) return;
-  const ok=await confirmar('Apagar tarefa','Apaga "'+(t.titulo||'')+'" com checklist e subtarefas. Sem volta.',{sim:'Apagar',perigo:true});
+  const ok=await confirmar('Apagar tarefa','Apaga "'+(t.titulo||'')+'" com checklist e subtarefas. Sem volta.'+recAvisoApagar(t),{sim:'Apagar',perigo:true});
   if(!ok) return;
   const {error}=await sb.from('tarefas').delete().eq('id',t.id);
   if(error){ toast('Erro: '+error.message); return; }
