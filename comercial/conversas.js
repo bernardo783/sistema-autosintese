@@ -96,7 +96,8 @@
       sb.channel('wa-conversas').on('postgres_changes',{event:'INSERT',schema:'public',table:'wa_mensagens'},()=>{
         if(!CV.aba) return;
         carregarChats().then(()=>{ if(CV.aba&&window.crmPintar) crmPintar(); });
-        if(CV.sel) carregarMsgs(true).then(()=>{ if(CV.aba) pintarThread(); });
+        /* audio tocando: nao repinta agora, senao o player e recriado no meio da escuta */
+        if(CV.sel&&!tocando()) carregarMsgs(true).then(()=>{ if(CV.aba&&!tocando()) pintarThread(); });
       }).subscribe();
       CV.inscrito=true;
     }catch(_){ /* sem realtime, fica o ↻ */ }
@@ -134,8 +135,13 @@
     CV.msgs.forEach(m=>{
       const d=diaDe(m.quando);
       if(d!==dia){ dia=d; out+=`<div class="cv-dia"><span>${esc(d)}</span></div>`; }
-      const anexo=m.arquivo?`<a href="${esc(m.arquivo)}" target="_blank" rel="noopener" class="cv-anexo">abrir arquivo</a>`:'';
-      out+=`<div class="cv-bal ${m.deNos?'nos':'eles'}${m.disparo?' disp':''}">${m.texto?esc(m.texto):'<i>(sem texto)</i>'}${anexo}
+      const t=String(m.tipo||'');
+      const corpo=m.arquivo
+        ? (m.texto?esc(semEmoji(m.texto)):'')+midiaHtml(m.arquivo,midiaTipo(t))
+        : (/Audio|Ptt|Image|Sticker|Video|Document/.test(t)
+            ? (()=>{ const leg=esc(semEmoji(m.texto)); return midiaBtn(m,midiaTipo(t),CV.num,'')+(leg?'<div>'+leg+'</div>':''); })()
+            : (m.texto?esc(semEmoji(m.texto))||'<i>(sem texto)</i>':'<i>(sem texto)</i>'));
+      out+=`<div class="cv-bal ${m.deNos?'nos':'eles'}${m.disparo?' disp':''}">${corpo}
         <span class="cv-hr">${esc(hora(m.quando))}${m.deNos&&m.status?' · '+esc(String(m.status).toLowerCase()):''}</span></div>`;
     });
     return out;
@@ -323,6 +329,12 @@
   .wald-em button:hover{background:var(--hov2)}
   .wald-img{display:block;max-width:240px;max-height:260px;border-radius:8px;margin-bottom:4px}
   .wald-aud{display:block;width:240px;max-width:100%;height:36px}
+  .cv-pede{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--linha);border-radius:999px;
+    padding:5px 11px 5px 8px;color:var(--txt);font:inherit;font-size:12.5px;cursor:pointer;line-height:1}
+  .cv-pede:hover{border-color:var(--brand2);color:var(--brand2)}
+  .cv-pede[disabled]{opacity:.6;cursor:default}
+  .cv-pede svg{flex:none}
+  .cv-mdx{font-size:11.5px;color:var(--danger);margin-top:4px}
   .wald-ag{background:transparent!important;border:1px dashed var(--brand);color:var(--muted)}
   .wald-ag.erro{border-color:var(--danger)}
   .wald-agt{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--brand2);margin-bottom:3px}
@@ -409,9 +421,76 @@
     foto:sv('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',16),doc:sv('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>',16),
     fora:sv('<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',16),
     copia:sv('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',12),
-    pessoa:sv('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',13),raio:sv('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',13)};
+    pessoa:sv('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',13),raio:sv('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',13),
+    play:sv('<path d="M8 5.5v13l10.5-6.5z"/>',14)};
   const tarefaDe=(id)=>{ try{ return (TK.tarefas||[]).find(x=>x.id===id)||null; }catch(_){ return null; } };
   const urlOk=(u)=>/^https?:\/\//i.test(String(u||''));
+  /* ---------- OUVIR O AUDIO, VER A FOTO (Gabriel 14/10) ----------
+     A UAZAPI nao manda o arquivo junto com a mensagem: o que chega e a midia criptografada na CDN do
+     WhatsApp (.enc + mediaKey), que o navegador nao toca. Quem descriptografa e ela mesma, sob
+     demanda, e a nossa funcao wa-midia faz esse pedido e devolve o arquivo ja autenticado. Era por
+     isso que o painel mostrava so a palavra "Audio", sem player.
+     Um clique = um arquivo: a conversa de um lead tem centenas de mensagens e baixar tudo de uma vez
+     seria lento e caro. O que ja foi buscado fica em MID, pra sobreviver ao refresh de 25 s. */
+  const MIDIA_URL='https://fuieonexmdupupcsyowg.supabase.co/functions/v1/wa-midia';
+  const MID={};        /* messageid -> url pronta (blob local, ou link quando o arquivo e grande) */
+  const MID_TOCA={};   /* messageid -> esta tocando agora: segura o refresh pra nao cortar o audio */
+  const tocando=()=>Object.keys(MID_TOCA).length>0;
+  const MID_ROT={audio:'Ouvir áudio',imagem:'Ver foto',video:'Ver vídeo',arquivo:'Abrir arquivo'};
+  const midiaTipo=(t)=>{ t=String(t||'');
+    return /Audio|Ptt/.test(t)?'audio':/Image|Sticker/.test(t)?'imagem':/Video/.test(t)?'video':'arquivo'; };
+  /* o rotulo de previa vem do servidor com emoji ("<audio> Audio"); na tela do sistema emoji nao entra */
+  const semEmoji=(x)=>String(x||'').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu,'').trim();
+  function midiaHtml(url,tipo){
+    if(tipo==='audio') return `<audio class="wald-aud" controls preload="metadata" src="${esc(url)}"></audio>`;
+    if(tipo==='imagem') return `<a href="${esc(url)}" target="_blank" rel="noopener"><img class="wald-img" src="${esc(url)}" alt="" loading="lazy"></a>`;
+    if(tipo==='video') return `<video class="wald-img" controls preload="metadata" src="${esc(url)}"></video>`;
+    return `<a href="${esc(url)}" target="_blank" rel="noopener" class="cv-anexo">abrir arquivo</a>`;
+  }
+  /* botao enquanto o arquivo nao foi buscado; depois de buscado, o proprio player */
+  function midiaBtn(m,tipo,name,tarefa){
+    const id=String(m.id||'');
+    if(!id||!name) return '<i>(arquivo indisponível)</i>';
+    if(MID[id]) return midiaHtml(MID[id],tipo);
+    return `<button type="button" class="cv-pede" data-mid="${esc(id)}" onclick="waMidia(this,'${esc(id)}','${esc(name)}','${esc(tarefa||'')}','${tipo}')">`+
+      `${tipo==='audio'?IC.play:tipo==='imagem'?IC.foto:IC.doc}${MID_ROT[tipo]||MID_ROT.arquivo}</button>`;
+  }
+  window.waMidia=async (btn,id,name,tarefa,tipo)=>{
+    if(!btn||btn.dataset.indo) return;
+    btn.dataset.indo='1'; btn.disabled=true;
+    const antes=btn.innerHTML;
+    btn.innerHTML=IC.relogio+'Buscando'+(tipo==='audio'?' o áudio':' o arquivo')+'…';
+    const falhou=(msg)=>{ delete btn.dataset.indo; btn.disabled=false; btn.innerHTML=antes;
+      const velho=btn.parentNode&&btn.parentNode.querySelector('.cv-mdx'); if(velho) velho.remove();
+      const d=document.createElement('div'); d.className='cv-mdx'; d.textContent=msg;
+      if(btn.parentNode) btn.parentNode.insertBefore(d,btn.nextSibling); };
+    try{
+      const S=await ses(); if(!S||!S.access_token) throw new Error('Sessão expirada: entre de novo.');
+      const r=await fetch(MIDIA_URL,{method:'POST',
+        headers:{authorization:'Bearer '+S.access_token,'content-type':'application/json'},
+        body:JSON.stringify({id,name,tarefa:tarefa||null,mp3:tipo==='audio'})});
+      /* arquivo grande volta como JSON com o link; o resto volta como o proprio arquivo */
+      if(/application\/json/i.test(r.headers.get('content-type')||'')){
+        const d=await r.json().catch(()=>({}));
+        if(!d.ok||!d.url) throw new Error(d.erro||('erro '+r.status));
+        MID[id]=d.url;
+      } else {
+        if(!r.ok) throw new Error('erro '+r.status);
+        MID[id]=URL.createObjectURL(await r.blob());
+      }
+    }catch(e){ falhou(e.message||'não consegui buscar'); return; }
+    const box=btn.parentNode; if(!box) return;
+    const velho=box.querySelector('.cv-mdx'); if(velho) velho.remove();
+    const cx=document.createElement('span'); cx.innerHTML=midiaHtml(MID[id],tipo);
+    const el=cx.firstElementChild; box.replaceChild(el,btn);
+    if(tipo==='audio'&&el&&el.tagName==='AUDIO'){
+      /* enquanto toca, o painel nao se repinta: o refresh recriaria o player e cortaria o audio */
+      el.addEventListener('play',()=>{ MID_TOCA[id]=1; });
+      el.addEventListener('pause',()=>{ delete MID_TOCA[id]; });
+      el.addEventListener('ended',()=>{ delete MID_TOCA[id]; });
+      el.play().catch(()=>{});
+    }
+  };
   const dataHora=(iso)=>{ const d=new Date(iso); if(isNaN(d)) return '';
     return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
   /* status da UAZAPI em ingles -> como o WhatsApp mostra */
@@ -428,7 +507,7 @@
     await ldCarregar();
     clearInterval(LD.iv);
     LD.iv=setInterval(()=>{ if(!$('#waLdOv')){ clearInterval(LD.iv); return; }
-      if(document.visibilityState==='visible'&&!LD.enviando&&!LD.rec&&!LD.pop) ldCarregar(true); },25000);
+      if(document.visibilityState==='visible'&&!LD.enviando&&!LD.rec&&!LD.pop&&!tocando()) ldCarregar(true); },25000);
   };
   /* O WhatsApp guarda muito número antigo SEM o nono dígito (55 62 99295-5519 fica 556292955519).
      A conversa existia, mas procurando só com o 9 o painel dizia "ainda não tem conversa" mesmo
@@ -501,7 +580,10 @@
     if(u&&/Image|Sticker/.test(t)) return `<a href="${esc(u)}" target="_blank" rel="noopener"><img class="wald-img" src="${esc(u)}" alt="" loading="lazy"></a>${leg}`;
     if(u&&/Video/.test(t)) return `<video class="wald-img" controls preload="metadata" src="${esc(u)}"></video>${leg}`;
     if(u&&/Audio|Ptt/.test(t)) return `<audio class="wald-aud" controls preload="none" src="${esc(u)}"></audio>`;
-    return (m.texto?esc(m.texto):'<i>(sem texto)</i>')+(u?`<a href="${esc(u)}" target="_blank" rel="noopener" class="cv-anexo">abrir arquivo</a>`:'');
+    /* sem link pronto: a UAZAPI so entrega o arquivo quando a gente pede (um clique, um arquivo) */
+    if(/Audio|Ptt|Image|Sticker|Video|Document/.test(t))
+      return midiaBtn(m,midiaTipo(t),m.por||LD.por,LD.tarefa)+leg;
+    return (m.texto?esc(semEmoji(m.texto))||'<i>(sem texto)</i>':'<i>(sem texto)</i>');
   }
   function ldMsgs(){
     if(LD.carregando) return '<div class="cv-nada">Procurando a conversa…</div>';
