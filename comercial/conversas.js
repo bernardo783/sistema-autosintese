@@ -580,6 +580,8 @@
     if(u&&/Image|Sticker/.test(t)) return `<a href="${esc(u)}" target="_blank" rel="noopener"><img class="wald-img" src="${esc(u)}" alt="" loading="lazy"></a>${leg}`;
     if(u&&/Video/.test(t)) return `<video class="wald-img" controls preload="metadata" src="${esc(u)}"></video>${leg}`;
     if(u&&/Audio|Ptt/.test(t)) return `<audio class="wald-aud" controls preload="none" src="${esc(u)}"></audio>`;
+    /* link pronto de documento: segue abrindo direto, como sempre fez */
+    if(u) return (m.texto?esc(semEmoji(m.texto)):'')+`<a href="${esc(u)}" target="_blank" rel="noopener" class="cv-anexo">abrir arquivo</a>`;
     /* sem link pronto: a UAZAPI so entrega o arquivo quando a gente pede (um clique, um arquivo) */
     if(/Audio|Ptt|Image|Sticker|Video|Document/.test(t))
       return midiaBtn(m,midiaTipo(t),m.por||LD.por,LD.tarefa)+leg;
