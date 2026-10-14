@@ -4316,6 +4316,12 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
 .rw-seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .rw-seg button{background:none;border:none;color:var(--muted);font:inherit;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer}
 .rw-seg button.on{background:color-mix(in srgb,var(--brand) 22%,transparent);color:var(--txt)}
+/* período do envio (Gabriel 14/10): 7 dias, últimos 30 dias e personalizado, na largura do painel */
+.rw-seg.rw-per{display:flex;width:100%}
+.rw-seg.rw-per button{flex:auto;padding:6px 6px;white-space:nowrap}
+.rw-pers{display:flex;align-items:center;gap:6px;margin-top:8px}
+.rw-pers input{flex:1;min-width:0;font:inherit;font-size:12px;padding:5px 6px}
+.rw-pers span{font-size:12px;color:var(--muted)}
 .rw-pn textarea{width:100%;font:inherit;font-size:12.5px;line-height:1.5;resize:vertical}
 .rw-esp{position:fixed;inset:0;z-index:2500;background:rgba(0,0,0,.5);display:grid;place-items:center}
 .rw-esp div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;font-weight:700;font-size:13.5px}
@@ -7462,7 +7468,10 @@ const rwNorm=(s)=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerC
 const rwCap=(s)=>{ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); };
 const rwDM=(iso)=>String(iso||'').slice(8,10)+'/'+String(iso||'').slice(5,7);
 function rwPeriodo(dias){ const fim=RW_ATE_HOJE?tkHoje():tkDiaMais(tkHoje(),-1); return {de:tkDiaMais(fim,-(dias-1)),ate:fim,dias}; }
-const rwMsg=(p)=>p.dias>=28?`Olá pessoal, tudo bem? Segue o relatório mensal referente aos últimos ${p.dias} dias (${rwDM(p.de)} até ${rwDM(p.ate)}).`
+/* personalizado (Gabriel 14/10): as duas datas escolhidas, inclusive; dias = quantos dias o período cobre */
+function rwPeriodoPers(de,ate){ const n=Math.round((new Date(ate+'T12:00:00')-new Date(de+'T12:00:00'))/864e5)+1; return {de,ate,dias:n,pers:true}; }
+const rwMsg=(p)=>p.pers?`Olá pessoal, tudo bem? Segue relatório referente ao período de ${rwDM(p.de)} até ${rwDM(p.ate)}.`
+  :p.dias>=28?`Olá pessoal, tudo bem? Segue o relatório mensal referente aos últimos ${p.dias} dias (${rwDM(p.de)} até ${rwDM(p.ate)}).`
   :`Olá pessoal, tudo bem? Segue relatório referente aos últimos ${p.dias} dias (${rwDM(p.de)} até ${rwDM(p.ate)}).`;
 const rwArquivo=(nome,p)=>'Relatorio-'+(rwNorm(nome).replace(/ /g,'-')||'cliente')+'-'+rwDM(p.de).replace('/','-')+'-a-'+rwDM(p.ate).replace('/','-')+'.pdf';
 function rwQuando(iso){ const d=new Date(iso); if(isNaN(d)) return '';
@@ -7908,7 +7917,7 @@ async function rwAbrir(env){
   const f=fichaDe(env.fid)||{};
   const esp=rwEspera('Montando o relatório de '+(f.nome||'cliente')+'… (~10s)');
   try{
-    env.per=rwPeriodo(env.dias);
+    env.per=env.pers?rwPeriodoPers(env.per.de,env.per.ate):rwPeriodo(env.dias);
     const m=contaMarca(env.accId)||{}, ult=m.ultRel||{}, hj=new Date();
     env.rel=await montarRelatorio(env.accId,{de:env.per.de,ate:env.per.ate,doc:String(hj.getMonth()+1).padStart(2,'0')+'.'+hj.getFullYear(),
       impostoPct:ult.impostoPct!=null?ult.impostoPct:12.5});
@@ -7923,8 +7932,10 @@ function rwPainelHtml(env){
   return `<div class="rw-pn">
     <div class="rw-pn-t">${RW_IC_WA} Enviar no WhatsApp</div>
     <div class="rw-pn-k">PERÍODO</div>
-    <div class="rw-seg"><button type="button" data-d="7" class="${env.dias===7?'on':''}">7 dias</button><button type="button" data-d="30" class="${env.dias===30?'on':''}">30 dias</button></div>
-    <div class="hint" style="margin:6px 0 0">${rwDM(env.per.de)} a ${rwDM(env.per.ate)}${rwEhMensal(mpSegDa(tkHoje()))?' · última semana do mês: relatório mensal':''}</div>
+    <div class="rw-seg rw-per"><button type="button" data-d="7" class="${!env.pers&&env.dias===7?'on':''}">7 dias</button><button type="button" data-d="30" class="${!env.pers&&env.dias===30?'on':''}">Últimos 30 dias</button><button type="button" data-d="per" class="${env.pers?'on':''}">Personalizado</button></div>
+    <div id="rwPers"${env.pers?'':' hidden'}><div class="rw-pers"><input type="date" id="rwDe" value="${esc(env.per.de)}" max="${esc(tkHoje())}"><span>até</span><input type="date" id="rwAte" value="${esc(env.per.ate)}" max="${esc(tkHoje())}"></div>
+      <button type="button" class="btn secondary small" id="rwPersOk" style="width:100%;margin-top:6px">Montar com este período</button></div>
+    <div class="hint" style="margin:6px 0 0">${rwDM(env.per.de)} a ${rwDM(env.per.ate)}${env.pers?' · '+env.per.dias+(env.per.dias===1?' dia':' dias'):rwEhMensal(mpSegDa(tkHoje()))?' · última semana do mês: relatório mensal':''}</div>
     <div class="rw-pn-k">PARA</div>
     <div id="rwPara">${rwParaHtml(g)}</div>
     <div class="rw-pn-k">MENSAGEM</div>
@@ -7941,10 +7952,25 @@ function rwPainelLigar(ov,ifr,env){
   ifr.addEventListener('load',()=>{ const d=ifr.contentDocument; if(d) d.addEventListener('input',()=>{ env.editado=true; }); });
   const ligaTroca=()=>{ const a=ov.querySelector('#rwTroca'); if(a) a.onclick=()=>rwEscolher(env.fid,()=>{ const p=ov.querySelector('#rwPara'); if(p){ p.innerHTML=rwParaHtml(rwGrupo(env.fid)); ligaTroca(); } }); };
   ligaTroca();
+  const refaz=()=>!env.editado||confirm('Trocar o período monta o relatório de novo e perde as edições. Continuar?');
   ov.querySelectorAll('.rw-seg button').forEach(b=>{ b.onclick=()=>{
-    const d=+b.dataset.d; if(d===env.dias) return;
-    if(env.editado&&!confirm('Trocar o período monta o relatório de novo e perde as edições. Continuar?')) return;
-    ov.remove(); env.dias=d; rwAbrir(env); }; });
+    if(b.dataset.d==='per'){   /* personalizado: mostra as datas; o relatório só remonta no botão */
+      ov.querySelectorAll('.rw-seg button').forEach(x=>x.classList.toggle('on',x===b));
+      const pp=ov.querySelector('#rwPers'); if(pp) pp.hidden=false; return; }
+    const d=+b.dataset.d;
+    if(d===env.dias&&!env.pers){   /* voltou pro período que já está montado: só desfaz o clique em Personalizado */
+      ov.querySelectorAll('.rw-seg button').forEach(x=>x.classList.toggle('on',x===b));
+      const pp=ov.querySelector('#rwPers'); if(pp) pp.hidden=true; return; }
+    if(!refaz()) return;
+    ov.remove(); env.dias=d; env.pers=false; rwAbrir(env); }; });
+  const persOk=ov.querySelector('#rwPersOk');
+  if(persOk) persOk.onclick=()=>{
+    const de=(ov.querySelector('#rwDe')||{}).value||'', ate=(ov.querySelector('#rwAte')||{}).value||'';
+    if(!de||!ate||de>ate){ toast('Confira o período: a data inicial vem antes da final.'); return; }
+    if(ate>tkHoje()){ toast('A data final não pode passar de hoje.'); return; }
+    if(env.pers&&env.per.de===de&&env.per.ate===ate) return;
+    if(!refaz()) return;
+    ov.remove(); env.pers=true; env.per=rwPeriodoPers(de,ate); rwAbrir(env); };
   bt.onclick=async()=>{
     const g=rwGrupo(env.fid); if(!g){ toast('Vincule o grupo do cliente primeiro.'); return; }
     const doc=ifr.contentDocument; if(!doc||!doc.querySelector('.page')){ toast('O relatório ainda está carregando.'); return; }
