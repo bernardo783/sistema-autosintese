@@ -2041,6 +2041,11 @@
   .pes-sep{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
     font-weight:800;padding:10px 14px 4px;border-top:1px solid var(--line)}
   .ini-prog{font-size:11.5px;color:var(--muted);font-weight:600;padding:9px 14px 2px}
+  .ini-area{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--fraco);margin:13px 0 1px;padding:0 6px}
+  .ini-area:first-child{margin-top:0}
+  .ini-area b{font-weight:700;letter-spacing:0;color:var(--muted);font-size:10.5px}
+  .ini-area i{flex:1;height:1px;background:var(--line);margin-left:2px}
   .ini-tit{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ini-sub{color:var(--muted);font-size:11.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ini-tag{flex:none;font-size:11px;font-weight:700;color:var(--muted);background:var(--panel2);border-radius:7px;padding:3px 9px;white-space:nowrap}
@@ -12982,6 +12987,47 @@ window.inicioData=()=>{
   if(inicioDe&&inicioAte&&inicioDe>inicioAte){ const t=inicioDe; inicioDe=inicioAte; inicioAte=t; }
   renderInicio($('#content'));
 };
+/* ---------- O INICIO SEPARADO POR AREA (Gabriel 15/10) ----------
+   "está misturando informações de financeiro com comercial, misturando tudo, não faz sentido na
+   organização". O Inicio junta tudo que e seu, e isso inclui lista cujo card NAO e tarefa: lead do
+   Pipeline, ficha de cliente, lancamento do Financeiro. Um lead em "fazendo" quer dizer estagio do
+   funil, nao trabalho comecado, e vinha empilhado junto de uma conta pra pagar.
+   Nada sai da tela (regra do Gabriel 30/09: dado que aparecia continua aparecendo). O que muda e a
+   arrumacao: dentro de cada bloco os itens se juntam por area, com subtitulo. Area de uma lista e o
+   espaco dela na arvore, com dois atalhos: as listas do modulo financeiro contam como Financeiro e
+   as do Comercial e dos CRMs contam como Comercial, que e como o time fala delas. */
+const INI_CRM={};
+try{ CRM_FORMS.forEach(f=>{ [f.lista,f.equipe,f.agenda,f.retornos].forEach(x=>{ if(x) INI_CRM[x]=1; }); }); }catch(_){}
+function iniArea(lid){
+  if(ehFin(lid)) return 'Financeiro';
+  if(ehCom(lid)||INI_CRM[lid]) return 'Comercial';
+  const l=(TK.listas||[]).find(x=>String(x.id)===String(lid));
+  const e=l?(TK.espacos||[]).find(x=>String(x.id)===String(l.espaco_id)):null;
+  return (e&&e.nome)||'Outros';
+}
+/* itens = [{t, tipo}]. Dentro da area, o que esta em aberto vem antes do que ja foi concluido;
+   em aberto ordena pelo prazo mais apertado, concluido pela conclusao mais recente. */
+function iniGrupos(itens,limite){
+  const abertoAntes=(a,b)=>(a.tipo==='ok'?1:0)-(b.tipo==='ok'?1:0);
+  const cmp=(a,b)=>abertoAntes(a,b)
+    || (a.tipo==='ok'
+        ? String(b.t.concluida_em||'').localeCompare(String(a.t.concluida_em||''))
+        : String(a.t.prazo||'9999-99-99').localeCompare(String(b.t.prazo||'9999-99-99')))
+    || String(a.t.titulo||'').localeCompare(String(b.t.titulo||''));
+  const g={};
+  itens.forEach(x=>{ const a=iniArea(x.t.lista_id); (g[a]=g[a]||[]).push(x); });
+  Object.keys(g).forEach(a=>g[a].sort(cmp));
+  /* a area com o item mais urgente aparece primeiro */
+  const nomes=Object.keys(g).sort((x,y)=>cmp(g[x][0],g[y][0])||x.localeCompare(y));
+  let n=0; const grupos=[];
+  for(const a of nomes){
+    const dentro=[];
+    for(const x of g[a]){ if(limite&&n>=limite) break; dentro.push(x); n++; }
+    if(dentro.length) grupos.push([a,dentro]);
+    if(limite&&n>=limite) break;
+  }
+  return {grupos,sobraram:itens.length-n,varias:nomes.length>1};
+}
 function renderInicio(c){
   if(!TK.listas.length){ c.innerHTML='<div class="empty">Carregando…</div>';
     return tkCarregar().then(()=>{ spDesenhar(); renderInicio(c); }).catch(e=>{ c.innerHTML='<div class="empty">Erro ao carregar: '+esc(e.message)+'</div>'; }); }
@@ -13022,6 +13068,16 @@ function renderInicio(c){
         : `<span class="ini-tag">${t.prazo?(String(t.prazo).slice(0,10)===hoje?'hoje':fmtDate(t.prazo).slice(0,5)):'sem prazo'}</span>`}
     </div>`;
   };
+  /* um bloco inteiro: separa por area quando ha mais de uma, senao sai a lista limpa como antes */
+  const blocoItens=(itens,limite)=>{
+    if(!itens.length) return '';
+    const G=iniGrupos(itens,limite);
+    return G.grupos.map(([area,dentro])=>
+      (G.varias?`<div class="ini-area">${esc(area)}<b>${dentro.length}</b><i></i></div>`:'')
+      +dentro.map(x=>item(x.t,x.tipo)).join('')).join('')
+      +(G.sobraram>0?`<div class="hint" style="margin:8px 0 0">e mais ${G.sobraram}…</div>`:'');
+  };
+  const comTipo=(l,tipo)=>l.map(t=>({t,tipo}));
   c.innerHTML=`
    <div class="page-head">
      <div><h2>${ola}${primeiro?', '+esc(primeiro):''}</h2>
@@ -13050,28 +13106,25 @@ function renderInicio(c){
    <div class="ini-box atraso">
      <div class="ini-h"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg> ${atrasadas.length===1?'1 demanda atrasada':atrasadas.length+' demandas atrasadas'}
        <span class="hint" style="margin:0;font-weight:600">venceram antes de hoje e continuam abertas</span></div>
-     ${atrasadas.slice(0,8).map(t=>item(t,'atraso')).join('')}
-     ${atrasadas.length>8?`<div class="hint" style="margin:8px 0 0">e mais ${atrasadas.length-8}…</div>`:''}
+     ${blocoItens(comTipo(atrasadas,'atraso'),8)}
    </div>`:''}
    <div class="ini-box">
      <div class="ini-h"><svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg> ${inicioPer==='hoje'?'Para hoje':'Do período'}</div>
      ${(pendentes.length||feitas.length)
-       ? pendentes.sort((a,b)=>String(a.prazo||'').localeCompare(String(b.prazo||''))).map(t=>item(t,'')).join('')
-         + feitas.sort((a,b)=>String(b.concluida_em||'').localeCompare(String(a.concluida_em||''))).map(t=>item(t,'ok')).join('')
+       ? blocoItens(comTipo(pendentes,'').concat(comTipo(feitas,'ok')),0)
        : '<div class="empty" style="padding:18px">Nada com prazo '+(inicioPer==='hoje'?'para hoje':'no período')+'.</div>'}
      ${(pendentes.length&&feitas.length)?`<div class="ini-prog">${feitas.length} de ${pendentes.length+feitas.length} concluídas</div>`:''}
    </div>
    ${andamento.length?`
    <div class="ini-box">
      <div class="ini-h"><i class="emi-dot" style="background:#4f8cff"></i> Em andamento</div>
-     ${andamento.slice(0,10).map(t=>item(t,'')).join('')}
+     ${blocoItens(comTipo(andamento,''),10)}
    </div>`:''}
    ${semPrazo.length?`
    <div class="ini-box">
      <div class="ini-h">◻ Sem prazo definido
        <span class="hint" style="margin:0;font-weight:600">é sua, mas ninguém marcou quando</span></div>
-     ${semPrazo.slice(0,10).map(t=>item(t,'')).join('')}
-     ${semPrazo.length>10?`<div class="hint" style="margin:8px 0 0">e mais ${semPrazo.length-10}…</div>`:''}
+     ${blocoItens(comTipo(semPrazo,''),10)}
    </div>`:''}
    ${pessoalBloco()}
    <p class="hint" style="margin-top:14px">Clique numa demanda para abrir. Tudo que aparece aqui está atribuído a você.</p>`;
