@@ -16629,8 +16629,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
           ${t?(arquivada(t)
             ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
                ${podeApagar(t)?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:''}`
-            : (podeApagar(t)?(t.rascunho&&!restrito()?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Descartar rascunho</button>`
-              :`<button class="btn ghost small" onclick="tkArquivar('${t.id}')">${restrito()?'Cancelar conta':'Arquivar'}</button>`):'')):''}
+            : (podeApagar(t)?`<button class="btn ghost small" onclick="tkArquivar('${t.id}')">${restrito()?'Cancelar conta':'Arquivar'}</button>`:'')):''}
         </div>
       </div>
 
@@ -18230,17 +18229,28 @@ window.tkCardMenu=(ev,id)=>{
   const it=[{cab:t.titulo||'Tarefa'},
     {ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>',t:'Abrir',f:()=>tkAbrir(id)},
     {ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',t:'Atribuir a mim',f:()=>tkPatch(id,{responsavel_id:(currentUser||{}).id||null},'Atribuída a você.')}];
+  /* Gabriel 19/10: um item só "Mover para", que abre as colunas no mesmo lugar (em vez de uma
+     linha por coluna), e "Arquivar" em vermelho com um X. */
+  const xy={clientX:(ev&&ev.clientX)||0,clientY:(ev&&ev.clientY)||0,preventDefault(){},stopPropagation(){}};
   if(sts.length>1){
     it.push({sep:true});
-    sts.slice(0,6).forEach(st=>{ if(st.id!==t.status_id)
-      it.push({ic:'●',t:'Mover para '+st.nome,f:()=>tkSetStatus(id,st.id)}); });
+    it.push({ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',t:'Mover para…',f:()=>tkMoverMenu(xy,id)});
   }
-  it.push({sep:true});
-  /* tkExcluir arquiva primeiro; so master apaga de vez o que ja esta arquivado.
-     O rotulo diz o que vai acontecer de verdade. */
   const arq=arquivada(t);
-  if(podeApagar(t)) it.push({ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',t:arq?'Excluir de vez':(t.rascunho?'Descartar rascunho':'Arquivar tarefa'),dgr:true,f:()=>tkExcluir(id)});
+  if(podeApagar(t)){
+    it.push({sep:true});
+    it.push(arq
+      ? {ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',t:'Excluir de vez',dgr:true,f:()=>tkExcluir(id)}
+      : {ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',t:'Arquivar',dgr:true,f:()=>tkArquivar(id)});
+  }
   ctxAbrir(ev,it);
+};
+/* colunas da lista, cada uma com a cor dela; a atual fica marcada e não faz nada */
+window.tkMoverMenu=(ev,id)=>{
+  const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  const sts=tkStatusDe(t.lista_id);
+  ctxAbrir(ev,[{cab:'Mover para'}].concat(sts.map(st=>({ic:`<i class="emi-dot" style="background:${esc(st.cor||'#8e8e99')}"></i>`,t:st.nome,
+    on:st.id===t.status_id,cor:st.cor||'',f:()=>{ if(st.id!==t.status_id) tkSetStatus(id,st.id); }}))));
 };
 /* Quem apaga (Gabriel 19/10): master e gerente apagam qualquer demanda que enxergam; os demais
    so o que ELES subiram, nunca o que subiram pra eles. Vale pra arquivar e pra excluir de vez;
@@ -18250,15 +18260,6 @@ const NAO_APAGA='Só quem criou a demanda, um gerente ou um master pode apagar.'
 window.tkExcluir=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
   if(!podeApagar(t)){ toast(NAO_APAGA); return; }
-  /* rascunho nunca foi publicado e só quem criou enxerga: descartar apaga de vez (Gabriel 19/10) */
-  if(t.rascunho&&!arquivada(t)){
-    if(!confirm('Descartar o rascunho "'+(t.titulo||'sem título')+'"?\n\nEle só existe pra você e some de vez.')) return;
-    const {error}=await sb.from('tarefas').delete().eq('id',id);
-    if(error){ toast('Erro: '+error.message); return; }
-    TK.tarefas=TK.tarefas.filter(x=>x.id!==id);
-    const ov=document.querySelector('.overlay'); if(ov) ov.remove();
-    tkDesenhar($('#content')); spDesenhar(); toast('Rascunho descartado.'); return;
-  }
   if(!arquivada(t)){ return tkArquivar(id); }   /* nunca apaga direto: arquiva primeiro */
   if(!confirm('Excluir "'+t.titulo+'" de vez?\n\nIsso não tem volta.'+recAvisoApagar(t))) return;
   const {error}=await sb.from('tarefas').delete().eq('id',id);

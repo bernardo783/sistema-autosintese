@@ -498,11 +498,13 @@ grupo('Quem apaga demanda (Gabriel 19/10)');
   g.currentUser.gerente=true; ok('gerente apaga qualquer uma', g.podeApagar({criado_por:'u2'})===true);
   g.currentUser.gerente=false; g.currentUser.role='master'; ok('master apaga qualquer uma', g.podeApagar({criado_por:'u2'})===true);
   { const ex=bloco('window.tkExcluir=async (id)=>{','function renderProcessos(c){');
-    ok('arquivar e excluir conferem a regra', ex.indexOf("if(!podeApagar(t)){ toast(NAO_APAGA); return; }")>0 && ex.indexOf("if(!podeApagar(t)){ toast(NAO_APAGA); return; }")<ex.indexOf('if(t.rascunho&&!arquivada(t)){') && ex.indexOf('if(!arquivada(t)){ return tkArquivar(id); }')>0 && (HTML.match(/if\(!podeApagar\(t\)\)\{ toast\(NAO_APAGA\); return; \}/g)||[]).length>=2);
-    ok('rascunho (só quem criou vê) se descarta de vez, com confirmação; o resto continua arquivando primeiro', ex.indexOf("Descartar o rascunho")>0&&ex.indexOf("sb.from('tarefas').delete().eq('id',id)")>ex.indexOf('if(t.rascunho&&!arquivada(t)){'));
+    ok('arquivar e excluir conferem a regra', ex.indexOf("if(!podeApagar(t)){ toast(NAO_APAGA); return; }\n  if(!arquivada(t)){ return tkArquivar(id); }")>0 && (HTML.match(/if\(!podeApagar\(t\)\)\{ toast\(NAO_APAGA\); return; \}/g)||[]).length>=2);
+    ok('rascunho arquiva como qualquer card (nada de Descartar rascunho)', ex.indexOf('t.rascunho')<0&&HTML.indexOf('Descartar rascunho')<0);
     ok('card do quadro tem o ⋯ visível que abre o mesmo menu (Gabriel 19/10)', HTML.indexOf(`<button type="button" class="tk-cmenu" title="Mais opções" aria-label="Mais opções" onclick="event.stopPropagation();tkCardMenu(event,'\${t.id}')">`)>0&&HTML.indexOf('@media (hover:none){.tk-cmenu{opacity:1}}')>0);
-    ok('menu e rodapé dizem Descartar rascunho no rascunho', HTML.indexOf("(t.rascunho?'Descartar rascunho':'Arquivar tarefa')")>0&&HTML.indexOf('>Descartar rascunho</button>')>0); }
-  ok('botões só aparecem pra quem pode', HTML.indexOf("if(podeApagar(t)) it.push(")>0 && HTML.indexOf("${podeApagar(t)?`<button class=\"iconbtn del\"")>0);
+    const mn=bloco('window.tkCardMenu=(ev,id)=>{','/* Quem apaga (Gabriel 19/10)');
+    ok('um item só "Mover para…" abre as colunas, com a cor de cada uma e a atual marcada', mn.indexOf("t:'Mover para…',f:()=>tkMoverMenu(xy,id)")>0&&mn.indexOf('sts.slice(0,6)')<0&&mn.indexOf('on:st.id===t.status_id')>0&&mn.indexOf('class="emi-dot" style="background:')>0);
+    ok('Arquivar em vermelho com um X; arquivado mostra Excluir de vez', mn.indexOf("<path d=\"M18 6 6 18M6 6l12 12\"/></svg>',t:'Arquivar',dgr:true,f:()=>tkArquivar(id)}")>0&&mn.indexOf("t:'Excluir de vez',dgr:true,f:()=>tkExcluir(id)}")>0); }
+  ok('botões só aparecem pra quem pode', HTML.indexOf("if(podeApagar(t)){\n    it.push({sep:true});")>0 && HTML.indexOf("${podeApagar(t)?`<button class=\"iconbtn del\"")>0);
 }
 
 grupo('Modo restrito: usuário de uma lista só (Gabriel 01/10, ADM TARAF)');
