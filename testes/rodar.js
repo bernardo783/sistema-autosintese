@@ -382,6 +382,25 @@ grupo('Recebimentos: copiar telefone e mensagem de cobrança com o link do Asaas
   ok('os links vêm da edge só de leitura, só pro master, e ficam 10 min em memória', HTML.indexOf("sb.functions.invoke('asaas-links',{body:{}})")>0&&HTML.indexOf("currentUser.role!=='master'||(RC_ASAAS.cobrancas&&Date.now()-RC_ASAAS.em<600000)")>0);
 }
 
+grupo('Suporte: Problema no sistema aceita anexo (foto, vídeo, documento) (Gabriel 19/10)');
+{
+  const toasts=[];
+  const ctx={AX_MAX:52428800,AX_MAX_TXT:'50 MB',toast:(m)=>toasts.push(m),esc:(x)=>String(x),document:{getElementById:()=>null}};
+  const g=rodar(bloco('let SUP_ANX=[];','async function supAnxEnviar('),ctx,['supTam','supAnxPinta']);
+  g.supAnxAdd([{name:'print.png',size:200000,type:'image/png'},{name:'video.mp4',size:30*1048576,type:'video/mp4'},{name:'filme.mov',size:60*1048576,type:'video/quicktime'},{name:'print.png',size:200000,type:'image/png'}]);
+  ok('aceita foto e vídeo; arquivo acima do limite avisa e fica de fora; repetido não duplica', vm.runInContext('SUP_ANX.map(f=>f.name).join()',g)==='print.png,video.mp4'&&toasts.some(m=>/filme\.mov" passa de 50 MB/.test(m)));
+  g.supAnxTira(0);
+  ok('dá pra tirar um arquivo antes de enviar', vm.runInContext('SUP_ANX.map(f=>f.name).join()',g)==='video.mp4');
+  ok('tamanho legível', g.supTam(30*1048576)==='30 MB'&&g.supTam(200000)==='195 KB');
+  const f=bloco('function supBugForm(c){','/* ---------- ANEXOS DO "PROBLEMA NO SISTEMA"');
+  ok('o formulário tem a área de arrastar, escolher e colar print, com várias de uma vez', f.indexOf('id="supDrop"')>0&&f.indexOf('ondrop="supAnxDrop(event)"')>0&&f.indexOf('<input type="file" id="supFile" multiple')>0&&f.indexOf("addEventListener('paste'")>0);
+  ok('não restringe o tipo de arquivo (vídeo, foto, documento, tudo)', f.indexOf('accept=')<0);
+  const e=bloco('async function supAnxEnviar(tid,b){','window.supVoltar=');
+  ok('sobe em partes na pasta do chamado e registra pela suporte_anexar', e.indexOf("const chave='t/'+tid+'/'+uid()")>0&&e.indexOf('await axSubir(chave,f,')>0&&e.indexOf("sb.rpc('suporte_anexar',")>0);
+  ok('o chamado devolve o id e os anexos vão nele; com anexo o texto pode ficar vazio', e.indexOf("const {data:tid,error}=await sb.rpc('suporte_abrir_chamado'")>0&&e.indexOf('if(!txt&&!SUP_ANX.length)')>0);
+  ok('se algum anexo falhar a tela diz qual', e.indexOf('Não subiu: ${esc(falhou.join')>0);
+}
+
 grupo('Controle de Clientes: Colunas no topo, sem Grupo/Status soltos (Gabriel 19/10, relato do Luiz)');
 {
   const LF=['verba','forma','canal'];

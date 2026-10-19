@@ -1759,6 +1759,11 @@
   /* ---------- ANEXOS DA TAREFA ---------- */
   .tkm-drop{border:1.5px dashed var(--line);border-radius:10px;padding:16px 14px;text-align:center;
     color:var(--muted);font-size:13px;cursor:pointer;transition:border-color .12s,background .12s}
+  .sup-anx{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .sup-anx:empty{display:none}
+  .sup-anx-i{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-size:13px}
+  .sup-anx-i .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .sup-anx-i .tm{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
   .tkm-drop.on,.tkm-drop:hover{border-color:var(--brand2);color:var(--txt);background:rgba(167,139,250,.06)}
   .tkm-lnk{display:flex;gap:8px;margin:10px 0 14px}
   .tkm-lnk input{flex:1;min-width:0}
@@ -12473,23 +12478,75 @@ function supBugForm(c){
         <input id="sup_onde" maxlength="80" placeholder="ex.: Financeiro › Lançamentos"></div>
       <div class="field"><label>Conta com detalhe</label>
         <textarea id="sup_txt" placeholder="O que você fez, o que esperava que acontecesse e o que aconteceu. Se for uma ideia ou uma crítica, escreva do mesmo jeito, tudo chega no mesmo lugar."></textarea></div>
+      <div class="field"><label>Anexos<small>opcional · print, vídeo da tela, documento</small></label>
+        <div class="tkm-drop" id="supDrop" tabindex="0" onclick="document.getElementById('supFile').click()"
+          ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="supAnxDrop(event)">
+          Arraste arquivos aqui, <u>clique para escolher</u> ou cole um print (Cmd+V)
+          <div class="hint" style="margin:4px 0 0">foto, vídeo, documento, o que precisar, até ${AX_MAX_TXT} por arquivo</div></div>
+        <input type="file" id="supFile" multiple style="display:none" onchange="supAnxAdd(this.files);this.value=''">
+        <div id="supAnx" class="sup-anx"></div></div>
       <div class="toolbar"><button class="btn" id="supEnv" onclick="supEnviarBug()">Enviar</button>
         <button class="btn secondary" onclick="supVoltar()">Cancelar</button></div>
     </div>`;
+  SUP_ANX=[]; supAnxPinta();
+  /* print colado (Cmd+V) em qualquer campo do formulário vira anexo */
+  const f=c.querySelector('.sup-form');
+  if(f) f.addEventListener('paste',(e)=>{ const fs=[...((e.clipboardData&&e.clipboardData.files)||[])]; if(!fs.length) return;
+    e.preventDefault(); supAnxAdd(fs.map((x,i)=>x.name&&x.name!=='image.png'?x:new File([x],'print-'+new Date().toTimeString().slice(0,8).replace(/:/g,'')+(i?'-'+i:'')+'.'+((x.type.split('/')[1]||'png').replace('jpeg','jpg')),{type:x.type}))); });
   const t=document.getElementById('sup_tit'); if(t) t.focus();
+}
+/* ---------- ANEXOS DO "PROBLEMA NO SISTEMA" (Gabriel 19/10) ----------
+   Foto, vídeo, documento: ficam na memória até o Enviar. O chamado nasce pela RPC de sempre, os
+   arquivos sobem pro bucket 'anexos' na pasta do chamado (envio em partes, axSubir) e o registro
+   vai pela suporte_anexar, porque quem relata nem sempre enxerga a lista Correções. */
+let SUP_ANX=[];
+const supTam=(b)=>b>=1048576?(Math.round(b/1048576*10)/10).toString().replace('.',',')+' MB':Math.max(1,Math.round(b/1024))+' KB';
+function supAnxPinta(){
+  const box=document.getElementById('supAnx'); if(!box) return;
+  box.innerHTML=SUP_ANX.map((f,i)=>`<div class="sup-anx-i"><span class="nm">${esc(f.name)}</span><span class="tm">${supTam(f.size)}</span>
+    <button type="button" class="iconbtn" title="Tirar este arquivo" aria-label="Tirar este arquivo" onclick="supAnxTira(${i})">✕</button></div>`).join('');
+}
+window.supAnxAdd=(files)=>{
+  [...(files||[])].forEach(f=>{
+    if(f.size>AX_MAX){ toast('"'+f.name+'" passa de '+AX_MAX_TXT+': suba no Drive e cole o link no texto.'); return; }
+    if(SUP_ANX.some(x=>x.name===f.name&&x.size===f.size)) return;
+    SUP_ANX.push(f); });
+  supAnxPinta();
+};
+window.supAnxTira=(i)=>{ SUP_ANX.splice(i,1); supAnxPinta(); };
+window.supAnxDrop=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
+  const dz=document.getElementById('supDrop'); if(dz) dz.classList.remove('on');
+  supAnxAdd([...((ev.dataTransfer&&ev.dataTransfer.files)||[])]); };
+/* sobe e registra; devolve os nomes que falharam */
+async function supAnxEnviar(tid,b){
+  const falhou=[];
+  for(const f of SUP_ANX){
+    const chave='t/'+tid+'/'+uid()+'_'+String(f.name).replace(/[^\w.\-]+/g,'_').slice(-80);
+    if(b) b.textContent='Enviando '+f.name+'…';
+    const up=await axSubir(chave,f,(a,t)=>{ if(b) b.textContent=axProgTxt(f.name,a,t); });
+    if(up&&up.error){ falhou.push(f.name+' ('+axErroEnvio(up.error)+')'); continue; }
+    const {error}=await sb.rpc('suporte_anexar',{p_tarefa:tid,p_nome:f.name,p_caminho:chave,p_mime:f.type||null,p_bytes:f.size});
+    if(error){ falhou.push(f.name+' ('+error.message+')'); try{ await sb.storage.from('anexos').remove([chave]); }catch(_){} }
+  }
+  return falhou;
 }
 window.supEnviarBug=async ()=>{
   const val=(id)=>{ const e=document.getElementById(id); return e?String(e.value||'').trim():''; };
   const tit=val('sup_tit'), txt=val('sup_txt'), onde=val('sup_onde');
   if(!tit){ toast('Escreva o que aconteceu, em uma linha.'); const e=document.getElementById('sup_tit'); if(e) e.focus(); return; }
-  if(!txt){ toast('Conte com detalhe: é isso que resolve mais rápido.'); const e=document.getElementById('sup_txt'); if(e) e.focus(); return; }
+  /* com anexo, o detalhe pode ser o próprio vídeo ou print */
+  if(!txt&&!SUP_ANX.length){ toast('Conte com detalhe ou anexe um print ou vídeo: é isso que resolve mais rápido.'); const e=document.getElementById('sup_txt'); if(e) e.focus(); return; }
   const b=document.getElementById('supEnv'); if(b){ b.disabled=true; b.textContent='Enviando…'; }
-  const {error}=await sb.rpc('suporte_abrir_chamado',{p_titulo:tit,p_texto:txt,p_onde:onde||null});
+  const n=SUP_ANX.length;
+  const {data:tid,error}=await sb.rpc('suporte_abrir_chamado',{p_titulo:tit,p_texto:txt||('Detalhe nos anexos ('+n+' arquivo'+(n===1?'':'s')+').'),p_onde:onde||null});
   if(error){ toast('Erro: '+error.message); if(b){ b.disabled=false; b.textContent='Enviar'; } return; }
+  const falhou=(n&&tid)?await supAnxEnviar(tid,b):[];
+  SUP_ANX=[];
   const c=$('#content'); if(!c) return;
   c.innerHTML=`<button class="sup-volta" onclick="supVoltar()">← Suporte</button>
     <div class="page-head"><div><h2>Recebido</h2></div></div>
-    <div class="sup-ok"><b>✓ Chegou pro Bernardo.</b>
+    <div class="sup-ok"><b>✓ Chegou pro Bernardo${n?(falhou.length?', com '+(n-falhou.length)+' de '+n+' anexos':(n===1?', com o anexo':', com os '+n+' anexos')):''}.</b>
+      ${falhou.length?`<p class="hint" style="margin:0 0 6px;color:var(--warn)">Não subiu: ${esc(falhou.join('; '))}. Mande de novo num chamado novo ou pelo WhatsApp.</p>`:''}
       <p class="hint" style="margin:0">Entrou na fila de correções com o seu nome. Se ele precisar de mais detalhe, procura você.
       Achou outra coisa? <button class="link" style="background:none;border:0;color:var(--brand2);cursor:pointer;font:inherit;padding:0" onclick="supEscolher('bug')">conte também</button>.</p></div>`;
   try{ if(window.tkCarregar) tkCarregar(); }catch(_){ /* so pra lista aparecer atualizada pra quem enxerga */ }
