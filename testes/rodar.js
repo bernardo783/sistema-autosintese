@@ -382,6 +382,27 @@ grupo('Recebimentos: copiar telefone e mensagem de cobrança com o link do Asaas
   ok('os links vêm da edge só de leitura, só pro master, e ficam 10 min em memória', HTML.indexOf("sb.functions.invoke('asaas-links',{body:{}})")>0&&HTML.indexOf("currentUser.role!=='master'||(RC_ASAAS.cobrancas&&Date.now()-RC_ASAAS.em<600000)")>0);
 }
 
+grupo('Churn limpa cobrança e tarefas do cliente (Gabriel 19/10, SUBLIME MULTIMARCAS)');
+{
+  const g=rodar(bloco('const CB_LISTA=','let CB_LOCK=false;'),{NC_PAGADOR:'u_bernardo'},['cbPlano']);
+  const CB='c2000000-0000-4000-8000-0000000000c1';
+  const clientes=[{id:'s',nome:'SUBLIME MULTIMARCAS',diaVenc:16,valor:800,fim:'2026-10',churnComp:'2026-10'},{id:'v',nome:'SAIU EM SETEMBRO',diaVenc:5,valor:500,fim:'2026-09'},
+    {id:'k',nome:'CARÊNCIA',diaVenc:5,valor:700},{id:'a',nome:'ARQUIVADO',diaVenc:5,valor:600},{id:'p',nome:'PAGOU',diaVenc:5,valor:900}];
+  const recs={s:{status:'churn',venc:'2026-10-16'},k:{status:'carencia',venc:'2026-10-05'},p:{status:'recebido',venc:'2026-10-05'}};
+  const R={byCli:recs,st:(c)=>recs[c.id]?(recs[c.id].status||'areceber'):'inadimplente',val:(c)=>c.valor};
+  const T=(id,k,st)=>({id,lista_id:CB,status:st||'todo',valores:{cobranca:k}});
+  const tarefas=[T('t_s','s|2026-10'),T('t_v','v|2026-10'),T('t_k','k|2026-10'),T('t_a','a|2026-10'),T('t_p','p|2026-10'),T('t_x','sumiu|2026-10'),T('t_old','s|2026-09','feito')];
+  const P=g.cbPlano({hoje:'2026-10-19',comp:'2026-10',R,clientes,tarefas,cliArq:(c)=>c.id==='a',vencOf:(comp,d)=>comp+'-'+String(d).padStart(2,'0'),brl:(v)=>'R$ '+v});
+  ok('churn, saiu antes, carência, arquivado e cliente que sumiu: cobrança arquivada, não "cobrada"', P.arquivar.slice().sort().join()==='t_a,t_k,t_s,t_v,t_x');
+  ok('quem pagou continua sendo concluída como cobrado', P.concluir.join()==='t_p');
+  ok('tarefa já concluída fica como histórico, e nada novo nasce pra quem saiu', P.arquivar.indexOf('t_old')<0&&!P.criar.some(x=>['s','v','k','a'].includes(x.cliId)));
+  ok('cbSincronizar arquiva no banco o que o plano mandou', HTML.indexOf("for(const id of P.arquivar){")>0&&HTML.indexOf("P.arquivar.length){")>0);
+  const loc=bloco('function chArquivarLocal(fid,cardId){','async function chMoverParaChurns(c,r){');
+  ok('mover pro Controle de Churns some na hora com as tarefas abertas do cliente e a cobrança dele', loc.indexOf("String(t.ficha_id||'')!==String(fid)&&!daCobranca")>0&&loc.indexOf("t.status==='feito'")>0&&loc.indexOf('arq_churn:dia')>0);
+  ok('os dois caminhos de churn (card e Recebimentos) chamam a limpeza', HTML.indexOf('chArquivarLocal(t.ficha_id,t.id); setTimeout(()=>{ chDepoisDoChurn(t,sai)')>0&&(HTML.match(/chArquivarLocal\(t\.ficha_id,t\.id\);/g)||[]).length>=2);
+  ok('voltar do churn relê as tarefas que o banco desarquivou', (HTML.match(/await tkCarregar\(\); \}catch\(_\)\{\}   \/\* (o banco devolveu|tarefas que o churn)/g)||[]).length===2);
+}
+
 grupo('Cobranças do dia: tarefa pro master até marcar Cobrei (Gabriel 01/10)');
 {
   const g=rodar(bloco('const CB_LISTA=','let CB_LOCK=false;'),{NC_PAGADOR:'u_bernardo'},['cbPlano','cbChave','CB_LISTA']);

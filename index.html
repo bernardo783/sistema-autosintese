@@ -14791,7 +14791,7 @@ function chPerguntarChurn(id){
     if(mot) nv[CH_MOTIVO]=mot;
     if(v[LC_GEST]) nv[CH_GESTOR]=v[LC_GEST];
     const ok=await tkPatch(id,{lista_id:CH_ID,status_id:CH_FIM,status:'feito',valores:nv},'Movido para Controle de Churns');
-    if(ok&&t.ficha_id) setTimeout(()=>{ chDepoisDoChurn(t,sai).catch(()=>{}); },200);
+    if(ok&&t.ficha_id){ chArquivarLocal(t.ficha_id,t.id); setTimeout(()=>{ chDepoisDoChurn(t,sai).catch(()=>{}); },200); }
     return ok;
   });
 }
@@ -14848,6 +14848,24 @@ function chUltimoPagamento(c,r){
   pagos.sort((a,b)=>String(a.recebidoEm)<String(b.recebidoEm)?1:-1);
   return String(pagos[0].recebidoEm).slice(0,10);
 }
+/* CHURN LIMPA AS TAREFAS (Gabriel 19/10, SUBLIME MULTIMARCAS): o banco arquiva toda tarefa em
+   aberto do cliente, em qualquer espaço, e a cobrança dele (trg_churn_tarefas, com a marca
+   valores.arq_churn); voltar do churn desarquiva. Aqui é só o espelho na memória, pra sumir na
+   hora da tela de quem moveu o card, sem esperar recarregar. */
+function chArquivarLocal(fid,cardId){
+  if(!fid) return 0;
+  const f=fichaDe(fid), cid=f&&f.clienteId?String(f.clienteId):'', agora=new Date().toISOString(), dia=hojeISO();
+  let n=0;
+  (TK.tarefas||[]).forEach(t=>{
+    if(t.id===cardId||t.arquivada_em||t.status==='feito'||ehLC(t.lista_id)||t.lista_id===CH_ID) return;
+    const s=tkStatus1(t.status_id); if(s&&(s.grupo==='feito'||s.grupo==='fechado')) return;
+    const daCobranca=t.lista_id===CB_LISTA&&cid&&String((t.valores||{}).cobranca||'').indexOf(cid+'|')===0;
+    if(String(t.ficha_id||'')!==String(fid)&&!daCobranca) return;
+    t.arquivada_em=agora; t.valores=Object.assign({},t.valores||{},{arq_churn:dia}); n++;
+  });
+  if(n){ try{ spDesenhar(); }catch(_){} }
+  return n;
+}
 async function chMoverParaChurns(c,r){
   if(!c) return false;
   if(!(TK.tarefas||[]).length){ try{ await tkCarregar(); }catch(_){ return false; } }
@@ -14863,6 +14881,7 @@ async function chMoverParaChurns(c,r){
   const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
   if(error){ toast('Churn: nao consegui mover o card, '+error.message); return false; }
   Object.assign(t,patch);
+  chArquivarLocal(t.ficha_id,t.id);
   try{ spDesenhar(); }catch(_){}
   return true;
 }
@@ -14876,6 +14895,7 @@ async function chVoltarDeChurns(c){
   const {error}=await sb.from('tarefas').update(patch).eq('id',t.id);
   if(error) return false;
   Object.assign(t,patch);
+  try{ await tkCarregar(); }catch(_){}   /* o banco devolveu as tarefas que o churn tinha arquivado */
   try{ spDesenhar(); }catch(_){}
   return true;
 }
@@ -17314,6 +17334,7 @@ window.lcReativar=async (fid)=>{
     let fin='';
     if(cli){ fin=lcDesfazerChurnFin(cli,comp); cli.valor=valor; cli.diaVenc=dia; if(!(cli.inicio&&cli.inicio>=comp)) cli.inicio=comp; }
     try{ await saveDB(); }catch(_){}
+    try{ await tkCarregar(); }catch(_){}   /* tarefas que o churn arquivou voltam (trg_churn_tarefas) */
     try{ arqFechar(); }catch(_){}
     try{ spDesenhar(); }catch(_){}
     try{ render(currentView); }catch(_){}
@@ -22756,12 +22777,18 @@ const CB_QUEM=NC_PAGADOR;   /* Bernardo Antunes */
 const cbChave=(cliId,comp)=>cliId+'|'+comp;
 /* função pura: o que precisa existir, fechar ou refletir de volta. hoje = 'AAAA-MM-DD'. */
 function cbPlano(o){
-  const hoje=o.hoje, comp=o.comp, criar=[], concluir=[], reabrir=[], cobrar=[];
+  const hoje=o.hoje, comp=o.comp, criar=[], concluir=[], reabrir=[], cobrar=[], arquivar=[];
   const R=o.R, tarefas=(o.tarefas||[]).filter(t=>t.lista_id===CB_LISTA&&!t.arquivada_em);
   const porChave={}; tarefas.forEach(t=>{ const k=(t.valores||{}).cobranca; if(k) porChave[k]=t; });
+  /* Gabriel 19/10 (SUBLIME): cliente que saiu não deixa cobrança pendurada. Sem nada a cobrar
+     (churn, carência, parceria, arquivado ou fora do período) a tarefa é arquivada, não "cobrada". */
+  const semCobranca=(t)=>{ if(t.status!=='feito'&&arquivar.indexOf(t.id)<0) arquivar.push(t.id); };
+  const vistos={};
   (o.clientes||[]).forEach(c=>{
-    if(o.cliArq(c)||(c.inicio&&comp<c.inicio)||(c.fim&&comp>c.fim)) return;
+    const k0=cbChave(c.id,comp); vistos[k0]=1;
+    if(o.cliArq(c)||(c.inicio&&comp<c.inicio)||(c.fim&&comp>c.fim)){ if(porChave[k0]) semCobranca(porChave[k0]); return; }
     const st=R.st(c), rec=R.byCli[c.id];
+    if(st==='churn'||st==='churnpago'||st==='carencia'||st==='parceria'){ if(porChave[k0]&&!(rec&&rec.cobradoEm)) semCobranca(porChave[k0]); else if(porChave[k0]&&porChave[k0].status!=='feito') concluir.push(porChave[k0].id); return; }
     const venc=(rec&&rec.venc)||((c.diaVenc>=1&&c.diaVenc<=31)?o.vencOf(comp,c.diaVenc):null);
     const aberta=!st||st==='areceber'||st==='inadimplente';
     const k=cbChave(c.id,comp), t=porChave[k], feita=t&&t.status==='feito';
@@ -22772,7 +22799,9 @@ function cbPlano(o){
       return; }
     if(t&&!feita&&(cobrado||!aberta)) concluir.push(t.id);   /* marcou Cobrei ou já caiu: fecha a tarefa */
   });
-  return {criar,concluir,cobrar};
+  /* cobrança deste mês de cliente que nem está mais no cadastro: arquiva */
+  Object.keys(porChave).forEach(k=>{ if(!vistos[k]&&k.slice(-7)===comp) semCobranca(porChave[k]); });
+  return {criar,concluir,cobrar,arquivar};
 }
 let CB_LOCK=false;
 async function cbSincronizar(){
@@ -22792,9 +22821,14 @@ async function cbSincronizar(){
       const {error}=await sb.from('tarefas').update(patch).eq('id',id);
       if(!error){ const t=TK.tarefas.find(x=>x.id===id); if(t) Object.assign(t,patch); }
     }
+    for(const id of P.arquivar){
+      const patch={arquivada_em:new Date().toISOString()};
+      const {error}=await sb.from('tarefas').update(patch).eq('id',id);
+      if(!error){ const t=TK.tarefas.find(x=>x.id===id); if(t) Object.assign(t,patch); }
+    }
     for(const x of P.cobrar){ const r=rcRegistro(x.cliId,comp); if(r&&!r.cobradoEm){ r.cobradoEm=x.em; mexeuDB=true; } }
     if(mexeuDB) await saveDB();
-    if(P.criar.length||P.concluir.length||P.cobrar.length){ try{ spDesenhar(); }catch(_){} if(currentView==='inicio') try{ renderInicio($('#content')); }catch(_){} }
+    if(P.criar.length||P.concluir.length||P.cobrar.length||P.arquivar.length){ try{ spDesenhar(); }catch(_){} if(currentView==='inicio') try{ renderInicio($('#content')); }catch(_){} }
   }catch(_){}
   finally{ CB_LOCK=false; }
 }

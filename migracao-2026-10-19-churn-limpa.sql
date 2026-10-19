@@ -1,0 +1,17 @@
+-- APLICADA em 19/10/2026 (migração churn_limpa_tarefas_e_recebimentos).
+-- CHURN LIMPA TUDO (Gabriel 19/10/2026, caso SUBLIME MULTIMARCAS): "deu churn, é pra tirar ele de
+-- controle de clientes > recebimentos e também tarefas relacionadas a ele, tanto em minhas tarefas,
+-- como nos spaces ... bota como regra pras próximas situações".
+--
+-- 1) trg_churn_tarefas (AFTER UPDATE OF lista_id em tarefas): card entra no Controle de Churns ->
+--    arquiva toda tarefa EM ABERTO com a mesma ficha (qualquer espaço, menos Controle de Clientes e
+--    Churns) e a cobrança do cliente na lista Cobranças (valores.cobranca = clienteId|AAAA-MM).
+--    Concluída fica como histórico. Marca valores.arq_churn = dia; card saindo do Controle de Churns
+--    desarquiva só o que tem essa marca. Vale pra todo mundo (master incluso): só mexe em tarefas.
+-- 2) cliente_churn_aplicar: o mês da saída que não foi recebido vira 'churn' ("saiu devendo"), e a
+--    cobrança desse mês é criada assim se ainda não existia. Antes ela ficava em aberto e o cliente
+--    aparecia como inadimplente no Recebimentos e gerava tarefa de cobrança.
+--
+-- O corpo completo das duas funções está no banco; ver pg_get_functiondef('churn_tarefas_tg') e
+-- pg_get_functiondef('cliente_churn_aplicar'). A versão anterior de cliente_churn_aplicar está em
+-- migracao-2026-10-02-churn-financeiro.sql.
