@@ -1540,6 +1540,14 @@ grupo('Colunas e rolagem de lado nas listas (Luiz 19/10, notebook)');
   ok('as duas formas da lista (com e sem faixas de grupo) usam a caixa', (L.match(/rolaCaixa\(`<div class="tablewrap rolavel/g)||[]).length===2);
   ok('a altura entra antes de devolver a rolagem ao redesenhar', /const r=tkDesenharTela\(c\);\n  try\{ rolaArmar\(\); \}catch\(_\)\{\}/.test(HTML));
   ok('no celular as setas somem (lá o dedo arrasta)', HTML.indexOf('@media (hover:none){.rola-b{display:none!important}}')>0);
+  /* Gabriel 19/10, print: faixa vazia entre Cliente e Status, e a etiqueta repetida com o filtro */
+  const fx=bloco('function lcFixarColunas(c){','const tkSelo=');
+  ok('a largura do Cliente é medida de novo sempre que muda (barra vertical, logo carregando)', /new ResizeObserver\(mede\)/.test(fx)&&/th\.__lcRO\.observe\(th\)/.test(fx));
+  ok('depois de aplicar a altura, mede de novo', /if\(w\.querySelector\('\.tk-tab\.lc-tab'\)\) lcFixarColunas\(w\);/.test(HTML));
+  const V=HTML.slice(HTML.indexOf('function tkViewLista(){'),HTML.indexOf('/* A arvore de espacos mora na barra lateral'));
+  ok('uma etapa escolhida no funil: sai a coluna Status (cabeçalho e célula)', /const semSt=lc&&\(\(TK\.lcF&&TK\.lcF\.estagio\)\|\|\[\]\)\.length===1;/.test(V)&&V.indexOf("${semSt?'':'<th style=\"width:180px\">Status</th>'}")>0&&V.indexOf("${semSt?'':`<td>${tkSelo(t)}</td>`}")>0);
+  ok('sem a coluna Status, a segunda coluna não fica presa', HTML.indexOf('.tk-tab.lc-tab:not(.sem-st) th:nth-child(2){position:sticky;')>0&&HTML.indexOf('.tk-tab.lc-tab:not(.sem-st) tbody tr:not(.tk-faixa) > td:nth-child(2){position:sticky;')>0&&!/\.tk-tab\.lc-tab th:nth-child\(2\)\{position:sticky/.test(HTML));
+  ok('sem a coluna Status, o Cliente ganha a sombra ao rolar', HTML.indexOf('.tk-tab.lc-tab.sem-st.rolou th:first-child')>0);
 }
 /* ---------------- token sempre fresco nas edge functions ---------------- */
 grupo('Login: token renovado chega nas funções (Gabriel 13/10, "Faça login no sistema")');
