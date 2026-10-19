@@ -1098,7 +1098,7 @@ grupo('Modo Pessoal: o botão do topo acompanha a aba');
   ok('nas abas de hábito segue criando hábito',
      ['inicio','habitos','progresso'].every(k=>g.MP_ACAO[k][0]==='+ Novo hábito'&&/mpHabitoModal/.test(g.MP_ACAO[k][1])));
   ok('o botão lê a tabela, não é mais fixo',
-     HTML.indexOf("'<div class=\"toolbar\"><button class=\"btn small\" onclick=\"'+ac[1]+'\">'+ac[0]+'</button></div></div>'")>0
+     HTML.indexOf("(MP.aba==='inicio'?[MP_ACAO.habitos,MP_ACAO.tarefas]:[ac]).map(a=>'<button class=\"btn small\" onclick=\"'+a[1]+'\">'+a[0]+'</button>')")>0
      && HTML.indexOf('onclick="mpHabitoModal()">+ Novo hábito</button></div></div>')<0);
   secao('nenhuma aba fica sem ação própria');
   const lista=(HTML.match(/const abas=\[[\s\S]*?\];/)||[''])[0];
@@ -1163,7 +1163,7 @@ grupo('Hábito: a partir de quando começa');
   ok('Próxima segunda = 24/08 (mesmo dia, de propósito)', ops['Próxima segunda']==='2026-08-24');
 
   secao('o campo existe no modal e vai pro banco');
-  ok('campo "Começa em" no formulário', HTML.indexOf('<label>Começa em</label>')>0);
+  ok('campo "Começa" no formulário (atalhos + data)', HTML.indexOf("linha('ini','Começa',")>0 && HTML.indexOf('id="mph_ini"')>0);
   ok('grava a coluna inicio', HTML.indexOf('inicio:st.ini||tkHoje()')>0);
   ok('modal abre com o início do hábito ao editar', HTML.indexOf('ini:h?mpIni(h):tkHoje()')>0);
 }
@@ -1178,7 +1178,7 @@ grupo('Contratos: formulário novo alimenta o gerador de .docx');
   ok('mapeia para o formato do .docx', HTML.indexOf('contratante_razao:r.razao_social')>0 && HTML.indexOf('rep_nascimento:r.nascimento')>0);
   ok('o link do formulário aponta pra página nova', HTML.indexOf("const CT_LINK='https://autosintese.app.br/contrato'")>0);
   ok('Contratos liberado para master + comercial', /function podeContratos\(\)\{ return !!currentUser && \(currentUser\.role==='master' \|\| \/comerc\/i\.test/.test(HTML));
-  ok('atalho Contratos no rail, revelado por papel', HTML.indexOf('id="navContratos"')>0 && HTML.indexOf("if(podeContratos()){ show($('#navContratos'))")>0);
+  ok('atalho Contratos no rail, revelado por papel', HTML.indexOf('id="navContratos"')>0 && HTML.indexOf("if(podeContratos()&&!noComercial){ show($('#navContratos'))")>0);
 }
 
 /* ---------------- camada mobile ---------------- */
@@ -1193,7 +1193,7 @@ grupo('Camada mobile (720px)');
   ok('viewport meta presente', HTML.indexOf('width=device-width')>0);
   secao('o que quebrava no celular');
   ok('tabela rola de lado em vez de esmagar', /\.tablewrap\{[^}]*overflow-x:auto/.test(css));
-  ok('formulário de duas colunas vira uma', bloco720.indexOf('.row2{grid-template-columns:1fr}')>0);
+  ok('formulário de duas colunas vira uma', /\.row2(,\.row3)?\{grid-template-columns:1fr\}/.test(bloco720));
   ok('painel da tarefa em tela cheia', bloco720.indexOf('.overlay.folha .modal{width:100vw')>0);
   ok('coluna do board cabe no dedo', /\.tk-col\{flex:0 0 84vw/.test(bloco720));
   ok('iOS não dá zoom no campo focado', /input,select,textarea\{font-size:16px/.test(bloco720));
@@ -1662,7 +1662,7 @@ grupo('CRM: botão do WhatsApp abre a conversa DENTRO do sistema (Bernardo 08/10
   ok('sem o módulo de conversas carregado, cai no wa.me em vez de quebrar', /href="https:\/\/wa\.me\//.test(g3.rspWaBtn(g3.TK.tarefas[0])));
   ok('a Lista usa o mesmo botão', /rspWaBtn\(t\)(\+rspIgBtn\(t\))?:''/.test(HTML));
   ok('botão dentro do nome não herda o estilo de link do nome', /\.rsp-nm button:not\(\.tk-wa\)\{/.test(HTML));
-  ok('conversas.js com cache novo', HTML.indexOf('comercial/conversas.js?v=11')>0);
+  ok('conversas.js com cache novo', /comercial\/conversas\.js\?v=(1[1-9]|[2-9]\d)/.test(HTML));
   ok('só master e gestor passam o lead pra outro SDR (cartão e conversa)', /function ldPodeTr\(\)\{ return !!\(LD\.tarefa&&LD\.vendedores\.length>1&&LD\.admin\); \}/.test(fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8'))&&HTML.indexOf('<h4>SDR responsável</h4>')>0&&HTML.indexOf('class="cl-sdrro"')>0);
   /* número guardado pelo WhatsApp sem o 9 (Bernardo 11/10): o painel procura dos dois jeitos */
   { const CJ9=fs.readFileSync(path.join(__dirname,'..','comercial','conversas.js'),'utf8');
@@ -2284,7 +2284,8 @@ grupo('CRM Sofás: planilha voltou ao jeito do vídeo das 17h (Bernardo 08/10)')
 {
   /* 11/10: os botões de data voltaram pra barra (rspPeriodo), mas a lista continua abrindo em Todos: nada de abrir já filtrada em Hoje nem de aviso de pendentes */
   ok('não abre filtrado em hoje e não tem aviso de pendentes (os botões de data só filtram quando clicados)', HTML.indexOf('rspAvisoPendentes')<0&&HTML.indexOf('RSP_PER')<0&&HTML.indexOf("let RSP={dir:-1,sel:{},q:'',larg:{}};")>0);
-  ok('Filtros continua sem "Data de vencimento" na lista de lead (lead não tem prazo)', /\$\{tkFSemPrio\(\)\?`<p class="hint"[^`]*`:`<div class="tkp-sec">Data de vencimento<\/div>/.test(HTML)&&HTML.indexOf("if(tkFSemPrio()){ /* lead não tem prazo")>0&&HTML.indexOf("((F.prazo||F.de||F.ate)&&!tkFSemPrio()?1:0)")>0);
+  /* 19/10: na lista de lead o filtro de data passou a ser pela DATA DE ENTRADA (lead não tem prazo) */
+  ok('Filtros de lead: "Data de entrada" no lugar de "Data de vencimento", sem prioridade', /\$\{tkFSemPrio\(\)\?`<div class="tkp-sec">Data de entrada<\/div>[\s\S]*?:`<div class="tkp-sec">Data de vencimento<\/div>/.test(HTML)&&HTML.indexOf("if(tkFSemPrio()){ if(tkFLeadAtivo(F)) arr=arr.filter(t=>tkFLeadBate(t,F)); }")>0&&HTML.indexOf("(tkFSemPrio()?tkFLeadAtivo(F):(F.prazo||F.de||F.ate))?1:0")>0);
 }
     await Promise.all(PROMESSAS);
     fimDosTestes();

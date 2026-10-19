@@ -16,7 +16,7 @@ const g={console,Date,Math,JSON,String,Number,Array,Object,Boolean,RegExp,Set,Ma
   brl:(n)=>'R$ '+(Number(n)||0).toFixed(2).replace('.',','), toast(){}, modal(){}, confirmar:async()=>true, $:()=>null,
   renderFunil(){}, FN:{}, lkHash(){}, SUPA_URL:'https://x.supabase.co'};
 g.window=g; vm.createContext(g);
-vm.runInContext(SRC+'\n;Object.assign(window,{CRM,crmFiltrar,crmJanela,crmPct,crmFone,crmNoPeriodo,crmPipelineHTML,crmOrigensHTML,crmAgendaHTML,crmFichaHTML,crmIsoLocal,crmEst,crmOrigem,crmIntgHTML,CRM_LOGOS});',g);
+vm.runInContext(SRC+'\n;Object.assign(window,{CRM,crmFiltrar,crmRodapeHTML,crmJanela,crmPct,crmFone,crmNoPeriodo,crmPipelineHTML,crmOrigensHTML,crmAgendaHTML,crmFichaHTML,crmIsoLocal,crmEst,crmOrigem,crmIntgHTML,CRM_LOGOS});',g);
 
 grupo('Carrega e exporta');
 ok('crm.js é JS válido e definiu crmRender', typeof g.crmRender==='function');
@@ -69,10 +69,13 @@ grupo('Pipeline');
 F(); let html=g.crmPipelineHTML();
 ok('kanban tem uma coluna por estágio ativo', (html.match(/class="crm-col"/g)||[]).length===4);
 ok('perdido antigo (fora do período) não aparece no kanban', !html.includes('Antigo'));
-ok('ganho do período aparece na coluna Ganho com a receita', html.includes('Rogério Lima') && html.includes('R$ 5950,00'));
-ok('KPI de leads separa pago de orgânico', /3<\/div><div class="s">2 de mídia paga · 1 orgânico\/indicação/.test(html));
-ok('origem aparece como etiqueta no card', html.includes('crm-badge pago">Meta Ads') && html.includes('crm-badge org">Indicação'));
-ok('quem indicou aparece no card', html.includes('>Yghor<'));
+/* 16/09 "Pipeline limpo: só o quadro, sem KPI nem rodapé" e "Card do pipeline: nome, telefone e
+   etiqueta de temperatura" — a receita, a origem e quem indicou ficam na ficha, não no card */
+const colGanho=(html.split("crmSoltar(event,'ganho')")[1]||'').split('crm-col"')[0];
+ok('ganho do período aparece na coluna Ganho', colGanho.includes('Rogério Lima'));
+ok('pipeline limpo: sem KPI no topo', !html.includes('mídia paga') && !html.includes('orgânico/indicação'));
+ok('card traz nome, telefone e temperatura', html.includes('class="n">Marcelo Duarte<') && html.includes('(17) 99812-4430') && html.includes('tag quente'));
+ok('card não repete origem nem quem indicou (isso fica na ficha)', !html.includes('crm-badge pago') && !html.includes('>Yghor<'));
 F(); g.CRM.f.sdr='s2'; html=g.crmPipelineHTML();
 ok('com filtro de SDR só os cards dela ficam', html.includes('Carla Menezes') && !html.includes('Marcelo Duarte'));
 
@@ -82,7 +85,8 @@ html=g.crmFichaHTML(g.CRM.d.opps[2]);
 ok('ficha mostra origem → campanha → anúncio', html.includes('Agente IA') && html.includes('Carrossel'));
 ok('ficha mostra SDR e closer pelo primeiro nome', html.includes('Loane') && html.includes('José'));
 ok('linha do tempo mostra a venda com valor', html.includes('Venda fechada') && html.includes('R$ 5950,00'));
-ok('oportunidade fechada oferece Reabrir e não Ganho', html.includes('Reabrir') && !html.includes('🎉 Ganho'));
+{ const rod=g.crmRodapeHTML(g.CRM.d.opps[2]);
+  ok('oportunidade fechada oferece Reabrir e não Ganho', rod.includes('Reabrir') && !rod.includes('crmGanhoModal')); }
 html=g.crmFichaHTML(g.CRM.d.opps[1]);
 ok('sem touchpoint mostra o detalhe da origem (quem indicou)', html.includes('Yghor'));
 

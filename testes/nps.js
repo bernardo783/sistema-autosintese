@@ -191,7 +191,9 @@ grupo('Sistema: onde a pesquisa de saída aparece');
   ok('lista Pesquisa de Satisfação abre a tela pesquisa', /\[LPESQ\]:'pesquisa'/.test(HTML));
   ok('só master e gerente enxergam a lista', /lid!==LPESQ\|\|souGerente\(\)/.test(HTML));
   ok('rota barra quem não é gerente', /view==='pesquisa'\)\{\s*if\(!souGerente\(\)\)/.test(HTML));
-  ok('churn pelo formulário já abre o link da pesquisa', /if\(ok&&t\.ficha_id\) setTimeout\(\(\)=>\{ try\{ psSaida\(t\.ficha_id\)/.test(HTML));
+  /* o churn pelo formulário passa por chDepoisDoChurn, que encerra o Financeiro e no fim abre o link */
+  ok('churn pelo formulário já abre o link da pesquisa', /if\(ok&&t\.ficha_id\)\{[^\n]*chDepoisDoChurn\(t,sai\)/.test(HTML)
+     && /async function chDepoisDoChurn\(t,sai\)\{[\s\S]*?try\{ psSaida\(fid\); \}catch\(_\)\{\}\n\}/.test(HTML));
   ok('ficha do cliente em churn tem o botão Pesquisa de saída', HTML.indexOf(`onclick="psSaida('\${esc(it.id)}')">Pesquisa de saída</button>`)>0);
   ok('o botão pede o link ao banco', HTML.indexOf("sb.rpc('pesquisa_churn_link',{p_ficha:fid})")>0);
   ok('contador na gramática "feitos de previstos"', HTML.indexOf('${saidas.length-abertas.length} de ${saidas.length} respondidas')>0);

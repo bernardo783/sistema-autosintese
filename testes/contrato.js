@@ -32,7 +32,8 @@ grupo('A página carrega');
 grupo('Fidelidade ao formulário original do Yay');
 {
   secao('tela de abertura');
-  ok('título com a Loja de Veículos🚀', HTML.indexOf('parabéns pela decisão de evoluir e escalar os resultados da sua Loja de Veículos🚀')>0);
+  /* emoji saiu de todo o sistema (23/09): o título fica sem o foguete */
+  ok('título com a Loja de Veículos', HTML.indexOf('parabéns pela decisão de evoluir e escalar os resultados da sua Loja de Veículos</h1>')>0);
   ok('texto da formalização do projeto', HTML.indexOf('Dando sequência à formalização do projeto, é necessário o preenchimento do Formulário de informações Contratuais!')>0);
   ok('chamada pra iniciar', HTML.indexOf('Clique no botão abaixo para iniciar!')>0);
   ok('botão CLIQUE AQUI PARA ACELERAR', HTML.indexOf('CLIQUE AQUI PARA ACELERAR')>0);
