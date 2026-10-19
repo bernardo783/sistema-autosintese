@@ -16878,10 +16878,16 @@ function axTusLib(){
     document.head.appendChild(el); });
   return AX_TUS;
 }
+/* Gabriel 19/10 ("Lara - Interior 1910.mp4", 17 MB): o servidor recusava o envio em partes pela regra
+   de permissão (400 com "403" no corpo) e isto dizia "sessão expirou", o que não era verdade. Sessão
+   vencida agora só quando o erro fala de token vencido; o resto mostra o motivo de verdade. */
+const AX_SESSAO=/jwt expired|token (has )?expired|exp claim|invalid jwt|401/i;
+const AX_TAMANHO=/413|maximum allowed size|exceeded|payload too large/i;
 function axErroEnvio(e){
   const m=String((e&&(e.message||e))||'erro');
-  if(/413|maximum allowed size|exceeded/i.test(m)) return 'o arquivo passa do limite do servidor ('+AX_MAX_TXT+')';
-  if(/401|403|jwt|unauthorized/i.test(m)) return 'sua sessão expirou, entre de novo e reenvie';
+  if(AX_TAMANHO.test(m)) return 'o arquivo passa do limite do servidor ('+AX_MAX_TXT+')';
+  if(AX_SESSAO.test(m)) return 'sua sessão expirou, entre de novo e reenvie';
+  if(/row-level security|AccessDenied|permission denied|403|unauthorized/i.test(m)) return 'o servidor não deixou gravar o arquivo, avise o Bernardo';
   return m.replace(/^tus: /,'').slice(0,160);
 }
 /* devolve {error} igual ao upload do Supabase; prog(enviado,total) so no envio em pedacos */
@@ -16910,9 +16916,15 @@ async function axSubir(chave,f,prog){
   }catch(e){
     /* rede de seguranca: ate 50 MB o envio de uma vez sempre funcionou. Se o envio em partes
        falhar por outro motivo que nao tamanho ou sessao, cai nele em vez de perder o anexo. */
+    /* qualquer falha que não seja tamanho: tenta de uma vez (dentro do limite do bucket isso sempre funcionou). Se a
+       segunda também falhar, mostra o motivo dela, que é o do envio mais simples. */
     const m=String((e&&(e.message||e))||'');
-    if(f.size<=52428800&&!/413|maximum allowed size|exceeded|401|403|jwt|unauthorized/i.test(m))
-      return sb.storage.from('anexos').upload(chave,f,{contentType:tipo});
+    if(f.size<=52428800&&!AX_TAMANHO.test(m)){
+      if(prog) try{ prog(0,f.size); }catch(_){}
+      const r=await sb.storage.from('anexos').upload(chave,f,{contentType:tipo});
+      if(r&&r.error) return {error:{message:axErroEnvio(r.error)}};
+      if(prog) try{ prog(f.size,f.size); }catch(_){}
+      return r; }
     return {error:{message:axErroEnvio(e)}}; }
 }
 const axProgTxt=(nome,a,b)=>'Enviando '+nome+': '+Math.floor(a/(b||1)*100)+'% ('+axFmtB(a)+' de '+axFmtB(b)+')';

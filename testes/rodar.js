@@ -382,6 +382,16 @@ grupo('Recebimentos: copiar telefone e mensagem de cobrança com o link do Asaas
   ok('os links vêm da edge só de leitura, só pro master, e ficam 10 min em memória', HTML.indexOf("sb.functions.invoke('asaas-links',{body:{}})")>0&&HTML.indexOf("currentUser.role!=='master'||(RC_ASAAS.cobrancas&&Date.now()-RC_ASAAS.em<600000)")>0);
 }
 
+grupo('Anexo grande: envio em partes recusado não vira "sessão expirou" e tenta de uma vez (Gabriel 19/10)');
+{
+  const g=rodar(bloco('const AX_SESSAO=','/* devolve {error} igual ao upload do Supabase'),{AX_MAX_TXT:'50 MB'},['axErroEnvio']);
+  ok('recusa da regra de permissão não é sessão vencida', g.axErroEnvio({message:'tus: unexpected response while creating upload, originated from request (method: POST, response code: 400, response text: {"statusCode":"403","error":"Unauthorized","message":"new row violates row-level security policy"})'})==='o servidor não deixou gravar o arquivo, avise o Bernardo');
+  ok('token vencido continua dizendo sessão expirada', g.axErroEnvio({message:'jwt expired'})==='sua sessão expirou, entre de novo e reenvie');
+  ok('arquivo grande demais continua dizendo o limite', g.axErroEnvio({message:'Payload too large 413'})==='o arquivo passa do limite do servidor (50 MB)');
+  const sub=bloco('async function axSubir(chave,f,prog){','const axProgTxt=');
+  ok('qualquer falha que não seja tamanho cai no envio de uma vez, com progresso', sub.indexOf('if(f.size<=52428800&&!AX_TAMANHO.test(m)){')>0&&sub.indexOf("const r=await sb.storage.from('anexos').upload(chave,f,{contentType:tipo});")>0&&sub.indexOf('prog(f.size,f.size)')>0);
+}
+
 grupo('Suporte: Problema no sistema aceita anexo e link, numa lista só (Gabriel 19/10)');
 {
   const toasts=[], DOM={};
