@@ -497,7 +497,11 @@ grupo('Quem apaga demanda (Gabriel 19/10)');
   ok('membro NÃO apaga o que subiram pra ele', g.podeApagar({criado_por:'u2',responsavel_id:'u1'})===false);
   g.currentUser.gerente=true; ok('gerente apaga qualquer uma', g.podeApagar({criado_por:'u2'})===true);
   g.currentUser.gerente=false; g.currentUser.role='master'; ok('master apaga qualquer uma', g.podeApagar({criado_por:'u2'})===true);
-  ok('arquivar e excluir conferem a regra', HTML.indexOf("if(!podeApagar(t)){ toast(NAO_APAGA); return; }\n  if(!arquivada(t)){ return tkArquivar(id); }")>0 && (HTML.match(/if\(!podeApagar\(t\)\)\{ toast\(NAO_APAGA\); return; \}/g)||[]).length>=2);
+  { const ex=bloco('window.tkExcluir=async (id)=>{','function renderProcessos(c){');
+    ok('arquivar e excluir conferem a regra', ex.indexOf("if(!podeApagar(t)){ toast(NAO_APAGA); return; }")>0 && ex.indexOf("if(!podeApagar(t)){ toast(NAO_APAGA); return; }")<ex.indexOf('if(t.rascunho&&!arquivada(t)){') && ex.indexOf('if(!arquivada(t)){ return tkArquivar(id); }')>0 && (HTML.match(/if\(!podeApagar\(t\)\)\{ toast\(NAO_APAGA\); return; \}/g)||[]).length>=2);
+    ok('rascunho (só quem criou vê) se descarta de vez, com confirmação; o resto continua arquivando primeiro', ex.indexOf("Descartar o rascunho")>0&&ex.indexOf("sb.from('tarefas').delete().eq('id',id)")>ex.indexOf('if(t.rascunho&&!arquivada(t)){'));
+    ok('card do quadro tem o ⋯ visível que abre o mesmo menu (Gabriel 19/10)', HTML.indexOf(`<button type="button" class="tk-cmenu" title="Mais opções" aria-label="Mais opções" onclick="event.stopPropagation();tkCardMenu(event,'\${t.id}')">`)>0&&HTML.indexOf('@media (hover:none){.tk-cmenu{opacity:1}}')>0);
+    ok('menu e rodapé dizem Descartar rascunho no rascunho', HTML.indexOf("(t.rascunho?'Descartar rascunho':'Arquivar tarefa')")>0&&HTML.indexOf('>Descartar rascunho</button>')>0); }
   ok('botões só aparecem pra quem pode', HTML.indexOf("if(podeApagar(t)) it.push(")>0 && HTML.indexOf("${podeApagar(t)?`<button class=\"iconbtn del\"")>0);
 }
 

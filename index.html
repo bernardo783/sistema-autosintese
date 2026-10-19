@@ -1976,6 +1976,12 @@
     padding:11px 13px;margin-bottom:7px;cursor:pointer;box-shadow:none;
     transition:background .12s,border-color .12s,box-shadow .12s}
   .tk-card:hover{background:var(--cardh);border-color:var(--line);box-shadow:0 2px 10px rgba(0,0,0,.22)}
+  .tk-cmenu{position:absolute;top:7px;right:7px;z-index:2;display:grid;place-items:center;width:26px;height:26px;padding:0;border-radius:7px;
+    border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;opacity:0;transition:opacity .12s}
+  .tk-cmenu svg{width:16px;height:16px}
+  .tk-card:hover .tk-cmenu,.tk-cmenu:focus-visible{opacity:1}
+  .tk-cmenu:hover{color:var(--txt);border-color:var(--brand2)}
+  @media (hover:none){.tk-cmenu{opacity:1}}
   .tk-card.p-urgente{--pc:#ef5b6b}
   .tk-card.p-alta{--pc:#e6b13f}
   .tk-card.p-med{--pc:#4f8ff7}
@@ -9962,7 +9968,10 @@ function tkCard(t){
   const chCam=TK.escopo!=='lista'?`<span class="tk-chip" style="opacity:.75;cursor:default" title="${esc(tkCaminho(t.lista_id))}">${esc(tkCaminho(t.lista_id))}</span>`:'';
   const chPrio=`<button type="button" class="tk-chip tk-vaz" title="Prioridade" onclick="${par(`tkQaPrio(event,'${t.id}')`)}">${FLG}${esc(TK_PRIO[t.prioridade||'med'])}</button>`;
   const cheio=!!(rsC.length||t.prazo||t.ficha_id||sq||chCam);
+  /* ⋯ no canto (Gabriel 19/10: "cadê a opção de excluir um card?"): o menu do botão direito,
+     que ninguém achava, agora tem porta visível. Aparece no hover; no celular fica sempre. */
   return `<div class="tk-card${t.status==='feito'?' feito':''}${pcl}" ${drag} onclick="tkAbrir('${t.id}')" oncontextmenu="tkCardMenu(event,'${t.id}')">
+    <button type="button" class="tk-cmenu" title="Mais opções" aria-label="Mais opções" onclick="event.stopPropagation();tkCardMenu(event,'${t.id}')"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>
     ${t.tipo_id?`<div class="tk-tpl">${tipoChip(t.tipo_id,'sm')}</div>`:''}
     <div class="tk-tit">${t.rascunho?rascSelo(t):''}${esc(t.titulo)}${recIco(t)}</div>
     ${meta?`<div class="tk-meta">${meta}</div>`:''}
@@ -16620,7 +16629,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
           ${t?(arquivada(t)
             ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
                ${podeApagar(t)?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:''}`
-            : (podeApagar(t)?`<button class="btn ghost small" onclick="tkArquivar('${t.id}')">${restrito()?'Cancelar conta':'Arquivar'}</button>`:'')):''}
+            : (podeApagar(t)?(t.rascunho&&!restrito()?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Descartar rascunho</button>`
+              :`<button class="btn ghost small" onclick="tkArquivar('${t.id}')">${restrito()?'Cancelar conta':'Arquivar'}</button>`):'')):''}
         </div>
       </div>
 
@@ -18229,7 +18239,7 @@ window.tkCardMenu=(ev,id)=>{
   /* tkExcluir arquiva primeiro; so master apaga de vez o que ja esta arquivado.
      O rotulo diz o que vai acontecer de verdade. */
   const arq=arquivada(t);
-  if(podeApagar(t)) it.push({ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',t:arq?'Excluir de vez':'Arquivar tarefa',dgr:true,f:()=>tkExcluir(id)});
+  if(podeApagar(t)) it.push({ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',t:arq?'Excluir de vez':(t.rascunho?'Descartar rascunho':'Arquivar tarefa'),dgr:true,f:()=>tkExcluir(id)});
   ctxAbrir(ev,it);
 };
 /* Quem apaga (Gabriel 19/10): master e gerente apagam qualquer demanda que enxergam; os demais
@@ -18240,6 +18250,15 @@ const NAO_APAGA='Só quem criou a demanda, um gerente ou um master pode apagar.'
 window.tkExcluir=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
   if(!podeApagar(t)){ toast(NAO_APAGA); return; }
+  /* rascunho nunca foi publicado e só quem criou enxerga: descartar apaga de vez (Gabriel 19/10) */
+  if(t.rascunho&&!arquivada(t)){
+    if(!confirm('Descartar o rascunho "'+(t.titulo||'sem título')+'"?\n\nEle só existe pra você e some de vez.')) return;
+    const {error}=await sb.from('tarefas').delete().eq('id',id);
+    if(error){ toast('Erro: '+error.message); return; }
+    TK.tarefas=TK.tarefas.filter(x=>x.id!==id);
+    const ov=document.querySelector('.overlay'); if(ov) ov.remove();
+    tkDesenhar($('#content')); spDesenhar(); toast('Rascunho descartado.'); return;
+  }
   if(!arquivada(t)){ return tkArquivar(id); }   /* nunca apaga direto: arquiva primeiro */
   if(!confirm('Excluir "'+t.titulo+'" de vez?\n\nIsso não tem volta.'+recAvisoApagar(t))) return;
   const {error}=await sb.from('tarefas').delete().eq('id',id);
