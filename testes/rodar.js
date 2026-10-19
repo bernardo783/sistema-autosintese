@@ -1657,6 +1657,42 @@ grupo('Relatório: cartão do anúncio destaca leads, custo por lead e gasto (Ga
   ok('colunas de largura fixa e etiqueta fixa: linhas alinhadas', /\.ad \.am>div\{text-align:right;width:118px/.test(R)&&/\.ad \.tag\{[^}]*width:62px/.test(R));
   ok('a linha pequena é editável no editor', HTML.indexOf(".ad .an,.ad .ac,.ad .as,.ad .amk,.ad .amv,")>0);
 }
+/* ---------------- ficha do cliente: clica e escreve, sem redesenhar a janela ---------------- */
+grupo('Ficha: contato e número da Lara clica-e-escreve; salvar não recria a janela (Gabriel 19/10)');
+{
+  const cod=bloco('const PC_LEVES=','window.pcAplicar=async');
+  const g=rodar(cod,{zapsDe:(f)=>Array.isArray(f&&f.zaps)?f.zaps:[],uid:()=>'novo',document:{getElementById:()=>null}},['pcZapGravar','PC_LEVES']);
+  const it={zaps:[{id:'1',et:'IA',num:'111'},{id:'2',et:'Dono',nome:'Ana',num:'222'}]};
+  g.pcZapGravar(it,'Dono','(12) 99999-0000','Ana');
+  ok('editar o WhatsApp do dono troca o número da etiqueta Dono, sem mexer nos outros', it.zaps.length===2&&it.zaps[1].num==='(12) 99999-0000'&&it.zaps[0].num==='111');
+  g.pcZapGravar(it,'Financeiro','(12) 98888-0000','Bia');
+  ok('sem etiqueta Financeiro: cria uma, com o nome do responsável', it.zaps.length===3&&it.zaps[2].et==='Financeiro'&&it.zaps[2].nome==='Bia'&&it.zaps[2].id==='novo');
+  g.pcZapGravar(it,'Dono','','');
+  ok('apagar o número tira só a etiqueta Dono', it.zaps.length===2&&!it.zaps.some(z=>z.et==='Dono'));
+  ok('os campos de contato, a descrição e a Lara salvam sem redesenhar a janela', ['pc_insta','pc_drive','pc_notas','pc_dono','pc_zapdono','pc_finnome','pc_zapfin','pc_lara'].every(k=>g.PC_LEVES[k]));
+  const ap=bloco('window.pcAplicar=async','/* Tipo de cliente direto no topo da ficha');
+  const iLeve=ap.indexOf('if(PC_LEVES[campo]&&'), iReabre=ap.indexOf('openProjCard(pid);');
+  ok('campo leve atualiza a linha no lugar e sai antes de reabrir a janela', iLeve>0&&iReabre>iLeve&&/pcC\.innerHTML=pcContatoHtml\(it,cli\)/.test(ap)&&/toast\('Salvo\.'\); return;/.test(ap));
+  ok('só grava contato que a pessoa mudou (campo que nem abriu não mexe)', /if\(cli&&pcMudou\('pc_dono'\)\) cli\.resp=/.test(ap)&&/if\(pcMudou\('pc_lara'\)\) await pcLaraGravar/.test(ap));
+  ok('o campo fechado avisa qual foi editado', HTML.indexOf("pcAplicar(pid,el.getAttribute('data-f'))")>0);
+  ok('Esc desiste e devolve o texto original', /campos\.forEach\(x=>\{ if\(x\.tagName!=='SELECT'\) x\.value=x\.defaultValue; \}\)/.test(HTML));
+  const ct=bloco('function pcContatoHtml(f,cli){','window.openProjCard=');
+  ok('Dono, WhatsApp do dono, Financeiro e WhatsApp do financeiro abrem campo na linha', ['pc_dono','pc_zapdono','pc_finnome','pc_zapfin'].every(k=>ct.indexOf("fid:'"+k+"'")>0));
+  ok('a ficha usa o número da Lara clica-e-escreve, não a janela', HTML.indexOf('<div class="pc-dl" id="pcLara">${pcLaraHtml(it.id)}</div>')>0);
+  /* número da Lara: vazio de carregamento não apaga; inválido avisa */
+  const lc=bloco('async function pcLaraGravar(fid,v){','window.laEscolherEm=');
+  const avisos=[], ops=[]; const RW={lara:{F1:{fone:'5512999990000'}}};
+  const gl=rodar(lc+';window.__g=pcLaraGravar;',{RW,toast:(m)=>avisos.push(m),currentUser:{id:'u'},
+    laFone:(f)=>((RW.lara||{})[f]||{}).fone||'',laNorm:(v)=>{ let d=String(v||'').replace(/\D/g,''); if(d.length===10||d.length===11) d='55'+d; return /^55[1-9][0-9][0-9]{8,9}$/.test(d)?d:''; },
+    sb:{from:()=>({upsert:async(r)=>{ ops.push(['up',r.fone]); return {error:null}; },delete:()=>({eq:async()=>{ ops.push(['del']); return {error:null}; }})})}},[]);
+  PROMESSAS.push((async()=>{
+    ok('número inválido avisa e não grava', (await gl.__g('F1','123'))===false&&ops.length===0&&/inválido/.test(avisos[0]||''));
+    await gl.__g('F1','(35) 9 1234-5678');
+    ok('número novo grava com DDI', ops.length===1&&ops[0][1]==='5535912345678'&&RW.lara.F1.fone==='5535912345678');
+    await gl.__g('F1','');
+    ok('apagar remove o número', ops[1]&&ops[1][0]==='del'&&!RW.lara.F1);
+  })());
+}
 /* ---------------- token sempre fresco nas edge functions ---------------- */
 grupo('Login: token renovado chega nas funções (Gabriel 13/10, "Faça login no sistema")');
 {

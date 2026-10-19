@@ -7921,6 +7921,28 @@ function laChip(fid,alvo){
   return n?`<button type="button" class="rw-g la on" onclick="laEscolherEm('${fid}','${alvo}')" title="Trocar o número">${LA_IC}<span>${esc(laFmt(n))}</span></button>`
           :`<button type="button" class="rw-g" onclick="laEscolherEm('${fid}','${alvo}')">${RW_IC_LINK}<span>número da Lara</span></button>`;
 }
+/* Número da Lara na ficha (Gabriel 19/10): clica e escreve, sem janela. O número mora em
+   cliente_lara; se ainda não carregou, o campo chega vazio e é preenchido quando carregar
+   (o salvar só grava se a pessoa mudou o valor, então vazio de carregamento não apaga nada). */
+function pcLaraHtml(fid){
+  if(!RW.ok) rwCarregar().then(()=>{ const el=document.getElementById('pcLara'); if(el&&RW.ok&&!el.querySelector('.ed1')) el.innerHTML=pcLaraHtml(fid); }).catch(()=>{});
+  const n=RW.ok?laFone(fid):'';
+  const leitura=n?`<span class="pc-nm">${esc(laFmt(n))}</span>`:(RW.ok?'<span class="pcx-vz">Vazio</span>':'<span class="hint" style="margin:0">carregando…</span>');
+  return `<div class="k">${PCX_I.mens||''}Número da Lara</div><div class="v${n?'':' vz'} aberta" data-f="pc_lara" onclick="pcInline(event,this)"><span class="leitura">${leitura}</span><span class="campo"><input id="pc_lara" value="${esc(n?laFmt(n):'')}" placeholder="(DDD) 9 0000-0000" inputmode="tel" autocomplete="off"></span></div>`;
+}
+async function pcLaraGravar(fid,v){
+  const atual=laFone(fid), d=laNorm(v);
+  if(!String(v||'').trim()){
+    if(!atual) return true;
+    const {error}=await sb.from('cliente_lara').delete().eq('ficha_id',String(fid));
+    if(error){ toast('Não removeu o número da Lara: '+error.message); return false; }
+    delete RW.lara[String(fid)]; return true; }
+  if(!d){ toast('Número da Lara inválido: use DDD + número, ex.: (35) 9 1234-5678.'); return false; }
+  if(d===atual) return true;
+  const {error}=await sb.from('cliente_lara').upsert({ficha_id:String(fid),fone:d,definido_por:(currentUser||{}).id||null,definido_em:new Date().toISOString()});
+  if(error){ toast('Não salvou o número da Lara: '+error.message); return false; }
+  RW.lara=RW.lara||{}; RW.lara[String(fid)]={ficha_id:String(fid),fone:d}; return true;
+}
 window.laEscolherEm=(fid,alvo)=>laEscolher(fid,()=>{ const el=document.getElementById(alvo); if(el) el.innerHTML=laChip(fid,alvo); });
 /* Conta de anúncios no card do Controle de Clientes (Bernardo 05/10). Usa o mesmo seletor da aba
    Relatórios (rwEscolherConta), então a regra de quais contas aparecem é uma só: as da BM.
@@ -22138,18 +22160,28 @@ function pcContatoHtml(f,cli){
   const igV=f.instagram||(cli&&cli.instagram)||'', drV=f.drive||(cli&&cli.drive)||'';
   const igL=linkIg(igV), drL=linkUrl(drV);
   const mesmo=d.finNome&&cli&&cli.resp&&nomeGente(d.finNome)===nomeGente(cli.resp);
-  return pcLinha('Dono','pessoa', (cli&&cli.resp)?pcPessoa(cli.resp):'<span class="pcx-vz">Vazio</span>', {vazio:!(cli&&cli.resp)})
-    +pcLinha('WhatsApp do dono','zap', `<span class="pc-cts">${d.donoTel?pcChipZap(d.donoTel):pcAddNum(fid)}${nZ?`<button type="button" class="pc-chip mini" title="Todos os números do cliente" onclick="zapAbrir(event,'${esc(fid)}')">agenda · ${nZ}</button>`:''}</span>`, {vazio:!d.donoTel})
+  /* CLICA E ESCREVE (Gabriel 19/10: "igual ao ClickUp, eu dou um click e escrevo"): dono,
+     financeiro e os dois WhatsApp viram campo na própria linha. O link do WhatsApp continua
+     abrindo a conversa; pra editar, clica fora do link ou no lápis. O Dono mora no cadastro
+     do Financeiro, então só edita quem enxerga o cadastro (cli). */
+  const inp=(id,v,ph,tel)=>`<input id="${id}" value="${esc(v||'')}" placeholder="${ph}"${tel?' inputmode="tel"':''} autocomplete="off">`;
+  const vazioTxt='<span class="pcx-vz">Vazio</span>';
+  return pcLinha('Dono','pessoa', (cli&&cli.resp)?pcPessoa(cli.resp):vazioTxt,
+      cli?{vazio:!cli.resp,fid:'pc_dono',campo:inp('pc_dono',cli.resp,'Nome do dono')}:{vazio:true})
+    +pcLinha('WhatsApp do dono','zap', `<span class="pc-cts">${d.donoTel?pcChipZap(d.donoTel)+lap:vazioTxt}${nZ?`<button type="button" class="pc-chip mini" title="Todos os números do cliente" onclick="zapAbrir(event,'${esc(fid)}')">agenda · ${nZ}</button>`:''}</span>`,
+      {vazio:!d.donoTel,fid:'pc_zapdono',campo:inp('pc_zapdono',d.donoTel?mascTel(d.donoTel):'','(DDD) 9 0000-0000',1)})
     +pcLinha('Grupo do WhatsApp','grupo', `<span class="pc-cts" id="pcGrupoWa">${pcGrupoChip(fid)}</span>`)
     +(master
-      ?pcLinha('Financeiro','chave', d.finNome?pcPessoa(d.finNome,mesmo?'<span class="pc-tg">o próprio dono</span>':''):'<span class="pcx-vz">Vazio</span>', {vazio:!d.finNome,titulo:'Responsável financeiro · só o master vê'})
-       +pcLinha('WhatsApp do financeiro','zap', `<span class="pc-cts">${d.finTel?pcChipZap(d.finTel):pcAddNum(fid)}</span>`, {vazio:!d.finTel,titulo:'Só o master vê'})
+      ?pcLinha('Financeiro','chave', d.finNome?pcPessoa(d.finNome,mesmo?'<span class="pc-tg">o próprio dono</span>':''):vazioTxt,
+         {vazio:!d.finNome,titulo:'Responsável financeiro · só o master vê',fid:'pc_finnome',campo:inp('pc_finnome',d.finNome?nomeGente(d.finNome):'','Nome do responsável financeiro')})
+       +pcLinha('WhatsApp do financeiro','zap', `<span class="pc-cts">${d.finTel?pcChipZap(d.finTel)+lap:vazioTxt}</span>`,
+         {vazio:!d.finTel,titulo:'Só o master vê',fid:'pc_zapfin',campo:inp('pc_zapfin',d.finTel?mascTel(d.finTel):'','(DDD) 9 0000-0000',1)})
       :'')
     +pcLinha('Instagram','ig', `<span class="pc-cts">${igL?`<a class="pc-chip" href="${esc(igL)}" target="_blank" rel="noopener" title="Abrir o Instagram"><span class="pc-ci ig">${PC_IC.ig}</span><span>${esc(igArroba(igV))}</span>${PC_IC.sa}</a>${lap}`
-        :`<button type="button" class="pc-chip vz" onclick="pcEditarLinha(this)">adicionar Instagram</button>`}</span>`,
+        :'<span class="pcx-vz">Vazio</span>'}</span>`,
       {vazio:!igL,fid:'pc_insta',campo:`<input id="pc_insta" value="${esc(igV)}" placeholder="@perfil ou link">`})
     +pcLinha('Drive','drive', `<span class="pc-cts">${drL?`<a class="pc-chip" href="${esc(drL)}" target="_blank" rel="noopener" title="Abrir a pasta no Drive"><span class="pc-ci dr">${PC_IC.dr}</span><span>Abrir pasta</span>${PC_IC.sa}</a>${lap}`
-        :`<button type="button" class="pc-chip vz" onclick="pcEditarLinha(this)">adicionar pasta</button>`}</span>`,
+        :'<span class="pcx-vz">Vazio</span>'}</span>`,
       {vazio:!drL,fid:'pc_drive',campo:`<input id="pc_drive" value="${esc(drV)}" placeholder="Link da pasta no Drive">`});
 }
 window.openProjCard=(id)=>{
@@ -22253,9 +22285,7 @@ window.openProjCard=(id)=>{
       <div class="pc-dl" id="pcContato">${pcContatoHtml(it,cli)}</div>
 
       ${temAgentIA(it)?`${cat('Agent IA · Lara')}
-      <div class="pc-dl">
-        ${li('Número da Lara', `<span id="pcLaN">${laChip(it.id,'pcLaN')}</span>`, '', false, null, 'mens')}
-      </div>`:''}
+      <div class="pc-dl" id="pcLara">${pcLaraHtml(it.id)}</div>`:''}
 
       ${cat('Descrição')}
       <div class="pc-txt aberta" data-f="pc_notas" onclick="pcInline(event,this)"><span class="leitura">${it.notas?esc(it.notas):'<span style="color:var(--fraco)">sem descrição</span>'}</span><span class="campo"><textarea id="pc_notas" rows="3" placeholder="detalhes...">${esc(it.notas)}</textarea></span></div>
@@ -22339,14 +22369,16 @@ window.pcInline=(ev,el)=>{
   const campos=[].slice.call(el.querySelectorAll('.campo input,.campo select,.campo textarea'));
   if(!campos.length){ el.classList.remove('ed1'); return; }
   let feito=false;
-  const salvar=()=>{ if(feito) return; feito=true; el.classList.remove('ed1'); pcAplicar(pid); };
+  const salvar=()=>{ if(feito) return; feito=true; el.classList.remove('ed1'); pcAplicar(pid,el.getAttribute('data-f')); };
   const sair=()=>setTimeout(()=>{ if(el.contains(document.activeElement)) return; salvar(); },0);
   campos.forEach(c=>{
     c.addEventListener('blur',sair);
     if(c.tagName==='SELECT') c.addEventListener('change',()=>setTimeout(salvar,0));
     c.addEventListener('keydown',(e)=>{
       if(e.key==='Enter'&&c.tagName!=='TEXTAREA'){ e.preventDefault(); salvar(); }
-      if(e.key==='Escape'){ e.preventDefault(); feito=true; el.classList.remove('ed1'); }
+      if(e.key==='Escape'){ e.preventDefault(); feito=true; el.classList.remove('ed1');
+        /* desistiu: o texto volta ao que era, senão iria junto no próximo salvar */
+        campos.forEach(x=>{ if(x.tagName!=='SELECT') x.value=x.defaultValue; }); }
     });
   });
   try{ campos[0].focus(); if(campos[0].select) campos[0].select(); }catch(_){}
@@ -22367,7 +22399,18 @@ window.pcAbrirCampo=(fid)=>{
 };
 /* Grava a ficha inteira a partir do que esta no DOM e redesenha o card no mesmo ponto
    da rolagem. Campo obrigatorio em falta vira aviso, nao trava o salvamento. */
-window.pcAplicar=async (pid)=>{
+/* campos que só mudam a própria linha: salvar atualiza a linha no lugar, sem redesenhar a
+   janela (Gabriel 19/10: "quando eu dou um click pra editar parece que atualiza a página") */
+const PC_LEVES={pc_insta:1,pc_drive:1,pc_notas:1,pc_dono:1,pc_zapdono:1,pc_finnome:1,pc_zapfin:1,pc_lara:1};
+const pcMudou=(id)=>{ const e=document.getElementById(id); return !!(e&&e.value!==e.defaultValue); };
+/* grava o número de uma etiqueta da agenda (Dono, Financeiro); vazio tira o número */
+function pcZapGravar(it,et,num,nome){
+  it.zaps=zapsDe(it).slice(); const n=String(num||'').trim();
+  const z=it.zaps.find(x=>String(x.et||'').trim().toLowerCase()===et.toLowerCase());
+  if(z){ if(n) z.num=n; else it.zaps=it.zaps.filter(x=>x!==z); }
+  else if(n) it.zaps.push({id:uid(),et,nome:nome||'',num:n});
+}
+window.pcAplicar=async (pid,campo)=>{
   const it=DB.projetos.find(x=>x.id===pid); if(!it) return;
   const cli=it.clienteId?DB.clientes.find(c=>c.id===it.clienteId):null;
   const g=(id)=>{ const e=document.getElementById(id); return e?String(e.value):null; };
@@ -22397,6 +22440,13 @@ window.pcAplicar=async (pid)=>{
   if(g('pc_insta')!==null) it.instagram=g('pc_insta').trim();
   if(g('pc_drive')!==null) it.drive=g('pc_drive').trim();
   if(g('pc_notas')!==null) it.notas=g('pc_notas').trim();
+  /* contato (só grava o que a pessoa mudou: campo que nem abriu não mexe em nada) */
+  if(cli&&pcMudou('pc_dono')) cli.resp=g('pc_dono').trim();
+  if(pcMudou('pc_zapdono')) pcZapGravar(it,'Dono',g('pc_zapdono'),cli?cli.resp:'');
+  if(pcMudou('pc_finnome')){ const nm=g('pc_finnome').trim(), zf=pcZapEt(it,'financeiro');
+    if(zf) zf.nome=nm; else if(cli){ cli.fechamento=cli.fechamento||{}; cli.fechamento.respFin=nm; } }
+  if(pcMudou('pc_zapfin')){ const fe=(cli&&cli.fechamento)||{}; pcZapGravar(it,'Financeiro',g('pc_zapfin'),fe.respFin||''); }
+  if(pcMudou('pc_lara')) await pcLaraGravar(it.id,g('pc_lara'));
   if(g('pc_adspag')!==null) it.adsPag=g('pc_adspag');
   if(document.getElementById('pc_orc')){
     /* quem mudou foi a mensal? então a semanal sai dela */
@@ -22424,6 +22474,16 @@ window.pcAplicar=async (pid)=>{
   const falta=[(!String(it.responsavel||'').trim()&&!catIA)?'gestor de tráfego':'',
                !String(it.gerente||'').trim()?'gerente':'',
                !String(it.squad||'').trim()?'squad':''].filter(Boolean);
+  if(PC_LEVES[campo]&&document.getElementById('pcModal')){
+    /* atualiza só o que mudou; a janela, a Atividade e a rolagem ficam onde estavam */
+    const pcC=document.getElementById('pcContato'); if(pcC) pcC.innerHTML=pcContatoHtml(it,cli);
+    const pcL=document.getElementById('pcLara'); if(pcL) pcL.innerHTML=pcLaraHtml(it.id);
+    const nt=document.querySelector('#pcModal [data-f="pc_notas"] .leitura');
+    if(nt) nt.innerHTML=it.notas?esc(it.notas):'<span style="color:var(--fraco)">sem descrição</span>';
+    const tn=document.getElementById('pc_notas'); if(tn) tn.defaultValue=tn.value;
+    if(_abF){ const el2=document.querySelector('#pcModal [data-f="'+_abF+'"]'); if(el2&&!el2.classList.contains('ed1')) pcInline(null,el2); }
+    toast('Salvo.'); return;
+  }
   try{ render(currentView); }catch(_){}
   const ov=document.querySelector('.overlay'); if(ov) ov.remove();
   openProjCard(pid);
