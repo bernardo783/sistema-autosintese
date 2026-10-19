@@ -17545,9 +17545,13 @@ const principalDoGrupo=(f)=>{ if(!f) return '';
 const contaSufixo=(f)=>{ const m=String((f&&f.nome)||'').split(GR_SEP); return m.length>1?m.slice(1).join(' | '):String((f&&f.nome)||''); };
 /* contas ativas no Meta sem ficha: nao entram na contagem, na remuneracao nem na cobranca */
 const contasSemFicha=()=>(window.__mtDados||[]).filter(c=>c&&c.status===1&&!fichaDaConta(c.id));
+/* conta que saiu (churn, ou cliente arquivado) nao e mais "conta vinculada" do grupo
+   (Luiz 19/10: o Christoff ja saiu e continuava aparecendo nos vendedores da Altogiro) */
+const fichaSaiu=(p)=>{ if(!p) return true; if(String(p.status||'').toLowerCase()==='churn') return true;
+  const c=p.clienteId?(DB.clientes||[]).find(x=>x.id===p.clienteId):null; return !!(c&&c.arquivadoEm); };
 function pcGrupoBarra(it){
   if(!souGerente()&&!grupoDe(it)) return '';
-  const g=grupoDe(it), irm=irmasDe(it);
+  const g=grupoDe(it), irm=irmasDe(it).filter(p=>p.id===it.id||!fichaSaiu(p));
   const chips=irm.map(p=>p.id===it.id?`<span class="pc-gr-c on">${esc(contaSufixo(p))}</span>`
     :`<button type="button" class="pc-gr-c" onclick="abrirCliente('${esc(p.id)}')">${esc(contaSufixo(p))}</button>`).join('');
   return `<div class="pc-grupo">
