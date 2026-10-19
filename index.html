@@ -7078,7 +7078,7 @@ async function montarRelatorio(accId,cfg){
       camp:(a.campaign&&a.campaign.name)||'-',conj:(a.adset&&a.adset.name)||'-',
       thumb:(a.creative&&a.creative.thumbnail_url)||'',
       gasto:+(i.spend||0),imp:+(i.impressions||0),clk:+(i.clicks||0),leads:somaAct(i,MT_LEADS)};
-  }).filter(a=>a.ativo||a.gasto>0).sort((a,b)=>(b.ativo-a.ativo)||(b.gasto-a.gasto)):[];
+  }).filter(a=>a.ativo||a.gasto>0).sort((a,b)=>(b.ativo-a.ativo)||(b.leads-a.leads)||(b.gasto-a.gasto)):[];
   const nAtivos=ads.filter(a=>a.ativo).length;
   /* financeiro — o Meta cobra o imposto sobre todo o valor gasto */
   const temImposto=(cfg.impostoPct||0)>0;
@@ -7191,11 +7191,18 @@ async function montarRelatorio(accId,cfg){
   .ad .ai{flex:1;min-width:0}
   .ad .an{font-weight:700;font-size:12.5px;line-height:1.3}
   .ad .ac{font-family:'Space Mono';font-size:9.5px;color:var(--mut);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .ad .am{display:flex;gap:13px;flex:none}
-  .ad .am>div{text-align:right;min-width:52px}
-  .ad .amk{font-family:'Space Mono';font-size:8px;letter-spacing:.8px;color:var(--mut)}
-  .ad .amv{font-family:'Space Mono';font-weight:700;font-size:12px;margin-top:2px}
-  .ad .tag{font-size:8.5px;font-weight:700;letter-spacing:.8px;padding:4px 7px;border-radius:3px;flex:none}
+  /* Leads, custo por lead e gasto em destaque (Gabriel 19/10: "o principal é leads, custo por
+     lead, gasto"); impressões e cliques viram uma linha pequena embaixo do nome */
+  .ad .as{font-family:'Space Mono';font-size:9px;color:var(--mut);margin-top:4px}
+  .ad .am{display:flex;flex:none;border-left:1px solid var(--bd)}
+  .ad .am>div{text-align:right;width:118px;padding:0 12px;box-sizing:border-box}
+  .ad .am>div:first-child{width:66px}
+  .ad .am>div:last-child{width:130px}   /* largura fixa: os números ficam alinhados de cima a baixo */
+  .ad .am>div+div{border-left:1px solid var(--bd)}
+  .ad .amk{font-family:'Space Mono';font-size:8px;letter-spacing:.6px;color:var(--mut);white-space:nowrap}
+  .ad .amv{font-family:'Space Mono';font-weight:700;font-size:16px;margin-top:3px;white-space:nowrap;letter-spacing:-.3px}
+  .ad .am .cpl .amv{color:var(--gold)}
+  .ad .tag{font-size:8.5px;font-weight:700;letter-spacing:.8px;padding:4px 0;border-radius:3px;flex:none;width:62px;text-align:center}
   .ad .tag.on{background:#dde9e0;color:#2e7d5b}
   .ad .tag.off{background:#eae5d8;color:#8a8272}
   /* rodapé */
@@ -7275,13 +7282,11 @@ ${ads.length?`<div class="page pb" id="adsPage">
   ${shead('Anúncios em veiculação','<span id="adsCount">Todos os anúncios do período · '+nAtivos+' ativo'+(nAtivos===1?'':'s')+'</span>')}
   ${ads.map((a,ai)=>`<div class="ad" data-adix="${ai}" style="--ac:${a.ativo?'#2e7d5b':'#b9b2a0'}">
     ${a.thumb?`<img src="${esc(a.thumb)}" alt="">`:`<div class="ph">${esc((a.nome||'?').charAt(0).toUpperCase())}</div>`}
-    <div class="ai"><div class="an">${esc(a.nome)}</div><div class="ac">${esc(chipNome(a.camp))} · ${esc(a.conj)}</div></div>
+    <div class="ai"><div class="an">${esc(a.nome)}</div><div class="ac">${esc(chipNome(a.camp))} · ${esc(a.conj)}</div><div class="as">${nbr(a.imp)} ${a.imp===1?'impressão':'impressões'} · ${nbr(a.clk)} ${a.clk===1?'clique':'cliques'}</div></div>
     <div class="am">
-      <div><div class="amk">GASTO</div><div class="amv">${a.gasto?brl(a.gasto):'-'}</div></div>
-      <div><div class="amk">IMPRESSÕES</div><div class="amv">${nbr(a.imp)}</div></div>
-      <div><div class="amk">CLIQUES</div><div class="amv">${nbr(a.clk)}</div></div>
       <div><div class="amk">LEADS</div><div class="amv">${a.leads||'-'}</div></div>
-      <div><div class="amk">CPL</div><div class="amv">${a.leads&&a.gasto?brl(a.gasto/a.leads):'-'}</div></div>
+      <div class="cpl"><div class="amk">CUSTO POR LEAD</div><div class="amv">${a.leads&&a.gasto?brl(a.gasto/a.leads):'-'}</div></div>
+      <div><div class="amk">GASTO</div><div class="amv">${a.gasto?brl(a.gasto):'-'}</div></div>
     </div>
     <span class="tag ${a.ativo?'on':'off'}">${a.ativo?'ATIVO':'PAUSADO'}</span>
   </div>`).join('')}
@@ -7305,7 +7310,7 @@ ${ads.length?`<div class="page pb" id="adsPage">
 /* Editor do relatório (estilo Reportei): prévia ao vivo, textos editáveis, anúncios com liga/desliga */
 /* Tudo que vira editável no relatório ao abrir o editor */
 const ED_SEL='h1,.csub,.chip,.cmeta,.prow .pl,.prow .pv,.sec,.shl h2,.shs,.sk,.sv,.fin .fr span,'+
-  'table.cons th,table.cons td,.rank .rn,.ft,.fx,.frv .n,.frv .l,.ad .an,.ad .ac,.ad .amk,.ad .amv,'+
+  'table.cons th,table.cons td,.rank .rn,.ft,.fx,.frv .n,.frv .l,.ad .an,.ad .ac,.ad .as,.ad .amk,.ad .amv,'+
   '.ad .tag,p.body,.obs,.foot span';
 /* Excluir com liberdade no relatório, estilo Canva (Bernardo 05/10): clicar num bloco seleciona
    (contorno roxo) e abre uma barrinha com Excluir, Bloco maior e Excluir página. Delete apaga o

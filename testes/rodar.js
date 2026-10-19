@@ -1605,6 +1605,18 @@ grupo('Colunas e rolagem de lado nas listas (Luiz 19/10, notebook)');
   ok('sem a coluna Status, a segunda coluna não fica presa', HTML.indexOf('.tk-tab.lc-tab:not(.sem-st) th:nth-child(2){position:sticky;')>0&&HTML.indexOf('.tk-tab.lc-tab:not(.sem-st) tbody tr:not(.tk-faixa) > td:nth-child(2){position:sticky;')>0&&!/\.tk-tab\.lc-tab th:nth-child\(2\)\{position:sticky/.test(HTML));
   ok('sem a coluna Status, o Cliente ganha a sombra ao rolar', HTML.indexOf('.tk-tab.lc-tab.sem-st.rolou th:first-child')>0);
 }
+/* ---------------- relatório: anúncios com leads, custo por lead e gasto em destaque ---------------- */
+grupo('Relatório: cartão do anúncio destaca leads, custo por lead e gasto (Gabriel 19/10)');
+{
+  const R=HTML.slice(HTML.indexOf('async function montarRelatorio('),HTML.indexOf('/* Editor do relatório'));
+  const am=R.slice(R.indexOf('<div class="am">'),R.indexOf('</div>\n    <span class="tag'));
+  const ordem=['>LEADS<','>CUSTO POR LEAD<','>GASTO<'].map(k=>am.indexOf(k));
+  ok('as três métricas na ordem leads, custo por lead, gasto', ordem.every(x=>x>0)&&ordem[0]<ordem[1]&&ordem[1]<ordem[2]);
+  ok('impressões e cliques saem dos números grandes e viram linha pequena', am.indexOf('IMPRESSÕES')<0&&am.indexOf('CLIQUES')<0&&R.indexOf('<div class="as">${nbr(a.imp)}')>0);
+  ok('ordem dos anúncios: ativos, depois quem trouxe mais lead, depois gasto', R.indexOf('.sort((a,b)=>(b.ativo-a.ativo)||(b.leads-a.leads)||(b.gasto-a.gasto))')>0);
+  ok('colunas de largura fixa e etiqueta fixa: linhas alinhadas', /\.ad \.am>div\{text-align:right;width:118px/.test(R)&&/\.ad \.tag\{[^}]*width:62px/.test(R));
+  ok('a linha pequena é editável no editor', HTML.indexOf(".ad .an,.ad .ac,.ad .as,.ad .amk,.ad .amv,")>0);
+}
 /* ---------------- token sempre fresco nas edge functions ---------------- */
 grupo('Login: token renovado chega nas funções (Gabriel 13/10, "Faça login no sistema")');
 {
