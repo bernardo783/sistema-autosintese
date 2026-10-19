@@ -10510,6 +10510,7 @@ const tkCelula=(t,c)=>{
     return `<span class="tk-trava" title="${dica}">${esc(iso.slice(8,10)+'/'+iso.slice(5,7))}</span>`;
   }
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
+  if(lcNaoAplica(t,c.id)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA: campo de tráfego, não se aplica">-</span>';
   /* WhatsApp do lead nas listas de formulario: numero legivel + copiar + abrir no WhatsApp, em
      vez do link cru "https://wa.me/55…" no campo (Bernardo 08/10). Editar o numero e no cartao do lead. */
   if(/whats/i.test(c.nome||'')&&crmForm(t.lista_id)){ const cel=rspFoneCel((t.valores||{})[c.id]);
@@ -15035,6 +15036,16 @@ const LC_VENC='3f2a6c15-7b84-4e09-a1d6-92c5b0e74a38';
 /* Cliente so de Agent IA/CRM nao tem gestor de trafego. Nao e ficha incompleta —
    e o campo simplesmente nao aparece pra ele (Gabriel, 01/09). */
 const lcSoIA=(t)=>{ const f=(t&&t.ficha_id)?fichaDe(t.ficha_id):null; return !!f&&soIA(f); };
+/* Campos de tráfego do card do Controle de Clientes (Luiz 19/10: "um cliente Agent IA não deve
+   solicitar isso, pois não é da nossa competência saber disso"): Gestor de Tráfego, Remuneração
+   Gestor, Verba Semanal, Forma de Pagamento (como o cliente paga o Meta Ads, Pix ou cartão) e Canal
+   (recarga no privado ou no grupo). Pra cliente só de Agent IA não se aplicam: o card não mostra e
+   a lista põe "-". Só some o que está VAZIO: valor já preenchido continua à vista (não sumir informação). */
+const LC_TRAF=[LC_GEST,LC_REM_GESTOR,VERBA_SEM,
+  '271de509-620c-4f31-a473-137f483f5849',   /* Forma de Pagamento */
+  'b39c6e52-332f-4e2d-97bb-aa8ea9527402'];  /* Canal */
+const lcNaoAplica=(t,cid)=>!!t&&ehLC(t.lista_id)&&LC_TRAF.indexOf(cid)>=0&&lcSoIA(t)
+  &&String((t.valores||{})[cid]==null?'':(t.valores||{})[cid]).trim()==='';
 const CH_MOTIVOS=['Resultado','Financeiro','Atendimento','Fechou a empresa','Outro'];
 function chPerguntarChurn(id){
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
@@ -15066,6 +15077,30 @@ function chPerguntarChurn(id){
     return ok;
   });
 }
+/* Encerra o cadastro do Financeiro de quem já está no Controle de Churns (RPC cliente_churn, só
+   master ou gerente da ficha). Serve ao "Foi churn" do master e ao botão do aviso de fora de
+   sincronia: card que entrou no Controle de Churns antes de 13/10 (ALTOGIRO | CHRISTOFF, 07/10) ou
+   por um caminho que o gatilho não pega ficava cobrando, e o master não tinha como resolver pela
+   tela (conta sem vencimento trava em Recebimentos). Devolve true quando o cadastro ficou encerrado. */
+async function chEncerrarFinanceiro(fid,sai,nome){
+  try{
+    /* na fila do saveDB: a RPC não cruza com um salvar em andamento e a releitura vem depois dele */
+    const r=await naFila(async()=>{
+      const {data,error}=await sb.rpc('cliente_churn',{p_ficha:String(fid),p_comp:String(sai||hojeISO()).slice(0,7)});
+      if(error) throw error;
+      /* o banco gravou clientes e recebimentos: reler, senão o próximo salvar cai em conflito */
+      try{ await recarregarModulos(['clientes','recebimentos']); }catch(_){}
+      return data||{};
+    });
+    if(!r.ok){ avisoModal('O Financeiro não foi encerrado',nome+' está no Controle de Churns, mas '+(r.motivo||'o cadastro não foi encontrado')+'. Confira em Recebimentos.'); return false; }
+    if(r.mudou) toast(nome+' saiu do Financeiro: sem cobrança depois de '+fmtComp(r.churnComp)+'.');
+    await lcAvisarAsaas(fid,nome);
+    return true;
+  }catch(e){
+    avisoModal('O Financeiro não foi encerrado',nome+' está no Controle de Churns, mas o cadastro do Financeiro continua ativo ('+((e&&e.message)||e)+'). Ele fica no aviso de clientes fora de sincronia, no topo do Controle de Clientes, com o botão Encerrar no Financeiro para tentar de novo.');
+    return false;
+  }
+}
 /* CHURN SAI DO FINANCEIRO (Gabriel 02/10: "se o cliente foi churn, tem que sair do financeiro e
    controle de clientes"). CENTROCAR saiu pelo card em 30/09 e o cadastro seguiu ativo: outubro
    continuou prevendo a cobrança e a comissão. O card indo pro Controle de Churns agora encerra o
@@ -15076,20 +15111,7 @@ async function chDepoisDoChurn(t,sai){
   const fid=t.ficha_id, f=fichaDe(fid), nome=(f&&f.nome)||t.titulo||'este cliente';
   if(f&&f.status!=='churn'){ f.status='churn'; try{ await saveDB(); }catch(_){} }
   if(currentUser&&currentUser.role==='master'){
-    try{
-      const {data,error}=await sb.rpc('cliente_churn',{p_ficha:String(fid),p_comp:String(sai||hojeISO()).slice(0,7)});
-      if(error) throw error;
-      /* o banco gravou clientes e recebimentos: reler, senão o próximo salvar cai em conflito */
-      try{ await recarregarModulos(['clientes','recebimentos']); }catch(_){}
-      const r=data||{};
-      if(!r.ok) avisoModal('O Financeiro não foi encerrado',nome+' foi para o Controle de Churns, mas '+(r.motivo||'o cadastro não foi encontrado')+'. Confira em Recebimentos.');
-      else{
-        if(r.mudou) toast(nome+' saiu do Financeiro: sem cobrança depois de '+fmtComp(r.churnComp)+'.');
-        await lcAvisarAsaas(fid,nome);
-      }
-    }catch(e){
-      avisoModal('O Financeiro não foi encerrado',nome+' foi para o Controle de Churns, mas o cadastro do Financeiro continua ativo ('+((e&&e.message)||e)+'). Marque o churn em Recebimentos.');
-    }
+    await chEncerrarFinanceiro(fid,sai,nome);
     try{ render(currentView); }catch(_){}
   }
   /* Gabriel 30/09: todo churn pede a pesquisa de saída. O banco já criou a do cliente
@@ -16524,7 +16546,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
         _pa=TK.pastas.find(x=>x.id===_l.pasta_id)||null;
   /* card novo no Controle de Clientes nasce no primeiro estagio (nao existe "Sem status" la) */
   const iSt=(i=>(i<0&&!t&&ehLC(it.lista_id)&&sts.length)?0:i)(sts.findIndex(x=>String(x.id)===String(it.status_id||'')));
-  const cpsV=cps.filter(x=>!x.origem);
+  const cpsV=cps.filter(x=>!x.origem&&!lcNaoAplica(it,x.id));   /* campo de tráfego vazio em cliente só de Agent IA não é pedido */
   const cpsMoeda=cpsV.filter(x=>x.tipo==='moeda');
   const cpsResto=cpsV.filter(x=>x.tipo!=='moeda');
   const _fic=(DB.projetos||[]).find(x=>String(x.id)===String(it.ficha_id||''));
@@ -16609,7 +16631,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
           ${exigeDaLista(lid).indexOf('cliente')>=0?`<label class="tk-chkline tkf-int" title="Tarefa da própria agência: sai do rascunho sem precisar de cliente"><input type="checkbox" id="tk_interna"${it.interna?' checked':''} onchange="const b=document.getElementById('tkCliObr'); if(b) b.style.display=this.checked?'none':''"> Melhoria interna <span class="hint" style="margin:0">sem cliente</span></label>`:''}</div></div>
         ${ehLC(lid)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_WA} Grupo WhatsApp</div><div class="tkf-pv" id="tkRwG">${rwTkChip(it.ficha_id)}</div></div>`:''}
         ${(ehLC(lid)&&it.ficha_id&&temAgentIA(fichaDe(it.ficha_id)))?`<div class="tkf-p"><div class="tkf-pl">${LA_IC} Número da Lara</div><div class="tkf-pv" id="tkLaN">${laChip(it.ficha_id,'tkLaN')}</div></div>`:''}
-        ${ehLC(lid)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_META} Conta de anúncios <button type="button" class="rw-bm-q" onclick="rwTkContaAjuda(this)" aria-expanded="false" title="Quais contas aparecem aqui">?</button></div><div class="tkf-pv" id="tkRwC">${rwTkConta(it.ficha_id,rwPodeConta(it.ficha_id,it))}</div>${rwBmAjudaHTML()}</div>`:''}
+        ${ehLC(lid)&&!(lcSoIA(it)&&!contasDoCliente(it.ficha_id).length)?`<div class="tkf-p"><div class="tkf-pl">${RW_IC_META} Conta de anúncios <button type="button" class="rw-bm-q" onclick="rwTkContaAjuda(this)" aria-expanded="false" title="Quais contas aparecem aqui">?</button></div><div class="tkf-pv" id="tkRwC">${rwTkConta(it.ficha_id,rwPodeConta(it.ficha_id,it))}</div>${rwBmAjudaHTML()}</div>`:''}
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.squad} Squad${exigeSquad(it.lista_id)?' *':''}</div>
           <div class="tkf-pv"><select id="tk_squad"><option value="">Todo o time vê</option>${sqOpc.map(x=>`<option value="${esc(x)}"${sqAtual===x?' selected':''}>Squad ${esc(x)}</option>`).join('')}</select></div></div>
         <div class="tkf-p"><div class="tkf-pl">${SVG_P.tag} Etiquetas</div>
@@ -17713,6 +17735,13 @@ const irmasDe=(f)=>{ const g=grupoDe(f); if(!g) return []; return (DB.projetos||
 const principalDoGrupo=(f)=>{ if(!f) return '';
   if(f.pagaPor) return String(f.pagaPor);
   const p=irmasDe(f).find(x=>x.pagaPor); return p?String(p.pagaPor):''; };
+/* Conta coberta: vendedor do grupo com R$ 0, paga pela conta principal (ficha.pagaPor). Gabriel 19/10:
+   "independente do volume de vendedores na Altogiro/Sabará, os caras continuam pagando 7k". Uma
+   dessas entrar ou sair não é cliente novo nem receita perdida: o valor está todo na principal. */
+const cliCoberta=(c)=>{ if(!c||Number(c.valor)) return false;
+  const f=(DB.projetos||[]).find(p=>String(p.clienteId)===String(c.id));
+  const pp=String((f&&f.pagaPor)||(c.fechamento&&c.fechamento.pagaPor)||'');
+  return !!pp&&!(f&&pp===String(f.id)); };
 const contaSufixo=(f)=>{ const m=String((f&&f.nome)||'').split(GR_SEP); return m.length>1?m.slice(1).join(' | '):String((f&&f.nome)||''); };
 /* contas ativas no Meta sem ficha: nao entram na contagem, na remuneracao nem na cobranca */
 const contasSemFicha=()=>(window.__mtDados||[]).filter(c=>c&&c.status===1&&!fichaDaConta(c.id));
@@ -17948,7 +17977,7 @@ function lcForaDeSincronia(){
     const cd=cardDe(c.id);
     if(!cd) fora.push({nome:c.nome,por:'está no Financeiro e não tem card no Controle de Clientes',cid:c.id});
     else if(arquivada(cd)) fora.push({nome:c.nome,por:'está na cobrança mas o card está arquivado',cid:c.id,tid:cd.id});
-    else if(String(cd.lista_id)===String(CH_ID)) fora.push({nome:c.nome,por:'está na cobrança mas o card está no Controle de Churns',cid:c.id,tid:cd.id});
+    else if(String(cd.lista_id)===String(CH_ID)) fora.push({nome:c.nome,por:'está na cobrança mas o card está no Controle de Churns',cid:c.id,tid:cd.id,ch:!!cd.ficha_id});
   });
   /* pior caso de todos: o cliente saiu daqui mas o PIX continua indo pra ele todo mês */
   (DB.clientes||[]).forEach(c=>{
@@ -17997,12 +18026,35 @@ window.lcCancelarAsaas=async (cid,btn)=>{
     avisoModal('Não cancelou','O Asaas recusou: '+(e.message||e)+'. A cobrança continua ativa.');
   }
 };
+/* Botão da linha "card no Controle de Churns" do aviso de fora de sincronia (Gabriel 19/10:
+   "esse cara continua aparecendo, sendo que já foi dado churn"). Encerra o cadastro no mês da
+   saída anotada no card. Conta paga pela principal do grupo (R$ 0) sai sem mexer no valor da
+   principal: a ALTOGIRO paga os R$ 7.000 com qualquer número de vendedores. */
+window.lcEncerrarChurn=async (tid,btn)=>{
+  /* só o id do card passa pelo onclick: a data de saída é texto que a equipe edita, lida aqui */
+  const t=(TK.tarefas||[]).find(x=>String(x.id)===String(tid));
+  if(!t||String(t.lista_id)!==String(CH_ID)||!t.ficha_id){ toast('O card não está mais no Controle de Churns.'); return; }
+  const fid=String(t.ficha_id), s0=String((t.valores||{})[CH_SAIDA]||''), sai=/^\d{4}-\d{2}-\d{2}$/.test(s0)?s0:'';
+  const f=fichaDe(fid)||{}, nome=f.nome||t.titulo||'este cliente';
+  const c=(DB.clientes||[]).find(x=>String(x.id)===String(f.clienteId))||{};
+  const mes=String(sai||hojeISO()).slice(0,7), pr=Number(c.valor)?null:fichaDe(principalDoGrupo(f));
+  const ok=await confirmar('Encerrar '+nome+' no Financeiro?',
+    'O cadastro sai da carteira depois de '+fmtComp(mes)+', o mês da saída anotada no card.'+
+    (pr&&pr.id!==f.id?' É conta paga por '+(pr.nome||'principal do grupo')+': o valor dela não muda.':' O que já foi recebido fica.'),
+    {sim:'Encerrar no Financeiro'});
+  if(!ok) return;
+  if(btn){ btn.disabled=true; btn.textContent='Encerrando…'; }
+  const feito=await chEncerrarFinanceiro(fid,sai,nome);
+  if(btn){ btn.disabled=feito; btn.textContent=feito?'Encerrado':'Encerrar no Financeiro'; }
+  if(feito){ try{ render(currentView); }catch(_){} }
+};
 window.lcVerDesalinhados=()=>{
   const fora=lcForaDeSincronia();
   modal('Clientes fora de sincronia',
-    '<p class="hint" style="margin:0 0 12px">Regra: cliente ativo existe nos dois lugares. Quem saiu, sai dos dois — arquivando (sem receita perdida) ou marcando churn.</p>'+
+    '<p class="hint" style="margin:0 0 12px">Regra: cliente ativo existe nos dois lugares. Quem saiu, sai dos dois: arquivando (sem receita perdida) ou marcando churn.</p>'+
     (fora.map(x=>`<div class="cx-item"><div style="flex:1;min-width:0"><div class="nm">${esc(x.nome||'-')}</div><div class="id">${esc(x.por)}</div></div>
-      ${x.sub?`<button class="btn small" onclick="lcCancelarAsaas('${esc(x.cid)}',this)">Cancelar no Asaas</button>`:''}</div>`).join('')
+      ${x.sub?`<button class="btn small" onclick="lcCancelarAsaas('${esc(x.cid)}',this)">Cancelar no Asaas</button>`:''}
+      ${x.ch?`<button class="btn small" onclick="lcEncerrarChurn('${esc(x.tid)}',this)">Encerrar no Financeiro</button>`:''}</div>`).join('')
       ||'<p class="hint">Nenhum. Tudo alinhado.</p>'),
     async()=>true);
   const b=document.querySelector('.overlay .msave'); if(b) b.textContent='Fechar';
@@ -19853,7 +19905,11 @@ function renderFechamentoMes(c){
      const M=fchMudResumo(FCH_MUD.rows,comp,(DB.clientes||[]).filter(x=>String(x.inicio||'').slice(0,7)===comp && !antes[x.id]
        /* Gabriel 30/09: cliente ARQUIVADO (desistiu, standby) nao chegou; e naoNovo marca quem ja estava
           na casa e so comecou a pagar neste mes (Amacar: card de 04/08, 1o pagamento em setembro). */
-       && !cliArq(x) && !x.naoNovo),gerCli);
+       && !cliArq(x) && !x.naoNovo
+       /* Gabriel 19/10: vendedor novo da ALTOGIRO/SABARÁ (R$ 0, pago pela principal) não é cliente novo.
+          Só a partir de out/2026 (o grupo virou valor fechado em 05/10) e só se a conta não teve
+          cobrança própria com valor no mês: mês fechado não muda (ALTOGIRO | TIAGO pagou R$ 800 em agosto). */
+       && !(comp>='2026-10' && cliCoberta(x) && !rall.some(r=>r.clienteId===x.id&&r.comp===comp&&fchN(r.valor)>0))),gerCli);
      const novos=M.novos;
      const SAIU=somaSt('churn')+somaSt('churnpago')+M.saiDown;
      const saiGer={}; ['churn','churnpago'].forEach(k=>(porSt[k]||[]).forEach(x=>{
