@@ -4919,6 +4919,7 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
   .tk-mon:hover{background:var(--panel2)}
   .tk-mon0{color:var(--fraco);font-weight:400}
   .tk-tab td.tk-mud .tk-mon,.tk-tab td.tk-mud .tk-trava{color:var(--muted);font-weight:500}
+  .tk-mon.tk-venc{width:100%;text-align:center}
   .tk-monin{width:100%;text-align:right;background:var(--panel2);border:1px solid var(--brand2);border-radius:6px;color:var(--txt);
     font:inherit;font-size:13px;padding:4px 8px;box-sizing:border-box;outline:none}
   .tk-tab td.tk-num .tk-trava{display:flex;justify-content:flex-end}
@@ -10512,10 +10513,16 @@ const tkCelula=(t,c)=>{
        (Bernardo 06/10: "pela JÔ ARAUJO" na coluna nao). Quem paga fica so na dica. */
     const fp=fichaDe(t.ficha_id), pr=fp&&fp.pagaPor?fichaDe(fp.pagaPor):null, pc=pr?lcCardDe(pr.id):null;
     const d=Number(((pc&&pc.valores)||t.valores||{})[LC_VENC])||0;
-    if(!(d>=1&&d<=31)) return '<span class="tk-trava vaz" title="Sem dia de vencimento no cadastro do cliente">-</span>';
+    if(!(d>=1&&d<=31)) return (!pr&&t.ficha_id&&(currentUser&&currentUser.role==='master'||souGerenteDaFicha(t.ficha_id)))
+      ? `<button type="button" class="tk-mon tk-venc vazio" data-d="" title="Sem dia de vencimento · clique para definir" onclick="lcVencEditar(this,'${t.id}')"><span class="tk-mon0">·</span></button>`
+      : '<span class="tk-trava vaz" title="Sem dia de vencimento no cadastro do cliente">-</span>';
     const iso=vencOf(cliComp,d);
     const dica=pr?`Vence todo dia ${d} (no mês mais curto, no último dia) · cobrado junto na conta ${esc(pr.nome||'')}, grupo com valor fechado`
       :`Vence todo dia ${d} · quem manda é o cadastro do cliente`;
+    /* Gabriel 19/10: master e gerente do cliente mudam o vencimento aqui (grava no cadastro pela
+       RPC cliente_vencimento). Conta paga pela principal muda na principal. */
+    if(!pr&&t.ficha_id&&(currentUser&&currentUser.role==='master'||souGerenteDaFicha(t.ficha_id)))
+      return `<button type="button" class="tk-mon tk-venc" data-d="${d}" title="Vence todo dia ${d} · clique para mudar" onclick="lcVencEditar(this,'${t.id}')">${esc(iso.slice(8,10)+'/'+iso.slice(5,7))}</button>`;
     return `<span class="tk-trava" title="${dica}">${esc(iso.slice(8,10)+'/'+iso.slice(5,7))}</span>`;
   }
   if(c.id===LC_GEST&&lcSoIA(t)) return '<span class="hint" style="margin:0" title="Cliente só de Agent IA, não tem gestor de tráfego">-</span>';
@@ -15042,6 +15049,35 @@ const LC_SIT='06102f93-48d6-4e1f-96fc-ed8c0ed4da15';
    so_master de proposito (Gabriel 30/09): saber quando o cliente paga e operacional, o
    gestor e o gerente precisam ver. So leitura na tela — quem manda e o cadastro. */
 const LC_VENC='3f2a6c15-7b84-4e09-a1d6-92c5b0e74a38';
+/* vencimento editável (Gabriel 19/10): a célula vira um campo de 1 a 31; ao confirmar, pergunta se vale
+   já no mês da tela ou a partir do seguinte, e grava cadastro + cobranças em aberto + card pela RPC */
+const compMais=(c,n)=>{ const y=+c.slice(0,4), m=+c.slice(5,7)-1+n; return (y+Math.floor(m/12))+'-'+String((m%12+12)%12+1).padStart(2,'0'); };
+window.lcVencEditar=(btn,tid)=>{
+  if(!btn||btn.dataset.ed) return; btn.dataset.ed='1';
+  const d0=btn.dataset.d||'';
+  const inp=document.createElement('input'); inp.type='number'; inp.min='1'; inp.max='31'; inp.step='1'; inp.className='tk-monin'; inp.style.textAlign='center'; inp.value=d0; inp.placeholder='dia';
+  btn.replaceWith(inp); inp.focus(); try{ inp.select(); }catch(_){}
+  let feito=false;
+  const fim=(gravar)=>{ if(feito) return; feito=true; const v=parseInt(inp.value,10);
+    if(gravar&&String(v)!==String(d0)&&v>=1&&v<=31) lcVencGravar(tid,v,d0); else tkDesenhar($('#content')); };
+  inp.onkeydown=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } else if(e.key==='Escape'){ e.preventDefault(); fim(false); } };
+  inp.onblur=()=>fim(true);
+};
+async function lcVencGravar(tid,dia,antes){
+  const t=TK.tarefas.find(x=>x.id===tid); if(!t||!t.ficha_id){ tkDesenhar($('#content')); return; }
+  const f=fichaDe(t.ficha_id), nome=(f&&f.nome)||t.titulo||'cliente', comp=cliComp||compNow(), prox=compMais(comp,1);
+  const modo=await escolher('Mudar o vencimento de '+nome+'?',(antes?'dia '+antes:'sem dia')+' → dia '+dia+' · cobrança já recebida não muda',
+    [{v:comp,rot:'Já em '+fmtComp(comp)},{v:prox,rot:'A partir de '+fmtComp(prox)}]);
+  if(!modo){ tkDesenhar($('#content')); return; }
+  const {data,error}=await sb.rpc('cliente_vencimento',{p_ficha:String(t.ficha_id),p_dia:dia,p_desde:modo});
+  if(error){ toast('Não salvou: '+error.message); tkDesenhar($('#content')); return; }
+  t.valores=Object.assign({},t.valores||{},{[LC_VENC]:dia});
+  if(currentUser&&currentUser.role==='master'){ try{ await recarregarModulos(['clientes','recebimentos']); }catch(_){} }
+  tkDesenhar($('#content'));
+  const r=data||{}, mst=currentUser&&currentUser.role==='master';
+  toast(nome+': vence todo dia '+dia+' a partir de '+fmtComp(r.desde||modo)+'.'
+    +(mst?(r.assinatura?' Ajuste o dia também no Asaas.':''):' O financeiro recebeu a tarefa pra ajustar o Asaas.'));
+}
 /* Cliente so de Agent IA/CRM nao tem gestor de trafego. Nao e ficha incompleta —
    e o campo simplesmente nao aparece pra ele (Gabriel, 01/09). */
 const lcSoIA=(t)=>{ const f=(t&&t.ficha_id)?fichaDe(t.ficha_id):null; return !!f&&soIA(f); };

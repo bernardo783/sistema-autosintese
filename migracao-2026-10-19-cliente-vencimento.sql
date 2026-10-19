@@ -1,0 +1,7 @@
+-- APLICADA em 19/10/2026 (migração cliente_vencimento).
+-- Vencimento editável no Controle de Clientes pelo master ou pelo gerente do cliente (Gabriel 19/10/2026).
+-- cliente_vencimento(ficha, dia, desde AAAA-MM): muda clientes.diaVenc, o venc das cobranças ainda em aberto
+-- a partir de "desde" (recebida, churn, carência e parceria ficam como estão; mês curto usa o último dia) e a
+-- cópia no card (tarefas.valores 3f2a6c15...). Guarda clientes e recebimentos em itens_backup antes.
+-- Gerente mexeu: tarefa "Vencimento: <cliente>" em Novas Contas pro Bernardo ajustar o Asaas.
+-- Corpo completo no banco: pg_get_functiondef('cliente_vencimento').

@@ -448,6 +448,19 @@ grupo('Controle de Clientes: Colunas no topo, sem Grupo/Status soltos (Gabriel 1
   ok('Status da lista (etapas do funil) mora no menu ⋯ do Controle de Clientes, só pra quem edita', HTML.indexOf("...((ehLC(l.id)&&estruturaEditavel(l.id))?[{sep:true},{ic:'',t:'Status da lista (etapas do funil)'")>0);
 }
 
+grupo('Controle de Clientes: vencimento editável pelo master e pelo gerente do cliente (Gabriel 19/10)');
+{
+  const cel=bloco('  if(c.id===LC_VENC){',"  if(c.id===LC_GEST&&lcSoIA(t))");
+  ok('master ou gerente do cliente veem a célula clicável; conta paga pela principal não', cel.indexOf("if(!pr&&t.ficha_id&&(currentUser&&currentUser.role==='master'||souGerenteDaFicha(t.ficha_id)))")>0&&cel.indexOf('onclick="lcVencEditar(this,')>0);
+  ok('cliente sem dia também pode receber o dia', cel.indexOf('title="Sem dia de vencimento · clique para definir"')>0);
+  const ed=bloco('const compMais=','/* Cliente so de Agent IA/CRM');
+  const g=rodar('const compMais='+ed.slice('const compMais='.length,ed.indexOf('\n')),{},['compMais']);
+  ok('próximo mês atravessa o ano', g.compMais('2026-12',1)==='2027-01'&&g.compMais('2026-10',1)==='2026-11');
+  ok('pergunta se vale já no mês ou a partir do seguinte e grava pela cliente_vencimento', ed.indexOf("[{v:comp,rot:'Já em '+fmtComp(comp)},{v:prox,rot:'A partir de '+fmtComp(prox)}]")>0&&ed.indexOf("sb.rpc('cliente_vencimento',{p_ficha:String(t.ficha_id),p_dia:dia,p_desde:modo})")>0);
+  ok('só aceita dia de 1 a 31', ed.indexOf('v>=1&&v<=31')>0&&ed.indexOf("inp.min='1'; inp.max='31'")>0);
+  ok('master relê o cadastro depois (o banco gravou), e o aviso lembra o Asaas', ed.indexOf("await recarregarModulos(['clientes','recebimentos'])")>0&&ed.indexOf('Ajuste o dia também no Asaas.')>0&&ed.indexOf('O financeiro recebeu a tarefa pra ajustar o Asaas.')>0);
+}
+
 grupo('Churn limpa cobrança e tarefas do cliente (Gabriel 19/10, SUBLIME MULTIMARCAS)');
 {
   const g=rodar(bloco('const CB_LISTA=','let CB_LOCK=false;'),{NC_PAGADOR:'u_bernardo'},['cbPlano']);
