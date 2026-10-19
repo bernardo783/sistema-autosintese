@@ -3108,6 +3108,17 @@ grupo('Folha: fixo muda a partir de um mês, sem mexer no que já foi pago (Bern
   ok('editar o fixo guarda o valor antigo até o mês anterior', /hist\.push\(\{ate,valor:fdR2\(it\.fixo\)\}\)/.test(HTML));
 }
 
+/* ---------------- Controle de Clientes sem a opcao "Sem status" ---------------- */
+grupo('Controle de Clientes: o seletor de estágio não oferece "Sem status" (Gabriel 19/10)');
+{
+  const g=rodar(bloco('const tkSemStOpc=','\nconst tkSelo='),{ehLC:(l)=>l==='LC'},['tkSemStOpc']);
+  ok('card do Controle de Clientes com estágio: sem a opção', g.tkSemStOpc('LC','st1',true)==='');
+  ok('card novo do Controle de Clientes: sem a opção (nasce no primeiro estágio)', g.tkSemStOpc('LC','',false)==='');
+  ok('card antigo sem estágio: a opção aparece pro seletor não mentir', g.tkSemStOpc('LC','',true).indexOf('Sem status')>0);
+  ok('outras listas continuam com "Sem status"', g.tkSemStOpc('OUTRA','st1',true).indexOf('Sem status')>0);
+  ok('a lista e o formulário usam a mesma regra', HTML.indexOf('${tkSemStOpc(t.lista_id,t.status_id,true)}')>0&&HTML.indexOf('${tkSemStOpc(it.lista_id,it.status_id,!!t)}')>0);
+}
+
 console.log('\n'+(falhas
   ? '\x1b[31m>>> '+falhas+' de '+total+' FALHARAM\x1b[0m\n'
   : '\x1b[32m>>> '+total+' verificações, todas passaram\x1b[0m\n'));

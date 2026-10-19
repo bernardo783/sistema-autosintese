@@ -10523,11 +10523,14 @@ function lcFixarColunas(c){
   const marca=()=>tb.classList.toggle('rolou',wrap.scrollLeft>2);
   wrap.addEventListener('scroll',marca,{passive:true}); marca();
 }
+/* Controle de Clientes (Gabriel 19/10): "Sem status" nao faz sentido, todo cliente esta num estagio
+   do funil. A opcao so volta se um card existente estiver mesmo sem estagio, pro seletor nao mentir. */
+const tkSemStOpc=(lid,sid,existe)=>(!ehLC(lid)||(existe&&!sid))?'<option value="">Sem status</option>':'';
 const tkSelo=(t)=>{
   const sts=tkStatusDe(t.lista_id);
   if(!sts.length) return `<select class="stSel" onchange="tkStatus('${t.id}',this.value)">${Object.keys(TK_ST).map(k=>`<option value="${k}"${t.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select>`;
   const s=tkStatus1(t.status_id), cor=s?s.cor:'#64748b';
-  return `<select class="tk-stsel" style="--c:${esc(cor)};background-color:${esc(cor)};color:${esc(corTexto(cor))}" onchange="tkSetStatus('${t.id}',this.value)"><option value="">Sem status</option>${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
+  return `<select class="tk-stsel" style="--c:${esc(cor)};background-color:${esc(cor)};color:${esc(corTexto(cor))}" onchange="tkSetStatus('${t.id}',this.value)">${tkSemStOpc(t.lista_id,t.status_id,true)}${sts.map(x=>`<option value="${x.id}"${t.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select>`;
 };
 /* ======================= RESPOSTAS (Bernardo 08/10) =======================
    "Quero que a visualização seja semelhante ao do Yay Forms": lista de leads que vem de
@@ -16449,7 +16452,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   const _l=TK.listas.find(x=>x.id===lid)||{},
         _e=TK.espacos.find(x=>x.id===_l.espaco_id)||null,
         _pa=TK.pastas.find(x=>x.id===_l.pasta_id)||null;
-  const iSt=sts.findIndex(x=>String(x.id)===String(it.status_id||''));
+  /* card novo no Controle de Clientes nasce no primeiro estagio (nao existe "Sem status" la) */
+  const iSt=(i=>(i<0&&!t&&ehLC(it.lista_id)&&sts.length)?0:i)(sts.findIndex(x=>String(x.id)===String(it.status_id||'')));
   const cpsV=cps.filter(x=>!x.origem);
   const cpsMoeda=cpsV.filter(x=>x.tipo==='moeda');
   const cpsResto=cpsV.filter(x=>x.tipo!=='moeda');
@@ -16478,7 +16482,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
       ${sts.length?`<div class="tkf-trilha">
         <div class="tkf-steps" id="tkfSteps">${sts.map((x,k)=>`<span class="tkf-step${k<iSt?' done':(k===iSt?' now':'')}" title="${esc(x.nome)}"></span>`).join('')}</div>
         <div class="tkf-stlab">
-          <span class="tkf-stnow"><select id="tk_stid" onchange="tkfPintarTrilha()"><option value="">Sem status</option>${sts.map(x=>`<option value="${x.id}"${it.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select></span>
+          <span class="tkf-stnow"><select id="tk_stid" onchange="tkfPintarTrilha()">${tkSemStOpc(it.lista_id,it.status_id,!!t)}${sts.map(x=>`<option value="${x.id}"${it.status_id===x.id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select></span>
           <span class="tkf-stprox" id="tkfProx">${(iSt>=0&&sts[iSt+1])?`próximo: <b>${esc(sts[iSt+1].nome)}</b>`:(iSt>=0?'<b>última etapa</b>':'sem status definido')}</span>
         </div></div>`
       :`<div class="tkf-trilha"><div class="tkf-stlab"><span class="tkf-stnow"><select id="tk_st">${Object.keys(TK_ST).map(k=>`<option value="${k}"${it.status===k?' selected':''}>${TK_ST[k]}</option>`).join('')}</select></span></div></div>`}
