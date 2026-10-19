@@ -382,34 +382,35 @@ grupo('Recebimentos: copiar telefone e mensagem de cobrança com o link do Asaas
   ok('os links vêm da edge só de leitura, só pro master, e ficam 10 min em memória', HTML.indexOf("sb.functions.invoke('asaas-links',{body:{}})")>0&&HTML.indexOf("currentUser.role!=='master'||(RC_ASAAS.cobrancas&&Date.now()-RC_ASAAS.em<600000)")>0);
 }
 
-grupo('Suporte: Problema no sistema aceita anexo (foto, vídeo, documento) (Gabriel 19/10)');
+grupo('Suporte: Problema no sistema aceita anexo e link, numa lista só (Gabriel 19/10)');
 {
-  const toasts=[];
-  const ctx={AX_MAX:52428800,AX_MAX_TXT:'50 MB',toast:(m)=>toasts.push(m),esc:(x)=>String(x),document:{getElementById:()=>null}};
-  const g=rodar(bloco('let SUP_ANX=[];','async function supAnxEnviar('),ctx,['supTam','supAnxPinta']);
-  g.supAnxAdd([{name:'print.png',size:200000,type:'image/png'},{name:'video.mp4',size:30*1048576,type:'video/mp4'},{name:'filme.mov',size:60*1048576,type:'video/quicktime'},{name:'print.png',size:200000,type:'image/png'}]);
-  ok('aceita foto e vídeo; arquivo acima do limite avisa e fica de fora; repetido não duplica', vm.runInContext('SUP_ANX.map(f=>f.name).join()',g)==='print.png,video.mp4'&&toasts.some(m=>/filme\.mov" passa de 50 MB/.test(m)));
-  g.supAnxTira(0);
-  ok('dá pra tirar um arquivo antes de enviar', vm.runInContext('SUP_ANX.map(f=>f.name).join()',g)==='video.mp4');
-  ok('tamanho legível', g.supTam(30*1048576)==='30 MB'&&g.supTam(200000)==='195 KB');
+  const toasts=[], DOM={};
+  const ctx={URL:Object.assign(function(u){ return new URL(u); },{createObjectURL:()=>'blob:x',revokeObjectURL(){}}),AX_MAX:52428800,AX_MAX_TXT:'50 MB',toast:(m)=>toasts.push(m),esc:(x)=>String(x),
+    NAV:[{k:'l',id:'lc'},{k:'v',id:'reembolsos'}],tkCaminho:(id)=>id==='lc'?'Projetos / Controle de Clientes':'',
+    document:{getElementById:(id)=>DOM[id]||null}};
+  ctx.URL=URL; ctx.URL.createObjectURL=()=>'blob:x'; ctx.URL.revokeObjectURL=()=>{};
+  DOM.supItens={innerHTML:''}; DOM.supQt={textContent:''}; DOM.sup_link={value:'',focus(){}};
+  const g=rodar(bloco('let SUP_ANX=[];','async function supAnxEnviar('),ctx,['supTam','supAnxPinta','supOndeVeio','supTipo','supLinkNome','supItProg']);
+  ok('"Em que tela" já vem com a tela de onde a pessoa veio (pula o próprio Suporte)', g.supOndeVeio()==='Projetos › Controle de Clientes');
+  g.supAnxAdd([{name:'print.png',size:200000,type:'image/png'},{name:'video.mp4',size:30*1048576,type:'video/mp4'},{name:'filme.mov',size:60*1048576,type:'video/quicktime'},{name:'print.png',size:200000,type:'image/png'},{name:'conferencia.xlsx',size:40000,type:''}]);
+  ok('aceita foto, vídeo e documento; acima do limite avisa e fica de fora; repetido não duplica', vm.runInContext('SUP_ANX.map(f=>f.name).join()',g)==='print.png,video.mp4,conferencia.xlsx'&&toasts.some(m=>/filme\.mov" passa de 50 MB/.test(m)));
+  ok('tipo em uma palavra', g.supTipo({name:'a.png',type:'image/png'})==='Imagem'&&g.supTipo({name:'b.mp4',type:'video/mp4'})==='Vídeo'&&g.supTipo({name:'c.pdf',type:''})==='PDF'&&g.supTipo({name:'d.xlsx',type:''})==='Planilha'&&g.supTipo({name:'e.docx',type:''})==='Documento'&&g.supTipo({name:'f.zip',type:''})==='ZIP');
+  DOM.sup_link.value='docs.google.com/document/d/abc'; g.supLinkAdd(); DOM.sup_link.value='https://docs.google.com/document/d/abc'; g.supLinkAdd(); DOM.sup_link.value='isso nao e link'; g.supLinkAdd();
+  ok('link: ganha https, repetido não duplica, texto que não é link avisa', vm.runInContext('SUP_LINK.map(l=>l.nome+"|"+l.url).join()',g)==='Google Docs|https://docs.google.com/document/d/abc'&&toasts.some(m=>/não parece válido/.test(m)));
+  ok('nome legível do link', g.supLinkNome('https://drive.google.com/file/d/abc/view')==='Google Drive'&&g.supLinkNome('https://docs.google.com/spreadsheets/d/abc')==='Google Planilhas'&&g.supLinkNome('https://youtu.be/xyz')==='YouTube'&&g.supLinkNome('https://www.loom.com/share/x')==='Loom'&&g.supLinkNome('https://www.notion.so/p')==='notion.so');
+  const h=DOM.supItens.innerHTML;
+  ok('arquivos e links na mesma lista, com miniatura do print e o tipo de cada um', (h.match(/class="sup-it"/g)||[]).length===4&&h.indexOf('<img src="blob:x"')>0&&h.indexOf('Vídeo · 30 MB')>0&&h.indexOf('Planilha · 39 KB')>0&&h.indexOf('<b>Google Docs</b>')>0);
+  ok('o rodapé diz quanto vai junto', DOM.supQt.textContent==='3 arquivos e 1 link');
+  g.supAnxTira(0); g.supLinkTira(0);
+  ok('dá pra tirar arquivo e link antes de enviar', vm.runInContext('SUP_ANX.length+","+SUP_LINK.length',g)==='2,0'&&DOM.supQt.textContent==='2 arquivos');
   const f=bloco('function supBugForm(c){','/* ---------- ANEXOS DO "PROBLEMA NO SISTEMA"');
-  ok('o formulário tem a área de arrastar, escolher e colar print, com várias de uma vez', f.indexOf('id="supDrop"')>0&&f.indexOf('ondrop="supAnxDrop(event)"')>0&&f.indexOf('<input type="file" id="supFile" multiple')>0&&f.indexOf("addEventListener('paste'")>0);
-  ok('não restringe o tipo de arquivo (vídeo, foto, documento, tudo)', f.indexOf('accept=')<0);
+  ok('um bloco de anexos só: escolher, arrastar, colar print ou link', f.indexOf('id="supDrop"')>0&&f.indexOf('ondrop="supAnxDrop(event)"')>0&&f.indexOf('<input type="file" id="supFile" multiple')>0&&f.indexOf("addEventListener('paste'")>0&&f.indexOf('id="sup_link" type="url"')>0&&f.indexOf('id="supItens"')>0);
+  ok('não restringe o tipo de arquivo', f.indexOf('accept=')<0);
+  ok('rodapé enxuto: contagem, Cancelar e Enviar lado a lado', f.indexOf('<div class="sup-rod"><span class="q" id="supQt"></span>')>0&&f.indexOf('<button class="btn ghost" onclick="supVoltar()">Cancelar</button>')>0);
   const e=bloco('async function supAnxEnviar(tid,b){','window.supVoltar=');
-  ok('sobe em partes na pasta do chamado e registra pela suporte_anexar', e.indexOf("const chave='t/'+tid+'/'+uid()")>0&&e.indexOf('await axSubir(chave,f,')>0&&e.indexOf("sb.rpc('suporte_anexar',")>0);
-  ok('o chamado devolve o id e os anexos vão nele; com anexo o texto pode ficar vazio', e.indexOf("const {data:tid,error}=await sb.rpc('suporte_abrir_chamado'")>0&&e.indexOf('if(!txt&&!SUP_ANX.length&&!SUP_LINK.length)')>0);
-  ok('se algum anexo falhar a tela diz qual', e.indexOf('Não subiu: ${esc(falhou.join')>0);
-  const L=rodar(bloco('let SUP_LINK=[];','/* sobe e registra; devolve os nomes que falharam */'),{URL,toast:(m)=>toasts.push(m),esc:(x)=>String(x),document:{getElementById:(id)=>id==='sup_link'?L_IN:null}},['supLinkNome','supLinkPinta']);
-  ok('nome legível do link: Drive, Docs, Planilhas, YouTube, Loom e o domínio nos outros',
-    L.supLinkNome('https://drive.google.com/file/d/abc/view')==='Google Drive'&&L.supLinkNome('https://docs.google.com/document/d/abc/edit')==='Google Docs'
-    &&L.supLinkNome('https://docs.google.com/spreadsheets/d/abc')==='Google Planilhas'&&L.supLinkNome('https://youtu.be/xyz')==='YouTube'
-    &&L.supLinkNome('https://www.loom.com/share/x')==='Loom'&&L.supLinkNome('https://www.notion.so/pagina')==='notion.so');
-  var L_IN={value:'docs.google.com/document/d/abc',focus(){}}; L.supLinkAdd(); L_IN.value='https://docs.google.com/document/d/abc'; L.supLinkAdd(); L_IN.value='isso nao e link'; L.supLinkAdd();
-  ok('sem https ganha https, repetido não duplica, texto que não é link avisa', vm.runInContext('SUP_LINK.map(l=>l.nome+"|"+l.url).join()',L)==='Google Docs|https://docs.google.com/document/d/abc'&&toasts.some(m=>/não parece válido/.test(m)));
-  L.supLinkTira(0);
-  ok('dá pra tirar o link antes de enviar', vm.runInContext('SUP_LINK.length',L)===0);
-  ok('o formulário tem o campo Links (Enter ou Adicionar) e manda pela suporte_anexar_link', HTML.indexOf('id="sup_link" type="url"')>0&&HTML.indexOf("sb.rpc('suporte_anexar_link',{p_tarefa:tid,p_url:l.url,p_nome:l.nome})")>0);
-  ok('link digitado e não adicionado vai junto no Enviar', HTML.indexOf("if(String(((document.getElementById('sup_link')||{}).value)||'').trim()) supLinkAdd();")>0);
+  ok('sobe em partes, registra pela suporte_anexar e pela suporte_anexar_link', e.indexOf("const chave='t/'+tid+'/'+uid()")>0&&e.indexOf('await axSubir(chave,f,')>0&&e.indexOf("sb.rpc('suporte_anexar',")>0&&e.indexOf("sb.rpc('suporte_anexar_link',{p_tarefa:tid,p_url:l.url,p_nome:l.nome})")>0);
+  ok('progresso dentro de cada item e marca o que falhou', e.indexOf("supItProg('F'+i,a/(t||1))")>0&&e.indexOf("supItProg('F'+i,-1)")>0&&e.indexOf("supItProg('L'+i,1)")>0);
+  ok('com anexo ou link o texto pode ficar vazio; link digitado vai junto; falha aparece na tela', e.indexOf('if(!txt&&!SUP_ANX.length&&!SUP_LINK.length)')>0&&e.indexOf("if(String(((document.getElementById('sup_link')||{}).value)||'').trim()) supLinkAdd();")>0&&e.indexOf('Não subiu: ${esc(falhou.join')>0);
 }
 
 grupo('Controle de Clientes: Colunas no topo, sem Grupo/Status soltos (Gabriel 19/10, relato do Luiz)');
