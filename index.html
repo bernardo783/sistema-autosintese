@@ -1764,6 +1764,9 @@
   .sup-anx-i{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-size:13px}
   .sup-anx-i .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
   .sup-anx-i .tm{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+  .sup-anx-i .nm small{color:var(--muted);font-weight:400;margin-left:6px}
+  .sup-lk-add{display:flex;gap:8px}
+  .sup-lk-add input{flex:1;min-width:0}
   .tkm-drop.on,.tkm-drop:hover{border-color:var(--brand2);color:var(--txt);background:rgba(167,139,250,.06)}
   .tkm-lnk{display:flex;gap:8px;margin:10px 0 14px}
   .tkm-lnk input{flex:1;min-width:0}
@@ -12485,10 +12488,15 @@ function supBugForm(c){
           <div class="hint" style="margin:4px 0 0">foto, vídeo, documento, o que precisar, até ${AX_MAX_TXT} por arquivo</div></div>
         <input type="file" id="supFile" multiple style="display:none" onchange="supAnxAdd(this.files);this.value=''">
         <div id="supAnx" class="sup-anx"></div></div>
+      <div class="field"><label>Links<small>opcional · Google Drive, Docs, Planilhas, YouTube, Loom</small></label>
+        <div class="sup-lk-add"><input id="sup_link" type="url" inputmode="url" placeholder="Cole o link e aperte Enter"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();supLinkAdd()}">
+          <button type="button" class="btn secondary small" onclick="supLinkAdd()">Adicionar</button></div>
+        <div id="supLinks" class="sup-anx"></div></div>
       <div class="toolbar"><button class="btn" id="supEnv" onclick="supEnviarBug()">Enviar</button>
         <button class="btn secondary" onclick="supVoltar()">Cancelar</button></div>
     </div>`;
-  SUP_ANX=[]; supAnxPinta();
+  SUP_ANX=[]; supAnxPinta(); SUP_LINK=[]; supLinkPinta();
   /* print colado (Cmd+V) em qualquer campo do formulário vira anexo */
   const f=c.querySelector('.sup-form');
   if(f) f.addEventListener('paste',(e)=>{ const fs=[...((e.clipboardData&&e.clipboardData.files)||[])]; if(!fs.length) return;
@@ -12517,6 +12525,30 @@ window.supAnxTira=(i)=>{ SUP_ANX.splice(i,1); supAnxPinta(); };
 window.supAnxDrop=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
   const dz=document.getElementById('supDrop'); if(dz) dz.classList.remove('on');
   supAnxAdd([...((ev.dataTransfer&&ev.dataTransfer.files)||[])]); };
+/* links (Gabriel 19/10): Drive, Docs, YouTube... ficam numa lista até o Enviar, com nome legível */
+let SUP_LINK=[];
+function supLinkNome(u){
+  let h=''; try{ h=new URL(u).hostname.replace(/^www\./,''); }catch(_){ return u; }
+  if(h==='docs.google.com'){ if(/\/spreadsheets\//.test(u)) return 'Google Planilhas'; if(/\/presentation\//.test(u)) return 'Google Apresentações'; if(/\/forms\//.test(u)) return 'Google Forms'; return 'Google Docs'; }
+  if(h==='drive.google.com') return 'Google Drive';
+  if(h==='youtube.com'||h==='m.youtube.com'||h==='youtu.be') return 'YouTube';
+  if(h==='loom.com') return 'Loom';
+  return h;
+}
+function supLinkPinta(){
+  const box=document.getElementById('supLinks'); if(!box) return;
+  box.innerHTML=SUP_LINK.map((l,i)=>`<div class="sup-anx-i"><span class="nm" title="${esc(l.url)}">${esc(l.nome)} <small>${esc(l.url.replace(/^https?:\/\//,''))}</small></span>
+    <button type="button" class="iconbtn" title="Tirar este link" aria-label="Tirar este link" onclick="supLinkTira(${i})">✕</button></div>`).join('');
+}
+window.supLinkAdd=()=>{
+  const el=document.getElementById('sup_link'); let u=String((el&&el.value)||'').trim(); if(!u) return;
+  if(!/^https?:\/\//i.test(u)) u='https://'+u;
+  try{ const x=new URL(u); if(!/\./.test(x.hostname)) throw 0; }catch(_){ toast('Esse link não parece válido.'); return; }
+  if(!SUP_LINK.some(l=>l.url===u)) SUP_LINK.push({url:u,nome:supLinkNome(u)});
+  if(el){ el.value=''; el.focus(); }
+  supLinkPinta();
+};
+window.supLinkTira=(i)=>{ SUP_LINK.splice(i,1); supLinkPinta(); };
 /* sobe e registra; devolve os nomes que falharam */
 async function supAnxEnviar(tid,b){
   const falhou=[];
@@ -12528,20 +12560,27 @@ async function supAnxEnviar(tid,b){
     const {error}=await sb.rpc('suporte_anexar',{p_tarefa:tid,p_nome:f.name,p_caminho:chave,p_mime:f.type||null,p_bytes:f.size});
     if(error){ falhou.push(f.name+' ('+error.message+')'); try{ await sb.storage.from('anexos').remove([chave]); }catch(_){} }
   }
+  for(const l of SUP_LINK){
+    if(b) b.textContent='Anexando '+l.nome+'…';
+    const {error}=await sb.rpc('suporte_anexar_link',{p_tarefa:tid,p_url:l.url,p_nome:l.nome});
+    if(error) falhou.push(l.nome+' ('+error.message+')');
+  }
   return falhou;
 }
 window.supEnviarBug=async ()=>{
   const val=(id)=>{ const e=document.getElementById(id); return e?String(e.value||'').trim():''; };
   const tit=val('sup_tit'), txt=val('sup_txt'), onde=val('sup_onde');
   if(!tit){ toast('Escreva o que aconteceu, em uma linha.'); const e=document.getElementById('sup_tit'); if(e) e.focus(); return; }
-  /* com anexo, o detalhe pode ser o próprio vídeo ou print */
-  if(!txt&&!SUP_ANX.length){ toast('Conte com detalhe ou anexe um print ou vídeo: é isso que resolve mais rápido.'); const e=document.getElementById('sup_txt'); if(e) e.focus(); return; }
+  /* link digitado e não adicionado ainda vai junto */
+  if(String(((document.getElementById('sup_link')||{}).value)||'').trim()) supLinkAdd();
+  /* com anexo ou link, o detalhe pode ser o próprio vídeo, print ou documento */
+  if(!txt&&!SUP_ANX.length&&!SUP_LINK.length){ toast('Conte com detalhe ou anexe um print, vídeo ou link: é isso que resolve mais rápido.'); const e=document.getElementById('sup_txt'); if(e) e.focus(); return; }
   const b=document.getElementById('supEnv'); if(b){ b.disabled=true; b.textContent='Enviando…'; }
-  const n=SUP_ANX.length;
-  const {data:tid,error}=await sb.rpc('suporte_abrir_chamado',{p_titulo:tit,p_texto:txt||('Detalhe nos anexos ('+n+' arquivo'+(n===1?'':'s')+').'),p_onde:onde||null});
+  const n=SUP_ANX.length+SUP_LINK.length;
+  const {data:tid,error}=await sb.rpc('suporte_abrir_chamado',{p_titulo:tit,p_texto:txt||('Detalhe nos anexos ('+n+' '+(n===1?'item':'itens')+').'),p_onde:onde||null});
   if(error){ toast('Erro: '+error.message); if(b){ b.disabled=false; b.textContent='Enviar'; } return; }
   const falhou=(n&&tid)?await supAnxEnviar(tid,b):[];
-  SUP_ANX=[];
+  SUP_ANX=[]; SUP_LINK=[];
   const c=$('#content'); if(!c) return;
   c.innerHTML=`<button class="sup-volta" onclick="supVoltar()">← Suporte</button>
     <div class="page-head"><div><h2>Recebido</h2></div></div>

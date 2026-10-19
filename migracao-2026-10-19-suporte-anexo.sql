@@ -30,3 +30,27 @@ begin
 end $function$;
 revoke all on function public.suporte_anexar(uuid,text,text,text,bigint) from public, anon;
 grant execute on function public.suporte_anexar(uuid,text,text,text,bigint) to authenticated;
+
+-- 19/10/2026, mesma tarde (migração suporte_anexar_link): campo Links no mesmo formulário (Google Drive,
+-- Docs, YouTube...). Mesmas travas; o link precisa começar com http(s)://.
+create or replace function public.suporte_anexar_link(p_tarefa uuid, p_url text, p_nome text default null)
+ returns uuid language plpgsql security definer set search_path to 'public'
+as $function$
+declare
+  v_lista uuid := 'daadf852-a9fc-4676-9421-95e81b5c3d9e';
+  v_quem uuid := auth.uid(); v_id uuid; v_url text := btrim(coalesce(p_url,''));
+begin
+  if v_quem is null then raise exception 'sem sessão'; end if;
+  if not is_aprovado() then raise exception 'conta não aprovada'; end if;
+  if not exists (select 1 from tarefas t where t.id = p_tarefa and t.lista_id = v_lista
+                  and t.criado_por = v_quem and t.criado_em > now() - interval '6 hours') then
+    raise exception 'só dá pra anexar no chamado que você acabou de abrir';
+  end if;
+  if v_url !~* '^https?://[^\s]+$' or length(v_url) > 2000 then raise exception 'link inválido'; end if;
+  insert into tarefa_anexos (tarefa_id, tipo, nome, url, autor)
+  values (p_tarefa, 'link', left(coalesce(nullif(btrim(p_nome),''), regexp_replace(v_url,'^https?://','')),120), v_url, v_quem)
+  returning id into v_id;
+  return v_id;
+end $function$;
+revoke all on function public.suporte_anexar_link(uuid,text,text) from public, anon;
+grant execute on function public.suporte_anexar_link(uuid,text,text) to authenticated;

@@ -397,8 +397,19 @@ grupo('Suporte: Problema no sistema aceita anexo (foto, vídeo, documento) (Gabr
   ok('não restringe o tipo de arquivo (vídeo, foto, documento, tudo)', f.indexOf('accept=')<0);
   const e=bloco('async function supAnxEnviar(tid,b){','window.supVoltar=');
   ok('sobe em partes na pasta do chamado e registra pela suporte_anexar', e.indexOf("const chave='t/'+tid+'/'+uid()")>0&&e.indexOf('await axSubir(chave,f,')>0&&e.indexOf("sb.rpc('suporte_anexar',")>0);
-  ok('o chamado devolve o id e os anexos vão nele; com anexo o texto pode ficar vazio', e.indexOf("const {data:tid,error}=await sb.rpc('suporte_abrir_chamado'")>0&&e.indexOf('if(!txt&&!SUP_ANX.length)')>0);
+  ok('o chamado devolve o id e os anexos vão nele; com anexo o texto pode ficar vazio', e.indexOf("const {data:tid,error}=await sb.rpc('suporte_abrir_chamado'")>0&&e.indexOf('if(!txt&&!SUP_ANX.length&&!SUP_LINK.length)')>0);
   ok('se algum anexo falhar a tela diz qual', e.indexOf('Não subiu: ${esc(falhou.join')>0);
+  const L=rodar(bloco('let SUP_LINK=[];','/* sobe e registra; devolve os nomes que falharam */'),{URL,toast:(m)=>toasts.push(m),esc:(x)=>String(x),document:{getElementById:(id)=>id==='sup_link'?L_IN:null}},['supLinkNome','supLinkPinta']);
+  ok('nome legível do link: Drive, Docs, Planilhas, YouTube, Loom e o domínio nos outros',
+    L.supLinkNome('https://drive.google.com/file/d/abc/view')==='Google Drive'&&L.supLinkNome('https://docs.google.com/document/d/abc/edit')==='Google Docs'
+    &&L.supLinkNome('https://docs.google.com/spreadsheets/d/abc')==='Google Planilhas'&&L.supLinkNome('https://youtu.be/xyz')==='YouTube'
+    &&L.supLinkNome('https://www.loom.com/share/x')==='Loom'&&L.supLinkNome('https://www.notion.so/pagina')==='notion.so');
+  var L_IN={value:'docs.google.com/document/d/abc',focus(){}}; L.supLinkAdd(); L_IN.value='https://docs.google.com/document/d/abc'; L.supLinkAdd(); L_IN.value='isso nao e link'; L.supLinkAdd();
+  ok('sem https ganha https, repetido não duplica, texto que não é link avisa', vm.runInContext('SUP_LINK.map(l=>l.nome+"|"+l.url).join()',L)==='Google Docs|https://docs.google.com/document/d/abc'&&toasts.some(m=>/não parece válido/.test(m)));
+  L.supLinkTira(0);
+  ok('dá pra tirar o link antes de enviar', vm.runInContext('SUP_LINK.length',L)===0);
+  ok('o formulário tem o campo Links (Enter ou Adicionar) e manda pela suporte_anexar_link', HTML.indexOf('id="sup_link" type="url"')>0&&HTML.indexOf("sb.rpc('suporte_anexar_link',{p_tarefa:tid,p_url:l.url,p_nome:l.nome})")>0);
+  ok('link digitado e não adicionado vai junto no Enviar', HTML.indexOf("if(String(((document.getElementById('sup_link')||{}).value)||'').trim()) supLinkAdd();")>0);
 }
 
 grupo('Controle de Clientes: Colunas no topo, sem Grupo/Status soltos (Gabriel 19/10, relato do Luiz)');
