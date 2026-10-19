@@ -382,6 +382,31 @@ grupo('Recebimentos: copiar telefone e mensagem de cobrança com o link do Asaas
   ok('os links vêm da edge só de leitura, só pro master, e ficam 10 min em memória', HTML.indexOf("sb.functions.invoke('asaas-links',{body:{}})")>0&&HTML.indexOf("currentUser.role!=='master'||(RC_ASAAS.cobrancas&&Date.now()-RC_ASAAS.em<600000)")>0);
 }
 
+grupo('Controle de Clientes: Colunas no topo, sem Grupo/Status soltos (Gabriel 19/10, relato do Luiz)');
+{
+  const LF=['verba','forma','canal'];
+  const campos=[{id:'mens',nome:'Mensalidade',lista_id:'LC',ordem:1},{id:'forma',nome:'Forma de Pagamento',lista_id:'LC',ordem:2},{id:'canal',nome:'Canal',lista_id:'LC',ordem:3},{id:'outra',nome:'Outra',lista_id:'X',ordem:1}];
+  const ctx={TK:{campos,listaSel:'LC',escopo:'lista',colsOff:{}},ehLC:(l)=>l==='LC',lcColPermitida:()=>true,estruturaEditavel:()=>true,esc:(x)=>String(x),LC_ROT:{},
+    spSalvarCols(){},tkDesenhar(){},$:()=>null,document:{getElementById:()=>null}};
+  ctx.lcColFora=(id)=>LF.indexOf(id)>=0&&ctx.TK.colsOff[id]!==false;
+  const g=rodar(bloco('const lcColsDe=','window.lcPopTipo=(ev)=>{'),ctx,['lcColsDe','lcColLigada','lcColsMexidas','lcColsHtml']);
+  ok('só as colunas desta lista, na ordem dela', g.lcColsDe().map(c=>c.id).join()==='mens,forma,canal');
+  ok('padrão: Forma de Pagamento e Canal escondidas, Mensalidade aparece', g.lcColLigada(campos[0])&&!g.lcColLigada(campos[1])&&!g.lcColLigada(campos[2])&&!g.lcColsMexidas());
+  g.lcColTroca('forma',true);
+  ok('marcar liga de propósito (false), e a coluna aparece', ctx.TK.colsOff.forma===false&&g.lcColLigada(campos[1])&&g.lcColsMexidas());
+  g.lcColTroca('mens',false);
+  ok('desmarcar grava true e esconde', ctx.TK.colsOff.mens===true&&!g.lcColLigada(campos[0]));
+  const h=g.lcColsHtml();
+  ok('o popover conta quantas estão na lista e aplica na hora, sem Salvar', h.indexOf('1 de 3 na lista')>0&&h.indexOf("onchange=\"lcColTroca('forma',this.checked)\"")>0&&h.indexOf('Salvar')<0);
+  ok('quem edita a estrutura cria coluna dali; com coluna mexida aparece Voltar ao padrão', h.indexOf('+ Nova coluna')>0&&h.indexOf('Voltar ao padrão')>0);
+  g.lcColPadrao();
+  ok('Voltar ao padrão esconde de novo as colunas de 30/09 e religa o resto', !g.lcColLigada(campos[1])&&g.lcColLigada(campos[0])&&!g.lcColsMexidas());
+  const bar=bloco("  return `<div class=\"tk-bar\">${tkBarraSquad()}","  : '<div class=\"empty\">Nada por aqui.</div>'}`;");
+  ok('a barra de baixo do Controle de Clientes ficou só com squad e contagem (sem Grupo, Colunas, Status e cadeado)', bar.indexOf('tkMenuGrupo')<0&&bar.indexOf('tkMenuCols')<0&&bar.indexOf('tkEditarStatus')<0&&bar.indexOf('&#128274;')<0);
+  ok('o ícone Colunas fica no topo, ao lado dos filtros, e acende quando as colunas foram mexidas', HTML.indexOf("${ger?'':tpIb('colunas','Colunas','lcPopCols(event)',lcColsMexidas())}")>0&&HTML.indexOf("colunas:'<rect")>0);
+  ok('Status da lista (etapas do funil) mora no menu ⋯ do Controle de Clientes, só pra quem edita', HTML.indexOf("...((ehLC(l.id)&&estruturaEditavel(l.id))?[{sep:true},{ic:'',t:'Status da lista (etapas do funil)'")>0);
+}
+
 grupo('Churn limpa cobrança e tarefas do cliente (Gabriel 19/10, SUBLIME MULTIMARCAS)');
 {
   const g=rodar(bloco('const CB_LISTA=','let CB_LOCK=false;'),{NC_PAGADOR:'u_bernardo'},['cbPlano']);

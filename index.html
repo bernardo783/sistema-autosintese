@@ -2111,6 +2111,8 @@
   .tkp-n{color:var(--muted);font-size:11px;font-weight:700}
   .tkp-row input{accent-color:#7c3aed;width:15px;height:15px;cursor:pointer;flex:none}
   .tkp-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .lcc-pop{max-height:min(520px,calc(100vh - 120px));overflow:auto}
+  .lcc-pe{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
   /* ---- tarefas recorrentes: ícone colado no prazo, editor e aba Recorrentes ---- */
   .tk-recb{display:inline-grid;place-items:center;width:26px;height:26px;margin-left:2px;border:1px solid transparent;border-radius:7px;
     background:transparent;color:var(--fraco);opacity:.55;cursor:pointer;padding:0;flex:none}
@@ -11869,11 +11871,11 @@ function tkViewLista(){
       if(semIni) porGest+=`<div class="lc-porgest"><span class="c" title="Sem a data de Início o cliente não conta. Clique na coluna Início do card para definir.">${semIni} sem Início, não contam ainda</span></div>`;
     }
   }
+  /* Controle de Clientes (Gabriel 19/10, relato do Luiz): "Grupo: Status", "Colunas" e "Status da
+     lista" soltos aqui não faziam sentido. Grupo não age nesta lista (quem separa por etapa é o funil
+     do topo), Colunas virou o ícone do topo ao lado dos filtros e Status da lista mora no ⋯ da lista,
+     igual às outras listas desde 23/09. Fica a contagem. */
   return `<div class="tk-bar">${tkBarraSquad()}
-    <button class="btn ghost small" onclick="tkMenuGrupo()">&#9776; Grupo: ${esc(tkGrupoNome())}</button>
-    <button class="btn ghost small" onclick="tkMenuCols()">&#9707; Colunas</button>
-    ${(TK.escopo==='lista'&&estruturaEditavel(TK.listaSel))?`<button class="btn ghost small" onclick="tkEditarStatus()">&#9679; Status da lista</button>`
-      :(TK.escopo==='lista'?`<span class="hint" style="margin:0">&#128274; colunas fixas, só master e gerente mudam</span>`:'')}
     <span class="hint" style="margin:0 0 0 auto">${total} ${lc?(total===1?'cliente':'clientes'):('tarefa'+(total===1?'':'s'))}</span>
   </div>${grupos.length
     ? (setTimeout(rolaArmar,0),rolaCaixa(`<div class="tablewrap rolavel"><table class="tk-tab${lc?' lc-tab':''}${semSt?' sem-st':''}" style="min-width:${largMin}px"><thead>${cab}</thead><tbody>${lc?grupos.map(g=>g.its.map(linha).join('')).join(''):grupos.map(bloco).join('')}</tbody></table></div>`))+porGest
@@ -13387,6 +13389,23 @@ window.lcPopPessoa=(ev)=>{
     ${cont['(sem)']?linha('(sem)',por==='gerente'?'Sem gerente':'Sem gestor',cont['(sem)']):''}
     <div class="tkp-vazio">Ninguém com esse nome.</div>`);
 };
+/* Colunas do Controle de Clientes (Gabriel 19/10): popover do topo, no desenho dos outros filtros.
+   Marcar ou desmarcar aplica na hora, sem Salvar. "Padrão" volta ao combinado em 30/09 (Verba,
+   Forma de Pagamento, Canal e Remuneração Social escondidas). Coluna de dinheiro que a pessoa não
+   pode ver nem aparece (lcColPermitida). */
+const lcColsDe=()=>TK.campos.filter(k=>k.lista_id===TK.listaSel&&lcColPermitida(k)).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+const lcColLigada=(c)=>!(TK.colsOff[c.id]||lcColFora(c.id));
+const lcColsMexidas=()=>ehLC(TK.listaSel)&&lcColsDe().some(c=>c.id in TK.colsOff);
+function lcColsHtml(){
+  const cps=lcColsDe(), ed=TK.escopo==='lista'&&estruturaEditavel(TK.listaSel), n=cps.filter(lcColLigada).length;
+  return `<div class="tkp-h"><strong>Colunas</strong><span class="tkp-n">${n} de ${cps.length} na lista</span></div>
+    ${cps.map(c=>`<label class="tkp-row"><input type="checkbox" ${lcColLigada(c)?'checked':''} onchange="lcColTroca('${c.id}',this.checked)"><span class="tkp-nm">${esc(c.nome)}</span></label>`).join('')||'<div class="hint" style="margin:4px 2px">Esta lista ainda não tem colunas.</div>'}
+    <div class="lcc-pe">${lcColsMexidas()?'<button type="button" class="tkp-x" onclick="lcColPadrao()">Voltar ao padrão</button>':'<span></span>'}${ed?'<button type="button" class="tkp-x" onclick="document.getElementById(\'lcbPop\').remove();tkNovoCampo()">+ Nova coluna</button>':''}</div>`;
+}
+window.lcPopCols=(ev)=>{ const el=lcbPop(ev,lcColsHtml()); if(el){ el.style.width='280px'; el.classList.add('lcc-pop'); } };
+const lcColsRepinta=()=>{ spSalvarCols(); tkDesenhar($('#content')); const el=document.getElementById('lcbPop'); if(el&&el.classList.contains('lcc-pop')) el.innerHTML=lcColsHtml(); };
+window.lcColTroca=(id,on)=>{ TK.colsOff[id]=!on; lcColsRepinta(); };
+window.lcColPadrao=()=>{ lcColsDe().forEach(c=>{ delete TK.colsOff[c.id]; }); lcColsRepinta(); };
 window.lcPopTipo=(ev)=>{
   const cont={}; lcSemTipoF().forEach(t=>{ const f=fichaDe(t.ficha_id); if(!f) return; const k=lcTipoDe(f); cont[k]=(cont[k]||0)+1; });
   const linha=(v,rot,n)=>`<label class="tkp-row" onclick="event.preventDefault();TK.lcTipo='';lcTipoF('${v}');document.getElementById('lcbPop').remove()"><span class="tkp-nm">${esc(rot)}</span>${n!=null?`<span class="tkp-n">${n}</span>`:''}${(TK.lcTipo||'')===v?'<span class="lcb-ok">✓</span>':''}</label>`;
@@ -13679,6 +13698,7 @@ function tkDesenharTela(c){
          ${ger?'':tpIb('pessoa',TK.lcPor==='gerente'?'Gerente':'Gestor de tráfego','lcPopPessoa(event)',!!TK.lcGestor,TK.lcGestor?1:'')}
          ${ger?'':tpIb('tag','Tipo de cliente','lcPopTipo(event)',!!TK.lcTipo,TK.lcTipo?1:'')}
          ${ger?'':tpIb('funil','Mais filtros','lcPopFiltro(event)',nF>0,nF||'')}
+         ${ger?'':tpIb('colunas','Colunas','lcPopCols(event)',lcColsMexidas())}
          ${lista?tpIb('pts','Menu da lista','lsMenu(event)'):''}
          <button type="button" class="tp-mais" title="Novo cliente ou contrato" aria-label="Novo cliente ou contrato" onclick="lcNovoPop(event)">${tpSvg('mais')}</button>
        </div></div></div>
@@ -13729,7 +13749,8 @@ const TP_SVG={
   pts:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   mais:'<path d="M12 5v14M5 12h14"/>',
   flag:'<path d="M4 21V4h11l-1.5 4L15 12H4"/>',
-  tag:'<path d="M20.6 13.4 12 22l-9-9V4h9l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/>'};
+  tag:'<path d="M20.6 13.4 12 22l-9-9V4h9l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/>',
+  colunas:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/>'};
 const tpSvg=(k,s)=>`<svg width="${s||16}" height="${s||16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${TP_SVG[k]}</svg>`;
 const tpIb=(k,titulo,acao,on,badge)=>`<button type="button" class="tp-ib${on?' on':''}" title="${esc(titulo)}" aria-label="${esc(titulo)}" onclick="${acao}">${tpSvg(k)}${badge?`<span class="tp-bd">${badge}</span>`:''}</button>`;
 /* abas de texto: Minhas | Recorrentes (Recorrentes só pra gerente e master) */
@@ -17858,6 +17879,7 @@ window.lsMenu=(ev)=>{
     {cab:spNome(l)||'Lista'},
     {ic:MICO.arq,t:'Itens arquivados'+(nArq?' ('+nArq+')':''),f:()=>tkArqVista(true)},
     {ic:MICO.arq,t:'Todos os arquivados',f:()=>render('arquivados')},
+    ...((ehLC(l.id)&&estruturaEditavel(l.id))?[{sep:true},{ic:'',t:'Status da lista (etapas do funil)',f:()=>tkEditarStatus()}]:[]),
     {sep:true},
     mst?{ic:MICO.fechar,t:'Fechar lista',dgr:true,f:()=>lsFechar(l.id)}
        :{ic:MICO.fechar,t:'Pedir para fechar esta lista',f:()=>lsPedirFechar(l.id)}
