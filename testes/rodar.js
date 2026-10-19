@@ -480,6 +480,17 @@ grupo('Cobranças do dia: tarefa pro master até marcar Cobrei (Gabriel 01/10)')
   ok('sincroniza ao entrar, ao mudar status no Recebimentos e ao concluir a tarefa', HTML.indexOf("setTimeout(()=>{ cbSincronizar(); },300);")>0&&HTML.indexOf("await saveDB(); rcVolta(); cbSincronizar();")>0&&HTML.indexOf("if(t&&t.lista_id===CB_LISTA&&('status' in patch)){ try{ cbSincronizar(); }catch(_){} }")>0);
 }
 
+grupo('Quem apaga demanda (Gabriel 19/10)');
+{
+  const g=rodar(bloco('const podeApagar=','const NAO_APAGA='),{currentUser:{id:'u1',role:'membro',gerente:false}},['podeApagar']);
+  ok('membro apaga o que ele subiu', g.podeApagar({criado_por:'u1'})===true);
+  ok('membro NÃO apaga o que subiram pra ele', g.podeApagar({criado_por:'u2',responsavel_id:'u1'})===false);
+  g.currentUser.gerente=true; ok('gerente apaga qualquer uma', g.podeApagar({criado_por:'u2'})===true);
+  g.currentUser.gerente=false; g.currentUser.role='master'; ok('master apaga qualquer uma', g.podeApagar({criado_por:'u2'})===true);
+  ok('arquivar e excluir conferem a regra', HTML.indexOf("if(!podeApagar(t)){ toast(NAO_APAGA); return; }\n  if(!arquivada(t)){ return tkArquivar(id); }")>0 && (HTML.match(/if\(!podeApagar\(t\)\)\{ toast\(NAO_APAGA\); return; \}/g)||[]).length>=2);
+  ok('botões só aparecem pra quem pode', HTML.indexOf("if(podeApagar(t)) it.push(")>0 && HTML.indexOf("${podeApagar(t)?`<button class=\"iconbtn del\"")>0);
+}
+
 grupo('Modo restrito: usuário de uma lista só (Gabriel 01/10, ADM TARAF)');
 {
   const g=rodar(bloco('const rsLista=','/* esconde os atalhos que essa pessoa não tem'),{currentUser:{id:'u1',role:'membro',so_lista:'c2000000-0000-4000-8000-0000000000b1'},TK:{listas:[]},document:{body:{classList:{add(){}}},getElementById:()=>null},esc:s=>String(s),spNome:l=>l.nome},['rsLista','restrito']);

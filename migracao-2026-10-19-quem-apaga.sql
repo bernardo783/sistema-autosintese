@@ -1,0 +1,8 @@
+-- Quem apaga demanda (Gabriel 19/10/2026). Aplicada pela migração tarefas_apagar_dono_gerente_master.
+-- master e gerente apagam qualquer demanda que enxergam; os demais só o que ELES criaram
+-- (criado_por = auth.uid()), nunca o que subiram pra eles.
+-- * policy tarefas_apagam: (is_master() or is_gerente() or criado_por = auth.uid()) and tarefa_visivel and lista_visivel
+-- * gatilho trg_tarefas_trava_arquivar (BEFORE UPDATE OF arquivada_em): mesma regra pra arquivar,
+--   só quando a mudança vem direto do usuário (current_user='authenticated' e pg_trigger_depth()=1);
+--   rotinas do sistema (churn_tarefas_tg, rel_semanal_gerar...) passam.
+-- Concluir, mudar status e editar seguem livres pra quem enxerga a tarefa.

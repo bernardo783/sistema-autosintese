@@ -11837,7 +11837,7 @@ function tkViewLista(){
       <td>${t.prazo?`<span class="tl-dt${atr?' late':(t.prazo===hoje?' hoje':'')}">${fmtDate(t.prazo)}${t.hora?' às '+esc(t.hora):''}${atr?' · atrasada':''}</span>`:'<span class="hint" style="margin:0">-</span>'}</td>
       <td>${(()=>{ const rs=respDe(t); if(!rs.length) return '<span class="hint" style="margin:0">-</span>';
         return `<span class="avstack">${rs.slice(0,4).map(u=>`<span title="${esc(tkNomeUser(u))}" style="cursor:pointer" onclick="event.stopPropagation();verPerfil('${u}')">${avatar(u)}</span>`).join('')}</span>${rs.length>4?`<span class="tk-mais">+${rs.length-4}</span>`:''}`; })()}</td>
-      <td><button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button></td>
+      <td>${podeApagar(t)?`<button class="iconbtn del" title="Excluir" onclick="tkExcluir('${t.id}')">✕</button>`:''}</td>
     </tr>`;};
   const ncols=lc?(cps.length+2):(cps.length+7);
   /* Uma tabela só: o cabeçalho aparece uma vez e cada grupo vira uma faixa dentro dela.
@@ -16597,8 +16597,8 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
           ${(t&&souGerente()&&!arquivada(t)&&t.status!=='feito'&&lbTemGrupo(t))?`<button class="btn ghost small" type="button" onclick="tkLembrar(event,'${t.id}')" title="Manda um lembrete no grupo do responsável, marcando ele">${SVG_P.pessoa} Notificar responsável</button>`:''}
           ${t?(arquivada(t)
             ? `<button class="btn ghost small" onclick="tkRestaurar('${t.id}')">Restaurar</button>
-               ${(currentUser&&currentUser.role==='master')?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:'<span class="hint" style="margin:0">só master exclui de vez</span>'}`
-            : `<button class="btn ghost small" onclick="tkArquivar('${t.id}')">${restrito()?'Cancelar conta':'Arquivar'}</button>`):''}
+               ${podeApagar(t)?`<button class="btn ghost small tk-del" onclick="tkExcluir('${t.id}')">Excluir de vez</button>`:''}`
+            : (podeApagar(t)?`<button class="btn ghost small" onclick="tkArquivar('${t.id}')">${restrito()?'Cancelar conta':'Arquivar'}</button>`:'')):''}
         </div>
       </div>
 
@@ -17398,6 +17398,7 @@ const arquivada=(t)=>!!(t&&t.arquivada_em);
 const tkArquivadasDa=(lid)=>(TK.tarefas||[]).filter(t=>arquivada(t)&&(!lid||t.lista_id===lid));
 window.tkArquivar=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  if(!podeApagar(t)){ toast(NAO_APAGA); return; }
   const {error}=await sb.from('tarefas')
     .update({arquivada_em:new Date().toISOString(),arquivada_por:(currentUser||{}).id||null}).eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
@@ -18121,7 +18122,7 @@ function renderArquivados(c){
       <td class="hint" style="margin:0;white-space:nowrap">${esc(fmtDate(String(t.arquivada_em).slice(0,10)))}${quem?' · '+esc(primeiroNome(quem)):''}</td>
       <td style="text-align:right;white-space:nowrap">
         <button class="btn ghost small" onclick="arqRestaurar('${t.id}')">Restaurar</button>
-        ${mst?`<button class="btn ghost small tk-del" onclick="${(cli&&t.ficha_id)?`lcExcluirDeVez('${esc(String(t.ficha_id))}')`:`tkExcluir('${t.id}')`}">Excluir de vez</button>`:''}
+        ${((cli&&t.ficha_id)?mst:podeApagar(t))?`<button class="btn ghost small tk-del" onclick="${(cli&&t.ficha_id)?`lcExcluirDeVez('${esc(String(t.ficha_id))}')`:`tkExcluir('${t.id}')`}">Excluir de vez</button>`:''}
       </td></tr>`; };
   const fech=(TK.listasFechadas||[]).filter(l=>{ const e=(TK.espacos||[]).find(x=>x.id===l.espaco_id)||((TK.pastas||[]).find(p=>p.id===l.pasta_id)&&(TK.espacos||[]).find(x=>x.id===(TK.pastas.find(p=>p.id===l.pasta_id)||{}).espaco_id)); return !e||espacoDaAtual(e); })
     .filter(l=>!q||String(l.nome||'').toLowerCase().indexOf(q)>=0);
@@ -18135,7 +18136,7 @@ function renderArquivados(c){
           <button class="btn ghost small tk-del" onclick="lsExcluir('${l.id}')">Excluir de vez</button>`:'<span class="hint" style="margin:0">só master reabre</span>'}</td></tr>`; }).join('')}</tbody></table></div>`:'';
   c.innerHTML=`
    <div class="page-head">
-     <div><h2>Arquivados</h2><div class="desc">Tudo o que foi arquivado neste workspace. Cada lista também tem os seus, no botão Arquivados dela.${mst?'':' Excluir de vez é só com master.'}</div></div>
+     <div><h2>Arquivados</h2><div class="desc">Tudo o que foi arquivado neste workspace. Cada lista também tem os seus, no botão Arquivados dela.${mst?'':' Excluir de vez: só quem criou a demanda, gerente ou master.'}</div></div>
      <div class="toolbar"><input class="search" id="arqQ" placeholder="Buscar arquivado..." value="${esc(ARQ_Q)}"></div>
    </div>
    ${secFech}
@@ -18164,14 +18165,18 @@ window.tkCardMenu=(ev,id)=>{
   /* tkExcluir arquiva primeiro; so master apaga de vez o que ja esta arquivado.
      O rotulo diz o que vai acontecer de verdade. */
   const arq=arquivada(t);
-  it.push({ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',t:arq?'Excluir de vez':'Arquivar tarefa',dgr:true,f:()=>tkExcluir(id)});
+  if(podeApagar(t)) it.push({ic:'<svg class="emi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',t:arq?'Excluir de vez':'Arquivar tarefa',dgr:true,f:()=>tkExcluir(id)});
   ctxAbrir(ev,it);
 };
+/* Quem apaga (Gabriel 19/10): master e gerente apagam qualquer demanda que enxergam; os demais
+   so o que ELES subiram, nunca o que subiram pra eles. Vale pra arquivar e pra excluir de vez;
+   o banco confere igual (policy tarefas_apagam + gatilho trg_tarefas_trava_arquivar). */
+const podeApagar=(t)=>!!(t&&currentUser&&(currentUser.role==='master'||currentUser.gerente||String(t.criado_por||'')===String(currentUser.id)));
+const NAO_APAGA='Só quem criou a demanda, um gerente ou um master pode apagar.';
 window.tkExcluir=async (id)=>{
   const t=TK.tarefas.find(x=>x.id===id); if(!t) return;
+  if(!podeApagar(t)){ toast(NAO_APAGA); return; }
   if(!arquivada(t)){ return tkArquivar(id); }   /* nunca apaga direto: arquiva primeiro */
-  if(!(currentUser&&currentUser.role==='master')){
-    toast('Só um master exclui de vez. Ela continua arquivada.'); return; }
   if(!confirm('Excluir "'+t.titulo+'" de vez?\n\nIsso não tem volta.'+recAvisoApagar(t))) return;
   const {error}=await sb.from('tarefas').delete().eq('id',id);
   if(error){ toast('Erro: '+error.message); return; }
