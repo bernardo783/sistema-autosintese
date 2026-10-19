@@ -456,8 +456,15 @@ grupo('Sigilo da mensalidade: gestor vê só a variável dele (Gabriel 01/10)');
   const cel=bloco('const tkCelula=(t,c)=>{',"  if(c.id===LC_GER_COL){");
   ok('célula da mensalidade vira "-" pra quem não vê dinheiro', cel.indexOf("if(c.id===LC_MENS&&ehLC(t.lista_id)&&!lcVeDinheiro())")>0);
   ok('célula dos 10% do gerente só aparece pro gerente daquele cliente', cel.indexOf("if(c.id===LC_SO_GERENCIA[1]&&ehLC(t.lista_id)&&!lcVeDinheiro()&&!gerenteDaFichaNome(t.ficha_id))")>0);
-  const cols=bloco("  if(lc){ const souGerDeAlgum=","  let grupos=tkGrupos();");
-  ok('a coluna Mensalidade nunca entra pra quem não vê dinheiro; Rem. Gerente entra se ele é gerente de algum cliente', cols.indexOf("lcVeDinheiro()||LC_SO_GERENCIA.indexOf(c.id)<0||(c.id===LC_SO_GERENCIA[1]&&souGerDeAlgum)")>0);
+  {
+    const SG=['mens','rger'], tarefas=[{lista_id:'LC',ficha_id:'m'}];
+    const mk=(vd,ger)=>rodar(bloco('const lcColFora=','function lcComGerente(cps){'),{LC_FORA:['canal','forma'],LC_SO_GERENCIA:SG,TK:{colsOff:{},tarefas},
+      lcVeDinheiro:()=>vd,ehLC:(l)=>l==='LC',arquivada:()=>false,gerenteDaFichaNome:()=>ger},['lcColPermitida','lcColFora']);
+    const gestor=mk(false,false), gerDeUm=mk(false,true), mst=mk(true,false);
+    ok('a coluna Mensalidade nunca entra pra quem não vê dinheiro; Rem. Gerente entra se ele é gerente de algum cliente',
+      !gestor.lcColPermitida({id:'mens'})&&!gestor.lcColPermitida({id:'rger'})&&!gerDeUm.lcColPermitida({id:'mens'})&&gerDeUm.lcColPermitida({id:'rger'})&&mst.lcColPermitida({id:'mens'})&&gestor.lcColPermitida({id:'canal'}));
+    ok('a lista usa a mesma regra de sigilo e de colunas escolhidas', /if\(lc\) cps=lcComGerente\(cps\.filter\(c=>!lcColFora\(c\.id\)&&lcColPermitida\(c\)\)\);/.test(HTML));
+  }
   const res=bloco("    const tkm=(comV.length&&lcVeDinheiro())","porGest=tkm+linhaRem");
   ok('ticket médio (média da mensalidade) só pra quem vê dinheiro', res.length>0);
   ok('resumo por gerente usa o gerente pelo nome (Luan vê os 10% dele na MULTIKAP)', HTML.indexOf("if(mst||gerenteDaFichaNome(t.ficha_id)) poeEm(G,f.gerente")>0);
@@ -1510,6 +1517,30 @@ grupo('Tarefas recorrentes (Gabriel 23/09)');
       ok('nenhum texto de tela com o limite escrito à mão', !/(passa de|até|at\\u00e9) 50 MB/.test(HTML));
       ok('os dois pontos de upload usam o envio em pedaços', HTML.split("const up=await axSubir(chave,f,(a,b)=>{ if(dz) dz.textContent=axProgTxt(f.name,a,b); });").length===3&&HTML.indexOf("sb.storage.from('anexos').upload(chave,f,{contentType:f.type")<0);
     }
+/* ---------------- Controle de Clientes: colunas escolhidas e rolagem de lado ---------------- */
+grupo('Colunas e rolagem de lado nas listas (Luiz 19/10, notebook)');
+{
+  const TKc={colsOff:{},tarefas:[]};
+  const g=rodar(bloco('const lcColFora=','function lcComGerente(cps){'),{LC_FORA:['canal','forma'],LC_SO_GERENCIA:[],TK:TKc,
+    lcVeDinheiro:()=>true,ehLC:()=>true,arquivada:()=>false,gerenteDaFichaNome:()=>false},['lcColFora']);
+  ok('Forma de Pagamento e Canal continuam fora por padrão (Gabriel 30/09)', g.lcColFora('canal')&&g.lcColFora('forma')&&!g.lcColFora('outra'));
+  TKc.colsOff.canal=false;
+  ok('marcou em Colunas: a coluna aparece na lista', !g.lcColFora('canal')&&g.lcColFora('forma'));
+  TKc.colsOff.canal=true;
+  ok('desmarcou de novo: some', g.lcColFora('canal'));
+  const menu=bloco('window.tkMenuCols=','const CP_ORIGEM');
+  ok('o seletor mostra marcada só a coluna que a lista mostra', /const ligada=\(c\)=>!\(TK\.colsOff\[c\.id\]\|\|\(lcSel&&lcColFora\(c\.id\)\)\);/.test(menu)&&/\$\{ligada\(c\)\?'checked':''\}/.test(menu));
+  ok('o seletor não oferece coluna de dinheiro que a pessoa não pode ver', /\(!lcSel\|\|lcColPermitida\(k\)\)/.test(menu));
+  /* rolagem */
+  const cod=bloco('const ROLA_SETA=','function tkViewLista(){');
+  const caixa=rodar(cod,{window:{}},['rolaCaixa']).rolaCaixa('<div class="tablewrap rolavel"><table></table></div>');
+  ok('a tabela fica numa caixa com as duas setas', /^<div class="rola-caixa"><div onscroll="rolaVer\(this\)" class="tablewrap rolavel">/.test(caixa)&&/rola-b esq/.test(caixa)&&/rola-b dir/.test(caixa));
+  ok('parar o mouse na seta rola, sair para; clicar pula uma tela', /onmouseenter="rolaIni\(this,1\)" onmouseleave="rolaFim\(\)" onclick="rolaPag\(this,1\)"/.test(caixa));
+  const L=HTML.slice(HTML.indexOf('function tkViewLista(){'),HTML.indexOf('/* A arvore de espacos mora na barra lateral'));
+  ok('as duas formas da lista (com e sem faixas de grupo) usam a caixa', (L.match(/rolaCaixa\(`<div class="tablewrap rolavel/g)||[]).length===2);
+  ok('a altura entra antes de devolver a rolagem ao redesenhar', /const r=tkDesenharTela\(c\);\n  try\{ rolaArmar\(\); \}catch\(_\)\{\}/.test(HTML));
+  ok('no celular as setas somem (lá o dedo arrasta)', HTML.indexOf('@media (hover:none){.rola-b{display:none!important}}')>0);
+}
 /* ---------------- token sempre fresco nas edge functions ---------------- */
 grupo('Login: token renovado chega nas funções (Gabriel 13/10, "Faça login no sistema")');
 {
