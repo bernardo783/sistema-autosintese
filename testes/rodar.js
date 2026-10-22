@@ -2387,6 +2387,14 @@ grupo('CRM Sofás: planilha voltou ao jeito do vídeo das 17h (Bernardo 08/10)')
   /* 19/10: na lista de lead o filtro de data passou a ser pela DATA DE ENTRADA (lead não tem prazo) */
   ok('Filtros de lead: "Data de entrada" no lugar de "Data de vencimento", sem prioridade', /\$\{tkFSemPrio\(\)\?`<div class="tkp-sec">Data de entrada<\/div>[\s\S]*?:`<div class="tkp-sec">Data de vencimento<\/div>/.test(HTML)&&HTML.indexOf("if(tkFSemPrio()){ if(tkFLeadAtivo(F)) arr=arr.filter(t=>tkFLeadBate(t,F)); }")>0&&HTML.indexOf("(tkFSemPrio()?tkFLeadAtivo(F):(F.prazo||F.de||F.ate))?1:0")>0);
 }
+/* ---------------- Quadro: + Nova tarefa da coluna abre o formulário ---------------- */
+grupo('Quadro: "+ Nova tarefa" do pé da coluna abre o formulário completo (Gabriel 22/10)');
+{
+  ok('o botão do pé da coluna chama o mesmo formulário do + roxo, já na coluna', /class="tk-addcard" onclick="tkAbrirSt\('\$\{esc\(c\.key\)\}'\)"/.test(HTML));
+  ok('sai o campo de digitar só o nome', HTML.indexOf('window.tkAddInline=')<0&&HTML.indexOf('window.tkAddKey=')<0);
+  ok('vídeo novo continua nascendo com o Fluxo de Edição', /if\(!t && it\.lista_id===LISTA_EDICAO && !TK_CK\.length\) TK_CK=CK_EDICAO\.map/.test(HTML));
+}
+
     await Promise.all(PROMESSAS);
     fimDosTestes();
   })();
