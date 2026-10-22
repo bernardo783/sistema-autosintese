@@ -13999,7 +13999,7 @@ function tpDireita(soBoard){
       :tpIb('lupa','Buscar',"TK.tpBusca=true;TK.focoBusca=true;tkDesenhar($('#content'))")}
     ${tpIb('funil','Filtrar','tkPopFiltro(event)',nF>0,nF||'')}
     ${TK.escopo==='lista'&&crmForm(TK.listaSel)&&typeof caAtalho==='function'?caAtalho():''}
-    ${tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}
+    ${(TK.escopo==='lista'&&crmForm(TK.listaSel))?'':tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}
     ${crmForm(TK.listaSel)&&TK.escopo==='lista'?tpIb('tabela','Respostas',"tkArqVista(false);tkVisao('tabela')",TK.visao==='tabela'&&!TK.arqVista):''}
     ${TK.escopo==='lista'&&crmPainelPode(TK.listaSel)?tpIb('painel','Painel',"tkArqVista(false);tkVisao('painel')",TK.visao==='painel'&&!TK.arqVista):''}
     ${soBoard||(TK.escopo==='lista'&&crmSoResp(TK.listaSel))?'':tpIb('lista','Lista',"tkArqVista(false);tkVisao('lista')",TK.visao==='lista'&&!TK.arqVista)}
