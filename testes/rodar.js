@@ -2360,6 +2360,37 @@ grupo('Edição de Vídeo: "O que foi feito?" ao entrar em revisão interna (edi
   ok('concluir (APROVADO) na Edição não pede mais o relatório de conclusão', /if\(typeof LISTA_EDICAO!=='undefined'&&t\.lista_id===LISTA_EDICAO\) return false;/.test(HTML));
   ok('toda mudança de etapa passa pela pergunta e o texto vira anotação', /const rv=typeof edRevAntes==='function'\?await edRevAntes\(antes,sid\):'';\s*if\(rv===null\)\{ tkDesenhar/.test(HTML)&&HTML.indexOf("if(ok&&rv) edRevNota(id,rv);")>0&&HTML.indexOf("texto:'O que foi feito: '+texto")>0);
 }
+grupo('Edição de Vídeo: relatório por período (editorial 22/10)');
+{
+  const cod=bloco('/* ---------- EDIÇÃO DE VÍDEO: "O que foi feito?"','/* ---------- CONCLUSÃO COM RELATÓRIO (Gabriel 23/09)');
+  const REV='52b1af6c-669e-4cff-be18-7bbe934c3c2d', APR='12788b6d-bdbd-4207-bc8d-b118c8ea7179', MUD='e21ee563-061c-421b-9ae8-bb32199a3e0d', AGU='8b420a31-e458-4daa-a9d4-2a224d9ca773';
+  const C=[{id:'v',nome:'Vídeos efetivos'},{id:'tp',nome:'Tipo de vídeo'},{id:'cx',nome:'Complexidade'},{id:'rt',nome:'Retrabalho e atrasos'}];
+  const h=(x)=>new Date(Date.UTC(2026,9,20,12)+x*36e5).toISOString();
+  const T=[
+    {id:'a',lista_id:'ED',titulo:'A',ficha_id:'f1',squad:'1',status_id:APR,criado_em:h(0),prazo:'2026-10-21',valores:{v:'3',tp:'Tráfego',cx:'Alta'}},
+    {id:'b',lista_id:'ED',titulo:'B',ficha_id:'f2',squad:'2',status_id:APR,criado_em:h(0),prazo:'2026-10-20',hora:'10:00',valores:{tp:'Conteúdo',rt:'faltou material'}},
+    {id:'c',lista_id:'ED',titulo:'C',ficha_id:'f1',squad:'1',status_id:'s0',criado_em:h(0),valores:{v:'2'}},
+    {id:'z',lista_id:'OUTRA',titulo:'Z',status_id:'s0',criado_em:h(0),valores:{}}];
+  const E=[
+    {tarefa_id:'a',de:null,para:'s0',em:h(0),origem:'app'},{tarefa_id:'a',de:'s0',para:REV,em:h(20),origem:'app'},{tarefa_id:'a',de:REV,para:APR,em:h(26),origem:'app'},
+    {tarefa_id:'b',de:null,para:AGU,em:h(0),origem:'app'},{tarefa_id:'b',de:AGU,para:'s0',em:h(10),origem:'app'},{tarefa_id:'b',de:'s0',para:REV,em:h(70),origem:'app'},
+    {tarefa_id:'b',de:REV,para:MUD,em:h(72),origem:'app'},{tarefa_id:'b',de:MUD,para:APR,em:h(80),origem:'app'}];
+  const g=rodar(cod,{LISTA_EDICAO:'ED',ED_APROVADO:APR,TK:{tarefas:T},tkCamposDe:()=>C,tkStatus1:(id)=>({nome:id===APR?'APROVADO':'A FAZER'}),
+    fichaDe:(f)=>({nome:f==='f1'?'LOJA UM':'LOJA DOIS'}),esc:(x)=>String(x==null?'':x)},['edrLinhas','edrCalcular','edrHtml','edCritHtml']);
+  const ls=g.edrLinhas(E), r=g.edrCalcular(ls,new Date(h(-1)),new Date(h(100)));
+  const B=ls.find(l=>l.id==='b'), A=ls.find(l=>l.id==='a');
+  ok('só entram demandas da Edição de Vídeo; "Vídeos efetivos" vazio conta 1', ls.length===3&&r.totSol===6&&r.semN===1);
+  ok('solicitação completa é a saída de "Aguardando restante do material"', B.solic.toISOString()===h(10)&&A.solic.toISOString()===h(0));
+  ok('entrega é a entrada em revisão interna; editados somam os vídeos efetivos', A.entrega.toISOString()===h(20)&&r.totEdit===4);
+  ok('SLA: tráfego em 20 h cumpre as 24 h; conteúdo em 60 h estoura as 48 h', A.slaH===20&&B.slaH===60&&r.sla.ok===1&&r.sla.de===2&&r.sla.pct===50);
+  ok('atraso: entregue depois do prazo (fim do dia ou hora marcada)', r.atraso.de===2&&r.atraso.n===1&&r.atraso.lista[0].id==='b');
+  ok('aprovação: tempo médio da revisão até aprovado e "de primeira" sem Mudanças', r.aprov.de===2&&r.aprov.primeira===1&&r.aprov.pct===50&&r.aprov.mediaH===8);
+  ok('clientes e status somam vídeos; retrabalho aparece na lista', r.clientes[0][0]==='LOJA UM'&&r.clientes[0][1]===5&&r.retrab.length===1);
+  const html=g.edrHtml(r,'Teste');
+  ok('relatório tem os 6 indicadores e os gráficos pedidos', ['Vídeos editados','Vídeos solicitados','Taxa de atraso','SLA cumprido','Aprovados de primeira','Status x vídeo','Clientes que demandaram vídeos','Vídeos solicitados por squad'].every(k=>html.indexOf(k)>0)&&/<svg class="edr-ln"/.test(html));
+  ok('critérios de complexidade só no campo Complexidade da Edição', /Ver critérios/.test(g.edCritHtml('ED',{nome:'Complexidade'}))&&g.edCritHtml('X',{nome:'Complexidade'})===''&&g.edCritHtml('ED',{nome:'Tipo de vídeo'})==='');
+  ok('botão "Gerar relatórios" só na lista Edição de Vídeo, com 24 h, 7, 15, 30 dias e personalizado', HTML.indexOf("${(!cli&&TK.escopo==='lista'&&TK.listaSel===LISTA_EDICAO)?'<button class=\"btn small\" onclick=\"edrMenu(event)\"")>0&&/const EDR_PER=\[\['24h','Últimas 24 horas',1\],\['7d','Últimos 7 dias',7\],\['15d','Últimos 15 dias',15\],\['30d','Últimos 30 dias',30\]\];/.test(HTML)&&HTML.indexOf('id="edrDe"')>0);
+}
 grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/10)');
 {
   const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
