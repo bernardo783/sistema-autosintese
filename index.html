@@ -606,6 +606,7 @@
   .cn-pe{display:flex;justify-content:flex-end;gap:8px}
   .ed-cont{font-size:12px;color:var(--muted);margin-top:-4px;font-variant-numeric:tabular-nums}
   .ed-cont.ok{color:var(--ok)}
+  .tp-dir .tp-rel{margin:0 4px;white-space:nowrap}
   /* Edição de Vídeo › relatório (editorial 22/10) */
   .edr-fundo{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);overflow:auto;padding:24px 16px}
   .edr{max-width:1080px;margin:0 auto;background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:22px 24px;display:grid;gap:14px}
@@ -13957,7 +13958,6 @@ function tkDesenharTela(c){
          <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
          ${cli?'':`<button class="btn ghost small" onclick="tkEscopo()">${TK.escopo==='lista'?'Ver todas':'Só esta lista'}</button>`}
          ${cli?'':`<button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>`}
-         ${(!cli&&TK.escopo==='lista'&&TK.listaSel===LISTA_EDICAO)?'<button class="btn small" onclick="edrMenu(event)" title="Relatório da edição de vídeo por período">Gerar relatórios</button>':''}
          ${(TK.escopo==='lista'&&lista)?`<button class="btn ghost small ls-mais" title="Menu da lista" aria-label="Menu da lista" onclick="lsMenu(event)">&middot;&middot;&middot;</button>`:''}
        </span>
      </div>
@@ -14004,6 +14004,7 @@ function tpDireita(soBoard){
     ${TK.escopo==='lista'&&crmPainelPode(TK.listaSel)?tpIb('painel','Painel',"tkArqVista(false);tkVisao('painel')",TK.visao==='painel'&&!TK.arqVista):''}
     ${soBoard||(TK.escopo==='lista'&&crmSoResp(TK.listaSel))?'':tpIb('lista','Lista',"tkArqVista(false);tkVisao('lista')",TK.visao==='lista'&&!TK.arqVista)}
     ${TK.escopo==='lista'&&crmSoResp(TK.listaSel)?'':tpIb('quadro','Quadro',"tkArqVista(false);tkVisao('board')",TK.visao==='board'&&!TK.arqVista)}
+    ${(TK.escopo==='lista'&&TK.listaSel===LISTA_EDICAO&&typeof edrMenu==='function')?'<button type="button" class="btn small tp-rel" onclick="edrMenu(event)" title="Relatório da edição de vídeo por período">Gerar relatórios</button>':''}
     ${tpIb('pts','Mais opções','tpMais(event)',!!TK.arqVista)}
     <button type="button" class="tp-mais" title="Nova tarefa" aria-label="Nova tarefa" onclick="tkAbrir()" ${TK.listaSel||TK.escopo!=='lista'?'':'disabled'}>${tpSvg('mais')}</button>
   </div>`;
