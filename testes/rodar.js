@@ -2429,7 +2429,8 @@ grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/1
   const h2=g2.tkViewRespostas();
   ok('SDR não vê o filtro, não troca pela bolinha e a lista dele não é filtrada', g2.rspSdrBtn()===''&&g2.rspLinhas().length===3&&h2.indexOf('tkQaResp(')<0&&/class="rsp-sdr" title="SDR: Kennedy Lima"/.test(h2));
   F.resps=[];
-  ok('o Responsável do canto superior some nas listas de CRM', HTML.indexOf("${(cli||tkFSemPrio())?'':tkBtnResp()}")>0);
+  /* o filtro de SDR mora na barra dos leads; no cabeçalho de verdade (tpDireita) o Responsável some nas listas de CRM (corrigido 22/10) */
+  ok('o Responsável do canto superior some nas listas de CRM', HTML.indexOf("${(TK.escopo==='lista'&&crmForm(TK.listaSel))?'':tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}")>0);
   ok('trocar o SDR pela bolinha grava responsavel_id e responsaveis juntos', /tkPatch\(id,crm\?\{responsavel_id:uid\|\|null,responsaveis:uid\?\[uid\]:\[\]\}:\{responsavel_id:uid\|\|null\}/.test(HTML));
 }
 grupo('CRM Sofás: planilha voltou ao jeito do vídeo das 17h (Bernardo 08/10)');
