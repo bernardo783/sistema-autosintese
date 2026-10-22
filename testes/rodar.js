@@ -2387,7 +2387,12 @@ grupo('Edição de Vídeo: relatório por período (editorial 22/10)');
   ok('aprovação: tempo médio da revisão até aprovado e "de primeira" sem Mudanças', r.aprov.de===2&&r.aprov.primeira===1&&r.aprov.pct===50&&r.aprov.mediaH===8);
   ok('clientes e status somam vídeos; retrabalho aparece na lista', r.clientes[0][0]==='LOJA UM'&&r.clientes[0][1]===5&&r.retrab.length===1);
   const html=g.edrHtml(r,'Teste');
-  ok('relatório tem os 6 indicadores e os gráficos pedidos', ['Vídeos editados','Vídeos solicitados','Taxa de atraso','SLA cumprido','Aprovados de primeira','Status x vídeo','Clientes que demandaram vídeos','Vídeos solicitados por squad'].every(k=>html.indexOf(k)>0)&&/<svg class="edr-ln"/.test(html));
+  ok('solicitadas x entregues: 3 demandas (6 vídeos) x 2 entregues (4 vídeos)', r.sxe.solDem===3&&r.sxe.solVid===6&&r.sxe.entDem===2&&r.sxe.entVid===4);
+  /* A entregue 21/10 05:00 SP (antes das 8h), B entregue 23/10 07:00 SP (antes das 8h): nenhuma no horário comercial */
+  ok('horário comercial: entrega antes das 8h ou no fim de semana não conta', r.hc.total===4&&r.hc.dentro===0&&r.hc.pct===0);
+  { const g2=rodar(cod,{LISTA_EDICAO:'ED',ED_APROVADO:APR,TK:{tarefas:[]},tkCamposDe:()=>[],esc:(x)=>String(x==null?'':x)},['edrComercial']);
+    ok('horário comercial é seg a sex, das 8h às 18h de São Paulo', g2.edrComercial(new Date('2026-10-22T10:00:00-03:00'))&&!g2.edrComercial(new Date('2026-10-22T18:00:00-03:00'))&&!g2.edrComercial(new Date('2026-10-24T10:00:00-03:00'))&&g2.edrComercial(new Date('2026-10-23T08:00:00-03:00'))); }
+  ok('relatório tem os 6 indicadores e os gráficos pedidos', ['Vídeos editados','Vídeos solicitados','Taxa de atraso','SLA cumprido','Aprovados de primeira','Status x vídeo','Clientes que demandaram vídeos','Vídeos solicitados por squad','Solicitadas x entregues','Editados no horário comercial','Demandas solicitadas x entregues'].every(k=>html.indexOf(k)>0)&&/<svg class="edr-ln"/.test(html));
   ok('critérios de complexidade só no campo Complexidade da Edição', /Ver critérios/.test(g.edCritHtml('ED',{nome:'Complexidade'}))&&g.edCritHtml('X',{nome:'Complexidade'})===''&&g.edCritHtml('ED',{nome:'Tipo de vídeo'})==='');
   /* o botão mora no cabeçalho que as listas usam hoje (tpDireita), não no toolbar antigo (corrigido 22/10) */
   { const i=HTML.indexOf('function tpDireita(soBoard){'), j=HTML.indexOf('window.tpMais=',i);
