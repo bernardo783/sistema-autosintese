@@ -2093,8 +2093,6 @@
   .ini-tag.atraso{color:#fca5a5;background:rgba(248,113,113,.14)}
   .tk-addcard{flex:none;width:100%;background:transparent;border:none;color:var(--muted);font-size:12.5px;font-weight:600;text-align:left;padding:8px 10px;border-radius:8px;margin-top:2px}
   .tk-addcard:hover{background:var(--panel2);color:var(--txt)}
-  .tk-addbox{padding:2px}
-  .tk-addbox .search{width:100%}
   .tk-vazio{border:1.5px dashed var(--line);border-radius:10px;color:var(--muted);font-size:12px;text-align:center;padding:18px 8px;margin:0 0 8px}
   /* tutorial no hover: qualquer elemento com data-dica explica a si mesmo (pedido do Gabriel, 11/08) */
   [data-dica]{position:relative}
@@ -10228,7 +10226,7 @@ function tkViewBoard(){
     <div class="tk-col${(lc&&!c.its.length)?' lcb-fina':''}" title="${(lc&&!c.its.length)?esc(c.rot)+': vazio, arraste um cliente pra cá':''}" ondragover="event.preventDefault();this.classList.add('hover');tkOrdenaDrag(event,this);tkAutoRolar(event)" ondragleave="this.classList.remove('hover')" ondrop="this.classList.remove('hover');${c.drop}">
       <div class="tk-colh"><span class="tk-selo" style="color:${esc(c.cor)};background:${esc(c.cor)}1f">${esc(c.rot)}</span><span class="tk-n">${c.its.length}</span>${lc?'':`<button class="tk-mais" title="Nova tarefa nesta coluna" onclick="tkAbrirSt('${esc(c.key)}')">+</button>`}</div>
       <div class="tk-colb">${c.its.map(tkCard).join('')||(lc?'':'<div class="tk-vazio">arraste uma tarefa para cá</div>')}</div>
-      ${lc?'':`<button class="tk-addcard" onclick="tkAddInline(this,'${esc(c.key)}')">+ ${TK.listaSel===LISTA_EDICAO?'Adicionar Vídeo':'Nova tarefa'}</button>`}
+      ${lc?'':`<button class="tk-addcard" onclick="tkAbrirSt('${esc(c.key)}')" title="Nova tarefa nesta coluna">+ ${TK.listaSel===LISTA_EDICAO?'Adicionar Vídeo':'Nova tarefa'}</button>`}
     </div>`).join('')}
     ${(TK.escopo==='lista'&&!lc&&estruturaEditavel(TK.listaSel))?`<button class="tk-addcol" onclick="tkNovaColuna()">+ Adicionar outra lista</button>`:''}
     </div>`;
@@ -10285,28 +10283,8 @@ function tkFaltaObrig(v){
 /* selo do rascunho no cartão e na lista: diz o que falta pra sair pra equipe */
 const rascSelo=(t)=>{ const f=tkFaltaObrig(t); return `<span class="tk-rasc" title="Rascunho: só você vê${f.length?'. Falta '+esc(tkFaltaTxt(f)):''}">Rascunho</span>`; };
 const tkFaltaTxt=(f)=>f.length===1?f[0]:f.slice(0,-1).join(', ')+' e '+f[f.length-1];
-/* criar digitando direto na coluna, sem modal (Enter cria, Esc cancela) */
-window.tkAddInline=(btn,key)=>{
-  const box=document.createElement('div'); box.className='tk-addbox';
-  box.innerHTML=`<input class="search" placeholder="Nome… (Enter cria, Esc sai)" onkeydown="tkAddKey(event,'${esc(key)}')">`;
-  btn.replaceWith(box); box.querySelector('input').focus();
-};
-window.tkAddKey=async (ev,key)=>{
-  if(ev.key==='Escape'){ tkDesenhar($('#content')); return; }
-  if(ev.key!=='Enter') return;
-  const tit=ev.target.value.trim(); if(!tit) return;
-  ev.target.disabled=true;
-  const v={titulo:TIT_CLI(TK.listaSel,tit),lista_id:TK.listaSel,prioridade:'med',valores:{},tipo_id:tipoPadraoDe(TK.listaSel)};
-  if(tkStatus1(key)){ v.status_id=key; v.status='todo'; } else { v.status=key||'todo'; v.status_id=null; }
-  if(TK.listaSel===LISTA_EDICAO){ v.checklist=CK_EDICAO.map(x=>({t:x,ok:false})); v.responsavel_id=EDITORA_PADRAO; v.responsaveis=[EDITORA_PADRAO]; }
-  if(exigeSquad(TK.listaSel)) v.squad=meusSquads()[0]||null;
-  const falta=tkFaltaObrig(v); v.rascunho=falta.length>0;   /* nasce e fica em rascunho até completar */
-  const {data,error}=await sb.from('tarefas').insert(Object.assign({},v,{criado_por:(currentUser||{}).id||null,ordem:TK.tarefas.length})).select().single();
-  if(error){ toast('Erro: '+error.message); ev.target.disabled=false; return; }
-  TK.tarefas.push(data); tkDesenhar($('#content')); spDesenhar();
-  toast(v.rascunho?('Rascunho criado (só você vê). Falta '+tkFaltaTxt(falta)+'.')
-    :(TK.listaSel===LISTA_EDICAO?'Vídeo criado com o Fluxo de Edição (0/9).':'Tarefa criada.'));
-};
+/* criar digitando direto na coluna saiu (Gabriel 22/10): o "+ Nova tarefa" do pé da coluna abre o
+   formulário completo, igual ao + roxo do topo, já na coluna clicada (tkAbrirSt) */
 /* nova tarefa já caindo na coluna clicada (reusa o preset por grupo do tkAbrir) */
 window.tkAbrirSt=(k)=>{ const g=TK.grupo; TK.grupo='status'; try{ tkAbrir('','',k); }finally{ TK.grupo=g; } };
 /* sensação Trello: enquanto arrasta, o card se posiciona sob o cursor (visual; o drop persiste) */
@@ -16592,6 +16570,10 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
   }
   /* Edição de Vídeo tem uma editora só — tarefa nova já nasce com ela */
   if(!t && it.lista_id===LISTA_EDICAO && !it.responsavel_id) it.responsavel_id=EDITORA_PADRAO;
+  /* o "+ Nova tarefa" do pé da coluna agora abre este formulário, igual ao + roxo do topo (Gabriel 22/10:
+     "gerar a mesma coisa do que quando clicar no botão roxo"). O vídeo novo continua nascendo com o
+     Fluxo de Edição, como no campo rápido que o botão abria antes. */
+  if(!t && it.lista_id===LISTA_EDICAO && !TK_CK.length) TK_CK=CK_EDICAO.map(x=>({t:x,ok:false,g:''}));
   const lid=it.lista_id, sts=tkStatusDe(lid), cps=TK.campos.filter(k=>k.lista_id===lid);
   /* Tarefa nova ja nasce no meu squad; quem tem recorte so consegue escolher entre os seus. */
   const sqOpc=squadsQuePosso(), sqAtual=t?String(it.squad||''):(String(it.squad||'')||(meusSquads()[0]||''));
