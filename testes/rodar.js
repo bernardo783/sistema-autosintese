@@ -2389,7 +2389,10 @@ grupo('Edição de Vídeo: relatório por período (editorial 22/10)');
   const html=g.edrHtml(r,'Teste');
   ok('relatório tem os 6 indicadores e os gráficos pedidos', ['Vídeos editados','Vídeos solicitados','Taxa de atraso','SLA cumprido','Aprovados de primeira','Status x vídeo','Clientes que demandaram vídeos','Vídeos solicitados por squad'].every(k=>html.indexOf(k)>0)&&/<svg class="edr-ln"/.test(html));
   ok('critérios de complexidade só no campo Complexidade da Edição', /Ver critérios/.test(g.edCritHtml('ED',{nome:'Complexidade'}))&&g.edCritHtml('X',{nome:'Complexidade'})===''&&g.edCritHtml('ED',{nome:'Tipo de vídeo'})==='');
-  ok('botão "Gerar relatórios" só na lista Edição de Vídeo, com 24 h, 7, 15, 30 dias e personalizado', HTML.indexOf("${(!cli&&TK.escopo==='lista'&&TK.listaSel===LISTA_EDICAO)?'<button class=\"btn small\" onclick=\"edrMenu(event)\"")>0&&/const EDR_PER=\[\['24h','Últimas 24 horas',1\],\['7d','Últimos 7 dias',7\],\['15d','Últimos 15 dias',15\],\['30d','Últimos 30 dias',30\]\];/.test(HTML)&&HTML.indexOf('id="edrDe"')>0);
+  /* o botão mora no cabeçalho que as listas usam hoje (tpDireita), não no toolbar antigo (corrigido 22/10) */
+  { const i=HTML.indexOf('function tpDireita(soBoard){'), j=HTML.indexOf('window.tpMais=',i);
+    ok('"Gerar relatórios" fica no cabeçalho da lista (tpDireita), só na Edição de Vídeo', i>0&&HTML.slice(i,j).indexOf("TK.listaSel===LISTA_EDICAO&&typeof edrMenu==='function')?'<button type=\"button\" class=\"btn small tp-rel\" onclick=\"edrMenu(event)\"")>0&&(HTML.match(/onclick="edrMenu\(event\)"/g)||[]).length===1); }
+  ok('menu com 24 h, 7, 15, 30 dias e personalizado', /const EDR_PER=\[\['24h','Últimas 24 horas',1\],\['7d','Últimos 7 dias',7\],\['15d','Últimos 15 dias',15\],\['30d','Últimos 30 dias',30\]\];/.test(HTML)&&HTML.indexOf('id="edrDe"')>0);
 }
 grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/10)');
 {
