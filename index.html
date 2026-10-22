@@ -606,6 +606,53 @@
   .cn-pe{display:flex;justify-content:flex-end;gap:8px}
   .ed-cont{font-size:12px;color:var(--muted);margin-top:-4px;font-variant-numeric:tabular-nums}
   .ed-cont.ok{color:var(--ok)}
+  /* Edição de Vídeo › relatório (editorial 22/10) */
+  .edr-fundo{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);overflow:auto;padding:24px 16px}
+  .edr{max-width:1080px;margin:0 auto;background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:22px 24px;display:grid;gap:14px}
+  .edr-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .edr-cab h2{margin:0;font-size:20px;text-transform:none;letter-spacing:0} .edr-cab p{margin:4px 0 0;color:var(--muted);font-size:13px}
+  .edr-acs{display:flex;align-items:center;gap:8px}
+  .edr-ks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .edr-k{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:3px}
+  .edr-k small{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .edr-k b{font-size:24px;font-weight:900;font-variant-numeric:tabular-nums} .edr-k span{font-size:12px;color:var(--muted)}
+  .edr-g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .edr-s{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-width:0}
+  .edr-s h3{margin:0;font-size:15px;font-weight:800} .edr-s>p{margin:4px 0 12px;color:var(--muted);font-size:12.5px;line-height:1.45}
+  .edr-bh{display:grid;gap:8px}
+  .edr-bhl{display:grid;grid-template-columns:190px 1fr 40px;align-items:center;gap:10px;font-size:13px}
+  .edr-bhl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .edr-bhl i{height:12px;border-radius:6px;background:var(--panel2);overflow:hidden} .edr-bhl i b{display:block;height:100%;border-radius:6px;background:var(--brand2)}
+  .edr-bhl em{font-style:normal;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .edr-bv{display:flex;align-items:flex-end;gap:10px;height:220px;overflow-x:auto;padding-bottom:4px}
+  .edr-bvc{flex:1 0 46px;max-width:80px;height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:4px;text-align:center}
+  .edr-bvc em{font-style:normal;font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
+  .edr-bvc i{display:flex;align-items:flex-end;justify-content:center} .edr-bvc i b{display:block;width:70%;border-radius:6px 6px 0 0;background:var(--info)}
+  .edr-bvc span{font-size:11px;color:var(--muted);line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+  .edr-ln{width:100%;height:auto;max-height:280px;font-size:10px} .edr-ln text{fill:var(--muted)} .edr-ln line{stroke:var(--line)}
+  .edr-leg{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:12.5px;color:var(--muted)}
+  .edr-leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+  .edr-tab{display:grid}
+  .edr-tab>div{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr) minmax(0,1.4fr);gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px}
+  .edr-tab>div:first-child{border-top:0} .edr-tab span{color:var(--muted)} .edr-tab em{font-style:normal;color:var(--muted)}
+  .edr-nota p{margin:4px 0 0}
+  .edr-pers{display:grid;gap:8px;padding:6px 8px 4px;font-size:13px}
+  .edr-pers label{display:grid;grid-template-columns:36px 1fr;align-items:center;gap:6px;color:var(--muted)}
+  .edr-pers input{background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:6px 8px;font:inherit}
+  .ed-crit{margin-top:6px;font-size:12px}
+  .ed-crit summary{cursor:pointer;color:var(--brand2);font-weight:600}
+  .ed-crit div{display:grid;gap:2px;padding:6px 0;border-top:1px solid var(--line)} .ed-crit div:first-of-type{border-top:0}
+  .ed-crit span{color:var(--txt)} .ed-crit em{font-style:normal;color:var(--muted)}
+  .ed-linha .ft{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--txt);margin-bottom:6px}
+  .ed-linha .fr{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0} .ed-linha .fr .k{color:var(--muted)}
+  @media (max-width:720px){ .edr{padding:16px} .edr-g2{grid-template-columns:1fr} .edr-bhl{grid-template-columns:100px 1fr 32px} .edr-tab>div{grid-template-columns:1fr} }
+  @media print{
+    body.edr-imp>*:not(.edr-fundo){display:none!important}
+    body.edr-imp .edr-fundo{position:static;background:none;padding:0;overflow:visible}
+    body.edr-imp .edr{border:0;max-width:none;--bg:#fff;--panel:#fff;--panel2:#eee;--line:#ddd;--txt:#111;--muted:#555;color:#111;background:#fff}
+    body.edr-imp .edr-acs{display:none}
+    body.edr-imp .edr-s,body.edr-imp .edr-k{break-inside:avoid}
+  }
   /* ganhou/perdeu do CRM (Bernardo 12/10): mesma caixa do "Concluir tarefa", por cima do cartão e da conversa */
   .fe-fundo{z-index:11000}
   .fe-din{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:0 12px}
@@ -13910,6 +13957,7 @@ function tkDesenharTela(c){
          <input class="search" id="tk_busca" placeholder="${cli?'Buscar cliente...':'Buscar tarefa...'}" value="${esc(TK.busca)}" oninput="tkBusca(this.value)" style="width:170px">
          ${cli?'':`<button class="btn ghost small" onclick="tkEscopo()">${TK.escopo==='lista'?'Ver todas':'Só esta lista'}</button>`}
          ${cli?'':`<button class="btn small" onclick="tkAbrir()" ${TK.listaSel?'':'disabled'}>+ Tarefa</button>`}
+         ${(!cli&&TK.escopo==='lista'&&TK.listaSel===LISTA_EDICAO)?'<button class="btn small" onclick="edrMenu(event)" title="Relatório da edição de vídeo por período">Gerar relatórios</button>':''}
          ${(TK.escopo==='lista'&&lista)?`<button class="btn ghost small ls-mais" title="Menu da lista" aria-label="Menu da lista" onclick="lsMenu(event)">&middot;&middot;&middot;</button>`:''}
        </span>
      </div>
@@ -14623,6 +14671,197 @@ async function edRevAntes(t,sid){
 }
 async function edRevNota(id,texto){
   try{ await sb.from('tarefa_comentarios').insert({tarefa_id:id,autor:(currentUser||{}).id,texto:'O que foi feito: '+texto}); }catch(_){}
+}
+/* ---------- EDIÇÃO DE VÍDEO: relatório (editorial 22/10) ----------
+   "Botão Gerar relatórios com a opção de selecionar o período no canto superior direito: últimas 24 horas,
+   últimos 7, 15 e 30 dias e personalizado. O relatório traz status x vídeo, total de vídeos editados,
+   clientes que demandaram, vídeos solicitados por squad, taxa de atraso e taxa de aprovação. Assim não
+   precisa fazer na mão, dá pra ter relatórios semanais, e o mensal é só anexar 4 documentos."
+   Definições combinadas (22/10):
+   - vídeos de uma demanda = campo "Vídeos efetivos" (vazio conta 1, e o relatório diz quantas estavam vazias);
+   - solicitação completa = criação da tarefa; se passou por "Aguardando restante do material", a saída de lá;
+   - entrega = primeira entrada em EM REVISÃO (INTERNO); editado no período = entregue no período (tarefa
+     antiga sem histórico: aprovada no período);
+   - SLA = solicitação completa até a entrega: 24 h tráfego, 48 h conteúdo (prompt mestre). Só é verificável
+     com o histórico de etapas, que existe desde 22/10; antes disso fica "não verificável";
+   - atraso = entrega depois do prazo da tarefa (fim do dia, ou a hora marcada);
+   - aprovação = tempo da revisão interna até APROVADO e quantos aprovados sem passar por MUDANÇAS.
+   Os números vêm de TK.tarefas (o que a pessoa já enxerga) e de tarefa_etapas. */
+const ED_AGU='8b420a31-e458-4daa-a9d4-2a224d9ca773', ED_MUD='e21ee563-061c-421b-9ae8-bb32199a3e0d';
+const ED_SLA_H={'Tráfego':24,'Conteúdo':48};
+const EDR={de:'',ate:'',etapas:null};
+const EDR_PER=[['24h','Últimas 24 horas',1],['7d','Últimos 7 dias',7],['15d','Últimos 15 dias',15],['30d','Últimos 30 dias',30]];
+const edrCampo=(re)=>(typeof tkCamposDe==='function'?tkCamposDe(LISTA_EDICAO):[]).find(c=>re.test(String(c.nome||'')))||null;
+const edrDia=(d)=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+const edrHora=(d)=>d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const edrPct=(a,b)=>b?Math.round(a/b*1000)/10:null;
+const edrPctTx=(p)=>p==null?'Dado não disponível':String(p).replace('.',',')+'%';
+/* fim do prazo da tarefa: a hora marcada ou o fim do dia */
+const edrPrazo=(t)=>{ if(!t.prazo) return null; const h=/^\d{2}:\d{2}/.test(String(t.hora||''))?String(t.hora).slice(0,5):'23:59';
+  const d=new Date(String(t.prazo).slice(0,10)+'T'+h+':59'); return isNaN(d)?null:d; };
+/* uma linha por demanda, com tudo que o relatório usa */
+function edrLinhas(etapas){
+  const cV=edrCampo(/^v[ií]deos efetivos$/i), cT=edrCampo(/^tipo de v[ií]deo$/i), cC=edrCampo(/^complexidade$/i), cR=edrCampo(/^retrabalho/i);
+  const porT={}; (etapas||[]).forEach(e=>{ (porT[e.tarefa_id]=porT[e.tarefa_id]||[]).push(e); });
+  return (TK.tarefas||[]).filter(t=>t.lista_id===LISTA_EDICAO&&!t.rascunho&&!t.pai_id).map(t=>{
+    const v=t.valores||{}, log=(porT[t.id]||[]).slice().sort((a,b)=>String(a.em).localeCompare(String(b.em)));
+    const nv=Number(cV&&v[cV.id]);
+    const saiuAgu=log.filter(e=>String(e.de||'')===ED_AGU).pop();
+    const solic=new Date(saiuAgu?saiuAgu.em:t.criado_em);
+    const rev=log.find(e=>String(e.para||'')===ED_REV);
+    const apr=log.find(e=>String(e.para||'')===ED_APROVADO);
+    const aprEm=apr?new Date(apr.em):(String(t.status_id)===ED_APROVADO&&t.concluida_em?new Date(t.concluida_em):null);
+    const entrega=rev?new Date(rev.em):null;
+    const tipo=cT?String(v[cT.id]||''):'', prazo=edrPrazo(t);
+    const verif=!!(rev&&rev.origem==='app');
+    const f=typeof fichaDe==='function'?fichaDe(t.ficha_id):null;
+    const mudou=!!(rev&&log.some(e=>String(e.para||'')===ED_MUD&&new Date(e.em)>=entrega&&(!aprEm||new Date(e.em)<=aprEm)));
+    return {t,id:t.id,titulo:t.titulo||'',n:nv>0?nv:1,semN:!(nv>0),tipo,comp:cC?String(v[cC.id]||''):'',retrab:cR?String(v[cR.id]||''):'',
+      cliente:(f&&String(f.nome||'').trim())||'Sem cliente',squad:String(t.squad||'').trim()||'Sem squad',
+      status:(typeof tkStatus1==='function'&&tkStatus1(t.status_id)||{}).nome||'Sem status',
+      criado:new Date(t.criado_em),solic,entrega,aprEm,prazo,verif,mudou,
+      slaH:(verif&&ED_SLA_H[tipo])?(entrega-solic)/36e5:null,
+      revAprH:(entrega&&aprEm&&aprEm>=entrega&&verif)?(aprEm-entrega)/36e5:null};
+  });
+}
+function edrCalcular(ls,ini,fim){
+  const no=(d)=>!!d&&d>=ini&&d<=fim;
+  const sol=ls.filter(l=>no(l.solic));
+  const edit=ls.filter(l=>l.entrega?no(l.entrega):no(l.aprEm));
+  const soma=(a)=>a.reduce((s,l)=>s+l.n,0);
+  const agrupa=(a,k)=>{ const m={}; a.forEach(l=>{ m[l[k]]=(m[l[k]]||0)+l.n; }); return Object.entries(m).sort((x,y)=>y[1]-x[1]); };
+  const entregues=ls.filter(l=>no(l.entrega));
+  const comPrazo=entregues.filter(l=>l.prazo), atras=comPrazo.filter(l=>l.entrega>l.prazo);
+  const slaVer=entregues.filter(l=>l.slaH!=null), slaOk=slaVer.filter(l=>l.slaH<=ED_SLA_H[l.tipo]);
+  const aprov=ls.filter(l=>no(l.aprEm)&&l.revAprH!=null), deprimeira=aprov.filter(l=>!l.mudou);
+  const media=(a)=>a.length?Math.round(a.reduce((s,x)=>s+x,0)/a.length*10)/10:null;
+  /* linha por squad: de 3 em 3 horas até 2 dias, por dia até 15 dias, por semana acima disso */
+  const passo=(fim-ini)<=2*864e5?3*36e5:(fim-ini)<=15*864e5?864e5:7*864e5, nB=Math.max(1,Math.ceil((fim-ini)/passo));
+  const squads=[...new Set(sol.map(l=>l.squad))].sort();
+  const serie=squads.map(sq=>({sq,v:Array.from({length:nB},(_,i)=>soma(sol.filter(l=>l.squad===sq&&Math.min(nB-1,Math.floor((l.solic-ini)/passo))===i)))}));
+  return {ini,fim,passo,nB,sol,edit,
+    totSol:soma(sol),totEdit:soma(edit),semN:sol.filter(l=>l.semN).length,
+    status:agrupa(sol,'status'),clientes:agrupa(sol,'cliente'),porSquad:serie,
+    tipo:agrupa(sol.map(l=>Object.assign({},l,{tipo:l.tipo||'Sem tipo'})),'tipo'),comp:agrupa(sol.map(l=>Object.assign({},l,{comp:l.comp||'Não identificada'})),'comp'),
+    atraso:{n:atras.length,de:comPrazo.length,pct:edrPct(atras.length,comPrazo.length),semPrazo:entregues.length-comPrazo.length,lista:atras},
+    sla:{ok:slaOk.length,de:slaVer.length,pct:edrPct(slaOk.length,slaVer.length),naoVerif:entregues.length-slaVer.length},
+    aprov:{de:aprov.length,primeira:deprimeira.length,pct:edrPct(deprimeira.length,aprov.length),mediaH:media(aprov.map(l=>l.revAprH))},
+    retrab:sol.filter(l=>l.retrab.trim()).map(l=>({cliente:l.cliente,titulo:l.titulo,texto:l.retrab}))};
+}
+/* ---- gráficos em SVG/HTML, nas cores do tema ---- */
+const EDR_COR=['var(--brand2)','var(--info)','var(--ok)','var(--warn)','var(--danger)','var(--brand)','var(--muted)'];
+const edrBarrasH=(pares)=>{ const mx=Math.max(1,...pares.map(p=>p[1]));
+  return pares.length?`<div class="edr-bh">${pares.map(([k,v])=>`<div class="edr-bhl"><span title="${esc(k)}">${esc(k)}</span><i><b style="width:${Math.max(2,v/mx*100)}%"></b></i><em>${v}</em></div>`).join('')}</div>`:'<div class="hint">Dado não disponível</div>'; };
+const edrBarrasV=(pares)=>{ const mx=Math.max(1,...pares.map(p=>p[1]));
+  return pares.length?`<div class="edr-bv">${pares.map(([k,v])=>`<div class="edr-bvc" title="${esc(k)}: ${v}"><em>${v}</em><i><b style="height:${Math.max(3,v/mx*100)}%"></b></i><span>${esc(k)}</span></div>`).join('')}</div>`:'<div class="hint">Dado não disponível</div>'; };
+function edrLinha(r){
+  if(!r.porSquad.length) return '<div class="hint">Dado não disponível</div>';
+  const W=640,H=220,pl=30,pb=26,pt=10,mx=Math.max(1,...r.porSquad.flatMap(s=>s.v));
+  const x=(i)=>pl+(r.nB<=1?(W-pl)/2:i*(W-pl-10)/(r.nB-1)), y=(v)=>pt+(H-pt-pb)*(1-v/mx);
+  const rot=(i)=>{ const d=new Date(r.ini.getTime()+i*r.passo); return r.passo<864e5?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); };
+  const cada=Math.max(1,Math.ceil(r.nB/8));
+  const eixoX=Array.from({length:r.nB},(_,i)=>i%cada===0?`<text x="${x(i)}" y="${H-8}" text-anchor="middle">${rot(i)}</text>`:'').join('');
+  const eixoY=[0,Math.ceil(mx/2),mx].map(v=>`<text x="${pl-6}" y="${y(v)+4}" text-anchor="end">${v}</text><line x1="${pl}" x2="${W-10}" y1="${y(v)}" y2="${y(v)}"/>`).join('');
+  const linhas=r.porSquad.map((s,k)=>`<polyline fill="none" stroke="${EDR_COR[k%EDR_COR.length]}" stroke-width="2.5" points="${s.v.map((v,i)=>x(i)+','+y(v)).join(' ')}"/>${s.v.map((v,i)=>v?`<circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="${EDR_COR[k%EDR_COR.length]}"><title>${esc(s.sq)}: ${v}</title></circle>`:'').join('')}`).join('');
+  return `<svg class="edr-ln" viewBox="0 0 ${W} ${H}" role="img" aria-label="Vídeos solicitados por squad ao longo do período">${eixoY}${eixoX}${linhas}</svg>
+    <div class="edr-leg">${r.porSquad.map((s,k)=>`<span><i style="background:${EDR_COR[k%EDR_COR.length]}"></i>${esc(s.sq==='Sem squad'?s.sq:'Squad '+s.sq)} · ${s.v.reduce((a,b)=>a+b,0)}</span>`).join('')}</div>`;
+}
+function edrHtml(r,rot){
+  const kpi=(t,v,s)=>`<div class="edr-k"><small>${t}</small><b>${v}</b>${s?`<span>${s}</span>`:''}</div>`;
+  const hm=(h)=>h==null?'Dado não disponível':(h<48?String(Math.round(h*10)/10).replace('.',',')+' h':String(Math.round(h/24*10)/10).replace('.',',')+' dias');
+  return `<div class="edr-cab"><div><h2>Relatório · Edição de Vídeo</h2><p>${esc(rot)} · ${edrHora(r.ini)} a ${edrHora(r.fim)} · gerado em ${edrHora(new Date())}</p></div>
+      <div class="edr-acs"><button class="btn secondary small" onclick="edrCsv()">Baixar planilha</button><button class="btn small" onclick="window.print()">Imprimir / salvar PDF</button><button class="tkp-x" onclick="edrFechar()" aria-label="Fechar">✕</button></div></div>
+    <div class="edr-ks">
+      ${kpi('Vídeos editados',r.totEdit,'entregues pra revisão interna no período')}
+      ${kpi('Vídeos solicitados',r.totSol,r.sol.length+' demanda'+(r.sol.length===1?'':'s'))}
+      ${kpi('Taxa de atraso',edrPctTx(r.atraso.pct),r.atraso.de?r.atraso.n+' de '+r.atraso.de+' entregas com prazo':'')}
+      ${kpi('SLA cumprido',edrPctTx(r.sla.pct),r.sla.de?r.sla.ok+' de '+r.sla.de+' verificáveis':'')}
+      ${kpi('Aprovados de primeira',edrPctTx(r.aprov.pct),r.aprov.de?r.aprov.primeira+' de '+r.aprov.de+' sem passar por Mudanças':'')}
+      ${kpi('Revisão interna → aprovado',hm(r.aprov.mediaH),'tempo médio')}
+    </div>
+    <div class="edr-g2">
+      <section class="edr-s"><h3>Status x vídeo</h3><p>Vídeos solicitados no período, pela etapa em que estão agora.</p>${edrBarrasH(r.status)}</section>
+      <section class="edr-s"><h3>Tipo e complexidade</h3><p>Vídeos solicitados no período.</p>${edrBarrasH(r.tipo)}<div style="height:10px"></div>${edrBarrasH(r.comp)}</section>
+    </div>
+    <section class="edr-s"><h3>Clientes que demandaram vídeos</h3><p>Vídeos solicitados por cliente no período${r.clientes.length>15?' (os 15 maiores)':''}.</p>${edrBarrasV(r.clientes.slice(0,15))}</section>
+    <section class="edr-s"><h3>Vídeos solicitados por squad</h3><p>${r.passo<864e5?'De 3 em 3 horas':r.passo>864e5?'Por semana (a partir do início do período)':'Por dia'}.</p>${edrLinha(r)}</section>
+    <div class="edr-g2">
+      <section class="edr-s"><h3>Taxa de atraso</h3><p>Entrega (entrada em revisão interna) depois do prazo da tarefa.${r.atraso.semPrazo?' '+r.atraso.semPrazo+' entrega'+(r.atraso.semPrazo===1?'':'s')+' sem prazo ficaram de fora.':''}</p>
+        ${r.atraso.lista.length?`<div class="edr-tab">${r.atraso.lista.slice(0,12).map(l=>`<div><b>${esc(l.cliente)}</b><span>${esc(l.titulo)}</span><em>prazo ${edrHora(l.prazo)} · entregue ${edrHora(l.entrega)}</em></div>`).join('')}</div>`:'<div class="hint">Nenhuma entrega atrasada.</div>'}</section>
+      <section class="edr-s"><h3>SLA e aprovação</h3><p>SLA: solicitação completa até a entrega, 24 h tráfego e 48 h conteúdo.${r.sla.naoVerif?' '+r.sla.naoVerif+' entrega'+(r.sla.naoVerif===1?'':'s')+' sem SLA verificável (sem tipo de vídeo ou de antes do histórico de 22/10).':''}</p>
+        <p>Aprovação: tempo da revisão interna até APROVADO; "de primeira" é sem passar por Mudanças.</p></section>
+    </div>
+    ${r.retrab.length?`<section class="edr-s"><h3>Retrabalhos e motivos de atraso</h3><div class="edr-tab">${r.retrab.slice(0,20).map(l=>`<div><b>${esc(l.cliente)}</b><span>${esc(l.titulo)}</span><em>${esc(l.texto)}</em></div>`).join('')}</div></section>`:''}
+    <section class="edr-s edr-nota"><h3>Fontes e ressalvas</h3><p>Tarefas da lista Edição de Vídeo e histórico de etapas do sistema. ${r.semN?r.semN+' demanda'+(r.semN===1?'':'s')+' sem "Vídeos efetivos" contada'+(r.semN===1?'':'s')+' como 1 vídeo. ':''}O histórico de etapas começou em 22/10/2026: entregas de antes disso não têm SLA verificável.</p></section>`;
+}
+/* menu do botão: os quatro atalhos e o personalizado com o calendário */
+window.edrMenu=(ev)=>{
+  ev.stopPropagation(); const v=document.getElementById('edrPop'); if(v){ v.remove(); return; }
+  const el=document.createElement('div'); el.id='edrPop'; el.className='tkpop'; el.setAttribute('role','menu'); el.style.width='250px'; el.style.padding='6px'; el.style.zIndex=3000;
+  const hj=tkHoje();
+  el.innerHTML=EDR_PER.map(p=>`<button type="button" class="rc-mi" role="menuitem" onclick="document.getElementById('edrPop').remove();edrGerar('${p[0]}')">${p[1]}</button>`).join('')
+    +`<div class="rc-sep"></div><div class="edr-pers"><b>Personalizado</b>
+      <label>De <input type="date" id="edrDe" value="${esc(EDR.de||'')}" max="${hj}"></label>
+      <label>Até <input type="date" id="edrAte" value="${esc(EDR.ate||hj)}" max="${hj}"></label>
+      <button type="button" class="btn small" onclick="edrGerar('pers')">Gerar</button></div>`;
+  document.body.appendChild(el); popPor(el,ev.currentTarget.getBoundingClientRect());
+  setTimeout(()=>document.addEventListener('mousedown',function f(e){ if(!el.contains(e.target)){ el.remove(); document.removeEventListener('mousedown',f,true); } },true),0);
+};
+window.edrGerar=async (k)=>{
+  let ini, fim=new Date(), rot;
+  if(k==='pers'){ const de=(document.getElementById('edrDe')||{}).value, ate=(document.getElementById('edrAte')||{}).value;
+    if(!de||!ate||de>ate){ toast('Escolha as duas datas (a primeira antes da segunda).'); return; }
+    EDR.de=de; EDR.ate=ate; ini=new Date(de+'T00:00:00'); fim=new Date(ate+'T23:59:59'); rot='Personalizado';
+    const p=document.getElementById('edrPop'); if(p) p.remove(); }
+  else { const p=EDR_PER.find(x=>x[0]===k)||EDR_PER[1]; ini=new Date(fim.getTime()-p[2]*864e5); rot=p[1]; }
+  const o=document.createElement('div'); o.className='edr-fundo'; o.id='edrFundo';
+  o.innerHTML='<div class="edr" role="dialog" aria-label="Relatório da Edição de Vídeo"><div class="empty">Montando o relatório…</div></div>';
+  edrFechar(); document.body.appendChild(o); document.body.classList.add('edr-imp');
+  document.addEventListener('keydown',edrEsc,true);
+  try{
+    const {data,error}=await sb.from('tarefa_etapas').select('tarefa_id,de,para,em,origem').eq('lista_id',LISTA_EDICAO).order('em').limit(20000);
+    if(error) throw error;
+    EDR.etapas=data||[];
+    const r=edrCalcular(edrLinhas(EDR.etapas),ini,fim); EDR.ult={r,rot};
+    o.querySelector('.edr').innerHTML=edrHtml(r,rot);
+  }catch(e){ o.querySelector('.edr').innerHTML=`<div class="empty">Não consegui montar o relatório: ${esc(e.message||'erro')}</div><div style="text-align:center"><button class="btn small" onclick="edrFechar()">Fechar</button></div>`; }
+};
+function edrEsc(e){ if(e.key==='Escape'&&document.getElementById('edrFundo')){ e.stopPropagation(); edrFechar(); } }
+window.edrFechar=()=>{ const o=document.getElementById('edrFundo'); if(o) o.remove(); document.body.classList.remove('edr-imp'); document.removeEventListener('keydown',edrEsc,true); };
+/* planilha das demandas do período (uma linha por demanda), pra anexar no relatório mensal */
+window.edrCsv=()=>{ const u=EDR.ult; if(!u) return; const r=u.r;
+  const ids=new Set([...r.sol,...r.edit].map(l=>l.id));
+  const ls=edrLinhas(EDR.etapas).filter(l=>ids.has(l.id));
+  const q=(v)=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"', dt=(d)=>d?d.toLocaleString('pt-BR'):'';
+  const cab=['Cliente','Squad','Demanda','Vídeos efetivos','Tipo de vídeo','Complexidade','Status','Solicitação completa','Entrega (revisão interna)','Aprovado','Prazo','Atrasou','SLA (h)','SLA cumprido','Passou por Mudanças','Retrabalho e atrasos'];
+  const lin=ls.map(l=>[l.cliente,l.squad,l.titulo,l.semN?'':l.n,l.tipo,l.comp,l.status,dt(l.solic),dt(l.entrega),dt(l.aprEm),dt(l.prazo),
+    (l.entrega&&l.prazo)?(l.entrega>l.prazo?'sim':'não'):'',l.slaH==null?'':String(Math.round(l.slaH*10)/10).replace('.',','),
+    l.slaH==null?'não verificável':(l.slaH<=ED_SLA_H[l.tipo]?'sim':'não'),l.entrega?(l.mudou?'sim':'não'):'',l.retrab]);
+  const csv='﻿'+[cab,...lin].map(a=>a.map(q).join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='relatorio-edicao-'+tkISO(r.ini)+'-a-'+tkISO(r.fim)+'.csv'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); };
+/* critérios de complexidade do time editorial (print "8. Critério de complexidade"), no painel da tarefa */
+const ED_CRIT=[['Baixa','Cortes simples ou nenhum corte, ajuste básico de áudio/enquadramento, material organizado, sem busca relevante de assets ou animações.','Corte de fala e tratamento de áudio curto, resize, inserção simples de logo/CTA. Vídeos de 0 a 30 s.'],
+  ['Média','Cortes dinâmicos, legendagem completa, trilha, imagens de apoio, tratamento moderado de áudio/cor ou mais de uma versão.','Tratativa de áudios maiores, cortes significativos, ajuste de legendas e elementos de texto, efeitos de áudio e vídeo. Vídeos de 30 a 40 s.'],
+  ['Alta','Vídeos acima de 1 minuto, múltiplas fontes, reconstrução de áudio, tratamento avançado, muitas tratativas na legenda, efeitos de texto.','Muitos efeitos de texto, ajuste de legenda, animações, sincronização de efeitos de áudio, cortes longos, agrupamento de faixas e vídeos. Vídeos de 40 s a 2 min.']];
+const edCritHtml=(lid,c)=>(lid===LISTA_EDICAO&&/^complexidade$/i.test(String(c.nome||'')))
+  ?`<details class="ed-crit"><summary>Ver critérios</summary>${ED_CRIT.map(([n,cr,ex])=>`<div><b>${n}</b><span>${esc(cr)}</span><em>${esc(ex)}</em></div>`).join('')}</details>`:'';
+/* linha do tempo da demanda (solicitação completa, entrega, aprovação e SLA), no painel da tarefa */
+async function edLinhaCarregar(id){
+  const box=document.getElementById('edLinha'); if(!box) return;
+  const {data,error}=await sb.from('tarefa_etapas').select('tarefa_id,de,para,em,origem,por').eq('tarefa_id',id).order('em');
+  if(error||!document.getElementById('edLinha')){ if(box) box.innerHTML=''; return; }
+  const l=edrLinhas(data||[]).find(x=>x.id===id); if(!l){ box.innerHTML=''; return; }
+  const nome=(sid)=>sid?((typeof tkStatus1==='function'&&tkStatus1(sid)||{}).nome||'?'):'criada';
+  const sla=l.slaH==null?(l.entrega?'não verificável'+(l.tipo?'':' (sem tipo de vídeo)'):'ainda não entregue')
+    :String(Math.round(l.slaH*10)/10).replace('.',',')+' h de '+ED_SLA_H[l.tipo]+' h · '+(l.slaH<=ED_SLA_H[l.tipo]?'no prazo':'fora do SLA');
+  box.innerHTML=`<div class="tkf-divi"></div><div class="ed-linha"><div class="ft">Linha do tempo</div>
+    <div class="fr"><span class="k">Solicitação completa</span><span class="v">${edrHora(l.solic)}</span></div>
+    <div class="fr"><span class="k">Entrega (revisão interna)</span><span class="v">${l.entrega?edrHora(l.entrega):'-'}</span></div>
+    <div class="fr"><span class="k">Aprovado</span><span class="v">${l.aprEm?edrHora(l.aprEm):'-'}</span></div>
+    <div class="fr"><span class="k">SLA</span><span class="v">${esc(sla)}</span></div>
+    ${(data||[]).filter(e=>e.origem==='app').length?`<details class="ed-crit"><summary>Todas as etapas</summary>${(data||[]).filter(e=>e.origem==='app').map(e=>`<div><b>${edrHora(new Date(e.em))}</b><span>${esc(nome(e.de))} → ${esc(nome(e.para))}${e.por&&typeof tkNomeUser==='function'?' · '+esc(tkNomeUser(e.por)||''):''}</span></div>`).join('')}</details>`:''}
+  </div>`;
 }
 /* ---------- CONCLUSÃO COM RELATÓRIO (Gabriel 23/09) ----------
    Concluir pede "O que foi feito nesta tarefa?" (texto livre, obrigatório) antes de fechar.
@@ -16656,7 +16895,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
     if(!c) return null; const u=(TK.equipe||[]).find(y=>String(y.id)===String((it.valores||{})[c.id]));
     return u?{n:c.nome,v:primeiroNome(u.nome)}:null; })();
   const campoLinha=(c)=>`<div class="tkf-p"><div class="tkf-pl">${SVG_P.campo} ${esc(c.nome)}${c.obrigatorio?'<span class="cp-obr" title="Obrigatório">*</span>':''}</div>
-        <div class="tkf-pv">${campoHtml(c)}</div></div>`;
+        <div class="tkf-pv">${campoHtml(c)}${typeof edCritHtml==='function'?edCritHtml(lid,c):''}</div></div>`;
   modal(t?'Editar tarefa':'Nova tarefa',`<div class="tkm"><div class="tkm-painel" id="tkmDet">
 
     <div class="tkf-capa">
@@ -16741,6 +16980,7 @@ window.tkAbrir=(id,prazoPre,grupoPre)=>{
           <div class="tkf-fin"><div class="ft">◈ Comercial</div>
             ${cpsMoeda.map(x=>`<div class="fr"><span class="k">${esc(x.nome)}${x.obrigatorio?' *':''}</span><span class="v">${campoHtml(x)}</span></div>`).join('')}
           </div>`:''}
+        ${(t&&lid===LISTA_EDICAO&&typeof edLinhaCarregar==='function')?'<div id="edLinha"></div>'+(setTimeout(()=>edLinhaCarregar(t.id),0),''):''}
       </div>
     </div>
 
