@@ -2342,6 +2342,24 @@ grupo('Anúncios › Integrações: Meta em cartão com Configurar, no jeito do 
   ok('Integrações é uma aba dentro de Anúncios, só pra master', /const ig=igPode\(\), sec=\(ig&&ANU\.sec==='integ'\)\?'integ':'ads';/.test(HTML)&&/\[\['ads','Anúncios'\],\['integ','Integrações'\]\]/.test(HTML)&&HTML.indexOf('const igPode=()=>anuMaster();')>0);
   ok('o bloco do Meta saiu da Equipe', HTML.indexOf('mtBox')<0&&HTML.indexOf('mtMontar')<0);
 }
+grupo('Edição de Vídeo: "O que foi feito?" ao entrar em revisão interna (editorial 22/10)');
+{
+  const cod=bloco('/* ---------- EDIÇÃO DE VÍDEO: "O que foi feito?"','/* ---------- CONCLUSÃO COM RELATÓRIO (Gabriel 23/09)');
+  let pediu=0;
+  const g=rodar(cod+'\n;edRevPedir=async()=>{ pediu++; return "x".repeat(60); };',{LISTA_EDICAO:'ED',esc:(x)=>String(x==null?'':x),get pediu(){return pediu;},set pediu(v){pediu=v;}},['edRevAntes']);
+  PROMESSAS.push((async()=>{
+    const t={id:'a',lista_id:'ED',status_id:'s1',titulo:'Vídeo'};
+    const r1=await g.edRevAntes(t,'52b1af6c-669e-4cff-be18-7bbe934c3c2d');
+    ok('entrar em EM REVISÃO (INTERNO) na Edição pede o "O que foi feito?"', r1.length===60);
+    const r2=await g.edRevAntes(t,'12788b6d-bdbd-4207-bc8d-b118c8ea7179');
+    const r3=await g.edRevAntes({id:'b',lista_id:'OUTRA',status_id:'s1'},'52b1af6c-669e-4cff-be18-7bbe934c3c2d');
+    const r4=await g.edRevAntes(Object.assign({},t,{status_id:'52b1af6c-669e-4cff-be18-7bbe934c3c2d'}),'52b1af6c-669e-4cff-be18-7bbe934c3c2d');
+    ok('APROVADO, outra lista ou já estar na revisão: não pergunta nada', r2===''&&r3===''&&r4==='');
+  })());
+  ok('a janela não aceita menos de 50 caracteres', /const ED_REV='52b1af6c-669e-4cff-be18-7bbe934c3c2d', ED_MIN=50;/.test(HTML)&&/if\(v\.length<ED_MIN\)\{ o\.querySelector\('#edRevAviso'\)/.test(HTML));
+  ok('concluir (APROVADO) na Edição não pede mais o relatório de conclusão', /if\(typeof LISTA_EDICAO!=='undefined'&&t\.lista_id===LISTA_EDICAO\) return false;/.test(HTML));
+  ok('toda mudança de etapa passa pela pergunta e o texto vira anotação', /const rv=typeof edRevAntes==='function'\?await edRevAntes\(antes,sid\):'';\s*if\(rv===null\)\{ tkDesenhar/.test(HTML)&&HTML.indexOf("if(ok&&rv) edRevNota(id,rv);")>0&&HTML.indexOf("texto:'O que foi feito: '+texto")>0);
+}
 grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/10)');
 {
   const cod=bloco('/* ======================= RESPOSTAS (Bernardo 08/10)','function tkViewLista(){');
