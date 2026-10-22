@@ -14690,6 +14690,10 @@ async function edRevNota(id,texto){
    Os números vêm de TK.tarefas (o que a pessoa já enxerga) e de tarefa_etapas. */
 const ED_AGU='8b420a31-e458-4daa-a9d4-2a224d9ca773', ED_MUD='e21ee563-061c-421b-9ae8-bb32199a3e0d';
 const ED_SLA_H={'Tráfego':24,'Conteúdo':48};
+/* horário comercial (Bernardo 22/10: "vídeos editados dentro do horário comercial"): segunda a sexta, das 8h às 18h,
+   no horário de São Paulo; a entrega (entrada em revisão interna) conta como o momento em que o vídeo ficou pronto */
+const ED_HC=[8,18];
+const edrComercial=(d)=>{ const sp=new Date(d.getTime()-3*36e5), dw=sp.getUTCDay(), h=sp.getUTCHours()+sp.getUTCMinutes()/60; return dw>=1&&dw<=5&&h>=ED_HC[0]&&h<ED_HC[1]; };
 const EDR={de:'',ate:'',etapas:null};
 const EDR_PER=[['24h','Últimas 24 horas',1],['7d','Últimos 7 dias',7],['15d','Últimos 15 dias',15],['30d','Últimos 30 dias',30]];
 const edrCampo=(re)=>(typeof tkCamposDe==='function'?tkCamposDe(LISTA_EDICAO):[]).find(c=>re.test(String(c.nome||'')))||null;
@@ -14732,6 +14736,7 @@ function edrCalcular(ls,ini,fim){
   const soma=(a)=>a.reduce((s,l)=>s+l.n,0);
   const agrupa=(a,k)=>{ const m={}; a.forEach(l=>{ m[l[k]]=(m[l[k]]||0)+l.n; }); return Object.entries(m).sort((x,y)=>y[1]-x[1]); };
   const entregues=ls.filter(l=>no(l.entrega));
+  const noHc=entregues.filter(l=>edrComercial(l.entrega));
   const comPrazo=entregues.filter(l=>l.prazo), atras=comPrazo.filter(l=>l.entrega>l.prazo);
   const slaVer=entregues.filter(l=>l.slaH!=null), slaOk=slaVer.filter(l=>l.slaH<=ED_SLA_H[l.tipo]);
   const aprov=ls.filter(l=>no(l.aprEm)&&l.revAprH!=null), deprimeira=aprov.filter(l=>!l.mudou);
@@ -14747,7 +14752,10 @@ function edrCalcular(ls,ini,fim){
     atraso:{n:atras.length,de:comPrazo.length,pct:edrPct(atras.length,comPrazo.length),semPrazo:entregues.length-comPrazo.length,lista:atras},
     sla:{ok:slaOk.length,de:slaVer.length,pct:edrPct(slaOk.length,slaVer.length),naoVerif:entregues.length-slaVer.length},
     aprov:{de:aprov.length,primeira:deprimeira.length,pct:edrPct(deprimeira.length,aprov.length),mediaH:media(aprov.map(l=>l.revAprH))},
-    retrab:sol.filter(l=>l.retrab.trim()).map(l=>({cliente:l.cliente,titulo:l.titulo,texto:l.retrab}))};
+    retrab:sol.filter(l=>l.retrab.trim()).map(l=>({cliente:l.cliente,titulo:l.titulo,texto:l.retrab})),
+    /* demandas solicitadas x entregues e o horário comercial das entregas (Bernardo 22/10) */
+    sxe:{solDem:sol.length,entDem:entregues.length,solVid:soma(sol),entVid:soma(entregues)},
+    hc:{dentro:soma(noHc),total:soma(entregues),pct:edrPct(soma(noHc),soma(entregues))}};
 }
 /* ---- gráficos em SVG/HTML, nas cores do tema ---- */
 const EDR_COR=['var(--brand2)','var(--info)','var(--ok)','var(--warn)','var(--danger)','var(--brand)','var(--muted)'];
@@ -14779,6 +14787,12 @@ function edrHtml(r,rot){
       ${kpi('SLA cumprido',edrPctTx(r.sla.pct),r.sla.de?r.sla.ok+' de '+r.sla.de+' verificáveis':'')}
       ${kpi('Aprovados de primeira',edrPctTx(r.aprov.pct),r.aprov.de?r.aprov.primeira+' de '+r.aprov.de+' sem passar por Mudanças':'')}
       ${kpi('Revisão interna → aprovado',hm(r.aprov.mediaH),'tempo médio')}
+      ${kpi('Solicitadas x entregues',r.sxe.solDem+' x '+r.sxe.entDem,'demandas · '+r.sxe.solVid+' x '+r.sxe.entVid+' vídeos')}
+      ${kpi('Editados no horário comercial',edrPctTx(r.hc.pct),r.hc.total?r.hc.dentro+' de '+r.hc.total+' vídeos · seg a sex, '+ED_HC[0]+'h às '+ED_HC[1]+'h':'')}
+    </div>
+    <div class="edr-g2">
+      <section class="edr-s"><h3>Demandas solicitadas x entregues</h3><p>Entraram no período x entregues pra revisão interna no período.</p>${edrBarrasH([['Demandas solicitadas',r.sxe.solDem],['Demandas entregues',r.sxe.entDem],['Vídeos solicitados',r.sxe.solVid],['Vídeos entregues',r.sxe.entVid]])}</section>
+      <section class="edr-s"><h3>Horário comercial</h3><p>Vídeos entregues de segunda a sexta, das ${ED_HC[0]}h às ${ED_HC[1]}h, e fora dele.</p>${r.hc.total?edrBarrasH([['No horário comercial',r.hc.dentro],['Fora do horário',r.hc.total-r.hc.dentro]]):'<div class="hint">Nenhuma entrega no período.</div>'}</section>
     </div>
     <div class="edr-g2">
       <section class="edr-s"><h3>Status x vídeo</h3><p>Vídeos solicitados no período, pela etapa em que estão agora.</p>${edrBarrasH(r.status)}</section>
@@ -14834,8 +14848,8 @@ window.edrCsv=()=>{ const u=EDR.ult; if(!u) return; const r=u.r;
   const ids=new Set([...r.sol,...r.edit].map(l=>l.id));
   const ls=edrLinhas(EDR.etapas).filter(l=>ids.has(l.id));
   const q=(v)=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"', dt=(d)=>d?d.toLocaleString('pt-BR'):'';
-  const cab=['Cliente','Squad','Demanda','Vídeos efetivos','Tipo de vídeo','Complexidade','Status','Solicitação completa','Entrega (revisão interna)','Aprovado','Prazo','Atrasou','SLA (h)','SLA cumprido','Passou por Mudanças','Retrabalho e atrasos'];
-  const lin=ls.map(l=>[l.cliente,l.squad,l.titulo,l.semN?'':l.n,l.tipo,l.comp,l.status,dt(l.solic),dt(l.entrega),dt(l.aprEm),dt(l.prazo),
+  const cab=['Cliente','Squad','Demanda','Vídeos efetivos','Tipo de vídeo','Complexidade','Status','Solicitação completa','Entrega (revisão interna)','Entregue no horário comercial','Aprovado','Prazo','Atrasou','SLA (h)','SLA cumprido','Passou por Mudanças','Retrabalho e atrasos'];
+  const lin=ls.map(l=>[l.cliente,l.squad,l.titulo,l.semN?'':l.n,l.tipo,l.comp,l.status,dt(l.solic),dt(l.entrega),l.entrega?(edrComercial(l.entrega)?'sim':'não'):'',dt(l.aprEm),dt(l.prazo),
     (l.entrega&&l.prazo)?(l.entrega>l.prazo?'sim':'não'):'',l.slaH==null?'':String(Math.round(l.slaH*10)/10).replace('.',','),
     l.slaH==null?'não verificável':(l.slaH<=ED_SLA_H[l.tipo]?'sim':'não'),l.entrega?(l.mudou?'sim':'não'):'',l.retrab]);
   const csv='﻿'+[cab,...lin].map(a=>a.map(q).join(';')).join('\r\n');
