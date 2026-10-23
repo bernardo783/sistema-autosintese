@@ -604,8 +604,6 @@
   .cn-caixa textarea:focus{outline:none;border-color:var(--brand2)}
   .cn-aviso{font-size:12px;color:var(--danger);min-height:14px;margin-top:-4px}
   .cn-pe{display:flex;justify-content:flex-end;gap:8px}
-  .ed-cont{font-size:12px;color:var(--muted);margin-top:-4px;font-variant-numeric:tabular-nums}
-  .ed-cont.ok{color:var(--ok)}
   .tp-dir .tp-rel{margin:0 4px;white-space:nowrap}
   /* Edição de Vídeo › relatório (editorial 22/10) */
   .edr-fundo{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);overflow:auto;padding:24px 16px}
@@ -14631,11 +14629,14 @@ window.tkOrdenar=(k)=>{ if(TK.ord===k){ if(TK.dir===-1){ TK.ord=''; TK.dir=1; to
 window.tkPegar=(ev,id)=>{ TK.arrastando=id; try{ev.dataTransfer.setData('text/plain',id);}catch(_){} };
 const tkAlvo=(ev)=>{ let id=''; try{ id=ev.dataTransfer.getData('text/plain'); }catch(_){} id=id||TK.arrastando; TK.arrastando=null; return id; };
 /* ---------- EDIÇÃO DE VÍDEO: "O que foi feito?" na revisão interna (editorial 22/10) ----------
-   "Uma tarefa ao ser movida para Em revisão interna deve aparecer o pop-up 'O que foi feito?', e não é
-   aceita resposta com menos de 50 caracteres. Essa mensagem não deve aparecer pra quem dá a tarefa como
-   concluída." O texto vira uma anotação da tarefa (fica no histórico dela) e entra no relatório.
-   Concluir (APROVADO) nesta lista não pede mais o relatório de conclusão: cnPrecisa devolve false. */
-const ED_REV='52b1af6c-669e-4cff-be18-7bbe934c3c2d', ED_MIN=50;
+   "Uma tarefa ao ser movida para Em revisão interna deve aparecer o pop-up 'O que foi feito?'. Essa
+   mensagem não deve aparecer pra quem dá a tarefa como concluída." O texto vira uma anotação da tarefa
+   (fica no histórico dela) e entra no relatório.
+   Concluir (APROVADO) nesta lista não pede mais o relatório de conclusão: cnPrecisa devolve false.
+   O mínimo de 50 caracteres caiu (Gabriel 23/10): "4 VÍDEOS" já diz o que foi feito e o editor ficava
+   travado inventando texto pra soltar a tarefa. Continua obrigatório escrever alguma coisa, senão a
+   janela não teria razão de existir, mas o tamanho é com quem escreve. */
+const ED_REV='52b1af6c-669e-4cff-be18-7bbe934c3c2d';
 function edRevPedir(t){
   return new Promise(res=>{
     window.__cnAberto=true;
@@ -14645,20 +14646,17 @@ function edRevPedir(t){
       <div class="cn-tit">${esc(t.titulo||'')}</div>
       <label for="edRevTx" class="cn-lbl">O que foi feito?</label>
       <textarea id="edRevTx" rows="4" placeholder="Ex.: cortes dinâmicos, legenda completa, trilha e tratamento de áudio; duas versões (feed e stories)."></textarea>
-      <div class="ed-cont" id="edRevN" aria-live="polite">0 de ${ED_MIN} caracteres no mínimo</div>
       <div class="cn-aviso" id="edRevAviso"></div>
       <div class="cn-pe"><button class="btn ghost small" type="button" data-x>Cancelar</button><button class="btn small" type="button" id="edRevOk">Enviar para revisão</button></div></div>`;
     document.body.appendChild(o);
-    const tx=o.querySelector('#edRevTx'), cont=o.querySelector('#edRevN');
-    const conta=()=>{ const n=tx.value.trim().length; cont.textContent=n>=ED_MIN?n+' caracteres':n+' de '+ED_MIN+' caracteres no mínimo'; cont.classList.toggle('ok',n>=ED_MIN); };
+    const tx=o.querySelector('#edRevTx');
     const fim=(v)=>{ o.remove(); document.removeEventListener('keydown',tecla,true); window.__cnAberto=false; res(v); };
     const ok=()=>{ const v=tx.value.trim();
-      if(v.length<ED_MIN){ o.querySelector('#edRevAviso').textContent='Conte o que foi feito com pelo menos '+ED_MIN+' caracteres (faltam '+(ED_MIN-v.length)+').'; tx.focus(); return; }
+      if(!v){ o.querySelector('#edRevAviso').textContent='Escreva o que foi feito.'; tx.focus(); return; }
       fim(v); };
     const tecla=(e)=>{ if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); fim(null); }
       else if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); ok(); } };
     document.addEventListener('keydown',tecla,true);
-    tx.addEventListener('input',conta);
     o.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>fim(null));
     o.onmousedown=(e)=>{ if(e.target===o) fim(null); };
     o.querySelector('#edRevOk').onclick=ok;
