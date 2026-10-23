@@ -2607,7 +2607,18 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   ok('voltar a aba ou a rede adianta a tentativa sem zerar a espera', HTML.indexOf("function escReligar(){ if(!ESC.canal&&!ESC.parado&&escMe()&&Date.now()-(ESC.caiuEm||0)>10000){ clearTimeout(ESC.timer); escBoot(); } }")>0);
   ok('canal do mapa novo só depois do velho terminar de sair', HTML.indexOf("if(ESC.mapaSaindo){ const sai=ESC.mapaSaindo; ESC.mapaSaindo=null; await sai; }")>0);
   ok('o canal do mapa só abre com a tela aberta e fecha ao sair', HTML.indexOf("sb.channel('escritorio-mapa',{config:{private:true,broadcast:{self:false}}})")>0&&/if\(!cv\|\|!cv\.isConnected\)\{[\s\S]{0,300}escMapaSair\(\); escTrack\(\); return; \}/.test(HTML));
-  ok('anda no clique/toque, não no pointerdown', HTML.indexOf("cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect(),")>0&&HTML.indexOf("cv.addEventListener('pointerdown'")<0);
+  ok('anda no clique/toque; arrastar move só o mapa e não vira clique', HTML.indexOf("cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect(),")>0&&HTML.indexOf("if(ESC.arrastou){ ESC.arrastou=false; return; }")>0&&/cv\.addEventListener\('pointermove'[\s\S]{0,900}ESC\.camLivre=true; cv\.style\.cursor='grabbing';/.test(HTML));
+  ok('rodinha do mouse dá zoom no ponto do mouse (sem rolar a página)', /cv\.addEventListener\('wheel',e=>\{ e\.preventDefault\(\);[\s\S]{0,250}escZoomEm\(/.test(HTML)&&HTML.indexOf("{passive:false});")>0);
+  ok('arrastou o mapa: a câmera fica até o bonequinho andar, e tem Voltar para mim', HTML.indexOf("if(andou&&ESC.camLivre){ ESC.camLivre=false;")>0&&HTML.indexOf('id="escCentro"')>0);
+  {
+    const z=rodar(bloco('const ESC_ZMIN=','function escRender('),{localStorage:{getItem:()=>null,setItem:()=>{}},clearTimeout:()=>{},ESC_W:48,ESC_H:30,
+      ESC:{T:40,base:40,zoom:1,cw:800,ch:600,cam:{x:20,y:15},ox:0,oy:0}},['escZoomEm','escCamLimite','ESC_ZMIN','ESC_ZMAX']);
+    const E=z.ESC; E.ox=Math.round(E.cam.x*E.T-E.cw/2); E.oy=Math.round(E.cam.y*E.T-E.ch/2);
+    const sx=100, sy=120, wx=(sx+E.ox)/E.T, wy=(sy+E.oy)/E.T; z.escZoomEm(1.5,sx,sy);
+    ok('zoom: o ponto embaixo do mouse continua no mesmo lugar da tela', Math.abs((sx+E.ox)/E.T-wx)<.03&&Math.abs((sy+E.oy)/E.T-wy)<.03&&E.T===60);
+    z.escZoomEm(99); ok('zoom tem limite', E.zoom===z.ESC_ZMAX); z.escZoomEm(.01); ok('zoom tem limite pra afastar', E.zoom===z.ESC_ZMIN);
+    const c=z.escCamLimite(-50,999); ok('câmera não sai da planta: para na borda e, se o mapa cabe na tela, fica no meio', c.x===20&&c.y===15);
+  }
   ok('W A S D e setas andam sem precisar clicar no mapa (menos digitando ou com janela aberta)', /document\.addEventListener\('keydown',e=>\{ if\(!ESC\.naTela\) return;/.test(HTML)&&HTML.indexOf("if(!ESC_TECLAS[k]||e.altKey||e.ctrlKey||e.metaKey||escDigitando()||document.querySelector('.overlay')) return;")>0);
   ok('a câmera segue você (mapa ocupando a tela toda, como no Gather)', HTML.indexOf("ESC.cam.x+=kx*k; ESC.cam.y+=ky*k;")>0&&HTML.indexOf("c.classList.add('esc-full');")>0&&HTML.indexOf("ct.classList.remove('esc-full')")>0);
   ok('nome em cima do bonequinho com piso em pixel de tela (legível no Retina e no celular)', HTML.indexOf("fs=Math.max(11*d,T*.3)")>0);
