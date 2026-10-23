@@ -28954,8 +28954,10 @@ const escDicaOk=()=>{ const d=document.getElementById('escDica'); if(d&&!d.hidde
 const ESC_ZMIN=.5, ESC_ZMAX=2.2;
 const escZoom=()=>{ try{ const z=parseFloat(localStorage.getItem('esc_zoom')); return isFinite(z)?Math.max(ESC_ZMIN,Math.min(ESC_ZMAX,z)):1; }catch(_){ return 1; } };
 /* centro da câmera dentro da planta (mapa menor que a tela fica no meio) */
-/* arrastando ou com zoom a câmera anda livre (como no Gather), só não deixa o centro sair da planta */
-const escCamSolta=(x,y)=>({x:Math.max(0,Math.min(ESC_W,x)),y:Math.max(0,Math.min(ESC_H,y))});
+/* arrastando ou com zoom a câmera anda livre (como no Gather), inclusive pelo fundo escuro em volta
+   (Gabriel 23/10): o mapa pode ir até a borda oposta da tela, sempre sobrando 2 tiles dele à vista */
+const escCamSolta=(x,y)=>{ const T=ESC.T||1, hw=(ESC.cw||0)/2/T, hh=(ESC.ch||0)/2/T;
+  return {x:Math.max(2-hw,Math.min(ESC_W-2+hw,x)),y:Math.max(2-hh,Math.min(ESC_H-2+hh,y))}; };
 function escCamLimite(x,y){ const T=ESC.T, hw=(ESC.cw||0)/2/T, hh=(ESC.ch||0)/2/T;
   return {x:ESC_W<=2*hw?ESC_W/2:Math.max(hw,Math.min(ESC_W-hw,x)),y:ESC_H<=2*hh?ESC_H/2:Math.max(hh,Math.min(ESC_H-hh,y))}; }
 /* zoom mantendo parado o ponto embaixo do mouse (sx, sy em pixels do canvas); sem ponto, no meio da tela */
