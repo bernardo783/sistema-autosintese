@@ -2457,7 +2457,7 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
 
   /* planta e regras puras */
   const p=rodar(bloco('const ESC_W=48, ESC_H=30;','const ESC={canal:null'),{},
-    ['ESC_W','ESC_H','ESC_SALAS','ESC_CORREDOR','ESC_ST','ESC_GRID','escLivre','escSalaDe','escSalaPadrao','escLugar','escBfs','escPisoPerto','escPerto','escLerPresenca','escHash']);
+    ['ESC_W','ESC_H','ESC_SALAS','ESC_CORREDOR','ESC_ST','ESC_GRID','ESC_MESAS','escLivre','escSalaDe','escSalaPadrao','escLugar','escBfs','escPisoPerto','escLerPresenca','escHash','escDistribuir','escNaCadeira','escNoBloco','ESC_QUIETO']);
   ok('oito salas e a recepção no corredor', p.ESC_SALAS.length===8&&p.escSalaDe(24.5,12.5).id==='recepcao');
   ok('sala por coordenada', p.escSalaDe(5,5).id==='squad01'&&p.escSalaDe(40,20).id==='cafe'&&p.escSalaDe(30,18).id==='reuniao');
   ok('parede e mesa de reunião bloqueiam; porta passa', !p.escLivre(12,5)&&!p.escLivre(30,22)&&p.escLivre(5,10)&&p.escLivre(40,15));
@@ -2474,22 +2474,41 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   ok('squad que não tem sala no mapa começa na recepção', sp({role:'membro',squads:['07']})==='recepcao');
   const l1=p.escLugar('squad01','u-luiz'), l2=p.escLugar('squad01','u-luiz');
   ok('lugar fixo da pessoa: mesmo lugar sempre, dentro da sala e em piso livre', l1.x===l2.x&&l1.y===l2.y&&p.escSalaDe(l1.x,l1.y).id==='squad01'&&p.escLivre(Math.floor(l1.x),Math.floor(l1.y)));
-  ok('quem está perto: o mais próximo até 2,5', (p.escPerto({x:10,y:10},[{u:'a',x:12,y:10},{u:'b',x:11,y:10},{u:'c',x:20,y:20}],2.5)||{}).u==='b'&&p.escPerto({x:10,y:10},[{u:'c',x:20,y:20}],2.5)===null);
+  /* regras do Gather (23/10): mesa fixa por pessoa, sala por time */
+  ok('seis mesas por sala de time, nenhuma na reunião nem no café', ['squad01','squad02','comercial','socios','financeiro','edicao'].every(id=>p.ESC_MESAS.filter(m=>m.sala===id).length===6)&&!p.ESC_MESAS.some(m=>m.sala==='reuniao'||m.sala==='cafe'));
+  ok('a mesa bloqueia, a cadeira não, e a cadeira fica dentro da sala da mesa', p.ESC_MESAS.every(m=>!p.escLivre(m.x,m.y)&&!p.escLivre(m.x+1,m.y)&&p.escLivre(Math.floor(m.sx),Math.floor(m.sy))&&p.escLivre(Math.floor(m.sx)-1,Math.floor(m.sy))&&p.escSalaDe(m.sx,m.sy).id===m.sala));
+  ok('de toda cadeira dá pra chegar na porta de casa (corredor)', p.ESC_MESAS.every(m=>p.escBfs(Math.floor(m.sx),Math.floor(m.sy),24,12).length>0));
+  const eqT=[{id:'luiz',nome:'Luiz',squads:['01']},{id:'luan',nome:'Luan',squads:['01']},{id:'ana',nome:'Ana',squads:['01']},{id:'g',nome:'Gabriel',role:'master'},
+    {id:'k',nome:'Kennedy'},{id:'rob',nome:'Claude (robô)',role:'master'}];
+  const d1=p.escDistribuir(eqT,[{pessoa:'luiz',sala:'squad01',mesa:0},{pessoa:'luan',sala:'squad01',mesa:1},{pessoa:'saiu',sala:'squad01',mesa:2}]);
+  ok('mesa gravada vale; quem não tem ganha a primeira livre da sala do time', d1.get('luiz').sala==='squad01'&&d1.get('luiz').i===0&&d1.get('luan').i===1&&d1.get('ana').sala==='squad01'&&d1.get('ana').i===3&&d1.get('g').sala==='socios');
+  ok('mesa de quem saiu do time fica presa até o master mudar; o robô não ganha mesa', !d1.has('saiu')&&!d1.has('rob'));
+  ok('sem time ganha mesa onde sobrar (Financeiro primeiro)', d1.get('k').sala==='financeiro');
+  const d2=p.escDistribuir(eqT,[]), d3=p.escDistribuir(eqT.slice().reverse(),[]);
+  ok('sem nada gravado a distribuição não depende da ordem da lista', [...d2].every(([u,m])=>d3.get(u)===m));
+  const cheia=[0,1,2,3,4,5].map(i=>({pessoa:'x'+i,sala:'squad02',mesa:i}));
+  ok('sala do time lotada: a pessoa ganha mesa em outra sala', p.escDistribuir([{id:'y',nome:'Yghor',squads:['02']}],cheia).get('y').sala==='financeiro');
+  ok('sentado: só em cima do assento', !!p.escNaCadeira(p.ESC_MESAS[0].sx,p.ESC_MESAS[0].sy)&&!p.escNaCadeira(p.ESC_MESAS[0].sx+.5,p.ESC_MESAS[0].sy));
+  ok('compromisso da agenda: vale do início até antes do fim', !!p.escNoBloco([{i:100,f:200}],100)&&!!p.escNoBloco([{i:100,f:200}],199)&&!p.escNoBloco([{i:100,f:200}],200)&&!p.escNoBloco([],150));
   const lp=p.escLerPresenca;
   ok('presença de outro navegador é conferida: número, limite da planta, status conhecido',
-    lp({x:'a',y:1})===null&&lp(null)===null&&lp({x:-50,y:999,st:'<b>'}).x===.5&&lp({x:-50,y:999}).y===p.ESC_H-.5&&lp({x:3,y:3,st:'<b>'}).st==='ok'&&lp({x:3,y:3,st:'reuniao',v:true}).v===true&&lp({x:3,y:3,v:'sim'}).v===false);
+    lp({x:'a',y:1})===null&&lp(null)===null&&lp({x:-50,y:999,st:'<b>'}).x===.5&&lp({x:-50,y:999}).y===p.ESC_H-.5&&lp({x:3,y:3,st:'<b>'}).st==='ok'&&lp({x:3,y:3,st:'reuniao',v:true}).v===true&&lp({x:3,y:3,v:'sim'}).v===false&&lp({x:3,y:3,ag:true}).ag===true&&lp({x:3,y:3,ag:'sim'}).ag===false);
 
   /* canal: sync, movimento dos outros, aceno, cota de presença (revisão 23/10) */
-  const toasts=[], enviados=[], tracks=[], timers=[], mapaEnv=[], guardado={};
+  const toasts=[], enviados=[], tracks=[], timers=[], mapaEnv=[], guardado={}, janelas=[], sons=[], notifs=[];
   const fakeDoc={hidden:false,addEventListener:()=>{}};
   const ctx=Object.assign({},p,{document:fakeDoc,addEventListener:()=>{},currentUser:{id:'eu',nome:'Gabriel',role:'master',aprovado:true},
     toast:(t)=>toasts.push(t),tkNomeUser:(u)=>({luiz:'Luiz',joao:'João',luan:'Luan'})[u]||'',primeiroNome:(s)=>String(s||'').trim().split(/\s+/)[0]||'',
     hojeISO:()=>'2026-10-23',localStorage:{getItem:(k)=>guardado[k]||null,setItem:(k,v)=>{ guardado[k]=v; }},
     setTimeout:(f,ms)=>{ timers.push([f,ms]); return timers.length; },clearTimeout:()=>{},
-    restrito:()=>false,tlBloqueada:()=>false,sbSessao:async()=>null,sb:null});
-  const g=rodar(bloco('const ESC={canal:null','/* ---------- tela ---------- */'),ctx,['ESC','ESC_PRES_MAX','escSync','escPos','escAceno','escMostrarAcenos','escTrack','escMandar','escIniciarEu','escEstado','escReler','escMudou','escGuardar','escReentrar','escBoot']);
+    restrito:()=>false,tlBloqueada:()=>false,sbSessao:async()=>null,sb:null,
+    escTocar:(t)=>sons.push(t),escJanela:(a)=>janelas.push(a),escNotificar:(a)=>notifs.push(a),caFn:async()=>({ok:true,conectado:true,blocos:[]})});
+  const g=rodar(bloco('const ESC={canal:null','/* ---------- tela ---------- */'),ctx,['ESC','ESC_PRES_MAX','escSync','escPos','escRecebe','escPerdidosVer','escAvisar','escStEfetivo','escPelaAgenda','escTrack','escMandar','escIniciarEu','escEstado','escReler','escMudou','escGuardar','escReentrar','escBoot','escMesas','escAgenda']);
   g.escIniciarEu();
-  ok('sem posição salva hoje: começa no lugar dele na sala da área (master na dos sócios), Disponível', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios'&&g.ESC.eu.st==='ok');
+  ok('sem posição salva hoje: começa sentado na mesa dele, na sala do time (master na dos sócios), Disponível', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios'&&g.ESC.eu.st==='ok'&&!!g.escNaCadeira(g.ESC.eu.x,g.ESC.eu.y));
+  g.ESC.gravadas=[{pessoa:'eu',sala:'edicao',mesa:4}]; g.ESC.eu=null; g.escIniciarEu();
+  ok('a mesa que o master gravou é onde a pessoa começa', (()=>{ const m=g.escNaCadeira(g.ESC.eu.x,g.ESC.eu.y); return !!m&&m.sala==='edicao'&&m.i===4; })());
+  g.ESC.gravadas=null;
   guardado['esc_eu_eu']=JSON.stringify({x:30.5,y:18.5,st:'ausente',dia:'2026-10-22',t:5});
   g.ESC.eu=null; g.escIniciarEu();
   ok('status de ontem não vale hoje: volta Disponível na sala da área', g.ESC.eu.st==='ok'&&g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios');
@@ -2513,18 +2532,34 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   g.escPos({u:'luiz',x:24.5,y:12.5,tx:5.5,ty:5.5},true);
   ok('rumo de um colega: o caminho é refeito aqui com a mesma planta', Array.isArray(lz.rota)&&lz.rota.length>0);
 
-  g.escAceno({u:'joao',para:'outra-pessoa'}); g.escAceno({u:'joao',para:'eu'}); g.escAceno({u:'eu',para:'eu'});
-  ok('aceno só aparece pra quem foi acenado, com o nome vindo da equipe', toasts.length===1&&toasts[0]==='João acenou para você no Escritório.');
-  fakeDoc.hidden=true; g.escAceno({u:'luiz',para:'eu'}); g.escAceno({u:'joao',para:'eu'});
-  ok('aba escondida: o aceno fica guardado', toasts.length===1);
-  fakeDoc.hidden=false; g.escMostrarAcenos();
-  ok('ao voltar pra aba, aparece quem acenou', toasts.length===2&&toasts[1]==='Luiz e João acenaram para você no Escritório.');
+  const stAntes=g.ESC.eu.st; g.ESC.eu.st='ok';
+  g.escRecebe('aceno',{u:'joao',para:'outra-pessoa'}); g.escRecebe('aceno',{u:'joao',para:'eu'}); g.escRecebe('aceno',{u:'eu',para:'eu'});
+  ok('aceno só toca e abre janelinha pra quem foi acenado, com o nome vindo da equipe', janelas.length===1&&janelas[0].nome==='João'&&janelas[0].tipo==='aceno'&&sons.join()==='aceno'&&notifs.length===0);
+  ok('o aceno vira balão em cima de quem acenou, pra quem está vendo', g.ESC.bolhas.has('luiz')===false&&(g.escRecebe('aceno',{u:'luiz',para:'joao'}),g.ESC.bolhas.get('luiz').txt==='Oi, João!'));
+  fakeDoc.hidden=true; g.escRecebe('chamada',{u:'luiz',para:'eu',sala:'squad01'});
+  ok('aba escondida: toca, abre a janelinha e manda o aviso do navegador', sons.length===2&&sons[1]==='chamada'&&janelas.length===2&&notifs.length===1&&janelas[1].sala==='squad01');
+  fakeDoc.hidden=false; g.escRecebe('chamada',{u:'luiz',para:'eu',sala:'<b>'});
+  ok('sala desconhecida na chamada não passa', janelas[2].sala==='');
+  g.ESC.eu.st='ocupado'; const nJ=janelas.length, nS=sons.length;
+  g.escRecebe('aceno',{u:'joao',para:'eu'}); g.escRecebe('chamada',{u:'luiz',para:'eu',sala:'reuniao'}); g.escRecebe('aceno',{u:'joao',para:'eu'});
+  ok('Ocupado: aceno e chamada chegam sem som e sem janela', janelas.length===nJ&&sons.length===nS&&g.ESC.perdidos.length===3);
+  g.escPerdidosVer();
+  ok('continua ocupado: o resumo espera', janelas.length===nJ);
+  g.ESC.eu.st='ok'; g.escPerdidosVer();
+  ok('ficou disponível: um resumo do que chegou quieto, sem repetir a pessoa', janelas.length===nJ+1&&janelas[nJ].texto==='Enquanto você estava ocupado: João acenou e Luiz te chamou.'&&g.ESC.perdidos.length===0);
+  g.ESC.ag.eu={em:Date.now(),con:true,blocos:[{i:Date.now()-60000,f:Date.now()+60000}]};
+  ok('Disponível durante um compromisso da agenda vira Em reunião (e avisa que é pela agenda)', g.escStEfetivo()==='reuniao'&&g.escPelaAgenda()===true);
+  g.escRecebe('aceno',{u:'joao',para:'eu'});
+  ok('em reunião pela agenda também recebe quieto', janelas.length===nJ+1&&g.ESC.perdidos.length===1);
+  g.ESC.eu.st='ausente';
+  ok('status escolhido na mão que não é Disponível não é trocado pela agenda; Ausente toca', g.escStEfetivo()==='ausente'&&g.escPelaAgenda()===false);
+  g.ESC.ag={}; g.ESC.perdidos=[]; g.ESC.eu.st=stAntes;
 
   const canal={track:(e)=>{ tracks.push(e); return Promise.resolve(); },send:(m)=>{ enviados.push(m); return Promise.resolve('ok'); }};
   g.ESC.canal=canal; g.ESC.ok=true; g.ESC.enviados=[]; g.ESC.ultSig='';
   g.escTrack('entrou'); g.escTrack();
   ok('track só quando muda o que os outros veem (sala, status, tela aberta)', tracks.length===1);
-  ok('a presença leva só id, posição, sala, status, tela aberta, a hora da última mudança e o dia', Object.keys(tracks[0]).sort().join(',')==='dia,sala,st,t,u,v,x,y'&&tracks[0].u==='eu'&&tracks[0].t===g.ESC.mudouT&&tracks[0].dia==='2026-10-23');
+  ok('a presença leva só id, posição, sala, status (e se veio da agenda), tela aberta, a hora da última mudança e o dia', Object.keys(tracks[0]).sort().join(',')==='ag,dia,sala,st,t,u,v,x,y'&&tracks[0].u==='eu'&&tracks[0].t===g.ESC.mudouT&&tracks[0].dia==='2026-10-23');
   ['ok','reuniao','ausente','ocupado','ok','reuniao'].forEach(st=>{ g.ESC.eu.st=st; g.escTrack(); });
   ok('nunca passa de '+g.ESC_PRES_MAX+' em 30 s (o servidor fecha o canal no 6º)', tracks.length===g.ESC_PRES_MAX&&g.ESC_PRES_MAX<5);
   const fila=timers.filter(t=>t[1]>1000&&t[1]<=31300);
@@ -2560,17 +2595,30 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   g.escSync({luan:[{x:8,y:8,st:'ausente',v:false,t:999,dia:'2026-10-22'},{x:9,y:9,st:'ok',v:false,t:5,dia:'2026-10-23'}]});
   ok('aba de ontem nunca vence a de hoje', g.ESC.pares.get('luan').st==='ok');
   g.ESC.dia='2026-10-22'; g.ESC.naTela=false; g.ESC.eu.st='ausente'; delete guardado['esc_eu_eu']; g.escReler();
-  ok('aba aberta de um dia pro outro: status de ontem volta pra Disponível, na sala da área', g.ESC.eu.st==='ok'&&g.ESC.dia==='2026-10-23'&&g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios');
+  ok('aba aberta de um dia pro outro: status de ontem volta pra Disponível, na mesa dele', g.ESC.eu.st==='ok'&&g.ESC.dia==='2026-10-23'&&g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios'&&!!g.escNaCadeira(g.ESC.eu.x,g.ESC.eu.y));
+  /* aceno e chamada saindo (regras do Gather) */
+  g.ESC.canal=canal; g.ESC.ok=true; g.escSync({luiz:[{x:6,y:6,v:true,t:1}]}); enviados.length=0; g.ESC.ultAviso={};
+  ok('acenar pra quem não está no escritório não manda nada', g.escAvisar('aceno','joao')==='fora'&&enviados.length===0);
+  ok('aceno sai no canal da presença com quem, pra quem e a sala', g.escAvisar('aceno','luiz')==='ok'&&enviados.length===1&&enviados[0].event==='aceno'&&enviados[0].payload.u==='eu'&&enviados[0].payload.para==='luiz'&&typeof enviados[0].payload.sala==='string');
+  ok('o mesmo aceno pra mesma pessoa só depois de uns segundos', g.escAvisar('aceno','luiz')==='cedo'&&enviados.length===1);
+  ok('chamada da recepção usa a sala de reunião', (()=>{ g.ESC.eu.x=24.5; g.ESC.eu.y=12.5; return g.escAvisar('chamada','luiz')==='ok'&&enviados[1].event==='chamada'&&enviados[1].payload.sala==='reuniao'; })());
+  ok('não dá pra acenar pra si mesmo', g.escAvisar('aceno','eu')==='eu');
   ok('a espera de reconexão só zera depois de 1 min no ar (o servidor pode derrubar logo depois de entrar)', /if\(st==='SUBSCRIBED'\)\{ ESC\.ok=true; ESC\.enviados=\[\];/.test(HTML)&&HTML.indexOf("ESC.okTimer=setTimeout(()=>{ if(ESC.canal===c&&ESC.ok) ESC.tent=0; },60000);")>0);
   ok('voltar a aba ou a rede adianta a tentativa sem zerar a espera', HTML.indexOf("function escReligar(){ if(!ESC.canal&&!ESC.parado&&escMe()&&Date.now()-(ESC.caiuEm||0)>10000){ clearTimeout(ESC.timer); escBoot(); } }")>0);
   ok('canal do mapa novo só depois do velho terminar de sair', HTML.indexOf("if(ESC.mapaSaindo){ const sai=ESC.mapaSaindo; ESC.mapaSaindo=null; await sai; }")>0);
-  ok('o canal do mapa só abre com a tela aberta e fecha ao sair', HTML.indexOf("sb.channel('escritorio-mapa',{config:{private:true,broadcast:{self:false}}})")>0&&/if\(!cv\|\|!cv\.isConnected\)\{[^\n]*escMapaSair\(\); escTrack\(\); return; \}/.test(HTML));
-  ok('no celular, rolar o mapa não faz andar (anda no toque, não no pointerdown)', HTML.indexOf("cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect();")>0&&HTML.indexOf("cv.addEventListener('pointerdown'")<0);
-  ok('no celular o mapa abre rolado até o seu bonequinho', HTML.indexOf('box.scrollLeft=Math.max(0,ESC.eu.x/ESC_W*box.scrollWidth-box.clientWidth/2)')>0);
-  ok('nome e sala com piso em pixel de tela (legível no Retina e no celular)', HTML.indexOf("const fs=(min,k)=>Math.max(min*d,T*k);")>0&&/#escCv\{[^}]*min-width:600px/.test(HTML));
+  ok('o canal do mapa só abre com a tela aberta e fecha ao sair', HTML.indexOf("sb.channel('escritorio-mapa',{config:{private:true,broadcast:{self:false}}})")>0&&/if\(!cv\|\|!cv\.isConnected\)\{[\s\S]{0,300}escMapaSair\(\); escTrack\(\); return; \}/.test(HTML));
+  ok('anda no clique/toque, não no pointerdown', HTML.indexOf("cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect(),")>0&&HTML.indexOf("cv.addEventListener('pointerdown'")<0);
+  ok('W A S D e setas andam sem precisar clicar no mapa (menos digitando ou com janela aberta)', /document\.addEventListener\('keydown',e=>\{ if\(!ESC\.naTela\) return;/.test(HTML)&&HTML.indexOf("if(!ESC_TECLAS[k]||e.altKey||e.ctrlKey||e.metaKey||escDigitando()||document.querySelector('.overlay')) return;")>0);
+  ok('a câmera segue você (mapa ocupando a tela toda, como no Gather)', HTML.indexOf("ESC.cam.x+=kx*k; ESC.cam.y+=ky*k;")>0&&HTML.indexOf("c.classList.add('esc-full');")>0&&HTML.indexOf("ct.classList.remove('esc-full')")>0);
+  ok('nome em cima do bonequinho com piso em pixel de tela (legível no Retina e no celular)', HTML.indexOf("fs=Math.max(11*d,T*.3)")>0);
+  ok('status à vista em qualquer tela: bolinha do avatar do topo e do botão Escritório', HTML.indexOf('html[data-esc-st="ocupado"] .uav .pt{background:var(--danger)}')>0&&HTML.indexOf('html[data-esc-st="reuniao"] #navEscritorio::after')>0);
+  ok('o nome no mapa mostra o status quando não é Disponível', HTML.indexOf("(p.st&&p.st!=='ok'?' · '+ESC_ST[p.st]:'')")>0);
+  ok('agenda pela mesma ação da Agenda do CRM (só início e fim)', HTML.indexOf("caFn('ocupacao',{closer_id:uid,de:d,ate:d})")>0);
+  ok('som e janelinha respeitam Ocupado e Em reunião', HTML.indexOf("if(ESC_QUIETO[escStEfetivo()]){ ESC.perdidos.push(av);")>0);
+  ok('a arte do mapa mora em variáveis (nenhuma cor solta no desenho)', !/'#[0-9a-fA-F]{3,6}'/.test(bloco('function escDesenhar(','/* ---------- interface por cima do mapa')));
 
   /* chamada da sala */
-  const gl=rodar(bloco('const escLinkOk=','function escRender('),{},['escLinkOk']);
+  const gl=rodar(bloco('const escLinkOk=','/* ---------- som e aviso do navegador ---------- */'),{},['escLinkOk']);
   ok('link da chamada: só https sem espaço nem aspas', gl.escLinkOk('https://meet.google.com/abc-defg-hij')&&!gl.escLinkOk('javascript:alert(1)')&&!gl.escLinkOk('https://x.com/a"onmouseover=1')&&!gl.escLinkOk('http://x.com')&&!gl.escLinkOk(''));
   ok('o link mora no banco (repositório público): nenhum meet.jit.si fixo no código', HTML.indexOf("from('escritorio_salas')")>0&&!/meet\.jit\.si\/AutoSintese-[a-z0-9]+-[a-z0-9]/.test(HTML));
   ok('o link é relido a cada vez que a tela abre (o master pode ter trocado)', !/async function escLinks\(\)\{\s*if\(ESC\.links\) return;/.test(HTML));
