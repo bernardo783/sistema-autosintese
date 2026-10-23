@@ -2503,7 +2503,7 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
     setTimeout:(f,ms)=>{ timers.push([f,ms]); return timers.length; },clearTimeout:()=>{},
     restrito:()=>false,tlBloqueada:()=>false,sbSessao:async()=>null,sb:null,
     escTocar:(t)=>sons.push(t),escJanela:(a)=>janelas.push(a),escNotificar:(a)=>notifs.push(a),caFn:async()=>({ok:true,conectado:true,blocos:[]})});
-  const g=rodar(bloco('const ESC={canal:null','/* ---------- tela ---------- */'),ctx,['ESC','ESC_PRES_MAX','escSync','escPos','escRecebe','escPerdidosVer','escAvisar','escStEfetivo','escPelaAgenda','escTrack','escMandar','escIniciarEu','escEstado','escReler','escMudou','escGuardar','escReentrar','escBoot','escMesas','escAgenda']);
+  const g=rodar(bloco('const ESC={canal:null','/* ---------- tela ---------- */'),ctx,['ESC','ESC_PRES_MAX','escSync','escPos','escRecebe','escPerdidosVer','escAvisar','escStEfetivo','escPelaAgenda','escTrack','escMandar','escIniciarEu','escEstado','escReler','escMudou','escGuardar','escReentrar','escBoot','escMesas','escAgenda','escChatConv','escChatNaoLidas','escChatDe']);
   g.escIniciarEu();
   ok('sem posição salva hoje: começa sentado na mesa dele, na sala do time (master sem time em Tecnologia e Projetos), Disponível', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='tecnologia'&&g.ESC.eu.st==='ok'&&!!g.escNaCadeira(g.ESC.eu.x,g.ESC.eu.y));
   g.ESC.gravadas=[{pessoa:'eu',sala:'edicao',mesa:4}]; g.ESC.eu=null; g.escIniciarEu();
@@ -2634,6 +2634,35 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   ok('o link mora no banco (repositório público): nenhum meet.jit.si fixo no código', HTML.indexOf("from('escritorio_salas')")>0&&!/meet\.jit\.si\/AutoSintese-[a-z0-9]+-[a-z0-9]/.test(HTML));
   ok('o link é relido a cada vez que a tela abre (o master pode ter trocado)', !/async function escLinks\(\)\{\s*if\(ESC\.links\) return;/.test(HTML));
   ok('só master troca o link (tela) e o banco confere de novo', /window\.escTrocarLink=\(id\)=>\{ const me=escMe\(\); if\(!me\|\|me\.role!=='master'\) return;/.test(HTML));
+
+  /* chat que nunca apaga (Gabriel 23/10) */
+  {
+    const sqlC=fs.readFileSync(path.join(__dirname,'..','migracao-2026-10-23-escritorio-chat.sql'),'utf8');
+    ok('banco: ninguém apaga nem edita mensagem (gatilho), sem regra de apagar, e só para e texto entram', /before update or delete on public\.escritorio_chat/.test(sqlC)&&/before truncate on public\.escritorio_chat/.test(sqlC)&&!/for delete/.test(sqlC)&&/revoke all on public\.escritorio_chat from anon, authenticated;/.test(sqlC)&&/grant insert \(para, texto\) on public\.escritorio_chat to authenticated;/.test(sqlC));
+    ok('banco: conversa a dois só as duas pontas leem; o Todos, qualquer conta aprovada', /para is null or de = \(select auth\.uid\(\)\) or para = \(select auth\.uid\(\)\)/.test(sqlC));
+    ok('na tela não existe apagar nem editar mensagem', !/from\('escritorio_chat'\)\.(delete|update)/.test(HTML));
+    g.ESC.chat={msgs:[],ids:new Set(),lido:null,primeira:false,conv:'',fim:{},versao:0,ok:false,erro:false,carregando:null}; g.ESC.ag={}; g.ESC.eu.st='ok'; g.ESC.perdidos=[];
+    g.escChatAdd([{id:2,de:'joao',para:'eu',texto:'oi',criado_em:'x'},{id:1,de:'eu',para:null,texto:'bom dia',criado_em:'x'},{id:2,de:'joao',para:'eu',texto:'oi',criado_em:'x'},{id:'?',de:1}]);
+    ok('chat: sem repetir, em ordem, e o que vem quebrado fica de fora', g.ESC.chat.msgs.map(m=>m.id).join()==='1,2');
+    ok('chat: a conversa é o Todos ou a outra ponta', g.escChatConv({para:null,de:'x'},'eu')==='todos'&&g.escChatConv({para:'joao',de:'eu'},'eu')==='joao'&&g.escChatConv({para:'eu',de:'joao'},'eu')==='joao');
+    ok('chat: não lida é só de outra pessoa, depois da última lida', g.escChatNaoLidas('joao')===1&&g.escChatNaoLidas('todos')===0&&g.escChatTotal()===1);
+    g.escChatMarcar('joao');
+    ok('chat: abriu a conversa, fica lida e guardada no navegador', g.escChatNaoLidas('joao')===0&&JSON.parse(guardado['esc_chat_lido_eu']).joao===2);
+    const linhas={5:{id:5,de:'luiz',para:'eu',texto:'reunião às 15h?',criado_em:'x'},6:{id:6,de:'luiz',para:null,texto:'pessoal',criado_em:'x'}};
+    let pediu=0; g.sb={from:()=>({select:()=>({eq:(c,v)=>({maybeSingle:async()=>{ pediu++; return {data:linhas[v]||null}; }})})})};
+    const nJ2=janelas.length, nS2=sons.length;
+    PROMESSAS.push((async()=>{
+      await g.escChatNovo({id:9,de:'luiz',para:'joao'});
+      ok('chat: aviso de conversa dos outros nem pede a mensagem ao banco', pediu===0);
+      await g.escChatNovo({id:5,de:'luiz',para:'eu'});
+      const j=janelas[janelas.length-1];
+      ok('chat: mensagem pra mim toca, abre a janelinha com o texto e conta como não lida', janelas.length===nJ2+1&&j.tipo==='msg'&&j.texto==='reunião às 15h?'&&sons.length===nS2+1&&sons[sons.length-1]==='msg'&&g.escChatNaoLidas('luiz')===1);
+      await g.escChatNovo({id:6,de:'luiz',para:null});
+      ok('chat: mensagem no Todos só conta, sem som nem janela', janelas.length===nJ2+1&&g.escChatNaoLidas('todos')===1);
+      await g.escChatNovo({id:5,de:'luiz',para:'eu'});
+      ok('chat: a mesma mensagem não avisa duas vezes', janelas.length===nJ2+1&&pediu===2);
+    })());
+  }
 }
 
 grupo('CRM Sofás: planilha voltou ao jeito do vídeo das 17h (Bernardo 08/10)');
