@@ -28570,6 +28570,7 @@ const ESC_IC={
   x:ESC_SVG('<path d="M18 6 6 18M6 6l12 12"/>'),
   pts:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
   seta:ESC_SVG('<path d="m6 15 6-6 6 6"/>'),
+  alvo:ESC_SVG('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
 };
 function escCss(){ if(document.getElementById('escCss')) return; const s=document.createElement('style'); s.id='escCss';
   s.textContent=`
@@ -28585,7 +28586,7 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   body .main.esc-full{padding:0;overflow:hidden}
   .esc-st [hidden],#escAvisos [hidden]{display:none!important}
   .esc-st{position:relative;height:var(--esc-h,calc(100vh - 60px));min-height:360px;overflow:hidden;background:var(--bg);border-top:1px solid var(--line)}
-  #escCv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer;touch-action:none;outline:none}
+  #escCv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;outline:none}
   .esc-h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .esc-topo{position:absolute;left:14px;top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;max-width:calc(100% - 380px);pointer-events:none}
   .esc-chip{pointer-events:auto;display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;
@@ -28803,7 +28804,20 @@ document.addEventListener('keyup',e=>{ const k=escTecla(e); if(!ESC_TECLAS[k]) r
   if(ESC.teclas[k]&&dur<90) ESC.ate[k]=performance.now()+90-dur; ESC.teclas[k]=false; });
 window.addEventListener('blur',()=>{ ESC.teclas={}; ESC.ate={}; });
 const escDicaOk=()=>{ const d=document.getElementById('escDica'); if(d&&!d.hidden){ d.hidden=true; try{ localStorage.setItem('esc_dica','1'); }catch(_){} } };
-const escZoom=()=>{ try{ const z=parseFloat(localStorage.getItem('esc_zoom')); return isFinite(z)?Math.max(.6,Math.min(1.6,z)):1; }catch(_){ return 1; } };
+const ESC_ZMIN=.5, ESC_ZMAX=2.2;
+const escZoom=()=>{ try{ const z=parseFloat(localStorage.getItem('esc_zoom')); return isFinite(z)?Math.max(ESC_ZMIN,Math.min(ESC_ZMAX,z)):1; }catch(_){ return 1; } };
+/* centro da câmera dentro da planta (mapa menor que a tela fica no meio) */
+function escCamLimite(x,y){ const T=ESC.T, hw=(ESC.cw||0)/2/T, hh=(ESC.ch||0)/2/T;
+  return {x:ESC_W<=2*hw?ESC_W/2:Math.max(hw,Math.min(ESC_W-hw,x)),y:ESC_H<=2*hh?ESC_H/2:Math.max(hh,Math.min(ESC_H-hh,y))}; }
+/* zoom mantendo parado o ponto embaixo do mouse (sx, sy em pixels do canvas); sem ponto, no meio da tela */
+function escZoomEm(z,sx,sy){ z=Math.max(ESC_ZMIN,Math.min(ESC_ZMAX,z)); if(!ESC.base||Math.abs(z-ESC.zoom)<1e-4) return;
+  const W=ESC.cw, H=ESC.ch; if(sx==null){ sx=W/2; sy=H/2; }
+  const wx=(sx+ESC.ox)/ESC.T, wy=(sy+ESC.oy)/ESC.T;
+  ESC.zoom=z; ESC.T=ESC.base*z;
+  const c=escCamLimite(wx-(sx-W/2)/ESC.T,wy-(sy-H/2)/ESC.T); ESC.cam.x=c.x; ESC.cam.y=c.y;
+  ESC.ox=Math.round(ESC.cam.x*ESC.T-W/2); ESC.oy=Math.round(ESC.cam.y*ESC.T-H/2);
+  ESC.sujo=true; ESC.uiSig='';
+  clearTimeout(ESC.zoomT); ESC.zoomT=setTimeout(()=>{ try{ localStorage.setItem('esc_zoom',String(Math.round(z*100)/100)); }catch(_){} },400); }
 
 function escRender(c){
   escCss();
@@ -28819,7 +28833,7 @@ function escRender(c){
      <canvas id="escCv" tabindex="0" aria-label="Mapa do escritório. Use W A S D ou as setas para andar, clique em alguém para abrir o cartão, ou clique no chão para ir até lá."></canvas>
      <div class="esc-topo"><span class="esc-chip" id="escOnde"></span><span class="esc-chip alerta" id="escAviso" hidden></span>
        <button type="button" class="esc-chip alerta" id="escPerm" hidden>${ESC_IC.sino}<span>Permitir aviso do navegador: acenos chegam mesmo com o sistema em outra aba</span></button></div>
-     <div class="esc-dica" id="escDica"${dica?'':' hidden'}><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ou setas para andar · clique em alguém para acenar</div>
+     <div class="esc-dica" id="escDica"${dica?'':' hidden'}><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ou setas para andar · arraste para mover o mapa · rodinha para zoom · clique em alguém para acenar</div>
      <aside class="esc-pess" id="escPess" hidden aria-label="Pessoas no escritório"><div class="esc-pess-h"><span>Pessoas</span>
        <button type="button" class="esc-x" aria-label="Fechar" onclick="escPessoas(false)">${ESC_IC.x}</button></div><ul class="esc-lista" id="escLista"></ul></aside>
      <section class="esc-card" id="escCard" hidden aria-live="polite"></section>
@@ -28827,6 +28841,7 @@ function escRender(c){
        <div style="position:relative"><button type="button" class="esc-eu" id="escEuBtn" aria-haspopup="true" aria-expanded="false"></button>
          <div class="esc-menu" id="escStMenu" role="menu" hidden></div></div>
        <span class="sep"></span>
+       <button type="button" class="esc-db" id="escCentro" title="Câmera de volta em você" hidden>${ESC_IC.alvo}<span>Voltar para mim</span></button>
        <button type="button" class="esc-db" id="escMesaBtn" title="Voltar para a sua mesa">${ESC_IC.mesa}<span>Minha mesa</span></button>
        <button type="button" class="esc-db" id="escCall">${ESC_IC.video}<span>Chamada da sala</span></button>
        <button type="button" class="esc-db ic" id="escSom"></button>
@@ -28836,23 +28851,46 @@ function escRender(c){
    </div>`;
   const cv=document.getElementById('escCv'), st=document.getElementById('escStage');
   ESC.naTela=true; ESC.sala=escSalaDe(ESC.eu.x,ESC.eu.y).id; ESC.salaPend=false; ESC.uiSig=''; ESC.cardSig=''; ESC.caminho=[]; ESC.teclas={}; ESC.ate={}; ESC.sujo=true; ESC.menuSt=false;
-  ESC.cam={x:ESC.eu.x,y:ESC.eu.y};
+  ESC.cam={x:ESC.eu.x,y:ESC.eu.y}; ESC.camLivre=false; ESC.zoom=escZoom();
   escLerCores();
   const ajustar=()=>{ if(!cv.isConnected) return; const top=st.getBoundingClientRect().top, mob=document.body.classList.contains('mob-corp');
     st.style.setProperty('--esc-h',Math.max(360,Math.round(window.innerHeight-top-(mob?84:0)))+'px');
     const r=st.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
     ESC.dpr=dpr; cv.width=Math.max(1,Math.round(r.width*dpr)); cv.height=Math.max(1,Math.round(r.height*dpr));
-    ESC.T=(toque?28:40)*escZoom()*dpr; ESC.sujo=true; };
+    ESC.cw=cv.width; ESC.ch=cv.height; ESC.base=(toque?28:40)*dpr; ESC.T=ESC.base*ESC.zoom;
+    const c=escCamLimite(ESC.cam.x,ESC.cam.y); if(ESC.camLivre){ ESC.cam.x=c.x; ESC.cam.y=c.y; } ESC.sujo=true; };
   ajustar(); try{ const ro=new ResizeObserver(()=>{ if(!cv.isConnected){ ro.disconnect(); return; } ajustar(); }); ro.observe(st); }catch(_){}
   ESC.ajustar=ajustar; if(!ESC.rz){ ESC.rz=1; window.addEventListener('resize',()=>{ if(ESC.ajustar) ESC.ajustar(); }); }
   /* clique: em alguém abre o cartão; numa mesa, o cartão do dono; no chão, anda até lá */
+  /* arrastar move só o mapa (o bonequinho fica); dois dedos no celular dão zoom. Andar continua no
+     clique/toque sem arrastar, e qualquer movimento do bonequinho faz a câmera voltar pra ele. */
+  const pts=new Map(); let arr=null;
+  cv.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'&&e.button!==0) return; pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1) arr={x:e.clientX,y:e.clientY,cx:ESC.cam.x,cy:ESC.cam.y,mov:false};
+    else if(pts.size===2){ const [a,b]=[...pts.values()]; arr={pinca:true,d:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),z:ESC.zoom,mov:true}; }
+    try{ cv.setPointerCapture(e.pointerId); }catch(_){} });
+  cv.addEventListener('pointermove',e=>{ const r=cv.getBoundingClientRect();
+    if(!pts.has(e.pointerId)){ if(e.pointerType==='mouse') cv.style.cursor=escQuemNoPonto((e.clientX-r.left)*ESC.dpr+ESC.ox,(e.clientY-r.top)*ESC.dpr+ESC.oy)?'pointer':'grab'; return; }
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(!arr) return;
+    if(arr.pinca){ if(pts.size<2) return; const [a,b]=[...pts.values()];
+      escZoomEm(arr.z*Math.hypot(a.x-b.x,a.y-b.y)/arr.d,((a.x+b.x)/2-r.left)*ESC.dpr,((a.y+b.y)/2-r.top)*ESC.dpr); ESC.camLivre=true; return; }
+    const dx=e.clientX-arr.x, dy=e.clientY-arr.y; if(!arr.mov&&Math.hypot(dx,dy)<6) return;
+    arr.mov=true; ESC.camLivre=true; cv.style.cursor='grabbing';
+    const c=escCamLimite(arr.cx-dx*ESC.dpr/ESC.T,arr.cy-dy*ESC.dpr/ESC.T); ESC.cam.x=c.x; ESC.cam.y=c.y; ESC.sujo=true; ESC.uiSig=''; });
+  const solta=(e)=>{ pts.delete(e.pointerId);
+    if(!pts.size){ ESC.arrastou=!!(arr&&arr.mov); arr=null; cv.style.cursor='grab'; }
+    else if(arr&&arr.pinca){ const [a]=[...pts.values()]; arr={x:a.x,y:a.y,cx:ESC.cam.x,cy:ESC.cam.y,mov:true}; } };   /* sobrou um dedo: segue arrastando */
+  cv.addEventListener('pointerup',solta); cv.addEventListener('pointercancel',solta);
+  /* rodinha do mouse (e pinça do trackpad, que chega com ctrl): zoom no ponto do mouse */
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); const r=cv.getBoundingClientRect(), dy=e.deltaMode===1?e.deltaY*16:e.deltaY;
+    escZoomEm(ESC.zoom*Math.exp(-dy*(e.ctrlKey?.01:.0018)),(e.clientX-r.left)*ESC.dpr,(e.clientY-r.top)*ESC.dpr); ESC.camLivre=true; },{passive:false});
   cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect(), px=(e.clientX-r.left)*ESC.dpr+ESC.ox, py=(e.clientY-r.top)*ESC.dpr+ESC.oy;
+    if(ESC.arrastou){ ESC.arrastou=false; return; }   /* foi arrasto do mapa, não clique */
     escMenuSt(false); cv.focus({preventScroll:true});
     const quem=escQuemNoPonto(px,py); if(quem){ escCardAbrir(quem); return; }
     const wx=px/ESC.T, wy=py/ESC.T, m=ESC_MESAS.find(q=>wx>=q.x&&wx<q.x+2&&wy>=q.y-.3&&wy<q.y+1);
     if(m){ for(const [u,x] of escMesas()) if(x===m){ escCardAbrir(u); return; } }
     escIrPara(wx,wy); escDicaOk(); });
-  cv.addEventListener('mousemove',e=>{ const r=cv.getBoundingClientRect(); cv.style.cursor=escQuemNoPonto((e.clientX-r.left)*ESC.dpr+ESC.ox,(e.clientY-r.top)*ESC.dpr+ESC.oy)?'pointer':'default'; });
   document.getElementById('escEuBtn').onclick=(e)=>{ e.stopPropagation(); escMenuSt(!ESC.menuSt); };
   st.addEventListener('click',e=>{ if(ESC.menuSt&&!e.target.closest('#escStMenu,#escEuBtn')) escMenuSt(false); });
   document.getElementById('escMesaBtn').onclick=()=>{ const m=escMinhaMesa(); if(m) escIrPara(m.x,m.y,true); };
@@ -28866,7 +28904,9 @@ function escRender(c){
     toast(on?'Som dos avisos ligado.':'Som dos avisos desligado. A janelinha continua aparecendo.'); ESC.uiSig=''; };
   document.getElementById('escPessBtn').onclick=()=>escPessoas(!ESC.pessOn);
   document.getElementById('escPerm').onclick=()=>{ try{ Notification.requestPermission().then(r=>{ ESC.uiSig=''; toast(r==='granted'?'Pronto: aceno e chamada avisam mesmo com o sistema em outra aba.':'O navegador não deixou. Dá para liberar no cadeado da barra de endereço.'); }).catch(()=>{}); }catch(_){} };
-  const zoom=(k)=>{ const z=Math.max(.6,Math.min(1.6,Math.round((escZoom()+k)*10)/10)); try{ localStorage.setItem('esc_zoom',String(z)); }catch(_){} ajustar(); };
+  /* botões: zoom no meio da tela, ou em você quando a câmera está te seguindo */
+  const zoom=(k)=>{ const z=Math.round((ESC.zoom+k)*10)/10; if(ESC.camLivre) escZoomEm(z); else escZoomEm(z,ESC.eu.x*ESC.T-ESC.ox,ESC.eu.y*ESC.T-ESC.oy); };
+  document.getElementById('escCentro').onclick=()=>{ ESC.camLivre=false; ESC.sujo=true; ESC.uiSig=''; };
   document.getElementById('escZm').onclick=()=>zoom(-.2); document.getElementById('escZp').onclick=()=>zoom(.2);
   if(ESC.pessOn) escPessoas(true);
   escLinks();
@@ -28943,8 +28983,9 @@ function escLaco(t){
   else if(ESC.andava&&t-ESC.paradaT>900){ ESC.andava=false; escMudou();     /* parou: quem olha o mapa vê onde ficou */
     escMandar('pos',{x:+ESC.eu.x.toFixed(1),y:+ESC.eu.y.toFixed(1)}); escTrack('parou'); ESC.sujo=true; }
   escAndarOutros(dt,t);
-  /* câmera segue você */
-  const kx=ESC.eu.x-ESC.cam.x, ky=ESC.eu.y-ESC.cam.y;
+  /* câmera segue você; se você arrastou o mapa ela fica onde está até o bonequinho andar */
+  if(andou&&ESC.camLivre){ ESC.camLivre=false; ESC.uiSig=''; }
+  const alvo=ESC.camLivre?ESC.cam:escCamLimite(ESC.eu.x,ESC.eu.y), kx=alvo.x-ESC.cam.x, ky=alvo.y-ESC.cam.y;
   if(Math.abs(kx)+Math.abs(ky)>.002){ const k=Math.min(1,dt*7); ESC.cam.x+=kx*k; ESC.cam.y+=ky*k; ESC.sujo=true; }
   if(ESC.bolhas.size){ const ag=Date.now(); ESC.bolhas.forEach((b,u)=>{ if(b.ate<ag) ESC.bolhas.delete(u); }); ESC.sujo=true; }
   const sala=escSalaDe(ESC.eu.x,ESC.eu.y).id;
@@ -29159,7 +29200,7 @@ function escUI(){
   const sala=escSalaDe(ESC.eu.x,ESC.eu.y), st=escStEfetivo(), ag=escPelaAgenda(), c=ESC.ag[me.id], bloco=ag&&c?escNoBloco(c.blocos,Date.now()):null;
   const outros=[...ESC.pares.entries()].map(([u,o])=>({u,o,sala:escSalaDe(o.dx,o.dy).id}));
   const perm=('Notification' in window)?Notification.permission:'';
-  const sig=JSON.stringify([sala.id,ESC.ok,ESC.linksErro,ESC.links&&ESC.links[sala.id],st,ag,bloco&&bloco.f,ESC.eu.st,escSomOn(),perm,ESC.perdidos.length,ESC.pessOn,
+  const sig=JSON.stringify([ESC.camLivre,sala.id,ESC.ok,ESC.linksErro,ESC.links&&ESC.links[sala.id],st,ag,bloco&&bloco.f,ESC.eu.st,escSomOn(),perm,ESC.perdidos.length,ESC.pessOn,
     outros.map(x=>[x.u,x.sala,x.o.st,x.o.v]),ESC.mesasSig,me.foto?1:0]);
   if(sig!==ESC.uiSig){ ESC.uiSig=sig;
     const master=me.role==='master';
@@ -29174,6 +29215,7 @@ function escUI(){
     sb2.title=(som?'Som dos avisos ligado':'Som dos avisos desligado')+(perm==='granted'?' · aviso do navegador permitido':(perm==='denied'?' · o navegador bloqueou os avisos':' · clique para permitir o aviso do navegador'));
     sb2.setAttribute('aria-label',sb2.title);
     $q('escPessN').textContent=String(outros.length+1);
+    $q('escCentro').hidden=!ESC.camLivre;
     $q('escPerm').hidden=perm!=='default';
     if(ESC.pessOn) escListaPessoas(outros,sala.id); }
   /* cartão */
