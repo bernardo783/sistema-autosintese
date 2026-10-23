@@ -28331,7 +28331,8 @@ const ESC={canal:null,mapa:null,ok:false,okMapa:false,tent:0,timer:0,parado:fals
   sala:'',salaPend:false,salaDesde:0,enviados:[],ultSig:'',filaTrack:0,ultPos:0,ultRumo:0,filaRumo:0,rumo:null,
   andava:false,paradaT:0,posPend:false,dia:'',okTimer:0,caiuEm:0,tentMapa:0,mapaOkTimer:0,mapaSaindo:null,mapaAbrindo:false,
   ag:{},perdidos:[],bolhas:new Map(),ultAviso:{},card:'',cardSig:'',cam:{x:24,y:15},ox:0,oy:0,
-  gravadas:null,mesas:null,mesasSig:'',mesasOk:false,mesasGravou:false,tic:0,pessOn:false,menuSt:false,desde:{},ate:{}};
+  gravadas:null,mesas:null,mesasSig:'',mesasOk:false,mesasGravou:false,tic:0,pessOn:false,menuSt:false,desde:{},ate:{},
+  pessAba:'pessoas',chat:{msgs:[],ids:new Set(),lido:null,primeira:false,conv:'',fim:{},versao:0,ok:false,erro:false,carregando:null}};
 /* O servidor do Realtime fecha o canal no 6º track em 30 s (CLIENT_PRESENCE_MAX_CALLS=5 por cliente):
    aqui vão no máximo 4, e o que passar espera a janela abrir (vale sempre o estado mais novo). */
 const ESC_PRES_MAX=4, ESC_PRES_JANELA=31000;   /* 1 s de folga contra o relógio do servidor */
@@ -28456,9 +28457,80 @@ function escRecebe(tipo,p){ const me=escMe(); if(!me||!p||typeof p.u!=='string'|
 /* voltou a ficar disponível: um resumo do que chegou quieto */
 function escPerdidosVer(){ if(!ESC.perdidos.length||ESC_QUIETO[escStEfetivo()]) return;
   const l=ESC.perdidos.splice(0), vistos=new Set(), partes=[];
-  l.forEach(a=>{ const k=a.tipo+a.u; if(vistos.has(k)) return; vistos.add(k); partes.push(a.nome+(a.tipo==='chamada'?' te chamou':' acenou')); });
+  l.forEach(a=>{ const k=a.tipo+a.u; if(vistos.has(k)) return; vistos.add(k); partes.push(a.nome+(a.tipo==='chamada'?' te chamou':(a.tipo==='msg'?' mandou mensagem':' acenou'))); });
   const txt=partes.length===1?partes[0]:partes.slice(0,-1).join(', ')+' e '+partes[partes.length-1];
   escJanela({tipo:'resumo',u:l[l.length-1].u,nome:'',sala:'',texto:'Enquanto você estava ocupado: '+txt+'.',em:Date.now()}); ESC.uiSig=''; }
+
+/* ---------- chat (Gabriel 23/10: "um chat por mensagens que nunca apaga") ----------
+   Mora em escritorio_chat: para = null é o Todos do escritório, para = id é a conversa só entre duas
+   pessoas. O banco não deixa apagar nem editar. A mensagem nova vai pelo canal da presença só como
+   aviso (id, de, para); quem recebe lê a linha no banco, que confere se ela pode ver. */
+const ESC_CHAT_LOTE=60;
+const escChatConv=(m,eu)=>m.para==null?'todos':(m.de===eu?m.para:m.de);
+const escChatLer=(r)=>{ if(!r||typeof r!=='object') return null; const id=Number(r.id);
+  if(!isFinite(id)||typeof r.de!=='string'||typeof r.texto!=='string') return null;
+  return {id,de:r.de,para:typeof r.para==='string'?r.para:null,texto:r.texto,em:String(r.criado_em||'')}; };
+function escChatAdd(rows){ const C=ESC.chat; let novo=false;
+  (rows||[]).map(escChatLer).filter(Boolean).forEach(m=>{ if(C.ids.has(m.id)) return; C.ids.add(m.id); C.msgs.push(m); novo=true; });
+  if(novo){ C.msgs.sort((a,b)=>a.id-b.id); C.versao++; ESC.uiSig=''; }
+  return novo; }
+const escChatDe=(conv)=>{ const me=escMe(); return me?ESC.chat.msgs.filter(m=>escChatConv(m,me.id)===conv):[]; };
+const escChatChaveLido=()=>'esc_chat_lido_'+((escMe()||{}).id||'');
+function escChatLido(){ const C=ESC.chat; if(C.lido) return C.lido;
+  try{ C.lido=JSON.parse(localStorage.getItem(escChatChaveLido())||'null'); }catch(_){ C.lido=null; }
+  if(!C.lido||typeof C.lido!=='object'){ C.lido={}; C.primeira=true; }
+  return C.lido; }
+function escChatMarcar(conv){ const l=escChatLido(), ms=escChatDe(conv), ult=ms.length?ms[ms.length-1].id:0;
+  if(ult>(l[conv]||0)){ l[conv]=ult; try{ localStorage.setItem(escChatChaveLido(),JSON.stringify(l)); }catch(_){} ESC.uiSig=''; escChatContar(); } }
+const escChatNaoLidas=(conv)=>{ const me=escMe(), l=escChatLido(); if(!me) return 0;
+  return escChatDe(conv).filter(m=>m.de!==me.id&&m.id>(l[conv]||0)).length; };
+function escChatTotal(){ const me=escMe(); if(!me) return 0; const l=escChatLido();
+  return ESC.chat.msgs.filter(m=>m.de!==me.id&&m.id>(l[escChatConv(m,me.id)]||0)).length; }
+/* contador no botão Escritório do rail, em qualquer tela */
+function escChatContar(){ try{ const b=document.getElementById('navEscritorio'); if(!b) return; const n=escChatTotal();
+  if(n) b.dataset.chat=n>99?'99+':String(n); else delete b.dataset.chat; }catch(_){} }
+/* últimas mensagens (minhas conversas e o Todos): conta as não lidas e pega o que chegou enquanto a
+   conexão estava fora. Na primeira vez da pessoa, o Todos antigo já entra como lido. */
+async function escChatCarregar(){ if(ESC.chat.carregando) return ESC.chat.carregando;
+  const p=(async()=>{ try{ const {data,error}=await sb.from('escritorio_chat').select('id,de,para,texto,criado_em').order('id',{ascending:false}).limit(300);
+      if(error) throw error; escChatAdd(data); ESC.chat.ok=true;
+      const l=escChatLido(); if(ESC.chat.primeira){ ESC.chat.primeira=false; const t=escChatDe('todos'); l.todos=t.length?t[t.length-1].id:0; try{ localStorage.setItem(escChatChaveLido(),JSON.stringify(l)); }catch(_){} }
+    }catch(_){ ESC.chat.erro=true; }
+    ESC.chat.carregando=null; ESC.uiSig=''; escChatContar(); })();
+  ESC.chat.carregando=p; return p; }
+/* histórico de uma conversa, de 60 em 60, das mais novas pras mais antigas */
+async function escChatHistorico(conv){ const me=escMe(), C=ESC.chat; if(!me||C.fim[conv]) return;
+  const ms=escChatDe(conv), antes=ms.length?ms[0].id:null;
+  let q=sb.from('escritorio_chat').select('id,de,para,texto,criado_em');
+  q=conv==='todos'?q.is('para',null):q.or('and(de.eq.'+me.id+',para.eq.'+conv+'),and(de.eq.'+conv+',para.eq.'+me.id+')');
+  if(antes) q=q.lt('id',antes);
+  const {data,error}=await q.order('id',{ascending:false}).limit(ESC_CHAT_LOTE);
+  if(error) throw error;
+  if((data||[]).length<ESC_CHAT_LOTE) C.fim[conv]=true;
+  escChatAdd(data); C.versao++; }
+/* chegou aviso de mensagem nova: lê a linha (o banco só devolve se eu puder ver) e avisa se é pra mim */
+async function escChatNovo(p){ const me=escMe();
+  if(!me||!p||!isFinite(Number(p.id))||typeof p.de!=='string') return;
+  const para=typeof p.para==='string'?p.para:null;
+  if(para&&para!==me.id&&p.de!==me.id) return;   /* conversa dos outros: nem pede */
+  if(ESC.chat.ids.has(Number(p.id))) return;
+  let r=null; try{ const {data}=await sb.from('escritorio_chat').select('id,de,para,texto,criado_em').eq('id',Number(p.id)).maybeSingle(); r=data; }catch(_){}
+  const m=escChatLer(r); if(!m||!escChatAdd([m])) return;
+  escChatContar();
+  if(m.de===me.id) return;
+  const conv=escChatConv(m,me.id);
+  if(ESC.naTela&&!document.hidden&&ESC.pessOn&&ESC.pessAba==='chat'&&ESC.chat.conv===conv){ escChatMarcar(conv); return; }   /* já está lendo */
+  if(m.para==null) return;                       /* Todos: só o contador, sem som nem janela */
+  const av={tipo:'msg',u:m.de,nome:primeiroNome(tkNomeUser(m.de))||'Alguém',sala:'',texto:m.texto,em:Date.now()};
+  if(ESC_QUIETO[escStEfetivo()]){ ESC.perdidos.push(av); return; }
+  escTocar('msg'); escJanela(av); if(document.hidden) escNotificar(av); }
+async function escChatEnviar(conv,texto){ const me=escMe(); texto=String(texto||'').trim();
+  if(!me||!texto) return 'vazio'; if(texto.length>2000) return 'grande';
+  const {data,error}=await sb.from('escritorio_chat').insert({para:conv==='todos'?null:conv,texto}).select('id,de,para,texto,criado_em').single();
+  if(error||!data) return 'erro';
+  escChatAdd([data]); escChatMarcar(conv);
+  if(ESC.canal&&ESC.ok){ try{ ESC.canal.send({type:'broadcast',event:'msg',payload:{id:data.id,de:me.id,para:data.para||null}}).catch(()=>{}); }catch(_){} }
+  return 'ok'; }
 
 async function escBoot(){
   const me=escMe();
@@ -28477,8 +28549,9 @@ async function escBoot(){
   c.on('presence',{event:'sync'},()=>{ if(ESC.canal===c) escSync(c.presenceState()); })
    .on('broadcast',{event:'aceno'},(m)=>{ if(ESC.canal===c) escRecebe('aceno',m&&m.payload); })
    .on('broadcast',{event:'chamada'},(m)=>{ if(ESC.canal===c) escRecebe('chamada',m&&m.payload); })
+   .on('broadcast',{event:'msg'},(m)=>{ if(ESC.canal===c) escChatNovo(m&&m.payload); })
    .subscribe((st)=>{ if(ESC.canal!==c) return;
-     if(st==='SUBSCRIBED'){ ESC.ok=true; ESC.enviados=[]; ESC.ultSig=''; escTrack('entrou'); escPintarSt(); ESC.sujo=true; ESC.uiSig='';
+     if(st==='SUBSCRIBED'){ ESC.ok=true; ESC.enviados=[]; ESC.ultSig=''; escTrack('entrou'); escPintarSt(); ESC.sujo=true; ESC.uiSig=''; escChatCarregar();
        /* a espera só zera depois de 1 min no ar: o servidor pode derrubar logo depois de entrar */
        clearTimeout(ESC.okTimer); ESC.okTimer=setTimeout(()=>{ if(ESC.canal===c&&ESC.ok) ESC.tent=0; },60000); }
      else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){ ESC.ok=false; ESC.uiSig=''; escReentrar(); } });
@@ -28570,6 +28643,8 @@ const ESC_IC={
   x:ESC_SVG('<path d="M18 6 6 18M6 6l12 12"/>'),
   pts:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
   seta:ESC_SVG('<path d="m6 15 6-6 6 6"/>'),
+  msg:ESC_SVG('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
+  volta:ESC_SVG('<path d="m15 18-6-6 6-6"/>'),
   alvo:ESC_SVG('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
 };
 function escCss(){ if(document.getElementById('escCss')) return; const s=document.createElement('style'); s.id='escCss';
@@ -28630,7 +28705,6 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   /* cartão da pessoa (canto de cima, como no Gather) */
   .esc-card{position:absolute;right:14px;top:14px;width:330px;max-width:calc(100% - 28px);max-height:calc(100% - 110px);overflow:auto;
     background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.4);padding:14px;display:flex;flex-direction:column;gap:12px}
-  .esc-st.pess-on .esc-card{right:310px}
   .esc-ct{display:flex;align-items:center;gap:11px}
   .esc-ct .av{width:44px;height:44px;font-size:16px;flex:none}
   .esc-ct .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -28673,6 +28747,54 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   .esc-pp .tx b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .esc-pp .tx span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
   .esc-pp.fora{opacity:.55}
+  /* chat */
+  .esc-pess.chat{width:360px}
+  .esc-st.pess-on .esc-card{right:310px} .esc-st.pess-on.chat-on .esc-card{right:388px}
+  .esc-pess-h{gap:8px}
+  .esc-abas{margin:0;gap:6px;flex-wrap:nowrap}
+  .esc-abas .ftab{display:inline-flex;align-items:center;gap:6px}
+  .esc-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--danger);color:var(--txt);
+    font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+  .esc-db .esc-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;font-size:10px}
+  .esc-ppw{display:flex;align-items:center;gap:2px}
+  .esc-ppw .esc-pp{flex:1;width:auto;min-width:0}
+  .esc-ppm{all:unset;cursor:pointer;position:relative;width:32px;height:32px;display:grid;place-items:center;border-radius:8px;color:var(--muted);flex:none}
+  .esc-ppm:hover,.esc-ppm:focus-visible{background:var(--panel2);color:var(--txt)} .esc-ppm svg{width:17px;height:17px}
+  .esc-ppm .esc-badge{position:absolute;top:0;right:0;min-width:15px;height:15px;font-size:9.5px;padding:0 3px}
+  .esc-chat{flex:1;min-height:0;display:flex;flex-direction:column}
+  .esc-cvs{overflow:auto;padding:0 8px 10px;flex:1;min-height:0}
+  .esc-cv{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;width:calc(100% - 16px)}
+  .esc-cv:hover,.esc-cv:focus-visible{background:var(--panel2)}
+  .esc-cv .av{width:34px;height:34px;font-size:12px;flex:none}
+  .esc-cv .tx{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+  .esc-cv .tx b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .esc-cv .tx span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .esc-cv.nl .tx b{font-weight:800} .esc-cv.nl .tx span{color:var(--txt)}
+  .esc-av-todos{display:grid;place-items:center;background:var(--brand);color:var(--txt)} .esc-av-todos svg{width:60%;height:60%}
+  .esc-chat-h{display:flex;align-items:center;gap:8px;padding:0 12px 10px;border-bottom:1px solid var(--line)}
+  .esc-chat-h .av{width:28px;height:28px;font-size:11px;flex:none} .esc-chat-h b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .esc-chat-ms{flex:1;min-height:0;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+  .esc-chat-mais{align-self:center;margin-bottom:6px}
+  .esc-chat-dia{display:flex;align-items:center;gap:8px;margin:8px 0 4px;font-size:11px;color:var(--muted);font-weight:700}
+  .esc-chat-dia::before,.esc-chat-dia::after{content:'';flex:1;border-top:1px solid var(--line)}
+  .esc-msg{display:flex;flex-direction:column;align-items:flex-start;max-width:85%}
+  .esc-msg.eu{align-self:flex-end;align-items:flex-end}
+  .esc-chat-au{font-size:11.5px;font-weight:700;color:var(--muted);margin:6px 0 2px 4px}
+  .esc-bal{background:var(--panel2);border:1px solid var(--line);border-radius:12px 12px 12px 4px;padding:7px 10px 5px;font-size:13.5px;line-height:1.4;overflow-wrap:anywhere}
+  .esc-msg.eu .esc-bal{background:color-mix(in srgb,var(--brand) 55%,var(--panel));border-color:transparent;border-radius:12px 12px 4px 12px}
+  .esc-bal .t{white-space:pre-wrap} .esc-bal a{color:var(--brand2);text-decoration:underline}
+  .esc-msg.eu .esc-bal a{color:var(--txt)}
+  .esc-bal time{display:block;text-align:right;font-size:10.5px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+  .esc-chat-vz{font-size:13px;color:var(--muted);padding:14px 8px;text-align:center}
+  .esc-chat-f{display:flex;gap:8px;align-items:flex-end;padding:10px 12px 4px;border-top:1px solid var(--line)}
+  .esc-chat-f textarea{flex:1;resize:none;min-height:38px;max-height:120px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);
+    font:inherit;font-size:13.5px;padding:9px 11px;line-height:1.35}
+  .esc-chat-f textarea:focus{outline:none;border-color:var(--brand)}
+  .esc-chat-f .btn{height:38px}
+  .esc-chat-nota{font-size:11px;color:var(--muted);padding:2px 12px 10px}
+  /* contador de mensagens não lidas no botão Escritório do rail, em qualquer tela */
+  #navEscritorio[data-chat]::before{content:attr(data-chat);position:absolute;top:2px;left:calc(50% + 4px);min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;
+    border-radius:8px;background:var(--danger);color:var(--txt);font-size:10px;font-weight:800;line-height:16px;text-align:center;z-index:1}
   /* janelinha de aceno e chamada (em qualquer tela do sistema) */
   #escAvisos{position:fixed;top:16px;right:16px;z-index:2500;display:flex;flex-direction:column;gap:10px;width:340px;max-width:calc(100vw - 32px)}
   .esc-av{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--brand2);border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.45);
@@ -28701,7 +28823,7 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
     .esc-eu .tx b{max-width:90px}
     .esc-zoom{display:none}
     .esc-card,.esc-st.pess-on .esc-card{left:8px;right:8px;top:auto;bottom:76px;width:auto;max-height:60%}
-    .esc-pess{left:8px;right:8px;width:auto;bottom:76px}
+    .esc-pess,.esc-pess.chat{left:8px;right:8px;width:auto;bottom:76px}
     .esc-dica{display:none}
     .esc-menu{width:min(290px,calc(100vw - 30px))}
   }`;
@@ -28742,7 +28864,7 @@ function escAudio(){ try{ if(!ESC_AC){ const A=window.AudioContext||window.webki
 /* o navegador só deixa tocar depois de um clique ou tecla na página: o áudio liga no primeiro */
 ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(escMe()) escAudio(); },{once:true,capture:true}));
 function escTocar(tipo){ if(!escSomOn()) return; const ac=escAudio(); if(!ac) return;
-  const notas=tipo==='chamada'?[[659,0],[880,.2],[659,.7],[880,.9],[659,1.4],[880,1.6]]:[[784,0],[1175,.15]];
+  const notas=tipo==='chamada'?[[659,0],[880,.2],[659,.7],[880,.9],[659,1.4],[880,1.6]]:(tipo==='msg'?[[988,0],[1319,.09]]:[[784,0],[1175,.15]]);
   try{ const t0=ac.currentTime+.02;
     notas.forEach(([f,t])=>{ const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.value=f;
       g.gain.setValueAtTime(0,t0+t); g.gain.linearRampToValueAtTime(.22,t0+t+.015); g.gain.exponentialRampToValueAtTime(.001,t0+t+.32);
@@ -28750,6 +28872,7 @@ function escTocar(tipo){ if(!escSomOn()) return; const ac=escAudio(); if(!ac) re
 const escAvTexto=(av)=>{ const s=ESC_SALAS.find(x=>x.id===av.sala);
   if(av.tipo==='chamada') return {t:av.nome+' está te chamando',s:'Chamada da sala '+(s?s.nome:'')};
   if(av.tipo==='resumo') return {t:av.texto,s:'Escritório'};
+  if(av.tipo==='msg'){ const x=String(av.texto||'').replace(/\s+/g,' ').trim(); return {t:av.nome+': '+(x.length>140?x.slice(0,140)+'…':x),s:'Mensagem no Escritório'}; }
   return {t:av.nome+' acenou para você',s:'Escritório'+(s?' · '+s.nome:'')}; };
 function escNotificar(av){ try{ if(!('Notification' in window)||Notification.permission!=='granted') return;
   const x=escAvTexto(av), n=new Notification(x.t,{body:x.s,tag:'esc-'+av.tipo+'-'+av.u,renotify:true,requireInteraction:av.tipo==='chamada'});
@@ -28767,8 +28890,9 @@ function escJanela(av){ escCss();
   const bt=(rot,cls,fn)=>{ const b=document.createElement('button'); b.type='button'; b.className=cls; b.textContent=rot; b.onclick=()=>{ fecha(); fn(); }; el.querySelector('.esc-av-b').append(b); };
   if(av.tipo==='chamada'){ bt('Agora não','btn small ghost',()=>{}); bt('Entrar na chamada','btn small',()=>escEntrarChamada(av.sala)); }
   else if(av.tipo==='aceno'){ bt('Ir até '+av.nome,'btn small ghost',()=>escIrAte(av.u)); bt('Acenar de volta','btn small',()=>escAcenarAviso(av.u)); }
+  else if(av.tipo==='msg') bt('Responder','btn small',()=>window.escChatAbrir(av.u));
   else bt('Ok','btn small ghost',()=>{});
-  el.__dur=av.tipo==='chamada'?45000:(av.tipo==='resumo'?20000:15000);
+  el.__dur=av.tipo==='chamada'?45000:(av.tipo==='resumo'||av.tipo==='msg'?20000:15000);
   box.append(el); if(!document.hidden) el.__t=setTimeout(fecha,el.__dur); }
 function escAvisosVisivel(){ document.querySelectorAll('#escAvisos .esc-av').forEach(el=>{ if(!el.__t) el.__t=setTimeout(()=>el.remove(),el.__dur||15000); }); }
 const ESC_MSG={sem_conexao:'Sem conexão ao vivo agora. Tente de novo em instantes.',fora:'A pessoa saiu do escritório.',cedo:'Você acabou de avisar. Espere uns segundos.'};
@@ -28834,8 +28958,10 @@ function escRender(c){
      <div class="esc-topo"><span class="esc-chip" id="escOnde"></span><span class="esc-chip alerta" id="escAviso" hidden></span>
        <button type="button" class="esc-chip alerta" id="escPerm" hidden>${ESC_IC.sino}<span>Permitir aviso do navegador: acenos chegam mesmo com o sistema em outra aba</span></button></div>
      <div class="esc-dica" id="escDica"${dica?'':' hidden'}><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ou setas para andar · arraste para mover o mapa · rodinha para zoom · clique em alguém para acenar</div>
-     <aside class="esc-pess" id="escPess" hidden aria-label="Pessoas no escritório"><div class="esc-pess-h"><span>Pessoas</span>
-       <button type="button" class="esc-x" aria-label="Fechar" onclick="escPessoas(false)">${ESC_IC.x}</button></div><ul class="esc-lista" id="escLista"></ul></aside>
+     <aside class="esc-pess" id="escPess" hidden aria-label="Pessoas e chat"><div class="esc-pess-h"><div class="fin-tabs esc-abas" role="tablist">
+         <button type="button" class="ftab active" role="tab" id="escAbaP" aria-selected="true" onclick="escPessAba('pessoas')">Pessoas</button>
+         <button type="button" class="ftab" role="tab" id="escAbaC" aria-selected="false" onclick="escPessAba('chat')">Chat<b class="esc-badge" id="escAbaCN" hidden></b></button></div>
+       <button type="button" class="esc-x" aria-label="Fechar" onclick="escPessoas(false)">${ESC_IC.x}</button></div><ul class="esc-lista" id="escLista"></ul><div class="esc-chat" id="escChat" hidden></div></aside>
      <section class="esc-card" id="escCard" hidden aria-live="polite"></section>
      <nav class="esc-dock" aria-label="Você no escritório">
        <div style="position:relative"><button type="button" class="esc-eu" id="escEuBtn" aria-haspopup="true" aria-expanded="false"></button>
@@ -28845,7 +28971,7 @@ function escRender(c){
        <button type="button" class="esc-db" id="escMesaBtn" title="Voltar para a sua mesa">${ESC_IC.mesa}<span>Minha mesa</span></button>
        <button type="button" class="esc-db" id="escCall">${ESC_IC.video}<span>Chamada da sala</span></button>
        <button type="button" class="esc-db ic" id="escSom"></button>
-       <button type="button" class="esc-db" id="escPessBtn" aria-pressed="false">${ESC_IC.gente}<span>Pessoas</span><b class="n" id="escPessN"></b></button>
+       <button type="button" class="esc-db" id="escPessBtn" aria-pressed="false">${ESC_IC.gente}<span>Pessoas</span><b class="n" id="escPessN"></b><b class="esc-badge" id="escPessChat" hidden></b></button>
        <span class="esc-zoom"><button type="button" class="esc-db ic" id="escZm" title="Afastar">${ESC_IC.menos}</button><button type="button" class="esc-db ic" id="escZp" title="Aproximar">${ESC_IC.mais}</button></span>
      </nav>
    </div>`;
@@ -28903,6 +29029,11 @@ function escRender(c){
       if('Notification' in window&&Notification.permission==='default') Notification.requestPermission().then(()=>{ ESC.uiSig=''; }).catch(()=>{}); }
     toast(on?'Som dos avisos ligado.':'Som dos avisos desligado. A janelinha continua aparecendo.'); ESC.uiSig=''; };
   document.getElementById('escPessBtn').onclick=()=>escPessoas(!ESC.pessOn);
+  document.getElementById('escChat').addEventListener('click',e=>{ const t=e.target.closest('[data-conv],[data-volta],[data-mais]'), C=ESC.chat; if(!t) return;
+    if(t.dataset.conv){ C.conv=t.dataset.conv; escChatPintar(); }
+    else if(t.dataset.volta){ C.conv=''; escChatPintar(); }
+    else if(t.dataset.mais&&C.hist&&C.hist[C.conv]===true&&!C.buscando){ const conv=C.conv; C.buscando=true; C.antigas=true;
+      escChatHistorico(conv).then(()=>{ C.buscando=false; ESC.uiSig=''; }).catch(()=>{ C.buscando=false; toast('Não deu para carregar as mensagens antigas.'); }); } });
   document.getElementById('escPerm').onclick=()=>{ try{ Notification.requestPermission().then(r=>{ ESC.uiSig=''; toast(r==='granted'?'Pronto: aceno e chamada avisam mesmo com o sistema em outra aba.':'O navegador não deixou. Dá para liberar no cadeado da barra de endereço.'); }).catch(()=>{}); }catch(_){} };
   /* botões: zoom no meio da tela, ou em você quando a câmera está te seguindo */
   const zoom=(k)=>{ const z=Math.round((ESC.zoom+k)*10)/10; if(ESC.camLivre) escZoomEm(z); else escZoomEm(z,ESC.eu.x*ESC.T-ESC.ox,ESC.eu.y*ESC.T-ESC.oy); };
@@ -29140,7 +29271,7 @@ function escMenuSt(abrir){ const m=document.getElementById('escStMenu'), b=docum
 function escStatus(v){ if(!ESC_ST[v]||!ESC.eu) return; ESC.eu.st=v; escMudou(); ESC.sujo=true; ESC.uiSig=''; ESC.cardSig=''; escTrack(); escPintarSt(); escPerdidosVer(); }
 window.escStatus=escStatus;
 function escPessoas(on){ ESC.pessOn=!!on; const p=document.getElementById('escPess'), b=document.getElementById('escPessBtn'), st=document.getElementById('escStage');
-  if(p) p.hidden=!ESC.pessOn; if(b) b.setAttribute('aria-pressed',String(ESC.pessOn)); if(st) st.classList.toggle('pess-on',ESC.pessOn); ESC.uiSig=''; }
+  if(p) p.hidden=!ESC.pessOn; if(b) b.setAttribute('aria-pressed',String(ESC.pessOn)); if(st) st.classList.toggle('pess-on',ESC.pessOn); ESC.chat.vista=null; escPessPintarAba(); ESC.uiSig=''; }
 window.escPessoas=escPessoas;
 function escCardAbrir(uid){ ESC.card=uid; ESC.cardSig=''; const me=escMe(); if(uid&&me) escAgenda(uid).catch(()=>{}); ESC.sujo=true; }
 function escCardFechar(){ ESC.card=''; ESC.cardSig=''; const c=document.getElementById('escCard'); if(c){ c.hidden=true; c.innerHTML=''; } ESC.sujo=true; }
@@ -29175,6 +29306,7 @@ function escCardHtml(uid){ const me=escMe(), eu=uid===me.id, o=eu?null:ESC.pares
   else { const quieto=on&&ESC_QUIETO[st];
     h+=`<div class="esc-acoes"><button type="button" class="btn" ${on?'':'disabled'} onclick="escAcenar('${uid}')">${ESC_IC.mao}Acenar</button>
       <button type="button" class="esc-db" ${on?'':'aria-disabled="true"'} title="Chamar para a chamada da sala" aria-label="Chamar para a chamada da sala" onclick="${on?`escChamar('${uid}')`:''}">${ESC_IC.video}</button>
+      <button type="button" class="esc-db" title="Mandar mensagem" aria-label="Mandar mensagem para ${esc(pn)}" onclick="escChatAbrir('${uid}')">${ESC_IC.msg}</button>
       <button type="button" class="esc-db" title="${on?'Ir até '+esc(pn):'Ir até a mesa'}" aria-label="${on?'Ir até '+esc(pn):'Ir até a mesa'}" onclick="escIrAteCard('${uid}')">${ESC_IC.ir}</button>
       ${master?`<button type="button" class="esc-db" title="Mudar a mesa" aria-label="Mudar a mesa" onclick="escMudarMesa('${uid}')">${ESC_IC.pts}</button>`:''}</div>
       <p class="esc-cdica">${!on?'Só dá para acenar para quem está no escritório agora.':(quieto?esc(pn)+' está '+ESC_ST[st].toLowerCase()+': o aviso chega sem som e sem janela, e aparece quando ficar disponível.':'O aceno toca e abre uma janelinha no computador de '+esc(pn)+'.')}</p>`; }
@@ -29200,7 +29332,7 @@ function escUI(){
   const sala=escSalaDe(ESC.eu.x,ESC.eu.y), st=escStEfetivo(), ag=escPelaAgenda(), c=ESC.ag[me.id], bloco=ag&&c?escNoBloco(c.blocos,Date.now()):null;
   const outros=[...ESC.pares.entries()].map(([u,o])=>({u,o,sala:escSalaDe(o.dx,o.dy).id}));
   const perm=('Notification' in window)?Notification.permission:'';
-  const sig=JSON.stringify([ESC.camLivre,sala.id,ESC.ok,ESC.linksErro,ESC.links&&ESC.links[sala.id],st,ag,bloco&&bloco.f,ESC.eu.st,escSomOn(),perm,ESC.perdidos.length,ESC.pessOn,
+  const sig=JSON.stringify([ESC.chat.versao,ESC.pessAba,ESC.chat.conv,ESC.chat.ok,ESC.camLivre,sala.id,ESC.ok,ESC.linksErro,ESC.links&&ESC.links[sala.id],st,ag,bloco&&bloco.f,ESC.eu.st,escSomOn(),perm,ESC.perdidos.length,ESC.pessOn,
     outros.map(x=>[x.u,x.sala,x.o.st,x.o.v]),ESC.mesasSig,me.foto?1:0]);
   if(sig!==ESC.uiSig){ ESC.uiSig=sig;
     const master=me.role==='master';
@@ -29217,7 +29349,9 @@ function escUI(){
     $q('escPessN').textContent=String(outros.length+1);
     $q('escCentro').hidden=!ESC.camLivre;
     $q('escPerm').hidden=perm!=='default';
-    if(ESC.pessOn) escListaPessoas(outros,sala.id); }
+    const nl=escChatTotal(), bc=$q('escPessChat'), ba=$q('escAbaCN');
+    [bc,ba].forEach(x=>{ if(x){ x.hidden=!nl; x.textContent=nl>99?'99+':String(nl); } });
+    if(ESC.pessOn){ if(ESC.pessAba==='chat') escChatPintar(); else escListaPessoas(outros,sala.id); } }
   /* cartão */
   const card=$q('escCard'); if(!card) return;
   if(!ESC.card){ if(!card.hidden){ card.hidden=true; card.innerHTML=''; } return; }
@@ -29235,7 +29369,12 @@ function escListaPessoas(outros,minha){ const me=escMe(), ul=document.getElement
   const linha=(p,fora)=>{ const b=document.createElement('button'); b.type='button'; b.className='esc-pp'+(fora||!p.v?' fora':'');
     const nome=p.eu?me.nome:(tkNomeUser(p.u)||'Colega');
     b.innerHTML=`${avatar(p.u,nome)}<span class="tx"><b>${esc(nome)}${p.eu?' (você)':''}</b><span>${fora?'<span class="esc-dot off"></span>Fora do escritório':`<span class="esc-dot ${p.st}"></span>${ESC_ST[p.st]}${p.v?'':' · em outra tela'}`}</span></span>`;
-    b.onclick=()=>escCardAbrir(p.u); return b; };
+    b.onclick=()=>escCardAbrir(p.u); if(p.eu) return b;
+    /* do lado de cada pessoa, o atalho pra conversa com ela */
+    const w=document.createElement('div'); w.className='esc-ppw'; const mb=document.createElement('button'); mb.type='button'; mb.className='esc-ppm';
+    const n=escChatNaoLidas(p.u); mb.title='Mensagem para '+(primeiroNome(nome)||'a pessoa'); mb.setAttribute('aria-label',mb.title);
+    mb.innerHTML=ESC_IC.msg+(n?`<b class="esc-badge">${n>99?'99+':n}</b>`:''); mb.onclick=()=>window.escChatAbrir(p.u);
+    w.append(b,mb); return w; };
   [ESC_CORREDOR].concat(ESC_SALAS).forEach(s=>{ const g=por[s.id]||[]; if(!g.length) return; const li=document.createElement('li');
     const h=document.createElement('div'); h.className='esc-sec'; const ir=document.createElement('button'); ir.type='button'; ir.textContent=s.nome; ir.title='Ir até a '+s.nome; ir.onclick=()=>window.escIrSala(s.id);
     const n=document.createElement('span'); n.className='n'; n.textContent=String(g.length); h.append(ir,n); li.append(h);
@@ -29244,6 +29383,71 @@ function escListaPessoas(outros,minha){ const me=escMe(), ul=document.getElement
   if(fora.length){ const li=document.createElement('li'); const h=document.createElement('div'); h.className='esc-sec';
     h.innerHTML=`<span>Fora do escritório</span><span class="n">${fora.length}</span>`; li.append(h);
     fora.forEach(u=>li.append(linha({u:u.id},true))); ul.append(li); } }
+/* ---------- chat na aba Pessoas ---------- */
+const escDiaRot=(d)=>{ if(isNaN(d)) return ''; const h=new Date(); h.setHours(0,0,0,0); const x=new Date(d); x.setHours(0,0,0,0);
+  const dif=Math.round((h-x)/86400000); if(dif===0) return 'Hoje'; if(dif===1) return 'Ontem';
+  return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear(); };
+/* texto da mensagem: escapado, quebra de linha mantida e link clicável */
+const escLinkar=(t)=>esc(t).replace(/https?:\/\/[^\s<]+/g,u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+const escChatNome=(conv)=>conv==='todos'?'Todos do escritório':(tkNomeUser(conv)||'Colega');
+window.escChatAbrir=(conv)=>{ const vai=()=>{ ESC.pessAba='chat'; ESC.chat.conv=conv||''; ESC.chat.vista=''; escPessoas(true); };
+  if(ESC.naTela) vai(); else { const b=document.getElementById('navEscritorio'); if(b) b.click(); setTimeout(vai,400); } };
+window.escPessAba=(a)=>{ ESC.pessAba=a==='chat'?'chat':'pessoas'; ESC.chat.vista=''; ESC.uiSig=''; escPessPintarAba(); };
+function escPessPintarAba(){ const p=document.getElementById('escPess'), st=document.getElementById('escStage'), chat=ESC.pessAba==='chat'; if(!p) return;
+  p.classList.toggle('chat',chat); if(st) st.classList.toggle('chat-on',chat&&ESC.pessOn);
+  const a=document.getElementById('escAbaP'), b=document.getElementById('escAbaC');
+  if(a){ a.classList.toggle('active',!chat); a.setAttribute('aria-selected',String(!chat)); } if(b){ b.classList.toggle('active',chat); b.setAttribute('aria-selected',String(chat)); }
+  document.getElementById('escLista').hidden=chat; document.getElementById('escChat').hidden=!chat; }
+function escChatListaHtml(){ const me=escMe(), eq=escEquipe().filter(u=>u.id!==me.id);
+  const ult=(conv)=>{ const ms=escChatDe(conv); return ms[ms.length-1]||null; };
+  const item=(conv,nome,av)=>{ const u=ult(conv), n=escChatNaoLidas(conv);
+    const prev=u?(u.de===me.id?'Você: ':(conv==='todos'?(primeiroNome(tkNomeUser(u.de))||'Colega')+': ':''))+u.texto.replace(/\s+/g,' ').slice(0,80):'Sem mensagens ainda';
+    return `<button type="button" class="esc-cv${n?' nl':''}" data-conv="${esc(conv)}">${av}<span class="tx"><b>${esc(nome)}</b><span>${esc(prev)}</span></span>${n?`<b class="esc-badge">${n>99?'99+':n}</b>`:''}</button>`; };
+  const gente=eq.map(u=>({u,m:ult(u.id)})).sort((a,b)=>(b.m?b.m.id:0)-(a.m?a.m.id:0)||String(a.u.nome||'').localeCompare(String(b.u.nome||''),'pt-BR'));
+  return item('todos','Todos do escritório',`<span class="av esc-av-todos">${ESC_IC.gente}</span>`)
+    +'<div class="esc-sec"><span>Conversas</span></div>'+gente.map(x=>item(x.u.id,x.u.nome||'Colega',avatar(x.u.id,x.u.nome))).join('')
+    +(ESC.chat.erro&&!ESC.chat.ok?'<div class="esc-chat-vz">Não deu para carregar o chat agora. Tento de novo quando a conexão voltar.</div>':''); }
+function escChatMsgsHtml(conv){ const me=escMe(), ms=escChatDe(conv), C=ESC.chat;
+  let h=C.fim[conv]?'':`<button type="button" class="btn small ghost esc-chat-mais" data-mais="1">${C.hist&&C.hist[conv]?'Ver mensagens antigas':'Carregando…'}</button>`;
+  if(!ms.length&&C.fim[conv]) return h+`<div class="esc-chat-vz">${conv==='todos'?'Ninguém escreveu no Todos ainda. O que for escrito aqui fica guardado para o time inteiro.':'Comece a conversa. Ela fica guardada para sempre, só entre vocês dois.'}</div>`;
+  let dia='', ant='';
+  ms.forEach(m=>{ const d=new Date(m.em), dk=isNaN(d)?'':d.toDateString();
+    if(dk!==dia){ dia=dk; ant=''; h+=`<div class="esc-chat-dia"><span>${esc(escDiaRot(d))}</span></div>`; }
+    const eu=m.de===me.id, au=conv==='todos'&&!eu&&ant!==m.de?`<span class="esc-chat-au">${esc(primeiroNome(tkNomeUser(m.de))||'Colega')}</span>`:'';
+    ant=m.de;
+    h+=`<div class="esc-msg${eu?' eu':''}">${au}<div class="esc-bal"><span class="t">${escLinkar(m.texto)}</span><time>${isNaN(d)?'':escHH(d.getTime())}</time></div></div>`; });
+  return h; }
+/* desenha o chat: a lista de conversas ou a conversa aberta (o campo de escrever não é refeito) */
+function escChatPintar(){ const box=document.getElementById('escChat'); if(!box) return; const C=ESC.chat, me=escMe();
+  if(!C.conv){ if(C.vista!==''||!box.querySelector('.esc-cvs')){ box.innerHTML='<div class="esc-cvs"></div>'; C.vista=''; }
+    box.querySelector('.esc-cvs').innerHTML=escChatListaHtml(); return; }
+  const conv=C.conv;
+  if(C.vista!==conv){ C.vista=conv; C.pintou='';
+    const av=conv==='todos'?`<span class="av esc-av-todos">${ESC_IC.gente}</span>`:avatar(conv,escChatNome(conv));
+    box.innerHTML=`<div class="esc-chat-h"><button type="button" class="esc-x" data-volta="1" aria-label="Voltar para as conversas">${ESC_IC.volta}</button>${av}<b>${esc(escChatNome(conv))}</b></div>
+      <div class="esc-chat-ms" id="escChatMs" aria-live="polite"></div>
+      <form class="esc-chat-f" id="escChatF"><textarea id="escChatTx" rows="1" maxlength="2000" placeholder="Mensagem para ${esc(conv==='todos'?'todo mundo':primeiroNome(escChatNome(conv)))}" aria-label="Mensagem"></textarea>
+        <button type="submit" class="btn small">Enviar</button></form>
+      <div class="esc-chat-nota">Tudo fica guardado: mensagem não se apaga nem se edita.</div>`;
+    const tx=box.querySelector('#escChatTx'), f=box.querySelector('#escChatF');
+    const cresce=()=>{ tx.style.height='auto'; tx.style.height=Math.min(120,tx.scrollHeight)+'px'; };
+    tx.addEventListener('input',cresce);
+    tx.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); f.requestSubmit?f.requestSubmit():f.dispatchEvent(new Event('submit',{cancelable:true})); } });
+    f.addEventListener('submit',async e=>{ e.preventDefault(); const v=tx.value; if(!v.trim()||f.__env) return; f.__env=true;
+      const r=await escChatEnviar(conv,v); f.__env=false;
+      if(r==='ok'){ tx.value=''; cresce(); C.grudar=true; escChatPintar(); }
+      else toast(r==='grande'?'A mensagem passa de 2000 letras. Divida em duas.':'Não deu para enviar. Confira a internet e tente de novo.'); });
+    if(!(C.hist&&C.hist[conv])){ (C.hist=C.hist||{})[conv]='carregando'; C.grudar=true;
+      escChatHistorico(conv).then(()=>{ C.hist[conv]=true; C.grudar=true; ESC.uiSig=''; }).catch(()=>{ C.hist[conv]=''; toast('Não deu para carregar as mensagens.'); }); }
+    setTimeout(()=>{ try{ tx.focus({preventScroll:true}); }catch(_){} },30); }
+  const ms=box.querySelector('#escChatMs'); if(!ms) return;
+  const sig=C.versao+'|'+(C.fim[conv]?1:0)+'|'+(C.hist&&C.hist[conv]);
+  if(sig!==C.pintou){ C.pintou=sig;
+    const perto=ms.scrollHeight-ms.scrollTop-ms.clientHeight<60, alt=ms.scrollHeight, topo=ms.scrollTop;
+    ms.innerHTML=escChatMsgsHtml(conv);
+    if(C.grudar||perto){ ms.scrollTop=ms.scrollHeight; C.grudar=false; }
+    else if(C.antigas){ ms.scrollTop=ms.scrollHeight-alt+topo; C.antigas=false; } }
+  if(ESC.pessOn&&!document.hidden) escChatMarcar(conv); }
 window.escTrocarLink=(id)=>{ const me=escMe(); if(!me||me.role!=='master') return; const s=ESC_SALAS.find(x=>x.id===id); if(!s) return;
   const atual=(ESC.links&&ESC.links[id])||'';
   modal('Link da chamada: '+esc(s.nome),`<div class="field"><label for="escLkIn">Link</label><input id="escLkIn" value="${esc(atual)}" placeholder="https://meet.google.com/..."></div>
