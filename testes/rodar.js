@@ -2611,8 +2611,8 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   ok('W A S D e setas andam sem precisar clicar no mapa (menos digitando ou com janela aberta)', /document\.addEventListener\('keydown',e=>\{ if\(!ESC\.naTela\) return;/.test(HTML)&&HTML.indexOf("if(!ESC_TECLAS[k]||e.altKey||e.ctrlKey||e.metaKey||escDigitando()||document.querySelector('.overlay')) return;")>0);
   ok('a câmera segue você (mapa ocupando a tela toda, como no Gather)', HTML.indexOf("ESC.cam.x+=kx*k; ESC.cam.y+=ky*k;")>0&&HTML.indexOf("c.classList.add('esc-full');")>0&&HTML.indexOf("ct.classList.remove('esc-full')")>0);
   ok('nome em cima do bonequinho com piso em pixel de tela (legível no Retina e no celular)', HTML.indexOf("fs=Math.max(11*d,T*.3)")>0);
-  ok('status à vista em qualquer tela: bolinha do avatar do topo e do botão Escritório', HTML.indexOf('html[data-esc-st="ocupado"] .uav .pt{background:var(--danger)}')>0&&HTML.indexOf('html[data-esc-st="reuniao"] #navEscritorio::after')>0);
-  ok('o nome no mapa mostra o status quando não é Disponível', HTML.indexOf("(p.st&&p.st!=='ok'?' · '+ESC_ST[p.st]:'')")>0);
+  ok('status à vista em qualquer tela: bolinha do avatar do topo e do botão Escritório', HTML.indexOf('html[data-esc-st="reuniao"] .uav .pt{background:var(--danger)}')>0&&HTML.indexOf('html[data-esc-st="reuniao"] #navEscritorio::after')>0);
+  ok('no mapa o status vai só na cor (Em reunião vermelho, Ocupado âmbar): nada escrito do lado do nome', HTML.indexOf("const rot=primeiroNome(p.nome)||'Colega';")>0&&HTML.indexOf("ocupado:g('--warn'),reuniao:g('--danger')")>0&&HTML.indexOf("p.st&&p.st!=='ok'&&p.st!=='ausente'?C.st[p.st]:''")>0);
   ok('agenda pela mesma ação da Agenda do CRM (só início e fim)', HTML.indexOf("caFn('ocupacao',{closer_id:uid,de:d,ate:d})")>0);
   ok('som e janelinha respeitam Ocupado e Em reunião', HTML.indexOf("if(ESC_QUIETO[escStEfetivo()]){ ESC.perdidos.push(av);")>0);
   ok('a arte do mapa mora em variáveis (nenhuma cor solta no desenho)', !/'#[0-9a-fA-F]{3,6}'/.test(bloco('function escDesenhar(','/* ---------- interface por cima do mapa')));
