@@ -2524,15 +2524,19 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   g.ESC.canal=canal; g.ESC.ok=true; g.ESC.enviados=[]; g.ESC.ultSig='';
   g.escTrack('entrou'); g.escTrack();
   ok('track só quando muda o que os outros veem (sala, status, tela aberta)', tracks.length===1);
-  ok('a presença leva só id, posição, sala, status, tela aberta e a hora da última mudança', Object.keys(tracks[0]).sort().join(',')==='sala,st,t,u,v,x,y'&&tracks[0].u==='eu'&&tracks[0].t===g.ESC.mudouT);
+  ok('a presença leva só id, posição, sala, status, tela aberta, a hora da última mudança e o dia', Object.keys(tracks[0]).sort().join(',')==='dia,sala,st,t,u,v,x,y'&&tracks[0].u==='eu'&&tracks[0].t===g.ESC.mudouT&&tracks[0].dia==='2026-10-23');
   ['ok','reuniao','ausente','ocupado','ok','reuniao'].forEach(st=>{ g.ESC.eu.st=st; g.escTrack(); });
   ok('nunca passa de '+g.ESC_PRES_MAX+' em 30 s (o servidor fecha o canal no 6º)', tracks.length===g.ESC_PRES_MAX&&g.ESC_PRES_MAX<5);
-  const fila=timers.filter(t=>t[1]>1000&&t[1]<=30100);
+  const fila=timers.filter(t=>t[1]>1000&&t[1]<=31300);
   ok('o que passou do limite espera a janela abrir, e vai o estado mais novo', fila.length===1&&(()=>{ g.ESC.enviados=[]; fila[0][0](); return tracks.length===g.ESC_PRES_MAX+1&&tracks[tracks.length-1].st==='reuniao'; })());
   g.ESC.enviados=[Date.now(),Date.now()]; const nT=tracks.length; g.ESC.eu.x+=.2; g.escTrack('parou');
   ok('parou dentro da mesma sala: só manda a posição se sobra folga na janela', tracks.length===nT);
-  g.ESC.enviados=[]; g.escTrack('parou');
-  ok('com folga, manda a posição exata de onde parou', tracks.length===nT+1);
+  const filaParou=timers.filter(t=>t[1]>1000&&t[1]<=31300).length;
+  ok('sem folga a parada fica pendente e vai pela fila quando a janela abrir', g.ESC.posPend===true&&filaParou>=1);
+  g.ESC.filaTrack=0; g.ESC.enviados=[]; g.escTrack('fila');
+  ok('a fila leva a parada pendente mesmo sem mudar sala nem status', tracks.length===nT+1&&g.ESC.posPend===false);
+  g.ESC.enviados=[]; g.ESC.eu.x+=.2; g.escTrack('parou');
+  ok('com folga, manda a posição exata de onde parou', tracks.length===nT+2);
 
   const mapa={send:(m)=>{ mapaEnv.push(m); return Promise.resolve('ok'); }};
   g.escSync({}); g.ESC.mapa=mapa; g.ESC.okMapa=true;
@@ -2545,7 +2549,21 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   ok('caiu: tenta de novo sem desistir, espera crescente e um pouco aleatória', esperas.length===9&&esperas[0]>=1500&&esperas[0]<=2500&&esperas[8]>=225000&&esperas[8]<=375000);
   ok('desligar a tela pra pessoa em Usuários tira ela do canal', HTML.indexOf("if(typeof tlBloqueada==='function'&&tlBloqueada('escritorio')) return;")>0);
   ok('religa quando a internet volta', HTML.indexOf("window.addEventListener('online',escReligar);")>0);
-  ok('fora da tela, trocar de aba não gasta track', HTML.indexOf("if(ESC.naTela) escTrack();                  /* fora da tela")>0);
+  ok('fora da tela, trocar de aba não gasta track; com a tela aberta, aba escondida sai do canal do mapa', /if\(ESC\.naTela\)\{\n    if\(document\.hidden\) escMapaSair\(\);[^\n]*\n    else \{ escReler\(true\); escMapaEntrar\(\); \}\n    escTrack\(\);/.test(HTML));
+  /* segunda revisão (23/10) */
+  g.escSync({luiz:[{x:6,y:6,v:true,t:100}]}); const lz2=g.ESC.pares.get('luiz');
+  g.escPos({u:'luiz',x:30.5,y:20.5,t:500},false);
+  g.escSync({luiz:[{x:6,y:6,v:true,t:100}],luan:[{x:8,y:8,v:false,t:1}]});
+  ok('presença mais velha que o último movimento recebido não puxa o bonequinho de volta', lz2.x===30.5&&lz2.y===20.5);
+  g.escSync({luiz:[{x:7,y:7,v:true,t:900}]});
+  ok('presença mais nova que o movimento vale', lz2.x===7&&lz2.y===7);
+  g.escSync({luan:[{x:8,y:8,st:'ausente',v:false,t:999,dia:'2026-10-22'},{x:9,y:9,st:'ok',v:false,t:5,dia:'2026-10-23'}]});
+  ok('aba de ontem nunca vence a de hoje', g.ESC.pares.get('luan').st==='ok');
+  g.ESC.dia='2026-10-22'; g.ESC.naTela=false; g.ESC.eu.st='ausente'; delete guardado['esc_eu_eu']; g.escReler();
+  ok('aba aberta de um dia pro outro: status de ontem volta pra Disponível, na sala da área', g.ESC.eu.st==='ok'&&g.ESC.dia==='2026-10-23'&&g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios');
+  ok('a espera de reconexão só zera depois de 1 min no ar (o servidor pode derrubar logo depois de entrar)', /if\(st==='SUBSCRIBED'\)\{ ESC\.ok=true; ESC\.enviados=\[\];/.test(HTML)&&HTML.indexOf("ESC.okTimer=setTimeout(()=>{ if(ESC.canal===c&&ESC.ok) ESC.tent=0; },60000);")>0);
+  ok('voltar a aba ou a rede adianta a tentativa sem zerar a espera', HTML.indexOf("function escReligar(){ if(!ESC.canal&&!ESC.parado&&escMe()&&Date.now()-(ESC.caiuEm||0)>10000){ clearTimeout(ESC.timer); escBoot(); } }")>0);
+  ok('canal do mapa novo só depois do velho terminar de sair', HTML.indexOf("if(ESC.mapaSaindo){ const sai=ESC.mapaSaindo; ESC.mapaSaindo=null; await sai; }")>0);
   ok('o canal do mapa só abre com a tela aberta e fecha ao sair', HTML.indexOf("sb.channel('escritorio-mapa',{config:{private:true,broadcast:{self:false}}})")>0&&/if\(!cv\|\|!cv\.isConnected\)\{[^\n]*escMapaSair\(\); escTrack\(\); return; \}/.test(HTML));
   ok('no celular, rolar o mapa não faz andar (anda no toque, não no pointerdown)', HTML.indexOf("cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect();")>0&&HTML.indexOf("cv.addEventListener('pointerdown'")<0);
   ok('no celular o mapa abre rolado até o seu bonequinho', HTML.indexOf('box.scrollLeft=Math.max(0,ESC.eu.x/ESC_W*box.scrollWidth-box.clientWidth/2)')>0);
