@@ -2618,8 +2618,8 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
     ok('zoom: o ponto embaixo do mouse continua no mesmo lugar da tela', Math.abs((sx+E.ox)/E.T-wx)<.03&&Math.abs((sy+E.oy)/E.T-wy)<.03&&E.T===60);
     z.escZoomEm(99); ok('zoom tem limite', E.zoom===z.ESC_ZMAX); z.escZoomEm(.01); ok('zoom tem limite pra afastar', E.zoom===z.ESC_ZMIN);
     const c=z.escCamLimite(-50,999); ok('câmera não sai da planta: para na borda e, se o mapa cabe na tela, fica no meio', c.x===20&&c.y===15);
-    const sl=z.escCamSolta(-50,999), sm=z.escCamSolta(3,4);
-    ok('arrastando, a câmera anda livre mesmo com o mapa cabendo na tela (só o centro não sai da planta)', sl.x===0&&sl.y===30&&sm.x===3&&sm.y===4);
+    const sl=z.escCamSolta(-50,999), sm=z.escCamSolta(3,4), hw=E.cw/2/E.T, hh=E.ch/2/E.T;
+    ok('arrastando, a câmera anda livre até o fundo escuro, sempre com 2 tiles do mapa à vista', Math.abs(sl.x-(2-hw))<1e-9&&Math.abs(sl.y-(30-2+hh))<1e-9&&sm.x===3&&sm.y===4);
     ok('o desenho não trava a câmera na borda (senão em tela larga não dá pra arrastar)', HTML.indexOf('ESC.ox=Math.round(ESC.cam.x*T-W/2); ESC.oy=Math.round(ESC.cam.y*T-H/2);')>0&&/escCamSolta\(arr\.cx-dx/.test(HTML));
   }
   ok('W A S D e setas andam sem precisar clicar no mapa (menos digitando ou com janela aberta)', /document\.addEventListener\('keydown',e=>\{ if\(!ESC\.naTela\) return;/.test(HTML)&&HTML.indexOf("if(!ESC_TECLAS[k]||e.altKey||e.ctrlKey||e.metaKey||escDigitando()||document.querySelector('.overlay')) return;")>0);
