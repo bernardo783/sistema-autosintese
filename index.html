@@ -28815,6 +28815,29 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   html[data-esc-st="ocupado"] #navEscritorio::after{background:var(--warn)}
   html[data-esc-st="reuniao"] #navEscritorio::after{background:var(--danger)}
   html[data-esc-st="ausente"] #navEscritorio::after{background:var(--fraco)}
+  /* no computador a barra fica na lateral direita, em pé (Gabriel 23/10); no celular continua embaixo */
+  @media (min-width:761px){
+    .esc-dock{left:auto;right:14px;top:14px;bottom:14px;transform:none;flex-direction:column;align-items:stretch;width:76px;max-width:none;padding:8px 6px;gap:2px}
+    .esc-dock .sep{width:auto;height:1px;align-self:stretch;margin:6px 4px}
+    .esc-dock .esc-db{flex-direction:column;justify-content:center;height:auto;min-height:52px;padding:7px 2px;gap:4px;font-size:10.5px;line-height:1.15;
+      white-space:normal;text-align:center;flex:none}
+    .esc-dock .esc-db.ic{min-height:38px;width:auto;padding:0}
+    .esc-dock .esc-db .n{display:none}
+    .esc-zoom{flex-direction:column;margin-top:auto;gap:2px}
+    .esc-eu{flex-direction:column;align-items:center;gap:5px;padding:7px 2px;width:100%;box-sizing:border-box}
+    .esc-eu .av{width:40px;height:40px}
+    .esc-eu .tx{align-items:center}
+    .esc-eu .tx b{max-width:62px;font-size:12px}
+    .esc-eu .tx span{font-size:10.5px;white-space:normal;text-align:center;justify-content:center}
+    .esc-eu > svg{display:none}
+    .esc-menu{bottom:auto;top:0;left:auto;right:calc(100% + 12px)}
+    .esc-card{right:100px}
+    .esc-st.pess-on .esc-card{right:396px}
+    .esc-st.pess-on.chat-on .esc-card{right:474px}
+    .esc-pess{right:100px;bottom:14px}
+    .esc-dica{bottom:14px}
+    .esc-topo{max-width:calc(100% - 460px)}
+  }
   @media (max-width:760px){
     .esc-topo{max-width:calc(100% - 28px)}
     .esc-dock{bottom:10px;gap:2px;padding:5px}
