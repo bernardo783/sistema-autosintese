@@ -28954,6 +28954,8 @@ const escDicaOk=()=>{ const d=document.getElementById('escDica'); if(d&&!d.hidde
 const ESC_ZMIN=.5, ESC_ZMAX=2.2;
 const escZoom=()=>{ try{ const z=parseFloat(localStorage.getItem('esc_zoom')); return isFinite(z)?Math.max(ESC_ZMIN,Math.min(ESC_ZMAX,z)):1; }catch(_){ return 1; } };
 /* centro da câmera dentro da planta (mapa menor que a tela fica no meio) */
+/* arrastando ou com zoom a câmera anda livre (como no Gather), só não deixa o centro sair da planta */
+const escCamSolta=(x,y)=>({x:Math.max(0,Math.min(ESC_W,x)),y:Math.max(0,Math.min(ESC_H,y))});
 function escCamLimite(x,y){ const T=ESC.T, hw=(ESC.cw||0)/2/T, hh=(ESC.ch||0)/2/T;
   return {x:ESC_W<=2*hw?ESC_W/2:Math.max(hw,Math.min(ESC_W-hw,x)),y:ESC_H<=2*hh?ESC_H/2:Math.max(hh,Math.min(ESC_H-hh,y))}; }
 /* zoom mantendo parado o ponto embaixo do mouse (sx, sy em pixels do canvas); sem ponto, no meio da tela */
@@ -28961,7 +28963,7 @@ function escZoomEm(z,sx,sy){ z=Math.max(ESC_ZMIN,Math.min(ESC_ZMAX,z)); if(!ESC.
   const W=ESC.cw, H=ESC.ch; if(sx==null){ sx=W/2; sy=H/2; }
   const wx=(sx+ESC.ox)/ESC.T, wy=(sy+ESC.oy)/ESC.T;
   ESC.zoom=z; ESC.T=ESC.base*z;
-  const c=escCamLimite(wx-(sx-W/2)/ESC.T,wy-(sy-H/2)/ESC.T); ESC.cam.x=c.x; ESC.cam.y=c.y;
+  const c=escCamSolta(wx-(sx-W/2)/ESC.T,wy-(sy-H/2)/ESC.T); ESC.cam.x=c.x; ESC.cam.y=c.y;
   ESC.ox=Math.round(ESC.cam.x*ESC.T-W/2); ESC.oy=Math.round(ESC.cam.y*ESC.T-H/2);
   ESC.sujo=true; ESC.uiSig='';
   clearTimeout(ESC.zoomT); ESC.zoomT=setTimeout(()=>{ try{ localStorage.setItem('esc_zoom',String(Math.round(z*100)/100)); }catch(_){} },400); }
@@ -29007,8 +29009,9 @@ function escRender(c){
     const r=st.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
     ESC.dpr=dpr; cv.width=Math.max(1,Math.round(r.width*dpr)); cv.height=Math.max(1,Math.round(r.height*dpr));
     ESC.cw=cv.width; ESC.ch=cv.height; ESC.base=(toque?28:40)*dpr; ESC.T=ESC.base*ESC.zoom;
-    const c=escCamLimite(ESC.cam.x,ESC.cam.y); if(ESC.camLivre){ ESC.cam.x=c.x; ESC.cam.y=c.y; } ESC.sujo=true; };
-  ajustar(); try{ const ro=new ResizeObserver(()=>{ if(!cv.isConnected){ ro.disconnect(); return; } ajustar(); }); ro.observe(st); }catch(_){}
+    const c=escCamSolta(ESC.cam.x,ESC.cam.y); if(ESC.camLivre){ ESC.cam.x=c.x; ESC.cam.y=c.y; } ESC.sujo=true; };
+  ajustar(); ESC.cam=escCamLimite(ESC.eu.x,ESC.eu.y);   /* abre já enquadrado em você */
+  try{ const ro=new ResizeObserver(()=>{ if(!cv.isConnected){ ro.disconnect(); return; } ajustar(); }); ro.observe(st); }catch(_){}
   ESC.ajustar=ajustar; if(!ESC.rz){ ESC.rz=1; window.addEventListener('resize',()=>{ if(ESC.ajustar) ESC.ajustar(); }); }
   /* clique: em alguém abre o cartão; numa mesa, o cartão do dono; no chão, anda até lá */
   /* arrastar move só o mapa (o bonequinho fica); dois dedos no celular dão zoom. Andar continua no
@@ -29025,7 +29028,7 @@ function escRender(c){
       escZoomEm(arr.z*Math.hypot(a.x-b.x,a.y-b.y)/arr.d,((a.x+b.x)/2-r.left)*ESC.dpr,((a.y+b.y)/2-r.top)*ESC.dpr); ESC.camLivre=true; return; }
     const dx=e.clientX-arr.x, dy=e.clientY-arr.y; if(!arr.mov&&Math.hypot(dx,dy)<6) return;
     arr.mov=true; ESC.camLivre=true; cv.style.cursor='grabbing';
-    const c=escCamLimite(arr.cx-dx*ESC.dpr/ESC.T,arr.cy-dy*ESC.dpr/ESC.T); ESC.cam.x=c.x; ESC.cam.y=c.y; ESC.sujo=true; ESC.uiSig=''; });
+    const c=escCamSolta(arr.cx-dx*ESC.dpr/ESC.T,arr.cy-dy*ESC.dpr/ESC.T); ESC.cam.x=c.x; ESC.cam.y=c.y; ESC.sujo=true; ESC.uiSig=''; });
   const solta=(e)=>{ pts.delete(e.pointerId);
     if(!pts.size){ ESC.arrastou=!!(arr&&arr.mov); arr=null; cv.style.cursor='grab'; }
     else if(arr&&arr.pinca){ const [a]=[...pts.values()]; arr={x:a.x,y:a.y,cx:ESC.cam.x,cy:ESC.cam.y,mov:true}; } };   /* sobrou um dedo: segue arrastando */
@@ -29165,9 +29168,8 @@ function escQuemNoPonto(px,py){ const T=ESC.T, me=escMe(); if(!me||!ESC.eu) retu
   return q; }
 function escDesenhar(cv,t){
   const ctx=cv.getContext('2d'), T=ESC.T, C=ESC.cores, d=ESC.dpr||1, W=cv.width, H=cv.height, F=ESC.fonte||'Inter, system-ui, sans-serif';
-  const MW=ESC_W*T, MH=ESC_H*T;
-  ESC.ox=Math.round(MW<=W?-(W-MW)/2:Math.max(0,Math.min(MW-W,ESC.cam.x*T-W/2)));
-  ESC.oy=Math.round(MH<=H?-(H-MH)/2:Math.max(0,Math.min(MH-H,ESC.cam.y*T-H/2)));
+  /* seguindo você a câmera já vem enquadrada (escCamLimite); arrastada, mostra o que estiver no centro */
+  ESC.ox=Math.round(ESC.cam.x*T-W/2); ESC.oy=Math.round(ESC.cam.y*T-H/2);
   ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle=C.fora; ctx.fillRect(0,0,W,H);
   ctx.setTransform(1,0,0,1,-ESC.ox,-ESC.oy); ctx.imageSmoothingEnabled=true;
   const R=(x,y,w,h,c)=>{ ctx.fillStyle=c; const X=Math.round(x*T), Y=Math.round(y*T); ctx.fillRect(X,Y,Math.max(1,Math.round((x+w)*T)-X),Math.max(1,Math.round((y+h)*T)-Y)); };
