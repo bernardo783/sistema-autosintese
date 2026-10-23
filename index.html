@@ -28610,7 +28610,7 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   .esc-eu .tx span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;white-space:nowrap}
   .esc-eu svg{width:14px;height:14px;color:var(--muted)}
   .esc-dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
-  .esc-dot.ok{background:var(--ok)}.esc-dot.ocupado{background:var(--danger)}.esc-dot.reuniao{background:var(--brand2)}.esc-dot.ausente{background:var(--fraco)}.esc-dot.off{background:transparent;box-shadow:inset 0 0 0 2px var(--fraco)}
+  .esc-dot.ok{background:var(--ok)}.esc-dot.ocupado{background:var(--warn)}.esc-dot.reuniao{background:var(--danger)}.esc-dot.ausente{background:var(--fraco)}.esc-dot.off{background:transparent;box-shadow:inset 0 0 0 2px var(--fraco)}
   .esc-db{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 12px;border-radius:10px;font-size:13px;font-weight:600;color:var(--txt);position:relative;white-space:nowrap;flex:none}
   .esc-db:hover{background:var(--panel2)} .esc-db svg{width:18px;height:18px}
   .esc-db[aria-disabled="true"]{color:var(--fraco);cursor:default} .esc-db[aria-disabled="true"]:hover{background:none}
@@ -28684,13 +28684,13 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   .esc-av-b{display:flex;gap:6px;justify-content:flex-end}
   @keyframes escEntra{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
   /* status à vista em qualquer tela: bolinha do avatar do topo e do botão Escritório no rail */
-  html[data-esc-st="ocupado"] .uav .pt{background:var(--danger)}
-  html[data-esc-st="reuniao"] .uav .pt{background:var(--brand2)}
+  html[data-esc-st="ocupado"] .uav .pt{background:var(--warn)}
+  html[data-esc-st="reuniao"] .uav .pt{background:var(--danger)}
   html[data-esc-st="ausente"] .uav .pt{background:var(--fraco)}
   #navEscritorio{position:relative}
   html[data-esc-st] #navEscritorio::after{content:'';position:absolute;top:6px;right:14px;width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 2px var(--bg)}
-  html[data-esc-st="ocupado"] #navEscritorio::after{background:var(--danger)}
-  html[data-esc-st="reuniao"] #navEscritorio::after{background:var(--brand2)}
+  html[data-esc-st="ocupado"] #navEscritorio::after{background:var(--warn)}
+  html[data-esc-st="reuniao"] #navEscritorio::after{background:var(--danger)}
   html[data-esc-st="ausente"] #navEscritorio::after{background:var(--fraco)}
   @media (max-width:760px){
     .esc-topo{max-width:calc(100% - 28px)}
@@ -28707,7 +28707,7 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   document.head.appendChild(s); }
 /* antes de a tela abrir uma vez, a bolinha do topo já precisa da regra de cor */
 try{ escCss(); }catch(_){}
-const escCorSt=(st)=>({ok:'--ok',ocupado:'--danger',reuniao:'--brand2',ausente:'--fraco'})[st]||'--ok';
+const escCorSt=(st)=>({ok:'--ok',ocupado:'--warn',reuniao:'--danger',ausente:'--fraco'})[st]||'--ok';
 function escLerCores(){ const el=document.getElementById('escStage')||document.documentElement, cs=getComputedStyle(el), g=(n)=>cs.getPropertyValue(n).trim();
   const lista=(n)=>g(n).split(',').map(s=>s.trim()).filter(Boolean);
   ESC.cores={fora:g('--bg'),corr:g('--esc-corr'),corr2:g('--esc-corr2'),
@@ -28720,7 +28720,7 @@ function escLerCores(){ const el=document.getElementById('escStage')||document.d
     tag:g('--esc-tag'),tagTxt:g('--esc-tagtxt'),sombra:g('--esc-sombra'),luz:g('--esc-luz'),papel:g('--esc-papel'),caneca:g('--esc-caneca'),
     olho:g('--esc-olho'),sapato:g('--esc-sapato'),bolha:g('--esc-bolha'),bolhaTxt:g('--esc-bolhatxt'),brand2:g('--brand2'),
     peles:lista('--esc-peles'),cabelos:lista('--esc-cabelos'),calcas:lista('--esc-calcas'),
-    st:{ok:g('--ok'),ocupado:g('--danger'),reuniao:g('--brand2'),ausente:g('--fraco')}};
+    st:{ok:g('--ok'),ocupado:g('--warn'),reuniao:g('--danger'),ausente:g('--fraco')}};
   ESC.fonte=getComputedStyle(document.body).fontFamily||'Inter, system-ui, sans-serif'; ESC.sujo=true; }
 new MutationObserver(()=>{ if(ESC.naTela) escLerCores(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-tema']});
 
@@ -29030,16 +29030,19 @@ function escDesenhar(cv,t){
   gente.push({u:me.id,nome:me.nome,x:ESC.eu.x,y:ESC.eu.y,st:escStEfetivo(),v:true,dir:ESC.eu.dir||'down',anda:!!ESC.euAnda,eu:true});
   gente.sort((a,b)=>a.y-b.y);
   const quadro=Math.floor((t||0)/140)%2;
-  gente.forEach(p=>{ const sent=!p.anda&&escNaCadeira(p.x,p.y); escBoneco(ctx,p.x*T,(p.y+.3)*T,T,escVisual(p.u,p.nome),sent?'up':p.dir,p.anda,!!sent,quadro,p.v?1:.5,p.u===ESC.card); });
+  gente.forEach(p=>{ const sent=!p.anda&&escNaCadeira(p.x,p.y); escBoneco(ctx,p.x*T,(p.y+.3)*T,T,escVisual(p.u,p.nome),sent?'up':p.dir,p.anda,!!sent,quadro,p.v?1:.5,p.u===ESC.card,p.st&&p.st!=='ok'&&p.st!=='ausente'?C.st[p.st]:''); });
   gente.forEach(p=>{ const sent=!p.anda&&escNaCadeira(p.x,p.y), topo=(p.y+.3-(sent?1.12:1.22))*T;
-    const rot=(primeiroNome(p.nome)||'Colega')+(p.st&&p.st!=='ok'?' · '+ESC_ST[p.st]:'');
+    const rot=primeiroNome(p.nome)||'Colega';   /* só o nome: o status vai na cor da bolinha e do chão do bonequinho (Gabriel 23/10) */
     const hT=escTag(ctx,p.x*T,topo,rot,C.st[p.st]||C.st.ok,T,d,F,p.v?1:.6,p.eu);
     const b=ESC.bolhas.get(p.u); if(b) escBolha(ctx,p.x*T,topo-hT-4*d,b.txt,T,d,F); });
 }
-function escBoneco(ctx,px,py,T,v,dir,anda,sentado,quadro,alpha,sel){
+function escBoneco(ctx,px,py,T,v,dir,anda,sentado,quadro,alpha,sel,corSt){
   const C=ESC.cores, u=T; ctx.save(); ctx.globalAlpha=alpha;
   const R=(x,y,w,h,c)=>{ ctx.fillStyle=c; const X=Math.round(px+x*u), Y=Math.round(py+y*u); ctx.fillRect(X,Y,Math.max(1,Math.round(px+(x+w)*u)-X),Math.max(1,Math.round(py+(y+h)*u)-Y)); };
   ctx.fillStyle=C.sombra; ctx.beginPath(); ctx.ellipse(px,py,.27*u,.09*u,0,0,Math.PI*2); ctx.fill();
+  /* Em reunião (vermelho) e Ocupado (âmbar): o chão do bonequinho acende na cor do status */
+  if(corSt){ ctx.save(); ctx.fillStyle=corSt; ctx.globalAlpha=alpha*.35; ctx.beginPath(); ctx.ellipse(px,py,.42*u,.17*u,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=alpha*.9; ctx.strokeStyle=corSt; ctx.lineWidth=Math.max(2,u*.06); ctx.stroke(); ctx.restore(); }
   if(sel){ ctx.strokeStyle=C.brand2; ctx.lineWidth=Math.max(2,u*.06); ctx.beginPath(); ctx.ellipse(px,py,.38*u,.14*u,0,0,Math.PI*2); ctx.stroke(); }
   const pulo=anda&&quadro?-.03:0;
   if(!sentado){ const a=anda?(quadro?.05:-.05):0;
