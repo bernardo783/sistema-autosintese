@@ -28208,10 +28208,11 @@ initLoginScreen();
    realtime.messages, migracao-2026-10-23-escritorio.sql; is_aprovado já barra o modo restrito).
    Cada um entra no canal no login (escBoot) e aparece na sala da sua área; quem abre a tela anda
    pelo mapa. A presença leva só o id da pessoa: nome e foto vêm de TK.equipe, nunca do payload.
-   Orçamento do plano Free (100 mensagens/s no projeto, Conversas junto): a presença só muda ao
-   parar de andar, trocar de sala ou de status; o movimento vai por broadcast a cada 500 ms e só
-   quando mais alguém está com a tela aberta. Link da chamada de cada sala mora na tabela
-   escritorio_salas (o repositório é público): só aprovado lê, só master troca. */
+   Dois canais (revisão de 23/10): 'escritorio' só com a presença (todo mundo, desde o login; muda
+   pouco: sala, status, tela aberta; no máximo 4 tracks em 30 s, que o servidor fecha o canal no 6º)
+   e 'escritorio-mapa' com o movimento, onde só entra quem está com a tela aberta (pos a cada 1 s,
+   rumo no clique). Plano Free: 100 mensagens/s no projeto, Conversas junto. Link da chamada de cada
+   sala mora na tabela escritorio_salas (o repositório é público): só aprovado lê, só master troca. */
 const ESC_W=48, ESC_H=30;
 const ESC_SALAS=[
   {id:'squad01',nome:'Squad 01',desc:'Campanhas e relatórios dos clientes do squad 01.',x0:1,y0:1,x1:11,y1:9},
@@ -28278,81 +28279,114 @@ const escLerPresenca=(m)=>{ if(!m||typeof m!=='object') return null;
   return {x:Math.max(.5,Math.min(ESC_W-.5,x)),y:Math.max(.5,Math.min(ESC_H-.5,y)),
     st:ESC_ST[m.st]?m.st:'ok', v:m.v===true, t:Number(m.t)||0}; };
 
-const ESC={canal:null,ok:false,tent:0,timer:0,parado:false,pares:new Map(),eu:null,links:null,linksErro:false,
-  naTela:false,raf:0,ult:0,caminho:[],teclas:{},T:20,cores:{},sujo:true,painel:'',imgs:{},sala:'',perto:null,
-  ultTrack:0,filaTrack:0,ultPos:0,andava:false,paradaT:0};
+const ESC={canal:null,mapa:null,ok:false,okMapa:false,tent:0,timer:0,parado:false,pares:new Map(),eu:null,mudouT:0,
+  links:null,linksErro:false,naTela:false,raf:0,ult:0,caminho:[],teclas:{},T:20,dpr:1,fonte:'',cores:{},sujo:true,painel:'',imgs:{},
+  sala:'',salaPend:false,salaDesde:0,perto:null,enviados:[],ultSig:'',filaTrack:0,ultPos:0,ultRumo:0,filaRumo:0,rumo:null,
+  andava:false,paradaT:0,acenos:[]};
+/* O servidor do Realtime fecha o canal no 6º track em 30 s (CLIENT_PRESENCE_MAX_CALLS=5 por cliente):
+   aqui vão no máximo 4, e o que passar espera a janela abrir (vale sempre o estado mais novo). */
+const ESC_PRES_MAX=4, ESC_PRES_JANELA=30000;
 const escMe=()=>(typeof currentUser!=='undefined'&&currentUser)||null;
 const escHoje=()=>{ try{ return hojeISO(); }catch(_){ return new Date().toISOString().slice(0,10); } };
+const escChave=()=>'esc_eu_'+((escMe()||{}).id||'');
+/* posição e status ficam no navegador: no mesmo dia volta pra onde parou; no dia seguinte
+   começa na sala da área e Disponível (status de ontem não vale hoje) */
+function escLerGuardado(){ try{ const o=JSON.parse(localStorage.getItem(escChave())||'null');
+  return o&&o.dia===escHoje()&&isFinite(o.x)&&isFinite(o.y)?o:null; }catch(_){ return null; } }
+function escGuardar(){ const e=ESC.eu; if(!e) return;
+  try{ localStorage.setItem(escChave(),JSON.stringify({x:+e.x.toFixed(2),y:+e.y.toFixed(2),st:e.st,dia:escHoje(),t:ESC.mudouT})); }catch(_){} }
 function escIniciarEu(){
-  const me=escMe(); if(!me) return; let salvo=null;
-  try{ salvo=JSON.parse(localStorage.getItem('esc_eu_'+me.id)||'null'); }catch(_){ salvo=null; }
-  let st='ok'; try{ st=localStorage.getItem('esc_st_'+me.id)||'ok'; }catch(_){}
-  if(!ESC_ST[st]) st='ok';
-  /* no mesmo dia volta pra onde parou; no dia seguinte começa na sala da sua área */
-  if(salvo&&salvo.dia===escHoje()&&isFinite(salvo.x)&&isFinite(salvo.y)&&escPisoPerto(salvo.x,salvo.y)){
-    const p=escPisoPerto(salvo.x,salvo.y); ESC.eu={x:p[0]+.5,y:p[1]+.5,st}; }
-  else { const l=escLugar(escSalaPadrao(me),me.id); ESC.eu={x:l.x,y:l.y,st}; }
+  const me=escMe(); if(!me) return; const g=escLerGuardado(), p=g&&escPisoPerto(g.x,g.y);
+  if(p){ ESC.eu={x:p[0]+.5,y:p[1]+.5,st:ESC_ST[g.st]?g.st:'ok'}; ESC.mudouT=Number(g.t)||0; }
+  else { const l=escLugar(escSalaPadrao(me),me.id); ESC.eu={x:l.x,y:l.y,st:'ok'}; ESC.mudouT=0; }
 }
+/* aba sem a tela aberta acompanha o que a outra aba (a que anda) gravou: não republica posição velha */
+function escReler(){ if(ESC.naTela||!ESC.eu) return; const g=escLerGuardado(); if(!g||(Number(g.t)||0)<=ESC.mudouT) return;
+  const p=escPisoPerto(g.x,g.y); if(p){ ESC.eu.x=p[0]+.5; ESC.eu.y=p[1]+.5; }
+  ESC.eu.st=ESC_ST[g.st]?g.st:'ok'; ESC.mudouT=Number(g.t)||0; ESC.sujo=true; }
+const escMudou=()=>{ ESC.mudouT=Date.now(); escGuardar(); };
+/* t = hora da última mudança de verdade (não do envio): entre abas da mesma pessoa vale a mais nova */
 const escEstado=()=>{ const me=escMe(), e=ESC.eu;
   return {u:me.id,x:+e.x.toFixed(1),y:+e.y.toFixed(1),sala:escSalaDe(e.x,e.y).id,st:e.st,
-    v:ESC.naTela&&!document.hidden,t:Date.now()}; };
-/* track no máximo 1 por segundo: a cota de presença do plano é pequena */
-function escTrack(){
-  const c=ESC.canal; if(!c||!ESC.ok||!escMe()) return;
-  const falta=1000-(Date.now()-ESC.ultTrack);
-  if(falta>0){ if(!ESC.filaTrack) ESC.filaTrack=setTimeout(()=>{ ESC.filaTrack=0; escTrack(); },falta); return; }
-  ESC.ultTrack=Date.now(); try{ c.track(escEstado()).catch(()=>{}); }catch(_){}
+    v:ESC.naTela&&!document.hidden,t:ESC.mudouT}; };
+/* track só quando muda o que os outros veem (sala, status, tela aberta); 'parou' manda a posição
+   exata se ainda sobra folga na janela. Nunca passa de 4 em 30 s. */
+function escTrack(motivo){
+  const c=ESC.canal; if(!c||!ESC.ok||!escMe()||!ESC.eu) return;
+  escReler();
+  const e=escEstado(), sig=e.sala+'|'+e.st+'|'+e.v, agora=Date.now();
+  ESC.enviados=ESC.enviados.filter(t=>agora-t<ESC_PRES_JANELA);
+  if(sig===ESC.ultSig&&motivo!=='entrou'&&!(motivo==='parou'&&ESC.enviados.length<=1)) return;   /* nada que os outros vejam mudou */
+  if(ESC.enviados.length>=ESC_PRES_MAX){
+    if(!ESC.filaTrack) ESC.filaTrack=setTimeout(()=>{ ESC.filaTrack=0; escTrack('fila'); },ESC_PRES_JANELA-(agora-ESC.enviados[0])+100);
+    return; }
+  ESC.enviados.push(agora); ESC.ultSig=sig; try{ c.track(e).catch(()=>{}); }catch(_){}
 }
 const escAlguemVendo=()=>{ for(const o of ESC.pares.values()) if(o.v) return true; return false; };
-function escMandar(evento,dados){ const c=ESC.canal; if(!c||!ESC.ok||!escAlguemVendo()) return;
-  try{ c.send({type:'broadcast',event:evento,payload:Object.assign({u:escMe().id},dados)}).catch(()=>{}); }catch(_){} }
+/* movimento vai pelo canal do mapa, onde só está quem tem a tela aberta */
+function escMandar(evento,dados){ const c=ESC.mapa; if(!c||!ESC.okMapa||!escAlguemVendo()) return false;
+  try{ c.send({type:'broadcast',event:evento,payload:Object.assign({u:escMe().id},dados)}).catch(()=>{}); }catch(_){} return true; }
 
 async function escBoot(){
   const me=escMe();
   if(ESC.canal||ESC.parado||!me||!me.aprovado) return;
-  if(typeof restrito==='function'&&restrito()) return;          /* modo restrito não entra (o banco também barra) */
-  if(/rob[oô]/i.test(String(me.nome||''))) return;                /* o robô não é gente no escritório */
+  if(typeof restrito==='function'&&restrito()) return;                    /* modo restrito não entra (o banco também barra) */
+  if(typeof tlBloqueada==='function'&&tlBloqueada('escritorio')) return;   /* tela desligada pra pessoa em Usuários */
+  if(/rob[oô]/i.test(String(me.nome||''))) return;                          /* o robô não é gente no escritório */
   if(typeof sb==='undefined'||!sb||!sb.channel) return;
   if(!ESC.eu) escIniciarEu();
   try{ const S=await sbSessao(); if(S&&S.access_token&&sb.realtime&&sb.realtime.setAuth) await sb.realtime.setAuth(S.access_token); }catch(_){}
-  if(ESC.canal) return;
+  if(ESC.canal||ESC.parado) return;
   const c=sb.channel('escritorio',{config:{private:true,presence:{key:me.id},broadcast:{self:false}}});
   ESC.canal=c;
   c.on('presence',{event:'sync'},()=>{ if(ESC.canal===c) escSync(c.presenceState()); })
-   .on('broadcast',{event:'pos'},(m)=>{ if(ESC.canal===c) escPos(m&&m.payload,false); })
-   .on('broadcast',{event:'rumo'},(m)=>{ if(ESC.canal===c) escPos(m&&m.payload,true); })
    .on('broadcast',{event:'aceno'},(m)=>{ if(ESC.canal===c) escAceno(m&&m.payload); })
    .subscribe((st)=>{ if(ESC.canal!==c) return;
-     if(st==='SUBSCRIBED'){ ESC.ok=true; ESC.tent=0; ESC.ultTrack=0; escTrack(); ESC.sujo=true; ESC.painel=''; }
+     if(st==='SUBSCRIBED'){ ESC.ok=true; ESC.tent=0; ESC.enviados=[]; ESC.ultSig=''; escTrack('entrou'); ESC.sujo=true; ESC.painel=''; }
      else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){ ESC.ok=false; ESC.painel=''; escReentrar(); } });
 }
-/* caiu (token venceu, rede, ou o canal ainda não foi liberado no banco): tenta de novo com espera crescente */
+/* caiu (token venceu, rede): tenta de novo com espera crescente e um pouco aleatória, pra a equipe
+   não voltar toda no mesmo segundo; depois de 5 tentativas, a cada ~5 min, sem desistir */
 function escReentrar(){
   const c=ESC.canal; ESC.canal=null; ESC.ok=false; ESC.pares.clear(); ESC.sujo=true;
   if(c){ try{ sb.removeChannel(c); }catch(_){} }
-  clearTimeout(ESC.timer); if(ESC.parado||ESC.tent>=8) return;
-  const espera=[2,5,10,30,60][Math.min(ESC.tent,4)]*1000; ESC.tent++;
-  ESC.timer=setTimeout(()=>{ escBoot(); },espera);
+  clearTimeout(ESC.timer); if(ESC.parado) return;
+  const base=ESC.tent<5?[2,5,10,30,60][ESC.tent]:300; ESC.tent++;
+  ESC.timer=setTimeout(()=>{ escBoot(); },base*1000*(0.75+Math.random()*0.5));
 }
-async function escSair(){ ESC.parado=true; clearTimeout(ESC.timer); const c=ESC.canal; ESC.canal=null; ESC.ok=false;
+function escReligar(){ if(!ESC.canal&&!ESC.parado&&escMe()){ clearTimeout(ESC.timer); ESC.tent=0; escBoot(); } }
+async function escSair(){ ESC.parado=true; clearTimeout(ESC.timer); escMapaSair(); const c=ESC.canal; ESC.canal=null; ESC.ok=false;
   if(!c) return; try{ await c.untrack(); }catch(_){} try{ await sb.removeChannel(c); }catch(_){} }
+function escMapaEntrar(){
+  if(ESC.mapa||!ESC.naTela||ESC.parado||typeof sb==='undefined'||!sb||!sb.channel) return;
+  const c=sb.channel('escritorio-mapa',{config:{private:true,broadcast:{self:false}}}); ESC.mapa=c;
+  c.on('broadcast',{event:'pos'},(m)=>{ if(ESC.mapa===c) escPos(m&&m.payload,false); })
+   .on('broadcast',{event:'rumo'},(m)=>{ if(ESC.mapa===c) escPos(m&&m.payload,true); })
+   .subscribe((st)=>{ if(ESC.mapa!==c) return;
+     if(st==='SUBSCRIBED') ESC.okMapa=true;
+     else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){ ESC.okMapa=false; ESC.mapa=null; try{ sb.removeChannel(c); }catch(_){}
+       if(ESC.naTela) setTimeout(escMapaEntrar,(5+Math.random()*10)*1000); } });
+}
+function escMapaSair(){ const c=ESC.mapa; ESC.mapa=null; ESC.okMapa=false; if(c){ try{ sb.removeChannel(c); }catch(_){} } }
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){ escTrack(); return; }
-  if(!ESC.canal&&!ESC.parado&&escMe()){ ESC.tent=0; escBoot(); } else escTrack();
+  if(ESC.naTela) escTrack();                  /* fora da tela nada que os outros veem muda: não gasta track */
+  if(!document.hidden){ escReligar(); escMostrarAcenos(); }
 });
+window.addEventListener('online',escReligar);
+window.addEventListener('storage',(e)=>{ if(e.key===escChave()){ escReler(); escTrack(); } });
 
 function escSync(estado){
   const me=escMe(), vistos=new Set();
   Object.keys(estado||{}).forEach(k=>{ if(!me||k===me.id) return;
-    const metas=Array.isArray(estado[k])?estado[k]:[]; let m=null;
-    metas.forEach(x=>{ if(!m||(Number(x&&x.t)||0)>(Number(m.t)||0)) m=x; });   /* várias abas: vale a mais recente */
-    const p=escLerPresenca(m); if(!p) return;
+    const metas=(Array.isArray(estado[k])?estado[k]:[]).map(escLerPresenca).filter(Boolean); if(!metas.length) return;
+    /* várias abas: vale a que está com a tela aberta; empate, a mudança mais recente */
+    const p=metas.reduce((a,b)=>(b.v!==a.v?(b.v?b:a):(b.t>a.t?b:a)));
     vistos.add(k);
     let o=ESC.pares.get(k); if(!o){ o={dx:p.x,dy:p.y,rota:null}; ESC.pares.set(k,o); }
     if(!o.rota||!o.rota.length){ o.x=p.x; o.y=p.y; }
     o.st=p.st; o.v=p.v; });
   [...ESC.pares.keys()].forEach(k=>{ if(!vistos.has(k)) ESC.pares.delete(k); });
-  ESC.sujo=true; ESC.painel='';
+  ESC.sujo=true;
 }
 function escPos(p,rumo){
   if(!p||typeof p.u!=='string') return; const o=ESC.pares.get(p.u); if(!o) return;   /* só de quem está no canal */
@@ -28362,9 +28396,13 @@ function escPos(p,rumo){
   else { o.rota=null; o.x=a.x; o.y=a.y; }
   o.v=true; ESC.sujo=true;
 }
+/* aceno com a aba escondida não se perde: aparece quando a pessoa volta */
 function escAceno(p){ const me=escMe(); if(!me||!p||p.para!==me.id||typeof p.u!=='string'||p.u===me.id) return;
   const n=primeiroNome(tkNomeUser(p.u))||'Alguém';
+  if(document.hidden){ if(ESC.acenos.indexOf(n)<0) ESC.acenos.push(n); return; }
   toast(n+' acenou para você no Escritório.'); }
+function escMostrarAcenos(){ if(!ESC.acenos.length) return; const l=ESC.acenos.splice(0);
+  toast((l.length===1?l[0]+' acenou':l.slice(0,-1).join(', ')+' e '+l[l.length-1]+' acenaram')+' para você no Escritório.'); }
 
 /* ---------- tela ---------- */
 function escCss(){ if(document.getElementById('escCss')) return; const s=document.createElement('style'); s.id='escCss';
@@ -28372,8 +28410,9 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   .esc-palco{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px;align-items:start}
   @media (max-width:980px){.esc-palco{grid-template-columns:minmax(0,1fr)}}
   .esc-mapa{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
-  #escCv{display:block;width:100%;height:auto;aspect-ratio:48/30;border-radius:6px;cursor:pointer;touch-action:manipulation}
-  #escCv:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
+  .esc-cvbox{overflow-x:auto;border-radius:6px}
+  #escCv{display:block;width:100%;min-width:600px;height:auto;aspect-ratio:48/30;border-radius:6px;cursor:pointer;touch-action:pan-x pan-y}
+  #escCv:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
   .esc-dica{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);padding:8px 2px 0}
   .esc-dica kbd{font:600 11px inherit;border:1px solid var(--line);border-radius:3px;padding:0 5px;color:var(--txt)}
   .esc-lado{display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -28394,7 +28433,7 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   .esc-p .av{width:20px;height:20px;font-size:10px}
   .esc-p .dot{width:8px;height:8px;border-radius:50%;flex:none}
   .esc-p.vc{color:var(--txt);font-weight:600}
-  .esc-p.fora{opacity:.7}
+  .esc-p.fora{opacity:.6}
   .esc-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}
   .esc-aviso{font-size:13px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px}
   .esc-eu{display:flex;align-items:center;gap:8px}
@@ -28402,16 +28441,17 @@ function escCss(){ if(document.getElementById('escCss')) return; const s=documen
   document.head.appendChild(s); }
 const escCorSt=(st)=>({ok:'--ok',ocupado:'--warn',reuniao:'--brand',ausente:'--fraco'})[st]||'--ok';
 function escLerCores(){ const cs=getComputedStyle(document.documentElement), g=(n)=>cs.getPropertyValue(n).trim();
-  ESC.cores={piso:g('--panel'),corredor:g('--bg'),parede:g('--fraco')||g('--muted'),mesa:g('--panel2'),txt:g('--txt'),muted:g('--muted'),
+  ESC.cores={piso:g('--panel'),corredor:g('--panel2'),parede:g('--fraco')||g('--muted'),mesa:g('--line'),txt:g('--txt'),muted:g('--muted'),
     brand:g('--brand'),brand2:g('--brand2'),panel:g('--panel'),line:g('--line'),
-    st:{ok:g('--ok'),ocupado:g('--warn'),reuniao:g('--brand'),ausente:g('--fraco')}}; ESC.sujo=true; }
+    st:{ok:g('--ok'),ocupado:g('--warn'),reuniao:g('--brand'),ausente:g('--fraco')}};
+  ESC.fonte=getComputedStyle(document.body).fontFamily||'system-ui, sans-serif'; ESC.sujo=true; }
 new MutationObserver(()=>{ if(ESC.naTela) escLerCores(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-tema']});
 
+/* link da chamada: relido a cada vez que a tela abre (o master pode ter trocado); falha mantém o que já tinha */
 async function escLinks(){
-  if(ESC.links) return;
   try{ const {data,error}=await sb.from('escritorio_salas').select('id,link');
-    if(error) throw error; ESC.links={}; (data||[]).forEach(r=>{ if(r&&r.id) ESC.links[r.id]=String(r.link||''); }); ESC.linksErro=false; }
-  catch(_){ ESC.links={}; ESC.linksErro=true; }
+    if(error) throw error; const m={}; (data||[]).forEach(r=>{ if(r&&r.id) m[r.id]=String(r.link||''); }); ESC.links=m; ESC.linksErro=false; }
+  catch(_){ if(!ESC.links) ESC.links={}; ESC.linksErro=true; }
   ESC.painel='';
 }
 const escLinkOk=(l)=>/^https:\/\/[^\s"'<>]+$/.test(String(l||''));
@@ -28420,6 +28460,8 @@ function escRender(c){
   escCss();
   const me=escMe(); if(!me){ c.innerHTML='<div class="empty">Entre no sistema para ver o escritório.</div>'; return; }
   if(!ESC.eu) escIniciarEu();
+  escReler();
+  const toque=!!(window.matchMedia&&matchMedia('(pointer: coarse)').matches);
   c.innerHTML=`
    <div class="page-head">
      <div><h2>Escritório</h2><div class="desc">Quem está em cada sala, ao vivo</div></div>
@@ -28429,52 +28471,61 @@ function escRender(c){
    <div class="esc-aviso" id="escAviso" hidden></div>
    <div class="esc-palco">
      <section class="esc-mapa" aria-label="Planta do escritório">
-       <canvas id="escCv" width="960" height="600" tabindex="0" aria-label="Mapa do escritório. Use as setas ou W A S D para andar, ou clique onde quer ir."></canvas>
-       <div class="esc-dica"><span><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> ou setas para andar</span><span>Clique no mapa para ir até lá</span><span>Chegue perto de alguém para acenar</span></div>
+       <div class="esc-cvbox"><canvas id="escCv" width="960" height="600" tabindex="0" aria-label="Mapa do escritório. Use as setas ou W A S D para andar, ou clique onde quer ir."></canvas></div>
+       <div class="esc-dica">${toque?'<span>Toque no mapa para ir até lá</span><span>Arraste de lado para ver o resto do mapa</span>'
+         :'<span><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> ou setas para andar</span><span>Clique no mapa para ir até lá</span>'}<span>Chegue perto de alguém para acenar</span></div>
      </section>
      <aside class="esc-lado">
-       <div class="esc-box esc-sala" aria-live="polite">
+       <div class="esc-box esc-sala">
          <div class="esc-rot">Você está em</div>
-         <h3 id="escSalaNome">-</h3><p id="escSalaDesc"></p>
+         <h3 id="escSalaNome" aria-live="polite">-</h3><p id="escSalaDesc"></p>
          <div class="esc-lk" id="escLk"></div>
          <div id="escPerto" hidden><div id="escPertoTxt" style="font-size:13px"></div>
            <button type="button" class="btn small ghost" id="escAcenar" style="margin-top:6px">Acenar</button></div>
        </div>
        <div class="esc-box"><div class="esc-rot">Quem está onde</div><ul class="esc-lista" id="escLista"></ul>
-         <div class="esc-leg">${Object.keys(ESC_ST).map(k=>`<span class="esc-p"><span class="dot" style="background:var(${escCorSt(k)})"></span>${ESC_ST[k]}</span>`).join('')}<span class="esc-p fora">Clarinho: logado, fora desta tela</span></div></div>
+         <div class="esc-leg">${Object.keys(ESC_ST).map(k=>`<span class="esc-p"><span class="dot" style="background:var(${escCorSt(k)})"></span>${ESC_ST[k]}</span>`).join('')}<span class="esc-p fora">Apagado: logado, em outra tela</span></div></div>
      </aside>
    </div>`;
   const cv=document.getElementById('escCv');
-  ESC.naTela=true; ESC.sala=''; ESC.painel=''; ESC.perto=null; ESC.caminho=[]; ESC.teclas={}; ESC.sujo=true;
+  ESC.naTela=true; ESC.sala=escSalaDe(ESC.eu.x,ESC.eu.y).id; ESC.salaPend=false; ESC.painel=''; ESC.perto=null; ESC.caminho=[]; ESC.teclas={}; ESC.sujo=true;
   escLerCores();
   const ajustar=()=>{ if(!cv.isConnected) return; const r=cv.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
-    const w=Math.max(320,Math.round(r.width)); cv.width=Math.round(w*dpr); cv.height=Math.round(w*ESC_H/ESC_W*dpr); ESC.T=cv.width/ESC_W; ESC.sujo=true; };
-  try{ new ResizeObserver(ajustar).observe(cv); }catch(_){ ajustar(); }
+    const w=Math.max(320,Math.round(r.width)); ESC.dpr=dpr; cv.width=Math.round(w*dpr); cv.height=Math.round(w*ESC_H/ESC_W*dpr); ESC.T=cv.width/ESC_W; ESC.sujo=true; };
+  ajustar(); try{ const ro=new ResizeObserver(()=>{ if(!cv.isConnected){ ro.disconnect(); return; } ajustar(); }); ro.observe(cv); }catch(_){}
+  /* celular: o mapa rola de lado; abre já mostrando onde você está */
+  const box=cv.parentElement; if(box&&box.scrollWidth>box.clientWidth) box.scrollLeft=Math.max(0,ESC.eu.x/ESC_W*box.scrollWidth-box.clientWidth/2);
   const TECLAS={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,w:1,a:1,s:1,d:1};
   const tk=(e)=>e.key.length===1?e.key.toLowerCase():e.key;
   cv.addEventListener('keydown',e=>{ if(!TECLAS[tk(e)]||e.altKey||e.ctrlKey||e.metaKey) return; e.preventDefault(); ESC.teclas[tk(e)]=true; });
   cv.addEventListener('keyup',e=>{ if(TECLAS[tk(e)]) ESC.teclas[tk(e)]=false; });
   cv.addEventListener('blur',()=>{ ESC.teclas={}; });
-  cv.addEventListener('pointerdown',e=>{ const r=cv.getBoundingClientRect();
+  /* click, não pointerdown: no celular, rolar o mapa não faz o bonequinho andar */
+  cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect();
     escIrPara((e.clientX-r.left)/r.width*ESC_W,(e.clientY-r.top)/r.height*ESC_H); cv.focus({preventScroll:true}); });
   document.getElementById('escSt').onchange=(e)=>{ const v=e.target.value; if(!ESC_ST[v]) return; ESC.eu.st=v;
-    try{ localStorage.setItem('esc_st_'+me.id,v); }catch(_){} ESC.sujo=true; ESC.painel=''; escTrack(); };
+    escMudou(); ESC.sujo=true; ESC.painel=''; escTrack(); };
   document.getElementById('escAcenar').onclick=()=>{ const a=ESC.perto; if(!a) return;
-    if(!ESC.ok){ toast('Sem conexão ao vivo agora. Tente de novo em instantes.'); return; }
+    if(!ESC.ok||!ESC.canal){ toast('Sem conexão ao vivo agora. Tente de novo em instantes.'); return; }
     try{ ESC.canal.send({type:'broadcast',event:'aceno',payload:{u:me.id,para:a.u}}).catch(()=>{}); }catch(_){}
-    toast('Você acenou para '+(a.nome||'a pessoa')+'.'); };
+    toast('Aceno enviado para '+(a.nome||'a pessoa')+'.'); };
   escLinks();
-  escTrack();
   if(!ESC.canal&&!ESC.parado){ ESC.tent=0; escBoot(); }
+  escTrack();          /* agora com a tela aberta (v) */
+  escMapaEntrar();
   if(!ESC.raf){ ESC.ult=performance.now(); ESC.raf=requestAnimationFrame(escLaco); }
 }
 window.escRender=escRender;
 window.escBoot=escBoot;
 window.escSair=escSair;
 
+/* clique: o último vence, no máximo 1 rumo a cada 400 ms pra quem está olhando */
 function escIrPara(tx,ty){ const p=escPisoPerto(tx,ty), e=ESC.eu; if(!p||!e) return;
-  ESC.caminho=escBfs(Math.floor(e.x),Math.floor(e.y),p[0],p[1]);
-  if(ESC.caminho.length) escMandar('rumo',{x:+e.x.toFixed(1),y:+e.y.toFixed(1),tx:p[0]+.5,ty:p[1]+.5}); }
+  ESC.caminho=escBfs(Math.floor(e.x),Math.floor(e.y),p[0],p[1]); if(!ESC.caminho.length) return;
+  ESC.rumo={x:+e.x.toFixed(1),y:+e.y.toFixed(1),tx:p[0]+.5,ty:p[1]+.5};
+  const falta=400-(Date.now()-ESC.ultRumo);
+  if(falta<=0){ ESC.ultRumo=Date.now(); escMandar('rumo',ESC.rumo); ESC.rumo=null; }
+  else if(!ESC.filaRumo) ESC.filaRumo=setTimeout(()=>{ ESC.filaRumo=0; if(ESC.rumo){ ESC.ultRumo=Date.now(); escMandar('rumo',ESC.rumo); ESC.rumo=null; } },falta); }
 window.escIrSala=(id)=>{ const s=ESC_SALAS.find(x=>x.id===id);
   if(s) escIrPara((s.x0+s.x1+1)/2,(s.y0+s.y1+2)/2); else escIrPara(24,12);
   const cv=document.getElementById('escCv'); if(cv) cv.focus({preventScroll:true}); };
@@ -28486,7 +28537,7 @@ function escMover(dt){
   if(vx||vy){ ESC.caminho=[]; const n=Math.hypot(vx,vy); vx=vx/n*ESC_VEL*dt; vy=vy/n*ESC_VEL*dt;
     const r=.32, ok=(x,y)=>escLivre(Math.floor(x-r),Math.floor(y-r))&&escLivre(Math.floor(x+r),Math.floor(y-r))&&escLivre(Math.floor(x-r),Math.floor(y+r))&&escLivre(Math.floor(x+r),Math.floor(y+r));
     let m=false; if(ok(e.x+vx,e.y)){ e.x+=vx; m=true; } if(ok(e.x,e.y+vy)){ e.y+=vy; m=true; }
-    if(m&&performance.now()-ESC.ultPos>500){ ESC.ultPos=performance.now(); escMandar('pos',{x:+e.x.toFixed(1),y:+e.y.toFixed(1)}); }
+    if(m&&performance.now()-ESC.ultPos>1000){ ESC.ultPos=performance.now(); escMandar('pos',{x:+e.x.toFixed(1),y:+e.y.toFixed(1)}); }
     return m; }
   if(ESC.caminho.length){ const p=ESC.caminho[0], dx=p.x-e.x, dy=p.y-e.y, d=Math.hypot(dx,dy), passo=ESC_VEL*dt;
     if(d<=passo){ e.x=p.x; e.y=p.y; ESC.caminho.shift(); } else { e.x+=dx/d*passo; e.y+=dy/d*passo; } return true; }
@@ -28498,18 +28549,20 @@ function escAndarOutros(dt){
       if(d<=passo){ o.dx=p.x; o.dy=p.y; o.rota.shift(); if(!o.rota.length){ o.rota=null; o.x=o.dx; o.y=o.dy; } }
       else { o.dx+=dx/d*passo; o.dy+=dy/d*passo; } ESC.sujo=true; return; }
     const dx=o.x-o.dx, dy=o.y-o.dy;
-    if(Math.abs(dx)+Math.abs(dy)>.01){ const k=Math.min(1,dt*8); o.dx+=dx*k; o.dy+=dy*k; ESC.sujo=true; } });
+    if(Math.abs(dx)+Math.abs(dy)>.01){ const k=Math.min(1,dt*6); o.dx+=dx*k; o.dy+=dy*k; ESC.sujo=true; } });
 }
 function escLaco(t){
   const cv=document.getElementById('escCv');
-  if(!cv||!cv.isConnected){ ESC.raf=0; ESC.naTela=false; ESC.teclas={}; ESC.caminho=[]; escTrack(); return; }   /* saiu da tela */
+  if(!cv||!cv.isConnected){ ESC.raf=0; ESC.naTela=false; ESC.teclas={}; ESC.caminho=[]; escMapaSair(); escTrack(); return; }   /* saiu da tela */
   const dt=Math.min(.05,(t-ESC.ult)/1000); ESC.ult=t;
   const andou=escMover(dt);
   if(andou){ ESC.sujo=true; ESC.andava=true; ESC.paradaT=t; }
-  else if(ESC.andava&&t-ESC.paradaT>900){ ESC.andava=false; escTrack();   /* parou: os outros veem onde ficou */
-    try{ localStorage.setItem('esc_eu_'+escMe().id,JSON.stringify({x:ESC.eu.x,y:ESC.eu.y,dia:escHoje()})); }catch(_){} }
+  else if(ESC.andava&&t-ESC.paradaT>900){ ESC.andava=false; escMudou();     /* parou: quem olha o mapa vê onde ficou */
+    escMandar('pos',{x:+ESC.eu.x.toFixed(1),y:+ESC.eu.y.toFixed(1)}); escTrack('parou'); }
   escAndarOutros(dt);
-  const sala=escSalaDe(ESC.eu.x,ESC.eu.y).id; if(sala!==ESC.sala){ ESC.sala=sala; ESC.painel=''; ESC.sujo=true; escTrack(); }
+  const sala=escSalaDe(ESC.eu.x,ESC.eu.y).id;
+  if(sala!==ESC.sala){ ESC.sala=sala; ESC.salaPend=true; ESC.salaDesde=t; ESC.painel=''; ESC.sujo=true; }
+  else if(ESC.salaPend&&t-ESC.salaDesde>1500){ ESC.salaPend=false; escMudou(); escTrack(); }   /* parado na porta não gasta track */
   if(ESC.sujo){ ESC.sujo=false; escDesenhar(cv); }
   escPainel();
   ESC.raf=requestAnimationFrame(escLaco);
@@ -28517,7 +28570,9 @@ function escLaco(t){
 function escImg(uid){ const f=fotoDe(uid); if(!f) return null; let im=ESC.imgs[uid];
   if(!im||im.__src!==f){ im=new Image(); im.__src=f; im.onload=()=>{ ESC.sujo=true; }; im.src=f; ESC.imgs[uid]=im; } return im; }
 function escDesenhar(cv){
-  const ctx=cv.getContext('2d'), T=ESC.T, C=ESC.cores, F='Archivo, "Helvetica Neue", Arial, sans-serif';
+  const ctx=cv.getContext('2d'), T=ESC.T, C=ESC.cores, F=ESC.fonte||'system-ui, sans-serif', d=ESC.dpr||1;
+  /* tamanhos com piso em pixel de tela: legível no Retina e no celular */
+  const fs=(min,k)=>Math.max(min*d,T*k);
   const txt=(s,x,y,cor,tam,peso)=>{ ctx.font=(peso||400)+' '+tam+'px '+F; ctx.fillStyle=cor; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(s,x,y); };
   ctx.clearRect(0,0,cv.width,cv.height); ctx.fillStyle=C.corredor; ctx.fillRect(0,0,cv.width,cv.height);
   ESC_SALAS.forEach(s=>{ ctx.fillStyle=C.piso; ctx.fillRect(s.x0*T,s.y0*T,(s.x1-s.x0+1)*T,(s.y1-s.y0+1)*T);
@@ -28527,22 +28582,22 @@ function escDesenhar(cv){
     for(let yy=s.y0+1;yy<=s.y1-2;yy+=3) for(let xx=s.x0+1;xx<=s.x1-3;xx+=4) ctx.fillRect(xx*T,yy*T,2.6*T,1.1*T); });
   ctx.fillRect(27*T,20*T,7*T,5*T); ctx.fillRect(39*T,26*T,6*T,1.2*T);
   ctx.fillStyle=C.parede; for(let y=0;y<ESC_H;y++) for(let x=0;x<ESC_W;x++) if(ESC_GRID[y][x]===1) ctx.fillRect(x*T,y*T,T+.5,T+.5);
-  ESC_SALAS.forEach(s=>txt(s.nome.toUpperCase(),(s.x0+s.x1+1)/2*T,(s.y0+.9)*T,s.id===ESC.sala?C.brand2:C.muted,Math.max(9,T*.46),600));
-  txt('RECEPÇÃO',6.5*T,12.5*T,C.muted,Math.max(9,T*.44),600);
-  if(ESC.caminho.length){ const d=ESC.caminho[ESC.caminho.length-1]; ctx.strokeStyle=C.brand2; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(d.x*T,d.y*T,T*.3,0,Math.PI*2); ctx.stroke(); }
-  const boneco=(uid,nome,x,y,st,voce,fora)=>{ const R=T*.46;
+  ESC_SALAS.forEach(s=>txt(s.nome.toUpperCase(),(s.x0+s.x1+1)/2*T,(s.y0+.9)*T,s.id===ESC.sala?C.brand2:C.muted,fs(11,.46),600));
+  txt('RECEPÇÃO',6.5*T,12.5*T,C.muted,fs(11,.44),600);
+  if(ESC.caminho.length){ const q=ESC.caminho[ESC.caminho.length-1]; ctx.strokeStyle=C.brand2; ctx.lineWidth=2*d; ctx.beginPath(); ctx.arc(q.x*T,q.y*T,T*.3,0,Math.PI*2); ctx.stroke(); }
+  const boneco=(uid,nome,x,y,st,voce,fora)=>{ const R=Math.max(9*d,T*.46);
     ctx.save(); if(fora) ctx.globalAlpha=.55;
     ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fillStyle=corDoNome(nome); ctx.fill();
     const im=escImg(uid);
     if(im&&im.complete&&im.naturalWidth){ ctx.save(); ctx.beginPath(); ctx.arc(x,y,R-1,0,Math.PI*2); ctx.clip(); ctx.drawImage(im,x-R,y-R,R*2,R*2); ctx.restore(); }
-    else txt(inicial(nome),x,y+.5,'#ffffff',Math.max(9,T*.4),800);
-    ctx.lineWidth=Math.max(2,T*.12); ctx.strokeStyle=C.st[st]||C.st.ok; ctx.beginPath(); ctx.arc(x,y,R+ctx.lineWidth/2,0,Math.PI*2); ctx.stroke();
-    if(voce){ ctx.lineWidth=Math.max(1.5,T*.06); ctx.strokeStyle=C.txt; ctx.beginPath(); ctx.arc(x,y,R+T*.26,0,Math.PI*2); ctx.stroke(); }
+    else txt(inicial(nome),x,y+.5,'#ffffff',fs(10,.4),800);
+    ctx.lineWidth=Math.max(2*d,T*.12); ctx.strokeStyle=C.st[st]||C.st.ok; ctx.beginPath(); ctx.arc(x,y,R+ctx.lineWidth/2,0,Math.PI*2); ctx.stroke();
+    if(voce){ ctx.lineWidth=Math.max(1.5*d,T*.06); ctx.strokeStyle=C.txt; ctx.beginPath(); ctx.arc(x,y,R+Math.max(5*d,T*.26),0,Math.PI*2); ctx.stroke(); }
     ctx.restore();
-    const rot=voce?'Você':(primeiroNome(nome)||'Colega');
-    ctx.font='600 '+Math.max(9,T*.42)+'px '+F; const w=ctx.measureText(rot).width+T*.4, ly=y+R+T*.55;
-    ctx.globalAlpha=.9; ctx.fillStyle=C.panel; ctx.fillRect(x-w/2,ly-T*.3,w,T*.6); ctx.globalAlpha=1;
-    txt(rot,x,ly+.5,voce?C.txt:C.muted,Math.max(9,T*.42),600); };
+    const rot=voce?'Você':(primeiroNome(nome)||'Colega'), tam=fs(11,.42);
+    ctx.font='600 '+tam+'px '+F; const w=ctx.measureText(rot).width+tam*.8, ly=y+R+tam*1.1;
+    ctx.globalAlpha=.9; ctx.fillStyle=C.panel; ctx.fillRect(x-w/2,ly-tam*.7,w,tam*1.4); ctx.globalAlpha=1;
+    txt(rot,x,ly+.5,voce?C.txt:C.muted,tam,600); };
   ESC.pares.forEach((o,uid)=>boneco(uid,tkNomeUser(uid),o.dx*T,o.dy*T,o.st,false,!o.v));
   const me=escMe(); boneco(me.id,me.nome,ESC.eu.x*T,ESC.eu.y*T,ESC.eu.st,true,false);
 }
@@ -28550,7 +28605,7 @@ function escPainel(){
   const me=escMe(), $q=(id)=>document.getElementById(id);
   const outros=[...ESC.pares.entries()].map(([u,o])=>({u,x:o.dx,y:o.dy,st:o.st,v:o.v,nome:primeiroNome(tkNomeUser(u))||'Colega'}));
   const a=escPerto(ESC.eu,outros,2.5), ka=a?a.u:'';
-  if(ka!==(ESC.perto?ESC.perto.u:'')){ ESC.perto=a; const b=$q('escPerto'); if(b){ b.hidden=!a; if(a) $q('escPertoTxt').textContent='Perto de você: '+a.nome; } }
+  if(ka!==(ESC.perto?ESC.perto.u:'')){ ESC.perto=a; const b=$q('escPerto'); if(b){ b.hidden=!a; if(a) $q('escPertoTxt').textContent='Perto de você: '+a.nome+(a.v?'':' (em outra tela)'); } }
   const sala=escSalaDe(ESC.eu.x,ESC.eu.y);
   const chave=JSON.stringify([sala.id,ESC.ok,ESC.linksErro,ESC.links&&ESC.links[sala.id],ESC.eu.st,outros.map(o=>[o.u,escSalaDe(o.x,o.y).id,o.st,o.v])]);
   if(chave===ESC.painel) return; ESC.painel=chave;
@@ -28558,11 +28613,10 @@ function escPainel(){
   const lk=$q('escLk'), link=ESC.links?ESC.links[sala.id]:'', master=me.role==='master';
   lk.innerHTML=sala.id==='recepcao'?'<span class="esc-p">Entre numa sala para a chamada dela.</span>'
     :(escLinkOk(link)?`<a class="btn small" href="${esc(link)}" target="_blank" rel="noopener">Entrar na chamada da sala</a>`
-      :`<span class="btn small" aria-disabled="true">Chamada ainda não configurada</span>`)
+      :`<span class="btn small" aria-disabled="true">${ESC.linksErro?'Não deu para carregar a chamada':'Chamada ainda não configurada'}</span>`)
      +(master&&sala.id!=='recepcao'&&!ESC.linksErro?`<button type="button" class="btn small ghost" onclick="escTrocarLink('${sala.id}')">Trocar link</button>`:'');
   const av=$q('escAviso');
-  if(av){ const msg=!ESC.ok?(master?'Ao vivo ainda não conectou. Se continuar assim, falta liberar o canal do escritório no banco (migracao-2026-10-23-escritorio.sql).'
-      :'Ao vivo ainda não conectou: por enquanto você só vê o seu bonequinho.'):'';
+  if(av){ const msg=!ESC.ok?'Ao vivo desconectado agora, tentando de novo. Enquanto isso você só vê o seu bonequinho.':'';
     av.hidden=!msg; av.textContent=msg; }
   const por={}; outros.forEach(o=>{ const s=escSalaDe(o.x,o.y).id; (por[s]=por[s]||[]).push(o); });
   (por[sala.id]=por[sala.id]||[]).unshift({u:me.id,st:ESC.eu.st,v:true,nome:'Você',voce:true});
@@ -28571,13 +28625,13 @@ function escPainel(){
     const b=document.createElement('button'); b.type='button'; b.className='esc-ir'; b.onclick=()=>window.escIrSala(s.id);
     const n1=document.createElement('span'); n1.textContent=s.nome; const n2=document.createElement('span'); n2.className='n'; n2.textContent=g.length?String(g.length):'vazia';
     b.append(n1,n2); li.append(b);
-    if(g.length){ const d=document.createElement('div'); d.className='esc-gente';
+    if(g.length){ const dv=document.createElement('div'); dv.className='esc-gente';
       g.forEach(o=>{ const sp=document.createElement('span'); sp.className='esc-p'+(o.voce?' vc':'')+(o.v?'':' fora');
-        sp.title=(o.voce?'Você':tkNomeUser(o.u))+' · '+ESC_ST[o.st]+(o.v?'':' · logado, fora desta tela');
+        sp.title=(o.voce?'Você':tkNomeUser(o.u))+' · '+ESC_ST[o.st]+(o.v?'':' · logado, em outra tela');
         sp.innerHTML=avatar(o.u,o.voce?me.nome:tkNomeUser(o.u),'sm');
         const dot=document.createElement('span'); dot.className='dot'; dot.style.background='var('+escCorSt(o.st)+')';
-        const t=document.createElement('span'); t.textContent=o.nome; sp.append(dot,t); d.append(sp); });
-      li.append(d); }
+        const t=document.createElement('span'); t.textContent=o.nome; sp.append(dot,t); dv.append(sp); });
+      li.append(dv); }
     ul.append(li); });
 }
 window.escTrocarLink=(id)=>{ const me=escMe(); if(!me||me.role!=='master') return; const s=ESC_SALAS.find(x=>x.id===id); if(!s) return;
