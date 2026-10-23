@@ -2479,42 +2479,83 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   ok('presença de outro navegador é conferida: número, limite da planta, status conhecido',
     lp({x:'a',y:1})===null&&lp(null)===null&&lp({x:-50,y:999,st:'<b>'}).x===.5&&lp({x:-50,y:999}).y===p.ESC_H-.5&&lp({x:3,y:3,st:'<b>'}).st==='ok'&&lp({x:3,y:3,st:'reuniao',v:true}).v===true&&lp({x:3,y:3,v:'sim'}).v===false);
 
-  /* canal: sync, movimento dos outros, aceno, cota de envio */
-  const toasts=[], enviados=[], tracks=[], timers=[];
+  /* canal: sync, movimento dos outros, aceno, cota de presença (revisão 23/10) */
+  const toasts=[], enviados=[], tracks=[], timers=[], mapaEnv=[], guardado={};
   const fakeDoc={hidden:false,addEventListener:()=>{}};
-  const ctx=Object.assign({},p,{document:fakeDoc,currentUser:{id:'eu',nome:'Gabriel',role:'master',aprovado:true},
-    toast:(t)=>toasts.push(t),tkNomeUser:(u)=>({luiz:'Luiz',joao:'João'})[u]||'',primeiroNome:(s)=>String(s||'').trim().split(/\s+/)[0]||'',
-    hojeISO:()=>'2026-10-23',localStorage:{getItem:()=>null,setItem:()=>{}},setTimeout:(f,ms)=>{ timers.push([f,ms]); return timers.length; },clearTimeout:()=>{},
-    restrito:()=>false,sbSessao:async()=>null,sb:null});
-  const g=rodar(bloco('const ESC={canal:null','/* ---------- tela ---------- */'),ctx,['ESC','escSync','escPos','escAceno','escTrack','escMandar','escIniciarEu','escEstado']);
+  const ctx=Object.assign({},p,{document:fakeDoc,addEventListener:()=>{},currentUser:{id:'eu',nome:'Gabriel',role:'master',aprovado:true},
+    toast:(t)=>toasts.push(t),tkNomeUser:(u)=>({luiz:'Luiz',joao:'João',luan:'Luan'})[u]||'',primeiroNome:(s)=>String(s||'').trim().split(/\s+/)[0]||'',
+    hojeISO:()=>'2026-10-23',localStorage:{getItem:(k)=>guardado[k]||null,setItem:(k,v)=>{ guardado[k]=v; }},
+    setTimeout:(f,ms)=>{ timers.push([f,ms]); return timers.length; },clearTimeout:()=>{},
+    restrito:()=>false,tlBloqueada:()=>false,sbSessao:async()=>null,sb:null});
+  const g=rodar(bloco('const ESC={canal:null','/* ---------- tela ---------- */'),ctx,['ESC','ESC_PRES_MAX','escSync','escPos','escAceno','escMostrarAcenos','escTrack','escMandar','escIniciarEu','escEstado','escReler','escMudou','escGuardar','escReentrar','escBoot']);
   g.escIniciarEu();
-  ok('sem posição salva hoje: começa no lugar dele na sala da área (master na dos sócios)', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios'&&g.ESC.eu.st==='ok');
-  g.escSync({eu:[{x:1,y:1,t:5}],luiz:[{x:5,y:5,st:'ocupado',v:false,t:1},{x:6,y:6,st:'reuniao',v:true,t:9}],lixo:[{x:'?'}]});
-  const lz=g.ESC.pares.get('luiz');
-  ok('sync: eu não entro na lista, presença inválida é ignorada, de várias abas vale a mais recente',
-    !g.ESC.pares.has('eu')&&!g.ESC.pares.has('lixo')&&lz&&lz.x===6&&lz.st==='reuniao'&&lz.v===true);
+  ok('sem posição salva hoje: começa no lugar dele na sala da área (master na dos sócios), Disponível', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios'&&g.ESC.eu.st==='ok');
+  guardado['esc_eu_eu']=JSON.stringify({x:30.5,y:18.5,st:'ausente',dia:'2026-10-22',t:5});
+  g.ESC.eu=null; g.escIniciarEu();
+  ok('status de ontem não vale hoje: volta Disponível na sala da área', g.ESC.eu.st==='ok'&&g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios');
+  guardado['esc_eu_eu']=JSON.stringify({x:30.5,y:18.5,st:'reuniao',dia:'2026-10-23',t:50});
+  g.ESC.eu=null; g.escIniciarEu();
+  ok('no mesmo dia volta pra onde parou, com o status que escolheu', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='reuniao'&&g.ESC.eu.st==='reuniao'&&g.ESC.mudouT===50);
+  guardado['esc_eu_eu']=JSON.stringify({x:40.5,y:20.5,st:'ocupado',dia:'2026-10-23',t:90});
+  g.ESC.naTela=false; g.escReler();
+  ok('aba sem a tela aberta acompanha a outra aba (mudança mais nova), não republica posição velha', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='cafe'&&g.ESC.eu.st==='ocupado'&&g.ESC.mudouT===90);
+  guardado['esc_eu_eu']=JSON.stringify({x:5.5,y:5.5,st:'ok',dia:'2026-10-23',t:10});
+  g.escReler();
+  ok('gravação mais velha que a última mudança desta aba não vale', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='cafe');
+
+  g.escSync({eu:[{x:1,y:1,t:5}],luiz:[{x:5,y:5,st:'ocupado',v:true,t:1},{x:6,y:6,st:'reuniao',v:false,t:9}],
+    luan:[{x:7,y:7,st:'ok',v:false,t:3},{x:8,y:8,st:'ausente',v:false,t:7}],lixo:[{x:'?'}]});
+  const lz=g.ESC.pares.get('luiz'), ln=g.ESC.pares.get('luan');
+  ok('sync: eu não entro na lista e presença inválida é ignorada', !g.ESC.pares.has('eu')&&!g.ESC.pares.has('lixo'));
+  ok('várias abas: vale a que está com a tela aberta; sem nenhuma, a mudança mais nova', lz&&lz.x===5&&lz.st==='ocupado'&&lz.v===true&&ln&&ln.x===8&&ln.st==='ausente');
   g.escPos({u:'estranho',x:3,y:3},false);
   ok('movimento de quem não está no canal é ignorado', !g.ESC.pares.has('estranho'));
   g.escPos({u:'luiz',x:24.5,y:12.5,tx:5.5,ty:5.5},true);
   ok('rumo de um colega: o caminho é refeito aqui com a mesma planta', Array.isArray(lz.rota)&&lz.rota.length>0);
-  g.escSync({});
-  ok('quem saiu do canal some do mapa', g.ESC.pares.size===0);
+
   g.escAceno({u:'joao',para:'outra-pessoa'}); g.escAceno({u:'joao',para:'eu'}); g.escAceno({u:'eu',para:'eu'});
   ok('aceno só aparece pra quem foi acenado, com o nome vindo da equipe', toasts.length===1&&toasts[0]==='João acenou para você no Escritório.');
+  fakeDoc.hidden=true; g.escAceno({u:'luiz',para:'eu'}); g.escAceno({u:'joao',para:'eu'});
+  ok('aba escondida: o aceno fica guardado', toasts.length===1);
+  fakeDoc.hidden=false; g.escMostrarAcenos();
+  ok('ao voltar pra aba, aparece quem acenou', toasts.length===2&&toasts[1]==='Luiz e João acenaram para você no Escritório.');
+
   const canal={track:(e)=>{ tracks.push(e); return Promise.resolve(); },send:(m)=>{ enviados.push(m); return Promise.resolve('ok'); }};
-  g.ESC.canal=canal; g.ESC.ok=true; g.ESC.ultTrack=0;
-  g.escTrack(); g.escTrack();
-  ok('presença no máximo 1 vez por segundo (a segunda espera)', tracks.length===1&&timers.some(t=>t[1]>0&&t[1]<=1000));
-  ok('a presença leva só id, posição, sala, status e se está com a tela aberta', Object.keys(tracks[0]).sort().join(',')==='sala,st,t,u,v,x,y'&&tracks[0].u==='eu');
-  g.escMandar('pos',{x:1,y:1});
-  ok('ninguém olhando o mapa: não gasta mensagem com movimento', enviados.length===0);
+  g.ESC.canal=canal; g.ESC.ok=true; g.ESC.enviados=[]; g.ESC.ultSig='';
+  g.escTrack('entrou'); g.escTrack();
+  ok('track só quando muda o que os outros veem (sala, status, tela aberta)', tracks.length===1);
+  ok('a presença leva só id, posição, sala, status, tela aberta e a hora da última mudança', Object.keys(tracks[0]).sort().join(',')==='sala,st,t,u,v,x,y'&&tracks[0].u==='eu'&&tracks[0].t===g.ESC.mudouT);
+  ['ok','reuniao','ausente','ocupado','ok','reuniao'].forEach(st=>{ g.ESC.eu.st=st; g.escTrack(); });
+  ok('nunca passa de '+g.ESC_PRES_MAX+' em 30 s (o servidor fecha o canal no 6º)', tracks.length===g.ESC_PRES_MAX&&g.ESC_PRES_MAX<5);
+  const fila=timers.filter(t=>t[1]>1000&&t[1]<=30100);
+  ok('o que passou do limite espera a janela abrir, e vai o estado mais novo', fila.length===1&&(()=>{ g.ESC.enviados=[]; fila[0][0](); return tracks.length===g.ESC_PRES_MAX+1&&tracks[tracks.length-1].st==='reuniao'; })());
+  g.ESC.enviados=[Date.now(),Date.now()]; const nT=tracks.length; g.ESC.eu.x+=.2; g.escTrack('parou');
+  ok('parou dentro da mesma sala: só manda a posição se sobra folga na janela', tracks.length===nT);
+  g.ESC.enviados=[]; g.escTrack('parou');
+  ok('com folga, manda a posição exata de onde parou', tracks.length===nT+1);
+
+  const mapa={send:(m)=>{ mapaEnv.push(m); return Promise.resolve('ok'); }};
+  g.escSync({}); g.ESC.mapa=mapa; g.ESC.okMapa=true;
+  ok('ninguém olhando o mapa: não gasta mensagem com movimento', g.escMandar('pos',{x:1,y:1})===false&&mapaEnv.length===0);
   g.escSync({luiz:[{x:6,y:6,v:true,t:1}]}); g.escMandar('pos',{x:1,y:1});
-  ok('alguém olhando: o movimento vai, assinado com o id de quem mandou', enviados.length===1&&enviados[0].event==='pos'&&enviados[0].payload.u==='eu');
+  ok('movimento vai pelo canal do mapa (só quem está com a tela aberta), assinado', mapaEnv.length===1&&mapaEnv[0].event==='pos'&&mapaEnv[0].payload.u==='eu'&&enviados.length===0);
+
+  timers.length=0; g.ESC.parado=false; for(let i=0;i<9;i++) g.escReentrar();
+  const esperas=timers.map(t=>t[1]);
+  ok('caiu: tenta de novo sem desistir, espera crescente e um pouco aleatória', esperas.length===9&&esperas[0]>=1500&&esperas[0]<=2500&&esperas[8]>=225000&&esperas[8]<=375000);
+  ok('desligar a tela pra pessoa em Usuários tira ela do canal', HTML.indexOf("if(typeof tlBloqueada==='function'&&tlBloqueada('escritorio')) return;")>0);
+  ok('religa quando a internet volta', HTML.indexOf("window.addEventListener('online',escReligar);")>0);
+  ok('fora da tela, trocar de aba não gasta track', HTML.indexOf("if(ESC.naTela) escTrack();                  /* fora da tela")>0);
+  ok('o canal do mapa só abre com a tela aberta e fecha ao sair', HTML.indexOf("sb.channel('escritorio-mapa',{config:{private:true,broadcast:{self:false}}})")>0&&/if\(!cv\|\|!cv\.isConnected\)\{[^\n]*escMapaSair\(\); escTrack\(\); return; \}/.test(HTML));
+  ok('no celular, rolar o mapa não faz andar (anda no toque, não no pointerdown)', HTML.indexOf("cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect();")>0&&HTML.indexOf("cv.addEventListener('pointerdown'")<0);
+  ok('no celular o mapa abre rolado até o seu bonequinho', HTML.indexOf('box.scrollLeft=Math.max(0,ESC.eu.x/ESC_W*box.scrollWidth-box.clientWidth/2)')>0);
+  ok('nome e sala com piso em pixel de tela (legível no Retina e no celular)', HTML.indexOf("const fs=(min,k)=>Math.max(min*d,T*k);")>0&&/#escCv\{[^}]*min-width:600px/.test(HTML));
 
   /* chamada da sala */
   const gl=rodar(bloco('const escLinkOk=','function escRender('),{},['escLinkOk']);
   ok('link da chamada: só https sem espaço nem aspas', gl.escLinkOk('https://meet.google.com/abc-defg-hij')&&!gl.escLinkOk('javascript:alert(1)')&&!gl.escLinkOk('https://x.com/a"onmouseover=1')&&!gl.escLinkOk('http://x.com')&&!gl.escLinkOk(''));
   ok('o link mora no banco (repositório público): nenhum meet.jit.si fixo no código', HTML.indexOf("from('escritorio_salas')")>0&&!/meet\.jit\.si\/AutoSintese-[a-z0-9]+-[a-z0-9]/.test(HTML));
+  ok('o link é relido a cada vez que a tela abre (o master pode ter trocado)', !/async function escLinks\(\)\{\s*if\(ESC\.links\) return;/.test(HTML));
   ok('só master troca o link (tela) e o banco confere de novo', /window\.escTrocarLink=\(id\)=>\{ const me=escMe\(\); if\(!me\|\|me\.role!=='master'\) return;/.test(HTML));
 }
 
