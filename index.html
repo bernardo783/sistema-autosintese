@@ -5077,6 +5077,8 @@ body.mob-pessoal .mp-kpibt:active{background:var(--hov1)}
     <div class="sep"></div>
     <button class="rl navlink" data-view="reembolsos" id="navSuporte" title="Suporte: pedir reembolso ou abrir uma solicitação">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0116 0"/><path d="M4 13v3a2 2 0 002 2h1v-5H6a2 2 0 00-2 2zM20 13v3a2 2 0 01-2 2h-1v-5h1a2 2 0 012 2z"/><path d="M18 18v1a3 3 0 01-3 3h-2"/></svg><span class="t">Suporte</span></button>
+    <button class="rl navlink" data-view="escritorio" id="navEscritorio" title="Escritório: quem está em cada sala, ao vivo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v6M12 13v8M3 12h5M16 12h5"/></svg><span class="t">Escritório</span></button>
     <button class="rl navlink hidden" data-view="vendas" id="navVendas" title="Vendas: fechar contrato e gerar documento">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="t">Vendas</span></button>
     <button class="rl navlink hidden" data-view="funil/aba/painel" id="navPainel" title="Painel comercial: shows, conversão e ticket do mês">
@@ -5566,6 +5568,7 @@ async function enterApp(){
   else { try{ navReabrir(); }catch(_){} }
   NAV_PRONTO=true; navSalvar();
   mtBoot();   /* Meta começa a carregar no login: quando você abrir Tráfego já está pronto */
+  if(typeof escBoot==='function') escBoot();   /* Escritório virtual: aparece pros colegas desde o login */
   ntfBadge(); /* sino já acorda com o número certo */
   fotoObrigatoria();   /* sem foto o sistema nao libera (Gabriel 31/08) */
 }
@@ -5772,7 +5775,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) navSalvar
 let currentView='dash';
 document.querySelectorAll('.navlink').forEach(b=>{
   b.onclick=async ()=>{
-    if(SESSION && currentUser && currentUser.aprovado && b.dataset.view!=='processos'){ try{ await loadDB(); }catch(e){} }
+    if(SESSION && currentUser && currentUser.aprovado && ['processos','escritorio'].indexOf(b.dataset.view)<0){ try{ await loadDB(); }catch(e){} }
     render(b.dataset.view); };
 });
 function spMarcarAtalho(v){ document.querySelectorAll('.navlink').forEach(x=>x.classList.toggle('active', x.dataset.view===v)); }
@@ -5892,6 +5895,7 @@ function render(view){
     if(!currentUser||currentUser.role!=='master'){ c.innerHTML='<div class="empty">Acesso restrito a usuários master.</div>'; return; }
     return renderAgente(c);
   }
+  if(view==='escritorio'){ if(typeof escRender==='function') return escRender(c); c.innerHTML='<div class="empty">Carregando o escritório…</div>'; return; }
   if(view==='trafego') return renderTrafego(c);
   if(view==='lista') return renderTarefas(c);
   if(view==='notificacoes') return renderNotificacoes(c);
@@ -28197,6 +28201,395 @@ initLoginScreen();
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checa(); });
   setInterval(checa,5*60*1000);
 })();
+
+/* ======================= ESCRITÓRIO VIRTUAL (Gabriel 23/10/2026) =======================
+   Mapa do escritório com quem está em cada sala, ao vivo, no lugar do Gather. Presença pelo
+   Realtime do Supabase num canal PRIVADO ('escritorio'): só conta aprovada entra (policies em
+   realtime.messages, migracao-2026-10-23-escritorio.sql; is_aprovado já barra o modo restrito).
+   Cada um entra no canal no login (escBoot) e aparece na sala da sua área; quem abre a tela anda
+   pelo mapa. A presença leva só o id da pessoa: nome e foto vêm de TK.equipe, nunca do payload.
+   Orçamento do plano Free (100 mensagens/s no projeto, Conversas junto): a presença só muda ao
+   parar de andar, trocar de sala ou de status; o movimento vai por broadcast a cada 500 ms e só
+   quando mais alguém está com a tela aberta. Link da chamada de cada sala mora na tabela
+   escritorio_salas (o repositório é público): só aprovado lê, só master troca. */
+const ESC_W=48, ESC_H=30;
+const ESC_SALAS=[
+  {id:'squad01',nome:'Squad 01',desc:'Campanhas e relatórios dos clientes do squad 01.',x0:1,y0:1,x1:11,y1:9},
+  {id:'squad02',nome:'Squad 02',desc:'Campanhas e relatórios dos clientes do squad 02.',x0:13,y0:1,x1:23,y1:9},
+  {id:'comercial',nome:'Comercial',desc:'SDR e closer: leads, calls e fechamento de contrato.',x0:25,y0:1,x1:35,y1:9},
+  {id:'socios',nome:'Sala dos sócios',desc:'Sócios e tecnologia.',x0:37,y0:1,x1:46,y1:9},
+  {id:'financeiro',nome:'Financeiro',desc:'Recebimentos, folha e fechamento do mês.',x0:1,y0:16,x1:11,y1:28},
+  {id:'edicao',nome:'Edição e Social',desc:'Edição de vídeo, linha editorial e social media.',x0:13,y0:16,x1:23,y1:28},
+  {id:'reuniao',nome:'Sala de reunião',desc:'Reunião de time e call com cliente.',x0:25,y0:16,x1:35,y1:28},
+  {id:'cafe',nome:'Café',desc:'Área comum, conversa sem pauta.',x0:37,y0:16,x1:46,y1:28},
+];
+const ESC_CORREDOR={id:'recepcao',nome:'Recepção',desc:'Corredor central. Escolha uma sala ao lado ou ande até a porta.'};
+const ESC_ST={ok:'Disponível',ocupado:'Ocupado',reuniao:'Em reunião',ausente:'Ausente'};
+const ESC_GRID=(()=>{ const g=[]; for(let y=0;y<ESC_H;y++) g.push(new Array(ESC_W).fill(0));
+  const p=(x,y)=>{ if(x>=0&&y>=0&&x<ESC_W&&y<ESC_H) g[y][x]=1; }, a=(x,y)=>{ g[y][x]=0; };
+  for(let x=0;x<ESC_W;x++){ p(x,0); p(x,ESC_H-1); p(x,10); p(x,15); }
+  for(let y=0;y<ESC_H;y++){ p(0,y); p(ESC_W-1,y); }
+  [12,24,36].forEach(x=>{ for(let y=0;y<=10;y++) p(x,y); for(let y=15;y<ESC_H;y++) p(x,y); });
+  [[5,6],[17,18],[29,30],[41,42]].forEach(([u,v])=>{ a(u,10); a(v,10); });   /* portas das salas de cima */
+  [[5,6],[17,18],[29,30]].forEach(([u,v])=>{ a(u,15); a(v,15); });            /* portas das de baixo */
+  for(let x=38;x<=45;x++) a(x,15);                                            /* o café é aberto */
+  for(let y=20;y<=24;y++) for(let x=27;x<=33;x++) g[y][x]=2;                   /* mesa da sala de reunião */
+  return g; })();
+const escLivre=(x,y)=>x>=0&&y>=0&&x<ESC_W&&y<ESC_H&&ESC_GRID[y][x]===0;
+const escSalaDe=(x,y)=>ESC_SALAS.find(s=>x>=s.x0&&x<s.x1+1&&y>=s.y0&&y<s.y1+1)||ESC_CORREDOR;
+/* Sala de cada um ao entrar: sócio na dos sócios, squad no seu squad, SDR/closer no Comercial,
+   editora e social na Edição; quem não se encaixa começa na Recepção. Daí anda pra onde quiser. */
+const escSalaPadrao=(u)=>{ if(!u) return 'recepcao';
+  if(u.role==='master') return 'socios';
+  const sq=(Array.isArray(u.squads)?u.squads:[]).map(s=>String(s).replace(/\D/g,'')).filter(Boolean).map(s=>s.padStart(2,'0'))[0];
+  if(sq&&ESC_SALAS.some(s=>s.id==='squad'+sq)) return 'squad'+sq;
+  const cg=String(u.cargo||'').toLowerCase();
+  if(u.papel_crm||/comerc|sdr|closer|vend/.test(cg)) return 'comercial';
+  if(/editor|edi[cç][aã]o|social|v[ií]deo/.test(cg)) return 'edicao';
+  if(/financ/.test(cg)) return 'financeiro';
+  if(/tecnolog|program/.test(cg)) return 'socios';
+  return 'recepcao'; };
+const escHash=(s)=>{ let h=2166136261; for(const c of String(s||'')){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; };
+/* lugar fixo de cada pessoa dentro da sala (sempre o mesmo pra mesma pessoa) */
+const escLugar=(salaId,uid)=>{ const s=ESC_SALAS.find(x=>x.id===salaId); if(!s) return {x:24.5,y:12.5};
+  const op=[]; for(let y=s.y0+2;y<=s.y1;y++) for(let x=s.x0;x<=s.x1;x++) if(escLivre(x,y)) op.push([x,y]);
+  const t=op.length?op[escHash(uid)%op.length]:[s.x0+1,s.y0+2]; return {x:t[0]+.5,y:t[1]+.5}; };
+/* caminho por clique: busca em largura na grade (paredes e mesa de reunião bloqueiam) */
+function escBfs(sx,sy,tx,ty){
+  if(!escLivre(tx,ty)||!escLivre(sx,sy)) return [];
+  const k=(x,y)=>y*ESC_W+x, prev=new Map([[k(sx,sy),null]]), q=[[sx,sy]];
+  for(let i=0;i<q.length;i++){ const [x,y]=q[i]; if(x===tx&&y===ty) break;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const nx=x+dx, ny=y+dy;
+      if(!escLivre(nx,ny)||prev.has(k(nx,ny))) continue; prev.set(k(nx,ny),[x,y]); q.push([nx,ny]); } }
+  if(!prev.has(k(tx,ty))) return [];
+  const out=[]; let c=[tx,ty]; while(c){ out.unshift({x:c[0]+.5,y:c[1]+.5}); c=prev.get(k(c[0],c[1])); }
+  return out.slice(1);
+}
+/* piso livre mais perto de um ponto (clicou na parede, ou posição recebida inválida) */
+const escPisoPerto=(x,y)=>{ x=Math.max(0,Math.min(ESC_W-1,Math.floor(x))); y=Math.max(0,Math.min(ESC_H-1,Math.floor(y)));
+  if(escLivre(x,y)) return [x,y]; let m=null,d=1e9;
+  for(let yy=y-3;yy<=y+3;yy++) for(let xx=x-3;xx<=x+3;xx++) if(escLivre(xx,yy)){ const dd=(xx-x)**2+(yy-y)**2; if(dd<d){ d=dd; m=[xx,yy]; } }
+  return m; };
+/* quem está a até r tiles de mim (o mais perto) */
+const escPerto=(eu,outros,r)=>{ let a=null,d=r||2.5; (outros||[]).forEach(o=>{ const dd=Math.hypot(o.x-eu.x,o.y-eu.y); if(dd<d){ d=dd; a=o; } }); return a; };
+/* presença recebida: confere tudo, porque vem de outro navegador */
+const escLerPresenca=(m)=>{ if(!m||typeof m!=='object') return null;
+  const x=Number(m.x), y=Number(m.y); if(!isFinite(x)||!isFinite(y)) return null;
+  return {x:Math.max(.5,Math.min(ESC_W-.5,x)),y:Math.max(.5,Math.min(ESC_H-.5,y)),
+    st:ESC_ST[m.st]?m.st:'ok', v:m.v===true, t:Number(m.t)||0}; };
+
+const ESC={canal:null,ok:false,tent:0,timer:0,parado:false,pares:new Map(),eu:null,links:null,linksErro:false,
+  naTela:false,raf:0,ult:0,caminho:[],teclas:{},T:20,cores:{},sujo:true,painel:'',imgs:{},sala:'',perto:null,
+  ultTrack:0,filaTrack:0,ultPos:0,andava:false,paradaT:0};
+const escMe=()=>(typeof currentUser!=='undefined'&&currentUser)||null;
+const escHoje=()=>{ try{ return hojeISO(); }catch(_){ return new Date().toISOString().slice(0,10); } };
+function escIniciarEu(){
+  const me=escMe(); if(!me) return; let salvo=null;
+  try{ salvo=JSON.parse(localStorage.getItem('esc_eu_'+me.id)||'null'); }catch(_){ salvo=null; }
+  let st='ok'; try{ st=localStorage.getItem('esc_st_'+me.id)||'ok'; }catch(_){}
+  if(!ESC_ST[st]) st='ok';
+  /* no mesmo dia volta pra onde parou; no dia seguinte começa na sala da sua área */
+  if(salvo&&salvo.dia===escHoje()&&isFinite(salvo.x)&&isFinite(salvo.y)&&escPisoPerto(salvo.x,salvo.y)){
+    const p=escPisoPerto(salvo.x,salvo.y); ESC.eu={x:p[0]+.5,y:p[1]+.5,st}; }
+  else { const l=escLugar(escSalaPadrao(me),me.id); ESC.eu={x:l.x,y:l.y,st}; }
+}
+const escEstado=()=>{ const me=escMe(), e=ESC.eu;
+  return {u:me.id,x:+e.x.toFixed(1),y:+e.y.toFixed(1),sala:escSalaDe(e.x,e.y).id,st:e.st,
+    v:ESC.naTela&&!document.hidden,t:Date.now()}; };
+/* track no máximo 1 por segundo: a cota de presença do plano é pequena */
+function escTrack(){
+  const c=ESC.canal; if(!c||!ESC.ok||!escMe()) return;
+  const falta=1000-(Date.now()-ESC.ultTrack);
+  if(falta>0){ if(!ESC.filaTrack) ESC.filaTrack=setTimeout(()=>{ ESC.filaTrack=0; escTrack(); },falta); return; }
+  ESC.ultTrack=Date.now(); try{ c.track(escEstado()).catch(()=>{}); }catch(_){}
+}
+const escAlguemVendo=()=>{ for(const o of ESC.pares.values()) if(o.v) return true; return false; };
+function escMandar(evento,dados){ const c=ESC.canal; if(!c||!ESC.ok||!escAlguemVendo()) return;
+  try{ c.send({type:'broadcast',event:evento,payload:Object.assign({u:escMe().id},dados)}).catch(()=>{}); }catch(_){} }
+
+async function escBoot(){
+  const me=escMe();
+  if(ESC.canal||ESC.parado||!me||!me.aprovado) return;
+  if(typeof restrito==='function'&&restrito()) return;          /* modo restrito não entra (o banco também barra) */
+  if(/rob[oô]/i.test(String(me.nome||''))) return;                /* o robô não é gente no escritório */
+  if(typeof sb==='undefined'||!sb||!sb.channel) return;
+  if(!ESC.eu) escIniciarEu();
+  try{ const S=await sbSessao(); if(S&&S.access_token&&sb.realtime&&sb.realtime.setAuth) await sb.realtime.setAuth(S.access_token); }catch(_){}
+  if(ESC.canal) return;
+  const c=sb.channel('escritorio',{config:{private:true,presence:{key:me.id},broadcast:{self:false}}});
+  ESC.canal=c;
+  c.on('presence',{event:'sync'},()=>{ if(ESC.canal===c) escSync(c.presenceState()); })
+   .on('broadcast',{event:'pos'},(m)=>{ if(ESC.canal===c) escPos(m&&m.payload,false); })
+   .on('broadcast',{event:'rumo'},(m)=>{ if(ESC.canal===c) escPos(m&&m.payload,true); })
+   .on('broadcast',{event:'aceno'},(m)=>{ if(ESC.canal===c) escAceno(m&&m.payload); })
+   .subscribe((st)=>{ if(ESC.canal!==c) return;
+     if(st==='SUBSCRIBED'){ ESC.ok=true; ESC.tent=0; ESC.ultTrack=0; escTrack(); ESC.sujo=true; ESC.painel=''; }
+     else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){ ESC.ok=false; ESC.painel=''; escReentrar(); } });
+}
+/* caiu (token venceu, rede, ou o canal ainda não foi liberado no banco): tenta de novo com espera crescente */
+function escReentrar(){
+  const c=ESC.canal; ESC.canal=null; ESC.ok=false; ESC.pares.clear(); ESC.sujo=true;
+  if(c){ try{ sb.removeChannel(c); }catch(_){} }
+  clearTimeout(ESC.timer); if(ESC.parado||ESC.tent>=8) return;
+  const espera=[2,5,10,30,60][Math.min(ESC.tent,4)]*1000; ESC.tent++;
+  ESC.timer=setTimeout(()=>{ escBoot(); },espera);
+}
+async function escSair(){ ESC.parado=true; clearTimeout(ESC.timer); const c=ESC.canal; ESC.canal=null; ESC.ok=false;
+  if(!c) return; try{ await c.untrack(); }catch(_){} try{ await sb.removeChannel(c); }catch(_){} }
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ escTrack(); return; }
+  if(!ESC.canal&&!ESC.parado&&escMe()){ ESC.tent=0; escBoot(); } else escTrack();
+});
+
+function escSync(estado){
+  const me=escMe(), vistos=new Set();
+  Object.keys(estado||{}).forEach(k=>{ if(!me||k===me.id) return;
+    const metas=Array.isArray(estado[k])?estado[k]:[]; let m=null;
+    metas.forEach(x=>{ if(!m||(Number(x&&x.t)||0)>(Number(m.t)||0)) m=x; });   /* várias abas: vale a mais recente */
+    const p=escLerPresenca(m); if(!p) return;
+    vistos.add(k);
+    let o=ESC.pares.get(k); if(!o){ o={dx:p.x,dy:p.y,rota:null}; ESC.pares.set(k,o); }
+    if(!o.rota||!o.rota.length){ o.x=p.x; o.y=p.y; }
+    o.st=p.st; o.v=p.v; });
+  [...ESC.pares.keys()].forEach(k=>{ if(!vistos.has(k)) ESC.pares.delete(k); });
+  ESC.sujo=true; ESC.painel='';
+}
+function escPos(p,rumo){
+  if(!p||typeof p.u!=='string') return; const o=ESC.pares.get(p.u); if(!o) return;   /* só de quem está no canal */
+  const a=escLerPresenca(p); if(!a) return;
+  if(rumo){ const de=escPisoPerto(a.x,a.y), para=escPisoPerto(Number(p.tx),Number(p.ty));
+    o.x=a.x; o.y=a.y; o.rota=(de&&para)?escBfs(de[0],de[1],para[0],para[1]):null; }
+  else { o.rota=null; o.x=a.x; o.y=a.y; }
+  o.v=true; ESC.sujo=true;
+}
+function escAceno(p){ const me=escMe(); if(!me||!p||p.para!==me.id||typeof p.u!=='string'||p.u===me.id) return;
+  const n=primeiroNome(tkNomeUser(p.u))||'Alguém';
+  toast(n+' acenou para você no Escritório.'); }
+
+/* ---------- tela ---------- */
+function escCss(){ if(document.getElementById('escCss')) return; const s=document.createElement('style'); s.id='escCss';
+  s.textContent=`
+  .esc-palco{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px;align-items:start}
+  @media (max-width:980px){.esc-palco{grid-template-columns:minmax(0,1fr)}}
+  .esc-mapa{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+  #escCv{display:block;width:100%;height:auto;aspect-ratio:48/30;border-radius:6px;cursor:pointer;touch-action:manipulation}
+  #escCv:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
+  .esc-dica{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);padding:8px 2px 0}
+  .esc-dica kbd{font:600 11px inherit;border:1px solid var(--line);border-radius:3px;padding:0 5px;color:var(--txt)}
+  .esc-lado{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .esc-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .esc-rot{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .esc-sala h3{margin:0;font-size:18px;font-weight:700}
+  .esc-sala p{margin:0;font-size:13px;color:var(--muted)}
+  .esc-lk{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .esc-lk .btn[aria-disabled="true"]{opacity:.5;pointer-events:none}
+  .esc-lista{list-style:none;margin:0;padding:0}
+  .esc-lista li{border-top:1px solid var(--line);padding:8px 0;display:flex;flex-direction:column;gap:5px}
+  .esc-lista li:first-child{border-top:0}
+  .esc-ir{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:13px}
+  .esc-ir:hover{color:var(--brand2)} .esc-ir:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .esc-ir .n{color:var(--muted);font-weight:400;font-variant-numeric:tabular-nums}
+  .esc-gente{display:flex;flex-wrap:wrap;gap:6px 12px}
+  .esc-p{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+  .esc-p .av{width:20px;height:20px;font-size:10px}
+  .esc-p .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .esc-p.vc{color:var(--txt);font-weight:600}
+  .esc-p.fora{opacity:.7}
+  .esc-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}
+  .esc-aviso{font-size:13px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+  .esc-eu{display:flex;align-items:center;gap:8px}
+  .esc-eu select{min-width:150px}`;
+  document.head.appendChild(s); }
+const escCorSt=(st)=>({ok:'--ok',ocupado:'--warn',reuniao:'--brand',ausente:'--fraco'})[st]||'--ok';
+function escLerCores(){ const cs=getComputedStyle(document.documentElement), g=(n)=>cs.getPropertyValue(n).trim();
+  ESC.cores={piso:g('--panel'),corredor:g('--bg'),parede:g('--fraco')||g('--muted'),mesa:g('--panel2'),txt:g('--txt'),muted:g('--muted'),
+    brand:g('--brand'),brand2:g('--brand2'),panel:g('--panel'),line:g('--line'),
+    st:{ok:g('--ok'),ocupado:g('--warn'),reuniao:g('--brand'),ausente:g('--fraco')}}; ESC.sujo=true; }
+new MutationObserver(()=>{ if(ESC.naTela) escLerCores(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-tema']});
+
+async function escLinks(){
+  if(ESC.links) return;
+  try{ const {data,error}=await sb.from('escritorio_salas').select('id,link');
+    if(error) throw error; ESC.links={}; (data||[]).forEach(r=>{ if(r&&r.id) ESC.links[r.id]=String(r.link||''); }); ESC.linksErro=false; }
+  catch(_){ ESC.links={}; ESC.linksErro=true; }
+  ESC.painel='';
+}
+const escLinkOk=(l)=>/^https:\/\/[^\s"'<>]+$/.test(String(l||''));
+
+function escRender(c){
+  escCss();
+  const me=escMe(); if(!me){ c.innerHTML='<div class="empty">Entre no sistema para ver o escritório.</div>'; return; }
+  if(!ESC.eu) escIniciarEu();
+  c.innerHTML=`
+   <div class="page-head">
+     <div><h2>Escritório</h2><div class="desc">Quem está em cada sala, ao vivo</div></div>
+     <div class="esc-eu"><label for="escSt" class="esc-rot">Status</label>
+       <select class="search" id="escSt">${Object.keys(ESC_ST).map(k=>`<option value="${k}"${ESC.eu.st===k?' selected':''}>${ESC_ST[k]}</option>`).join('')}</select></div>
+   </div>
+   <div class="esc-aviso" id="escAviso" hidden></div>
+   <div class="esc-palco">
+     <section class="esc-mapa" aria-label="Planta do escritório">
+       <canvas id="escCv" width="960" height="600" tabindex="0" aria-label="Mapa do escritório. Use as setas ou W A S D para andar, ou clique onde quer ir."></canvas>
+       <div class="esc-dica"><span><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> ou setas para andar</span><span>Clique no mapa para ir até lá</span><span>Chegue perto de alguém para acenar</span></div>
+     </section>
+     <aside class="esc-lado">
+       <div class="esc-box esc-sala" aria-live="polite">
+         <div class="esc-rot">Você está em</div>
+         <h3 id="escSalaNome">-</h3><p id="escSalaDesc"></p>
+         <div class="esc-lk" id="escLk"></div>
+         <div id="escPerto" hidden><div id="escPertoTxt" style="font-size:13px"></div>
+           <button type="button" class="btn small ghost" id="escAcenar" style="margin-top:6px">Acenar</button></div>
+       </div>
+       <div class="esc-box"><div class="esc-rot">Quem está onde</div><ul class="esc-lista" id="escLista"></ul>
+         <div class="esc-leg">${Object.keys(ESC_ST).map(k=>`<span class="esc-p"><span class="dot" style="background:var(${escCorSt(k)})"></span>${ESC_ST[k]}</span>`).join('')}<span class="esc-p fora">Clarinho: logado, fora desta tela</span></div></div>
+     </aside>
+   </div>`;
+  const cv=document.getElementById('escCv');
+  ESC.naTela=true; ESC.sala=''; ESC.painel=''; ESC.perto=null; ESC.caminho=[]; ESC.teclas={}; ESC.sujo=true;
+  escLerCores();
+  const ajustar=()=>{ if(!cv.isConnected) return; const r=cv.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
+    const w=Math.max(320,Math.round(r.width)); cv.width=Math.round(w*dpr); cv.height=Math.round(w*ESC_H/ESC_W*dpr); ESC.T=cv.width/ESC_W; ESC.sujo=true; };
+  try{ new ResizeObserver(ajustar).observe(cv); }catch(_){ ajustar(); }
+  const TECLAS={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,w:1,a:1,s:1,d:1};
+  const tk=(e)=>e.key.length===1?e.key.toLowerCase():e.key;
+  cv.addEventListener('keydown',e=>{ if(!TECLAS[tk(e)]||e.altKey||e.ctrlKey||e.metaKey) return; e.preventDefault(); ESC.teclas[tk(e)]=true; });
+  cv.addEventListener('keyup',e=>{ if(TECLAS[tk(e)]) ESC.teclas[tk(e)]=false; });
+  cv.addEventListener('blur',()=>{ ESC.teclas={}; });
+  cv.addEventListener('pointerdown',e=>{ const r=cv.getBoundingClientRect();
+    escIrPara((e.clientX-r.left)/r.width*ESC_W,(e.clientY-r.top)/r.height*ESC_H); cv.focus({preventScroll:true}); });
+  document.getElementById('escSt').onchange=(e)=>{ const v=e.target.value; if(!ESC_ST[v]) return; ESC.eu.st=v;
+    try{ localStorage.setItem('esc_st_'+me.id,v); }catch(_){} ESC.sujo=true; ESC.painel=''; escTrack(); };
+  document.getElementById('escAcenar').onclick=()=>{ const a=ESC.perto; if(!a) return;
+    if(!ESC.ok){ toast('Sem conexão ao vivo agora. Tente de novo em instantes.'); return; }
+    try{ ESC.canal.send({type:'broadcast',event:'aceno',payload:{u:me.id,para:a.u}}).catch(()=>{}); }catch(_){}
+    toast('Você acenou para '+(a.nome||'a pessoa')+'.'); };
+  escLinks();
+  escTrack();
+  if(!ESC.canal&&!ESC.parado){ ESC.tent=0; escBoot(); }
+  if(!ESC.raf){ ESC.ult=performance.now(); ESC.raf=requestAnimationFrame(escLaco); }
+}
+window.escRender=escRender;
+window.escBoot=escBoot;
+window.escSair=escSair;
+
+function escIrPara(tx,ty){ const p=escPisoPerto(tx,ty), e=ESC.eu; if(!p||!e) return;
+  ESC.caminho=escBfs(Math.floor(e.x),Math.floor(e.y),p[0],p[1]);
+  if(ESC.caminho.length) escMandar('rumo',{x:+e.x.toFixed(1),y:+e.y.toFixed(1),tx:p[0]+.5,ty:p[1]+.5}); }
+window.escIrSala=(id)=>{ const s=ESC_SALAS.find(x=>x.id===id);
+  if(s) escIrPara((s.x0+s.x1+1)/2,(s.y0+s.y1+2)/2); else escIrPara(24,12);
+  const cv=document.getElementById('escCv'); if(cv) cv.focus({preventScroll:true}); };
+
+const ESC_VEL=6.5; /* tiles por segundo */
+function escMover(dt){
+  const e=ESC.eu, k=ESC.teclas; let vx=0,vy=0;
+  if(k.ArrowLeft||k.a) vx-=1; if(k.ArrowRight||k.d) vx+=1; if(k.ArrowUp||k.w) vy-=1; if(k.ArrowDown||k.s) vy+=1;
+  if(vx||vy){ ESC.caminho=[]; const n=Math.hypot(vx,vy); vx=vx/n*ESC_VEL*dt; vy=vy/n*ESC_VEL*dt;
+    const r=.32, ok=(x,y)=>escLivre(Math.floor(x-r),Math.floor(y-r))&&escLivre(Math.floor(x+r),Math.floor(y-r))&&escLivre(Math.floor(x-r),Math.floor(y+r))&&escLivre(Math.floor(x+r),Math.floor(y+r));
+    let m=false; if(ok(e.x+vx,e.y)){ e.x+=vx; m=true; } if(ok(e.x,e.y+vy)){ e.y+=vy; m=true; }
+    if(m&&performance.now()-ESC.ultPos>500){ ESC.ultPos=performance.now(); escMandar('pos',{x:+e.x.toFixed(1),y:+e.y.toFixed(1)}); }
+    return m; }
+  if(ESC.caminho.length){ const p=ESC.caminho[0], dx=p.x-e.x, dy=p.y-e.y, d=Math.hypot(dx,dy), passo=ESC_VEL*dt;
+    if(d<=passo){ e.x=p.x; e.y=p.y; ESC.caminho.shift(); } else { e.x+=dx/d*passo; e.y+=dy/d*passo; } return true; }
+  return false;
+}
+function escAndarOutros(dt){
+  ESC.pares.forEach(o=>{
+    if(o.rota&&o.rota.length){ const p=o.rota[0], dx=p.x-o.dx, dy=p.y-o.dy, d=Math.hypot(dx,dy), passo=ESC_VEL*dt;
+      if(d<=passo){ o.dx=p.x; o.dy=p.y; o.rota.shift(); if(!o.rota.length){ o.rota=null; o.x=o.dx; o.y=o.dy; } }
+      else { o.dx+=dx/d*passo; o.dy+=dy/d*passo; } ESC.sujo=true; return; }
+    const dx=o.x-o.dx, dy=o.y-o.dy;
+    if(Math.abs(dx)+Math.abs(dy)>.01){ const k=Math.min(1,dt*8); o.dx+=dx*k; o.dy+=dy*k; ESC.sujo=true; } });
+}
+function escLaco(t){
+  const cv=document.getElementById('escCv');
+  if(!cv||!cv.isConnected){ ESC.raf=0; ESC.naTela=false; ESC.teclas={}; ESC.caminho=[]; escTrack(); return; }   /* saiu da tela */
+  const dt=Math.min(.05,(t-ESC.ult)/1000); ESC.ult=t;
+  const andou=escMover(dt);
+  if(andou){ ESC.sujo=true; ESC.andava=true; ESC.paradaT=t; }
+  else if(ESC.andava&&t-ESC.paradaT>900){ ESC.andava=false; escTrack();   /* parou: os outros veem onde ficou */
+    try{ localStorage.setItem('esc_eu_'+escMe().id,JSON.stringify({x:ESC.eu.x,y:ESC.eu.y,dia:escHoje()})); }catch(_){} }
+  escAndarOutros(dt);
+  const sala=escSalaDe(ESC.eu.x,ESC.eu.y).id; if(sala!==ESC.sala){ ESC.sala=sala; ESC.painel=''; ESC.sujo=true; escTrack(); }
+  if(ESC.sujo){ ESC.sujo=false; escDesenhar(cv); }
+  escPainel();
+  ESC.raf=requestAnimationFrame(escLaco);
+}
+function escImg(uid){ const f=fotoDe(uid); if(!f) return null; let im=ESC.imgs[uid];
+  if(!im||im.__src!==f){ im=new Image(); im.__src=f; im.onload=()=>{ ESC.sujo=true; }; im.src=f; ESC.imgs[uid]=im; } return im; }
+function escDesenhar(cv){
+  const ctx=cv.getContext('2d'), T=ESC.T, C=ESC.cores, F='Archivo, "Helvetica Neue", Arial, sans-serif';
+  const txt=(s,x,y,cor,tam,peso)=>{ ctx.font=(peso||400)+' '+tam+'px '+F; ctx.fillStyle=cor; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(s,x,y); };
+  ctx.clearRect(0,0,cv.width,cv.height); ctx.fillStyle=C.corredor; ctx.fillRect(0,0,cv.width,cv.height);
+  ESC_SALAS.forEach(s=>{ ctx.fillStyle=C.piso; ctx.fillRect(s.x0*T,s.y0*T,(s.x1-s.x0+1)*T,(s.y1-s.y0+1)*T);
+    if(s.id===ESC.sala){ ctx.globalAlpha=.08; ctx.fillStyle=C.brand; ctx.fillRect(s.x0*T,s.y0*T,(s.x1-s.x0+1)*T,(s.y1-s.y0+1)*T); ctx.globalAlpha=1; } });
+  ctx.fillStyle=C.mesa;
+  ['squad01','squad02','comercial','financeiro','edicao'].forEach(id=>{ const s=ESC_SALAS.find(x=>x.id===id);
+    for(let yy=s.y0+1;yy<=s.y1-2;yy+=3) for(let xx=s.x0+1;xx<=s.x1-3;xx+=4) ctx.fillRect(xx*T,yy*T,2.6*T,1.1*T); });
+  ctx.fillRect(27*T,20*T,7*T,5*T); ctx.fillRect(39*T,26*T,6*T,1.2*T);
+  ctx.fillStyle=C.parede; for(let y=0;y<ESC_H;y++) for(let x=0;x<ESC_W;x++) if(ESC_GRID[y][x]===1) ctx.fillRect(x*T,y*T,T+.5,T+.5);
+  ESC_SALAS.forEach(s=>txt(s.nome.toUpperCase(),(s.x0+s.x1+1)/2*T,(s.y0+.9)*T,s.id===ESC.sala?C.brand2:C.muted,Math.max(9,T*.46),600));
+  txt('RECEPÇÃO',6.5*T,12.5*T,C.muted,Math.max(9,T*.44),600);
+  if(ESC.caminho.length){ const d=ESC.caminho[ESC.caminho.length-1]; ctx.strokeStyle=C.brand2; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(d.x*T,d.y*T,T*.3,0,Math.PI*2); ctx.stroke(); }
+  const boneco=(uid,nome,x,y,st,voce,fora)=>{ const R=T*.46;
+    ctx.save(); if(fora) ctx.globalAlpha=.55;
+    ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fillStyle=corDoNome(nome); ctx.fill();
+    const im=escImg(uid);
+    if(im&&im.complete&&im.naturalWidth){ ctx.save(); ctx.beginPath(); ctx.arc(x,y,R-1,0,Math.PI*2); ctx.clip(); ctx.drawImage(im,x-R,y-R,R*2,R*2); ctx.restore(); }
+    else txt(inicial(nome),x,y+.5,'#ffffff',Math.max(9,T*.4),800);
+    ctx.lineWidth=Math.max(2,T*.12); ctx.strokeStyle=C.st[st]||C.st.ok; ctx.beginPath(); ctx.arc(x,y,R+ctx.lineWidth/2,0,Math.PI*2); ctx.stroke();
+    if(voce){ ctx.lineWidth=Math.max(1.5,T*.06); ctx.strokeStyle=C.txt; ctx.beginPath(); ctx.arc(x,y,R+T*.26,0,Math.PI*2); ctx.stroke(); }
+    ctx.restore();
+    const rot=voce?'Você':(primeiroNome(nome)||'Colega');
+    ctx.font='600 '+Math.max(9,T*.42)+'px '+F; const w=ctx.measureText(rot).width+T*.4, ly=y+R+T*.55;
+    ctx.globalAlpha=.9; ctx.fillStyle=C.panel; ctx.fillRect(x-w/2,ly-T*.3,w,T*.6); ctx.globalAlpha=1;
+    txt(rot,x,ly+.5,voce?C.txt:C.muted,Math.max(9,T*.42),600); };
+  ESC.pares.forEach((o,uid)=>boneco(uid,tkNomeUser(uid),o.dx*T,o.dy*T,o.st,false,!o.v));
+  const me=escMe(); boneco(me.id,me.nome,ESC.eu.x*T,ESC.eu.y*T,ESC.eu.st,true,false);
+}
+function escPainel(){
+  const me=escMe(), $q=(id)=>document.getElementById(id);
+  const outros=[...ESC.pares.entries()].map(([u,o])=>({u,x:o.dx,y:o.dy,st:o.st,v:o.v,nome:primeiroNome(tkNomeUser(u))||'Colega'}));
+  const a=escPerto(ESC.eu,outros,2.5), ka=a?a.u:'';
+  if(ka!==(ESC.perto?ESC.perto.u:'')){ ESC.perto=a; const b=$q('escPerto'); if(b){ b.hidden=!a; if(a) $q('escPertoTxt').textContent='Perto de você: '+a.nome; } }
+  const sala=escSalaDe(ESC.eu.x,ESC.eu.y);
+  const chave=JSON.stringify([sala.id,ESC.ok,ESC.linksErro,ESC.links&&ESC.links[sala.id],ESC.eu.st,outros.map(o=>[o.u,escSalaDe(o.x,o.y).id,o.st,o.v])]);
+  if(chave===ESC.painel) return; ESC.painel=chave;
+  $q('escSalaNome').textContent=sala.nome; $q('escSalaDesc').textContent=sala.desc;
+  const lk=$q('escLk'), link=ESC.links?ESC.links[sala.id]:'', master=me.role==='master';
+  lk.innerHTML=sala.id==='recepcao'?'<span class="esc-p">Entre numa sala para a chamada dela.</span>'
+    :(escLinkOk(link)?`<a class="btn small" href="${esc(link)}" target="_blank" rel="noopener">Entrar na chamada da sala</a>`
+      :`<span class="btn small" aria-disabled="true">Chamada ainda não configurada</span>`)
+     +(master&&sala.id!=='recepcao'&&!ESC.linksErro?`<button type="button" class="btn small ghost" onclick="escTrocarLink('${sala.id}')">Trocar link</button>`:'');
+  const av=$q('escAviso');
+  if(av){ const msg=!ESC.ok?(master?'Ao vivo ainda não conectou. Se continuar assim, falta liberar o canal do escritório no banco (migracao-2026-10-23-escritorio.sql).'
+      :'Ao vivo ainda não conectou: por enquanto você só vê o seu bonequinho.'):'';
+    av.hidden=!msg; av.textContent=msg; }
+  const por={}; outros.forEach(o=>{ const s=escSalaDe(o.x,o.y).id; (por[s]=por[s]||[]).push(o); });
+  (por[sala.id]=por[sala.id]||[]).unshift({u:me.id,st:ESC.eu.st,v:true,nome:'Você',voce:true});
+  const ul=$q('escLista'); ul.textContent='';
+  [ESC_CORREDOR].concat(ESC_SALAS).forEach(s=>{ const g=por[s.id]||[]; const li=document.createElement('li');
+    const b=document.createElement('button'); b.type='button'; b.className='esc-ir'; b.onclick=()=>window.escIrSala(s.id);
+    const n1=document.createElement('span'); n1.textContent=s.nome; const n2=document.createElement('span'); n2.className='n'; n2.textContent=g.length?String(g.length):'vazia';
+    b.append(n1,n2); li.append(b);
+    if(g.length){ const d=document.createElement('div'); d.className='esc-gente';
+      g.forEach(o=>{ const sp=document.createElement('span'); sp.className='esc-p'+(o.voce?' vc':'')+(o.v?'':' fora');
+        sp.title=(o.voce?'Você':tkNomeUser(o.u))+' · '+ESC_ST[o.st]+(o.v?'':' · logado, fora desta tela');
+        sp.innerHTML=avatar(o.u,o.voce?me.nome:tkNomeUser(o.u),'sm');
+        const dot=document.createElement('span'); dot.className='dot'; dot.style.background='var('+escCorSt(o.st)+')';
+        const t=document.createElement('span'); t.textContent=o.nome; sp.append(dot,t); d.append(sp); });
+      li.append(d); }
+    ul.append(li); });
+}
+window.escTrocarLink=(id)=>{ const me=escMe(); if(!me||me.role!=='master') return; const s=ESC_SALAS.find(x=>x.id===id); if(!s) return;
+  const atual=(ESC.links&&ESC.links[id])||'';
+  modal('Link da chamada: '+esc(s.nome),`<div class="field"><label for="escLkIn">Link</label><input id="escLkIn" value="${esc(atual)}" placeholder="https://meet.google.com/..."></div>
+    <div class="hint">Todo mundo que clicar em Entrar na chamada desta sala cai neste link. Pode ser Google Meet, Jitsi ou outro, começando com https://.</div>`,
+    async()=>{ const v=String((document.getElementById('escLkIn')||{}).value||'').trim();
+      if(v&&!escLinkOk(v)){ toast('O link precisa começar com https:// e não pode ter espaço.'); return false; }
+      const {error}=await sb.from('escritorio_salas').upsert({id,link:v,atualizado_em:new Date().toISOString(),atualizado_por:me.id});
+      if(error){ toast('Não salvei: '+error.message); return false; }
+      if(!ESC.links) ESC.links={}; ESC.links[id]=v; ESC.painel=''; toast(v?'Link da '+s.nome+' salvo.':'Link da '+s.nome+' removido.'); return true; });
+};
 </script>
 <script src="crm.js?v=30" defer></script>
 <script src="comercial/instancias.js?v=6" defer></script>
