@@ -2441,6 +2441,83 @@ grupo('SDR do lead: bolinha na linha e filtro do lado do período (Bernardo 12/1
   ok('o Responsável do canto superior some nas listas de CRM', HTML.indexOf("${(TK.escopo==='lista'&&crmForm(TK.listaSel))?'':tpIb('pessoa','Responsável','tkPopResp(event)',rs>0,rs||'')}")>0);
   ok('trocar o SDR pela bolinha grava responsavel_id e responsaveis juntos', /tkPatch\(id,crm\?\{responsavel_id:uid\|\|null,responsaveis:uid\?\[uid\]:\[\]\}:\{responsavel_id:uid\|\|null\}/.test(HTML));
 }
+/* ---------------- Escritório virtual ---------------- */
+grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23/10)');
+{
+  /* encaixe no app */
+  const iSup=HTML.indexOf('id="navSuporte"'), iEsc=HTML.indexOf('data-view="escritorio" id="navEscritorio"');
+  ok('botão Escritório no rail, logo depois do Suporte (no celular cai em Mais > Equipe)', iSup>0&&iEsc>iSup&&iEsc<HTML.indexOf('id="navVendas"'));
+  ok('o botão entra na lista de telas que o master liga e desliga (title com o nome)', /data-view="escritorio" id="navEscritorio" title="Escritório: quem está em cada sala, ao vivo"/.test(HTML));
+  const iTrava=HTML.indexOf("if(tlBloqueada(view)){"), iDesp=HTML.indexOf("if(view==='escritorio'){ if(typeof escRender==='function') return escRender(c);");
+  ok('a tela respeita a trava de telas por pessoa (despacho depois do tlBloqueada)', iTrava>0&&iDesp>iTrava);
+  ok('entra no canal ao vivo no login, depois do modo restrito já ter saído', HTML.indexOf("if(typeof escBoot==='function') escBoot();")>HTML.indexOf("if(restrito()){ rsAplicar(); spSelLista(rsLista()); NAV_PRONTO=true; return; }"));
+  ok('abrir o Escritório não recarrega os módulos de itens', HTML.indexOf("['processos','escritorio'].indexOf(b.dataset.view)<0")>0);
+  ok('canal privado, com a chave da presença = id da pessoa', HTML.indexOf("sb.channel('escritorio',{config:{private:true,presence:{key:me.id},broadcast:{self:false}}})")>0);
+  ok('o módulo fica no fim do script principal, antes do crm.js', HTML.indexOf('/* ======================= ESCRITÓRIO VIRTUAL')>0&&HTML.indexOf('/* ======================= ESCRITÓRIO VIRTUAL')<HTML.indexOf('<script src="crm.js'));
+
+  /* planta e regras puras */
+  const p=rodar(bloco('const ESC_W=48, ESC_H=30;','const ESC={canal:null'),{},
+    ['ESC_W','ESC_H','ESC_SALAS','ESC_CORREDOR','ESC_ST','ESC_GRID','escLivre','escSalaDe','escSalaPadrao','escLugar','escBfs','escPisoPerto','escPerto','escLerPresenca','escHash']);
+  ok('oito salas e a recepção no corredor', p.ESC_SALAS.length===8&&p.escSalaDe(24.5,12.5).id==='recepcao');
+  ok('sala por coordenada', p.escSalaDe(5,5).id==='squad01'&&p.escSalaDe(40,20).id==='cafe'&&p.escSalaDe(30,18).id==='reuniao');
+  ok('parede e mesa de reunião bloqueiam; porta passa', !p.escLivre(12,5)&&!p.escLivre(30,22)&&p.escLivre(5,10)&&p.escLivre(40,15));
+  const caminho=p.escBfs(24,12,5,5);
+  ok('do corredor até o Squad 01 o caminho existe e passa pela porta', caminho.length>0&&caminho.some(q=>Math.floor(q.y)===10&&(Math.floor(q.x)===5||Math.floor(q.x)===6))&&caminho.every(q=>p.escLivre(Math.floor(q.x),Math.floor(q.y))));
+  ok('destino na parede ou fora da planta não dá caminho', p.escBfs(24,12,12,5).length===0&&p.escBfs(24,12,99,99).length===0);
+  ok('clicou na parede: vai pro piso mais perto', (()=>{ const q=p.escPisoPerto(12.2,5.5); return q&&p.escLivre(q[0],q[1]); })());
+  const sp=p.escSalaPadrao;
+  ok('sala de cada um: sócio, squad 01 e 02, SDR, editora, tecnologia e o resto',
+    sp({role:'master',cargo:'comercial'})==='socios'&&sp({role:'membro',squads:['01'],cargo:'gerente'})==='squad01'&&
+    sp({role:'membro',squads:['02']})==='squad02'&&sp({role:'membro',papel_crm:'sdr'})==='comercial'&&
+    sp({role:'membro',cargo:'editora de video'})==='edicao'&&sp({role:'membro',cargo:'tecnologia'})==='socios'&&
+    sp({role:'membro',cargo:''})==='recepcao'&&sp(null)==='recepcao');
+  ok('squad que não tem sala no mapa começa na recepção', sp({role:'membro',squads:['07']})==='recepcao');
+  const l1=p.escLugar('squad01','u-luiz'), l2=p.escLugar('squad01','u-luiz');
+  ok('lugar fixo da pessoa: mesmo lugar sempre, dentro da sala e em piso livre', l1.x===l2.x&&l1.y===l2.y&&p.escSalaDe(l1.x,l1.y).id==='squad01'&&p.escLivre(Math.floor(l1.x),Math.floor(l1.y)));
+  ok('quem está perto: o mais próximo até 2,5', (p.escPerto({x:10,y:10},[{u:'a',x:12,y:10},{u:'b',x:11,y:10},{u:'c',x:20,y:20}],2.5)||{}).u==='b'&&p.escPerto({x:10,y:10},[{u:'c',x:20,y:20}],2.5)===null);
+  const lp=p.escLerPresenca;
+  ok('presença de outro navegador é conferida: número, limite da planta, status conhecido',
+    lp({x:'a',y:1})===null&&lp(null)===null&&lp({x:-50,y:999,st:'<b>'}).x===.5&&lp({x:-50,y:999}).y===p.ESC_H-.5&&lp({x:3,y:3,st:'<b>'}).st==='ok'&&lp({x:3,y:3,st:'reuniao',v:true}).v===true&&lp({x:3,y:3,v:'sim'}).v===false);
+
+  /* canal: sync, movimento dos outros, aceno, cota de envio */
+  const toasts=[], enviados=[], tracks=[], timers=[];
+  const fakeDoc={hidden:false,addEventListener:()=>{}};
+  const ctx=Object.assign({},p,{document:fakeDoc,currentUser:{id:'eu',nome:'Gabriel',role:'master',aprovado:true},
+    toast:(t)=>toasts.push(t),tkNomeUser:(u)=>({luiz:'Luiz',joao:'João'})[u]||'',primeiroNome:(s)=>String(s||'').trim().split(/\s+/)[0]||'',
+    hojeISO:()=>'2026-10-23',localStorage:{getItem:()=>null,setItem:()=>{}},setTimeout:(f,ms)=>{ timers.push([f,ms]); return timers.length; },clearTimeout:()=>{},
+    restrito:()=>false,sbSessao:async()=>null,sb:null});
+  const g=rodar(bloco('const ESC={canal:null','/* ---------- tela ---------- */'),ctx,['ESC','escSync','escPos','escAceno','escTrack','escMandar','escIniciarEu','escEstado']);
+  g.escIniciarEu();
+  ok('sem posição salva hoje: começa no lugar dele na sala da área (master na dos sócios)', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios'&&g.ESC.eu.st==='ok');
+  g.escSync({eu:[{x:1,y:1,t:5}],luiz:[{x:5,y:5,st:'ocupado',v:false,t:1},{x:6,y:6,st:'reuniao',v:true,t:9}],lixo:[{x:'?'}]});
+  const lz=g.ESC.pares.get('luiz');
+  ok('sync: eu não entro na lista, presença inválida é ignorada, de várias abas vale a mais recente',
+    !g.ESC.pares.has('eu')&&!g.ESC.pares.has('lixo')&&lz&&lz.x===6&&lz.st==='reuniao'&&lz.v===true);
+  g.escPos({u:'estranho',x:3,y:3},false);
+  ok('movimento de quem não está no canal é ignorado', !g.ESC.pares.has('estranho'));
+  g.escPos({u:'luiz',x:24.5,y:12.5,tx:5.5,ty:5.5},true);
+  ok('rumo de um colega: o caminho é refeito aqui com a mesma planta', Array.isArray(lz.rota)&&lz.rota.length>0);
+  g.escSync({});
+  ok('quem saiu do canal some do mapa', g.ESC.pares.size===0);
+  g.escAceno({u:'joao',para:'outra-pessoa'}); g.escAceno({u:'joao',para:'eu'}); g.escAceno({u:'eu',para:'eu'});
+  ok('aceno só aparece pra quem foi acenado, com o nome vindo da equipe', toasts.length===1&&toasts[0]==='João acenou para você no Escritório.');
+  const canal={track:(e)=>{ tracks.push(e); return Promise.resolve(); },send:(m)=>{ enviados.push(m); return Promise.resolve('ok'); }};
+  g.ESC.canal=canal; g.ESC.ok=true; g.ESC.ultTrack=0;
+  g.escTrack(); g.escTrack();
+  ok('presença no máximo 1 vez por segundo (a segunda espera)', tracks.length===1&&timers.some(t=>t[1]>0&&t[1]<=1000));
+  ok('a presença leva só id, posição, sala, status e se está com a tela aberta', Object.keys(tracks[0]).sort().join(',')==='sala,st,t,u,v,x,y'&&tracks[0].u==='eu');
+  g.escMandar('pos',{x:1,y:1});
+  ok('ninguém olhando o mapa: não gasta mensagem com movimento', enviados.length===0);
+  g.escSync({luiz:[{x:6,y:6,v:true,t:1}]}); g.escMandar('pos',{x:1,y:1});
+  ok('alguém olhando: o movimento vai, assinado com o id de quem mandou', enviados.length===1&&enviados[0].event==='pos'&&enviados[0].payload.u==='eu');
+
+  /* chamada da sala */
+  const gl=rodar(bloco('const escLinkOk=','function escRender('),{},['escLinkOk']);
+  ok('link da chamada: só https sem espaço nem aspas', gl.escLinkOk('https://meet.google.com/abc-defg-hij')&&!gl.escLinkOk('javascript:alert(1)')&&!gl.escLinkOk('https://x.com/a"onmouseover=1')&&!gl.escLinkOk('http://x.com')&&!gl.escLinkOk(''));
+  ok('o link mora no banco (repositório público): nenhum meet.jit.si fixo no código', HTML.indexOf("from('escritorio_salas')")>0&&!/meet\.jit\.si\/AutoSintese-[a-z0-9]+-[a-z0-9]/.test(HTML));
+  ok('só master troca o link (tela) e o banco confere de novo', /window\.escTrocarLink=\(id\)=>\{ const me=escMe\(\); if\(!me\|\|me\.role!=='master'\) return;/.test(HTML));
+}
+
 grupo('CRM Sofás: planilha voltou ao jeito do vídeo das 17h (Bernardo 08/10)');
 {
   /* 11/10: os botões de data voltaram pra barra (rspPeriodo), mas a lista continua abrindo em Todos: nada de abrir já filtrada em Hoje nem de aviso de pendentes */
