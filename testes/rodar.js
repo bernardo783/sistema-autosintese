@@ -2612,12 +2612,15 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   ok('arrastou o mapa: a câmera fica até o bonequinho andar, e tem Voltar para mim', HTML.indexOf("if(andou&&ESC.camLivre){ ESC.camLivre=false;")>0&&HTML.indexOf('id="escCentro"')>0);
   {
     const z=rodar(bloco('const ESC_ZMIN=','function escRender('),{localStorage:{getItem:()=>null,setItem:()=>{}},clearTimeout:()=>{},ESC_W:48,ESC_H:30,
-      ESC:{T:40,base:40,zoom:1,cw:800,ch:600,cam:{x:20,y:15},ox:0,oy:0}},['escZoomEm','escCamLimite','ESC_ZMIN','ESC_ZMAX']);
+      ESC:{T:40,base:40,zoom:1,cw:800,ch:600,cam:{x:20,y:15},ox:0,oy:0}},['escZoomEm','escCamLimite','escCamSolta','ESC_ZMIN','ESC_ZMAX']);
     const E=z.ESC; E.ox=Math.round(E.cam.x*E.T-E.cw/2); E.oy=Math.round(E.cam.y*E.T-E.ch/2);
     const sx=100, sy=120, wx=(sx+E.ox)/E.T, wy=(sy+E.oy)/E.T; z.escZoomEm(1.5,sx,sy);
     ok('zoom: o ponto embaixo do mouse continua no mesmo lugar da tela', Math.abs((sx+E.ox)/E.T-wx)<.03&&Math.abs((sy+E.oy)/E.T-wy)<.03&&E.T===60);
     z.escZoomEm(99); ok('zoom tem limite', E.zoom===z.ESC_ZMAX); z.escZoomEm(.01); ok('zoom tem limite pra afastar', E.zoom===z.ESC_ZMIN);
     const c=z.escCamLimite(-50,999); ok('câmera não sai da planta: para na borda e, se o mapa cabe na tela, fica no meio', c.x===20&&c.y===15);
+    const sl=z.escCamSolta(-50,999), sm=z.escCamSolta(3,4);
+    ok('arrastando, a câmera anda livre mesmo com o mapa cabendo na tela (só o centro não sai da planta)', sl.x===0&&sl.y===30&&sm.x===3&&sm.y===4);
+    ok('o desenho não trava a câmera na borda (senão em tela larga não dá pra arrastar)', HTML.indexOf('ESC.ox=Math.round(ESC.cam.x*T-W/2); ESC.oy=Math.round(ESC.cam.y*T-H/2);')>0&&/escCamSolta\(arr\.cx-dx/.test(HTML));
   }
   ok('W A S D e setas andam sem precisar clicar no mapa (menos digitando ou com janela aberta)', /document\.addEventListener\('keydown',e=>\{ if\(!ESC\.naTela\) return;/.test(HTML)&&HTML.indexOf("if(!ESC_TECLAS[k]||e.altKey||e.ctrlKey||e.metaKey||escDigitando()||document.querySelector('.overlay')) return;")>0);
   ok('a câmera segue você (mapa ocupando a tela toda, como no Gather)', HTML.indexOf("ESC.cam.x+=kx*k; ESC.cam.y+=ky*k;")>0&&HTML.indexOf("c.classList.add('esc-full');")>0&&HTML.indexOf("ct.classList.remove('esc-full')")>0);
