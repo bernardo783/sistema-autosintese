@@ -2466,22 +2466,22 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   ok('destino na parede ou fora da planta não dá caminho', p.escBfs(24,12,12,5).length===0&&p.escBfs(24,12,99,99).length===0);
   ok('clicou na parede: vai pro piso mais perto', (()=>{ const q=p.escPisoPerto(12.2,5.5); return q&&p.escLivre(q[0],q[1]); })());
   const sp=p.escSalaPadrao;
-  ok('sala de cada um: sócio, squad 01 e 02, SDR, editora, tecnologia e o resto',
-    sp({role:'master',cargo:'comercial'})==='socios'&&sp({role:'membro',squads:['01'],cargo:'gerente'})==='squad01'&&
+  ok('sala de cada um: sócio no time dele (sem sala dos sócios), squad 01 e 02, SDR, editora, tecnologia e projetos e o resto',
+    sp({role:'master',cargo:'comercial'})==='comercial'&&sp({role:'master',cargo:''})==='tecnologia'&&sp({role:'master',cargo:'Gerente de Projetos'})==='tecnologia'&&sp({role:'membro',squads:['01'],cargo:'gerente'})==='squad01'&&
     sp({role:'membro',squads:['02']})==='squad02'&&sp({role:'membro',papel_crm:'sdr'})==='comercial'&&
-    sp({role:'membro',cargo:'editora de video'})==='edicao'&&sp({role:'membro',cargo:'tecnologia'})==='socios'&&
+    sp({role:'membro',cargo:'editora de video'})==='edicao'&&sp({role:'membro',cargo:'tecnologia'})==='tecnologia'&&
     sp({role:'membro',cargo:''})==='recepcao'&&sp(null)==='recepcao');
   ok('squad que não tem sala no mapa começa na recepção', sp({role:'membro',squads:['07']})==='recepcao');
   const l1=p.escLugar('squad01','u-luiz'), l2=p.escLugar('squad01','u-luiz');
   ok('lugar fixo da pessoa: mesmo lugar sempre, dentro da sala e em piso livre', l1.x===l2.x&&l1.y===l2.y&&p.escSalaDe(l1.x,l1.y).id==='squad01'&&p.escLivre(Math.floor(l1.x),Math.floor(l1.y)));
   /* regras do Gather (23/10): mesa fixa por pessoa, sala por time */
-  ok('seis mesas por sala de time, nenhuma na reunião nem no café', ['squad01','squad02','comercial','socios','financeiro','edicao'].every(id=>p.ESC_MESAS.filter(m=>m.sala===id).length===6)&&!p.ESC_MESAS.some(m=>m.sala==='reuniao'||m.sala==='cafe'));
+  ok('seis mesas por sala de time, nenhuma na reunião nem no café', ['squad01','squad02','comercial','tecnologia','financeiro','edicao'].every(id=>p.ESC_MESAS.filter(m=>m.sala===id).length===6)&&!p.ESC_MESAS.some(m=>m.sala==='reuniao'||m.sala==='cafe'));
   ok('a mesa bloqueia, a cadeira não, e a cadeira fica dentro da sala da mesa', p.ESC_MESAS.every(m=>!p.escLivre(m.x,m.y)&&!p.escLivre(m.x+1,m.y)&&p.escLivre(Math.floor(m.sx),Math.floor(m.sy))&&p.escLivre(Math.floor(m.sx)-1,Math.floor(m.sy))&&p.escSalaDe(m.sx,m.sy).id===m.sala));
   ok('de toda cadeira dá pra chegar na porta de casa (corredor)', p.ESC_MESAS.every(m=>p.escBfs(Math.floor(m.sx),Math.floor(m.sy),24,12).length>0));
   const eqT=[{id:'luiz',nome:'Luiz',squads:['01']},{id:'luan',nome:'Luan',squads:['01']},{id:'ana',nome:'Ana',squads:['01']},{id:'g',nome:'Gabriel',role:'master'},
     {id:'k',nome:'Kennedy'},{id:'rob',nome:'Claude (robô)',role:'master'}];
   const d1=p.escDistribuir(eqT,[{pessoa:'luiz',sala:'squad01',mesa:0},{pessoa:'luan',sala:'squad01',mesa:1},{pessoa:'saiu',sala:'squad01',mesa:2}]);
-  ok('mesa gravada vale; quem não tem ganha a primeira livre da sala do time', d1.get('luiz').sala==='squad01'&&d1.get('luiz').i===0&&d1.get('luan').i===1&&d1.get('ana').sala==='squad01'&&d1.get('ana').i===3&&d1.get('g').sala==='socios');
+  ok('mesa gravada vale; quem não tem ganha a primeira livre da sala do time', d1.get('luiz').sala==='squad01'&&d1.get('luiz').i===0&&d1.get('luan').i===1&&d1.get('ana').sala==='squad01'&&d1.get('ana').i===3&&d1.get('g').sala==='tecnologia');
   ok('mesa de quem saiu do time fica presa até o master mudar; o robô não ganha mesa', !d1.has('saiu')&&!d1.has('rob'));
   ok('sem time ganha mesa onde sobrar (Financeiro primeiro)', d1.get('k').sala==='financeiro');
   const d2=p.escDistribuir(eqT,[]), d3=p.escDistribuir(eqT.slice().reverse(),[]);
@@ -2505,13 +2505,13 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
     escTocar:(t)=>sons.push(t),escJanela:(a)=>janelas.push(a),escNotificar:(a)=>notifs.push(a),caFn:async()=>({ok:true,conectado:true,blocos:[]})});
   const g=rodar(bloco('const ESC={canal:null','/* ---------- tela ---------- */'),ctx,['ESC','ESC_PRES_MAX','escSync','escPos','escRecebe','escPerdidosVer','escAvisar','escStEfetivo','escPelaAgenda','escTrack','escMandar','escIniciarEu','escEstado','escReler','escMudou','escGuardar','escReentrar','escBoot','escMesas','escAgenda']);
   g.escIniciarEu();
-  ok('sem posição salva hoje: começa sentado na mesa dele, na sala do time (master na dos sócios), Disponível', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios'&&g.ESC.eu.st==='ok'&&!!g.escNaCadeira(g.ESC.eu.x,g.ESC.eu.y));
+  ok('sem posição salva hoje: começa sentado na mesa dele, na sala do time (master sem time em Tecnologia e Projetos), Disponível', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='tecnologia'&&g.ESC.eu.st==='ok'&&!!g.escNaCadeira(g.ESC.eu.x,g.ESC.eu.y));
   g.ESC.gravadas=[{pessoa:'eu',sala:'edicao',mesa:4}]; g.ESC.eu=null; g.escIniciarEu();
   ok('a mesa que o master gravou é onde a pessoa começa', (()=>{ const m=g.escNaCadeira(g.ESC.eu.x,g.ESC.eu.y); return !!m&&m.sala==='edicao'&&m.i===4; })());
   g.ESC.gravadas=null;
   guardado['esc_eu_eu']=JSON.stringify({x:30.5,y:18.5,st:'ausente',dia:'2026-10-22',t:5});
   g.ESC.eu=null; g.escIniciarEu();
-  ok('status de ontem não vale hoje: volta Disponível na sala da área', g.ESC.eu.st==='ok'&&g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios');
+  ok('status de ontem não vale hoje: volta Disponível na sala da área', g.ESC.eu.st==='ok'&&g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='tecnologia');
   guardado['esc_eu_eu']=JSON.stringify({x:30.5,y:18.5,st:'reuniao',dia:'2026-10-23',t:50});
   g.ESC.eu=null; g.escIniciarEu();
   ok('no mesmo dia volta pra onde parou, com o status que escolheu', g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='reuniao'&&g.ESC.eu.st==='reuniao'&&g.ESC.mudouT===50);
@@ -2595,7 +2595,7 @@ grupo('Escritório virtual: mapa ao vivo com quem está em cada sala (Gabriel 23
   g.escSync({luan:[{x:8,y:8,st:'ausente',v:false,t:999,dia:'2026-10-22'},{x:9,y:9,st:'ok',v:false,t:5,dia:'2026-10-23'}]});
   ok('aba de ontem nunca vence a de hoje', g.ESC.pares.get('luan').st==='ok');
   g.ESC.dia='2026-10-22'; g.ESC.naTela=false; g.ESC.eu.st='ausente'; delete guardado['esc_eu_eu']; g.escReler();
-  ok('aba aberta de um dia pro outro: status de ontem volta pra Disponível, na mesa dele', g.ESC.eu.st==='ok'&&g.ESC.dia==='2026-10-23'&&g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='socios'&&!!g.escNaCadeira(g.ESC.eu.x,g.ESC.eu.y));
+  ok('aba aberta de um dia pro outro: status de ontem volta pra Disponível, na mesa dele', g.ESC.eu.st==='ok'&&g.ESC.dia==='2026-10-23'&&g.escSalaDe(g.ESC.eu.x,g.ESC.eu.y).id==='tecnologia'&&!!g.escNaCadeira(g.ESC.eu.x,g.ESC.eu.y));
   /* aceno e chamada saindo (regras do Gather) */
   g.ESC.canal=canal; g.ESC.ok=true; g.escSync({luiz:[{x:6,y:6,v:true,t:1}]}); enviados.length=0; g.ESC.ultAviso={};
   ok('acenar pra quem não está no escritório não manda nada', g.escAvisar('aceno','joao')==='fora'&&enviados.length===0);
