@@ -28230,7 +28230,7 @@ const ESC_SALAS=[
   {id:'squad01',nome:'Squad 01',desc:'Campanhas e relatórios dos clientes do squad 01.',x0:1,y0:1,x1:11,y1:9,piso:'madeira',mesas:true},
   {id:'squad02',nome:'Squad 02',desc:'Campanhas e relatórios dos clientes do squad 02.',x0:13,y0:1,x1:23,y1:9,piso:'madeira',mesas:true},
   {id:'comercial',nome:'Comercial',desc:'SDR e closer: leads, calls e fechamento de contrato.',x0:25,y0:1,x1:35,y1:9,piso:'madeira',mesas:true},
-  {id:'socios',nome:'Sala dos sócios',desc:'Sócios e tecnologia.',x0:37,y0:1,x1:46,y1:9,piso:'azul',mesas:true},
+  {id:'tecnologia',nome:'Tecnologia e Projetos',desc:'Sistema, automações e gestão de projetos.',x0:37,y0:1,x1:46,y1:9,piso:'azul',mesas:true},
   {id:'financeiro',nome:'Financeiro',desc:'Recebimentos, folha e fechamento do mês.',x0:1,y0:16,x1:11,y1:28,piso:'verde',mesas:true},
   {id:'edicao',nome:'Edição e Social',desc:'Edição de vídeo, linha editorial e social media.',x0:13,y0:16,x1:23,y1:28,piso:'lilas',mesas:true},
   {id:'reuniao',nome:'Sala de reunião',desc:'Reunião de time e call com cliente.',x0:25,y0:16,x1:35,y1:28,piso:'cinza'},
@@ -28265,23 +28265,23 @@ const ESC_GRID=(()=>{ const g=[]; for(let y=0;y<ESC_H;y++) g.push(new Array(ESC_
   return g; })();
 const escLivre=(x,y)=>x>=0&&y>=0&&x<ESC_W&&y<ESC_H&&ESC_GRID[y][x]===0;
 const escSalaDe=(x,y)=>ESC_SALAS.find(s=>x>=s.x0&&x<s.x1+1&&y>=s.y0&&y<s.y1+1)||ESC_CORREDOR;
-/* Sala do time: sócio na dos sócios, squad no seu squad, SDR/closer no Comercial, editora e social
-   na Edição; quem não se encaixa fica sem time (ganha mesa onde sobrar). */
+/* Sala do time: squad no seu squad, SDR/closer no Comercial, editora e social na Edição, tecnologia e
+   projetos na sala deles. Não tem mais sala dos sócios (Gabriel 23/10: "nada a ver"): sócio fica no
+   time dele; master sem time cai em Tecnologia e Projetos. Quem não se encaixa ganha mesa onde sobrar. */
 const escSalaPadrao=(u)=>{ if(!u) return 'recepcao';
-  if(u.role==='master') return 'socios';
   const sq=(Array.isArray(u.squads)?u.squads:[]).map(s=>String(s).replace(/\D/g,'')).filter(Boolean).map(s=>s.padStart(2,'0'))[0];
   if(sq&&ESC_SALAS.some(s=>s.id==='squad'+sq)) return 'squad'+sq;
   const cg=String(u.cargo||'').toLowerCase();
   if(u.papel_crm||/comerc|sdr|closer|vend/.test(cg)) return 'comercial';
   if(/editor|edi[cç][aã]o|social|v[ií]deo/.test(cg)) return 'edicao';
   if(/financ/.test(cg)) return 'financeiro';
-  if(/tecnolog|program/.test(cg)) return 'socios';
-  return 'recepcao'; };
+  if(/tecnolog|program|projet/.test(cg)) return 'tecnologia';
+  return u.role==='master'?'tecnologia':'recepcao'; };
 const escHash=(s)=>{ let h=2166136261; for(const c of String(s||'')){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; };
 /* Mesa de cada um: a gravada no banco vale; quem não tem ganha a primeira livre da sala do time (por
    ordem de nome) e, se a sala lotou ou a pessoa não tem time, a primeira livre das outras. Mesa de quem
    saiu do time continua presa até o master mudar (a gravação manda). */
-const ESC_SOBRA=['financeiro','edicao','comercial','socios','squad01','squad02'];
+const ESC_SOBRA=['financeiro','edicao','comercial','tecnologia','squad01','squad02'];
 function escDistribuir(equipe,gravadas){
   const dono=new Map(), presa=new Set(), k=(m)=>m.sala+':'+m.i;
   const gente=(equipe||[]).filter(u=>u&&u.id&&!/rob[oô]/i.test(String(u.nome||'')));
