@@ -28206,26 +28206,52 @@ initLoginScreen();
    Mapa do escritório com quem está em cada sala, ao vivo, no lugar do Gather. Presença pelo
    Realtime do Supabase num canal PRIVADO ('escritorio'): só conta aprovada entra (policies em
    realtime.messages, migracao-2026-10-23-escritorio.sql; is_aprovado já barra o modo restrito).
-   Cada um entra no canal no login (escBoot) e aparece na sala da sua área; quem abre a tela anda
+   Cada um entra no canal no login (escBoot) e aparece na mesa dele; quem abre a tela anda
    pelo mapa. A presença leva só o id da pessoa: nome e foto vêm de TK.equipe, nunca do payload.
    Dois canais (revisão de 23/10): 'escritorio' só com a presença (todo mundo, desde o login; muda
    pouco: sala, status, tela aberta; no máximo 4 tracks em 30 s, que o servidor fecha o canal no 6º)
    e 'escritorio-mapa' com o movimento, onde só entra quem está com a tela aberta (pos a cada 1 s,
    rumo no clique). Plano Free: 100 mensagens/s no projeto, Conversas junto. Link da chamada de cada
-   sala mora na tabela escritorio_salas (o repositório é público): só aprovado lê, só master troca. */
+   sala mora na tabela escritorio_salas (o repositório é público): só aprovado lê, só master troca.
+   Regras do Gather (terceira revisão, 23/10):
+   1) cada pessoa tem uma mesa fixa (escritorio_mesas, master muda) e é nela que começa o dia;
+   2) cada time divide uma sala;
+   3) o status fica sempre à vista: no nome em cima do bonequinho, no rodapé da tela e na bolinha do
+      avatar do topo em qualquer tela; Em reunião entra sozinho na hora de um compromisso da agenda
+      Google da pessoa (a mesma conexão do Modo Pessoal; só início e fim, nunca o título);
+   4) anda com W A S D ou as setas sem precisar clicar no mapa antes;
+   5) aceno e chamada tocam e abrem uma janelinha no computador da pessoa (aviso do navegador se a aba
+      está escondida), menos pra quem está Ocupado ou Em reunião: aí chega quieto e aparece quando
+      ela ficar disponível;
+   6) a tela copia o Gather: mapa ocupando tudo, câmera seguindo você, cartão da pessoa com Acenar e
+      a agenda do dia, barra embaixo com você e o seu status. */
 const ESC_W=48, ESC_H=30;
 const ESC_SALAS=[
-  {id:'squad01',nome:'Squad 01',desc:'Campanhas e relatórios dos clientes do squad 01.',x0:1,y0:1,x1:11,y1:9},
-  {id:'squad02',nome:'Squad 02',desc:'Campanhas e relatórios dos clientes do squad 02.',x0:13,y0:1,x1:23,y1:9},
-  {id:'comercial',nome:'Comercial',desc:'SDR e closer: leads, calls e fechamento de contrato.',x0:25,y0:1,x1:35,y1:9},
-  {id:'socios',nome:'Sala dos sócios',desc:'Sócios e tecnologia.',x0:37,y0:1,x1:46,y1:9},
-  {id:'financeiro',nome:'Financeiro',desc:'Recebimentos, folha e fechamento do mês.',x0:1,y0:16,x1:11,y1:28},
-  {id:'edicao',nome:'Edição e Social',desc:'Edição de vídeo, linha editorial e social media.',x0:13,y0:16,x1:23,y1:28},
-  {id:'reuniao',nome:'Sala de reunião',desc:'Reunião de time e call com cliente.',x0:25,y0:16,x1:35,y1:28},
-  {id:'cafe',nome:'Café',desc:'Área comum, conversa sem pauta.',x0:37,y0:16,x1:46,y1:28},
+  {id:'squad01',nome:'Squad 01',desc:'Campanhas e relatórios dos clientes do squad 01.',x0:1,y0:1,x1:11,y1:9,piso:'madeira',mesas:true},
+  {id:'squad02',nome:'Squad 02',desc:'Campanhas e relatórios dos clientes do squad 02.',x0:13,y0:1,x1:23,y1:9,piso:'madeira',mesas:true},
+  {id:'comercial',nome:'Comercial',desc:'SDR e closer: leads, calls e fechamento de contrato.',x0:25,y0:1,x1:35,y1:9,piso:'madeira',mesas:true},
+  {id:'socios',nome:'Sala dos sócios',desc:'Sócios e tecnologia.',x0:37,y0:1,x1:46,y1:9,piso:'azul',mesas:true},
+  {id:'financeiro',nome:'Financeiro',desc:'Recebimentos, folha e fechamento do mês.',x0:1,y0:16,x1:11,y1:28,piso:'verde',mesas:true},
+  {id:'edicao',nome:'Edição e Social',desc:'Edição de vídeo, linha editorial e social media.',x0:13,y0:16,x1:23,y1:28,piso:'lilas',mesas:true},
+  {id:'reuniao',nome:'Sala de reunião',desc:'Reunião de time e call com cliente.',x0:25,y0:16,x1:35,y1:28,piso:'cinza'},
+  {id:'cafe',nome:'Café',desc:'Área comum, conversa sem pauta.',x0:37,y0:16,x1:46,y1:28,piso:'xadrez'},
 ];
 const ESC_CORREDOR={id:'recepcao',nome:'Recepção',desc:'Corredor central. Escolha uma sala ao lado ou ande até a porta.'};
 const ESC_ST={ok:'Disponível',ocupado:'Ocupado',reuniao:'Em reunião',ausente:'Ausente'};
+/* mesas: duas fileiras de três por sala de time; a mesa ocupa 2 tiles e a cadeira fica embaixo.
+   O índice (0 a 5) é o que fica gravado em escritorio_mesas: fileira de cima, esquerda pra direita. */
+const ESC_MESAS=(()=>{ const out=[];
+  ESC_SALAS.forEach(s=>{ if(!s.mesas) return; let i=0;
+    [s.y0+2,s.y0+5].forEach(y=>[1,4,7].forEach(dx=>{ out.push({sala:s.id,i:i++,x:s.x0+dx,y,sx:s.x0+dx+1,sy:y+1.5}); })); });
+  return out; })();
+/* móveis que bloqueiam, além das mesas: plantas, mesa de reunião, sofá e balcão do café, recepção */
+const ESC_MOVEIS=(()=>{ const m=[];
+  ESC_SALAS.forEach(s=>{ if(s.mesas){ m.push({t:'planta',x:s.x1,y:s.y0}); if(s.y1-s.y0>9) m.push({t:'planta',x:s.x1,y:s.y1}); } });
+  m.push({t:'reuniao',x:27,y:20,w:7,h:5});
+  m.push({t:'sofa',x:38,y:27,w:4,h:1},{t:'sofa',x:43,y:27,w:3,h:1},{t:'balcao',x:45,y:17,w:2,h:3},
+    {t:'mesinha',x:39,y:20,w:2,h:1},{t:'mesinha',x:39,y:23,w:2,h:1},{t:'planta',x:37,y:16});
+  m.push({t:'recepcao',x:2,y:11,w:3,h:1},{t:'planta',x:1,y:11},{t:'planta',x:46,y:11});
+  return m; })();
 const ESC_GRID=(()=>{ const g=[]; for(let y=0;y<ESC_H;y++) g.push(new Array(ESC_W).fill(0));
   const p=(x,y)=>{ if(x>=0&&y>=0&&x<ESC_W&&y<ESC_H) g[y][x]=1; }, a=(x,y)=>{ g[y][x]=0; };
   for(let x=0;x<ESC_W;x++){ p(x,0); p(x,ESC_H-1); p(x,10); p(x,15); }
@@ -28234,12 +28260,13 @@ const ESC_GRID=(()=>{ const g=[]; for(let y=0;y<ESC_H;y++) g.push(new Array(ESC_
   [[5,6],[17,18],[29,30],[41,42]].forEach(([u,v])=>{ a(u,10); a(v,10); });   /* portas das salas de cima */
   [[5,6],[17,18],[29,30]].forEach(([u,v])=>{ a(u,15); a(v,15); });            /* portas das de baixo */
   for(let x=38;x<=45;x++) a(x,15);                                            /* o café é aberto */
-  for(let y=20;y<=24;y++) for(let x=27;x<=33;x++) g[y][x]=2;                   /* mesa da sala de reunião */
+  ESC_MESAS.forEach(m=>{ g[m.y][m.x]=2; g[m.y][m.x+1]=2; });
+  ESC_MOVEIS.forEach(o=>{ for(let y=o.y;y<o.y+(o.h||1);y++) for(let x=o.x;x<o.x+(o.w||1);x++) if(g[y]&&g[y][x]===0) g[y][x]=2; });
   return g; })();
 const escLivre=(x,y)=>x>=0&&y>=0&&x<ESC_W&&y<ESC_H&&ESC_GRID[y][x]===0;
 const escSalaDe=(x,y)=>ESC_SALAS.find(s=>x>=s.x0&&x<s.x1+1&&y>=s.y0&&y<s.y1+1)||ESC_CORREDOR;
-/* Sala de cada um ao entrar: sócio na dos sócios, squad no seu squad, SDR/closer no Comercial,
-   editora e social na Edição; quem não se encaixa começa na Recepção. Daí anda pra onde quiser. */
+/* Sala do time: sócio na dos sócios, squad no seu squad, SDR/closer no Comercial, editora e social
+   na Edição; quem não se encaixa fica sem time (ganha mesa onde sobrar). */
 const escSalaPadrao=(u)=>{ if(!u) return 'recepcao';
   if(u.role==='master') return 'socios';
   const sq=(Array.isArray(u.squads)?u.squads:[]).map(s=>String(s).replace(/\D/g,'')).filter(Boolean).map(s=>s.padStart(2,'0'))[0];
@@ -28251,11 +28278,27 @@ const escSalaPadrao=(u)=>{ if(!u) return 'recepcao';
   if(/tecnolog|program/.test(cg)) return 'socios';
   return 'recepcao'; };
 const escHash=(s)=>{ let h=2166136261; for(const c of String(s||'')){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; };
-/* lugar fixo de cada pessoa dentro da sala (sempre o mesmo pra mesma pessoa) */
+/* Mesa de cada um: a gravada no banco vale; quem não tem ganha a primeira livre da sala do time (por
+   ordem de nome) e, se a sala lotou ou a pessoa não tem time, a primeira livre das outras. Mesa de quem
+   saiu do time continua presa até o master mudar (a gravação manda). */
+const ESC_SOBRA=['financeiro','edicao','comercial','socios','squad01','squad02'];
+function escDistribuir(equipe,gravadas){
+  const dono=new Map(), presa=new Set(), k=(m)=>m.sala+':'+m.i;
+  const gente=(equipe||[]).filter(u=>u&&u.id&&!/rob[oô]/i.test(String(u.nome||'')));
+  const ids=new Set(gente.map(u=>u.id));
+  (gravadas||[]).forEach(r=>{ if(!r) return; const m=ESC_MESAS.find(x=>x.sala===r.sala&&x.i===Number(r.mesa)); if(!m||presa.has(k(m))) return;
+    presa.add(k(m)); if(ids.has(r.pessoa)&&!dono.has(r.pessoa)) dono.set(r.pessoa,m); });
+  const livre=(sala)=>ESC_MESAS.find(m=>m.sala===sala&&!presa.has(k(m)));
+  gente.slice().sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR')||String(a.id).localeCompare(String(b.id)))
+    .forEach(u=>{ if(dono.has(u.id)) return;
+      let m=livre(escSalaPadrao(u)); for(let i=0;!m&&i<ESC_SOBRA.length;i++) m=livre(ESC_SOBRA[i]);
+      if(m){ dono.set(u.id,m); presa.add(k(m)); } });
+  return dono; }
+/* lugar em sala sem mesa (reunião, café, recepção): sempre o mesmo pra mesma pessoa */
 const escLugar=(salaId,uid)=>{ const s=ESC_SALAS.find(x=>x.id===salaId); if(!s) return {x:24.5,y:12.5};
   const op=[]; for(let y=s.y0+2;y<=s.y1;y++) for(let x=s.x0;x<=s.x1;x++) if(escLivre(x,y)) op.push([x,y]);
   const t=op.length?op[escHash(uid)%op.length]:[s.x0+1,s.y0+2]; return {x:t[0]+.5,y:t[1]+.5}; };
-/* caminho por clique: busca em largura na grade (paredes e mesa de reunião bloqueiam) */
+/* caminho por clique: busca em largura na grade (paredes e móveis bloqueiam) */
 function escBfs(sx,sy,tx,ty){
   if(!escLivre(tx,ty)||!escLivre(sx,sy)) return [];
   const k=(x,y)=>y*ESC_W+x, prev=new Map([[k(sx,sy),null]]), q=[[sx,sy]];
@@ -28271,50 +28314,74 @@ const escPisoPerto=(x,y)=>{ x=Math.max(0,Math.min(ESC_W-1,Math.floor(x))); y=Mat
   if(escLivre(x,y)) return [x,y]; let m=null,d=1e9;
   for(let yy=y-3;yy<=y+3;yy++) for(let xx=x-3;xx<=x+3;xx++) if(escLivre(xx,yy)){ const dd=(xx-x)**2+(yy-y)**2; if(dd<d){ d=dd; m=[xx,yy]; } }
   return m; };
-/* quem está a até r tiles de mim (o mais perto) */
-const escPerto=(eu,outros,r)=>{ let a=null,d=r||2.5; (outros||[]).forEach(o=>{ const dd=Math.hypot(o.x-eu.x,o.y-eu.y); if(dd<d){ d=dd; a=o; } }); return a; };
+/* sentado na cadeira de uma mesa (parado em cima do assento) */
+const escNaCadeira=(x,y)=>ESC_MESAS.find(m=>Math.abs(m.sx-x)<.2&&Math.abs(m.sy-y)<.2)||null;
 /* presença recebida: confere tudo, porque vem de outro navegador */
 const escLerPresenca=(m)=>{ if(!m||typeof m!=='object') return null;
   const x=Number(m.x), y=Number(m.y); if(!isFinite(x)||!isFinite(y)) return null;
   return {x:Math.max(.5,Math.min(ESC_W-.5,x)),y:Math.max(.5,Math.min(ESC_H-.5,y)),
-    st:ESC_ST[m.st]?m.st:'ok', v:m.v===true, t:Number(m.t)||0, dia:typeof m.dia==='string'?m.dia:''}; };
+    st:ESC_ST[m.st]?m.st:'ok', ag:m.ag===true, v:m.v===true, t:Number(m.t)||0, dia:typeof m.dia==='string'?m.dia:''}; };
+/* compromisso da agenda agora (blocos em ms) */
+const escNoBloco=(blocos,agora)=>(blocos||[]).find(b=>b.i<=agora&&agora<b.f)||null;
+/* aceno e chamada: quem está Ocupado ou Em reunião recebe quieto */
+const ESC_QUIETO={ocupado:1,reuniao:1};
 
 const ESC={canal:null,mapa:null,ok:false,okMapa:false,tent:0,timer:0,parado:false,pares:new Map(),eu:null,mudouT:0,
-  links:null,linksErro:false,naTela:false,raf:0,ult:0,caminho:[],teclas:{},T:20,dpr:1,fonte:'',cores:{},sujo:true,painel:'',imgs:{},
-  sala:'',salaPend:false,salaDesde:0,perto:null,enviados:[],ultSig:'',filaTrack:0,ultPos:0,ultRumo:0,filaRumo:0,rumo:null,
-  andava:false,paradaT:0,acenos:[],posPend:false,dia:'',okTimer:0,caiuEm:0,tentMapa:0,mapaOkTimer:0,mapaSaindo:null,mapaAbrindo:false};
+  links:null,linksErro:false,naTela:false,raf:0,ult:0,caminho:[],teclas:{},T:32,dpr:1,fonte:'',cores:{},sujo:true,uiSig:'',imgs:{},
+  sala:'',salaPend:false,salaDesde:0,enviados:[],ultSig:'',filaTrack:0,ultPos:0,ultRumo:0,filaRumo:0,rumo:null,
+  andava:false,paradaT:0,posPend:false,dia:'',okTimer:0,caiuEm:0,tentMapa:0,mapaOkTimer:0,mapaSaindo:null,mapaAbrindo:false,
+  ag:{},perdidos:[],bolhas:new Map(),ultAviso:{},card:'',cardSig:'',cam:{x:24,y:15},ox:0,oy:0,
+  gravadas:null,mesas:null,mesasSig:'',mesasOk:false,mesasGravou:false,tic:0,pessOn:false,menuSt:false,desde:{},ate:{}};
 /* O servidor do Realtime fecha o canal no 6º track em 30 s (CLIENT_PRESENCE_MAX_CALLS=5 por cliente):
    aqui vão no máximo 4, e o que passar espera a janela abrir (vale sempre o estado mais novo). */
 const ESC_PRES_MAX=4, ESC_PRES_JANELA=31000;   /* 1 s de folga contra o relógio do servidor */
 const escMe=()=>(typeof currentUser!=='undefined'&&currentUser)||null;
 const escHoje=()=>{ try{ return hojeISO(); }catch(_){ return new Date().toISOString().slice(0,10); } };
 const escChave=()=>'esc_eu_'+((escMe()||{}).id||'');
+/* time inteiro (eu sempre dentro; o robô não é gente no escritório) */
+const escEquipe=()=>{ const me=escMe(), eq=((typeof TK!=='undefined'&&TK&&TK.equipe)||[]).slice();
+  if(me&&!eq.some(u=>u&&u.id===me.id)) eq.push(me);
+  return eq.filter(u=>u&&u.id&&!/rob[oô]/i.test(String(u.nome||''))); };
+function escMesas(){ const eq=escEquipe(), sig=eq.map(u=>u.id).join(',')+'|'+JSON.stringify(ESC.gravadas||[]);
+  if(sig!==ESC.mesasSig||!ESC.mesas){ ESC.mesasSig=sig; ESC.mesas=escDistribuir(eq,ESC.gravadas); ESC.sujo=true; }
+  return ESC.mesas; }
+const escMinhaMesa=()=>{ const me=escMe(); if(!me) return null; const m=escMesas().get(me.id);
+  return m?{x:m.sx,y:m.sy,mesa:m}:escLugar(escSalaPadrao(me),me.id); };
 /* posição e status ficam no navegador: no mesmo dia volta pra onde parou; no dia seguinte
-   começa na sala da área e Disponível (status de ontem não vale hoje) */
+   começa na mesa dele e Disponível (status de ontem não vale hoje) */
 function escLerGuardado(){ try{ const o=JSON.parse(localStorage.getItem(escChave())||'null');
   return o&&o.dia===escHoje()&&isFinite(o.x)&&isFinite(o.y)?o:null; }catch(_){ return null; } }
 function escGuardar(){ const e=ESC.eu; if(!e) return;
   try{ localStorage.setItem(escChave(),JSON.stringify({x:+e.x.toFixed(2),y:+e.y.toFixed(2),st:e.st,dia:ESC.dia||escHoje(),t:ESC.mudouT})); }catch(_){} }
 function escIniciarEu(){
   const me=escMe(); if(!me) return; const g=escLerGuardado(), p=g&&escPisoPerto(g.x,g.y);
-  if(p){ ESC.eu={x:p[0]+.5,y:p[1]+.5,st:ESC_ST[g.st]?g.st:'ok'}; ESC.mudouT=Number(g.t)||0; }
-  else { const l=escLugar(escSalaPadrao(me),me.id); ESC.eu={x:l.x,y:l.y,st:'ok'}; ESC.mudouT=0; }
-  ESC.dia=escHoje();
+  if(p){ const c=escNaCadeira(g.x,g.y); ESC.eu=c?{x:c.sx,y:c.sy,st:ESC_ST[g.st]?g.st:'ok'}:{x:p[0]+.5,y:p[1]+.5,st:ESC_ST[g.st]?g.st:'ok'}; ESC.mudouT=Number(g.t)||0; }
+  else { const l=escMinhaMesa(); ESC.eu={x:l.x,y:l.y,st:'ok'}; ESC.mudouT=0; }
+  ESC.eu.dir='up'; ESC.dia=escHoje();
 }
 /* aba aberta de um dia pro outro: o status e o lugar de ontem não valem hoje. Com a tela aberta e à
-   vista, a pessoa vê o próprio status no seletor: só passa o dia. */
+   vista, a pessoa vê o próprio status no rodapé: só passa o dia. */
 function escVirouDia(){ if(!ESC.eu||ESC.dia===escHoje()) return;
   if(ESC.naTela&&!document.hidden){ ESC.dia=escHoje(); return; }
-  ESC.eu=null; escIniciarEu(); ESC.sujo=true; ESC.painel=''; }
+  ESC.eu=null; ESC.ag={}; escIniciarEu(); ESC.sujo=true; ESC.uiSig=''; }
 /* aba sem a tela aberta acompanha o que a outra aba (a que anda) gravou: não republica posição velha */
 function escReler(forca){ escVirouDia(); if((ESC.naTela&&!forca)||!ESC.eu) return; const g=escLerGuardado(); if(!g||(Number(g.t)||0)<=ESC.mudouT) return;
-  const p=escPisoPerto(g.x,g.y); if(p){ ESC.eu.x=p[0]+.5; ESC.eu.y=p[1]+.5; }
+  const c=escNaCadeira(g.x,g.y), p=escPisoPerto(g.x,g.y);
+  if(c){ ESC.eu.x=c.sx; ESC.eu.y=c.sy; } else if(p){ ESC.eu.x=p[0]+.5; ESC.eu.y=p[1]+.5; }
   ESC.eu.st=ESC_ST[g.st]?g.st:'ok'; ESC.mudouT=Number(g.t)||0; ESC.sujo=true; }
 const escMudou=()=>{ ESC.mudouT=Date.now(); ESC.dia=escHoje(); escGuardar(); };
+/* status que os outros veem: Disponível vira Em reunião durante um compromisso da agenda Google */
+const escPelaAgenda=(agora)=>{ const me=escMe(), c=me&&ESC.ag[me.id];
+  return !!(ESC.eu&&ESC.eu.st==='ok'&&c&&escNoBloco(c.blocos,agora||Date.now())); };
+const escStEfetivo=()=>!ESC.eu?'ok':(escPelaAgenda()?'reuniao':ESC.eu.st);
 /* t = hora da última mudança de verdade (não do envio): entre abas da mesma pessoa vale a mais nova */
 const escEstado=()=>{ const me=escMe(), e=ESC.eu;
-  return {u:me.id,x:+e.x.toFixed(1),y:+e.y.toFixed(1),sala:escSalaDe(e.x,e.y).id,st:e.st,
+  return {u:me.id,x:+e.x.toFixed(1),y:+e.y.toFixed(1),sala:escSalaDe(e.x,e.y).id,st:escStEfetivo(),ag:escPelaAgenda(),
     v:ESC.naTela&&!document.hidden,t:ESC.mudouT,dia:ESC.dia}; };
+/* status à vista em qualquer tela: a bolinha do avatar do topo e o botão do rail pegam a cor */
+function escPintarSt(){ try{ const r=document.documentElement; if(!r||!r.dataset) return; const st=ESC.eu?escStEfetivo():'';
+  if(r.dataset.escSt!==st){ if(st) r.dataset.escSt=st; else delete r.dataset.escSt; }
+  const b=document.getElementById('uavBtn'); if(b&&st) b.title='Você: '+ESC_ST[st]+(escPelaAgenda()?' (pela agenda)':''); }catch(_){} }
 /* track só quando muda o que os outros veem (sala, status, tela aberta); 'parou' manda a posição
    exata se ainda sobra folga na janela. Nunca passa de 4 em 30 s. */
 function escTrack(motivo){
@@ -28336,6 +28403,63 @@ const escAlguemVendo=()=>{ for(const o of ESC.pares.values()) if(o.v) return tru
 function escMandar(evento,dados){ const c=ESC.mapa; if(!c||!ESC.okMapa||!escAlguemVendo()) return false;
   try{ c.send({type:'broadcast',event:evento,payload:Object.assign({u:escMe().id,t:Date.now()},dados)}).catch(()=>{}); }catch(_){} return true; }
 
+/* mesas gravadas (o master muda; quem não tem linha cai na distribuição) */
+async function escCarregarMesas(){
+  try{ const {data,error}=await sb.from('escritorio_mesas').select('pessoa,sala,mesa'); if(error) throw error;
+    ESC.gravadas=(data||[]).map(r=>({pessoa:String(r.pessoa),sala:String(r.sala),mesa:Number(r.mesa)})); ESC.mesasOk=true; }
+  catch(_){ if(!ESC.gravadas) ESC.gravadas=[]; }
+  /* abriu antes de as mesas chegarem e ainda não andou: senta na mesa certa */
+  if(ESC.eu&&!ESC.mudouT&&!(ESC.caminho&&ESC.caminho.length)&&!ESC.euAnda){ const l=escMinhaMesa(); if(l){ ESC.eu.x=l.x; ESC.eu.y=l.y; } }
+  ESC.uiSig=''; ESC.cardSig=''; ESC.sujo=true; }
+
+/* agenda Google: só início e fim de cada compromisso de hoje, pela crm-agenda (ação ocupacao, a mesma
+   que a Agenda do CRM usa). A minha é relida a cada 5 min; a dos outros, quando abre o cartão. */
+const ESC_AG_TTL=5*60*1000;
+function escAgenda(uid,forca){ const c=ESC.ag[uid];
+  if(c&&c.carregando) return c.carregando;
+  if(c&&!forca&&Date.now()-c.em<ESC_AG_TTL) return Promise.resolve(c);
+  const p=(async()=>{ let r;
+    try{ const d=escHoje(), j=await caFn('ocupacao',{closer_id:uid,de:d,ate:d});
+      const blocos=(Array.isArray(j.blocos)?j.blocos:[]).map(b=>({i:Date.parse(b.inicio),f:Date.parse(b.fim)})).filter(b=>isFinite(b.i)&&isFinite(b.f)&&b.f>b.i);
+      r={em:Date.now(),con:j.conectado!==false,erro:!!j.erro_google,blocos}; }
+    catch(_){ r={em:Date.now(),con:c?c.con:null,erro:true,blocos:(c&&c.blocos)||[]}; }
+    ESC.ag[uid]=r; ESC.cardSig=''; ESC.uiSig=''; return r; })();
+  ESC.ag[uid]=Object.assign({em:0,con:null,blocos:[]},c||{},{carregando:p}); return p; }
+/* a cada 30 s: virada do dia, agenda, status que os outros veem e os avisos que chegaram quietos */
+function escTique(){ const me=escMe(); if(!me||!ESC.eu) return;
+  escVirouDia();
+  const c=ESC.ag[me.id]; if(!c||Date.now()-c.em>=ESC_AG_TTL) escAgenda(me.id).then(()=>{ escTrack(); escPintarSt(); }).catch(()=>{});
+  escTrack(); escPintarSt(); escPerdidosVer(); ESC.uiSig=''; }
+
+/* ---------- aceno e chamada ---------- */
+/* manda pra uma pessoa que está no escritório agora; o mesmo aviso pra mesma pessoa só depois de
+   8 s (aceno) ou 20 s (chamada). A chamada leva a sala de quem chama: o link sai do banco. */
+function escAvisar(tipo,uid){ const me=escMe();
+  if(!me||!ESC.eu||!uid||uid===me.id||(tipo!=='aceno'&&tipo!=='chamada')) return 'eu';
+  if(!ESC.ok||!ESC.canal) return 'sem_conexao';
+  if(!ESC.pares.has(uid)) return 'fora';
+  const k=tipo+':'+uid, agora=Date.now(); if(agora-(ESC.ultAviso[k]||0)<(tipo==='chamada'?20000:8000)) return 'cedo';
+  ESC.ultAviso[k]=agora;
+  let sala=escSalaDe(ESC.eu.x,ESC.eu.y).id; if(tipo==='chamada'&&sala==='recepcao') sala='reuniao';
+  try{ ESC.canal.send({type:'broadcast',event:tipo,payload:{u:me.id,para:uid,sala}}).catch(()=>{}); }catch(_){}
+  if(tipo==='aceno'){ ESC.bolhas.set(me.id,{txt:'Oi, '+(primeiroNome(tkNomeUser(uid))||'colega')+'!',ate:agora+3500}); ESC.sujo=true; }
+  return 'ok'; }
+/* chegou um aviso pelo canal: balão em cima de quem acenou (pra todo mundo que está vendo) e, se for
+   pra mim, som + janelinha + aviso do navegador com a aba escondida; Ocupado e Em reunião recebem quieto */
+function escRecebe(tipo,p){ const me=escMe(); if(!me||!p||typeof p.u!=='string'||p.u===me.id||typeof p.para!=='string') return;
+  if(tipo==='aceno'&&ESC.pares.has(p.u)){ ESC.bolhas.set(p.u,{txt:p.para===me.id?'Oi, '+(primeiroNome(me.nome)||'você')+'!':'Oi, '+(primeiroNome(tkNomeUser(p.para))||'colega')+'!',ate:Date.now()+3500}); ESC.sujo=true; }
+  if(p.para!==me.id) return;
+  const sala=ESC_SALAS.find(s=>s.id===p.sala);
+  const av={tipo,u:p.u,nome:primeiroNome(tkNomeUser(p.u))||'Alguém',sala:sala?sala.id:'',em:Date.now()};
+  if(ESC_QUIETO[escStEfetivo()]){ ESC.perdidos.push(av); ESC.uiSig=''; return; }
+  escTocar(tipo); escJanela(av); if(document.hidden) escNotificar(av); }
+/* voltou a ficar disponível: um resumo do que chegou quieto */
+function escPerdidosVer(){ if(!ESC.perdidos.length||ESC_QUIETO[escStEfetivo()]) return;
+  const l=ESC.perdidos.splice(0), vistos=new Set(), partes=[];
+  l.forEach(a=>{ const k=a.tipo+a.u; if(vistos.has(k)) return; vistos.add(k); partes.push(a.nome+(a.tipo==='chamada'?' te chamou':' acenou')); });
+  const txt=partes.length===1?partes[0]:partes.slice(0,-1).join(', ')+' e '+partes[partes.length-1];
+  escJanela({tipo:'resumo',u:l[l.length-1].u,nome:'',sala:'',texto:'Enquanto você estava ocupado: '+txt+'.',em:Date.now()}); ESC.uiSig=''; }
+
 async function escBoot(){
   const me=escMe();
   if(ESC.canal||ESC.parado||!me||!me.aprovado) return;
@@ -28343,18 +28467,21 @@ async function escBoot(){
   if(typeof tlBloqueada==='function'&&tlBloqueada('escritorio')) return;   /* tela desligada pra pessoa em Usuários */
   if(/rob[oô]/i.test(String(me.nome||''))) return;                          /* o robô não é gente no escritório */
   if(typeof sb==='undefined'||!sb||!sb.channel) return;
+  if(!ESC.mesasOk) await escCarregarMesas();                               /* a mesa dele é onde começa o dia */
   if(!ESC.eu) escIniciarEu();
+  if(!ESC.tic){ ESC.tic=setInterval(escTique,30000); setTimeout(escTique,1500); }
   try{ const S=await sbSessao(); if(S&&S.access_token&&sb.realtime&&sb.realtime.setAuth) await sb.realtime.setAuth(S.access_token); }catch(_){}
   if(ESC.canal||ESC.parado) return;
   const c=sb.channel('escritorio',{config:{private:true,presence:{key:me.id},broadcast:{self:false}}});
   ESC.canal=c;
   c.on('presence',{event:'sync'},()=>{ if(ESC.canal===c) escSync(c.presenceState()); })
-   .on('broadcast',{event:'aceno'},(m)=>{ if(ESC.canal===c) escAceno(m&&m.payload); })
+   .on('broadcast',{event:'aceno'},(m)=>{ if(ESC.canal===c) escRecebe('aceno',m&&m.payload); })
+   .on('broadcast',{event:'chamada'},(m)=>{ if(ESC.canal===c) escRecebe('chamada',m&&m.payload); })
    .subscribe((st)=>{ if(ESC.canal!==c) return;
-     if(st==='SUBSCRIBED'){ ESC.ok=true; ESC.enviados=[]; ESC.ultSig=''; escTrack('entrou'); ESC.sujo=true; ESC.painel='';
+     if(st==='SUBSCRIBED'){ ESC.ok=true; ESC.enviados=[]; ESC.ultSig=''; escTrack('entrou'); escPintarSt(); ESC.sujo=true; ESC.uiSig='';
        /* a espera só zera depois de 1 min no ar: o servidor pode derrubar logo depois de entrar */
        clearTimeout(ESC.okTimer); ESC.okTimer=setTimeout(()=>{ if(ESC.canal===c&&ESC.ok) ESC.tent=0; },60000); }
-     else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){ ESC.ok=false; ESC.painel=''; escReentrar(); } });
+     else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){ ESC.ok=false; ESC.uiSig=''; escReentrar(); } });
 }
 /* caiu (token venceu, rede): tenta de novo com espera crescente e um pouco aleatória, pra a equipe
    não voltar toda no mesmo segundo; depois de 5 tentativas, a cada ~5 min, sem desistir */
@@ -28368,7 +28495,8 @@ function escReentrar(){
 }
 /* voltou a rede ou a aba: adianta a próxima tentativa, sem zerar a espera (só se caiu há mais de 10 s) */
 function escReligar(){ if(!ESC.canal&&!ESC.parado&&escMe()&&Date.now()-(ESC.caiuEm||0)>10000){ clearTimeout(ESC.timer); escBoot(); } }
-async function escSair(){ ESC.parado=true; clearTimeout(ESC.timer); escMapaSair(); const c=ESC.canal; ESC.canal=null; ESC.ok=false;
+async function escSair(){ ESC.parado=true; clearTimeout(ESC.timer); clearInterval(ESC.tic); ESC.tic=0; escMapaSair(); const c=ESC.canal; ESC.canal=null; ESC.ok=false;
+  try{ delete document.documentElement.dataset.escSt; }catch(_){}
   if(!c) return; try{ await c.untrack(); }catch(_){} try{ await sb.removeChannel(c); }catch(_){} }
 /* canal do mapa: só com a tela aberta e à vista. Espera o canal velho terminar de sair antes de abrir
    outro com o mesmo nome (senão o supabase-js devolve o que está saindo). */
@@ -28397,10 +28525,10 @@ document.addEventListener('visibilitychange',()=>{
     else { escReler(true); escMapaEntrar(); }
     escTrack();                               /* fora da tela nada que os outros veem muda: não gasta track */
   }
-  if(!document.hidden){ escReligar(); escMostrarAcenos(); }
+  if(!document.hidden){ escReligar(); if(typeof escAvisosVisivel==='function') escAvisosVisivel(); }
 });
 window.addEventListener('online',escReligar);
-window.addEventListener('storage',(e)=>{ if(e.key===escChave()){ escReler(); escTrack(); } });
+window.addEventListener('storage',(e)=>{ if(e.key===escChave()){ escReler(); escTrack(); escPintarSt(); } });
 
 function escSync(estado){
   const me=escMe(), vistos=new Set();
@@ -28410,12 +28538,12 @@ function escSync(estado){
     const hoje=escHoje(); metas.forEach(m=>{ if(m.dia&&m.dia!==hoje) m.t=0; });   /* aba de ontem nunca vence a de hoje */
     const p=metas.reduce((a,b)=>(b.v!==a.v?(b.v?b:a):(b.t>a.t?b:a)));
     vistos.add(k);
-    let o=ESC.pares.get(k); if(!o){ o={dx:p.x,dy:p.y,rota:null}; ESC.pares.set(k,o); }
+    let o=ESC.pares.get(k); if(!o){ o={dx:p.x,dy:p.y,rota:null,dir:'down'}; ESC.pares.set(k,o); }
     /* presença mais velha que o último movimento recebido não puxa o bonequinho de volta */
     if((!o.rota||!o.rota.length)&&p.t>=(o.tPos||0)){ o.x=p.x; o.y=p.y; }
-    o.st=p.st; o.v=p.v; });
+    o.st=p.st; o.ag=p.ag; o.v=p.v; });
   [...ESC.pares.keys()].forEach(k=>{ if(!vistos.has(k)) ESC.pares.delete(k); });
-  ESC.sujo=true;
+  ESC.sujo=true; ESC.uiSig=''; ESC.cardSig='';
 }
 function escPos(p,rumo){
   if(!p||typeof p.u!=='string') return; const o=ESC.pares.get(p.u); if(!o) return;   /* só de quem está no canal */
@@ -28426,55 +28554,174 @@ function escPos(p,rumo){
   else { o.rota=null; o.x=a.x; o.y=a.y; }
   o.v=true; ESC.sujo=true;
 }
-/* aceno com a aba escondida não se perde: aparece quando a pessoa volta */
-function escAceno(p){ const me=escMe(); if(!me||!p||p.para!==me.id||typeof p.u!=='string'||p.u===me.id) return;
-  const n=primeiroNome(tkNomeUser(p.u))||'Alguém';
-  if(document.hidden){ if(ESC.acenos.indexOf(n)<0) ESC.acenos.push(n); return; }
-  toast(n+' acenou para você no Escritório.'); }
-function escMostrarAcenos(){ if(!ESC.acenos.length) return; const l=ESC.acenos.splice(0);
-  toast((l.length===1?l[0]+' acenou':l.slice(0,-1).join(', ')+' e '+l[l.length-1]+' acenaram')+' para você no Escritório.'); }
 
 /* ---------- tela ---------- */
+const ESC_SVG=(p,extra)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'+(extra||'')+'>'+p+'</svg>';
+const ESC_IC={
+  mao:ESC_SVG('<path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-6-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>'),
+  video:ESC_SVG('<path d="m22 8-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2"/>'),
+  ir:ESC_SVG('<circle cx="12" cy="5" r="2"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/>'),
+  mesa:ESC_SVG('<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 21h8M12 16v5"/>'),
+  sino:ESC_SVG('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
+  mudo:ESC_SVG('<path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5"/><path d="M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/>'),
+  gente:ESC_SVG('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  mais:ESC_SVG('<path d="M12 5v14M5 12h14"/>'),
+  menos:ESC_SVG('<path d="M5 12h14"/>'),
+  x:ESC_SVG('<path d="M18 6 6 18M6 6l12 12"/>'),
+  pts:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+  seta:ESC_SVG('<path d="m6 15 6-6 6 6"/>'),
+};
 function escCss(){ if(document.getElementById('escCss')) return; const s=document.createElement('style'); s.id='escCss';
   s.textContent=`
-  .esc-palco{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px;align-items:start}
-  @media (max-width:980px){.esc-palco{grid-template-columns:minmax(0,1fr)}}
-  .esc-mapa{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
-  .esc-cvbox{overflow-x:auto;border-radius:6px}
-  #escCv{display:block;width:100%;min-width:600px;height:auto;aspect-ratio:48/30;border-radius:6px;cursor:pointer;touch-action:pan-x pan-y}
-  #escCv:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
-  .esc-dica{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);padding:8px 2px 0}
-  .esc-dica kbd{font:600 11px inherit;border:1px solid var(--line);border-radius:3px;padding:0 5px;color:var(--txt)}
-  .esc-lado{display:flex;flex-direction:column;gap:12px;min-width:0}
-  .esc-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
-  .esc-rot{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-  .esc-sala h3{margin:0;font-size:18px;font-weight:700}
-  .esc-sala p{margin:0;font-size:13px;color:var(--muted)}
-  .esc-lk{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .esc-lk .btn[aria-disabled="true"]{opacity:.5;pointer-events:none}
-  .esc-lista{list-style:none;margin:0;padding:0}
-  .esc-lista li{border-top:1px solid var(--line);padding:8px 0;display:flex;flex-direction:column;gap:5px}
-  .esc-lista li:first-child{border-top:0}
-  .esc-ir{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:13px}
-  .esc-ir:hover{color:var(--brand2)} .esc-ir:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-  .esc-ir .n{color:var(--muted);font-weight:400;font-variant-numeric:tabular-nums}
-  .esc-gente{display:flex;flex-wrap:wrap;gap:6px 12px}
-  .esc-p{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-  .esc-p .av{width:20px;height:20px;font-size:10px}
-  .esc-p .dot{width:8px;height:8px;border-radius:50%;flex:none}
-  .esc-p.vc{color:var(--txt);font-weight:600}
-  .esc-p.fora{opacity:.6}
-  .esc-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}
-  .esc-aviso{font-size:13px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px}
-  .esc-eu{display:flex;align-items:center;gap:8px}
-  .esc-eu select{min-width:150px}`;
+  /* arte do mapa: igual nos dois temas (é desenho, não interface). A interface por cima usa os tokens. */
+  .esc-st{--esc-corr:#ded3c1;--esc-corr2:#d5c8b3;--esc-mad:#c99b6b;--esc-mad2:#b3855a;--esc-azul:#5e70a6;--esc-azul2:#53649a;
+    --esc-verde:#6e9a7b;--esc-verde2:#628d6f;--esc-lilas:#9785c0;--esc-lilas2:#8a77b4;--esc-cinza:#8d90a4;--esc-cinza2:#82859a;
+    --esc-xa:#efe5d2;--esc-xb:#d9c9ab;--esc-parede:#332c4d;--esc-paredef:#675e8c;--esc-rodape:#251f3a;--esc-tapete:#9d5c45;
+    --esc-mesa:#f1ebe0;--esc-mesaf:#b8a68c;--esc-monitor:#2a2c39;--esc-tela:#86b8e8;--esc-teclado:#d2cbc0;--esc-cadeira:#3c4767;--esc-cadeira2:#4b5880;
+    --esc-planta:#4f9b5b;--esc-planta2:#3b7c46;--esc-vaso:#b0673f;--esc-sofa:#c2576b;--esc-sofa2:#a7485a;--esc-madmesa:#a87445;--esc-madmesaf:#8a5c35;
+    --esc-placa:#251f3a;--esc-placatxt:#f4f1fa;--esc-tag:rgba(17,14,30,.86);--esc-tagtxt:#ffffff;--esc-sombra:rgba(0,0,0,.22);--esc-luz:#fff6d8;
+    --esc-papel:#ffffff;--esc-caneca:#e0574f;--esc-olho:#1d1b26;--esc-sapato:#2b2735;--esc-bolha:#ffffff;--esc-bolhatxt:#1d1b26;
+    --esc-peles:#f2cda8,#e2ae86,#c98d62,#a56a43,#7a4b2e;--esc-cabelos:#2b2118,#4a3122,#7b4a26,#c58f3d,#1f1f2b,#8d3b2f;--esc-calcas:#2f3a5c,#3a3a46,#4b3b2f,#24476b}
+  body .main.esc-full{padding:0;overflow:hidden}
+  .esc-st [hidden],#escAvisos [hidden]{display:none!important}
+  .esc-st{position:relative;height:var(--esc-h,calc(100vh - 60px));min-height:360px;overflow:hidden;background:var(--bg);border-top:1px solid var(--line)}
+  #escCv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer;touch-action:none;outline:none}
+  .esc-h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .esc-topo{position:absolute;left:14px;top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;max-width:calc(100% - 380px);pointer-events:none}
+  .esc-chip{pointer-events:auto;display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:7px 12px;font-size:13px;color:var(--muted);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .esc-chip b{color:var(--txt);font-weight:700}
+  .esc-chip.alerta{color:var(--txt);border-color:var(--warn)}
+  button.esc-chip{cursor:pointer;font:inherit;font-size:13px;text-align:left} button.esc-chip:hover{background:var(--panel2)} .esc-chip svg{width:15px;height:15px;flex:none;color:var(--warn)}
+  .esc-chip .btn{padding:3px 9px}
+  .esc-dica{position:absolute;left:14px;bottom:86px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;
+    font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .esc-dica kbd{font:600 11px Inter,system-ui,sans-serif;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;color:var(--txt);background:var(--panel2)}
+  /* barra de baixo (a do Gather): você, seu status e as ações */
+  .esc-dock{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:calc(100% - 20px)}
+  .esc-dock .sep{width:1px;align-self:stretch;background:var(--line);margin:4px 4px}
+  .esc-eu{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;padding:4px 10px 4px 4px;border-radius:10px;min-width:0}
+  .esc-eu:hover,.esc-eu[aria-expanded="true"]{background:var(--panel2)}
+  .esc-eu:focus-visible,.esc-db:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+  .esc-eu .av{width:34px;height:34px;font-size:13px;flex:none}
+  .esc-eu .tx{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+  .esc-eu .tx b{font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+  .esc-eu .tx span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;white-space:nowrap}
+  .esc-eu svg{width:14px;height:14px;color:var(--muted)}
+  .esc-dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+  .esc-dot.ok{background:var(--ok)}.esc-dot.ocupado{background:var(--danger)}.esc-dot.reuniao{background:var(--brand2)}.esc-dot.ausente{background:var(--fraco)}.esc-dot.off{background:transparent;box-shadow:inset 0 0 0 2px var(--fraco)}
+  .esc-db{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 12px;border-radius:10px;font-size:13px;font-weight:600;color:var(--txt);position:relative;white-space:nowrap;flex:none}
+  .esc-db:hover{background:var(--panel2)} .esc-db svg{width:18px;height:18px}
+  .esc-db[aria-disabled="true"]{color:var(--fraco);cursor:default} .esc-db[aria-disabled="true"]:hover{background:none}
+  .esc-db[aria-pressed="true"]{background:var(--panel2);color:var(--brand2)}
+  .esc-db .n{font-size:11px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+  .esc-db.ic{padding:0;width:40px;justify-content:center}
+  .esc-zoom{display:flex;gap:2px}
+  .esc-menu{position:absolute;bottom:calc(100% + 8px);left:0;width:290px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 14px 40px rgba(0,0,0,.4);padding:6px;display:flex;flex-direction:column;gap:2px;z-index:3}
+  .esc-op{all:unset;cursor:pointer;display:grid;grid-template-columns:14px 1fr;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:8px}
+  .esc-op:hover,.esc-op:focus-visible{background:var(--panel2)}
+  .esc-op b{font-size:13px;font-weight:700;color:var(--txt)} .esc-op small{grid-column:2;font-size:12px;color:var(--muted)}
+  .esc-op[aria-checked="true"] b{color:var(--brand2)}
+  .esc-menu .hint{padding:8px 10px 4px;border-top:1px solid var(--line);margin-top:4px;font-size:12px;color:var(--muted)}
+  .esc-menu .hint .btn{margin-top:6px}
+  /* cartão da pessoa (canto de cima, como no Gather) */
+  .esc-card{position:absolute;right:14px;top:14px;width:330px;max-width:calc(100% - 28px);max-height:calc(100% - 110px);overflow:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.4);padding:14px;display:flex;flex-direction:column;gap:12px}
+  .esc-st.pess-on .esc-card{right:310px}
+  .esc-ct{display:flex;align-items:center;gap:11px}
+  .esc-ct .av{width:44px;height:44px;font-size:16px;flex:none}
+  .esc-ct .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .esc-ct .tx b{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .esc-ct .tx span{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .esc-x{all:unset;cursor:pointer;width:28px;height:28px;display:grid;place-items:center;border-radius:8px;color:var(--muted);flex:none}
+  .esc-x:hover{background:var(--panel2);color:var(--txt)} .esc-x svg{width:16px;height:16px}
+  .esc-acoes{display:flex;gap:6px}
+  .esc-acoes .btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px}
+  .esc-acoes .btn svg{width:17px;height:17px}
+  .esc-acoes .esc-db{height:38px;width:40px;padding:0;justify-content:center;border:1px solid var(--line)}
+  .esc-cdica{font-size:12.5px;color:var(--muted);margin:-2px 0 0}
+  .esc-ag{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+  .esc-ag-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:13px;font-weight:700}
+  .esc-ag-h small{font-weight:400;font-size:12px;color:var(--muted)}
+  .esc-ag-box{height:170px;overflow:auto;border-radius:8px;background:var(--panel2);position:relative}
+  .esc-ag-dia{position:relative;margin:0 8px 0 44px}
+  .esc-ag-hr{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+  .esc-ag-hr span{position:absolute;left:-40px;top:-8px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .esc-ag-b{position:absolute;left:4px;right:0;border-radius:6px;background:color-mix(in srgb,var(--brand) 35%,var(--panel));border-left:3px solid var(--brand2);
+    padding:3px 8px;font-size:12px;font-weight:700;overflow:hidden;color:var(--txt)}
+  .esc-ag-b small{display:block;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+  .esc-ag-agora{position:absolute;left:-6px;right:0;border-top:2px solid var(--danger);z-index:1}
+  .esc-ag-agora span{position:absolute;left:-40px;top:-9px;font-size:10.5px;font-weight:700;color:var(--esc-tagtxt);background:var(--danger);border-radius:4px;padding:1px 4px;font-variant-numeric:tabular-nums}
+  .esc-ag-vz{font-size:12.5px;color:var(--muted)}
+  /* pessoas (lateral) */
+  .esc-pess{position:absolute;right:14px;top:14px;bottom:80px;width:282px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    box-shadow:0 14px 40px rgba(0,0,0,.4);display:flex;flex-direction:column;min-height:0}
+  .esc-pess-h{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 8px 16px;font-weight:700;font-size:14px}
+  .esc-lista{list-style:none;margin:0;padding:0 8px 10px;overflow:auto;flex:1;min-height:0}
+  .esc-lista li{padding:6px 0}
+  .esc-lista li+li{border-top:1px solid var(--line)}
+  .esc-sec{display:flex;justify-content:space-between;gap:8px;padding:4px 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .esc-sec button{all:unset;cursor:pointer} .esc-sec button:hover{color:var(--brand2)}
+  .esc-sec .n{font-variant-numeric:tabular-nums;letter-spacing:0}
+  .esc-pp{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;width:calc(100% - 16px)}
+  .esc-pp:hover,.esc-pp:focus-visible{background:var(--panel2)}
+  .esc-pp .av{width:28px;height:28px;font-size:11px;flex:none}
+  .esc-pp .tx{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+  .esc-pp .tx b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .esc-pp .tx span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .esc-pp.fora{opacity:.55}
+  /* janelinha de aceno e chamada (em qualquer tela do sistema) */
+  #escAvisos{position:fixed;top:16px;right:16px;z-index:2500;display:flex;flex-direction:column;gap:10px;width:340px;max-width:calc(100vw - 32px)}
+  .esc-av{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--brand2);border-radius:12px;box-shadow:0 16px 44px rgba(0,0,0,.45);
+    padding:12px 12px 12px 14px;display:flex;flex-direction:column;gap:10px;animation:escEntra .22s ease-out}
+  .esc-av.ch{border-left-color:var(--ok)}
+  .esc-av-t{display:flex;gap:10px;align-items:center}
+  .esc-av-t .av{width:38px;height:38px;font-size:14px;flex:none}
+  .esc-av-t .tx{flex:1;min-width:0;font-size:13.5px;line-height:1.35}
+  .esc-av-t .tx small{display:block;color:var(--muted);font-size:12px}
+  .esc-av-b{display:flex;gap:6px;justify-content:flex-end}
+  @keyframes escEntra{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+  /* status à vista em qualquer tela: bolinha do avatar do topo e do botão Escritório no rail */
+  html[data-esc-st="ocupado"] .uav .pt{background:var(--danger)}
+  html[data-esc-st="reuniao"] .uav .pt{background:var(--brand2)}
+  html[data-esc-st="ausente"] .uav .pt{background:var(--fraco)}
+  #navEscritorio{position:relative}
+  html[data-esc-st] #navEscritorio::after{content:'';position:absolute;top:6px;right:14px;width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 2px var(--bg)}
+  html[data-esc-st="ocupado"] #navEscritorio::after{background:var(--danger)}
+  html[data-esc-st="reuniao"] #navEscritorio::after{background:var(--brand2)}
+  html[data-esc-st="ausente"] #navEscritorio::after{background:var(--fraco)}
+  @media (max-width:760px){
+    .esc-topo{max-width:calc(100% - 28px)}
+    .esc-dock{bottom:10px;gap:2px;padding:5px}
+    .esc-dock .esc-db span:not(.n){display:none}
+    .esc-db{padding:0 10px}
+    .esc-eu .tx b{max-width:90px}
+    .esc-zoom{display:none}
+    .esc-card,.esc-st.pess-on .esc-card{left:8px;right:8px;top:auto;bottom:76px;width:auto;max-height:60%}
+    .esc-pess{left:8px;right:8px;width:auto;bottom:76px}
+    .esc-dica{display:none}
+    .esc-menu{width:min(290px,calc(100vw - 30px))}
+  }`;
   document.head.appendChild(s); }
-const escCorSt=(st)=>({ok:'--ok',ocupado:'--warn',reuniao:'--brand',ausente:'--fraco'})[st]||'--ok';
-function escLerCores(){ const cs=getComputedStyle(document.documentElement), g=(n)=>cs.getPropertyValue(n).trim();
-  ESC.cores={piso:g('--panel'),corredor:g('--panel2'),parede:g('--fraco')||g('--muted'),mesa:g('--line'),txt:g('--txt'),muted:g('--muted'),
-    brand:g('--brand'),brand2:g('--brand2'),panel:g('--panel'),line:g('--line'),
-    st:{ok:g('--ok'),ocupado:g('--warn'),reuniao:g('--brand'),ausente:g('--fraco')}};
-  ESC.fonte=getComputedStyle(document.body).fontFamily||'system-ui, sans-serif'; ESC.sujo=true; }
+/* antes de a tela abrir uma vez, a bolinha do topo já precisa da regra de cor */
+try{ escCss(); }catch(_){}
+const escCorSt=(st)=>({ok:'--ok',ocupado:'--danger',reuniao:'--brand2',ausente:'--fraco'})[st]||'--ok';
+function escLerCores(){ const el=document.getElementById('escStage')||document.documentElement, cs=getComputedStyle(el), g=(n)=>cs.getPropertyValue(n).trim();
+  const lista=(n)=>g(n).split(',').map(s=>s.trim()).filter(Boolean);
+  ESC.cores={fora:g('--bg'),corr:g('--esc-corr'),corr2:g('--esc-corr2'),
+    piso:{madeira:[g('--esc-mad'),g('--esc-mad2')],azul:[g('--esc-azul'),g('--esc-azul2')],verde:[g('--esc-verde'),g('--esc-verde2')],
+      lilas:[g('--esc-lilas'),g('--esc-lilas2')],cinza:[g('--esc-cinza'),g('--esc-cinza2')],xadrez:[g('--esc-xa'),g('--esc-xb')]},
+    parede:g('--esc-parede'),paredeF:g('--esc-paredef'),rodape:g('--esc-rodape'),tapete:g('--esc-tapete'),
+    mesa:g('--esc-mesa'),mesaF:g('--esc-mesaf'),monitor:g('--esc-monitor'),tela:g('--esc-tela'),teclado:g('--esc-teclado'),
+    cadeira:g('--esc-cadeira'),cadeira2:g('--esc-cadeira2'),planta:g('--esc-planta'),planta2:g('--esc-planta2'),vaso:g('--esc-vaso'),
+    sofa:g('--esc-sofa'),sofa2:g('--esc-sofa2'),madMesa:g('--esc-madmesa'),madMesaF:g('--esc-madmesaf'),placa:g('--esc-placa'),placaTxt:g('--esc-placatxt'),
+    tag:g('--esc-tag'),tagTxt:g('--esc-tagtxt'),sombra:g('--esc-sombra'),luz:g('--esc-luz'),papel:g('--esc-papel'),caneca:g('--esc-caneca'),
+    olho:g('--esc-olho'),sapato:g('--esc-sapato'),bolha:g('--esc-bolha'),bolhaTxt:g('--esc-bolhatxt'),brand2:g('--brand2'),
+    peles:lista('--esc-peles'),cabelos:lista('--esc-cabelos'),calcas:lista('--esc-calcas'),
+    st:{ok:g('--ok'),ocupado:g('--danger'),reuniao:g('--brand2'),ausente:g('--fraco')}};
+  ESC.fonte=getComputedStyle(document.body).fontFamily||'Inter, system-ui, sans-serif'; ESC.sujo=true; }
 new MutationObserver(()=>{ if(ESC.naTela) escLerCores(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-tema']});
 
 /* link da chamada: relido a cada vez que a tela abre (o master pode ter trocado); falha mantém o que já tinha */
@@ -28482,9 +28729,81 @@ async function escLinks(){
   try{ const {data,error}=await sb.from('escritorio_salas').select('id,link');
     if(error) throw error; const m={}; (data||[]).forEach(r=>{ if(r&&r.id) m[r.id]=String(r.link||''); }); ESC.links=m; ESC.linksErro=false; }
   catch(_){ if(!ESC.links) ESC.links={}; ESC.linksErro=true; }
-  ESC.painel='';
+  ESC.uiSig='';
 }
 const escLinkOk=(l)=>/^https:\/\/[^\s"'<>]+$/.test(String(l||''));
+
+/* ---------- som e aviso do navegador ---------- */
+let ESC_AC=null;
+const escSomOn=()=>{ try{ return localStorage.getItem('esc_som')!=='0'; }catch(_){ return true; } };
+function escAudio(){ try{ if(!ESC_AC){ const A=window.AudioContext||window.webkitAudioContext; if(!A) return null; ESC_AC=new A(); }
+  if(ESC_AC.state==='suspended') ESC_AC.resume().catch(()=>{}); return ESC_AC; }catch(_){ return null; } }
+/* o navegador só deixa tocar depois de um clique ou tecla na página: o áudio liga no primeiro */
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(escMe()) escAudio(); },{once:true,capture:true}));
+function escTocar(tipo){ if(!escSomOn()) return; const ac=escAudio(); if(!ac) return;
+  const notas=tipo==='chamada'?[[659,0],[880,.2],[659,.7],[880,.9],[659,1.4],[880,1.6]]:[[784,0],[1175,.15]];
+  try{ const t0=ac.currentTime+.02;
+    notas.forEach(([f,t])=>{ const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0,t0+t); g.gain.linearRampToValueAtTime(.22,t0+t+.015); g.gain.exponentialRampToValueAtTime(.001,t0+t+.32);
+      o.connect(g); g.connect(ac.destination); o.start(t0+t); o.stop(t0+t+.35); }); }catch(_){} }
+const escAvTexto=(av)=>{ const s=ESC_SALAS.find(x=>x.id===av.sala);
+  if(av.tipo==='chamada') return {t:av.nome+' está te chamando',s:'Chamada da sala '+(s?s.nome:'')};
+  if(av.tipo==='resumo') return {t:av.texto,s:'Escritório'};
+  return {t:av.nome+' acenou para você',s:'Escritório'+(s?' · '+s.nome:'')}; };
+function escNotificar(av){ try{ if(!('Notification' in window)||Notification.permission!=='granted') return;
+  const x=escAvTexto(av), n=new Notification(x.t,{body:x.s,tag:'esc-'+av.tipo+'-'+av.u,renotify:true,requireInteraction:av.tipo==='chamada'});
+  n.onclick=()=>{ try{ window.focus(); }catch(_){} n.close(); }; }catch(_){} }
+/* janelinha no canto: fica 15 s (aceno) ou 45 s (chamada) contando só com a aba à vista */
+function escJanela(av){ escCss();
+  let box=document.getElementById('escAvisos'); if(!box){ box=document.createElement('div'); box.id='escAvisos'; box.setAttribute('aria-live','assertive'); document.body.appendChild(box); }
+  while(box.children.length>=4) box.firstElementChild.remove();
+  const x=escAvTexto(av), el=document.createElement('div'); el.className='esc-av'+(av.tipo==='chamada'?' ch':''); el.setAttribute('role','alert');
+  const nome=tkNomeUser(av.u)||av.nome;
+  el.innerHTML=`<div class="esc-av-t">${avatar(av.u,nome)}<div class="tx">${esc(x.t)}<small>${esc(x.s)}</small></div>
+    <button type="button" class="esc-x" aria-label="Fechar">${ESC_IC.x}</button></div><div class="esc-av-b"></div>`;
+  const fecha=()=>{ clearTimeout(el.__t); el.remove(); };
+  el.querySelector('.esc-x').onclick=fecha;
+  const bt=(rot,cls,fn)=>{ const b=document.createElement('button'); b.type='button'; b.className=cls; b.textContent=rot; b.onclick=()=>{ fecha(); fn(); }; el.querySelector('.esc-av-b').append(b); };
+  if(av.tipo==='chamada'){ bt('Agora não','btn small ghost',()=>{}); bt('Entrar na chamada','btn small',()=>escEntrarChamada(av.sala)); }
+  else if(av.tipo==='aceno'){ bt('Ir até '+av.nome,'btn small ghost',()=>escIrAte(av.u)); bt('Acenar de volta','btn small',()=>escAcenarAviso(av.u)); }
+  else bt('Ok','btn small ghost',()=>{});
+  el.__dur=av.tipo==='chamada'?45000:(av.tipo==='resumo'?20000:15000);
+  box.append(el); if(!document.hidden) el.__t=setTimeout(fecha,el.__dur); }
+function escAvisosVisivel(){ document.querySelectorAll('#escAvisos .esc-av').forEach(el=>{ if(!el.__t) el.__t=setTimeout(()=>el.remove(),el.__dur||15000); }); }
+const ESC_MSG={sem_conexao:'Sem conexão ao vivo agora. Tente de novo em instantes.',fora:'A pessoa saiu do escritório.',cedo:'Você acabou de avisar. Espere uns segundos.'};
+function escAcenarAviso(uid){ const r=escAvisar('aceno',uid); toast(r==='ok'?'Aceno enviado para '+(primeiroNome(tkNomeUser(uid))||'a pessoa')+'.':(ESC_MSG[r]||'Não deu para acenar.')); }
+/* abre a chamada da sala; a aba nasce no clique (senão o navegador bloqueia) e recebe o link depois */
+function escEntrarChamada(sala){ const jan=window.open('about:blank','_blank');
+  (async()=>{ if(!ESC.links||!escLinkOk(ESC.links[sala])) await escLinks(); const l=ESC.links&&ESC.links[sala];
+    if(escLinkOk(l)){ if(jan){ try{ jan.opener=null; }catch(_){} jan.location=l; } else window.open(l,'_blank','noopener'); }
+    else { if(jan) jan.close(); toast(ESC.linksErro?'Não deu para carregar a chamada.':'A chamada dessa sala ainda não foi configurada.'); } })(); }
+window.escChamar=(uid)=>{ const sala0=ESC.eu?escSalaDe(ESC.eu.x,ESC.eu.y).id:'', sala=sala0==='recepcao'?'reuniao':sala0, l=ESC.links&&ESC.links[sala];
+  if(!escLinkOk(l)){ toast('A chamada da '+((ESC_SALAS.find(s=>s.id===sala)||{}).nome||'sala')+' ainda não foi configurada.'); return; }
+  const r=escAvisar('chamada',uid);
+  if(r!=='ok'){ toast(ESC_MSG[r]||'Não deu para chamar.'); return; }
+  window.open(l,'_blank','noopener'); toast('Chamando '+(primeiroNome(tkNomeUser(uid))||'a pessoa')+' para a chamada da '+((ESC_SALAS.find(s=>s.id===sala)||{}).nome||'sala')+'.'); };
+window.escAcenar=(uid)=>escAcenarAviso(uid);
+/* de qualquer tela: abre o Escritório e anda até a pessoa */
+function escIrAte(uid){ const vai=()=>{ const o=ESC.pares.get(uid);
+    if(o){ escIrPara(o.dx,o.dy+1); escCardAbrir(uid); } else toast('A pessoa saiu do escritório.'); };
+  if(ESC.naTela) vai(); else { const b=document.getElementById('navEscritorio'); if(b) b.click(); setTimeout(vai,400); } }
+window.escIrAte=escIrAte;
+
+/* ---------- teclado: W A S D e setas sem precisar clicar no mapa ---------- */
+const ESC_TECLAS={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,w:1,a:1,s:1,d:1};
+const escTecla=(e)=>e.key&&e.key.length===1?e.key.toLowerCase():e.key;
+const escDigitando=()=>{ const a=document.activeElement; return !!(a&&(/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)||a.isContentEditable)); };
+document.addEventListener('keydown',e=>{ if(!ESC.naTela) return;
+  if(e.key==='Escape'){ if(document.querySelector('.overlay')) return;
+    if(ESC.menuSt){ escMenuSt(false); e.preventDefault(); } else if(ESC.card){ escCardFechar(); e.preventDefault(); } return; }
+  const k=escTecla(e); if(!ESC_TECLAS[k]||e.altKey||e.ctrlKey||e.metaKey||escDigitando()||document.querySelector('.overlay')) return;
+  e.preventDefault(); if(!ESC.teclas[k]) ESC.desde[k]=performance.now(); ESC.teclas[k]=true; escDicaOk(); });
+/* toque rápido na tecla ainda dá um passinho (segura pelo menos 90 ms) */
+document.addEventListener('keyup',e=>{ const k=escTecla(e); if(!ESC_TECLAS[k]) return; const dur=performance.now()-(ESC.desde[k]||0);
+  if(ESC.teclas[k]&&dur<90) ESC.ate[k]=performance.now()+90-dur; ESC.teclas[k]=false; });
+window.addEventListener('blur',()=>{ ESC.teclas={}; ESC.ate={}; });
+const escDicaOk=()=>{ const d=document.getElementById('escDica'); if(d&&!d.hidden){ d.hidden=true; try{ localStorage.setItem('esc_dica','1'); }catch(_){} } };
+const escZoom=()=>{ try{ const z=parseFloat(localStorage.getItem('esc_zoom')); return isFinite(z)?Math.max(.6,Math.min(1.6,z)):1; }catch(_){ return 1; } };
 
 function escRender(c){
   escCss();
@@ -28492,187 +28811,403 @@ function escRender(c){
   if(!ESC.eu) escIniciarEu();
   escReler(); escVirouDia();
   const toque=!!(window.matchMedia&&matchMedia('(pointer: coarse)').matches);
+  let dica=false; try{ dica=!toque&&localStorage.getItem('esc_dica')!=='1'; }catch(_){}
+  c.classList.add('esc-full');
   c.innerHTML=`
-   <div class="page-head">
-     <div><h2>Escritório</h2><div class="desc">Quem está em cada sala, ao vivo</div></div>
-     <div class="esc-eu"><label for="escSt" class="esc-rot">Status</label>
-       <select class="search" id="escSt">${Object.keys(ESC_ST).map(k=>`<option value="${k}"${ESC.eu.st===k?' selected':''}>${ESC_ST[k]}</option>`).join('')}</select></div>
-   </div>
-   <div class="esc-aviso" id="escAviso" hidden></div>
-   <div class="esc-palco">
-     <section class="esc-mapa" aria-label="Planta do escritório">
-       <div class="esc-cvbox"><canvas id="escCv" width="960" height="600" tabindex="0" aria-label="Mapa do escritório. Use as setas ou W A S D para andar, ou clique onde quer ir."></canvas></div>
-       <div class="esc-dica">${toque?'<span>Toque no mapa para ir até lá</span><span>Arraste de lado para ver o resto do mapa</span>'
-         :'<span><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> ou setas para andar</span><span>Clique no mapa para ir até lá</span>'}<span>Chegue perto de alguém para acenar</span></div>
-     </section>
-     <aside class="esc-lado">
-       <div class="esc-box esc-sala">
-         <div class="esc-rot">Você está em</div>
-         <h3 id="escSalaNome" aria-live="polite">-</h3><p id="escSalaDesc"></p>
-         <div class="esc-lk" id="escLk"></div>
-         <div id="escPerto" hidden><div id="escPertoTxt" style="font-size:13px"></div>
-           <button type="button" class="btn small ghost" id="escAcenar" style="margin-top:6px">Acenar</button></div>
-       </div>
-       <div class="esc-box"><div class="esc-rot">Quem está onde</div><ul class="esc-lista" id="escLista"></ul>
-         <div class="esc-leg">${Object.keys(ESC_ST).map(k=>`<span class="esc-p"><span class="dot" style="background:var(${escCorSt(k)})"></span>${ESC_ST[k]}</span>`).join('')}<span class="esc-p fora">Apagado: logado, em outra tela</span></div></div>
-     </aside>
+   <div class="esc-st" id="escStage">
+     <h2 class="esc-h2">Escritório</h2>
+     <canvas id="escCv" tabindex="0" aria-label="Mapa do escritório. Use W A S D ou as setas para andar, clique em alguém para abrir o cartão, ou clique no chão para ir até lá."></canvas>
+     <div class="esc-topo"><span class="esc-chip" id="escOnde"></span><span class="esc-chip alerta" id="escAviso" hidden></span>
+       <button type="button" class="esc-chip alerta" id="escPerm" hidden>${ESC_IC.sino}<span>Permitir aviso do navegador: acenos chegam mesmo com o sistema em outra aba</span></button></div>
+     <div class="esc-dica" id="escDica"${dica?'':' hidden'}><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ou setas para andar · clique em alguém para acenar</div>
+     <aside class="esc-pess" id="escPess" hidden aria-label="Pessoas no escritório"><div class="esc-pess-h"><span>Pessoas</span>
+       <button type="button" class="esc-x" aria-label="Fechar" onclick="escPessoas(false)">${ESC_IC.x}</button></div><ul class="esc-lista" id="escLista"></ul></aside>
+     <section class="esc-card" id="escCard" hidden aria-live="polite"></section>
+     <nav class="esc-dock" aria-label="Você no escritório">
+       <div style="position:relative"><button type="button" class="esc-eu" id="escEuBtn" aria-haspopup="true" aria-expanded="false"></button>
+         <div class="esc-menu" id="escStMenu" role="menu" hidden></div></div>
+       <span class="sep"></span>
+       <button type="button" class="esc-db" id="escMesaBtn" title="Voltar para a sua mesa">${ESC_IC.mesa}<span>Minha mesa</span></button>
+       <button type="button" class="esc-db" id="escCall">${ESC_IC.video}<span>Chamada da sala</span></button>
+       <button type="button" class="esc-db ic" id="escSom"></button>
+       <button type="button" class="esc-db" id="escPessBtn" aria-pressed="false">${ESC_IC.gente}<span>Pessoas</span><b class="n" id="escPessN"></b></button>
+       <span class="esc-zoom"><button type="button" class="esc-db ic" id="escZm" title="Afastar">${ESC_IC.menos}</button><button type="button" class="esc-db ic" id="escZp" title="Aproximar">${ESC_IC.mais}</button></span>
+     </nav>
    </div>`;
-  const cv=document.getElementById('escCv');
-  ESC.naTela=true; ESC.sala=escSalaDe(ESC.eu.x,ESC.eu.y).id; ESC.salaPend=false; ESC.painel=''; ESC.perto=null; ESC.caminho=[]; ESC.teclas={}; ESC.sujo=true;
+  const cv=document.getElementById('escCv'), st=document.getElementById('escStage');
+  ESC.naTela=true; ESC.sala=escSalaDe(ESC.eu.x,ESC.eu.y).id; ESC.salaPend=false; ESC.uiSig=''; ESC.cardSig=''; ESC.caminho=[]; ESC.teclas={}; ESC.ate={}; ESC.sujo=true; ESC.menuSt=false;
+  ESC.cam={x:ESC.eu.x,y:ESC.eu.y};
   escLerCores();
-  const ajustar=()=>{ if(!cv.isConnected) return; const r=cv.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
-    const w=Math.max(320,Math.round(r.width)); ESC.dpr=dpr; cv.width=Math.round(w*dpr); cv.height=Math.round(w*ESC_H/ESC_W*dpr); ESC.T=cv.width/ESC_W; ESC.sujo=true; };
-  ajustar(); try{ const ro=new ResizeObserver(()=>{ if(!cv.isConnected){ ro.disconnect(); return; } ajustar(); }); ro.observe(cv); }catch(_){}
-  /* celular: o mapa rola de lado; abre já mostrando onde você está */
-  const box=cv.parentElement; if(box&&box.scrollWidth>box.clientWidth) box.scrollLeft=Math.max(0,ESC.eu.x/ESC_W*box.scrollWidth-box.clientWidth/2);
-  const TECLAS={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,w:1,a:1,s:1,d:1};
-  const tk=(e)=>e.key.length===1?e.key.toLowerCase():e.key;
-  cv.addEventListener('keydown',e=>{ if(!TECLAS[tk(e)]||e.altKey||e.ctrlKey||e.metaKey) return; e.preventDefault(); ESC.teclas[tk(e)]=true; });
-  cv.addEventListener('keyup',e=>{ if(TECLAS[tk(e)]) ESC.teclas[tk(e)]=false; });
-  cv.addEventListener('blur',()=>{ ESC.teclas={}; });
-  /* click, não pointerdown: no celular, rolar o mapa não faz o bonequinho andar */
-  cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect();
-    escIrPara((e.clientX-r.left)/r.width*ESC_W,(e.clientY-r.top)/r.height*ESC_H); cv.focus({preventScroll:true}); });
-  document.getElementById('escSt').onchange=(e)=>{ const v=e.target.value; if(!ESC_ST[v]) return; ESC.eu.st=v;
-    escMudou(); ESC.sujo=true; ESC.painel=''; escTrack(); };
-  document.getElementById('escAcenar').onclick=()=>{ const a=ESC.perto; if(!a) return;
-    if(!ESC.ok||!ESC.canal){ toast('Sem conexão ao vivo agora. Tente de novo em instantes.'); return; }
-    try{ ESC.canal.send({type:'broadcast',event:'aceno',payload:{u:me.id,para:a.u}}).catch(()=>{}); }catch(_){}
-    toast('Aceno enviado para '+(a.nome||'a pessoa')+'.'); };
+  const ajustar=()=>{ if(!cv.isConnected) return; const top=st.getBoundingClientRect().top, mob=document.body.classList.contains('mob-corp');
+    st.style.setProperty('--esc-h',Math.max(360,Math.round(window.innerHeight-top-(mob?84:0)))+'px');
+    const r=st.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
+    ESC.dpr=dpr; cv.width=Math.max(1,Math.round(r.width*dpr)); cv.height=Math.max(1,Math.round(r.height*dpr));
+    ESC.T=(toque?28:40)*escZoom()*dpr; ESC.sujo=true; };
+  ajustar(); try{ const ro=new ResizeObserver(()=>{ if(!cv.isConnected){ ro.disconnect(); return; } ajustar(); }); ro.observe(st); }catch(_){}
+  ESC.ajustar=ajustar; if(!ESC.rz){ ESC.rz=1; window.addEventListener('resize',()=>{ if(ESC.ajustar) ESC.ajustar(); }); }
+  /* clique: em alguém abre o cartão; numa mesa, o cartão do dono; no chão, anda até lá */
+  cv.addEventListener('click',e=>{ const r=cv.getBoundingClientRect(), px=(e.clientX-r.left)*ESC.dpr+ESC.ox, py=(e.clientY-r.top)*ESC.dpr+ESC.oy;
+    escMenuSt(false); cv.focus({preventScroll:true});
+    const quem=escQuemNoPonto(px,py); if(quem){ escCardAbrir(quem); return; }
+    const wx=px/ESC.T, wy=py/ESC.T, m=ESC_MESAS.find(q=>wx>=q.x&&wx<q.x+2&&wy>=q.y-.3&&wy<q.y+1);
+    if(m){ for(const [u,x] of escMesas()) if(x===m){ escCardAbrir(u); return; } }
+    escIrPara(wx,wy); escDicaOk(); });
+  cv.addEventListener('mousemove',e=>{ const r=cv.getBoundingClientRect(); cv.style.cursor=escQuemNoPonto((e.clientX-r.left)*ESC.dpr+ESC.ox,(e.clientY-r.top)*ESC.dpr+ESC.oy)?'pointer':'default'; });
+  document.getElementById('escEuBtn').onclick=(e)=>{ e.stopPropagation(); escMenuSt(!ESC.menuSt); };
+  st.addEventListener('click',e=>{ if(ESC.menuSt&&!e.target.closest('#escStMenu,#escEuBtn')) escMenuSt(false); });
+  document.getElementById('escMesaBtn').onclick=()=>{ const m=escMinhaMesa(); if(m) escIrPara(m.x,m.y,true); };
+  document.getElementById('escCall').onclick=()=>{ const s=escSalaDe(ESC.eu.x,ESC.eu.y), l=ESC.links&&ESC.links[s.id];
+    if(s.id==='recepcao'){ toast('Entre numa sala para usar a chamada dela.'); return; }
+    if(!escLinkOk(l)){ toast(ESC.linksErro?'Não deu para carregar a chamada.':'A chamada da '+s.nome+' ainda não foi configurada.'); return; }
+    window.open(l,'_blank','noopener'); };
+  document.getElementById('escSom').onclick=()=>{ const on=!escSomOn(); try{ localStorage.setItem('esc_som',on?'1':'0'); }catch(_){}
+    if(on){ escAudio(); escTocar('aceno');
+      if('Notification' in window&&Notification.permission==='default') Notification.requestPermission().then(()=>{ ESC.uiSig=''; }).catch(()=>{}); }
+    toast(on?'Som dos avisos ligado.':'Som dos avisos desligado. A janelinha continua aparecendo.'); ESC.uiSig=''; };
+  document.getElementById('escPessBtn').onclick=()=>escPessoas(!ESC.pessOn);
+  document.getElementById('escPerm').onclick=()=>{ try{ Notification.requestPermission().then(r=>{ ESC.uiSig=''; toast(r==='granted'?'Pronto: aceno e chamada avisam mesmo com o sistema em outra aba.':'O navegador não deixou. Dá para liberar no cadeado da barra de endereço.'); }).catch(()=>{}); }catch(_){} };
+  const zoom=(k)=>{ const z=Math.max(.6,Math.min(1.6,Math.round((escZoom()+k)*10)/10)); try{ localStorage.setItem('esc_zoom',String(z)); }catch(_){} ajustar(); };
+  document.getElementById('escZm').onclick=()=>zoom(-.2); document.getElementById('escZp').onclick=()=>zoom(.2);
+  if(ESC.pessOn) escPessoas(true);
   escLinks();
+  escCarregarMesas().then(escGravarMesasNovas);
+  const eu=escMe(); if(eu) escAgenda(eu.id).then(()=>{ escTrack(); escPintarSt(); }).catch(()=>{});
   if(!ESC.canal&&!ESC.parado){ ESC.tent=0; escBoot(); }
   escTrack();          /* agora com a tela aberta (v) */
+  escPintarSt();
   escMapaEntrar();
+  if(ESC.card) escCardAbrir(ESC.card);
   if(!ESC.raf){ ESC.ult=performance.now(); ESC.raf=requestAnimationFrame(escLaco); }
 }
 window.escRender=escRender;
 window.escBoot=escBoot;
 window.escSair=escSair;
+/* o master grava a mesa de quem ainda não tem (a distribuição deixa de depender da ordem do time) */
+async function escGravarMesasNovas(){ const me=escMe();
+  if(!me||me.role!=='master'||ESC.mesasGravou||!ESC.mesasOk||typeof TK==='undefined'||!TK.equipe||TK.equipe.length<2) return;
+  ESC.mesasGravou=true; const tem=new Set((ESC.gravadas||[]).map(r=>r.pessoa)), novas=[];
+  escMesas().forEach((m,u)=>{ if(!tem.has(u)) novas.push({pessoa:u,sala:m.sala,mesa:m.i,atualizado_por:me.id}); });
+  if(!novas.length) return;
+  try{ const {error}=await sb.from('escritorio_mesas').upsert(novas,{onConflict:'pessoa',ignoreDuplicates:true}); if(!error) await escCarregarMesas(); }catch(_){} }
 
 /* clique: o último vence, no máximo 1 rumo a cada 400 ms pra quem está olhando */
-function escIrPara(tx,ty){ const p=escPisoPerto(tx,ty), e=ESC.eu; if(!p||!e) return;
-  ESC.caminho=escBfs(Math.floor(e.x),Math.floor(e.y),p[0],p[1]); if(!ESC.caminho.length) return;
-  ESC.rumo={x:+e.x.toFixed(1),y:+e.y.toFixed(1),tx:p[0]+.5,ty:p[1]+.5};
+function escIrPara(tx,ty,exato){ const e=ESC.eu; if(!e) return;
+  const c=exato?escNaCadeira(tx,ty):null, p=c?[Math.floor(c.sx),Math.floor(c.sy)]:escPisoPerto(tx,ty); if(!p) return;
+  const noLugar=Math.floor(e.x)===p[0]&&Math.floor(e.y)===p[1];
+  ESC.caminho=escBfs(Math.floor(e.x),Math.floor(e.y),p[0],p[1]);
+  if(c&&(ESC.caminho.length||noLugar)) ESC.caminho.push({x:c.sx,y:c.sy});   /* senta na cadeira (só se dá pra chegar) */
+  if(!ESC.caminho.length) return;
+  const fim=ESC.caminho[ESC.caminho.length-1];
+  ESC.rumo={x:+e.x.toFixed(1),y:+e.y.toFixed(1),tx:fim.x,ty:fim.y};
   const falta=400-(Date.now()-ESC.ultRumo);
   if(falta<=0){ ESC.ultRumo=Date.now(); escMandar('rumo',ESC.rumo); ESC.rumo=null; }
   else if(!ESC.filaRumo) ESC.filaRumo=setTimeout(()=>{ ESC.filaRumo=0; if(ESC.rumo){ ESC.ultRumo=Date.now(); escMandar('rumo',ESC.rumo); ESC.rumo=null; } },falta); }
 window.escIrSala=(id)=>{ const s=ESC_SALAS.find(x=>x.id===id);
-  if(s) escIrPara((s.x0+s.x1+1)/2,(s.y0+s.y1+2)/2); else escIrPara(24,12);
+  if(s) escIrPara((s.x0+s.x1+1)/2,s.y1-.5); else escIrPara(24,12.5);
   const cv=document.getElementById('escCv'); if(cv) cv.focus({preventScroll:true}); };
 
 const ESC_VEL=6.5; /* tiles por segundo */
+const escDir=(vx,vy)=>Math.abs(vx)>Math.abs(vy)?(vx>0?'right':'left'):(vy>0?'down':'up');
 function escMover(dt){
-  const e=ESC.eu, k=ESC.teclas; let vx=0,vy=0;
-  if(k.ArrowLeft||k.a) vx-=1; if(k.ArrowRight||k.d) vx+=1; if(k.ArrowUp||k.w) vy-=1; if(k.ArrowDown||k.s) vy+=1;
-  if(vx||vy){ ESC.caminho=[]; const n=Math.hypot(vx,vy); vx=vx/n*ESC_VEL*dt; vy=vy/n*ESC_VEL*dt;
+  const e=ESC.eu, ag=performance.now(), k=(n)=>ESC.teclas[n]||(ESC.ate[n]||0)>ag; let vx=0,vy=0;
+  if(k('ArrowLeft')||k('a')) vx-=1; if(k('ArrowRight')||k('d')) vx+=1; if(k('ArrowUp')||k('w')) vy-=1; if(k('ArrowDown')||k('s')) vy+=1;
+  if(vx||vy){ ESC.caminho=[]; e.dir=escDir(vx,vy); const n=Math.hypot(vx,vy); vx=vx/n*ESC_VEL*dt; vy=vy/n*ESC_VEL*dt;
     const r=.32, ok=(x,y)=>escLivre(Math.floor(x-r),Math.floor(y-r))&&escLivre(Math.floor(x+r),Math.floor(y-r))&&escLivre(Math.floor(x-r),Math.floor(y+r))&&escLivre(Math.floor(x+r),Math.floor(y+r));
+    /* levantou da cadeira: a cadeira fica entre duas mesas, então só sai pra baixo ou pros lados */
     let m=false; if(ok(e.x+vx,e.y)){ e.x+=vx; m=true; } if(ok(e.x,e.y+vy)){ e.y+=vy; m=true; }
     if(m&&performance.now()-ESC.ultPos>1000){ ESC.ultPos=performance.now(); escMandar('pos',{x:+e.x.toFixed(1),y:+e.y.toFixed(1)}); }
     return m; }
   if(ESC.caminho.length){ const p=ESC.caminho[0], dx=p.x-e.x, dy=p.y-e.y, d=Math.hypot(dx,dy), passo=ESC_VEL*dt;
+    if(d>.001) e.dir=escDir(dx,dy);
     if(d<=passo){ e.x=p.x; e.y=p.y; ESC.caminho.shift(); } else { e.x+=dx/d*passo; e.y+=dy/d*passo; } return true; }
   return false;
 }
-function escAndarOutros(dt){
-  ESC.pares.forEach(o=>{
+function escAndarOutros(dt,t){
+  ESC.pares.forEach(o=>{ const ax=o.dx, ay=o.dy;
     if(o.rota&&o.rota.length){ const p=o.rota[0], dx=p.x-o.dx, dy=p.y-o.dy, d=Math.hypot(dx,dy), passo=ESC_VEL*dt;
       if(d<=passo){ o.dx=p.x; o.dy=p.y; o.rota.shift(); if(!o.rota.length){ o.rota=null; o.x=o.dx; o.y=o.dy; } }
-      else { o.dx+=dx/d*passo; o.dy+=dy/d*passo; } ESC.sujo=true; return; }
-    const dx=o.x-o.dx, dy=o.y-o.dy;
-    if(Math.abs(dx)+Math.abs(dy)>.01){ const k=Math.min(1,dt*6); o.dx+=dx*k; o.dy+=dy*k; ESC.sujo=true; } });
+      else { o.dx+=dx/d*passo; o.dy+=dy/d*passo; } ESC.sujo=true; }
+    else { const dx=o.x-o.dx, dy=o.y-o.dy;
+      if(Math.abs(dx)+Math.abs(dy)>.01){ const k=Math.min(1,dt*6); o.dx+=dx*k; o.dy+=dy*k; ESC.sujo=true; } }
+    const mx=o.dx-ax, my=o.dy-ay;
+    if(Math.abs(mx)+Math.abs(my)>.002){ o.dir=escDir(mx,my); o.anda=true; o.andaT=t; } else if(o.anda&&t-(o.andaT||0)>160){ o.anda=false; ESC.sujo=true; } });
 }
 function escLaco(t){
   const cv=document.getElementById('escCv');
-  if(!cv||!cv.isConnected){ ESC.raf=0; ESC.naTela=false; ESC.teclas={}; ESC.caminho=[]; ESC.andava=false; escMapaSair(); escTrack(); return; }   /* saiu da tela */
+  if(!cv||!cv.isConnected){ ESC.raf=0; ESC.naTela=false; ESC.teclas={}; ESC.caminho=[]; ESC.andava=false; escMenuSt(false);
+    const ct=document.getElementById('content'); if(ct&&!ct.querySelector('#escStage')) ct.classList.remove('esc-full');
+    escMapaSair(); escTrack(); return; }   /* saiu da tela */
   const dt=Math.min(.05,(t-ESC.ult)/1000); ESC.ult=t;
-  const andou=escMover(dt);
+  const andou=escMover(dt); ESC.euAnda=andou;
   if(andou){ ESC.sujo=true; ESC.andava=true; ESC.paradaT=t; }
   else if(ESC.andava&&t-ESC.paradaT>900){ ESC.andava=false; escMudou();     /* parou: quem olha o mapa vê onde ficou */
-    escMandar('pos',{x:+ESC.eu.x.toFixed(1),y:+ESC.eu.y.toFixed(1)}); escTrack('parou'); }
-  escAndarOutros(dt);
+    escMandar('pos',{x:+ESC.eu.x.toFixed(1),y:+ESC.eu.y.toFixed(1)}); escTrack('parou'); ESC.sujo=true; }
+  escAndarOutros(dt,t);
+  /* câmera segue você */
+  const kx=ESC.eu.x-ESC.cam.x, ky=ESC.eu.y-ESC.cam.y;
+  if(Math.abs(kx)+Math.abs(ky)>.002){ const k=Math.min(1,dt*7); ESC.cam.x+=kx*k; ESC.cam.y+=ky*k; ESC.sujo=true; }
+  if(ESC.bolhas.size){ const ag=Date.now(); ESC.bolhas.forEach((b,u)=>{ if(b.ate<ag) ESC.bolhas.delete(u); }); ESC.sujo=true; }
   const sala=escSalaDe(ESC.eu.x,ESC.eu.y).id;
-  if(sala!==ESC.sala){ ESC.sala=sala; ESC.salaPend=true; ESC.salaDesde=t; ESC.painel=''; ESC.sujo=true; }
+  if(sala!==ESC.sala){ ESC.sala=sala; ESC.salaPend=true; ESC.salaDesde=t; ESC.uiSig=''; ESC.sujo=true; }
   else if(ESC.salaPend&&t-ESC.salaDesde>1500){ ESC.salaPend=false; escMudou(); escTrack(); }   /* parado na porta não gasta track */
-  if(ESC.sujo){ ESC.sujo=false; escDesenhar(cv); }
-  escPainel();
+  if(ESC.sujo){ ESC.sujo=false; escDesenhar(cv,t); }
+  escUI();
   ESC.raf=requestAnimationFrame(escLaco);
 }
 function escImg(uid){ const f=fotoDe(uid); if(!f) return null; let im=ESC.imgs[uid];
   if(!im||im.__src!==f){ im=new Image(); im.__src=f; im.onload=()=>{ ESC.sujo=true; }; im.src=f; ESC.imgs[uid]=im; } return im; }
-function escDesenhar(cv){
-  const ctx=cv.getContext('2d'), T=ESC.T, C=ESC.cores, F=ESC.fonte||'system-ui, sans-serif', d=ESC.dpr||1;
-  /* tamanhos com piso em pixel de tela: legível no Retina e no celular */
-  const fs=(min,k)=>Math.max(min*d,T*k);
-  const txt=(s,x,y,cor,tam,peso)=>{ ctx.font=(peso||400)+' '+tam+'px '+F; ctx.fillStyle=cor; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(s,x,y); };
-  ctx.clearRect(0,0,cv.width,cv.height); ctx.fillStyle=C.corredor; ctx.fillRect(0,0,cv.width,cv.height);
-  ESC_SALAS.forEach(s=>{ ctx.fillStyle=C.piso; ctx.fillRect(s.x0*T,s.y0*T,(s.x1-s.x0+1)*T,(s.y1-s.y0+1)*T);
-    if(s.id===ESC.sala){ ctx.globalAlpha=.08; ctx.fillStyle=C.brand; ctx.fillRect(s.x0*T,s.y0*T,(s.x1-s.x0+1)*T,(s.y1-s.y0+1)*T); ctx.globalAlpha=1; } });
-  ctx.fillStyle=C.mesa;
-  ['squad01','squad02','comercial','financeiro','edicao'].forEach(id=>{ const s=ESC_SALAS.find(x=>x.id===id);
-    for(let yy=s.y0+1;yy<=s.y1-2;yy+=3) for(let xx=s.x0+1;xx<=s.x1-3;xx+=4) ctx.fillRect(xx*T,yy*T,2.6*T,1.1*T); });
-  ctx.fillRect(27*T,20*T,7*T,5*T); ctx.fillRect(39*T,26*T,6*T,1.2*T);
-  ctx.fillStyle=C.parede; for(let y=0;y<ESC_H;y++) for(let x=0;x<ESC_W;x++) if(ESC_GRID[y][x]===1) ctx.fillRect(x*T,y*T,T+.5,T+.5);
-  ESC_SALAS.forEach(s=>txt(s.nome.toUpperCase(),(s.x0+s.x1+1)/2*T,(s.y0+.9)*T,s.id===ESC.sala?C.brand2:C.muted,fs(11,.46),600));
-  txt('RECEPÇÃO',6.5*T,12.5*T,C.muted,fs(11,.44),600);
-  if(ESC.caminho.length){ const q=ESC.caminho[ESC.caminho.length-1]; ctx.strokeStyle=C.brand2; ctx.lineWidth=2*d; ctx.beginPath(); ctx.arc(q.x*T,q.y*T,T*.3,0,Math.PI*2); ctx.stroke(); }
-  const boneco=(uid,nome,x,y,st,voce,fora)=>{ const R=Math.max(9*d,T*.46);
-    ctx.save(); if(fora) ctx.globalAlpha=.55;
-    ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fillStyle=corDoNome(nome); ctx.fill();
-    const im=escImg(uid);
-    if(im&&im.complete&&im.naturalWidth){ ctx.save(); ctx.beginPath(); ctx.arc(x,y,R-1,0,Math.PI*2); ctx.clip(); ctx.drawImage(im,x-R,y-R,R*2,R*2); ctx.restore(); }
-    else txt(inicial(nome),x,y+.5,'#ffffff',fs(10,.4),800);
-    ctx.lineWidth=Math.max(2*d,T*.12); ctx.strokeStyle=C.st[st]||C.st.ok; ctx.beginPath(); ctx.arc(x,y,R+ctx.lineWidth/2,0,Math.PI*2); ctx.stroke();
-    if(voce){ ctx.lineWidth=Math.max(1.5*d,T*.06); ctx.strokeStyle=C.txt; ctx.beginPath(); ctx.arc(x,y,R+Math.max(5*d,T*.26),0,Math.PI*2); ctx.stroke(); }
-    ctx.restore();
-    const rot=voce?'Você':(primeiroNome(nome)||'Colega'), tam=fs(11,.42);
-    ctx.font='600 '+tam+'px '+F; const w=ctx.measureText(rot).width+tam*.8, ly=y+R+tam*1.1;
-    ctx.globalAlpha=.9; ctx.fillStyle=C.panel; ctx.fillRect(x-w/2,ly-tam*.7,w,tam*1.4); ctx.globalAlpha=1;
-    txt(rot,x,ly+.5,voce?C.txt:C.muted,tam,600); };
-  ESC.pares.forEach((o,uid)=>boneco(uid,tkNomeUser(uid),o.dx*T,o.dy*T,o.st,false,!o.v));
-  const me=escMe(); boneco(me.id,me.nome,ESC.eu.x*T,ESC.eu.y*T,ESC.eu.st,true,false);
+/* visual de cada pessoa, sempre o mesmo: camisa na cor do nome, pele, cabelo e calça pelo id */
+function escVisual(uid,nome){ const C=ESC.cores, h=escHash(uid), pk=(l,n)=>(l&&l.length?l[n%l.length]:'#888');
+  return {camisa:corDoNome(nome),pele:pk(C.peles,h),cabelo:pk(C.cabelos,h>>>4),calca:pk(C.calcas,h>>>8),estilo:(h>>>12)%3}; }
+const escRR=(ctx,x,y,w,h,r)=>{ r=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); };
+/* quem está embaixo do ponto (em pixels do mundo): a pessoa mais na frente ganha */
+function escQuemNoPonto(px,py){ const T=ESC.T, me=escMe(); if(!me||!ESC.eu) return '';
+  const l=[[me.id,ESC.eu.x,ESC.eu.y]]; ESC.pares.forEach((o,u)=>l.push([u,o.dx,o.dy]));
+  let q='', melhor=-1; l.forEach(([u,x,y])=>{ const fx=x*T, fy=(y+.3)*T;
+    if(Math.abs(px-fx)<.42*T&&py>fy-1.45*T&&py<fy+.15*T&&y>melhor){ melhor=y; q=u; } });
+  return q; }
+function escDesenhar(cv,t){
+  const ctx=cv.getContext('2d'), T=ESC.T, C=ESC.cores, d=ESC.dpr||1, W=cv.width, H=cv.height, F=ESC.fonte||'Inter, system-ui, sans-serif';
+  const MW=ESC_W*T, MH=ESC_H*T;
+  ESC.ox=Math.round(MW<=W?-(W-MW)/2:Math.max(0,Math.min(MW-W,ESC.cam.x*T-W/2)));
+  ESC.oy=Math.round(MH<=H?-(H-MH)/2:Math.max(0,Math.min(MH-H,ESC.cam.y*T-H/2)));
+  ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle=C.fora; ctx.fillRect(0,0,W,H);
+  ctx.setTransform(1,0,0,1,-ESC.ox,-ESC.oy); ctx.imageSmoothingEnabled=true;
+  const R=(x,y,w,h,c)=>{ ctx.fillStyle=c; const X=Math.round(x*T), Y=Math.round(y*T); ctx.fillRect(X,Y,Math.max(1,Math.round((x+w)*T)-X),Math.max(1,Math.round((y+h)*T)-Y)); };
+  const O=(x,y,r,c)=>{ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x*T,y*T,r*T,0,Math.PI*2); ctx.fill(); };
+  const txt=(s,x,y,cor,tam,peso,al)=>{ ctx.font=(peso||600)+' '+tam+'px '+F; ctx.fillStyle=cor; ctx.textAlign=al||'center'; ctx.textBaseline='middle'; ctx.fillText(s,x,y); };
+  const x0=Math.max(0,Math.floor(ESC.ox/T)-1), x1=Math.min(ESC_W-1,Math.ceil((ESC.ox+W)/T)+1);
+  const y0=Math.max(0,Math.floor(ESC.oy/T)-1), y1=Math.min(ESC_H-1,Math.ceil((ESC.oy+H)/T)+1);
+  /* piso */
+  for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ if(ESC_GRID[y][x]===1) continue;
+    const s=escSalaDe(x+.5,y+.5), pz=s.piso&&C.piso[s.piso];
+    if(!pz){ R(x,y,1,1,(x+y)%2?C.corr2:C.corr); if((y===10||y===15)&&!(y===15&&x>=38)) R(x+.05,y+.12,.9,.76,C.tapete); continue; }
+    if(s.piso==='madeira'){ R(x,y,1,1,pz[0]); R(x,y+.47,1,.05,pz[1]); R(x,y+.95,1,.05,pz[1]); R(x+(y%2?.28:.72),y,.05,.47,pz[1]); R(x+(y%2?.78:.22),y+.5,.05,.45,pz[1]); }
+    else if(s.piso==='xadrez') R(x,y,1,1,(x+y)%2?pz[1]:pz[0]);
+    else { R(x,y,1,1,pz[0]); if((x*7+y*3)%4===0) R(x+.42,y+.42,.1,.1,pz[1]); } }
+  /* luz na sua mesa (é onde você fica por padrão) */
+  const meu=escMinhaMesa(); if(meu&&meu.mesa){ ctx.save(); ctx.globalAlpha=.32; ctx.fillStyle=C.luz; escRR(ctx,(meu.mesa.x-.35)*T,(meu.mesa.y-.45)*T,2.7*T,2.6*T,.25*T); ctx.fill(); ctx.restore(); }
+  /* paredes em 3/4: tampa escura e face clara quando dá pra ver de frente */
+  for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ if(ESC_GRID[y][x]!==1) continue;
+    const frente=y+1<ESC_H&&ESC_GRID[y+1][x]!==1;
+    if(frente){ R(x,y,1,1,C.paredeF); R(x,y,1,.3,C.parede); R(x,y+.9,1,.1,C.rodape); } else R(x,y,1,1,C.parede); }
+  /* placa com o nome da sala na parede de cima */
+  const fsPl=Math.max(9.5*d,T*.28);
+  ESC_SALAS.forEach(s=>{ const cx=(s.x0+s.x1+1)/2*T, cy=(s.y0-.42)*T; ctx.font='700 '+fsPl+'px '+F; const w=ctx.measureText(s.nome.toUpperCase()).width+fsPl*1.4;
+    ctx.fillStyle=C.placa; escRR(ctx,cx-w/2,cy-fsPl*.8,w,fsPl*1.6,fsPl*.35); ctx.fill();
+    txt(s.nome.toUpperCase(),cx,cy+.5,s.id===ESC.sala?C.brand2:C.placaTxt,fsPl,700); });
+  /* móveis */
+  ESC_MOVEIS.forEach(o=>{ const {x,y}=o;
+    if(o.t==='planta'){ R(x+.3,y+.55,.4,.4,C.vaso); O(x+.5,y+.42,.3,C.planta2); O(x+.36,y+.3,.2,C.planta); O(x+.64,y+.28,.2,C.planta); O(x+.5,y+.18,.16,C.planta); }
+    else if(o.t==='reuniao'){ for(let i=0;i<3;i++){ R(x+1.2+i*2,y-.75,.6,.55,C.cadeira); R(x+1.2+i*2,y+o.h+.2,.6,.55,C.cadeira); }
+      R(x-.8,y+1.2,.55,.6,C.cadeira); R(x-.8,y+3,.55,.6,C.cadeira); R(x+o.w+.25,y+1.2,.55,.6,C.cadeira); R(x+o.w+.25,y+3,.55,.6,C.cadeira);
+      ctx.fillStyle=C.madMesa; escRR(ctx,(x+.1)*T,(y+.1)*T,(o.w-.2)*T,(o.h-.45)*T,.6*T); ctx.fill();
+      R(x+.5,y+o.h-.4,o.w-1,.25,C.madMesaF);
+      [[1.4,1],[3.4,1],[5,2.6],[2.2,2.6]].forEach(([a,b])=>{ R(x+a,y+b,.6,.4,C.monitor); R(x+a+.05,y+b+.05,.5,.25,C.tela); }); }
+    else if(o.t==='sofa'){ R(x,y+.1,o.w,.85,C.sofa); R(x,y+.1,o.w,.3,C.sofa2); R(x,y+.1,.22,.85,C.sofa2); R(x+o.w-.22,y+.1,.22,.85,C.sofa2); }
+    else if(o.t==='balcao'){ R(x,y,o.w,o.h,C.mesa); R(x,y,.15,o.h,C.mesaF); R(x+.6,y+.3,.7,.7,C.monitor); R(x+.75,y+.45,.4,.25,C.tela); O(x+1,y+1.8,.15,C.caneca); O(x+1.3,y+2.3,.15,C.papel); }
+    else if(o.t==='mesinha'){ ctx.fillStyle=C.madMesa; escRR(ctx,(x+.1)*T,(y+.1)*T,(o.w-.2)*T,.75*T,.3*T); ctx.fill(); O(x+.6,y+.45,.12,C.papel); O(x+1.4,y+.45,.12,C.caneca); }
+    else if(o.t==='recepcao'){ R(x,y+.05,o.w,.7,C.mesa); R(x,y+.75,o.w,.22,C.mesaF); R(x+1.2,y-.1,.6,.4,C.monitor); R(x+1.26,y-.05,.48,.28,C.tela);
+      txt('RECEPÇÃO',(x+o.w/2)*T,(y+1.45)*T,C.placa,Math.max(9*d,T*.24),700); } });
+  /* mesas: tampo, monitor, teclado, cadeira e a plaquinha com o nome do dono */
+  const donos=new Map(); escMesas().forEach((m,u)=>donos.set(m,u));
+  const sentados=new Set(); [[ESC.eu.x,ESC.eu.y]].concat([...ESC.pares.values()].map(o=>[o.dx,o.dy])).forEach(([a,b])=>{ const m=escNaCadeira(a,b); if(m) sentados.add(m); });
+  const fsN=Math.max(8.5*d,T*.2);
+  ESC_MESAS.forEach(m=>{ const {x,y}=m; if(x>x1+2||x<x0-2||y>y1+2||y<y0-2) return;
+    R(x+.75,y+1.05,.5,.28,C.cadeira2); R(x+.7,y+1.3,.6,.42,C.cadeira);
+    R(x+.05,y+.05,1.9,.72,C.mesa); R(x+.05,y+.77,1.9,.2,C.mesaF);
+    R(x+.68,y-.18,.64,.46,C.monitor); R(x+.74,y-.13,.52,.32,C.tela); R(x+.94,y+.28,.12,.1,C.monitor); R(x+.7,y+.44,.6,.15,C.teclado);
+    const h=escHash(m.sala+m.i); if(h%3===0) R(x+.25,y+.3,.16,.2,C.caneca); if(h%2===0) R(x+1.5,y+.22,.3,.36,C.papel);
+    /* plaquinha do dono na mesa vazia (sentado, o nome já está em cima da cabeça) */
+    const u=donos.get(m); if(u&&!sentados.has(m)){ const n=primeiroNome(tkNomeUser(u)||(escMe()&&escMe().id===u?escMe().nome:''))||''; if(n) txt(n,(x+1)*T,(y+.87)*T,C.placa,fsN,700); } });
+  /* destino do clique */
+  if(ESC.caminho.length){ const q=ESC.caminho[ESC.caminho.length-1]; ctx.strokeStyle=C.brand2; ctx.lineWidth=2*d; ctx.beginPath(); ctx.ellipse(q.x*T,(q.y+.3)*T,T*.3,T*.12,0,0,Math.PI*2); ctx.stroke(); }
+  /* gente, de trás pra frente */
+  const me=escMe(), gente=[];
+  ESC.pares.forEach((o,u)=>gente.push({u,nome:tkNomeUser(u)||'Colega',x:o.dx,y:o.dy,st:o.st,ag:o.ag,v:o.v,dir:o.dir||'down',anda:!!o.anda}));
+  gente.push({u:me.id,nome:me.nome,x:ESC.eu.x,y:ESC.eu.y,st:escStEfetivo(),v:true,dir:ESC.eu.dir||'down',anda:!!ESC.euAnda,eu:true});
+  gente.sort((a,b)=>a.y-b.y);
+  const quadro=Math.floor((t||0)/140)%2;
+  gente.forEach(p=>{ const sent=!p.anda&&escNaCadeira(p.x,p.y); escBoneco(ctx,p.x*T,(p.y+.3)*T,T,escVisual(p.u,p.nome),sent?'up':p.dir,p.anda,!!sent,quadro,p.v?1:.5,p.u===ESC.card); });
+  gente.forEach(p=>{ const sent=!p.anda&&escNaCadeira(p.x,p.y), topo=(p.y+.3-(sent?1.12:1.22))*T;
+    const rot=(primeiroNome(p.nome)||'Colega')+(p.st&&p.st!=='ok'?' · '+ESC_ST[p.st]:'');
+    const hT=escTag(ctx,p.x*T,topo,rot,C.st[p.st]||C.st.ok,T,d,F,p.v?1:.6,p.eu);
+    const b=ESC.bolhas.get(p.u); if(b) escBolha(ctx,p.x*T,topo-hT-4*d,b.txt,T,d,F); });
 }
-function escPainel(){
-  const me=escMe(), $q=(id)=>document.getElementById(id);
-  const outros=[...ESC.pares.entries()].map(([u,o])=>({u,x:o.dx,y:o.dy,st:o.st,v:o.v,nome:primeiroNome(tkNomeUser(u))||'Colega'}));
-  const a=escPerto(ESC.eu,outros,2.5), ka=a?a.u:'';
-  if(ka!==(ESC.perto?ESC.perto.u:'')){ ESC.perto=a; const b=$q('escPerto'); if(b){ b.hidden=!a; if(a) $q('escPertoTxt').textContent='Perto de você: '+a.nome+(a.v?'':' (em outra tela)'); } }
-  const sala=escSalaDe(ESC.eu.x,ESC.eu.y);
-  const chave=JSON.stringify([sala.id,ESC.ok,ESC.linksErro,ESC.links&&ESC.links[sala.id],ESC.eu.st,outros.map(o=>[o.u,escSalaDe(o.x,o.y).id,o.st,o.v])]);
-  if(chave===ESC.painel) return; ESC.painel=chave;
-  $q('escSalaNome').textContent=sala.nome; $q('escSalaDesc').textContent=sala.desc;
-  const lk=$q('escLk'), link=ESC.links?ESC.links[sala.id]:'', master=me.role==='master';
-  lk.innerHTML=sala.id==='recepcao'?'<span class="esc-p">Entre numa sala para a chamada dela.</span>'
-    :(escLinkOk(link)?`<a class="btn small" href="${esc(link)}" target="_blank" rel="noopener">Entrar na chamada da sala</a>`
-      :`<span class="btn small" aria-disabled="true">${ESC.linksErro?'Não deu para carregar a chamada':'Chamada ainda não configurada'}</span>`)
-     +(master&&sala.id!=='recepcao'&&!ESC.linksErro?`<button type="button" class="btn small ghost" onclick="escTrocarLink('${sala.id}')">Trocar link</button>`:'');
-  const av=$q('escAviso');
-  if(av){ const msg=!ESC.ok?'Ao vivo desconectado agora, tentando de novo. Enquanto isso você só vê o seu bonequinho.':'';
-    av.hidden=!msg; av.textContent=msg; }
-  const por={}; outros.forEach(o=>{ const s=escSalaDe(o.x,o.y).id; (por[s]=por[s]||[]).push(o); });
-  (por[sala.id]=por[sala.id]||[]).unshift({u:me.id,st:ESC.eu.st,v:true,nome:'Você',voce:true});
-  const ul=$q('escLista'); ul.textContent='';
-  [ESC_CORREDOR].concat(ESC_SALAS).forEach(s=>{ const g=por[s.id]||[]; const li=document.createElement('li');
-    const b=document.createElement('button'); b.type='button'; b.className='esc-ir'; b.onclick=()=>window.escIrSala(s.id);
-    const n1=document.createElement('span'); n1.textContent=s.nome; const n2=document.createElement('span'); n2.className='n'; n2.textContent=g.length?String(g.length):'vazia';
-    b.append(n1,n2); li.append(b);
-    if(g.length){ const dv=document.createElement('div'); dv.className='esc-gente';
-      g.forEach(o=>{ const sp=document.createElement('span'); sp.className='esc-p'+(o.voce?' vc':'')+(o.v?'':' fora');
-        sp.title=(o.voce?'Você':tkNomeUser(o.u))+' · '+ESC_ST[o.st]+(o.v?'':' · logado, em outra tela');
-        sp.innerHTML=avatar(o.u,o.voce?me.nome:tkNomeUser(o.u),'sm');
-        const dot=document.createElement('span'); dot.className='dot'; dot.style.background='var('+escCorSt(o.st)+')';
-        const t=document.createElement('span'); t.textContent=o.nome; sp.append(dot,t); dv.append(sp); });
-      li.append(dv); }
-    ul.append(li); });
+function escBoneco(ctx,px,py,T,v,dir,anda,sentado,quadro,alpha,sel){
+  const C=ESC.cores, u=T; ctx.save(); ctx.globalAlpha=alpha;
+  const R=(x,y,w,h,c)=>{ ctx.fillStyle=c; const X=Math.round(px+x*u), Y=Math.round(py+y*u); ctx.fillRect(X,Y,Math.max(1,Math.round(px+(x+w)*u)-X),Math.max(1,Math.round(py+(y+h)*u)-Y)); };
+  ctx.fillStyle=C.sombra; ctx.beginPath(); ctx.ellipse(px,py,.27*u,.09*u,0,0,Math.PI*2); ctx.fill();
+  if(sel){ ctx.strokeStyle=C.brand2; ctx.lineWidth=Math.max(2,u*.06); ctx.beginPath(); ctx.ellipse(px,py,.38*u,.14*u,0,0,Math.PI*2); ctx.stroke(); }
+  const pulo=anda&&quadro?-.03:0;
+  if(!sentado){ const a=anda?(quadro?.05:-.05):0;
+    R(-.15,-.24+Math.max(0,a),.12,.22-Math.max(0,a),v.calca); R(.03,-.24+Math.max(0,-a),.12,.22-Math.max(0,-a),v.calca);
+    R(-.16,-.04,.14,.05,C.sapato); R(.02,-.04,.14,.05,C.sapato); }
+  const by=(sentado?-.5:-.6)+pulo;
+  R(-.22,by,.44,.38,v.camisa); R(-.22,by+.3,.44,.08,'rgba(0,0,0,.12)');
+  const braco=anda&&!sentado?(quadro?.04:-.04):0;
+  R(-.3,by+.04+braco,.08,.26,v.camisa); R(.22,by+.04-braco,.08,.26,v.camisa);
+  R(-.3,by+.3+braco,.08,.07,v.pele); R(.22,by+.3-braco,.08,.07,v.pele);
+  const hy=by-.19;
+  ctx.fillStyle=v.pele; ctx.beginPath(); ctx.arc(px,py+hy*u,.21*u,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=v.cabelo;
+  if(dir==='up'){ ctx.beginPath(); ctx.arc(px,py+hy*u,.22*u,0,Math.PI*2); ctx.fill(); if(v.estilo===1) R(-.22,hy,.44,.24,v.cabelo); }
+  else { ctx.beginPath(); ctx.arc(px,py+(hy-.02)*u,.22*u,Math.PI,0); ctx.fill(); R(-.22,hy-.04,.44,.08,v.cabelo);
+    if(v.estilo===1){ R(-.23,hy-.02,.08,.26,v.cabelo); R(.15,hy-.02,.08,.26,v.cabelo); }
+    if(dir==='left') R(.08,hy-.04,.14,.16,v.cabelo); if(dir==='right') R(-.22,hy-.04,.14,.16,v.cabelo);
+    const ol=C.olho;
+    if(dir==='down'){ R(-.1,hy+.03,.05,.06,ol); R(.05,hy+.03,.05,.06,ol); }
+    else if(dir==='left'){ R(-.14,hy+.03,.05,.06,ol); R(-.03,hy+.03,.05,.06,ol); }
+    else { R(-.02,hy+.03,.05,.06,ol); R(.09,hy+.03,.05,.06,ol); } }
+  if(v.estilo===2){ ctx.beginPath(); ctx.arc(px,py+(hy-.24)*u,.08*u,0,Math.PI*2); ctx.fill(); }
+  ctx.restore(); }
+/* etiqueta em cima da cabeça: bolinha do status + nome (+ status quando não é Disponível) */
+function escTag(ctx,px,base,texto,cor,T,d,F,alpha,eu){ const C=ESC.cores, fs=Math.max(11*d,T*.3), h=fs*1.6, dot=fs*.55, pad=fs*.6;
+  ctx.save(); ctx.globalAlpha=alpha; ctx.font=(eu?700:600)+' '+fs+'px '+F; const tw=ctx.measureText(texto).width, w=tw+dot+pad*2.5;
+  const x=Math.round(px-w/2), y=Math.round(base-h);
+  ctx.fillStyle=C.tag; escRR(ctx,x,y,w,h,h/2); ctx.fill();
+  if(eu){ ctx.strokeStyle=C.brand2; ctx.lineWidth=Math.max(1.5,d*1.2); ctx.stroke(); }
+  ctx.fillStyle=cor; ctx.beginPath(); ctx.arc(x+pad+dot/2,y+h/2,dot/2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=C.tagTxt; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(texto,x+pad+dot+pad*.6,y+h/2+.5);
+  ctx.restore(); return h; }
+function escBolha(ctx,px,base,texto,T,d,F){ const C=ESC.cores, fs=Math.max(11*d,T*.3), h=fs*1.8, pad=fs*.7;
+  ctx.save(); ctx.font='700 '+fs+'px '+F; const w=ctx.measureText(texto).width+pad*2, x=Math.round(px-w/2), y=Math.round(base-h);
+  ctx.fillStyle=C.bolha; escRR(ctx,x,y,w,h,fs*.5); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(px-fs*.35,y+h-1); ctx.lineTo(px+fs*.35,y+h-1); ctx.lineTo(px,y+h+fs*.45); ctx.closePath(); ctx.fill();
+  ctx.fillStyle=C.bolhaTxt; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(texto,px,y+h/2+.5); ctx.restore(); }
+
+/* ---------- interface por cima do mapa ---------- */
+const escHH=(ms)=>{ const x=new Date(ms); return String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0'); };
+function escStatusMenuHtml(){ const atual=ESC.eu.st, me=escMe(), c=me&&ESC.ag[me.id];
+  const desc={ok:'Acenos e chamadas tocam no seu computador.',ocupado:'Chega sem som e sem janela; você vê quando voltar.',
+    reuniao:'Igual a Ocupado. Entra sozinho nos compromissos da agenda.',ausente:'Longe do computador.'};
+  const g=!c||c.carregando&&!c.em?'<div class="hint">Lendo a sua agenda Google…</div>'
+    :(c.con===false?'<div class="hint">Conecte a agenda Google e o Em reunião entra sozinho na hora dos seus compromissos.<br><button type="button" class="btn small" onclick="escConectarAgenda()">Conectar Google Agenda</button></div>'
+    :(c.con?'<div class="hint">Agenda Google conectada: Em reunião entra sozinho na hora dos seus compromissos.</div>':'<div class="hint">Não deu para ler a agenda agora. Tento de novo em 5 minutos.</div>'));
+  return Object.keys(ESC_ST).map(k=>`<button type="button" class="esc-op" role="menuitemradio" aria-checked="${atual===k}" data-st="${k}"><span class="esc-dot ${k}"></span><b>${ESC_ST[k]}</b><small>${desc[k]}</small></button>`).join('')+g; }
+window.escConectarAgenda=()=>{ escMenuSt(false); if(typeof mpGConectar==='function') mpGConectar(); else toast('Conecte a agenda pelo Modo Pessoal.');
+  const me=escMe(); if(me) setTimeout(()=>escAgenda(me.id,true),30000); };
+function escMenuSt(abrir){ const m=document.getElementById('escStMenu'), b=document.getElementById('escEuBtn'); ESC.menuSt=!!abrir&&!!m;
+  if(!m) return; m.hidden=!ESC.menuSt; if(b) b.setAttribute('aria-expanded',String(ESC.menuSt));
+  if(ESC.menuSt){ m.innerHTML=escStatusMenuHtml(); m.querySelectorAll('.esc-op').forEach(o=>o.onclick=(e)=>{ e.stopPropagation(); escStatus(o.dataset.st); escMenuSt(false); });
+    const p=m.querySelector('[aria-checked="true"]'); if(p) p.focus(); } }
+function escStatus(v){ if(!ESC_ST[v]||!ESC.eu) return; ESC.eu.st=v; escMudou(); ESC.sujo=true; ESC.uiSig=''; ESC.cardSig=''; escTrack(); escPintarSt(); escPerdidosVer(); }
+window.escStatus=escStatus;
+function escPessoas(on){ ESC.pessOn=!!on; const p=document.getElementById('escPess'), b=document.getElementById('escPessBtn'), st=document.getElementById('escStage');
+  if(p) p.hidden=!ESC.pessOn; if(b) b.setAttribute('aria-pressed',String(ESC.pessOn)); if(st) st.classList.toggle('pess-on',ESC.pessOn); ESC.uiSig=''; }
+window.escPessoas=escPessoas;
+function escCardAbrir(uid){ ESC.card=uid; ESC.cardSig=''; const me=escMe(); if(uid&&me) escAgenda(uid).catch(()=>{}); ESC.sujo=true; }
+function escCardFechar(){ ESC.card=''; ESC.cardSig=''; const c=document.getElementById('escCard'); if(c){ c.hidden=true; c.innerHTML=''; } ESC.sujo=true; }
+window.escCardAbrir=escCardAbrir; window.escCardFechar=escCardFechar;
+/* agenda do dia no cartão: das 7h às 21h, rolada até a hora de agora */
+const ESC_AG_INI=7, ESC_AG_FIM=21, ESC_AG_PX=38;
+function escAgHtml(uid,eu){ const c=ESC.ag[uid];
+  if(!c||(!c.em&&c.carregando)) return '<div class="esc-ag"><div class="esc-ag-h"><span>Agenda de hoje</span></div><div class="esc-ag-vz">Carregando a agenda…</div></div>';
+  if(c.con===false) return `<div class="esc-ag"><div class="esc-ag-h"><span>Agenda de hoje</span></div><div class="esc-ag-vz">${eu?'Sua agenda Google não está conectada. Conectada, o Em reunião entra sozinho na hora dos compromissos.':'A agenda Google desta pessoa não está conectada.'}</div>${eu?'<div><button type="button" class="btn small" onclick="escConectarAgenda()">Conectar Google Agenda</button></div>':''}</div>`;
+  const hoje=new Date(); hoje.setHours(0,0,0,0); const z=hoje.getTime(), pos=(ms)=>((ms-z)/3600000-ESC_AG_INI)*ESC_AG_PX, agora=Date.now();
+  const lim=(v)=>Math.max(0,Math.min((ESC_AG_FIM-ESC_AG_INI)*ESC_AG_PX,v));
+  const n=c.blocos.filter(b=>b.f>agora).length;
+  let h=`<div class="esc-ag"><div class="esc-ag-h"><span>Agenda de hoje</span><small>${c.erro&&!c.blocos.length?'não deu para ler agora':(n?n+(n===1?' compromisso pela frente':' compromissos pela frente'):'nada mais hoje')}</small></div>
+    <div class="esc-ag-box"><div class="esc-ag-dia" style="height:${(ESC_AG_FIM-ESC_AG_INI)*ESC_AG_PX+12}px">`;
+  for(let i=ESC_AG_INI;i<=ESC_AG_FIM;i++) h+=`<div class="esc-ag-hr" style="top:${(i-ESC_AG_INI)*ESC_AG_PX+6}px"><span>${i}h</span></div>`;
+  c.blocos.forEach(b=>{ const t=lim(pos(b.i)), f=lim(pos(b.f)); if(f-t<2) return;
+    h+=`<div class="esc-ag-b" style="top:${t+6}px;height:${Math.max(18,f-t-2)}px">${eu?'Compromisso':'Ocupado'}<small>${escHH(b.i)} - ${escHH(b.f)}</small></div>`; });
+  const pa=pos(agora); if(pa>=0&&pa<=(ESC_AG_FIM-ESC_AG_INI)*ESC_AG_PX) h+=`<div class="esc-ag-agora" style="top:${pa+6}px"><span>${escHH(agora)}</span></div>`;
+  return h+'</div></div></div>'; }
+function escCardHtml(uid){ const me=escMe(), eu=uid===me.id, o=eu?null:ESC.pares.get(uid), on=eu||!!o;
+  const nome=eu?me.nome:(tkNomeUser(uid)||'Colega'), pn=primeiroNome(nome)||'a pessoa';
+  const st=eu?escStEfetivo():(o?o.st:''), ag=eu?escPelaAgenda():!!(o&&o.ag);
+  const sala=on?(eu?escSalaDe(ESC.eu.x,ESC.eu.y):escSalaDe(o.dx,o.dy)):null;
+  const mesa=escMesas().get(uid), sm=mesa&&ESC_SALAS.find(s=>s.id===mesa.sala), master=me.role==='master';
+  const linha=on?`<span class="esc-dot ${st}"></span>${ESC_ST[st]}${ag?' (agenda)':''} · ${esc(sala.nome)}${o&&!o.v?' · em outra tela':''}`
+    :`<span class="esc-dot off"></span>Fora do escritório${sm?' · mesa no '+esc(sm.nome):''}`;
+  let h=`<div class="esc-ct">${avatar(uid,nome)}<div class="tx"><b>${esc(nome)}</b><span>${linha}</span></div>
+    <button type="button" class="esc-x" aria-label="Fechar" onclick="escCardFechar()">${ESC_IC.x}</button></div>`;
+  if(eu){ h+=`<div class="esc-acoes"><button type="button" class="btn secondary" onclick="event.stopPropagation();escMenuSt(true)"><span class="esc-dot ${st}"></span>Mudar status</button>
+      <button type="button" class="esc-db" title="Voltar para a sua mesa" aria-label="Voltar para a sua mesa" onclick="document.getElementById('escMesaBtn').click()">${ESC_IC.mesa}</button></div>
+      <p class="esc-cdica">${ESC_QUIETO[st]?'Acenos e chamadas chegam quietos enquanto estiver '+ESC_ST[st].toLowerCase()+'.':'Acenos e chamadas tocam no seu computador.'}</p>`; }
+  else { const quieto=on&&ESC_QUIETO[st];
+    h+=`<div class="esc-acoes"><button type="button" class="btn" ${on?'':'disabled'} onclick="escAcenar('${uid}')">${ESC_IC.mao}Acenar</button>
+      <button type="button" class="esc-db" ${on?'':'aria-disabled="true"'} title="Chamar para a chamada da sala" aria-label="Chamar para a chamada da sala" onclick="${on?`escChamar('${uid}')`:''}">${ESC_IC.video}</button>
+      <button type="button" class="esc-db" title="${on?'Ir até '+esc(pn):'Ir até a mesa'}" aria-label="${on?'Ir até '+esc(pn):'Ir até a mesa'}" onclick="escIrAteCard('${uid}')">${ESC_IC.ir}</button>
+      ${master?`<button type="button" class="esc-db" title="Mudar a mesa" aria-label="Mudar a mesa" onclick="escMudarMesa('${uid}')">${ESC_IC.pts}</button>`:''}</div>
+      <p class="esc-cdica">${!on?'Só dá para acenar para quem está no escritório agora.':(quieto?esc(pn)+' está '+ESC_ST[st].toLowerCase()+': o aviso chega sem som e sem janela, e aparece quando ficar disponível.':'O aceno toca e abre uma janelinha no computador de '+esc(pn)+'.')}</p>`; }
+  return h+escAgHtml(uid,eu); }
+window.escIrAteCard=(uid)=>{ const o=ESC.pares.get(uid); if(o){ escIrPara(o.dx,o.dy+1); return; }
+  const m=escMesas().get(uid); if(m) escIrPara(m.sx,m.sy+1); };
+window.escMenuSt=escMenuSt;
+window.escMudarMesa=(uid)=>{ const me=escMe(); if(!me||me.role!=='master') return; const nome=primeiroNome(tkNomeUser(uid))||'a pessoa';
+  const mesas=escMesas(), atual=mesas.get(uid), k=(m)=>m.sala+':'+m.i;
+  const presas=new Set((ESC.gravadas||[]).filter(r=>r.pessoa!==uid).map(r=>r.sala+':'+r.mesa)); mesas.forEach((m,u)=>{ if(u!==uid) presas.add(k(m)); });
+  const livre=(sid)=>ESC_MESAS.filter(m=>m.sala===sid&&!presas.has(k(m)));
+  const salas=ESC_SALAS.filter(s=>s.mesas);
+  modal('Mesa de '+esc(nome),`<div class="field"><label for="escMesaSala">Sala</label><select id="escMesaSala">${salas.map(s=>{ const n=livre(s.id).length, aqui=atual&&atual.sala===s.id;
+      return `<option value="${s.id}"${aqui?' selected':''}${n||aqui?'':' disabled'}>${esc(s.nome)}${aqui?' · mesa atual':' · '+n+(n===1?' mesa livre':' mesas livres')}</option>`; }).join('')}</select></div>
+    <div class="hint">É onde ${esc(nome)} começa o dia. Fica com a primeira mesa livre da sala.</div>`,
+    async()=>{ const sid=String((document.getElementById('escMesaSala')||{}).value||''); if(atual&&atual.sala===sid) return true;
+      const m=livre(sid)[0]; if(!m){ toast('Essa sala está sem mesa livre.'); return false; }
+      const {error}=await sb.from('escritorio_mesas').upsert({pessoa:uid,sala:sid,mesa:m.i,atualizado_em:new Date().toISOString(),atualizado_por:me.id});
+      if(error){ toast('Não salvei: '+error.message); return false; }
+      await escCarregarMesas(); toast('Mesa de '+nome+' agora em '+((ESC_SALAS.find(s=>s.id===sid)||{}).nome||'')+'.'); return true; }); };
+function escUI(){
+  const me=escMe(), $q=(id)=>document.getElementById(id); if(!me||!ESC.eu) return;
+  const sala=escSalaDe(ESC.eu.x,ESC.eu.y), st=escStEfetivo(), ag=escPelaAgenda(), c=ESC.ag[me.id], bloco=ag&&c?escNoBloco(c.blocos,Date.now()):null;
+  const outros=[...ESC.pares.entries()].map(([u,o])=>({u,o,sala:escSalaDe(o.dx,o.dy).id}));
+  const perm=('Notification' in window)?Notification.permission:'';
+  const sig=JSON.stringify([sala.id,ESC.ok,ESC.linksErro,ESC.links&&ESC.links[sala.id],st,ag,bloco&&bloco.f,ESC.eu.st,escSomOn(),perm,ESC.perdidos.length,ESC.pessOn,
+    outros.map(x=>[x.u,x.sala,x.o.st,x.o.v]),ESC.mesasSig,me.foto?1:0]);
+  if(sig!==ESC.uiSig){ ESC.uiSig=sig;
+    const master=me.role==='master';
+    $q('escOnde').innerHTML=`<span>Você está em</span><b>${esc(sala.nome)}</b>`+(master&&sala.id!=='recepcao'&&!ESC.linksErro?`<button type="button" class="btn small ghost" onclick="escTrocarLink('${sala.id}')">Trocar link</button>`:'');
+    const av=$q('escAviso'); const msg=!ESC.ok?'Ao vivo desconectado, tentando de novo. Enquanto isso só aparece você.':'';
+    av.hidden=!msg; av.textContent=msg;
+    $q('escEuBtn').innerHTML=`${avatar(me.id,me.nome)}<span class="tx"><b>${esc(primeiroNome(me.nome)||me.nome)}</b><span><span class="esc-dot ${st}"></span>${ESC_ST[st]}${bloco?' até '+escHH(bloco.f):''}</span></span>${ESC_IC.seta}`;
+    if(ESC.menuSt){ const m=$q('escStMenu'); if(m){ m.innerHTML=escStatusMenuHtml(); m.querySelectorAll('.esc-op').forEach(o=>o.onclick=(e)=>{ e.stopPropagation(); escStatus(o.dataset.st); escMenuSt(false); }); } }
+    const link=ESC.links&&ESC.links[sala.id], cb=$q('escCall'), temLink=sala.id!=='recepcao'&&escLinkOk(link);
+    cb.setAttribute('aria-disabled',String(!temLink)); cb.title=sala.id==='recepcao'?'Entre numa sala para usar a chamada dela':(temLink?'Entrar na chamada da '+sala.nome:'A chamada da '+sala.nome+' ainda não foi configurada');
+    const som=escSomOn(), sb2=$q('escSom'); sb2.innerHTML=som?ESC_IC.sino:ESC_IC.mudo; sb2.setAttribute('aria-pressed',String(!som));
+    sb2.title=(som?'Som dos avisos ligado':'Som dos avisos desligado')+(perm==='granted'?' · aviso do navegador permitido':(perm==='denied'?' · o navegador bloqueou os avisos':' · clique para permitir o aviso do navegador'));
+    sb2.setAttribute('aria-label',sb2.title);
+    $q('escPessN').textContent=String(outros.length+1);
+    $q('escPerm').hidden=perm!=='default';
+    if(ESC.pessOn) escListaPessoas(outros,sala.id); }
+  /* cartão */
+  const card=$q('escCard'); if(!card) return;
+  if(!ESC.card){ if(!card.hidden){ card.hidden=true; card.innerHTML=''; } return; }
+  const o=ESC.pares.get(ESC.card), a=ESC.ag[ESC.card];
+  const cs=JSON.stringify([ESC.card,!!o,o&&o.st,o&&o.ag,o&&o.v,o&&escSalaDe(o.dx,o.dy).id,a&&a.em,a&&a.con,ESC.card===me.id?[st,sala.id]:0,Math.floor(Date.now()/60000),ESC.mesasSig]);
+  if(cs===ESC.cardSig) return; ESC.cardSig=cs;
+  const velho=card.querySelector('.esc-ag-box'), rolou=velho&&ESC.cardAnt===ESC.card?velho.scrollTop:null; ESC.cardAnt=ESC.card;
+  card.innerHTML=escCardHtml(ESC.card); card.hidden=false;
+  /* a agenda abre na hora de agora; depois fica onde a pessoa rolou */
+  const box=card.querySelector('.esc-ag-box'); if(box){ const h=new Date(); box.scrollTop=rolou!=null?rolou:Math.max(0,(h.getHours()+h.getMinutes()/60-ESC_AG_INI-1)*ESC_AG_PX); }
 }
+function escListaPessoas(outros,minha){ const me=escMe(), ul=document.getElementById('escLista'); if(!ul) return; ul.textContent='';
+  const por={}; outros.forEach(x=>{ (por[x.sala]=por[x.sala]||[]).push({u:x.u,st:x.o.st,v:x.o.v,ag:x.o.ag}); });
+  (por[minha]=por[minha]||[]).unshift({u:me.id,st:escStEfetivo(),v:true,eu:true});
+  const linha=(p,fora)=>{ const b=document.createElement('button'); b.type='button'; b.className='esc-pp'+(fora||!p.v?' fora':'');
+    const nome=p.eu?me.nome:(tkNomeUser(p.u)||'Colega');
+    b.innerHTML=`${avatar(p.u,nome)}<span class="tx"><b>${esc(nome)}${p.eu?' (você)':''}</b><span>${fora?'<span class="esc-dot off"></span>Fora do escritório':`<span class="esc-dot ${p.st}"></span>${ESC_ST[p.st]}${p.v?'':' · em outra tela'}`}</span></span>`;
+    b.onclick=()=>escCardAbrir(p.u); return b; };
+  [ESC_CORREDOR].concat(ESC_SALAS).forEach(s=>{ const g=por[s.id]||[]; if(!g.length) return; const li=document.createElement('li');
+    const h=document.createElement('div'); h.className='esc-sec'; const ir=document.createElement('button'); ir.type='button'; ir.textContent=s.nome; ir.title='Ir até a '+s.nome; ir.onclick=()=>window.escIrSala(s.id);
+    const n=document.createElement('span'); n.className='n'; n.textContent=String(g.length); h.append(ir,n); li.append(h);
+    g.forEach(p=>li.append(linha(p,false))); ul.append(li); });
+  const on=new Set(outros.map(x=>x.u).concat([me.id])), fora=escEquipe().filter(u=>!on.has(u.id));
+  if(fora.length){ const li=document.createElement('li'); const h=document.createElement('div'); h.className='esc-sec';
+    h.innerHTML=`<span>Fora do escritório</span><span class="n">${fora.length}</span>`; li.append(h);
+    fora.forEach(u=>li.append(linha({u:u.id},true))); ul.append(li); } }
 window.escTrocarLink=(id)=>{ const me=escMe(); if(!me||me.role!=='master') return; const s=ESC_SALAS.find(x=>x.id===id); if(!s) return;
   const atual=(ESC.links&&ESC.links[id])||'';
   modal('Link da chamada: '+esc(s.nome),`<div class="field"><label for="escLkIn">Link</label><input id="escLkIn" value="${esc(atual)}" placeholder="https://meet.google.com/..."></div>
-    <div class="hint">Todo mundo que clicar em Entrar na chamada desta sala cai neste link. Pode ser Google Meet, Jitsi ou outro, começando com https://.</div>`,
+    <div class="hint">Todo mundo que clicar em Chamada da sala nesta sala, ou for chamado daqui, cai neste link. Pode ser Google Meet, Jitsi ou outro, começando com https://.</div>`,
     async()=>{ const v=String((document.getElementById('escLkIn')||{}).value||'').trim();
       if(v&&!escLinkOk(v)){ toast('O link precisa começar com https:// e não pode ter espaço.'); return false; }
       const {error}=await sb.from('escritorio_salas').upsert({id,link:v,atualizado_em:new Date().toISOString(),atualizado_por:me.id});
       if(error){ toast('Não salvei: '+error.message); return false; }
-      if(!ESC.links) ESC.links={}; ESC.links[id]=v; ESC.painel=''; toast(v?'Link da '+s.nome+' salvo.':'Link da '+s.nome+' removido.'); return true; });
+      if(!ESC.links) ESC.links={}; ESC.links[id]=v; ESC.uiSig=''; toast(v?'Link da '+s.nome+' salvo.':'Link da '+s.nome+' removido.'); return true; });
 };
 </script>
 <script src="crm.js?v=30" defer></script>
